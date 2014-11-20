@@ -1,3 +1,15 @@
+"""
+pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its
+own dedicated window. Works under OSX and Linux and compatible with Python 2 and s3.
+
+Licensed under BSD license
+
+http://github.com/r0x0r/pywebview/
+
+(C) 2014 Roman Sirokov
+"""
+
+
 import threading
 import platform
 import sys
@@ -76,7 +88,7 @@ def load_url(url):
 def create_window(title, url, width=800, height=600, resizable=True):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
-    program logic must be executed as a separate thread.
+    program logic must be executed in a separate thread.
     :param title: Window title
     :param url: URL to load
     :param width: Optional window width (default: 800px)
@@ -223,16 +235,4 @@ def _create_window_qt(title, url, width, height, resizable):
     _browser_view.move(QApplication.desktop().availableGeometry().center() - _browser_view.rect().center())
     _browser_view.show()
     sys.exit(app.exec_())
-
-
-def load():
-    import time
-    time.sleep(10)
-    load_url("http://www.html5zombo.com/")
-
-if __name__ == '__main__':
-    t = threading.Thread(target=load)
-    #t.start()
-
-    create_window("Test", "http://www.google.com", resizable=True)
 
