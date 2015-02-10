@@ -17,7 +17,7 @@ from comtypes import IUnknown, STDMETHOD, GUID
 from comtypes.client import wrap, GetModule, CreateObject, GetEvents, PumpEvents
 
 """
-HERE BE DRAGONS
+#herebedragons
 """
 
 GetModule('shdocvw.dll')
@@ -41,30 +41,6 @@ class WNDCLASS(Structure):
                 ('hbrBackground', c_int),
                 ('lpszMenuName', c_wchar_p),
                 ('lpszClassName', c_wchar_p)]
-
-"""
-def ErrorIfZero(handle):
-    if handle == 0:
-        raise WinError()
-    else:
-        return handle
-
-
-CreateWindowEx = windll.user32.CreateWindowExW
-CreateWindowEx.argtypes = [c_int, c_wchar_p, c_wchar_p, c_int, c_int, c_int, c_int, c_int, c_int, c_int, c_int, c_int]
-CreateWindowEx.restype = ErrorIfZero
-
-
-def _ValidHandle(value):
-    if value == 0:
-        raise WinError()
-    else:
-        return value
-
-
-GetModuleHandle = windll.kernel32.GetModuleHandleW
-GetModuleHandle.restype = _ValidHandle
-"""
 
 class BrowserView(object):
 
@@ -123,21 +99,8 @@ class BrowserView(object):
 
         return windll.user32.DefWindowProcW(c_int(hwnd), c_int(message), c_int(wParam), c_int(lParam))
 
-    # Define Window Class
-    wndclass = WNDCLASS()
-    wndclass.style = win32con.CS_HREDRAW | win32con.CS_VREDRAW
-    wndclass.lpfnWndProc = _WNDPROC(WndProc)
-    wndclass.cbClsExtra = wndclass.cbWndExtra = 0
-    wndclass.hInstance = win32api.GetModuleHandle()
-    wndclass.hIcon = _user32.LoadIconW(c_int(win32con.NULL), c_int(win32con.IDI_APPLICATION))
-    wndclass.hCursor = _user32.LoadCursorW(c_int(win32con.NULL), c_int(win32con.IDC_ARROW))
-    wndclass.hbrBackground = windll.gdi32.GetStockObject(c_int(win32con.WHITE_BRUSH))
-    wndclass.lpszMenuName = None
-    wndclass.lpszClassName = u"MainWin"
 
-    # Register Window Class
-    if not windll.user32.RegisterClassW(byref(wndclass)):
-        raise WinError()
+
 
     def __init__(self, title, url, width, height, resizable, fullscreen):
         BrowserView.instance = self
@@ -151,13 +114,33 @@ class BrowserView(object):
         self.atlhwnd = -1  # AtlAx host window hwnd
         self.browser = None  # IWebBrowser2 COM object
 
+        self._register_window()
         # In order for system events (most notably WM_DESTROY for application quite) propagate correctly, we need to
         # create two windows: AtAlxWin inside MyWin. AtlAxWin hosts MSHTML ActiveX control and MainWin receiving
         # system messages.
-        self.create_main_window()
-        self.create_atlax_window()
+        self._create_main_window()
+        self._create_atlax_window()
 
-    def create_main_window(self):
+    def _register_window(self):
+        message_map = {
+          win32con.WM_DESTROY: self._on_destroy,
+        }
+
+        self.wndclass = win32gui.WNDCLASS()
+        self.wndclass.style = win32con.CS_HREDRAW | win32con.CS_VREDRAW
+        self.wndclass.lpfnWndProc = message_map
+        #self.wndclass.cbClsExtra = self.wndclass.cbWndExtra = 0
+        self.wndclass.hInstance = win32api.GetModuleHandle()
+        self.wndclass.hCursor = _user32.LoadCursorW(c_int(win32con.NULL), c_int(win32con.IDC_ARROW))
+        self.wndclass.hbrBackground = windll.gdi32.GetStockObject(c_int(win32con.WHITE_BRUSH))
+        self.wndclass.lpszMenuName = ""
+        self.wndclass.lpszClassName = "MainWin"
+
+        # Register Window Class
+        if not win32gui.RegisterClass(self.wndclass):
+            raise WinError()
+
+    def _create_main_window(self):
         # Set window style
         style = win32con.WS_VISIBLE
         if self.resizable:
@@ -172,9 +155,9 @@ class BrowserView(object):
         y = (screen_y - self.height) / 2
 
         # Create Window
-        self.hwnd = win32gui.CreateWindowEx(0, BrowserView.wndclass.lpszClassName,
-                                   self.title, style, x, y, self.width, self.height,
-                                   None, None, BrowserView.wndclass.hInstance, None)
+        self.hwnd = win32gui.CreateWindow(self.wndclass.lpszClassName,
+                                          self.title, style, x, y, self.width, self.height,
+                                          None, None, self.wndclass.hInstance, None)
 
         # Set fullscreen
         if self.fullscreen:
@@ -184,11 +167,10 @@ class BrowserView(object):
                                  win32con.SWP_NOOWNERZORDER | win32con.SWP_FRAMECHANGED)
 
 
-
-    def create_atlax_window(self):
+    def _create_atlax_window(self):
         _atl.AtlAxWinInit()
         hInstance = win32api.GetModuleHandle(None)
-        self.atlhwnd = win32gui.CreateWindowEx(0,  "AtlAxWin", self.url,
+        self.atlhwnd = win32gui.CreateWindow("AtlAxWin", self.url,
                                       win32con.WS_CHILD | win32con.WS_HSCROLL | win32con.WS_VSCROLL,
                                       0, 0, self.width, self.height,
                                       self.hwnd, None, hInstance, None)
@@ -213,18 +195,17 @@ class BrowserView(object):
         win32gui.SetFocus(self.atlhwnd)
 
         # Pump messages
-        msg = MSG()
-        pMsg = pointer(msg)
+        win32gui.PumpMessages()
 
-        while _user32.GetMessageW(pMsg, None, 0, 0) != 0:
-            _user32.TranslateMessage(pMsg)
-            _user32.DispatchMessageW(pMsg)
-
-        return msg.wParam
 
     def load_url(self, url):
         self.url = url
         self.browser.Navigate2(url)
+
+    def _on_destroy(self, hwnd, message, wparam, lparam):
+       win32gui.PostQuitMessage(0)
+
+       return True
 
 
 
