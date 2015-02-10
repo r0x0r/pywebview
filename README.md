@@ -20,21 +20,20 @@ The BSD license
 
 ## Windows
 
-*comtypes*
+`comtypes`
 
 ## OS X 
 
-*pyobjc*
-It comes bundled with the python presinstalled in OS X. For Python 3 you have to install it separately.
+`pyobjc`. It comes bundled with the python presinstalled in OS X. For Python 3 you have to install it separately.
 
 ## Linux
 
 For GTK3 based systems
-*PyGObject*
+`PyGObject`
 
 For QT based systems
 
-Either *PyQt4* or *PyQt5*
+Either `PyQt4` or `PyQt5`
 
 
 # Usage
