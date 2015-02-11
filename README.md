@@ -68,6 +68,12 @@ Support for Chromium Embedded Framework (CEF) is planned for future versions.
 
 # Changelog
 
+## 0.6
+
+Released on 11/02/2015
+
+- `Fixed` A problem preventing from creating a window on Windows
+
 ## 0.5
 
 Released on 30/11/2014
