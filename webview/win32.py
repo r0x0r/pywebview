@@ -44,33 +44,6 @@ class WNDCLASS(Structure):
 
 class BrowserView(object):
 
-    class EventSink(object):
-
-        # some DWebBrowserEvents
-        def OnVisible(self, this, *args):
-            print "OnVisible", args
-
-        def BeforeNavigate(self, this, *args):
-            print "BeforeNavigate", args
-
-        def NavigateComplete(self, this, *args):
-            print "NavigateComplete", this, args
-            return
-
-        def OnQuit(self, this, *args):
-            print "OnQuit", args
-
-
-
-        # some DWebBrowserEvents2
-        def BeforeNavigate2(self, this, *args):
-            print "BeforeNavigate2", args
-
-        def NavigateComplete2(self, this, *args):
-            print "NavigateComplete2", args
-
-        def WindowStateChanged(self, this, *args):
-            print "WindowStateChanged", args
 
     instance = None
 
@@ -129,7 +102,6 @@ class BrowserView(object):
         self.wndclass = win32gui.WNDCLASS()
         self.wndclass.style = win32con.CS_HREDRAW | win32con.CS_VREDRAW
         self.wndclass.lpfnWndProc = message_map
-        #self.wndclass.cbClsExtra = self.wndclass.cbWndExtra = 0
         self.wndclass.hInstance = win32api.GetModuleHandle()
         self.wndclass.hCursor = _user32.LoadCursorW(c_int(win32con.NULL), c_int(win32con.IDC_ARROW))
         self.wndclass.hbrBackground = windll.gdi32.GetStockObject(c_int(win32con.WHITE_BRUSH))
@@ -151,8 +123,8 @@ class BrowserView(object):
         #  Center window on the screen
         screen_x = _user32.GetSystemMetrics(win32con.SM_CXSCREEN)
         screen_y = _user32.GetSystemMetrics(win32con.SM_CYSCREEN)
-        x = (screen_x - self.width) / 2
-        y = (screen_y - self.height) / 2
+        x = int((screen_x - self.width) / 2)
+        y = int((screen_y - self.height) / 2)
 
         # Create Window
         self.hwnd = win32gui.CreateWindow(self.wndclass.lpszClassName,
@@ -242,7 +214,11 @@ def set_ie_mode():
         :return:
         """
         ie_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'Software\Microsoft\Internet Explorer')
-        version, type = winreg.QueryValueEx(ie_key, "svcVersion")
+        try:
+            version, type = winreg.QueryValueEx(ie_key, "svcVersion")
+        except FileNotFoundError:
+            version, type = winreg.QueryValueEx(ie_key, "Version")
+
         winreg.CloseKey(ie_key)
 
         if version.startswith("11"):

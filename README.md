@@ -68,6 +68,14 @@ Support for Chromium Embedded Framework (CEF) is planned for future versions.
 
 # Changelog
 
+## 0.7
+
+Released on 08/04/2015
+
+- `Fixed` Python 3 compatibility in Win32 module (thanks @Firnagzen) #3
+- `Fixed` Floating values for window dimensions causing issues on Windows XP (thanks @Firnagzen) #4
+- `Fixed` Correct IE version registry key on Windows XP (thanks @Firnagzen) #5
+
 ## 0.6
 
 Released on 11/02/2015
