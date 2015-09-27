@@ -8,6 +8,7 @@ from Foundation import *
 from AppKit import *
 import WebKit
 
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 
 
@@ -115,6 +116,24 @@ def create_window(title, url, width, height, resizable, fullscreen):
     browser = BrowserView(title, url, width, height, resizable, fullscreen)
     browser.show()
 
+
+def create_file_dialog(dialog_type, allow_multiple):
+    openDlg = NSOpenPanel.openPanel()
+
+    # Enable the selection of files in the dialog.
+    openDlg.setCanChooseFiles_(dialog_type != FOLDER_DIALOG)
+
+    # Enable the selection of directories in the dialog.
+    openDlg.setCanChooseDirectories_(dialog_type == FOLDER_DIALOG)
+
+    # Enable / disable multiple selection
+    openDlg.setAllowsMultipleSelection_(allow_multiple)
+
+    if openDlg.runModalForDirectory_file_(None, None) == NSOKButton:
+        files = openDlg.filenames()
+        return files
+    else:
+        return None
 
 
 

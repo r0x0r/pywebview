@@ -2,7 +2,7 @@ import webview
 import threading
 
 """
-This example demonstrates creating a web view window and navigating to another web page after ten seconds
+In this example demonstrates a webview window is created and after 10 seconds URL is changed.
 """
 
 def change_url():

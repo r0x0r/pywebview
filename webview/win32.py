@@ -7,7 +7,9 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 
-import win32con, win32api, win32gui
+import win32con, win32api, win32gui, win32ui
+from win32com.shell import shell, shellcon
+import os
 import sys
 
 from ctypes import *
@@ -15,6 +17,9 @@ from ctypes.wintypes import *
 
 from comtypes import IUnknown, STDMETHOD, GUID
 from comtypes.client import wrap, GetModule, CreateObject, GetEvents, PumpEvents
+
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+
 
 """
 #herebedragons
@@ -71,8 +76,6 @@ class BrowserView(object):
             return 0
 
         return windll.user32.DefWindowProcW(c_int(hwnd), c_int(message), c_int(wParam), c_int(lParam))
-
-
 
 
     def __init__(self, title, url, width, height, resizable, fullscreen):
@@ -174,18 +177,53 @@ class BrowserView(object):
         self.url = url
         self.browser.Navigate2(url)
 
+    def create_file_dialog(self, dialog_type, allow_multiple):
+        try:
+            if dialog_type == FOLDER_DIALOG:
+                desktop_pidl = shell.SHGetFolderLocation (0, shellcon.CSIDL_DESKTOP, 0, 0)
+                pidl, display_name, image_list =\
+                    shell.SHBrowseForFolder(self.hwnd, desktop_pidl, None, 0, None, None)
+                file_path = (shell.SHGetPathFromIDList(pidl),)
+            elif dialog_type == OPEN_DIALOG:
+                file_filter = 'All Files\0*.*\0'
+                custom_filter = 'Other file types\0*.*\0'
+
+                flags = win32con.OFN_EXPLORER
+                if allow_multiple:
+                    flags = flags | win32con.OFN_ALLOWMULTISELECT
+
+                file_path, customfilter, flags = \
+                    win32gui.GetOpenFileNameW(InitialDir=os.environ['temp'], Flags=flags, File=None, DefExt='',
+                    Title='', Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
+
+                parts = file_path.split('\x00')
+
+                if len(parts) > 1:
+                    file_path = tuple([os.path.join(parts[0], file_name) for file_name in parts[1:]])
+                else:
+                    file_path = (file_path,)
+
+            return file_path
+        except:
+            return None
+
     def _on_destroy(self, hwnd, message, wparam, lparam):
        win32gui.PostQuitMessage(0)
 
        return True
 
 
-
 def create_window(title, url, width, height, resizable, fullscreen):
-    set_ie_mode()
+    _set_ie_mode()
     browser_view = BrowserView(title, url, width, height, resizable, fullscreen)
     browser_view.show()
 
+
+def create_file_dialog(dialog_type, allow_multiple):
+    if BrowserView.instance is not None:
+        return BrowserView.instance.create_file_dialog(dialog_type, allow_multiple)
+    else:
+        raise Exception("Create a web view window first, before invoking this function")
 
 
 def load_url(url):
@@ -195,7 +233,7 @@ def load_url(url):
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def set_ie_mode():
+def _set_ie_mode():
     """
     By default hosted IE control emulates IE7 regardless which version of IE is installed. To fix this, a proper value
     must be set for the executable.
@@ -234,9 +272,14 @@ def set_ie_mode():
 
         return value
 
-    browser_emulation = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                                       r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
-                                       0, winreg.KEY_ALL_ACCESS)
+    try:
+        browser_emulation = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                           r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
+                                           0, winreg.KEY_ALL_ACCESS)
+    except WindowsError:
+        browser_emulation = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER,
+                                               r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
+                                               0, winreg.KEY_ALL_ACCESS)
 
     mode = get_ie_mode()
     executable_name = sys.executable.split("\\")[-1]
