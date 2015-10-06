@@ -1,8 +1,8 @@
 # pywebview
 
-pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own dedicated window. It gives you richness of web technologies in your desktop application, all without a need to resort to an external browser. Combined with a lightweight web framework like [Flask](http://flask.pocoo.org/), [Bottle](http://bottlepy.org/docs/dev/index.html) or [web.py](http://webpy.org), you can create beautiful cross-platform HTML5 user interfaces targeting WebKit, while hiding the implementation details from the end user.
+pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you richness of web technologies in your desktop application, all without a need to resort to an external browser. Combined with a lightweight web framework like [Flask](http://flask.pocoo.org/), [Bottle](http://bottlepy.org/docs/dev/index.html) or [web.py](http://webpy.org), you can create beautiful cross-platform HTML5 user interfaces targeting WebKit, while hiding the implementation details from the end user.
 
-pywebview is lightweight with no dependencies on external GUI framwork. It uses native GUI for creating a web component window: Win32 on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you decide to convert your application to an executable format, it does not bundle a heavy GUI toolkit with it, which keeps the size of the executable small. Python 2 and 3 compatible.
+pywebview is lightweight and has no dependencies on an external GUI framwork. It uses native GUI for creating a web component window: Win32 on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you decide to convert your application to an executable format, it does not bundle a heavy GUI toolkit with it, which keeps the size of the executable small. Compatible with both Python 2 and 3.
 
 
 # License
@@ -20,11 +20,11 @@ The BSD license
 
 ## Windows
 
-`comtypes`
+`pywin32`, `comtypes`. ActiveState distribution of Python 2 comes with pywin32 preinstalled
 
 ## OS X 
 
-`pyobjc`. It comes bundled with the python presinstalled in OS X. For Python 3 you have to install it separately.
+`pyobjc`. PyObjC comes presintalled with the python bundled in OS X. For Python 3 you have to install it separately.
 
 ## Linux
 
@@ -54,19 +54,35 @@ For more elaborated usage, refer to the examples in the examples folder
 - `webview.load_url(url)`
 	Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is created with create_window(). Otherwise an exception is thrown.
 
+- `webview.create_file_dialog(dialog_type=OPEN_DIALOG, allow_multiple=False)`
+    Create an open file (`webview.OPEN_DIALOG`) or open folder (`webview.FOLDER_DIALOG`) dialog. `allow_multiple=True` enables multiple selection. Return a tuple of selected files, None if cancelled
+
 
 # What web renderer is used?
 
 For OS X and Linux systems you get WebKit. The actual version depends on the version of installed Safari on OS X and QT / GTK on Linux. Note that WebKit bundled with QT / GTK is slightly out of date comparing to the latest Safari or Chrome.
 
-For Windows, you get, well, MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. By default, when creating an embedded web component, MSHTML uses IE7 rendering mode. To overcome this feature, a registry setting is automatically modified to use the renderer of the latest installed version of Internet Explorer. Note that for Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9.
+For Windows, you get, well, MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. By default, when creating an embedded web component, MSHTML uses IE7 rendering mode. To overcome this feature, a registry setting is modified to use the latest installed version of Internet Explorer. Note that for Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9.
 
-Support for Chromium Embedded Framework (CEF) is planned for future versions.
+Support for Chromium Embedded Framework (CEF) is planned for future versions. Help with embedding CEF is welcomed.
+
+
+# How do I freeze my application?
+
+For OS X, use py2app and for Windows. For a reference setup.py, look in examples/ 
 
 
 
 
 # Changelog
+
+## 0.8
+
+Released on 06/10/2015
+
+- `New` Support for native open file / open folder dialogs
+- `Fixed` #6 FEATURE_BROWSER_EMULATION not in winreg.HKEY_CURRENT_USER. Thanks to @frip for the fix.
+
 
 ## 0.7
 

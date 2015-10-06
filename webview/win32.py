@@ -22,7 +22,7 @@ from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 
 """
-#herebedragons
+HERE BE DRAGONS
 """
 
 GetModule('shdocvw.dll')

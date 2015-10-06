@@ -2,7 +2,7 @@ import webview
 import threading
 
 """
-This example demonstrates an open file dialog.
+This example demonstrates creating an open file dialog.
 """
 
 def open_file_dialog():
@@ -15,5 +15,5 @@ if __name__ == '__main__':
     t = threading.Thread(target=open_file_dialog)
     t.start()
 
-    webview.create_window("Simple browser", "http://www.google.com")
+    webview.create_window("Simple browser", "http://www.flowrl.com")
 
