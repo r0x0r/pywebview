@@ -69,8 +69,7 @@ Support for Chromium Embedded Framework (CEF) is planned for future versions. He
 
 # How do I freeze my application?
 
-For OS X, use py2app and for Windows. For a reference setup.py, look in examples/ 
-
+For OS X, use py2app and for Windows. For a reference setup.py, look in `examples/py2app_setup.py`
 
 
 
