@@ -14,7 +14,7 @@ setup(
     author_email = "roman@flowrl.com",
     description = ("A cross-platform lightweight native wrapper around a web view component"),
     url = "http://github.com/r0x0r/pywebview",
-    download_url = 'https://github.com/r0x0r/pywebview/tarball/0.8.2',
+    download_url = 'https://github.com/r0x0r/pywebview/archive/0.8.2.tar.gz',
     keywords = ['gui', 'webkit', 'html', "web"],
     install_requires = install_requires,
     version='0.8.2',
