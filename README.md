@@ -79,7 +79,7 @@ For OS X, use py2app and for Windows. For a reference setup.py, look in `example
 
 Released on 08/10/2015
 
-- `Fixed` Pressing window close button terminates the whole program on OSX
+- `Fixed` Pressing close window button terminates the whole program on OSX
 
 ## 0.8
 
