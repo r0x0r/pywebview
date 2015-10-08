@@ -24,7 +24,7 @@ The BSD license
 
 ## OS X 
 
-`pyobjc`. PyObjC comes presintalled with the python bundled in OS X. For Python 3 you have to install it separately.
+`pyobjc`. PyObjC comes presintalled with the Python bundled in OS X. For a stand-alone Python installation you have to install it separately.
 
 ## Linux
 
@@ -74,6 +74,12 @@ For OS X, use py2app and for Windows. For a reference setup.py, look in `example
 
 
 # Changelog
+
+## 0.8.2
+
+Released on 08/10/2015
+
+- `Fixed` Pressing window close button terminates the whole program on OSX
 
 ## 0.8
 
