@@ -6,7 +6,7 @@ install_requires = []
 if platform.system() == "Windows":
     install_requires = ['comtypes', 'pywin32']
 elif platform.system() == "Darwin":
-    install_requires = ['pyobjc',]
+    install_requires = ['pyobjc']
 
 setup(
     name='pywebview',
@@ -14,10 +14,10 @@ setup(
     author_email = "roman@flowrl.com",
     description = ("A cross-platform lightweight native wrapper around a web view component"),
     url = "http://github.com/r0x0r/pywebview",
-    download_url = 'https://github.com/r0x0r/pywebview/tarball/0.8',
+    download_url = 'https://github.com/r0x0r/pywebview/tarball/0.8.2',
     keywords = ['gui', 'webkit', 'html', "web"],
     install_requires = install_requires,
-    version='0.8',
+    version='0.8.2',
     packages=['webview',],
     license='New BSD license',
     classifiers=[

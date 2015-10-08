@@ -18,7 +18,7 @@ class BrowserView:
 
     class AppDelegate(NSObject):
         def windowWillClose_(self, notification):
-            BrowserView.app.terminate_(self)
+            BrowserView.app.stop_(self)
 
     class WebKitHost(WebKit.WebView):
 
@@ -97,9 +97,6 @@ class BrowserView:
         pageurl = Foundation.NSURL.URLWithString_(url)
         req = Foundation.NSURLRequest.requestWithURL_(pageurl)
         self.webkit.mainFrame().loadRequest_(req)
-
-
-
 
 
 

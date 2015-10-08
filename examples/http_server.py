@@ -1,4 +1,5 @@
 import webview
+import sys
 import threading
 
 try:
@@ -30,4 +31,7 @@ if __name__ == '__main__':
     t.start()
 
     webview.create_window("My first HTML5 application", "http://127.0.0.1:23948")
+
+    # do clean up procedure and destroy any remaining threads after the window is destroyed
+    sys.exit()
 
