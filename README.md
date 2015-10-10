@@ -66,6 +66,14 @@ For Windows, you get, well, MSHTML (Trident) in all its glory. The version depen
 
 Support for Chromium Embedded Framework (CEF) is planned for future versions. Help with embedding CEF is welcomed.
 
+# Cache issues
+
+Web renderer might cache your code and fail to invalidate it, when it is updated. To prevent that add the following directives to the `<HEAD>` of your HTML files
+    
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="expires" content="-1">
+    
 
 # How do I freeze my application?
 
