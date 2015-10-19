@@ -50,7 +50,6 @@ For more elaborated usage, refer to the examples in the examples folder
 - `webview.create_window(title, url, width=800, height=600, resizable=True, fullscreen=False)`
 	Create a new WebView window. Calling this function will block execution, so you have to execute your program logic in a separate thread.
 
-
 - `webview.load_url(url)`
 	Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is created with create_window(). Otherwise an exception is thrown.
 
@@ -77,7 +76,7 @@ Web renderer might cache your code and fail to invalidate it, when it is updated
 
 # How do I freeze my application?
 
-For OS X, use py2app and for Windows. For a reference setup.py, look in `examples/py2app_setup.py`
+For OS X, use py2app and py2exe for Windows. For reference setup.py files, look in `examples/py2app_setup.py` and `examples\py2exe_setup.py`
 
 
 
