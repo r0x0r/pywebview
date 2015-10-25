@@ -48,35 +48,7 @@ class WNDCLASS(Structure):
                 ('lpszClassName', c_wchar_p)]
 
 class BrowserView(object):
-
-
     instance = None
-
-    def WndProc(hwnd, message, wParam, lParam):
-        if message == win32con.WM_SIZE:
-            # Resize the ATL window as the size of the main window is changed
-            if BrowserView.instance != None:
-                hwnd = BrowserView.instance.atlhwnd
-                width = win32api.LOWORD(lParam)
-                height = win32api.HIWORD(lParam)
-                _user32.SetWindowPos(hwnd, win32con.HWND_TOP, 0, 0, width, height, win32con.SWP_SHOWWINDOW)
-                _user32.ShowWindow(c_int(hwnd), c_int(win32con.SW_SHOW))
-                _user32.UpdateWindow(c_int(hwnd))
-            return 0
-
-        elif message == win32con.WM_ERASEBKGND:
-            # Prevent flickering when resizing
-            return 0
-
-        elif message == win32con.WM_CREATE:
-            pass #document = BrowserView.instance.browser.Document.QueryInterface(ICustomDoc).SetUIHandler()
-
-        elif message == win32con.WM_DESTROY:
-            _user32.PostQuitMessage(0)
-            return 0
-
-        return windll.user32.DefWindowProcW(c_int(hwnd), c_int(message), c_int(wParam), c_int(lParam))
-
 
     def __init__(self, title, url, width, height, resizable, fullscreen):
         BrowserView.instance = self
@@ -99,7 +71,9 @@ class BrowserView(object):
 
     def _register_window(self):
         message_map = {
-          win32con.WM_DESTROY: self._on_destroy,
+            win32con.WM_DESTROY: self._on_destroy,
+            win32con.WM_SIZE: self._on_resize,
+            win32con.WM_ERASEBKGND: self._on_erase_bkgnd
         }
 
         self.wndclass = win32gui.WNDCLASS()
@@ -157,8 +131,6 @@ class BrowserView(object):
         self.browser.RegisterAsBrowser = True
         self.browser.AddRef()
 
-
-
     def show(self):
         # Show main window
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNORMAL)
@@ -171,7 +143,6 @@ class BrowserView(object):
 
         # Pump messages
         win32gui.PumpMessages()
-
 
     def load_url(self, url):
         self.url = url
@@ -208,9 +179,24 @@ class BrowserView(object):
             return None
 
     def _on_destroy(self, hwnd, message, wparam, lparam):
-       win32gui.PostQuitMessage(0)
+        win32gui.PostQuitMessage(0)
 
-       return True
+        return True
+
+    def _on_resize(self, hwnd, message, wparam, lparam):
+        # Resize the ATL window as the size of the main window is changed
+        if BrowserView.instance != None:
+            atl_hwnd = BrowserView.instance.atlhwnd
+            width = win32api.LOWORD(lparam)
+            height = win32api.HIWORD(lparam)
+            _user32.SetWindowPos(atl_hwnd, win32con.HWND_TOP, 0, 0, width, height, win32con.SWP_SHOWWINDOW)
+            _user32.ShowWindow(c_int(atl_hwnd), c_int(win32con.SW_SHOW))
+            _user32.UpdateWindow(c_int(atl_hwnd))
+        return 0
+
+    def _on_erase_bkgnd(self, hwnd, message, wparam, lparam):
+        # Prevent flickering when resizing
+        return 0
 
 
 def create_window(title, url, width, height, resizable, fullscreen):
