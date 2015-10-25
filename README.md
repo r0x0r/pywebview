@@ -76,11 +76,15 @@ Web renderer might cache your code and fail to invalidate it, when it is updated
 
 # How do I freeze my application?
 
-For OS X, use py2app and py2exe for Windows. For reference setup.py files, look in `examples/py2app_setup.py` and `examples/py2exe_setup.py`
+Use py2app on OS X and py2exe on Windows. For reference setup.py files, look in `examples/py2app_setup.py` and `examples\py2exe_setup.py`
 
 
 
 # Changelog
+
+## 0.8.3
+
+- `Fixed` #10 Underlying browser does not resize with window under windows
 
 ## 0.8.2
 
