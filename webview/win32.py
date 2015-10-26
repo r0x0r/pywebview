@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 """
-(C) 2014 Roman Sirokov
+(C) 2014-2015 Roman Sirokov
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
 
-import win32con, win32api, win32gui, win32ui
+import win32con, win32api, win32gui
 from win32com.shell import shell, shellcon
 import os
 import sys
@@ -27,13 +27,12 @@ HERE BE DRAGONS
 
 GetModule('shdocvw.dll')
 
-_kernel32 = windll.kernel32
-_user32 = windll.user32
 _atl = windll.atl
-
-
-#NULL = c_int(win32con.NULL)
 _WNDPROC = WINFUNCTYPE(c_long, c_int, c_uint, c_int, c_int)
+
+# for some reason we have to set an offset for the height of ATL window in order for the vertical scrollbar to be fully
+# visible
+VERTICAL_SCROLLBAR_OFFSET = 20
 
 class WNDCLASS(Structure):
     _fields_ = [('style', c_uint),
@@ -59,6 +58,9 @@ class BrowserView(object):
         self.resizable = resizable
         self.fullscreen = fullscreen
 
+        self.scrollbar_width = win32api.GetSystemMetrics(win32con.SM_CXVSCROLL)
+        self.scrollbar_height = win32api.GetSystemMetrics(win32con.SM_CYHSCROLL)
+
         self.atlhwnd = -1  # AtlAx host window hwnd
         self.browser = None  # IWebBrowser2 COM object
 
@@ -73,15 +75,15 @@ class BrowserView(object):
         message_map = {
             win32con.WM_DESTROY: self._on_destroy,
             win32con.WM_SIZE: self._on_resize,
-            win32con.WM_ERASEBKGND: self._on_erase_bkgnd
+            win32con.WM_ERASEBKGND: self._on_erase_bkgnd,
         }
 
         self.wndclass = win32gui.WNDCLASS()
         self.wndclass.style = win32con.CS_HREDRAW | win32con.CS_VREDRAW
         self.wndclass.lpfnWndProc = message_map
         self.wndclass.hInstance = win32api.GetModuleHandle()
-        self.wndclass.hCursor = _user32.LoadCursorW(c_int(win32con.NULL), c_int(win32con.IDC_ARROW))
-        self.wndclass.hbrBackground = windll.gdi32.GetStockObject(c_int(win32con.WHITE_BRUSH))
+        self.wndclass.hCursor = win32gui.LoadCursor(win32con.NULL, win32con.IDC_ARROW)
+        self.wndclass.hbrBackground = win32gui.GetStockObject(win32con.WHITE_BRUSH)
         self.wndclass.lpszMenuName = ""
         self.wndclass.lpszClassName = "MainWin"
 
@@ -91,17 +93,16 @@ class BrowserView(object):
 
     def _create_main_window(self):
         # Set window style
-        style = win32con.WS_VISIBLE
-        if self.resizable:
-            style = style | win32con.WS_OVERLAPPEDWINDOW
-        else:
-            style = style | (win32con.WS_OVERLAPPEDWINDOW ^ win32con.WS_THICKFRAME)
+        style = win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW
+        if not self.resizable:
+            style = style ^ win32con.WS_THICKFRAME
 
         #  Center window on the screen
-        screen_x = _user32.GetSystemMetrics(win32con.SM_CXSCREEN)
-        screen_y = _user32.GetSystemMetrics(win32con.SM_CYSCREEN)
+        screen_x = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
+        screen_y = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
         x = int((screen_x - self.width) / 2)
         y = int((screen_y - self.height) / 2)
+
 
         # Create Window
         self.hwnd = win32gui.CreateWindow(self.wndclass.lpszClassName,
@@ -110,19 +111,29 @@ class BrowserView(object):
 
         # Set fullscreen
         if self.fullscreen:
-            style = _user32.GetWindowLongW(self.hwnd, win32con.GWL_STYLE)
-            _user32.SetWindowLongW(self.hwnd, win32con.GWL_STYLE, style & ~win32con.WS_OVERLAPPEDWINDOW)
-            _user32.SetWindowPos(self.hwnd, win32con.HWND_TOP, 0, 0, screen_x, screen_y,
+            self.width = screen_x
+            self.height = screen_y
+
+            style = win32gui.GetWindowLong(self.hwnd, win32con.GWL_STYLE)
+            win32gui.SetWindowLong(self.hwnd, win32con.GWL_STYLE, style & ~win32con.WS_OVERLAPPEDWINDOW)
+            win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOP, 0, 0, screen_x, screen_y,
                                  win32con.SWP_NOOWNERZORDER | win32con.SWP_FRAMECHANGED)
 
 
     def _create_atlax_window(self):
         _atl.AtlAxWinInit()
         hInstance = win32api.GetModuleHandle(None)
+
+        if self.fullscreen:
+            atl_width = self.width
+            atl_height = self.height
+        else:
+            atl_width = self.width - self.scrollbar_width
+            atl_height = self.height - self.scrollbar_height - VERTICAL_SCROLLBAR_OFFSET
+
         self.atlhwnd = win32gui.CreateWindow("AtlAxWin", self.url,
                                       win32con.WS_CHILD | win32con.WS_HSCROLL | win32con.WS_VSCROLL,
-                                      0, 0, self.width, self.height,
-                                      self.hwnd, None, hInstance, None)
+                                      0, 0, atl_width, atl_height, self.hwnd, None, hInstance, None)
 
         # COM voodoo
         pBrowserUnk = POINTER(IUnknown)()
@@ -133,6 +144,7 @@ class BrowserView(object):
 
     def show(self):
         # Show main window
+        win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOP, 0, 0, self.width, self.height, win32con.SWP_SHOWWINDOW)
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNORMAL)
         win32gui.UpdateWindow(self.hwnd)
 
@@ -185,13 +197,14 @@ class BrowserView(object):
 
     def _on_resize(self, hwnd, message, wparam, lparam):
         # Resize the ATL window as the size of the main window is changed
-        if BrowserView.instance != None:
+        if BrowserView.instance != None and not self.fullscreen:
             atl_hwnd = BrowserView.instance.atlhwnd
             width = win32api.LOWORD(lparam)
             height = win32api.HIWORD(lparam)
-            _user32.SetWindowPos(atl_hwnd, win32con.HWND_TOP, 0, 0, width, height, win32con.SWP_SHOWWINDOW)
-            _user32.ShowWindow(c_int(atl_hwnd), c_int(win32con.SW_SHOW))
-            _user32.UpdateWindow(c_int(atl_hwnd))
+            win32gui.SetWindowPos(atl_hwnd, win32con.HWND_TOP, 0, 0, width, height, win32con.SWP_SHOWWINDOW)
+            win32gui.ShowWindow(atl_hwnd, win32con.SW_SHOW)
+            win32gui.UpdateWindow(atl_hwnd)
+
         return 0
 
     def _on_erase_bkgnd(self, hwnd, message, wparam, lparam):

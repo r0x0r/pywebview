@@ -1,5 +1,5 @@
 """
-(C) 2014 Roman Sirokov
+(C) 2014-2015 Roman Sirokov
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
