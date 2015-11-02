@@ -124,7 +124,7 @@ class BrowserView(object):
         _atl.AtlAxWinInit()
         hInstance = win32api.GetModuleHandle(None)
 
-        if self.fullscreen:
+        if self.fullscreen or not self.resizable:
             atl_width = self.width
             atl_height = self.height
         else:
