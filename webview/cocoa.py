@@ -4,8 +4,10 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
-from Foundation import *
-from AppKit import *
+import threading
+
+import Foundation
+import AppKit
 import WebKit
 import PyObjCTools.AppHelper
 
@@ -15,9 +17,9 @@ from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 class BrowserView:
     instance = None
-    app = NSApplication.sharedApplication()
+    app = AppKit.NSApplication.sharedApplication()
 
-    class AppDelegate(NSObject):
+    class AppDelegate(AppKit.NSObject):
         def windowWillClose_(self, notification):
             BrowserView.app.stop_(self)
 
@@ -30,7 +32,7 @@ class BrowserView:
             :return:
             """
 
-            if theEvent.type() == NSKeyDown and theEvent.modifierFlags() & NSCommandKeyMask:
+            if theEvent.type() == AppKit.NSKeyDown and theEvent.modifierFlags() & AppKit.NSCommandKeyMask:
                 responder = self.window().firstResponder()
                 keyCode = theEvent.keyCode()
 
@@ -63,14 +65,17 @@ class BrowserView:
     def __init__(self, title, url, width, height, resizable, fullscreen):
         BrowserView.instance = self
 
-        rect = NSMakeRect(100.0, 350.0, width, height)
-        window_mask = NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask
+        self._file_name = None
+        self._file_name_semaphor = threading.Semaphore(0)
+
+        rect = AppKit.NSMakeRect(100.0, 350.0, width, height)
+        window_mask = AppKit.NSTitledWindowMask | AppKit.NSClosableWindowMask | AppKit.NSMiniaturizableWindowMask
 
         if resizable:
-            window_mask = window_mask | NSResizableWindowMask
+            window_mask = window_mask | AppKit.NSResizableWindowMask
 
-        self.window = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(rect, window_mask,
-                                                                                    NSBackingStoreBuffered, False)
+        self.window = AppKit.NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(rect, window_mask,
+                                                                                           AppKit.NSBackingStoreBuffered, False)
         self.window.setTitle_(title)
 
         if fullscreen:
@@ -99,6 +104,34 @@ class BrowserView:
         req = Foundation.NSURLRequest.requestWithURL_(pageurl)
         self.webkit.mainFrame().loadRequest_(req)
 
+    def create_file_dialog(self, dialog_type, allow_multiple):
+        def create_dialog(*args):
+            dialog_type = args[0]
+            allow_multiple = args[1]
+
+            openDlg = AppKit.NSOpenPanel.openPanel()
+
+            # Enable the selection of files in the dialog.
+            openDlg.setCanChooseFiles_(dialog_type != FOLDER_DIALOG)
+
+            # Enable the selection of directories in the dialog.
+            openDlg.setCanChooseDirectories_(dialog_type == FOLDER_DIALOG)
+
+            # Enable / disable multiple selection
+            openDlg.setAllowsMultipleSelection_(allow_multiple)
+
+            if openDlg.runModalForDirectory_file_(None, None) == AppKit.NSOKButton:
+                files = openDlg.filenames()
+                self._file_name = files
+            else:
+                self._file_name = None
+
+            self._file_name_semaphor.release()
+
+        PyObjCTools.AppHelper.callAfter(create_dialog, dialog_type, allow_multiple)
+
+        self._file_name_semaphor.acquire()
+        return self._file_name
 
 
 def create_window(title, url, width, height, resizable, fullscreen):
@@ -116,25 +149,11 @@ def create_window(title, url, width, height, resizable, fullscreen):
 
 
 def create_file_dialog(dialog_type, allow_multiple):
-    def create_dialog(dialog_type):
-        openDlg = NSOpenPanel.openPanel()
+    if BrowserView.instance is not None:
+        return BrowserView.instance.create_file_dialog(dialog_type, allow_multiple)
+    else:
+        raise Exception("Create a web view window first, before invoking this function")
 
-        # Enable the selection of files in the dialog.
-        openDlg.setCanChooseFiles_(dialog_type != FOLDER_DIALOG)
-
-        # Enable the selection of directories in the dialog.
-        openDlg.setCanChooseDirectories_(dialog_type == FOLDER_DIALOG)
-
-        # Enable / disable multiple selection
-        #openDlg.setAllowsMultipleSelection_(allow_multiple)
-
-        if openDlg.runModalForDirectory_file_(None, None) == NSOKButton:
-            files = openDlg.filenames()
-            return files
-        else:
-            return None
-
-    PyObjCTools.AppHelper.callAfter(create_dialog, dialog_type)
 
 
 
