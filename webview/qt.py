@@ -110,9 +110,6 @@ class BrowserView(QMainWindow):
             return None
 
 
-
-
-
 def create_window(title, url, width, height, resizable, fullscreen):
     """
     Create a WebView window with Qt. Works with both Qt 4.x and 5.x.
