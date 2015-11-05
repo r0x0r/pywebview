@@ -69,6 +69,9 @@ class BrowserView(QMainWindow):
         self.view = QWebView(self)
         self.view.setUrl(QtCore.QUrl(url))
 
+        #disable right click context menu
+        self.setContextMenuPolicy(QtCore.NoContextMenu)
+
         self.setCentralWidget(self.view)
         self.url_trigger.connect(self._handle_load_url)
         self.dialog_trigger.connect(self._handle_open_file_dialog)

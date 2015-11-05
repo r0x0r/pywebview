@@ -14,16 +14,28 @@ import PyObjCTools.AppHelper
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 
-
 class BrowserView:
     instance = None
     app = AppKit.NSApplication.sharedApplication()
+
+
+    class BrowserDelegate(AppKit.NSObject):
+        def windowShouldClose_(self, noti):
+            print "close event"
+
+        def contextMenuItemsForElement_(self, defaultMenuItems):
+            pass
 
     class AppDelegate(AppKit.NSObject):
         def windowWillClose_(self, notification):
             BrowserView.app.stop_(self)
 
     class WebKitHost(WebKit.WebView):
+        def windowWillClose_(self, notification):
+            pass
+
+        def contextMenuItemsForElement2_(self, defaultMenuItems):
+            pass
 
         def performKeyEquivalent_(self, theEvent):
             """
@@ -74,8 +86,8 @@ class BrowserView:
         if resizable:
             window_mask = window_mask | AppKit.NSResizableWindowMask
 
-        self.window = AppKit.NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(rect, window_mask,
-                                                                                           AppKit.NSBackingStoreBuffered, False)
+        self.window = AppKit.NSWindow.alloc().\
+            initWithContentRect_styleMask_backing_defer_(rect, window_mask, AppKit.NSBackingStoreBuffered, False)
         self.window.setTitle_(title)
 
         if fullscreen:
@@ -85,6 +97,20 @@ class BrowserView:
             self.window.setCollectionBehavior_(NSWindowCollectionBehaviorFullScreenPrimary)
             self.window.toggleFullScreen_(None)
 
+
+        self.webkit = BrowserView.WebKitHost.alloc()
+        self.webkit.initWithFrame_(rect) #WebKit.WebView.alloc().initWithFrame_(rect)
+        self.window.setContentView_(self.webkit)
+
+        self._appDelegate = BrowserView.AppDelegate.alloc().init()
+        self._browserDelegate = BrowserView.BrowserDelegate.alloc().init()
+
+        self.window.setDelegate_(self._appDelegate)
+        self.webkit.setUIDelegate_(self._browserDelegate)
+
+        self.load_url(url)
+
+        """
         self.webkit = BrowserView.WebKitHost.alloc()
         self.webkit.initWithFrame_(rect)
         self.load_url(url)
@@ -92,6 +118,7 @@ class BrowserView:
         self.window.setContentView_(self.webkit)
         self.myDelegate = BrowserView.AppDelegate.alloc().init()
         self.window.setDelegate_(self.myDelegate)
+        """
 
     def show(self):
         self.window.display()
@@ -99,10 +126,13 @@ class BrowserView:
         BrowserView.app.run()
 
     def load_url(self, url):
+        def load(url):
+            page_url = Foundation.NSURL.URLWithString_(url)
+            req = Foundation.NSURLRequest.requestWithURL_(page_url)
+            self.webkit.mainFrame().loadRequest_(req)
+
         self.url = url
-        pageurl = Foundation.NSURL.URLWithString_(url)
-        req = Foundation.NSURLRequest.requestWithURL_(pageurl)
-        self.webkit.mainFrame().loadRequest_(req)
+        PyObjCTools.AppHelper.callAfter(load, url)
 
     def create_file_dialog(self, dialog_type, allow_multiple):
         def create_dialog(*args):
@@ -153,10 +183,6 @@ def create_file_dialog(dialog_type, allow_multiple):
         return BrowserView.instance.create_file_dialog(dialog_type, allow_multiple)
     else:
         raise Exception("Create a web view window first, before invoking this function")
-
-
-
-
 
 
 def load_url(url):
