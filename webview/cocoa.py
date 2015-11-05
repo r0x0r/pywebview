@@ -97,7 +97,6 @@ class BrowserView:
             self.window.setCollectionBehavior_(NSWindowCollectionBehaviorFullScreenPrimary)
             self.window.toggleFullScreen_(None)
 
-
         self.webkit = BrowserView.WebKitHost.alloc()
         self.webkit.initWithFrame_(rect) #WebKit.WebView.alloc().initWithFrame_(rect)
         self.window.setContentView_(self.webkit)
@@ -109,16 +108,6 @@ class BrowserView:
         self.webkit.setUIDelegate_(self._browserDelegate)
 
         self.load_url(url)
-
-        """
-        self.webkit = BrowserView.WebKitHost.alloc()
-        self.webkit.initWithFrame_(rect)
-        self.load_url(url)
-
-        self.window.setContentView_(self.webkit)
-        self.myDelegate = BrowserView.AppDelegate.alloc().init()
-        self.window.setDelegate_(self.myDelegate)
-        """
 
     def show(self):
         self.window.display()

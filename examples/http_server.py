@@ -15,8 +15,8 @@ This example demonstrates how a trivial application can be built using a HTTP se
 
 def start_server():
     HandlerClass = SimpleHTTPRequestHandler
-    ServerClass  = HTTPServer
-    Protocol     = "HTTP/1.0"
+    ServerClass = HTTPServer
+    Protocol = "HTTP/1.0"
     port = 23948
     server_address = ('127.0.0.1', port)
 
