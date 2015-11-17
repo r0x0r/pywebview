@@ -10,32 +10,27 @@ import Foundation
 import AppKit
 import WebKit
 import PyObjCTools.AppHelper
+from objc import nil
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+
 
 
 class BrowserView:
     instance = None
     app = AppKit.NSApplication.sharedApplication()
 
-
-    class BrowserDelegate(AppKit.NSObject):
-        def windowShouldClose_(self, noti):
-            print "close event"
-
-        def contextMenuItemsForElement_(self, defaultMenuItems):
-            pass
-
     class AppDelegate(AppKit.NSObject):
         def windowWillClose_(self, notification):
             BrowserView.app.stop_(self)
 
-    class WebKitHost(WebKit.WebView):
-        def windowWillClose_(self, notification):
-            pass
+    class BrowserDelegate(AppKit.NSObject, WebKit.protocols.WebUIDelegate):
+        def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
+            return nil
 
-        def contextMenuItemsForElement2_(self, defaultMenuItems):
-            pass
+    class WebKitHost(WebKit.WebView):
+        def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
+            return nil
 
         def performKeyEquivalent_(self, theEvent):
             """
@@ -97,15 +92,13 @@ class BrowserView:
             self.window.setCollectionBehavior_(NSWindowCollectionBehaviorFullScreenPrimary)
             self.window.toggleFullScreen_(None)
 
-        self.webkit = BrowserView.WebKitHost.alloc()
-        self.webkit.initWithFrame_(rect) #WebKit.WebView.alloc().initWithFrame_(rect)
+        self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect)
         self.window.setContentView_(self.webkit)
 
-        self._appDelegate = BrowserView.AppDelegate.alloc().init()
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init()
-
-        self.window.setDelegate_(self._appDelegate)
+        self._appDelegate = BrowserView.AppDelegate.alloc().init()
         self.webkit.setUIDelegate_(self._browserDelegate)
+        self.window.setDelegate_(self._appDelegate)
 
         self.load_url(url)
 

@@ -45,6 +45,7 @@ class BrowserView:
         window.add(scrolled_window)
 
         webview = webkit.WebView()
+        webview.props.settings.props.enable_default_context_menu = False
         scrolled_window.add_with_viewport(webview)
         window.show_all()
         webview.load_uri(url)
@@ -88,7 +89,6 @@ class BrowserView:
 
     def load_url(self, url):
         self.webview.load_uri(url)
-
 
 
 def create_window(title, url, width, height, resizable, fullscreen):

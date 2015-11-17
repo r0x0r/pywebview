@@ -19,7 +19,7 @@ try:
     from PyQt4.QtWebKit import QWebView
     from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog
 
-    logger.info("Using Qt4")
+    logger.debug("Using Qt4")
 except ImportError as e:
     logger.warn("PyQt4 is not found")
     _import_error = True
@@ -34,7 +34,7 @@ if _import_error:
         from PyQt5.QtWebKitWidgets import QWebView
         from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog
 
-        logger.info("Using Qt5")
+        logger.debug("Using Qt5")
     except ImportError as e:
         logger.warn("PyQt5 is not found")
         _import_error = True
@@ -67,10 +67,8 @@ class BrowserView(QMainWindow):
             self.showFullScreen()
 
         self.view = QWebView(self)
+        self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
         self.view.setUrl(QtCore.QUrl(url))
-
-        #disable right click context menu
-        self.setContextMenuPolicy(QtCore.NoContextMenu)
 
         self.setCentralWidget(self.view)
         self.url_trigger.connect(self._handle_load_url)

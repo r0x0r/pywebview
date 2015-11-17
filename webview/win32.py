@@ -12,39 +12,43 @@ from win32com.shell import shell, shellcon
 import os
 import sys
 
-from ctypes import *
-from ctypes.wintypes import *
+from ctypes import byref, POINTER
+from comtypes import COMObject, hresult
+from comtypes.client import wrap, GetModule, GetEvents
 
-from comtypes import IUnknown, STDMETHOD, GUID
-from comtypes.client import wrap, GetModule, CreateObject, GetEvents, PumpEvents
-
+from win32_gen import *
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 
 """
+
 HERE BE DRAGONS
+
 """
 
-GetModule('shdocvw.dll')
-
+_user32 = windll.user32
 _atl = windll.atl
-_WNDPROC = WINFUNCTYPE(c_long, c_int, c_uint, c_int, c_int)
 
 # for some reason we have to set an offset for the height of ATL window in order for the vertical scrollbar to be fully
 # visible
 VERTICAL_SCROLLBAR_OFFSET = 20
 
-class WNDCLASS(Structure):
-    _fields_ = [('style', c_uint),
-                ('lpfnWndProc', _WNDPROC),
-                ('cbClsExtra', c_int),
-                ('cbWndExtra', c_int),
-                ('hInstance', c_int),
-                ('hIcon', c_int),
-                ('hCursor', c_int),
-                ('hbrBackground', c_int),
-                ('lpszMenuName', c_wchar_p),
-                ('lpszClassName', c_wchar_p)]
+
+class UIHandler(COMObject):
+    _com_interfaces_ = [IDocHostUIHandler]
+
+    def __init__(self, *args, **kwargs):
+        COMObject.__init__(self, *args, **kwargs)
+
+    def ShowContextMenu(self, *args, **kwarg):
+        # Disable context menu
+        return False
+
+    def GetHostInfo(self, pDoc):
+        # Text selection is disabled by this interface by default. Let's enable it
+        pDoc.dwFlags = 0
+        return hresult.S_OK
+
 
 class BrowserView(object):
     instance = None
@@ -66,7 +70,7 @@ class BrowserView(object):
 
         self._register_window()
         # In order for system events (most notably WM_DESTROY for application quite) propagate correctly, we need to
-        # create two windows: AtAlxWin inside MyWin. AtlAxWin hosts MSHTML ActiveX control and MainWin receiving
+        # create two windows: AtAlxWin inside MyWin. AtlAxWin hosts the MSHTML ActiveX control and MainWin receiving
         # system messages.
         self._create_main_window()
         self._create_atlax_window()
@@ -75,7 +79,7 @@ class BrowserView(object):
         message_map = {
             win32con.WM_DESTROY: self._on_destroy,
             win32con.WM_SIZE: self._on_resize,
-            win32con.WM_ERASEBKGND: self._on_erase_bkgnd,
+            win32con.WM_ERASEBKGND: self._on_erase_bkgnd
         }
 
         self.wndclass = win32gui.WNDCLASS()
@@ -102,7 +106,6 @@ class BrowserView(object):
         screen_y = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
         x = int((screen_x - self.width) / 2)
         y = int((screen_y - self.height) / 2)
-
 
         # Create Window
         self.hwnd = win32gui.CreateWindow(self.wndclass.lpszClassName,
@@ -141,6 +144,7 @@ class BrowserView(object):
         self.browser = wrap(pBrowserUnk)
         self.browser.RegisterAsBrowser = True
         self.browser.AddRef()
+        self.conn = GetEvents(self.browser, sink=self)
 
     def show(self):
         # Show main window
@@ -210,6 +214,11 @@ class BrowserView(object):
     def _on_erase_bkgnd(self, hwnd, message, wparam, lparam):
         # Prevent flickering when resizing
         return 0
+
+    def DocumentComplete(self, *args):
+        custom_doc = self.browser.Document.QueryInterface(ICustomDoc)
+        self.handler = UIHandler()
+        custom_doc.SetUIHandler(self.handler)
 
 
 def create_window(title, url, width, height, resizable, fullscreen):
