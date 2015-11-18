@@ -86,6 +86,7 @@ class BrowserView(object):
         self.wndclass.style = win32con.CS_HREDRAW | win32con.CS_VREDRAW
         self.wndclass.lpfnWndProc = message_map
         self.wndclass.hInstance = win32api.GetModuleHandle()
+        self.wndclass.hIcon = win32gui.LoadIcon(self.wndclass.hInstance, 1)
         self.wndclass.hCursor = win32gui.LoadCursor(win32con.NULL, win32con.IDC_ARROW)
         self.wndclass.hbrBackground = win32gui.GetStockObject(win32con.WHITE_BRUSH)
         self.wndclass.lpszMenuName = ""
