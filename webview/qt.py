@@ -51,7 +51,7 @@ class BrowserView(QMainWindow):
     url_trigger = QtCore.pyqtSignal(str)
     dialog_trigger = QtCore.pyqtSignal(int, bool)
 
-    def __init__(self, title, url, width, height, resizable, fullscreen):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size):
         super(BrowserView, self).__init__()
         BrowserView.instance = self
 
@@ -65,6 +65,8 @@ class BrowserView(QMainWindow):
 
         if fullscreen:
             self.showFullScreen()
+
+        self.setMinimumSize(min_size[0], min_size[1])
 
         self.view = QWebView(self)
         self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
@@ -111,7 +113,7 @@ class BrowserView(QMainWindow):
             return None
 
 
-def create_window(title, url, width, height, resizable, fullscreen):
+def create_window(title, url, width, height, resizable, fullscreen, min_size):
     """
     Create a WebView window with Qt. Works with both Qt 4.x and 5.x.
     :param title: Window title
@@ -124,7 +126,7 @@ def create_window(title, url, width, height, resizable, fullscreen):
 
     app = QApplication([])
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size)
     browser.show()
     sys.exit(app.exec_())
 

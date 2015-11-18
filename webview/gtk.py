@@ -26,13 +26,14 @@ else:
 class BrowserView:
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size):
         BrowserView.instance = self
 
         Gdk.threads_init()
         window = gtk.Window(title=title)
 
-        window.set_size_request(width, height)
+        window.set_size_request(min_size[0], min_size[1])
+        window.set_default_size(width, height)
         window.set_resizable(resizable)
         window.set_position(gtk.WindowPosition.CENTER)
 
@@ -91,8 +92,8 @@ class BrowserView:
         self.webview.load_uri(url)
 
 
-def create_window(title, url, width, height, resizable, fullscreen):
-    browser = BrowserView(title, url, width, height, resizable, fullscreen)
+def create_window(title, url, width, height, resizable, fullscreen, min_size):
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size)
     browser.show()
 
 
