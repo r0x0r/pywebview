@@ -29,9 +29,6 @@ class BrowserView:
             return nil
 
     class WebKitHost(WebKit.WebView):
-        def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
-            return nil
-
         def performKeyEquivalent_(self, theEvent):
             """
             Handle common hotkey shortcuts as copy/cut/paste/undo/select all/quit
@@ -69,7 +66,7 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, title, url, width, height, resizable, fullscreen):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size):
         BrowserView.instance = self
 
         self._file_name = None
@@ -84,6 +81,7 @@ class BrowserView:
         self.window = AppKit.NSWindow.alloc().\
             initWithContentRect_styleMask_backing_defer_(rect, window_mask, AppKit.NSBackingStoreBuffered, False)
         self.window.setTitle_(title)
+        self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
 
         if fullscreen:
             NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7
@@ -146,7 +144,7 @@ class BrowserView:
         return self._file_name
 
 
-def create_window(title, url, width, height, resizable, fullscreen):
+def create_window(title, url, width, height, resizable, fullscreen, min_size):
     """
     Create a WebView window using Cocoa on Mac.
     :param title: Window title
@@ -156,7 +154,7 @@ def create_window(title, url, width, height, resizable, fullscreen):
     :param resizable True if window can be resized, False otherwise
     :return:
     """
-    browser = BrowserView(title, url, width, height, resizable, fullscreen)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size)
     browser.show()
 
 

@@ -67,7 +67,7 @@ def load_url(url):
     gui.load_url(url)
 
 
-def create_window(title, url, width=800, height=600, resizable=True, fullscreen=False):
+def create_window(title, url, width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100)):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -78,7 +78,7 @@ def create_window(title, url, width=800, height=600, resizable=True, fullscreen=
     :param resizable True if window can be resized, False otherwise. Default is True.
     :return:
     """
-    gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen)
+    gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size)
 
 
 def _make_unicode(string):
