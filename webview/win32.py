@@ -53,7 +53,7 @@ class UIHandler(COMObject):
 class BrowserView(object):
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size):
         BrowserView.instance = self
         self.title = title
         self.width = width
@@ -61,6 +61,7 @@ class BrowserView(object):
         self.url = url
         self.resizable = resizable
         self.fullscreen = fullscreen
+        self.min_size = min_size
 
         self.scrollbar_width = win32api.GetSystemMetrics(win32con.SM_CXVSCROLL)
         self.scrollbar_height = win32api.GetSystemMetrics(win32con.SM_CYHSCROLL)
@@ -79,7 +80,8 @@ class BrowserView(object):
         message_map = {
             win32con.WM_DESTROY: self._on_destroy,
             win32con.WM_SIZE: self._on_resize,
-            win32con.WM_ERASEBKGND: self._on_erase_bkgnd
+            win32con.WM_ERASEBKGND: self._on_erase_bkgnd,
+            win32con.WM_GETMINMAXINFO: self._on_minmax_info
         }
 
         self.wndclass = win32gui.WNDCLASS()
@@ -105,12 +107,12 @@ class BrowserView(object):
         #  Center window on the screen
         screen_x = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
         screen_y = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
-        x = int((screen_x - self.width) / 2)
-        y = int((screen_y - self.height) / 2)
+        self.pos_x = int((screen_x - self.width) / 2)
+        self.pos_y = int((screen_y - self.height) / 2)
 
         # Create Window
         self.hwnd = win32gui.CreateWindow(self.wndclass.lpszClassName,
-                                          self.title, style, x, y, self.width, self.height,
+                                          self.title, style, self.pos_x, self.pos_y, self.width, self.height,
                                           None, None, self.wndclass.hInstance, None)
 
         # Set fullscreen
@@ -149,7 +151,8 @@ class BrowserView(object):
 
     def show(self):
         # Show main window
-        win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOP, 0, 0, self.width, self.height, win32con.SWP_SHOWWINDOW)
+        win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOP, self.pos_x, self.pos_y, self.width, self.height,
+                              win32con.SWP_SHOWWINDOW)
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNORMAL)
         win32gui.UpdateWindow(self.hwnd)
 
@@ -216,15 +219,20 @@ class BrowserView(object):
         # Prevent flickering when resizing
         return 0
 
+    def _on_minmax_info(self, hwnd, message, wparam, lparam):
+        info = MINMAXINFO.from_address(lparam)
+        info.ptMinTrackSize.x = self.min_size[0]
+        info.ptMinTrackSize.y = self.min_size[1]
+
     def DocumentComplete(self, *args):
         custom_doc = self.browser.Document.QueryInterface(ICustomDoc)
         self.handler = UIHandler()
         custom_doc.SetUIHandler(self.handler)
 
 
-def create_window(title, url, width, height, resizable, fullscreen):
+def create_window(title, url, width, height, resizable, fullscreen, min_size):
     _set_ie_mode()
-    browser_view = BrowserView(title, url, width, height, resizable, fullscreen)
+    browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size)
     browser_view.show()
 
 

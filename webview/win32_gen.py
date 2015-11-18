@@ -155,3 +155,13 @@ IDocHostUIHandler._methods_ = [
               ( ['in'], POINTER(IDataObject), 'pDO' ),
               ( ['out'], POINTER(POINTER(IDataObject)), 'ppDORet' )),
 ]
+
+class MINMAXINFO(Structure):
+    _fields_ = [
+        ('ptReserved', POINT),
+        ('ptMaxSize', POINT),
+        ('ptMaxPosition', POINT),
+        ('ptMinTrackSize', POINT),
+        ('ptMaxTrackSize', POINT)
+    ]
+    __slots__ = [f[0] for f in _fields_]
