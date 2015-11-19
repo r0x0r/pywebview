@@ -7,6 +7,11 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 
+# disable logging for comtypes
+import logging
+logging.getLogger("comtypes.client._generate").disabled = True
+logging.getLogger("comtypes.client._code_cache").disabled = True
+
 import win32con, win32api, win32gui
 from win32com.shell import shell, shellcon
 import os
@@ -14,7 +19,7 @@ import sys
 
 from ctypes import byref, POINTER
 from comtypes import COMObject, hresult
-from comtypes.client import wrap, GetModule, GetEvents
+from comtypes.client import wrap, GetEvents
 
 from win32_gen import *
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
@@ -32,6 +37,7 @@ _atl = windll.atl
 # for some reason we have to set an offset for the height of ATL window in order for the vertical scrollbar to be fully
 # visible
 VERTICAL_SCROLLBAR_OFFSET = 20
+NON_RESIZEABLE_OFFSET = 6
 
 
 class UIHandler(COMObject):
@@ -130,9 +136,12 @@ class BrowserView(object):
         _atl.AtlAxWinInit()
         hInstance = win32api.GetModuleHandle(None)
 
-        if self.fullscreen or not self.resizable:
+        if self.fullscreen:
             atl_width = self.width
             atl_height = self.height
+        elif not self.resizable:
+            atl_width = self.width - NON_RESIZEABLE_OFFSET
+            atl_height = self.height - self.scrollbar_height - NON_RESIZEABLE_OFFSET * 2
         else:
             atl_width = self.width - self.scrollbar_width
             atl_height = self.height - self.scrollbar_height - VERTICAL_SCROLLBAR_OFFSET
