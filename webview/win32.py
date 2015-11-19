@@ -220,8 +220,7 @@ class BrowserView(object):
             return None
 
     def _on_destroy(self, hwnd, message, wparam, lparam):
-        
-
+        del self.browser
         win32gui.PostQuitMessage(0)
 
         return True
