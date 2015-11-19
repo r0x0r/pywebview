@@ -31,7 +31,7 @@ elif platform.system() == "Linux":
 
     try:
         #Try QT first unless USE_GTK variable is defined
-        if os.environ.get('USE_GTK'):
+        if not os.environ.get('USE_GTK'):
             import webview.qt as gui
     except Exception as e:
         logger.warning("QT not found")
