@@ -46,7 +46,7 @@ elif platform.system() == "Linux":
         except Exception as e:
             # Panic
             logger.error("GTK not found")
-            raise Exception("You must have either QT or GTK with Python extensions installed in order to this component.")
+            raise Exception("You must have either QT or GTK with Python extensions installed in order to this library.")
 
 elif platform.system() == "Windows":
     import webview.win32 as gui
@@ -54,8 +54,11 @@ else:
     raise Exception("Unsupported platform. Only Windows, Linux and OS X are supported.")
 
 
-def create_file_dialog(dialog_type=OPEN_DIALOG, allow_multiple=False):
-    return gui.create_file_dialog(dialog_type, allow_multiple)
+def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename=''):
+    if not os.path.exists(directory):
+        directory = ''
+
+    return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
 def load_url(url):

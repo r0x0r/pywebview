@@ -114,31 +114,50 @@ class BrowserView:
         self.url = url
         PyObjCTools.AppHelper.callAfter(load, url)
 
-    def create_file_dialog(self, dialog_type, allow_multiple):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         def create_dialog(*args):
             dialog_type = args[0]
-            allow_multiple = args[1]
 
-            openDlg = AppKit.NSOpenPanel.openPanel()
+            if dialog_type == SAVE_DIALOG:
+                save_filename = args[2]
 
-            # Enable the selection of files in the dialog.
-            openDlg.setCanChooseFiles_(dialog_type != FOLDER_DIALOG)
+                save_dlg = AppKit.NSSavePanel.savePanel()
+                save_dlg.setTitle_("Save file")
 
-            # Enable the selection of directories in the dialog.
-            openDlg.setCanChooseDirectories_(dialog_type == FOLDER_DIALOG)
+                if directory:  # set initial directory
+                    save_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
 
-            # Enable / disable multiple selection
-            openDlg.setAllowsMultipleSelection_(allow_multiple)
-
-            if openDlg.runModalForDirectory_file_(None, None) == AppKit.NSOKButton:
-                files = openDlg.filenames()
-                self._file_name = files
+                if save_dlg.runModalForDirectory_file_(None, save_filename) == AppKit.NSFileHandlingPanelOKButton:
+                    file = save_dlg.filenames()
+                    self._file_name = file
+                else:
+                    self._file_name = None
             else:
-                self._file_name = None
+                allow_multiple = args[1]
+
+                open_dlg = AppKit.NSOpenPanel.openPanel()
+
+                # Enable the selection of files in the dialog.
+                open_dlg.setCanChooseFiles_(dialog_type != FOLDER_DIALOG)
+
+                # Enable the selection of directories in the dialog.
+                open_dlg.setCanChooseDirectories_(dialog_type == FOLDER_DIALOG)
+
+                # Enable / disable multiple selection
+                open_dlg.setAllowsMultipleSelection_(allow_multiple)
+
+                if directory:  # set initial directory
+                    open_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
+
+                if open_dlg.runModalForDirectory_file_(None, None) == AppKit.NSOKButton:
+                    files = open_dlg.filenames()
+                    self._file_name = files
+                else:
+                    self._file_name = None
 
             self._file_name_semaphor.release()
 
-        PyObjCTools.AppHelper.callAfter(create_dialog, dialog_type, allow_multiple)
+        PyObjCTools.AppHelper.callAfter(create_dialog, dialog_type, allow_multiple, save_filename)
 
         self._file_name_semaphor.acquire()
         return self._file_name
@@ -158,9 +177,9 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size):
     browser.show()
 
 
-def create_file_dialog(dialog_type, allow_multiple):
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     if BrowserView.instance is not None:
-        return BrowserView.instance.create_file_dialog(dialog_type, allow_multiple)
+        return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
     else:
         raise Exception("Create a web view window first, before invoking this function")
 

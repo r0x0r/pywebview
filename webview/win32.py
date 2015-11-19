@@ -177,10 +177,13 @@ class BrowserView(object):
         self.url = url
         self.browser.Navigate2(url)
 
-    def create_file_dialog(self, dialog_type, allow_multiple):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
+        if not directory:
+            directory = os.environ['temp']
+
         try:
             if dialog_type == FOLDER_DIALOG:
-                desktop_pidl = shell.SHGetFolderLocation (0, shellcon.CSIDL_DESKTOP, 0, 0)
+                desktop_pidl = shell.SHGetFolderLocation(0, shellcon.CSIDL_DESKTOP, 0, 0)
                 pidl, display_name, image_list =\
                     shell.SHBrowseForFolder(self.hwnd, desktop_pidl, None, 0, None, None)
                 file_path = (shell.SHGetPathFromIDList(pidl),)
@@ -193,7 +196,7 @@ class BrowserView(object):
                     flags = flags | win32con.OFN_ALLOWMULTISELECT
 
                 file_path, customfilter, flags = \
-                    win32gui.GetOpenFileNameW(InitialDir=os.environ['temp'], Flags=flags, File=None, DefExt='',
+                    win32gui.GetOpenFileNameW(InitialDir=directory, Flags=flags, File=None, DefExt='',
                                               Title='', Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
 
                 parts = file_path.split('\x00')
@@ -208,7 +211,7 @@ class BrowserView(object):
                 custom_filter = 'Other file types\0*.*\0'
 
                 file_path, customfilter, flags = \
-                    win32gui.GetSaveFileNameW(InitialDir=os.environ['temp'],File=None, DefExt='', Title='',
+                    win32gui.GetSaveFileNameW(InitialDir=directory, File=save_filename, DefExt='', Title='',
                                               Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
 
                 parts = file_path.split('\x00')
@@ -258,9 +261,9 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size):
     browser_view.show()
 
 
-def create_file_dialog(dialog_type, allow_multiple):
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     if BrowserView.instance is not None:
-        return BrowserView.instance.create_file_dialog(dialog_type, allow_multiple)
+        return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
     else:
         raise Exception("Create a web view window first, before invoking this function")
 

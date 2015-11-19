@@ -62,7 +62,7 @@ class BrowserView:
         gtk.main()
         Gdk.threads_leave()
 
-    def create_file_dialog(self, dialog_type, allow_multiple):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         Gdk.threads_enter()
 
         if dialog_type == FOLDER_DIALOG:
@@ -74,10 +74,12 @@ class BrowserView:
             title = "Open file"
             button = gtk.STOCK_OPEN
         elif dialog_type == SAVE_DIALOG:
+            gtk.FileChooser.set_filename(save_filename)
             gtk_dialog_type = gtk.FileChooserAction.SAVE
             title = "Save file"
             button = gtk.STOCK_SAVE
 
+        gtk.FileChooserDialog.set_current_folder(directory)
         dialog = gtk.FileChooserDialog(title, self.window, gtk_dialog_type,
                                        (gtk.STOCK_CANCEL, gtk.ResponseType.CANCEL, button, gtk.ResponseType.OK))
 
@@ -115,8 +117,8 @@ def load_url(url):
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def create_file_dialog(dialog_type, allow_multiple):
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     if BrowserView.instance is not None:
-        return BrowserView.instance.create_file_dialog(dialog_type, allow_multiple)
+        return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
     else:
         raise Exception("Create a web view window first, before invoking this function")

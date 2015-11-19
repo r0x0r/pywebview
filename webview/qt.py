@@ -6,6 +6,7 @@ http://github.com/r0x0r/pywebview/
 """
 
 import sys
+import os
 import logging
 import threading
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
@@ -74,22 +75,25 @@ class BrowserView(QMainWindow):
 
         self.setCentralWidget(self.view)
         self.url_trigger.connect(self._handle_load_url)
-        self.dialog_trigger.connect(self._handle_open_file_dialog)
+        self.dialog_trigger.connect(self._handle_file_dialog)
 
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
         self.raise_()
 
-    def _handle_open_file_dialog(self, dialog_type, allow_multiple):
+    def _handle_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if dialog_type == FOLDER_DIALOG:
             self._file_name = QFileDialog.getExistingDirectory(self, 'Open directory', options=QFileDialog.ShowDirsOnly)
         elif dialog_type == OPEN_DIALOG:
             if allow_multiple:
-                self._file_name = QFileDialog.getOpenFileNames(self, 'Open files')
+                self._file_name = QFileDialog.getOpenFileNames(self, 'Open files', directory)
             else:
-                self._file_name = QFileDialog.getOpenFileName(self, 'Open file')
+                self._file_name = QFileDialog.getOpenFileName(self, 'Open file', directory)
         elif dialog_type == SAVE_DIALOG:
-            self._file_name = QFileDialog.getSaveFileName(self, 'Save file')
+            if directory:
+                save_filename = os.path.join(directory, save_filename)
+
+            self._file_name = QFileDialog.getSaveFileName(self, 'Save file', save_filename)
 
         self._file_name_semaphor.release()
 
@@ -99,7 +103,7 @@ class BrowserView(QMainWindow):
     def load_url(self, url):
         self.url_trigger.emit(url)
 
-    def create_file_dialog(self, dialog_type, allow_multiple):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         self.dialog_trigger.emit(dialog_type, allow_multiple)
         self._file_name_semaphor.acquire()
 
@@ -141,8 +145,8 @@ def load_url(url):
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def create_file_dialog(dialog_type, allow_multiple):
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     if BrowserView.instance is not None:
-        return BrowserView.instance.create_file_dialog(dialog_type, allow_multiple)
+        return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
     else:
         raise Exception("Create a web view window first, before invoking this function")
