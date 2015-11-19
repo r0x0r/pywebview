@@ -30,16 +30,16 @@ if platform.system() == "Darwin":
 elif platform.system() == "Linux":
 
     try:
-        #Try QT first
-        import webview.qt as gui
-        import_error = True
+        #Try QT first unless USE_GTK variable is defined
+        if os.environ.get('USE_GTK'):
+            import webview.qt as gui
     except Exception as e:
         logger.warning("QT not found")
         import_error = True
     else:
         import_error = False
 
-    if import_error:
+    if import_error or os.environ.get('USE_GTK'):
         try:
             # If QT is not found, then try GTK
             import webview.gtk as gui

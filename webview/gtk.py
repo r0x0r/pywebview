@@ -10,7 +10,6 @@ from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 logger = logging.getLogger(__name__)
 
-
 try:
     # Try GTK 3
     from gi.repository import Gtk as gtk
@@ -32,8 +31,12 @@ class BrowserView:
         Gdk.threads_init()
         window = gtk.Window(title=title)
 
-        window.set_size_request(min_size[0], min_size[1])
-        window.set_default_size(width, height)
+        if resizable:
+            window.set_size_request(min_size[0], min_size[1])
+            window.resize(width, height)
+        else:
+            window.set_size_request(width, height)
+
         window.set_resizable(resizable)
         window.set_position(gtk.WindowPosition.CENTER)
 
