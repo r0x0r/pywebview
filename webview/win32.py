@@ -194,7 +194,7 @@ class BrowserView(object):
 
                 file_path, customfilter, flags = \
                     win32gui.GetOpenFileNameW(InitialDir=os.environ['temp'], Flags=flags, File=None, DefExt='',
-                    Title='', Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
+                                              Title='', Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
 
                 parts = file_path.split('\x00')
 
@@ -203,11 +203,25 @@ class BrowserView(object):
                 else:
                     file_path = (file_path,)
 
+            elif dialog_type == SAVE_DIALOG:
+                file_filter = 'All Files\0*.*\0'
+                custom_filter = 'Other file types\0*.*\0'
+
+                file_path, customfilter, flags = \
+                    win32gui.GetSaveFileNameW(InitialDir=os.environ['temp'],File=None, DefExt='', Title='',
+                                              Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
+
+                parts = file_path.split('\x00')
+
+
             return file_path
+
         except:
             return None
 
     def _on_destroy(self, hwnd, message, wparam, lparam):
+        
+
         win32gui.PostQuitMessage(0)
 
         return True

@@ -43,7 +43,7 @@ ENTRY_POINT = ['YOUR_EXAMPLE.py']
 DATA_FILES = tree('DATA_FILES_DIR') + tree('DATA_FILE_DIR2_ETC')
 
 OPTIONS = {
-    # bundling application (bundle_files = 1) does not work for reason.
+    # bundling application (bundle_files = 1) does not work for some reason.
     # if you figure it out, drop me a line
     'bundle_files': 3,
     'compressed': False,

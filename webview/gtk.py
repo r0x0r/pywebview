@@ -67,11 +67,19 @@ class BrowserView:
 
         if dialog_type == FOLDER_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
-        else:
+            title = "Open folder"
+            button = gtk.STOCK_OPEN
+        elif dialog_type == OPEN_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.OPEN
+            title = "Open file"
+            button = gtk.STOCK_OPEN
+        elif dialog_type == SAVE_DIALOG:
+            gtk_dialog_type = gtk.FileChooserAction.SAVE
+            title = "Save file"
+            button = gtk.STOCK_SAVE
 
-        dialog = gtk.FileChooserDialog("Please choose a file", self.window, gtk_dialog_type,
-                                       (gtk.STOCK_CANCEL, gtk.ResponseType.CANCEL, gtk.STOCK_OPEN, gtk.ResponseType.OK))
+        dialog = gtk.FileChooserDialog(title, self.window, gtk_dialog_type,
+                                       (gtk.STOCK_CANCEL, gtk.ResponseType.CANCEL, button, gtk.ResponseType.OK))
 
         dialog.set_select_multiple(allow_multiple)
 
