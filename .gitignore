@@ -3,3 +3,5 @@ upload.sh
 setup.cfg
 pywebview.egg-info
 MANIFEST
+build
+dist
