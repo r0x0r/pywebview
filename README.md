@@ -82,10 +82,6 @@ Use py2app on OS X and py2exe on Windows. For reference setup.py files, look in 
 
 # Changelog
 
-## 0.9
-
-- `New` Right click context menu is disabled
-
 ## 0.8.3
 
 - `Fixed` #10 Underlying browser does not resize with window under windows
