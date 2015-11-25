@@ -50,7 +50,7 @@ if _import_error:
 class BrowserView(QMainWindow):
     instance = None
     url_trigger = QtCore.pyqtSignal(str)
-    dialog_trigger = QtCore.pyqtSignal(int, bool)
+    dialog_trigger = QtCore.pyqtSignal(int, str, bool, str)
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size):
         super(BrowserView, self).__init__()
@@ -91,7 +91,7 @@ class BrowserView(QMainWindow):
                 self._file_name = QFileDialog.getOpenFileName(self, 'Open file', directory)
         elif dialog_type == SAVE_DIALOG:
             if directory:
-                save_filename = os.path.join(directory, save_filename)
+                save_filename = os.path.join(str(directory), str(save_filename))
 
             self._file_name = QFileDialog.getSaveFileName(self, 'Save file', save_filename)
 
@@ -104,7 +104,7 @@ class BrowserView(QMainWindow):
         self.url_trigger.emit(url)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
-        self.dialog_trigger.emit(dialog_type, allow_multiple)
+        self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename)
         self._file_name_semaphor.acquire()
 
         if dialog_type == FOLDER_DIALOG or not allow_multiple:

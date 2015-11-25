@@ -24,7 +24,7 @@ class BrowserView:
         def windowWillClose_(self, notification):
             BrowserView.app.stop_(self)
 
-    class BrowserDelegate(AppKit.NSObject, WebKit.protocols.WebUIDelegate):
+    class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
             return nil
 
@@ -127,9 +127,12 @@ class BrowserView:
                 if directory:  # set initial directory
                     save_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
 
-                if save_dlg.runModalForDirectory_file_(None, save_filename) == AppKit.NSFileHandlingPanelOKButton:
+                if save_filename:  # set file name
+                    save_dlg.setNameFieldStringValue_(save_filename)
+
+                if save_dlg.runModal() == AppKit.NSFileHandlingPanelOKButton:
                     file = save_dlg.filenames()
-                    self._file_name = file
+                    self._file_name = tuple(file)
                 else:
                     self._file_name = None
             else:
@@ -149,9 +152,9 @@ class BrowserView:
                 if directory:  # set initial directory
                     open_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
 
-                if open_dlg.runModalForDirectory_file_(None, None) == AppKit.NSOKButton:
+                if open_dlg.runModal() == AppKit.NSFileHandlingPanelOKButton:
                     files = open_dlg.filenames()
-                    self._file_name = files
+                    self._file_name = tuple(files)
                 else:
                     self._file_name = None
 

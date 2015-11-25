@@ -74,16 +74,18 @@ class BrowserView:
             title = "Open file"
             button = gtk.STOCK_OPEN
         elif dialog_type == SAVE_DIALOG:
-            gtk.FileChooser.set_filename(save_filename)
             gtk_dialog_type = gtk.FileChooserAction.SAVE
             title = "Save file"
             button = gtk.STOCK_SAVE
 
-        gtk.FileChooserDialog.set_current_folder(directory)
         dialog = gtk.FileChooserDialog(title, self.window, gtk_dialog_type,
                                        (gtk.STOCK_CANCEL, gtk.ResponseType.CANCEL, button, gtk.ResponseType.OK))
 
         dialog.set_select_multiple(allow_multiple)
+        dialog.set_current_folder(directory)
+
+        if dialog_type == SAVE_DIALOG:
+            dialog.set_current_name(save_filename)
 
         response = dialog.run()
 
