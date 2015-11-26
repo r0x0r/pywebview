@@ -76,11 +76,31 @@ Web renderer might cache your code and fail to invalidate it, when it is updated
 
 # How do I freeze my application?
 
-Use py2app on OS X and py2exe on Windows. For reference setup.py files, look in `examples/py2app_setup.py` and `examples\py2exe_setup.py`
+Use py2app on OS X and py2exe on Windows. For reference setup.py files, look in `examples/py2app_setup.py` and `examples/py2exe_setup.py`
 
 
 
 # Changelog
+
+## 0.9
+
+Released 27/11/2015
+
+- `New` [All] Right click context menu is disabled #12
+- `New` [All] Window minimum size constraints #13
+- `New` [All] Save file dialog
+- `New` [All] Added `directory` and `save_filename` parameters to `create_file_dialog`
+- `New` [All] An option to set a default directory in a file dialog
+- `New` [GTK] Introduced USE_GTK environment variable. When set, GTK is preferred over QT.
+- `Fix` [Windows] Webview scrollbar sizing with a non-resizable window
+- `Fix` [Windows] Add support for application icon #9
+- `Fix` [Windows] Disable logging spam for comtypes
+
+
+## 0.8.4
+
+- `Fix` [Windows] Invisible scrollbars
+- `Fix` [Windows] Fullscreen mode
 
 ## 0.8.3
 
