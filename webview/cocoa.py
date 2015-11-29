@@ -83,13 +83,6 @@ class BrowserView:
         self.window.setTitle_(title)
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
 
-        if fullscreen:
-            NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7
-            newBehavior = self.window.collectionBehavior() | NSWindowCollectionBehaviorFullScreenPrimary
-            self.window.setCollectionBehavior_(newBehavior)
-            self.window.setCollectionBehavior_(NSWindowCollectionBehaviorFullScreenPrimary)
-            self.window.toggleFullScreen_(None)
-
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect)
         self.window.setContentView_(self.webkit)
 
@@ -100,10 +93,18 @@ class BrowserView:
 
         self.load_url(url)
 
+        if fullscreen:
+            NSWindowCollectionBehaviorFullScreenPrimary = 128
+            self.window.setCollectionBehavior_(NSWindowCollectionBehaviorFullScreenPrimary)
+            self.window.toggleFullScreen_(None)
+
     def show(self):
         self.window.display()
         self.window.orderFrontRegardless()
         BrowserView.app.run()
+
+    def destroy(self):
+        BrowserView.app.stop_(self)
 
     def load_url(self, url):
         def load(url):
@@ -190,5 +191,12 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 def load_url(url):
     if BrowserView.instance is not None:
         BrowserView.instance.load_url(url)
+    else:
+        raise Exception("Create a web view window first, before invoking this function")
+
+
+def destroy_window():
+    if BrowserView.instance is not None:
+        BrowserView.instance.destroy()
     else:
         raise Exception("Create a web view window first, before invoking this function")
