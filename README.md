@@ -84,6 +84,10 @@ Use py2app on OS X and py2exe on Windows. For reference setup.py files, look in 
 
 # Changelog
 
+## 0.9.1
+
+- `Fix` [Windows] Fullscreen mode
+
 ## 0.9
 
 Released 27/11/2015
