@@ -127,9 +127,17 @@ class BrowserView(object):
             self.height = screen_y
 
             style = win32gui.GetWindowLong(self.hwnd, win32con.GWL_STYLE)
-            win32gui.SetWindowLong(self.hwnd, win32con.GWL_STYLE, style & ~win32con.WS_OVERLAPPEDWINDOW)
+            win32gui.SetWindowLong(self.hwnd, win32con.GWL_STYLE, style & ~(win32con.WS_CAPTION | win32con.WS_THICKFRAME))
+
+            win32gui.SetWindowLong(self.hwnd, win32con.GWL_EXSTYLE, style &
+                                   ~(win32con.WS_EX_DLGMODALFRAME | win32con.WS_EX_WINDOWEDGE |
+                                     win32con.WS_EX_CLIENTEDGE | win32con.WS_EX_STATICEDGE))
+
             win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOP, 0, 0, screen_x, screen_y,
-                                 win32con.SWP_NOOWNERZORDER | win32con.SWP_FRAMECHANGED)
+                                  win32con.SWP_NOOWNERZORDER | win32con.SWP_FRAMECHANGED | win32con.SWP_NOZORDER | win32con.SWP_NOACTIVATE)
+        else:
+            win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOP, self.pos_x, self.pos_y, self.width, self.height,
+                                  win32con.SWP_SHOWWINDOW)
 
 
     def _create_atlax_window(self):
@@ -160,8 +168,6 @@ class BrowserView(object):
 
     def show(self):
         # Show main window
-        win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOP, self.pos_x, self.pos_y, self.width, self.height,
-                              win32con.SWP_SHOWWINDOW)
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNORMAL)
         win32gui.UpdateWindow(self.hwnd)
 
