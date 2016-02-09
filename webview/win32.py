@@ -6,6 +6,7 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
+from __future__ import absolute_import
 
 # disable logging for comtypes
 import logging
@@ -21,7 +22,7 @@ from ctypes import byref, POINTER
 from comtypes import COMObject, hresult
 from comtypes.client import wrap, GetEvents
 
-from win32_gen import *
+from .win32_gen import *
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 
