@@ -303,7 +303,7 @@ def _set_ie_mode():
         ie_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'Software\Microsoft\Internet Explorer')
         try:
             version, type = winreg.QueryValueEx(ie_key, "svcVersion")
-        except FileNotFoundError:
+        except:
             version, type = winreg.QueryValueEx(ie_key, "Version")
 
         winreg.CloseKey(ie_key)
