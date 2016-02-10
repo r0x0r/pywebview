@@ -4,7 +4,7 @@ from setuptools import setup
 
 install_requires = []
 if platform.system() == "Windows":
-    install_requires = ['comtypes', 'pywin32']
+    install_requires = ['comtypes', 'pypiwin32']
 elif platform.system() == "Darwin":
     install_requires = ['pyobjc']
 
@@ -14,10 +14,10 @@ setup(
     author_email = "roman@flowrl.com",
     description = ("A cross-platform lightweight native wrapper around a web view component"),
     url = "http://github.com/r0x0r/pywebview",
-    download_url = 'https://github.com/r0x0r/pywebview/archive/0.8.4.tar.gz',
-    keywords = ['gui', 'webkit', 'html', "web"],
+    download_url = 'https://github.com/r0x0r/pywebview/archive/0.9.1.tar.gz',
+    keywords = ['gui', 'webkit', 'html', 'web'  ],
     install_requires = install_requires,
-    version='0.8.4',
+    version='0.9.1',
     packages=['webview',],
     license='New BSD license',
     classifiers=[
