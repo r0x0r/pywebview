@@ -17,7 +17,7 @@ from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
-info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': YES}
+info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
 
 
 class BrowserView:
