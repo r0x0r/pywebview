@@ -61,7 +61,9 @@ For more elaborated usage, refer to the examples in the examples folder
 
 For OS X and Linux systems you get WebKit. The actual version depends on the version of installed Safari on OS X and QT / GTK on Linux. Note that WebKit bundled with QT / GTK is slightly out of date comparing to the latest Safari or Chrome.
 
-For Windows, you get, well, MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. By default, when creating an embedded web component, MSHTML uses IE7 rendering mode. To overcome this feature, a registry setting is modified to use the latest installed version of Internet Explorer. Note that for Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9.
+For Windows, you get MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. By default, when creating an embedded web component, MSHTML uses IE7 rendering mode. To overcome this feature, a registry setting is modified to use the latest installed version of Internet Explorer. Note that for Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9. 
+
+In Windows 10, IE11 is used as a renderer. EdgeHTML does not support COM interface, but requires a .NET implementation. This is planned for future versions for pywebvview.
 
 Support for Chromium Embedded Framework (CEF) is planned for future versions. Help with embedding CEF is welcomed.
 
