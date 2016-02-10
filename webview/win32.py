@@ -292,7 +292,6 @@ def _set_ie_mode():
 
     try:
         import _winreg as winreg  # Python 2
-        FileNotFoundError = WindowsError  # FileNotFoundError is found in Python 3
     except ImportError:
         import winreg  # Python 3
 
