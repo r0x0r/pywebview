@@ -62,6 +62,11 @@ class BrowserView:
         gtk.main()
         Gdk.threads_leave()
 
+    def destroy(self):
+        Gdk.threads_enter()
+        self.window.destroy()
+        Gdk.threads_leave()
+
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         Gdk.threads_enter()
 
@@ -110,6 +115,13 @@ class BrowserView:
 def create_window(title, url, width, height, resizable, fullscreen, min_size):
     browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size)
     browser.show()
+
+
+def destroy_window():
+    if BrowserView.instance is not None:
+        BrowserView.instance.destroy()
+    else:
+        raise Exception("Create a web view window first, before invoking this function")
 
 
 def load_url(url):

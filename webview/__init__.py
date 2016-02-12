@@ -54,7 +54,17 @@ else:
     raise Exception("Unsupported platform. Only Windows, Linux and OS X are supported.")
 
 
+
 def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename=''):
+    """
+    Create a file dialog
+    :param dialog_type: Dialog type: open file (OPEN_DIALOG), save file (SAVE_DIALOG), open folder (OPEN_FOLDER). Default
+                        is open file.
+    :param directory: Initial directory
+    :param allow_multiple: Allow multiple selection. Default is false.
+    :param save_filename: Default filename for save file dialog.
+    :return:
+    """
     if not os.path.exists(directory):
         directory = ''
 
@@ -83,6 +93,12 @@ def create_window(title, url, width=800, height=600, resizable=True, fullscreen=
     """
     gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size)
 
+
+def destroy_window():
+    """
+    Destroy a web view window
+    """
+    gui.destroy_window()
 
 def _make_unicode(string):
     """

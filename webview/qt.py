@@ -51,6 +51,7 @@ class BrowserView(QMainWindow):
     instance = None
     url_trigger = QtCore.pyqtSignal(str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str)
+    destroy_trigger = QtCore.pyqtSignal()
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size):
         super(BrowserView, self).__init__()
@@ -76,6 +77,7 @@ class BrowserView(QMainWindow):
         self.setCentralWidget(self.view)
         self.url_trigger.connect(self._handle_load_url)
         self.dialog_trigger.connect(self._handle_file_dialog)
+        self.destroy_trigger.connect(self._handle_destroy_window)
 
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
@@ -100,6 +102,9 @@ class BrowserView(QMainWindow):
     def _handle_load_url(self, url):
         self.view.setUrl(QtCore.QUrl(url))
 
+    def _handle_destroy_window(self):
+        self.close()
+
     def load_url(self, url):
         self.url_trigger.emit(url)
 
@@ -119,6 +124,10 @@ class BrowserView(QMainWindow):
         else:
             return None
 
+    def destroy_(self):
+        self.destroy_trigger.emit()
+
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size):
     """
@@ -135,12 +144,19 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size):
 
     browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size)
     browser.show()
-    sys.exit(app.exec_())
+    app.exec_()
 
 
 def load_url(url):
     if BrowserView.instance is not None:
         BrowserView.instance.load_url(url)
+    else:
+        raise Exception("Create a web view window first, before invoking this function")
+
+
+def destroy_window():
+    if BrowserView.instance is not None:
+        BrowserView.instance.destroy_()
     else:
         raise Exception("Create a web view window first, before invoking this function")
 

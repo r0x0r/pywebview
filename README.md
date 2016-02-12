@@ -53,8 +53,12 @@ For more elaborated usage, refer to the examples in the examples folder
 - `webview.load_url(url)`
 	Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is created with create_window(). Otherwise an exception is thrown.
 
-- `webview.create_file_dialog(dialog_type=OPEN_DIALOG, allow_multiple=False)`
-    Create an open file (`webview.OPEN_DIALOG`) or open folder (`webview.FOLDER_DIALOG`) dialog. `allow_multiple=True` enables multiple selection. Return a tuple of selected files, None if cancelled
+- `webview.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='')`
+    Create an open file (`webview.OPEN_DIALOG`), open folder (`webview.FOLDER_DIALOG`) or save file (`webview.SAVE_DIALOG`) dialog. `allow_multiple=True` enables multiple selection. `directory` Initial directory. `save_filename` Default filename for save file dialog.
+    Return a tuple of selected files, None if cancelled
+
+- `webview.destroy_window()`
+    Destroy a webview window
 
 
 # What web renderer is used?
@@ -83,6 +87,17 @@ Use py2app on OS X and py2exe on Windows. For reference setup.py files, look in 
 
 
 # Changelog
+
+
+## 1.0
+
+- `New` [All] Add an ability to programmatically destroy a webview window
+- `Fix` [Windows] Fullscreen mode
+- `Fix` [Windows] Change setup.py to use pypiwin32 #22
+- `Fix` [Windows] Relative import of win32_gen fixed on Python 3 #20. Thanks to @yoavram for the contribution
+- `Fix` [Windows] FileNotFound exception on Windows 2003. Thanks to @jicho for the contribution
+- `Fix` [OSX] Non-SSL URLs are allowed by default on El Capitan. Thanks to @cr0hn for the contribution
+
 
 ## 0.9
 

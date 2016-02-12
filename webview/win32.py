@@ -180,6 +180,9 @@ class BrowserView(object):
         # Pump messages
         win32gui.PumpMessages()
 
+    def destroy(self):
+        win32gui.SendMessage(self.hwnd, win32con.WM_DESTROY)
+
     def load_url(self, url):
         self.url = url
         self.browser.Navigate2(url)
@@ -229,9 +232,12 @@ class BrowserView(object):
         except:
             return None
 
-    def _on_destroy(self, hwnd, message, wparam, lparam):
+    def _destroy(self):
         del self.browser
         win32gui.PostQuitMessage(0)
+
+    def _on_destroy(self, hwnd, message, wparam, lparam):
+        self._destroy()
 
         return True
 
@@ -278,6 +284,13 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 def load_url(url):
     if BrowserView.instance is not None:
         BrowserView.instance.load_url(url)
+    else:
+        raise Exception("Create a web view window first, before invoking this function")
+
+
+def destroy_window():
+    if BrowserView.instance is not None:
+        BrowserView.instance.destroy()
     else:
         raise Exception("Create a web view window first, before invoking this function")
 
