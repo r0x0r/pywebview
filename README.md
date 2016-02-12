@@ -91,6 +91,8 @@ Use py2app on OS X and py2exe on Windows. For reference setup.py files, look in 
 
 ## 1.0
 
+Released 12/02/2016
+
 - `New` [All] Add an ability to programmatically destroy a webview window
 - `Fix` [Windows] Fullscreen mode
 - `Fix` [Windows] Change setup.py to use pypiwin32 #22
