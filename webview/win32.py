@@ -95,11 +95,15 @@ class BrowserView(object):
         self.wndclass.style = win32con.CS_HREDRAW | win32con.CS_VREDRAW
         self.wndclass.lpfnWndProc = message_map
         self.wndclass.hInstance = win32api.GetModuleHandle()
-        self.wndclass.hIcon = win32gui.LoadIcon(self.wndclass.hInstance, 1)
         self.wndclass.hCursor = win32gui.LoadCursor(win32con.NULL, win32con.IDC_ARROW)
         self.wndclass.hbrBackground = win32gui.GetStockObject(win32con.WHITE_BRUSH)
         self.wndclass.lpszMenuName = ""
         self.wndclass.lpszClassName = "MainWin"
+
+        try:  # Try loading an icon embedded in the exe file. This will when frozen with PyInstaller
+            self.wndclass.hIcon = win32gui.LoadIcon(self.wndclass.hInstance, 1)
+        except:
+            pass
 
         # Register Window Class
         if not win32gui.RegisterClass(self.wndclass):
@@ -177,7 +181,7 @@ class BrowserView(object):
         win32gui.UpdateWindow(self.atlhwnd)
         win32gui.SetFocus(self.atlhwnd)
 
-        # Pump messages
+        # Start sending and receiving messages
         win32gui.PumpMessages()
 
     def destroy(self):
