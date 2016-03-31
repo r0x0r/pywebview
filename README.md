@@ -4,6 +4,8 @@ pywebview is a lightweight cross-platform wrapper around a webview component tha
 
 pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: Win32 on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, it does not bundle a heavy GUI toolkit with it, which keeps the executable size small. Compatible with both Python 2 and 3.
 
+An example application created with pywebview can be found here https://github.com/r0x0r/traktorlibrarian
+
 
 # License
 
