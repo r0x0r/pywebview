@@ -1,10 +1,11 @@
 # pywebview
 
-pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, eliminating the need of launching a web browser. Combined with a lightweight web framework like [Flask](http://flask.pocoo.org/), [Bottle](http://bottlepy.org/docs/dev/index.html) or [web.py](http://webpy.org), you can create beautiful cross-platform HTML5 user interfaces targeting WebKit, while hiding implementation details from the end user.
+pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, eliminating the need of launching a web browser. Combined with a lightweight web framework like [Flask](http://flask.pocoo.org/), [Bottle](http://bottlepy.org/docs/dev/index.html) or [web.py](http://webpy.org), you can create beautiful cross-platform HTML5 user interfaces targeting WebKit, while hiding implementation details from the end user. If HTML is not your strong point, you might want to use [REMI](https://github.com/dddomodossola/remi), which allows you to create HTML based interfaces using Python code only.
 
-pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: Win32 on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, it does not bundle a heavy GUI toolkit with it, which keeps the executable size small. Compatible with both Python 2 and 3.
+pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: Win32 on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, it does not bundle a heavy GUI toolkit with it keeping the executable size small. Compatible with both Python 2 and 3.
 
 An example application created with pywebview can be found here https://github.com/r0x0r/traktorlibrarian
+Please do not hesitate to tell me your your pywebview based application.
 
 
 # License
@@ -16,6 +17,10 @@ The BSD license
 # Installation
 
     pip install pywebview
+
+# Contributions and bug reports
+
+Help, PRs and donations are welcome. If you found a bug, please test it first in a web-browser that is used by default for your operating system to see if the problem is with your code, rather than pywebview. Feature requests are welcome, but nothing is guaranteed. 
 
 
 # Dependencies
@@ -71,7 +76,6 @@ For Windows, you get MSHTML (Trident) in all its glory. The version depends on t
 
 In Windows 10, IE11 is used as a renderer. EdgeHTML does not support COM interface, but requires a .NET implementation. This is planned for future versions for pywebvview.
 
-Support for Chromium Embedded Framework (CEF) is planned for future versions. Help with embedding CEF is welcomed.
 
 # Cache issues
 
