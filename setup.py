@@ -17,7 +17,7 @@ setup(
     download_url = 'https://github.com/r0x0r/pywebview/archive/1.0.2.tar.gz',
     keywords = ['gui', 'webkit', 'html', 'web'],
     install_requires = install_requires,
-    version='1.0.1',
+    version='1.0.2',
     packages=['webview',],
     license='New BSD license',
     classifiers=[
