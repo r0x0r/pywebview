@@ -159,9 +159,9 @@ class BrowserView(object):
             atl_width = self.width - self.scrollbar_width
             atl_height = self.height - self.scrollbar_height - VERTICAL_SCROLLBAR_OFFSET
 
-        self.atlhwnd = win32gui.CreateWindow("AtlAxWin", self.url,
-                                      win32con.WS_CHILD | win32con.WS_HSCROLL | win32con.WS_VSCROLL,
-                                      0, 0, atl_width, atl_height, self.hwnd, None, hInstance, None)
+        self.atlhwnd = win32gui.CreateWindow("AtlAxWin", "bogus-url",
+                                             win32con.WS_CHILD | win32con.WS_HSCROLL | win32con.WS_VSCROLL,
+                                             0, 0, atl_width, atl_height, self.hwnd, None, hInstance, None)
 
         # COM voodoo
         pBrowserUnk = POINTER(IUnknown)()
@@ -180,6 +180,9 @@ class BrowserView(object):
         win32gui.ShowWindow(self.atlhwnd, win32con.SW_SHOW)
         win32gui.UpdateWindow(self.atlhwnd)
         win32gui.SetFocus(self.atlhwnd)
+
+        # Load URL here instead in CreateWindow to prevent a dead-lock
+        self.browser.Navigate2(self.url)
 
         # Start sending and receiving messages
         win32gui.PumpMessages()
