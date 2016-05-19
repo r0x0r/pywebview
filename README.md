@@ -94,9 +94,20 @@ Use py2app on OS X and py2exe on Windows. For reference setup.py files, look in 
 
 # Changelog
 
+## 1.0.2
+Released 19/05/2016
+
+- `Fix` [Windows] Fix a dead-lock that sometimes occurs on a window creation, when used with a HTTP server running in a
+separate thread.
+
+
+## 1.0.1
+Released 17/05/2016
+
+- `Fix` [Windows] PyInstaller: Icon not found #29
+
 
 ## 1.0
-
 Released 12/02/2016
 
 - `New` [All] Add an ability to programmatically destroy a webview window
@@ -108,7 +119,6 @@ Released 12/02/2016
 
 
 ## 0.9
-
 Released 27/11/2015
 
 - `New` [All] Right click context menu is disabled #12
