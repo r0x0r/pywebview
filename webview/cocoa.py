@@ -102,6 +102,9 @@ class BrowserView:
             self.window.setCollectionBehavior_(NSWindowCollectionBehaviorFullScreenPrimary)
             self.window.toggleFullScreen_(None)
 
+        # Add the default Cocoa application menu
+        self._add_app_menu()
+
     def show(self):
         self.window.display()
         self.window.orderFrontRegardless()
@@ -169,6 +172,54 @@ class BrowserView:
 
         self._file_name_semaphor.acquire()
         return self._file_name
+
+    def _add_app_menu(self):
+        """
+        Create a default Cocoa menu that shows 'Services', 'Hide',
+        'Hide Others', 'Show All', and 'Quit'. Will append the application name
+        to some menu items if it's available.
+        """
+        # Set the main menu for the application
+        mainMenu = AppKit.NSMenu.alloc().init()
+        self.app.setMainMenu_(mainMenu)
+
+        # Create an application menu and make it a submenu of the main menu
+        mainAppMenuItem = AppKit.NSMenuItem.alloc().init()
+        mainMenu.addItem_(mainAppMenuItem)
+        appMenu = AppKit.NSMenu.alloc().init()
+        mainAppMenuItem.setSubmenu_(appMenu)
+
+        # Set the 'Services' menu for the app and create an app menu item
+        appServicesMenu = AppKit.NSMenu.alloc().init()
+        self.app.setServicesMenu_(appServicesMenu)
+        servicesMenuItem = appMenu.addItemWithTitle_action_keyEquivalent_("Services", nil, "")
+        servicesMenuItem.setSubmenu_(appServicesMenu)
+
+        appMenu.addItem_(AppKit.NSMenuItem.separatorItem())
+
+        # Append the 'Hide', 'Hide Others', and 'Show All' menu items
+        appMenu.addItemWithTitle_action_keyEquivalent_(self._append_app_name('Hide'), 'hide:', 'h')
+        hideOthersMenuItem = appMenu.addItemWithTitle_action_keyEquivalent_('Hide Others', 'hideOtherApplications:', 'h')
+        hideOthersMenuItem.setKeyEquivalentModifierMask_(AppKit.NSAlternateKeyMask | AppKit.NSCommandKeyMask)
+        appMenu.addItemWithTitle_action_keyEquivalent_('Show All', 'unhideAllApplications:', '')
+
+        appMenu.addItem_(AppKit.NSMenuItem.separatorItem())
+
+        # Append a 'Quit' menu item
+        appMenu.addItemWithTitle_action_keyEquivalent_(self._append_app_name('Quit'), "terminate:", "q")
+
+    def _append_app_name(self, val):
+        """
+        Append the application name to a string if it's available. If not, the
+        string is returned unchanged.
+
+        :param str val: The string to append to
+        :return: String with app name appended, or unchanged string
+        :rtype: str
+        """
+        if "CFBundleName" in info:
+            val += " {}".format(info["CFBundleName"])
+        return val
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size):
