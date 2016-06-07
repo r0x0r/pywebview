@@ -203,7 +203,7 @@ class BrowserView(object):
                 desktop_pidl = shell.SHGetFolderLocation(0, shellcon.CSIDL_DESKTOP, 0, 0)
                 pidl, display_name, image_list =\
                     shell.SHBrowseForFolder(self.hwnd, desktop_pidl, None, 0, None, None)
-                file_path = (shell.SHGetPathFromIDList(pidl),)
+                file_path = (shell.SHGetPathFromIDList(pidl).decode('utf-8'),)
             elif dialog_type == OPEN_DIALOG:
                 file_filter = 'All Files\0*.*\0'
                 custom_filter = 'Other file types\0*.*\0'
