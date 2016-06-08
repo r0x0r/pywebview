@@ -2,10 +2,10 @@
 
 pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, eliminating the need of launching a web browser. Combined with a lightweight web framework like [Flask](http://flask.pocoo.org/), [Bottle](http://bottlepy.org/docs/dev/index.html) or [web.py](http://webpy.org), you can create beautiful cross-platform HTML5 user interfaces targeting WebKit, while hiding implementation details from the end user. If HTML is not your strong point, you might want to use [REMI](https://github.com/dddomodossola/remi), which allows you to create HTML based interfaces using Python code only.
 
-pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: Win32 on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, it does not bundle a heavy GUI toolkit with it keeping the executable size small. Compatible with both Python 2 and 3.
+pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: Win32 on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, it does not bundle a heavy GUI toolkit with it keeping the executable size small. Compatible with both Python 2 and 3. While Android is not supported, you can use the same codebase with solutions like [Python for Android](https://github.com/kivy/python-for-android) for creating an APK.
 
 An example application created with pywebview can be found here https://github.com/r0x0r/traktorlibrarian
-If you have built an app using pywebview, please do not hesitate to tell about it.
+If you have built an app using pywebview, please do not hesitate to showcase it.
 
 
 # License
@@ -13,10 +13,10 @@ If you have built an app using pywebview, please do not hesitate to tell about i
 The BSD license
 
 
-
 # Installation
 
     pip install pywebview
+
 
 # Contributions and bug reports
 
@@ -72,33 +72,29 @@ For more elaborated usage, refer to the examples in the examples folder
 
 For OS X and Linux systems you get WebKit. The actual version depends on the version of installed Safari on OS X and QT / GTK on Linux. Note that WebKit bundled with QT / GTK is slightly out of date comparing to the latest Safari or Chrome.
 
-For Windows, you get MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. By default, when creating an embedded web component, MSHTML uses IE7 rendering mode. To overcome this feature, a registry setting is modified to use the latest installed version of Internet Explorer. Note that for Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9. 
+For Windows, you get MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. For Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9. For Windows 7/8/10, you will get the latest installed version. EdgeHTML is not yet supported on Windows 10, as it requires a .NET interface. This is planned for future versions for pywebvview.
 
-In Windows 10, IE11 is used as a renderer. EdgeHTML does not support COM interface, but requires a .NET implementation. This is planned for future versions for pywebvview.
-
-
-# Cache issues
-
-Web renderer might cache your code and fail to invalidate it, when it is updated. To prevent that add the following directives to the `<HEAD>` of your HTML files
-    
-    <meta http-equiv="pragma" content="no-cache">
-    <meta http-equiv="cache-control" content="no-cache">
-    <meta http-equiv="expires" content="-1">
-    
 
 # How do I freeze my application?
 
-Use py2app on OS X and py2exe on Windows. For reference setup.py files, look in `examples/py2app_setup.py` and `examples/py2exe_setup.py`
+Use py2app on OS X and py2exe/pyinstaller on Windows. For reference setup.py files, look in `examples/py2app_setup.py` and `examples/py2exe_setup.py`
 
 
 
 # Changelog
 
+## 1.1
+Released 08/06/2016
+
+- `New` [OSX] Add a default application menu #35. Thanks @cuibonobo
+- `New` [Linux] GTK is made as default and pypi dependency added. USE_GTK environment variable is also deprecated. To use QT, set `webview.config["USE_QT"] = True`
+- `Fix` [Windows] Open folder of create_file_dialog now returns Unicode, instead of byte encoding.
+
+
 ## 1.0.2
 Released 19/05/2016
 
-- `Fix` [Windows] Fix a dead-lock that sometimes occurs on a window creation, when used with a HTTP server running in a
-separate thread.
+- `Fix` [Windows] Fix a dead-lock that sometimes occurs on a window creation, when used with a HTTP server running in a separate thread.
 
 
 ## 1.0.1

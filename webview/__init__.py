@@ -25,33 +25,49 @@ OPEN_DIALOG = 10
 FOLDER_DIALOG = 20
 SAVE_DIALOG = 30
 
-if platform.system() == "Darwin":
-    import webview.cocoa as gui
-elif platform.system() == "Linux":
 
-    try:
-        #Try QT first unless USE_GTK variable is defined
-        if not os.environ.get('USE_GTK'):
-            import webview.qt as gui
-    except Exception as e:
-        logger.warning("QT not found")
-        import_error = True
-    else:
-        import_error = False
+config = {
+    "USE_QT": False
+}
 
-    if import_error or os.environ.get('USE_GTK'):
-        try:
-            # If QT is not found, then try GTK
-            import webview.gtk as gui
-        except Exception as e:
-            # Panic
-            logger.error("GTK not found")
-            raise Exception("You must have either QT or GTK with Python extensions installed in order to this library.")
+_initialized = False
 
-elif platform.system() == "Windows":
-    import webview.win32 as gui
-else:
-    raise Exception("Unsupported platform. Only Windows, Linux and OS X are supported.")
+
+def _initialize_imports():
+    global _initialized, gui
+
+    if not _initialized:
+        if platform.system() == "Darwin":
+            import webview.cocoa as gui
+        elif platform.system() == "Linux":
+
+            try:
+                #Try QT first unless USE_GTK variable is defined
+                if not config["USE_QT"]:
+                    import webview.gtk as gui
+                    logger.info("Using GTK")
+            except ImportError as e:
+                logger.warning("GTK not found")
+                import_error = True
+            else:
+                import_error = False
+
+            if import_error or config["USE_QT"]:
+                try:
+                    # If GTK is not found, then try QT
+                    import webview.qt as gui
+                    logger.info("Using QT")
+                except ImportError as e:
+                    # Panic
+                    logger.error("QT not found")
+                    raise Exception("You must have either QT or GTK with Python extensions installed in order to this library.")
+
+        elif platform.system() == "Windows":
+            import webview.win32 as gui
+        else:
+            raise Exception("Unsupported platform. Only Windows, Linux and OS X are supported.")
+
+        _initialized = True
 
 
 
@@ -65,10 +81,15 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
     :param save_filename: Default filename for save file dialog.
     :return:
     """
+
     if not os.path.exists(directory):
         directory = ''
 
-    return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    try:
+        return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
+
 
 
 def load_url(url):
@@ -77,7 +98,10 @@ def load_url(url):
     created with create_window(). Otherwise an exception is thrown.
     :param url: url to load
     """
-    gui.load_url(url)
+    try:
+        gui.load_url(url)
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
 
 
 def create_window(title, url, width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100)):
@@ -91,6 +115,7 @@ def create_window(title, url, width=800, height=600, resizable=True, fullscreen=
     :param resizable True if window can be resized, False otherwise. Default is True.
     :return:
     """
+    _initialize_imports()
     gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size)
 
 
@@ -98,7 +123,10 @@ def destroy_window():
     """
     Destroy a web view window
     """
-    gui.destroy_window()
+    try:
+        gui.destroy_window()
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
 
 def _make_unicode(string):
     """

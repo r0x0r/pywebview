@@ -97,13 +97,13 @@ class BrowserView:
 
         self.load_url(url)
 
+        # Add the default Cocoa application menu
+        self._add_app_menu()
+
         if fullscreen:
             NSWindowCollectionBehaviorFullScreenPrimary = 128
             self.window.setCollectionBehavior_(NSWindowCollectionBehaviorFullScreenPrimary)
             self.window.toggleFullScreen_(None)
-
-        # Add the default Cocoa application menu
-        self._add_app_menu()
 
     def show(self):
         self.window.display()
@@ -237,21 +237,12 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size):
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    if BrowserView.instance is not None:
-        return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
-    else:
-        raise Exception("Create a web view window first, before invoking this function")
+    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
 def load_url(url):
-    if BrowserView.instance is not None:
-        BrowserView.instance.load_url(url)
-    else:
-        raise Exception("Create a web view window first, before invoking this function")
+    BrowserView.instance.load_url(url)
 
 
 def destroy_window():
-    if BrowserView.instance is not None:
-        BrowserView.instance.destroy()
-    else:
-        raise Exception("Create a web view window first, before invoking this function")
+    BrowserView.instance.destroy()
