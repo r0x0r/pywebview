@@ -50,6 +50,7 @@ if _import_error:
 class BrowserView(QMainWindow):
     instance = None
     url_trigger = QtCore.pyqtSignal(str)
+    string_trigger = QtCore.pyqtSignal(str, str, str, str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str)
     destroy_trigger = QtCore.pyqtSignal()
 
@@ -72,10 +73,12 @@ class BrowserView(QMainWindow):
 
         self.view = QWebView(self)
         self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
-        self.view.setUrl(QtCore.QUrl(url))
+        if url != None:
+            self.view.setUrl(QtCore.QUrl(url))
 
         self.setCentralWidget(self.view)
         self.url_trigger.connect(self._handle_load_url)
+        self.string_trigger.connect(self._handle_load_string)
         self.dialog_trigger.connect(self._handle_file_dialog)
         self.destroy_trigger.connect(self._handle_destroy_window)
 
@@ -102,11 +105,24 @@ class BrowserView(QMainWindow):
     def _handle_load_url(self, url):
         self.view.setUrl(QtCore.QUrl(url))
 
+    def _handle_load_string(self, content, mime_type, encoding, base_uri):
+        # Qt will convert Python string to QStrings (except in Python 3)
+        if sys.version < '3':
+            # unpack the QString and convert to UTF-16
+            data = unicode(content).encode("utf-16")
+        else:
+            # convert to UTF-16
+            data = content.encode("utf-16")
+        self.view.setContent(data, mime_type, QtCore.QUrl(base_uri))
+
     def _handle_destroy_window(self):
         self.close()
 
     def load_url(self, url):
         self.url_trigger.emit(url)
+
+    def load_string(self, content, mime_type, encoding, base_uri):
+        self.string_trigger.emit(content, mime_type, encoding, base_uri)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename)
@@ -150,6 +166,8 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size):
 def load_url(url):
     BrowserView.instance.load_url(url)
 
+def load_string(content, mime_type, encoding, base_uri=""):
+    BrowserView.instance.load_string(content, mime_type, encoding, base_uri)
 
 def destroy_window():
     BrowserView.instance.destroy_()
