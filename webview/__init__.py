@@ -103,16 +103,15 @@ def load_url(url):
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 
-def load_string(content, mime_type="text/html", encoding="utf-8", base_uri=""):
+def load_html(content, base_uri=""):
     """
     Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
     created with create_window(). Otherwise an exception is thrown.
     :param content: Content to load.
-    :param mime_type: MIME type of content. Default is "text/html".
     :param base_uri: Base URI for resolving links. Default is "".
     """
     try:
-        gui.load_string(_make_unicode(content), mime_type, encoding, base_uri)
+        gui.load_html(_make_unicode(content), base_uri)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 

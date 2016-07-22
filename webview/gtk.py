@@ -114,8 +114,9 @@ class BrowserView:
     def load_url(self, url):
         self.webview.load_uri(url)
 
-    def load_string(self, content, mime_type, encoding, base_uri):
-        glib.idle_add(self.webview.load_string, content, mime_type, encoding, base_uri)
+    def load_html(self, content, base_uri):
+        glib.idle_add(self.webview.load_string, content, "text/html", "utf-8",
+                      base_uri)
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size):
@@ -130,8 +131,8 @@ def destroy_window():
 def load_url(url):
     BrowserView.instance.load_url(url)
 
-def load_string(content, mime_type, encoding, base_uri=""):
-    BrowserView.instance.load_string(content, mime_type, encoding, base_uri)
+def load_html(content, base_uri):
+    BrowserView.instance.load_html(content, base_uri)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
