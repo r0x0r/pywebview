@@ -288,6 +288,8 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 def load_url(url):
     BrowserView.instance.load_url(url)
 
+def load_string(content, mime_type, base_uri):
+    raise NotImplementedError
 
 def destroy_window():
     BrowserView.instance.destroy()

@@ -14,6 +14,7 @@ try:
     # Try GTK 3
     from gi.repository import Gtk as gtk
     from gi.repository import Gdk
+    from gi.repository import GLib as glib
     from gi.repository import WebKit as webkit
 except ImportError as e:
     import_error = True
@@ -52,7 +53,9 @@ class BrowserView:
         webview.props.settings.props.enable_default_context_menu = False
         scrolled_window.add_with_viewport(webview)
         window.show_all()
-        webview.load_uri(url)
+
+        if url != None:
+            webview.load_uri(url)
 
         self.window = window
         self.webview = webview
@@ -111,6 +114,10 @@ class BrowserView:
     def load_url(self, url):
         self.webview.load_uri(url)
 
+    def load_html(self, content, base_uri):
+        glib.idle_add(self.webview.load_string, content, "text/html", "utf-8",
+                      base_uri)
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size):
     browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size)
@@ -123,6 +130,9 @@ def destroy_window():
 
 def load_url(url):
     BrowserView.instance.load_url(url)
+
+def load_html(content, base_uri):
+    BrowserView.instance.load_html(content, base_uri)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):

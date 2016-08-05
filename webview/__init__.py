@@ -103,8 +103,20 @@ def load_url(url):
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 
+def load_html(content, base_uri=""):
+    """
+    Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
+    created with create_window(). Otherwise an exception is thrown.
+    :param content: Content to load.
+    :param base_uri: Base URI for resolving links. Default is "".
+    """
+    try:
+        gui.load_html(_make_unicode(content), base_uri)
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
 
-def create_window(title, url, width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100)):
+
+def create_window(title, url=None, width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100)):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -142,6 +154,8 @@ def _make_unicode(string):
 
 
 def _transform_url(url):
+    if url == None:
+        return url
     if url.find(":") == -1:
         return 'file://' + os.path.abspath(url)
     else:
