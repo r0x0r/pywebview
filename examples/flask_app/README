@@ -1,0 +1,3 @@
+This is a sample skeleton of an application using pywebview and Flask. The directory structure as well as some basic
+boilerplate code is provided. The application entry point is src/backend/main.py and it must be run with the working
+directory set to the root directory of the application (i.e. the same directory as this file resides in).
