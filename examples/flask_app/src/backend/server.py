@@ -65,13 +65,12 @@ def choose_path():
     return jsonify(response)
 
 
-@server.route("/do/stuff", methods=["POST"])
-def search():
-    options = request.form["options"]
-    status = app.do_stuff(options)
+@server.route("/do/stuff")
+def do_stuff():
+    result = app.do_stuff()
 
-    if status:
-        response = {"status": "ok"}
+    if result:
+        response = {"status": "ok", "result": result}
     else:
         response = {"status": "error"}
 
@@ -79,7 +78,7 @@ def search():
 
 
 def run_server():
-    server.run(host="127.0.0.1", port=41357, threaded=True)
+    server.run(host="127.0.0.1", port=23948, threaded=True)
 
 
 if __name__ == "__main__":

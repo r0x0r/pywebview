@@ -18,11 +18,88 @@
 
 <h1>My first pywebview application</h1>
 
-<button onclick="openFodler()">Open folder</button>
+<button onclick="openFolder()">Open folder</button>
 <button onclick="doStuff()">Do stuff</button>
+<div id="open-folder-container"></div>
+<div id="stuff-container"></div>
 
 <script>
+    // Perform background initialization
+    doAjax("/init", "GET");
+
+
+    function openFolderHandler() {
+        var response = JSON.parse(this.responseText)
+        document.getElementById("open-folder-container").innerHTML = 'Selected directory: ' + response.directory;
+    }
+
+    function doStuffHandler() {
+        var response = JSON.parse(this.responseText)
+        document.getElementById("stuff-container").innerHTML = response.result;
+    }
+
+    function openFolder() {
+        doAjax("/choose/path", "GET", openFolderHandler);
+    }
+
+    function doStuff() {
+        doAjax("/do/stuff", "GET", doStuffHandler);
+    }
     
+    // From https://gist.github.com/dharmavir/936328
+    function getHttpRequestObject()
+    {
+        // Define and initialize as false
+        var xmlHttpRequst = false;
+        
+        // Mozilla/Safari/Non-IE
+        if (window.XMLHttpRequest) 
+        {
+            xmlHttpRequst = new XMLHttpRequest();
+        }
+        // IE
+        else if (window.ActiveXObject) 
+        {
+            xmlHttpRequst = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        return xmlHttpRequst;
+    }
+
+    // Does the AJAX call to URL specific with rest of the parameters
+    function doAjax(url, method, responseHandler, data)
+    {
+        // Set the variables
+        url = url || "";
+        method = method || "GET";
+        async = true;
+        data = data || null;
+        
+        if(url == "")
+        {
+            alert("URL can not be null/blank");
+            return false;
+        }
+        var xmlHttpRequst = getHttpRequestObject();
+        
+        // If AJAX supported
+        if(xmlHttpRequst != false)
+        {
+            xmlHttpRequst.open(method, url, async);
+            // Set request header (optional if GET method is used)
+            if(method == "POST")
+            {
+                xmlHttpRequst.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            }
+            // Assign (or define) response-handler/callback when ReadyState is changed.
+            xmlHttpRequst.onreadystatechange = responseHandler;
+            // Send data
+            xmlHttpRequst.send(data);
+        }
+        else
+        {
+            alert("Please use browser with Ajax support.!");
+        }
+    }
 </script>
 </body>
 </html>
