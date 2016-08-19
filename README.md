@@ -49,13 +49,15 @@ Either `PyQt4` or `PyQt5`
     
     webview.create_window("It works, Jim!", "http://www.flowrl.com")
 
-For more elaborated usage, refer to the examples in the examples folder  
-
+For more elaborated usage, refer to the examples in the `examples` directory.
+There is also a sample Flask application boilerplate provided in the `examples/flask_app` directory. It provides
+an application scaffold and boilerplate code for a real-world application.
 
 ## API
 
 - `webview.create_window(title, url, width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100))`
-	Create a new WebView window. Calling this function will block execution, so you have to execute your program logic in a separate thread.
+	Create a new WebView window. Calling this function will block application execution, so you have to execute your
+	program logic in a separate thread.
 
 - `webview.load_url(url)`
 	Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is created with create_window(). Otherwise an exception is thrown.

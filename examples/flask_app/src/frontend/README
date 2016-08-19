@@ -1,5 +1,5 @@
-Put your GUI code here using your favorite front-end technologies. The backend is configured to look for frontend code
-in the gui directory of the root directory. So the code put here shall be configured to produce output to the gui
-directory (e.g. using webpack, gulp or equivalent). Or forget all this and just put your frontend code directly
-in the gui directory.
+Put here your GUI cod here created with your favorite front-end technologies. The backend is configured to look for
+frontend code in the `gui` directory of the root directory. So the code put here shall be configured to produce output
+to the `gui` directory (e.g. using webpack, gulp or equivalent). Or forget all this and just put your frontend code
+directly in the `gui` directory.
 
