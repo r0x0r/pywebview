@@ -122,6 +122,13 @@ class BrowserView:
         self.url = url
         PyObjCTools.AppHelper.callAfter(load, url)
 
+    def load_html(self, content, base_uri):
+        def load(content, url):
+            url = Foundation.NSURL.URLWithString_(url)
+            self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
+
+        PyObjCTools.AppHelper.callAfter(load, content, base_uri)
+
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         def create_dialog(*args):
             dialog_type = args[0]
@@ -243,8 +250,8 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 def load_url(url):
     BrowserView.instance.load_url(url)
 
-def load_string(content, mime_type, base_uri):
-    raise NotImplementedError
+def load_html(content, base_uri):
+    BrowserView.instance.load_html(content, base_uri)
 
 def destroy_window():
     BrowserView.instance.destroy()
