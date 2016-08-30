@@ -54,7 +54,7 @@ class BrowserView(QMainWindow):
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str)
     destroy_trigger = QtCore.pyqtSignal()
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instance = self
 
@@ -85,6 +85,8 @@ class BrowserView(QMainWindow):
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
         self.raise_()
+        webview_ready.set()
+
 
     def _handle_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if dialog_type == FOLDER_DIALOG:
@@ -138,20 +140,10 @@ class BrowserView(QMainWindow):
 
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size):
-    """
-    Create a WebView window with Qt. Works with both Qt 4.x and 5.x.
-    :param title: Window title
-    :param url: URL to load
-    :param width: Window width
-    :param height: Window height
-    :param resizable True if window can be resized, False otherwise
-    :return:
-    """
-
+def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
     app = QApplication([])
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
     browser.show()
     app.exec_()
 

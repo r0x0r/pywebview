@@ -32,6 +32,9 @@ class BrowserView:
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
             return nil
 
+        def webView_didFinishLoadForFrame_(self, webview, frame):
+            BrowserView.instance.webview_ready.set()
+
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
             """
@@ -70,11 +73,12 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
         BrowserView.instance = self
 
         self._file_name = None
         self._file_name_semaphor = threading.Semaphore(0)
+        self.webview_ready = webview_ready
 
         rect = AppKit.NSMakeRect(100.0, 350.0, width, height)
         window_mask = AppKit.NSTitledWindowMask | AppKit.NSClosableWindowMask | AppKit.NSMiniaturizableWindowMask
@@ -93,6 +97,7 @@ class BrowserView:
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init()
         self._appDelegate = BrowserView.AppDelegate.alloc().init()
         self.webkit.setUIDelegate_(self._browserDelegate)
+        self.webkit.setFrameLoadDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._appDelegate)
 
         self.load_url(url)
@@ -229,7 +234,7 @@ class BrowserView:
         return val
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size):
+def create_window(title, url, width, height, resizable, fullscreen, min_size, ready_event):
     """
     Create a WebView window using Cocoa on Mac.
     :param title: Window title
@@ -239,7 +244,7 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size):
     :param resizable True if window can be resized, False otherwise
     :return:
     """
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, ready_event)
     browser.show()
 
 

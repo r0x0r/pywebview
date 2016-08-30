@@ -26,8 +26,10 @@ else:
 class BrowserView:
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
         BrowserView.instance = self
+
+        self.webview_ready = webview_ready
 
         Gdk.threads_init()
         window = gtk.Window(title=title)
@@ -49,16 +51,18 @@ class BrowserView:
         scrolled_window = gtk.ScrolledWindow()
         window.add(scrolled_window)
 
-        webview = webkit.WebView()
-        webview.props.settings.props.enable_default_context_menu = False
-        scrolled_window.add_with_viewport(webview)
+        self.window = window
+        self.webview = webkit.WebView()
+        self.webview.connect("notify::visible", self._handle_webview_ready)
+        self.webview.props.settings.props.enable_default_context_menu = False
+        scrolled_window.add_with_viewport(self.webview)
         window.show_all()
 
         if url != None:
             webview.load_uri(url)
 
-        self.window = window
-        self.webview = webview
+    def _handle_webview_ready(self, arg1, arg2):
+        self.webview_ready.set()
 
     def show(self):
         Gdk.threads_enter()
@@ -119,8 +123,8 @@ class BrowserView:
                       base_uri)
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size):
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size)
+def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
     browser.show()
 
 

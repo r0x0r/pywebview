@@ -16,6 +16,7 @@ import platform
 import os
 import sys
 import logging
+from threading import Event
 
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ config = {
 }
 
 _initialized = False
+_webview_ready = Event()
 
 
 def _initialize_imports():
@@ -86,6 +88,7 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
         directory = ''
 
     try:
+        _webview_ready.wait(5)
         return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
@@ -99,6 +102,7 @@ def load_url(url):
     :param url: url to load
     """
     try:
+        _webview_ready.wait(5)
         gui.load_url(url)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
@@ -111,8 +115,9 @@ def load_html(content, base_uri=""):
     :param base_uri: Base URI for resolving links. Default is "".
     """
     try:
+        _webview_ready.wait(5)
         gui.load_html(_make_unicode(content), base_uri)
-    except NameError:
+    except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
 
 
@@ -124,11 +129,14 @@ def create_window(title, url=None, width=800, height=600, resizable=True, fullsc
     :param url: URL to load
     :param width: Optional window width (default: 800px)
     :param height: Optional window height (default: 600px)
-    :param resizable True if window can be resized, False otherwise. Default is True.
+    :param resizable True if window can be resized, False otherwise. Default is True
+    :param fullscreen: True if start in fullscreen mode. Default is False
+    :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
+    :param webview_ready: threading.Event object that is set when WebView window is created
     :return:
     """
     _initialize_imports()
-    gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size)
+    gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size, _webview_ready)
 
 
 def destroy_window():
@@ -136,9 +144,11 @@ def destroy_window():
     Destroy a web view window
     """
     try:
+        _webview_ready.wait(5)
         gui.destroy_window()
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+
 
 def _make_unicode(string):
     """
