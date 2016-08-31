@@ -60,7 +60,7 @@ class UIHandler(COMObject):
 class BrowserView(object):
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
         BrowserView.instance = self
         self.title = title
         self.width = width
@@ -69,6 +69,7 @@ class BrowserView(object):
         self.resizable = resizable
         self.fullscreen = fullscreen
         self.min_size = min_size
+        self.webview_ready = webview_ready
 
         self.scrollbar_width = win32api.GetSystemMetrics(win32con.SM_CXVSCROLL)
         self.scrollbar_height = win32api.GetSystemMetrics(win32con.SM_CYHSCROLL)
@@ -182,7 +183,10 @@ class BrowserView(object):
         win32gui.SetFocus(self.atlhwnd)
 
         # Load URL here instead in CreateWindow to prevent a dead-lock
-        self.browser.Navigate2(self.url)
+        if self.url:
+            self.browser.Navigate2(self.url)
+
+        self.webview_ready.set()
 
         # Start sending and receiving messages
         win32gui.PumpMessages()
@@ -275,9 +279,9 @@ class BrowserView(object):
         custom_doc.SetUIHandler(self.handler)
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size):
+def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
     _set_ie_mode()
-    browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size)
+    browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
     browser_view.show()
 
 
