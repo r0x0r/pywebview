@@ -32,7 +32,14 @@ else:
 if _import_error:
     try:
         from PyQt5 import QtCore
-        from PyQt5.QtWebKitWidgets import QWebView
+
+        # Check to see if we're running Qt > 5.5
+        from PyQt5.QtCore import QT_VERSION_STR
+        if float(QT_VERSION_STR[:3]) > 5.5:
+            from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
+        else:
+            from PyQt5.QtWebKitWidgets import QWebView
+
         from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog
 
         logger.debug("Using Qt5")
