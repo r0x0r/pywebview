@@ -28,7 +28,8 @@ SAVE_DIALOG = 30
 
 
 config = {
-    "USE_QT": False
+    "USE_QT": False,
+    "USE_WIN32": False
 }
 
 _initialized = False
@@ -44,12 +45,12 @@ def _initialize_imports():
         elif platform.system() == "Linux":
 
             try:
-                #Try QT first unless USE_GTK variable is defined
+                #Try GTK first unless USE_QT flag is set
                 if not config["USE_QT"]:
                     import webview.gtk as gui
                     logger.info("Using GTK")
             except ImportError as e:
-                logger.warning("GTK not found")
+                logger.exception("GTK not found")
                 import_error = True
             else:
                 import_error = False
@@ -61,11 +62,31 @@ def _initialize_imports():
                     logger.info("Using QT")
                 except ImportError as e:
                     # Panic
-                    logger.error("QT not found")
+                    logger.exception("QT not found")
                     raise Exception("You must have either QT or GTK with Python extensions installed in order to this library.")
 
         elif platform.system() == "Windows":
-            import webview.win32 as gui
+
+            try:
+                #Try .NET first unless USE_WIN32 variable is defined
+                if not config["USE_WIN32"]:
+                    import webview.winforms as gui
+                    logger.info("Using .NET")
+            except ImportError as e:
+                logger.exception("pythonnet not found")
+                import_error = True
+            else:
+                import_error = False
+
+            if import_error or config["USE_WIN32"]:
+                try:
+                    # If .NET is not found, then try Win32
+                    import webview.win32 as gui
+                    logger.info("Using Win32")
+                except ImportError as e:
+                    # Panic
+                    logger.exception(" not found")
+                    raise Exception("You must have either pythonnet or pywin32 installed in order to this library.")
         else:
             raise Exception("Unsupported platform. Only Windows, Linux and OS X are supported.")
 
@@ -115,7 +136,7 @@ def load_html(content, base_uri=""):
     :param base_uri: Base URI for resolving links. Default is "".
     """
     try:
-        _webview_ready.wait(5)
+        _webview_ready.wait(50)
         gui.load_html(_make_unicode(content), base_uri)
     except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")

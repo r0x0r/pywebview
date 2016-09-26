@@ -160,7 +160,7 @@ class BrowserView(object):
             atl_width = self.width - self.scrollbar_width
             atl_height = self.height - self.scrollbar_height - VERTICAL_SCROLLBAR_OFFSET
 
-        self.atlhwnd = win32gui.CreateWindow("AtlAxWin", "bogus-url",
+        self.atlhwnd = win32gui.CreateWindow("AtlAxWin", "about:blank",
                                              win32con.WS_CHILD | win32con.WS_HSCROLL | win32con.WS_VSCROLL,
                                              0, 0, atl_width, atl_height, self.hwnd, None, hInstance, None)
 
@@ -186,8 +186,6 @@ class BrowserView(object):
         if self.url:
             self.browser.Navigate2(self.url)
 
-        self.webview_ready.set()
-
         # Start sending and receiving messages
         win32gui.PumpMessages()
 
@@ -198,9 +196,12 @@ class BrowserView(object):
         self.url = url
         self.browser.Navigate2(url)
 
+    def load_html(self, content):
+        raise NotImplementedError("load_html not implemented for Win32. Use Windows Forms implementation")
+
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if not directory:
-            directory = os.environ['temp']
+            initial_directory = os.environ['temp']
 
         try:
             if dialog_type == FOLDER_DIALOG:
@@ -208,6 +209,7 @@ class BrowserView(object):
                 pidl, display_name, image_list =\
                     shell.SHBrowseForFolder(self.hwnd, desktop_pidl, None, 0, None, None)
                 file_path = (shell.SHGetPathFromIDList(pidl).decode('utf-8'),)
+
             elif dialog_type == OPEN_DIALOG:
                 file_filter = 'All Files\0*.*\0'
                 custom_filter = 'Other file types\0*.*\0'
@@ -217,7 +219,7 @@ class BrowserView(object):
                     flags = flags | win32con.OFN_ALLOWMULTISELECT
 
                 file_path, customfilter, flags = \
-                    win32gui.GetOpenFileNameW(InitialDir=directory, Flags=flags, File=None, DefExt='',
+                    win32gui.GetOpenFileNameW(InitialDir=initial_directory, Flags=flags, File=None, DefExt='',
                                               Title='', Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
 
                 parts = file_path.split('\x00')
@@ -232,11 +234,8 @@ class BrowserView(object):
                 custom_filter = 'Other file types\0*.*\0'
 
                 file_path, customfilter, flags = \
-                    win32gui.GetSaveFileNameW(InitialDir=directory, File=save_filename, DefExt='', Title='',
+                    win32gui.GetSaveFileNameW(InitialDir=initial_directory, File=save_filename, DefExt='', Title='',
                                               Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
-
-                parts = file_path.split('\x00')
-
 
             return file_path
 
@@ -274,13 +273,14 @@ class BrowserView(object):
         info.ptMinTrackSize.y = self.min_size[1]
 
     def DocumentComplete(self, *args):
-        custom_doc = self.browser.Document.QueryInterface(ICustomDoc)
-        self.handler = UIHandler()
-        custom_doc.SetUIHandler(self.handler)
+        if self.browser.Document:
+            custom_doc = self.browser.Document.QueryInterface(ICustomDoc)
+            self.handler = UIHandler()
+            custom_doc.SetUIHandler(self.handler)
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
-    _set_ie_mode()
+    set_ie_mode()
     browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
     browser_view.show()
 
@@ -292,14 +292,16 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 def load_url(url):
     BrowserView.instance.load_url(url)
 
-def load_string(content, mime_type, base_uri):
-    raise NotImplementedError
+
+def load_html(content, base_uri):
+    BrowserView.instance.load_html(content)
+
 
 def destroy_window():
     BrowserView.instance.destroy()
 
 
-def _set_ie_mode():
+def set_ie_mode():
     """
     By default hosted IE control emulates IE7 regardless which version of IE is installed. To fix this, a proper value
     must be set for the executable.
