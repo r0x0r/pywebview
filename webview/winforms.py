@@ -39,7 +39,6 @@ class BrowserView:
             if fullscreen:
                 self.toggle_fullscreen()
 
-
         def on_shown(self, sender, args):
             self.webview_ready.set()
 
