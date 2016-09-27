@@ -85,6 +85,18 @@ Use py2app on OS X and py2exe/pyinstaller on Windows. For reference setup.py fil
 
 # Changelog
 
+
+## 1.2
+Released 27/09/2016
+
+- `New` [All] Introduced `load_html` function that allows dynamic loading of HTML code, instead of a URL. Implemented for all platforms except Win32 (use Windows Forms). Thanks to @ysobolev #39
+- `New` [All]  Added an example of a Flask-based application skeleton. The example can be found in `examples/flask_app`
+- `New` [Windows] Windows Forms based implementation of webview window. Requires pythonnet.
+- `New` [Windows] Introduced config["USE_WIN32"] variable that lets you choose between Win32 and Windows Forms. Default to True (Windows Forms will be made as default in the future)
+- `Fix` [Windows/Linux] Got rid of installation dependencies on Windows and Linux. The dependencies now have to be installed by hand and the choice of dependencies is left to user
+- `Fix` [Linux] Compatibility with Qt 5.5. Thanks to @danidee10. #48
+
+
 ## 1.1
 Released 08/06/2016
 

@@ -4,22 +4,22 @@ from setuptools import setup
 
 install_requires = []
 if platform.system() == "Windows":
-    install_requires = ["comtypes", "pypiwin32"]
+    install_requires = []
 elif platform.system() == "Darwin":
     install_requires = ["pyobjc"]
 elif platform.system() == "Linux":
-    install_requires = ["pygobject"]
+    install_requires = []
 
 setup(
     name="pywebview",
     author="Roman Sirokov",
-    author_email = "roman@flowrl.com",
-    description = ("A cross-platform lightweight native wrapper around a web view component"),
-    url = "http://github.com/r0x0r/pywebview",
-    download_url = "https://github.com/r0x0r/pywebview/archive/1.1.tar.gz",
-    keywords = ["gui", "webkit", "html", "web"],
-    install_requires = install_requires,
-    version="1.1",
+    author_email="roman@flowrl.com",
+    description=("A cross-platform lightweight native wrapper around a web view component"),
+    url="http://github.com/r0x0r/pywebview",
+    download_url="https://github.com/r0x0r/pywebview/archive/1.2.tar.gz",
+    keywords=["gui", "webkit", "html", "web"],
+    install_requires=install_requires,
+    version="1.2",
     packages=["webview",],
     license="New BSD license",
     classifiers=[
