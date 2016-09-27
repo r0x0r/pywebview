@@ -29,7 +29,7 @@ Help, PRs and donations are welcome. If you found a bug, please test it first in
 
 On Windows you can choose between Win32 and Windows Forms implementation.
 
-For Win32 you neeed
+For Win32 you need
 `pywin32`, `comtypes`. ActiveState distribution of Python 2 comes with pywin32 preinstalled
 
 For Windows Forms
