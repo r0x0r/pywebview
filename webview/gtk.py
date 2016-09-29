@@ -59,7 +59,7 @@ class BrowserView:
         window.show_all()
 
         if url != None:
-            webview.load_uri(url)
+            self.webview.load_uri(url)
 
     def _handle_webview_ready(self, arg1, arg2):
         self.webview_ready.set()
