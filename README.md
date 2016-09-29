@@ -93,6 +93,11 @@ Use py2app on OS X and py2exe/pyinstaller on Windows. For reference setup.py fil
 
 # Changelog
 
+## 1.2.1
+Released 29/09/2016
+
+- `Fix` [Linux] Fix GTK window failing to open. Thanks to @lchish. #50
+
 
 ## 1.2
 Released 27/09/2016
