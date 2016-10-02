@@ -9,8 +9,8 @@ from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from win32 import set_ie_mode
-from win32_gen import SetWindowPos, GetSystemMetrics
+from webview.win32 import set_ie_mode
+from webview.win32_gen import SetWindowPos, GetSystemMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class BrowserView:
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
                 self.TopMost = True
-                self.FormBorderStyle = WinForms.FormBorderStyle.None
+                self.FormBorderStyle = 0  # FormBorderStyle.None
                 self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
                 self.WindowState = WinForms.FormWindowState.Maximized
                 self.is_fullscreen = True
