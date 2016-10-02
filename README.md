@@ -27,7 +27,13 @@ Help, PRs and donations are welcome. If you found a bug, please test it first in
 
 ## Windows
 
+On Windows you can choose between Win32 and Windows Forms implementation.
+
+For Win32 you need
 `pywin32`, `comtypes`. ActiveState distribution of Python 2 comes with pywin32 preinstalled
+
+For Windows Forms
+`pythonnet`
 
 ## OS X 
 
@@ -55,13 +61,16 @@ an application scaffold and boilerplate code for a real-world application.
 
 ## API
 
-- `webview.create_window(title, url, width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100))`
+- `webview.create_window(title, url="", width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100))`
 	Create a new WebView window. Calling this function will block application execution, so you have to execute your
 	program logic in a separate thread.
 
 - `webview.load_url(url)`
-	Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is created with create_window(). Otherwise an exception is thrown.
+	Load a new URL in the previously created WebView window. This function must be invoked after WebView windows is created with create_window(). Otherwise an exception is thrown.
 
+- `webview.load_html(content)`
+    Loads HTML content in the WebView window
+    
 - `webview.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='')`
     Create an open file (`webview.OPEN_DIALOG`), open folder (`webview.FOLDER_DIALOG`) or save file (`webview.SAVE_DIALOG`) dialog. `allow_multiple=True` enables multiple selection. `directory` Initial directory. `save_filename` Default filename for save file dialog.
     Return a tuple of selected files, None if cancelled
@@ -74,7 +83,7 @@ an application scaffold and boilerplate code for a real-world application.
 
 For OS X and Linux systems you get WebKit. The actual version depends on the version of installed Safari on OS X and QT / GTK on Linux. Note that WebKit bundled with QT / GTK is slightly out of date comparing to the latest Safari or Chrome.
 
-For Windows, you get MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. For Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9. For Windows 7/8/10, you will get the latest installed version. EdgeHTML is not yet supported on Windows 10, as it requires a .NET interface. This is planned for future versions for pywebvview.
+For Windows, you get MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. For Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9. For Windows 7/8/10, you will get the latest installed version. Embedding EdgeHTML engine is not supported due the design decisions set by Microsoft. 
 
 
 # How do I freeze my application?
@@ -82,8 +91,12 @@ For Windows, you get MSHTML (Trident) in all its glory. The version depends on t
 Use py2app on OS X and py2exe/pyinstaller on Windows. For reference setup.py files, look in `examples/py2app_setup.py` and `examples/py2exe_setup.py`
 
 
-
 # Changelog
+
+## 1.2.1
+Released 29/09/2016
+
+- `Fix` [Linux] Fix GTK window failing to open. Thanks to @lchish. #50
 
 
 ## 1.2
