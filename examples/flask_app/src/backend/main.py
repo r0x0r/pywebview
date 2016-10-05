@@ -12,7 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 def url_ok(url, port):
-    from http.client import HTTPConnection
+    # Use httplib on Python 2
+    try:
+        from http.client import HTTPConnection
+    except ImportError:
+        from httplib import HTTPConnection
 
     try:
         conn = HTTPConnection(url, port)
