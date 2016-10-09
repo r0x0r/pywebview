@@ -55,7 +55,7 @@ class BrowserView:
         self.webview = webkit.WebView()
         self.webview.connect("notify::visible", self._handle_webview_ready)
         self.webview.props.settings.props.enable_default_context_menu = False
-        scrolled_window.add_with_viewport(self.webview)
+        scrolled_window.add(self.webview)
         window.show_all()
 
         if url != None:
