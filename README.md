@@ -41,8 +41,9 @@ For Windows Forms
 
 ## Linux
 
-For GTK3 based systems
-`PyGObject`
+For GTK3 based systems:`PyGObject`
+On Debian based systems run
+`sudo apt-get install python-gi gir1.2-webkit-3.0`
 
 For QT based systems
 
@@ -81,9 +82,9 @@ an application scaffold and boilerplate code for a real-world application.
 
 # What web renderer is used?
 
-For OS X and Linux systems you get WebKit. The actual version depends on the version of installed Safari on OS X and QT / GTK on Linux. Note that WebKit bundled with QT / GTK is slightly out of date comparing to the latest Safari or Chrome.
+For OS X and Linux systems you get WebKit. The actual version depends on the version of installed Safari on OS X and QT / GTK on Linux. 
 
-For Windows, you get MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. For Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9. For Windows 7/8/10, you will get the latest installed version. Embedding EdgeHTML engine is not supported due the design decisions set by Microsoft. 
+For Windows, you get MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. For Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9. For Windows 7/8/10, you will get the latest installed version. Embedding EdgeHTML engine in third party applications is not supported  by Microsoft at the moment. 
 
 
 # How do I freeze my application?
@@ -93,10 +94,17 @@ Use py2app on OS X and py2exe/pyinstaller on Windows. For reference setup.py fil
 
 # Changelog
 
+## 1.2.2
+Released 10/10/2016
+
+- `Fix` [All] Python 2 compatibility issue in Flask Example (#52). Thanks to @bastula.
+- `Fix` [Windows] Python 3 compatibility issue in Windows Forms implementation (#51)
+- `Fix` [Linux] Resizing width/height: 100% problem on GTK (#53). Thanks to @klausweiss. 
+
 ## 1.2.1
 Released 29/09/2016
 
-- `Fix` [Linux] Fix GTK window failing to open. Thanks to @lchish. #50
+- `Fix` [Linux] GTK window failing to open. Thanks to @lchish. #50
 
 
 ## 1.2
