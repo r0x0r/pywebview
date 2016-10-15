@@ -104,6 +104,7 @@ class BrowserView:
 
         # Add the default Cocoa application menu
         self._add_app_menu()
+        self._add_view_menu()
 
         if fullscreen:
             NSWindowCollectionBehaviorFullScreenPrimary = 128
@@ -219,6 +220,22 @@ class BrowserView:
 
         # Append a 'Quit' menu item
         appMenu.addItemWithTitle_action_keyEquivalent_(self._append_app_name('Quit'), "terminate:", "q")
+
+    def _add_view_menu(self):
+        """
+        Create a default View menu that shows 'Enter Full Screen'.
+        """
+        mainMenu = self.app.mainMenu()
+
+        # Create an View menu and make it a submenu of the main menu
+        viewMenu = AppKit.NSMenu.alloc().init()
+        viewMenu.setTitle_("View")
+        viewMenuItem = AppKit.NSMenuItem.alloc().init()
+        viewMenuItem.setSubmenu_(viewMenu)
+        mainMenu.addItem_(viewMenuItem)
+        fullScreenMenuItem = viewMenu.addItemWithTitle_action_keyEquivalent_('Enter Full Screen`', "toggleFullScreen:", "f")
+        fullScreenMenuItem.setKeyEquivalentModifierMask_(AppKit.NSControlKeyMask | AppKit.NSCommandKeyMask)
+
 
     def _append_app_name(self, val):
         """
