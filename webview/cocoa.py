@@ -202,6 +202,10 @@ class BrowserView:
         appMenu = AppKit.NSMenu.alloc().init()
         mainAppMenuItem.setSubmenu_(appMenu)
 
+        appMenu.addItemWithTitle_action_keyEquivalent_(self._append_app_name('About'), "orderFrontStandardAboutPanel:", "")
+
+        appMenu.addItem_(AppKit.NSMenuItem.separatorItem())
+
         # Set the 'Services' menu for the app and create an app menu item
         appServicesMenu = AppKit.NSMenu.alloc().init()
         self.app.setServicesMenu_(appServicesMenu)
