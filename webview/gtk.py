@@ -12,6 +12,11 @@ logger = logging.getLogger(__name__)
 
 try:
     # Try GTK 3
+    import gi
+    gi.require_version('Gtk', '3.0')
+    gi.require_version('Gdk', '3.0')
+    gi.require_version('WebKit', '3.0')
+
     from gi.repository import Gtk as gtk
     from gi.repository import Gdk
     from gi.repository import GLib as glib
@@ -116,7 +121,7 @@ class BrowserView:
         return file_name
 
     def load_url(self, url):
-        self.webview.load_uri(url)
+        glib.idle_add(self.webview.load_uri, url)
 
     def load_html(self, content, base_uri):
         glib.idle_add(self.webview.load_string, content, "text/html", "utf-8",
