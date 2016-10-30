@@ -9,8 +9,8 @@ from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview.win32 import set_ie_mode
-from webview.win32_gen import SetWindowPos, GetSystemMetrics
+from webview.win32_shared import set_ie_mode
+from webview.winforms_gen import SetWindowPos, GetSystemMetrics
 
 logger = logging.getLogger(__name__)
 

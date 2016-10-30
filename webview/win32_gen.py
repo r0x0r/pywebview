@@ -167,32 +167,3 @@ class MINMAXINFO(Structure):
     __slots__ = [f[0] for f in _fields_]
 
 
-SetWindowPos = windll.user32.SetWindowPos
-SetWindowPos.restype = BOOL
-SetWindowPos.argtypes = [
-    HWND, #hWnd
-    HWND, #hWndInsertAfter
-    c_int,  #X
-    c_int,  #Y
-    c_int,  #cx
-    c_int,  #cy
-    c_uint, #uFlags
-]
-
-SetWindowPos = windll.user32.SetWindowPos
-SetWindowPos.restype = BOOL
-SetWindowPos.argtypes = [
-    HWND, #hWnd
-    HWND, #hWndInsertAfter
-    c_int,  #X
-    c_int,  #Y
-    c_int,  #cx
-    c_int,  #cy
-    c_uint, #uFlags
-]
-
-GetSystemMetrics = windll.user32.GetSystemMetrics
-GetSystemMetrics.restype = INT
-GetSystemMetrics.argtypes = [
-    INT
-]
