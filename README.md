@@ -4,13 +4,18 @@ pywebview is a lightweight cross-platform wrapper around a webview component tha
 
 pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: Win32 on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, it does not bundle a heavy GUI toolkit with it keeping the executable size small. Compatible with both Python 2 and 3. While Android is not supported, you can use the same codebase with solutions like [Python for Android](https://github.com/kivy/python-for-android) for creating an APK.
 
-An example application created with pywebview can be found here https://github.com/r0x0r/traktorlibrarian
-If you have built an app using pywebview, please do not hesitate to showcase it.
-
 
 # License
 
 The BSD license
+
+
+# Gallery
+
+Apps created with pywebview. If you have built an app using pywebview, please do not hesitate to showcase it.
+
+Next for Traktor: http://flowrl.com/next
+Traktor Librarian: http://flowrl.com/librarian/
 
 
 # Installation
@@ -21,6 +26,8 @@ The BSD license
 # Contributions and bug reports
 
 Help, PRs and donations are welcome. If you found a bug, please test it first in a web-browser that is used by default for your operating system to see if the problem is with your code, rather than pywebview. Feature requests are welcome, but nothing is guaranteed. 
+
+Donate with Paypal: http://bit.ly/2eg2Z5P
 
 
 # Dependencies
