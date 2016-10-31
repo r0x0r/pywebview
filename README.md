@@ -28,6 +28,7 @@ Traktor Librarian: http://flowrl.com/librarian/
 Help, PRs and donations are welcome. If you found a bug, please test it first in a web-browser that is used by default for your operating system to see if the problem is with your code, rather than pywebview. Feature requests are welcome, but nothing is guaranteed. 
 
 Donate with Paypal: http://bit.ly/2eg2Z5P
+Donate with Bitcoin: 19VmMFEsJUk8t7HA17VVkQTyrZvMdhB9V6
 
 
 # Dependencies
