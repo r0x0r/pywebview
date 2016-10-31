@@ -94,12 +94,22 @@ Use py2app on OS X and py2exe/pyinstaller on Windows. For reference setup.py fil
 
 # Changelog
 
+## 1.3
+Released 31/10/2016
+- `New` [Cocoa] Added View -> Fullscreen standard menu item. Thanks to @bastula.
+- `New` [Cocoa] Added About menu item #45. Thanks to @bastula.
+- `New` [Windows] An application icon for Windows Forms
+- `Fix` [Windows] Removed unnecessary pywin32 dependencies from Windows Forms #60
+- `Fix` [Linux] Thread violation in load_url in GTK implementation #59
+
+
 ## 1.2.2
 Released 10/10/2016
 
 - `Fix` [All] Python 2 compatibility issue in Flask Example (#52). Thanks to @bastula.
 - `Fix` [Windows] Python 3 compatibility issue in Windows Forms implementation (#51)
 - `Fix` [Linux] Resizing width/height: 100% problem on GTK (#53). Thanks to @klausweiss. 
+
 
 ## 1.2.1
 Released 29/09/2016
