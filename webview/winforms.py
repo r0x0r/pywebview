@@ -1,16 +1,17 @@
 import os
 import logging
+from ctypes import windll
 
 import clr
 clr.AddReference("System.Windows.Forms")
 clr.AddReference("System.Threading")
 import System.Windows.Forms as WinForms
+from System import IntPtr, Int32
 from System.Threading import Thread, ThreadStart, ApartmentState
-from System.Drawing import Size, Point
+from System.Drawing import Size, Point, Icon
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.win32_shared import set_ie_mode
-from webview.winforms_gen import SetWindowPos, GetSystemMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,11 @@ class BrowserView:
             self.AutoScaleBaseSize = Size(5, 13)
             self.ClientSize = Size(width, height);
             self.MinimumSize = Size(min_size[0], min_size[1])
+
+            # Application icon
+            handler = windll.kernel32.GetModuleHandleW(None)
+            icon_handler = windll.user32.LoadIconW(handler, 1)
+            self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handler)))
 
             self.webview_ready = webview_ready
 
@@ -50,9 +56,9 @@ class BrowserView:
                 self.WindowState = WinForms.FormWindowState.Maximized
                 self.is_fullscreen = True
 
-                screen_x = GetSystemMetrics(0)
-                screen_y = GetSystemMetrics(1)
-                SetWindowPos(self.Handle.ToInt32(), None, 0, 0, screen_x, screen_y, 64)
+                screen_x = windll.user32.GetSystemMetrics(0)
+                screen_y = windll.user32.GetSystemMetrics(1)
+                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, 0, 0, screen_x, screen_y, 64)
             else:
                 self.WindowState = WinForms.FormWindowState.Maximized
                 self.FormBorderStyle = WinForms.FormBorderStyle.Sizable
