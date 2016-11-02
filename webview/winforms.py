@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+
+"""
+(C) 2014-2016 Roman Sirokov and contributors
+Licensed under BSD license
+
+http://github.com/r0x0r/pywebview/
+"""
+
 import os
 import logging
 from ctypes import windll
@@ -11,6 +20,7 @@ from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
 logger = logging.getLogger(__name__)
@@ -105,7 +115,7 @@ class BrowserView:
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if not directory:
-            initial_directory = os.environ['HOMEPATH']
+            initial_directory = os.environ["HOMEPATH"]
 
         try:
             if dialog_type == FOLDER_DIALOG:
@@ -122,7 +132,7 @@ class BrowserView:
 
                 dialog.Multiselect = allow_multiple
                 dialog.InitialDirectory = initial_directory
-                dialog.Filter = "All files (*.*)|*.*"
+                dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
                 dialog.RestoreDirectory = True
 
                 result = dialog.ShowDialog(BrowserView.instance.browser)
@@ -133,7 +143,7 @@ class BrowserView:
 
             elif dialog_type == SAVE_DIALOG:
                 dialog = WinForms.SaveFileDialog()
-                dialog.Filter = 'All files (*.*)|'
+                dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|"
                 dialog.InitialDirectory = initial_directory
                 dialog.RestoreDirectory = True
                 dialog.FileName = save_filename
@@ -178,4 +188,3 @@ def toggle_fullscreen():
 
 def destroy_window():
     BrowserView.instance.destroy()
-

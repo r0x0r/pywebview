@@ -1,3 +1,10 @@
+"""
+(C) 2014-2016 Roman Sirokov and contributors
+Licensed under BSD license
+
+http://github.com/r0x0r/pywebview/
+"""
+
 import sys
 
 
@@ -19,7 +26,7 @@ def set_ie_mode():
         Get the installed version of IE
         :return:
         """
-        ie_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'Software\Microsoft\Internet Explorer')
+        ie_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"Software\Microsoft\Internet Explorer")
         try:
             version, type = winreg.QueryValueEx(ie_key, "svcVersion")
         except:
@@ -42,11 +49,11 @@ def set_ie_mode():
 
     try:
         browser_emulation = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                                           r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
+                                           r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION",
                                            0, winreg.KEY_ALL_ACCESS)
     except WindowsError:
         browser_emulation = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER,
-                                               r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
+                                               r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION",
                                                0, winreg.KEY_ALL_ACCESS)
 
     mode = get_ie_mode()

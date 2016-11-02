@@ -1,5 +1,5 @@
 """
-(C) 2014-2015 Roman Sirokov
+(C) 2014-2016 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -9,6 +9,8 @@ import sys
 import os
 import logging
 import threading
+
+from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 logger = logging.getLogger(__name__)
@@ -97,17 +99,17 @@ class BrowserView(QMainWindow):
 
     def _handle_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if dialog_type == FOLDER_DIALOG:
-            self._file_name = QFileDialog.getExistingDirectory(self, 'Open directory', options=QFileDialog.ShowDirsOnly)
+            self._file_name = QFileDialog.getExistingDirectory(self, localization["global.openFolder"], options=QFileDialog.ShowDirsOnly)
         elif dialog_type == OPEN_DIALOG:
             if allow_multiple:
-                self._file_name = QFileDialog.getOpenFileNames(self, 'Open files', directory)
+                self._file_name = QFileDialog.getOpenFileNames(self, localization["global.openFiles"], directory)
             else:
-                self._file_name = QFileDialog.getOpenFileName(self, 'Open file', directory)
+                self._file_name = QFileDialog.getOpenFileName(self, localization["global.openFile"], directory)
         elif dialog_type == SAVE_DIALOG:
             if directory:
                 save_filename = os.path.join(str(directory), str(save_filename))
 
-            self._file_name = QFileDialog.getSaveFileName(self, 'Save file', save_filename)
+            self._file_name = QFileDialog.getSaveFileName(self, localization["global.saveFile"], save_filename)
 
         self._file_name_semaphor.release()
 

@@ -1,5 +1,5 @@
 """
-(C) 2014-2015 Roman Sirokov
+(C) 2014-2016 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -12,12 +12,13 @@ import WebKit
 import PyObjCTools.AppHelper
 from objc import nil
 
+from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
-info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
+info["NSAppTransportSecurity"] = {"NSAllowsArbitraryLoads": Foundation.YES}
 
 
 class BrowserView:
@@ -143,7 +144,7 @@ class BrowserView:
                 save_filename = args[2]
 
                 save_dlg = AppKit.NSSavePanel.savePanel()
-                save_dlg.setTitle_("Save file")
+                save_dlg.setTitle_(localization["global.saveFile"])
 
                 if directory:  # set initial directory
                     save_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
@@ -202,28 +203,28 @@ class BrowserView:
         appMenu = AppKit.NSMenu.alloc().init()
         mainAppMenuItem.setSubmenu_(appMenu)
 
-        appMenu.addItemWithTitle_action_keyEquivalent_(self._append_app_name('About'), "orderFrontStandardAboutPanel:", "")
+        appMenu.addItemWithTitle_action_keyEquivalent_(self._append_app_name(localization["cocoa.menu.about"]), "orderFrontStandardAboutPanel:", "")
 
         appMenu.addItem_(AppKit.NSMenuItem.separatorItem())
 
         # Set the 'Services' menu for the app and create an app menu item
         appServicesMenu = AppKit.NSMenu.alloc().init()
         self.app.setServicesMenu_(appServicesMenu)
-        servicesMenuItem = appMenu.addItemWithTitle_action_keyEquivalent_("Services", nil, "")
+        servicesMenuItem = appMenu.addItemWithTitle_action_keyEquivalent_(localization["cocoa.menu.services"], nil, "")
         servicesMenuItem.setSubmenu_(appServicesMenu)
 
         appMenu.addItem_(AppKit.NSMenuItem.separatorItem())
 
         # Append the 'Hide', 'Hide Others', and 'Show All' menu items
-        appMenu.addItemWithTitle_action_keyEquivalent_(self._append_app_name('Hide'), 'hide:', 'h')
-        hideOthersMenuItem = appMenu.addItemWithTitle_action_keyEquivalent_('Hide Others', 'hideOtherApplications:', 'h')
+        appMenu.addItemWithTitle_action_keyEquivalent_(self._append_app_name(localization["cocoa.menu.hide"]), "hide:", "h")
+        hideOthersMenuItem = appMenu.addItemWithTitle_action_keyEquivalent_(localization["cocoa.menu.hideOthers"], "hideOtherApplications:", "h")
         hideOthersMenuItem.setKeyEquivalentModifierMask_(AppKit.NSAlternateKeyMask | AppKit.NSCommandKeyMask)
-        appMenu.addItemWithTitle_action_keyEquivalent_('Show All', 'unhideAllApplications:', '')
+        appMenu.addItemWithTitle_action_keyEquivalent_(localization["cocoa.menu.showAll"], "unhideAllApplications:", "")
 
         appMenu.addItem_(AppKit.NSMenuItem.separatorItem())
 
         # Append a 'Quit' menu item
-        appMenu.addItemWithTitle_action_keyEquivalent_(self._append_app_name('Quit'), "terminate:", "q")
+        appMenu.addItemWithTitle_action_keyEquivalent_(self._append_app_name(localization["cocoa.menu.quit"]), "terminate:", "q")
 
     def _add_view_menu(self):
         """
@@ -233,11 +234,11 @@ class BrowserView:
 
         # Create an View menu and make it a submenu of the main menu
         viewMenu = AppKit.NSMenu.alloc().init()
-        viewMenu.setTitle_("View")
+        viewMenu.setTitle_(localization["cocoa.menu.view"])
         viewMenuItem = AppKit.NSMenuItem.alloc().init()
         viewMenuItem.setSubmenu_(viewMenu)
         mainMenu.addItem_(viewMenuItem)
-        fullScreenMenuItem = viewMenu.addItemWithTitle_action_keyEquivalent_('Enter Full Screen`', "toggleFullScreen:", "f")
+        fullScreenMenuItem = viewMenu.addItemWithTitle_action_keyEquivalent_(localization["cocoa.menu.fullscreen"], "toggleFullScreen:", "f")
         fullScreenMenuItem.setKeyEquivalentModifierMask_(AppKit.NSControlKeyMask | AppKit.NSCommandKeyMask)
 
 

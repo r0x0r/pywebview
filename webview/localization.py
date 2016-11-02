@@ -1,0 +1,16 @@
+localization = {
+    "global.openFile": u"Open file",
+    "global.openFiles": u"Open files",
+    "global.openFolder": u"Open folder",
+    "global.saveFile": u"Save file",
+    "cocoa.menu.about": u"About",
+    "cocoa.menu.services": u"Services",
+    "cocoa.menu.view": u"View",
+    "cocoa.menu.hide": u"Hide",
+    "cocoa.menu.hideOthers": u"Hide Others",
+    "cocoa.menu.showAll": u"Show All",
+    "cocoa.menu.quit": u"Quit",
+    "cocoa.menu.fullscreen": u"Enter Fullscreen`",
+    "windows.fileFilter.allFiles": u"All files",
+    "windows.fileFilter.otherFiles": u"Other file types",
+}

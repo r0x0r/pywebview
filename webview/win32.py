@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-(C) 2014-2015 Roman Sirokov
+(C) 2014-2016 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -22,8 +22,9 @@ from ctypes import byref, POINTER
 from comtypes import COMObject, hresult
 from comtypes.client import wrap, GetEvents
 
-from .win32_gen import *
-from .win32_shared import set_ie_mode
+from webview.win32_gen import *
+from webview.win32_shared import set_ie_mode
+from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 
@@ -209,11 +210,11 @@ class BrowserView(object):
                 desktop_pidl = shell.SHGetFolderLocation(0, shellcon.CSIDL_DESKTOP, 0, 0)
                 pidl, display_name, image_list =\
                     shell.SHBrowseForFolder(self.hwnd, desktop_pidl, None, 0, None, None)
-                file_path = (shell.SHGetPathFromIDList(pidl).decode('utf-8'),)
+                file_path = (shell.SHGetPathFromIDList(pidl).decode("utf-8"),)
 
             elif dialog_type == OPEN_DIALOG:
-                file_filter = 'All Files\0*.*\0'
-                custom_filter = 'Other file types\0*.*\0'
+                file_filter = localization["windows.fileFilter.allFiles"] + u"\0*.*\0"
+                custom_filter = localization["windows.fileFilter.otherFiles"] + u"\0*.*\0"
 
                 flags = win32con.OFN_EXPLORER
                 if allow_multiple:
@@ -230,8 +231,8 @@ class BrowserView(object):
                     file_path = (file_path,)
 
             elif dialog_type == SAVE_DIALOG:
-                file_filter = 'All Files\0*.*\0'
-                custom_filter = 'Other file types\0*.*\0'
+                file_filter = localization["windows.fileFilter.allFiles"] + u"\0*.*\0"
+                custom_filter = localization["windows.fileFilter.otherFiles"] + u"\0*.*\0"
 
                 file_path, customfilter, flags = \
                     win32gui.GetSaveFileNameW(self.hwnd, InitialDir=directory, File=save_filename, DefExt='', Title='',
@@ -299,5 +300,3 @@ def load_html(content, base_uri):
 
 def destroy_window():
     BrowserView.instance.destroy()
-
-
