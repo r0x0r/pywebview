@@ -125,7 +125,7 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
     try:
         _webview_ready.wait(5)
         return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
-    except NameError:
+    except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
 
 

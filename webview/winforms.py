@@ -115,7 +115,7 @@ class BrowserView:
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if not directory:
-            initial_directory = os.environ["HOMEPATH"]
+            directory = os.environ["HOMEPATH"]
 
         try:
             if dialog_type == FOLDER_DIALOG:
@@ -131,7 +131,7 @@ class BrowserView:
                 dialog = WinForms.OpenFileDialog()
 
                 dialog.Multiselect = allow_multiple
-                dialog.InitialDirectory = initial_directory
+                dialog.InitialDirectory = directory
                 dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
                 dialog.RestoreDirectory = True
 
@@ -144,7 +144,7 @@ class BrowserView:
             elif dialog_type == SAVE_DIALOG:
                 dialog = WinForms.SaveFileDialog()
                 dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|"
-                dialog.InitialDirectory = initial_directory
+                dialog.InitialDirectory = directory
                 dialog.RestoreDirectory = True
                 dialog.FileName = save_filename
 
