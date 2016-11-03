@@ -85,15 +85,15 @@ class BrowserView:
 
         if dialog_type == FOLDER_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
-            title = localization["global.openFolder"]
+            title = localization["linux.openFolder"]
             button = gtk.STOCK_OPEN
         elif dialog_type == OPEN_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.OPEN
-            title = localization["global.openFile"]
+            title = localization["linux.openFile"]
             button = gtk.STOCK_OPEN
         elif dialog_type == SAVE_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SAVE
-            title = localization["global.saveFile"]
+            title = localization["linux.saveFile"]
             button = gtk.STOCK_SAVE
 
         dialog = gtk.FileChooserDialog(title, self.window, gtk_dialog_type,

@@ -1,8 +1,6 @@
+# -*- coding: utf-8 -*-
+
 localization = {
-    "global.openFile": u"Open file",
-    "global.openFiles": u"Open files",
-    "global.openFolder": u"Open folder",
-    "global.saveFile": u"Save file",
     "cocoa.menu.about": u"About",
     "cocoa.menu.services": u"Services",
     "cocoa.menu.view": u"View",
@@ -13,4 +11,8 @@ localization = {
     "cocoa.menu.fullscreen": u"Enter Fullscreen`",
     "windows.fileFilter.allFiles": u"All files",
     "windows.fileFilter.otherFiles": u"Other file types",
+    "linux.openFile": u"Open file",
+    "linux.openFiles": u"Open files",
+    "linux.openFolder": u"Open folder",
+    "linux.saveFile": u"Save file",
 }
