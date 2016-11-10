@@ -20,8 +20,17 @@ Traktor Librarian: http://flowrl.com/librarian/
 
 # Installation
 
+If you have the [dependencies](#dependencies) installed, simply:
+
     pip install pywebview
 
+To automatically fetch and install Python dependencies for your platform, install with the appropriate ["install extras"](http://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies):
+
+    pip install pywebview[win32]  # for pywin32 + comtypes
+    pip intsall pywebview[winforms]  # WinForms with pythonnet
+    pip intsall pywebview[mac]  # Mac native WebKit view with PyObjC
+    pip intsall pywebview[qt4]  # Qt4 with PyQt4
+    pip intsall pywebview[qt5]  # Qt5 with PyQt5
 
 # Contributions and bug reports
 
