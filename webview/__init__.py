@@ -41,9 +41,17 @@ def _initialize_imports():
 
     if not _initialized:
         if platform.system() == "Darwin":
-            import webview.cocoa as gui
+            try:
+                import webview.cocoa as gui
+            except ImportError:
+                try:
+                    import webview.qt as gui
+                    logger.info("Using QT")
+                except ImportError as e:
+                    # Panic
+                    logger.exception("QT not found")
+                    raise Exception("You must have either QT or GTK with Python extensions installed in order to this library.")
         elif platform.system() == "Linux":
-
             try:
                 #Try GTK first unless USE_QT flag is set
                 if not config["USE_QT"]:
