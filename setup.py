@@ -5,7 +5,7 @@ from setuptools import setup
 if platform.system() == "Windows":
     extras_require = {
         'win32': ['pywin32', 'comtypes'],
-        'winforms': ['pythonnet'],
+        'windows': ['pythonnet'],
     }
 elif platform.system() == "Darwin":
     extras_require = {
