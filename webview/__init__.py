@@ -5,7 +5,7 @@
 pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its
 own dedicated window. Works on Windows, OS X and Linux and compatible with Python 2 and 3.
 
-(C) 2014-2015 Roman Sirokov
+(C) 2014-2016 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -18,6 +18,7 @@ import sys
 import logging
 from threading import Event
 
+from .localization import localization
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -124,7 +125,7 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
     try:
         _webview_ready.wait(5)
         return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
-    except NameError:
+    except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
 
 
@@ -155,7 +156,8 @@ def load_html(content, base_uri=""):
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def create_window(title, url=None, width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100)):
+def create_window(title, url=None, width=800, height=600,
+                  resizable=True, fullscreen=False, min_size=(200, 100), strings={}):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -166,10 +168,11 @@ def create_window(title, url=None, width=800, height=600, resizable=True, fullsc
     :param resizable True if window can be resized, False otherwise. Default is True
     :param fullscreen: True if start in fullscreen mode. Default is False
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
-    :param webview_ready: threading.Event object that is set when WebView window is created
+    :param strings: a dictionary with localized strings
     :return:
     """
     _initialize_imports()
+    localization.update(strings)
     gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size, _webview_ready)
 
 

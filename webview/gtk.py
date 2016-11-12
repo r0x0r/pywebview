@@ -1,11 +1,12 @@
 """
-(C) 2014-2015 Roman Sirokov
+(C) 2014-2016 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
 
 import logging
+from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 logger = logging.getLogger(__name__)
@@ -84,15 +85,19 @@ class BrowserView:
 
         if dialog_type == FOLDER_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
-            title = "Open folder"
+            title = localization["linux.openFolder"]
             button = gtk.STOCK_OPEN
         elif dialog_type == OPEN_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.OPEN
-            title = "Open file"
+            if allow_multiple:
+                title = localization["linux.openFiles"]
+            else:
+                title = localization["linux.openFile"]
+
             button = gtk.STOCK_OPEN
         elif dialog_type == SAVE_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SAVE
-            title = "Save file"
+            title = localization["linux.saveFile"]
             button = gtk.STOCK_SAVE
 
         dialog = gtk.FileChooserDialog(title, self.window, gtk_dialog_type,
