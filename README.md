@@ -17,11 +17,36 @@ Apps created with pywebview. If you have built an app using pywebview, please do
 Next for Traktor: http://flowrl.com/next
 Traktor Librarian: http://flowrl.com/librarian/
 
-
 # Installation
+
+If you have the [dependencies](#dependencies) installed, simply:
 
     pip install pywebview
 
+To automatically fetch and install Python dependencies for your platform, install with the appropriate ["install extras"](http://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies).
+
+(Note that the same code is installed regardless; if more than one of the libraries below are available they will be tried in the order listed in this readme.)
+
+On Windows (using WinForms with `pythonnet`):
+
+    pip install pywebview[winforms]
+
+On Mac (using the Cocoa WebKit widget via `pyobjc`):
+
+    pip install pywebview[cocoa]
+
+On Linux (using GTK3 via `PyGObject`):
+
+    pip install pywebview[gtk3]
+
+On Linux or Mac with either Qt 4 or 5:
+
+    pip install pywebview[qt4]  # Qt4 with PyQt4
+    pip install pywebview[qt5]  # Qt5 with PyQt5
+
+A second implementation for Windows using `pywin32` and `comtypes` is also available:
+
+    pip install pywebview[win32]
 
 # Contributions and bug reports
 
