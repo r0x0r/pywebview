@@ -109,20 +109,20 @@ class BrowserView:
                 dialog = WinForms.FolderBrowserDialog()
                 dialog.RestoreDirectory = True
 
-                result = dialog.ShowDialog()
+                result = dialog.ShowDialog(BrowserView.instance.browser)
                 if result == WinForms.DialogResult.OK:
                     file_path = (dialog.SelectedPath,)
                 else:
                     file_path = None
             elif dialog_type == OPEN_DIALOG:
-                dialog = WinForms.OpenFileDialog();
+                dialog = WinForms.OpenFileDialog()
 
                 dialog.Multiselect = allow_multiple
                 dialog.InitialDirectory = initial_directory
                 dialog.Filter = "All files (*.*)|*.*"
                 dialog.RestoreDirectory = True
 
-                result = dialog.ShowDialog()
+                result = dialog.ShowDialog(BrowserView.instance.browser)
                 if result == WinForms.DialogResult.OK:
                     file_path = tuple(dialog.FileNames)
                 else:
@@ -135,7 +135,7 @@ class BrowserView:
                 dialog.RestoreDirectory = True
                 dialog.FileName = save_filename
 
-                result = dialog.ShowDialog()
+                result = dialog.ShowDialog(BrowserView.instance.browser)
                 if result == WinForms.DialogResult.OK:
                     file_path = dialog.FileName
                 else:

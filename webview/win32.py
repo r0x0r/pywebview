@@ -202,7 +202,7 @@ class BrowserView(object):
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if not directory:
-            initial_directory = os.environ['temp']
+            directory = os.environ['temp']
 
         try:
             if dialog_type == FOLDER_DIALOG:
@@ -220,9 +220,8 @@ class BrowserView(object):
                     flags = flags | win32con.OFN_ALLOWMULTISELECT
 
                 file_path, customfilter, flags = \
-                    win32gui.GetOpenFileNameW(InitialDir=initial_directory, Flags=flags, File=None, DefExt='',
+                    win32gui.GetOpenFileNameW(self.hwnd, InitialDir=directory, Flags=flags, File=None, DefExt='',
                                               Title='', Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
-
                 parts = file_path.split('\x00')
 
                 if len(parts) > 1:
@@ -235,7 +234,7 @@ class BrowserView(object):
                 custom_filter = 'Other file types\0*.*\0'
 
                 file_path, customfilter, flags = \
-                    win32gui.GetSaveFileNameW(InitialDir=initial_directory, File=save_filename, DefExt='', Title='',
+                    win32gui.GetSaveFileNameW(self.hwnd, InitialDir=directory, File=save_filename, DefExt='', Title='',
                                               Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
 
             return file_path
