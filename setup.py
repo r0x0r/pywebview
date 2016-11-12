@@ -5,11 +5,11 @@ from setuptools import setup
 if platform.system() == "Windows":
     extras_require = {
         'win32': ['pywin32', 'comtypes'],
-        'windows': ['pythonnet'],
+        'winforms': ['pythonnet'],
     }
 elif platform.system() == "Darwin":
     extras_require = {
-        'mac': ['pyobjc'],
+        'cocoa': ['pyobjc'],
         'qt4': ['PyQt4'],
         'qt5': ['PyQt5'],
     }

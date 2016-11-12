@@ -29,11 +29,11 @@ To automatically fetch and install Python dependencies for your platform, instal
 
 On Windows (using WinForms with `pythonnet`):
 
-    pip install pywebview[windows]
+    pip install pywebview[winforms]
 
-On Mac (using the platform WebKit widgets via `pyobjc`):
+On Mac (using the Cocoa WebKit widget via `pyobjc`):
 
-    pip install pywebview[mac]
+    pip install pywebview[cocoa]
 
 On Linux (using GTK3 via `PyGObject`):
 
