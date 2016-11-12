@@ -8,7 +8,7 @@ localization = {
     "cocoa.menu.hideOthers": u"Hide Others",
     "cocoa.menu.showAll": u"Show All",
     "cocoa.menu.quit": u"Quit",
-    "cocoa.menu.fullscreen": u"Enter Fullscreen`",
+    "cocoa.menu.fullscreen": u"Enter Fullscreen",
     "windows.fileFilter.allFiles": u"All files",
     "windows.fileFilter.otherFiles": u"Other file types",
     "linux.openFile": u"Open file",

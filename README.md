@@ -14,8 +14,8 @@ The BSD license
 
 Apps created with pywebview. If you have built an app using pywebview, please do not hesitate to showcase it.
 
-Next for Traktor: http://flowrl.com/next
-Traktor Librarian: http://flowrl.com/librarian/
+* Next for Traktor: http://flowrl.com/next
+* Traktor Librarian: http://flowrl.com/librarian/
 
 # Installation
 
@@ -95,9 +95,10 @@ an application scaffold and boilerplate code for a real-world application.
 
 ## API
 
-- `webview.create_window(title, url="", width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100))`
+- `webview.create_window(title, url="", width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100)), strings={}`
 	Create a new WebView window. Calling this function will block application execution, so you have to execute your
 	program logic in a separate thread.
+	`strings` is a dictionary with localized strings that overwrites default strings. Localized strings are defined in localization.py
 
 - `webview.load_url(url)`
 	Load a new URL in the previously created WebView window. This function must be invoked after WebView windows is created with create_window(). Otherwise an exception is thrown.

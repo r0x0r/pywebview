@@ -8,7 +8,7 @@ This example demonstrates creating an open file dialog.
 def open_file_dialog():
     import time
     time.sleep(5)
-    print(webview.create_file_dialog(webview.OPEN_DIALOG, allow_multiple=True))
+    print(webview.create_file_dialog(webview.OPEN_DIALOG, allow_multiple=False))
 
 
 if __name__ == '__main__':

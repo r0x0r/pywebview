@@ -89,7 +89,11 @@ class BrowserView:
             button = gtk.STOCK_OPEN
         elif dialog_type == OPEN_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.OPEN
-            title = localization["linux.openFile"]
+            if allow_multiple:
+                title = localization["linux.openFiles"]
+            else:
+                title = localization["linux.openFile"]
+
             button = gtk.STOCK_OPEN
         elif dialog_type == SAVE_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SAVE

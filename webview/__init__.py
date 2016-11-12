@@ -156,7 +156,8 @@ def load_html(content, base_uri=""):
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def create_window(title, url=None, width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100), strings={}):
+def create_window(title, url=None, width=800, height=600,
+                  resizable=True, fullscreen=False, min_size=(200, 100), strings={}):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
