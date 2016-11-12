@@ -26,9 +26,12 @@ class BrowserView:
             self.MinimumSize = Size(min_size[0], min_size[1])
 
             # Application icon
-            handler = windll.kernel32.GetModuleHandleW(None)
-            icon_handler = windll.user32.LoadIconW(handler, 1)
-            self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handler)))
+            try:  # Try loading an icon embedded in the exe file. This will crash when frozen with PyInstaller
+                handler = windll.kernel32.GetModuleHandleW(None)
+                icon_handler = windll.user32.LoadIconW(handler, 1)
+                self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handler)))
+            except:
+                pass
 
             self.webview_ready = webview_ready
 

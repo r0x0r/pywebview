@@ -102,7 +102,7 @@ class BrowserView(object):
         self.wndclass.lpszMenuName = ""
         self.wndclass.lpszClassName = "MainWin"
 
-        try:  # Try loading an icon embedded in the exe file. This will when frozen with PyInstaller
+        try:  # Try loading an icon embedded in the exe file. This will crash when frozen with PyInstaller
             self.wndclass.hIcon = win32gui.LoadIcon(self.wndclass.hInstance, 1)
         except:
             pass
