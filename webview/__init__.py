@@ -44,13 +44,18 @@ def _initialize_imports():
             try:
                 import webview.cocoa as gui
             except ImportError:
+                import_error = True
+            else:
+                import_error = False
+
+            if import_error or config["USE_QT"]:
                 try:
                     import webview.qt as gui
                     logger.info("Using QT")
                 except ImportError as e:
                     # Panic
                     logger.exception("QT not found")
-                    raise Exception("You must have either QT or GTK with Python extensions installed in order to this library.")
+                    raise Exception("You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use this library.")
         elif platform.system() == "Linux":
             try:
                 #Try GTK first unless USE_QT flag is set
@@ -71,7 +76,7 @@ def _initialize_imports():
                 except ImportError as e:
                     # Panic
                     logger.exception("QT not found")
-                    raise Exception("You must have either QT or GTK with Python extensions installed in order to this library.")
+                    raise Exception("You must have either QT or GTK with Python extensions installed in order to use this library.")
 
         elif platform.system() == "Windows":
 
@@ -94,7 +99,7 @@ def _initialize_imports():
                 except ImportError as e:
                     # Panic
                     logger.exception(" not found")
-                    raise Exception("You must have either pythonnet or pywin32 installed in order to this library.")
+                    raise Exception("You must have either pythonnet or pywin32 installed in order to use this library.")
         else:
             raise Exception("Unsupported platform. Only Windows, Linux and OS X are supported.")
 
