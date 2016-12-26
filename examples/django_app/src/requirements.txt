@@ -1,0 +1,4 @@
+cherrypy
+Django
+Paste
+pywebview
