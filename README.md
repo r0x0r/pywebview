@@ -39,10 +39,11 @@ On Linux (using GTK3 via `PyGObject`):
 
     pip install pywebview[gtk3]
 
-On Linux or Mac with either Qt 4 or 5:
+On Linux or Mac with either Qt 5:
 
-    pip install pywebview[qt4]  # Qt4 with PyQt4
     pip install pywebview[qt5]  # Qt5 with PyQt5
+
+To use pywebview with PyQt4, you have to install it separately, as it is not available in pypi.
 
 A second implementation for Windows using `pywin32` and `comtypes` is also available:
 
