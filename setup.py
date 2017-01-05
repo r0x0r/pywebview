@@ -10,13 +10,11 @@ if platform.system() == "Windows":
 elif platform.system() == "Darwin":
     extras_require = {
         'cocoa': ['pyobjc'],
-        'qt4': ['PyQt4'],
         'qt5': ['PyQt5'],
     }
 elif platform.system() == "Linux":
     extras_require = {
         'gtk3': ['PyGObject'],
-        'qt4': ['PyQt4'],
         'qt5': ['PyQt5'],
     }
 
