@@ -3,6 +3,15 @@
 
 # Changelog
 
+## 1.4
+Released 14/01/2017
+- `New` [All] pip installation now supports choosing what dependencies to install. See README for more information. Thanks @josePhoenix
+- `New` [All] Localization support. Refer to `examples/localization.py` for an example use
+- `New` [Mac] QT5 support
+- `Fix` [Windows] File dialogs are now attached to the main window
+- `Fix` [Windows] Pyinstaller crash issue with an icon in Windows Forms
+
+
 ## 1.3
 Released 31/10/2016
 - `New` [Cocoa] Added View -> Fullscreen standard menu item. Thanks to @bastula.
