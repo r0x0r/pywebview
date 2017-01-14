@@ -37,6 +37,7 @@ class BrowserView:
 
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
+            self.web_browser.ScriptErrorsSuppressed = True
 
             if url:
                 self.web_browser.Navigate(url)
