@@ -125,3 +125,6 @@ For Windows, you get MSHTML (Trident) in all its glory. The version depends on t
 # How do I freeze my application?
 
 Use py2app on OS X and py2exe/pyinstaller on Windows. For reference setup.py files, look in `examples/py2app_setup.py` and `examples/py2exe_setup.py`
+
+# VirtualEnv issues 
+Under virtualenv on OS X, a window created with pywebview has issues with keyboard focus and Cmd+Tab. This behaviour is caused by the Python interpretor that comes with virtualenv. To solve this issue, you need to overwrite `your_venv/bin/python` with the Python interpretor found on your system. Alternatively you can configure your virtual environment to use another Python interpretor as described [here](https://virtualenv.pypa.io/en/stable/userguide/#using-virtualenv-without-bin-python).
