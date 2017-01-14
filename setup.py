@@ -2,13 +2,21 @@ import os
 import platform
 from setuptools import setup
 
-install_requires = []
 if platform.system() == "Windows":
-    install_requires = []
+    extras_require = {
+        'win32': ['pywin32', 'comtypes'],
+        'winforms': ['pythonnet'],
+    }
 elif platform.system() == "Darwin":
-    install_requires = ["pyobjc"]
+    extras_require = {
+        'cocoa': ['pyobjc'],
+        'qt5': ['PyQt5'],
+    }
 elif platform.system() == "Linux":
-    install_requires = []
+    extras_require = {
+        'gtk3': ['PyGObject'],
+        'qt5': ['PyQt5'],
+    }
 
 setup(
     name="pywebview",
@@ -16,10 +24,10 @@ setup(
     author_email="roman@flowrl.com",
     description=("A cross-platform lightweight native wrapper around a web view component"),
     url="http://github.com/r0x0r/pywebview",
-    download_url="https://github.com/r0x0r/pywebview/archive/1.3.tar.gz",
+    download_url="https://github.com/r0x0r/pywebview/archive/1.4.tar.gz",
     keywords=["gui", "webkit", "html", "web"],
-    install_requires=install_requires,
-    version="1.3",
+    extras_require=extras_require,
+    version="1.4",
     packages=["webview",],
     license="New BSD license",
     classifiers=[
@@ -36,6 +44,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Software Development :: User Interfaces"

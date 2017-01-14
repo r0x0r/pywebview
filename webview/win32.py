@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-(C) 2014-2015 Roman Sirokov
+(C) 2014-2016 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -22,10 +22,12 @@ from ctypes import byref, POINTER
 from comtypes import COMObject, hresult
 from comtypes.client import wrap, GetEvents
 
-from .win32_gen import *
-from .win32_shared import set_ie_mode
+from webview.win32_gen import *
+from webview.win32_shared import set_ie_mode
+from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
+logger = logging.getLogger(__name__)
 
 """
 
@@ -209,19 +211,19 @@ class BrowserView(object):
                 desktop_pidl = shell.SHGetFolderLocation(0, shellcon.CSIDL_DESKTOP, 0, 0)
                 pidl, display_name, image_list =\
                     shell.SHBrowseForFolder(self.hwnd, desktop_pidl, None, 0, None, None)
-                file_path = (shell.SHGetPathFromIDList(pidl).decode('utf-8'),)
+                file_path = (shell.SHGetPathFromIDList(pidl).decode("utf-8"),)
 
             elif dialog_type == OPEN_DIALOG:
-                file_filter = 'All Files\0*.*\0'
-                custom_filter = 'Other file types\0*.*\0'
+                file_filter = localization["windows.fileFilter.allFiles"] + u"\0*.*\0"
+                custom_filter = localization["windows.fileFilter.otherFiles"] + u"\0*.*\0"
 
                 flags = win32con.OFN_EXPLORER
                 if allow_multiple:
                     flags = flags | win32con.OFN_ALLOWMULTISELECT
 
                 file_path, customfilter, flags = \
-                    win32gui.GetOpenFileNameW(self.hwnd, InitialDir=directory, Flags=flags, File=None, DefExt='',
-                                              Title='', Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
+                    win32gui.GetOpenFileNameW(self.hwnd, InitialDir=directory, Flags=flags, File=None, DefExt="",
+                                              Title="", Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
                 parts = file_path.split('\x00')
 
                 if len(parts) > 1:
@@ -230,17 +232,19 @@ class BrowserView(object):
                     file_path = (file_path,)
 
             elif dialog_type == SAVE_DIALOG:
-                file_filter = 'All Files\0*.*\0'
-                custom_filter = 'Other file types\0*.*\0'
+                file_filter = localization["windows.fileFilter.allFiles"] + u"\0*.*\0"
+                custom_filter = localization["windows.fileFilter.otherFiles"] + u"\0*.*\0"
 
                 file_path, customfilter, flags = \
-                    win32gui.GetSaveFileNameW(self.hwnd, InitialDir=directory, File=save_filename, DefExt='', Title='',
+                    win32gui.GetSaveFileNameW(self.hwnd, InitialDir=directory, File=save_filename, DefExt="", Title="",
                                               Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
+        except Exception as e:
+            logger.debug("File dialog crash", exc_info=True)
+            file_path = None
 
-            return file_path
 
-        except:
-            return None
+        return file_path
+
 
     def _destroy(self):
         del self.browser
@@ -299,5 +303,3 @@ def load_html(content, base_uri):
 
 def destroy_window():
     BrowserView.instance.destroy()
-
-
