@@ -35,6 +35,10 @@ class BrowserView:
             self.ClientSize = Size(width, height);
             self.MinimumSize = Size(min_size[0], min_size[1])
 
+            if not resizable:
+                self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
+                self.MaximizeBox = False
+
             # Application icon
             try:  # Try loading an icon embedded in the exe file. This will crash when frozen with PyInstaller
                 handler = windll.kernel32.GetModuleHandleW(None)
