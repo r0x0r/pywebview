@@ -67,7 +67,7 @@ def _initialize_imports():
                 logger.exception("GTK not found")
                 import_error = True
             else:
-                import_error = False
+                import_error = False or gui.import_error
 
             if import_error or config["USE_QT"]:
                 try:
