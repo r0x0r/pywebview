@@ -43,6 +43,9 @@ class BrowserView:
         window.set_resizable(resizable)
         window.set_position(gtk.WindowPosition.CENTER)
 
+        if fullscreen:
+            self.toggle_fullscreen()
+
         window.connect("delete-event", gtk.main_quit)
 
         scrolled_window = gtk.ScrolledWindow()
@@ -92,10 +95,12 @@ class BrowserView:
 
     def toggle_fullscreen(self):
         Gdk.threads_enter()
+
         if self.is_fullscreen:
             self.window.unfullscreen()
         else:
             self.window.fullscreen()
+
         Gdk.threads_leave()
 
         self.is_fullscreen = not self.is_fullscreen

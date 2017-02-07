@@ -5,7 +5,10 @@ import threading
 This example demonstrates how to toggle fullscreen mode programmatically.
 """
 
+<<<<<<< b1bd30429e64d4a865326a8d9142e22eb5e9e501
 
+=======
+>>>>>>> Implement toggle_fullscreen functionality
 def toggle_fullscreen():
     import time
     time.sleep(5)

@@ -64,7 +64,6 @@ class BrowserView(QMainWindow):
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
-    close_window_trigger = QtCore.pyqtSignal()
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
         super(BrowserView, self).__init__()
