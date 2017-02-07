@@ -80,6 +80,7 @@ class BrowserView:
         self._file_name = None
         self._file_name_semaphor = threading.Semaphore(0)
         self.webview_ready = webview_ready
+        self.is_fullscreen = False
 
         rect = AppKit.NSMakeRect(100.0, 350.0, width, height)
         window_mask = AppKit.NSTitledWindowMask | AppKit.NSClosableWindowMask | AppKit.NSMiniaturizableWindowMask
@@ -108,9 +109,7 @@ class BrowserView:
         self._add_view_menu()
 
         if fullscreen:
-            NSWindowCollectionBehaviorFullScreenPrimary = 128
-            self.window.setCollectionBehavior_(NSWindowCollectionBehaviorFullScreenPrimary)
-            self.window.toggleFullScreen_(None)
+            self.toggle_fullscreen()
 
     def show(self):
         self.window.display()
@@ -119,6 +118,19 @@ class BrowserView:
 
     def destroy(self):
         BrowserView.app.stop_(self)
+
+    def toggle_fullscreen(self):
+        def toggle():
+            if self.is_fullscreen:
+                window_behaviour = 1 << 2  # NSWindowCollectionBehaviorManaged
+            else:
+                window_behaviour = 1 << 7  # NSWindowCollectionBehaviorFullScreenPrimary
+
+            self.window.setCollectionBehavior_(window_behaviour)
+            self.window.toggleFullScreen_(None)
+
+        PyObjCTools.AppHelper.callAfter(toggle)
+        self.is_fullscreen = not self.is_fullscreen
 
     def load_url(self, url):
         def load(url):
@@ -279,8 +291,14 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 def load_url(url):
     BrowserView.instance.load_url(url)
 
+
 def load_html(content, base_uri):
     BrowserView.instance.load_html(content, base_uri)
 
+
 def destroy_window():
     BrowserView.instance.destroy()
+
+
+def toggle_fullscreen():
+    BrowserView.instance.toggle_fullscreen()

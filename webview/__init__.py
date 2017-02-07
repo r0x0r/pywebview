@@ -107,7 +107,6 @@ def _initialize_imports():
         _initialized = True
 
 
-
 def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename=''):
     """
     Create a file dialog
@@ -129,7 +128,6 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
         raise Exception("Create a web view window first, before invoking this function")
 
 
-
 def load_url(url):
     """
     Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is
@@ -141,6 +139,7 @@ def load_url(url):
         gui.load_url(url)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+
 
 def load_html(content, base_uri=""):
     """
@@ -185,6 +184,18 @@ def destroy_window():
         gui.destroy_window()
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+
+
+def toggle_fullscreen():
+    """
+    Toggle fullscreen mode
+    """
+    try:
+        _webview_ready.wait(5)
+        gui.toggle_fullscreen()
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
+
 
 
 def _make_unicode(string):
