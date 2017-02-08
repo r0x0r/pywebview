@@ -118,6 +118,9 @@ class BrowserView:
     def destroy(self):
         self.browser.Close()
 
+    def get_current_url(self):
+        return self.browser.web_browser.Url.AbsoluteUri
+
     def load_url(self, url):
         self.url = url
         self.browser.web_browser.Navigate(url)
@@ -184,6 +187,10 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size, we
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+
+
+def get_current_url():
+    return BrowserView.instance.get_current_url()
 
 
 def load_url(url):

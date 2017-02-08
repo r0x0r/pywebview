@@ -53,23 +53,23 @@ class BrowserView:
                     range_ = responder.selectedRange()
                     hasSelectedText = len(range_) > 0
 
-                    if keyCode == 7 and hasSelectedText: #cut
+                    if keyCode == 7 and hasSelectedText : #cut
                         responder.cut_(self)
                         handled = True
-                    elif keyCode== 8 and hasSelectedText: #copy
+                    elif keyCode == 8 and hasSelectedText:  #copy
                         responder.copy_(self)
                         handled = True
-                    elif keyCode == 9: # paste
+                    elif keyCode == 9:  # paste
                         responder.paste_(self)
                         handled = True
-                    elif keyCode == 0: # select all
+                    elif keyCode == 0:  # select all
                         responder.selectAll_(self)
                         handled = True
-                    elif keyCode == 6: # undo
+                    elif keyCode == 6:  # undo
                         if responder.undoManager().canUndo():
                             responder.undoManager().undo()
                             handled = True
-                    elif keyCode == 12: # quit
+                    elif keyCode == 12:  # quit
                         BrowserView.app.terminate_(self)
 
                     return handled
@@ -79,6 +79,8 @@ class BrowserView:
 
         self._file_name = None
         self._file_name_semaphor = threading.Semaphore(0)
+        self._current_url_semaphor = threading.Semaphore(
+            0)
         self.webview_ready = webview_ready
         self.is_fullscreen = False
 
@@ -131,6 +133,16 @@ class BrowserView:
 
         PyObjCTools.AppHelper.callAfter(toggle)
         self.is_fullscreen = not self.is_fullscreen
+
+    def get_current_url(self):
+        def get():
+            self._current_url = self.webkit.mainFrameURL()
+            self._current_url_semaphor.release()
+
+        PyObjCTools.AppHelper.callAfter(get)
+
+        self._current_url_semaphor.acquire()
+        return self._current_url
 
     def load_url(self, url):
         def load(url):
@@ -302,3 +314,7 @@ def destroy_window():
 
 def toggle_fullscreen():
     BrowserView.instance.toggle_fullscreen()
+
+
+def get_current_url():
+    return BrowserView.instance.get_current_url()

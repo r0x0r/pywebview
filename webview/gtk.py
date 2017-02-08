@@ -136,6 +136,13 @@ class BrowserView:
 
         return file_name
 
+    def get_current_url(self):
+        Gdk.threads_enter()
+        uri = self.webview.get_uri()
+        Gdk.threads_leave()
+
+        return uri
+
     def load_url(self, url):
         glib.idle_add(self.webview.load_uri, url)
 
@@ -155,6 +162,10 @@ def destroy_window():
 
 def toggle_fullscreen():
     BrowserView.instance.toggle_fullscreen()
+
+
+def get_current_url():
+    return BrowserView.instance.get_current_url()
 
 
 def load_url(url):

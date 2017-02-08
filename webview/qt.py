@@ -58,11 +58,12 @@ if _import_error:
 
 class BrowserView(QMainWindow):
     instance = None
-    url_trigger = QtCore.pyqtSignal(str)
+    load_url_trigger = QtCore.pyqtSignal(str)
     html_trigger = QtCore.pyqtSignal(str, str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str)
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
+    current_url_trigger = QtCore.pyqtSignal()
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
         super(BrowserView, self).__init__()
@@ -70,6 +71,7 @@ class BrowserView(QMainWindow):
         self.is_fullscreen = False
 
         self._file_name_semaphor = threading.Semaphore(0)
+        self._current_url_semaphore = threading.Semaphore()
 
         self.resize(width, height)
         self.setWindowTitle(title)
@@ -86,11 +88,12 @@ class BrowserView(QMainWindow):
             self.view.setUrl(QtCore.QUrl(url))
 
         self.setCentralWidget(self.view)
-        self.url_trigger.connect(self._handle_load_url)
+        self.load_url_trigger.connect(self._handle_load_url)
         self.html_trigger.connect(self._handle_load_html)
         self.dialog_trigger.connect(self._handle_file_dialog)
         self.destroy_trigger.connect(self._handle_destroy_window)
         self.fullscreen_trigger.connect(self._handle_fullscreen)
+        self.current_url_trigger.connect(self._handle_current_url)
 
         if fullscreen:
             self.toggle_fullscreen()
@@ -116,6 +119,10 @@ class BrowserView(QMainWindow):
 
         self._file_name_semaphor.release()
 
+    def _handle_get_current_url(self):
+        self._current_url = self.view.url().toString()
+        self._current_url_semaphore.release()
+
     def _handle_load_url(self, url):
         self.view.setUrl(QtCore.QUrl(url))
 
@@ -131,10 +138,16 @@ class BrowserView(QMainWindow):
         else:
             self.showFullScreen()
 
-	self.is_fullscreen = not self.is_fullscreen
+        self.is_fullscreen = not self.is_fullscreen
+
+    def get_current_url(self):
+        self.current_url_trigger.emit()
+        self._current_url_semaphore.acquire()
+
+        return self._current_url
 
     def load_url(self, url):
-        self.url_trigger.emit(url)
+        self.load_url_trigger.emit(url)
 
     def load_html(self, content, base_uri):
         self.html_trigger.emit(content, base_uri)
@@ -168,6 +181,10 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size, we
     browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
     browser.show()
     app.exec_()
+
+
+def get_current_url():
+    return BrowserView.instance.get_current_url()
 
 
 def load_url(url):

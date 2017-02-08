@@ -199,6 +199,9 @@ class BrowserView(object):
         self.url = url
         self.browser.Navigate2(url)
 
+    def get_current_url(self):
+        raise NotImplementedError("get_current_url not implemented for Win32. Use Windows Forms implementation")
+
     def load_html(self, content):
         raise NotImplementedError("load_html not implemented for Win32. Use Windows Forms implementation")
 
@@ -292,6 +295,10 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size, we
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+
+
+def get_current_url():
+    return BrowserView.instance.get_current_url()
 
 
 def load_url(url):
