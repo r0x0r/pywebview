@@ -1,7 +1,7 @@
 import os
 from flask import Flask, url_for, render_template, jsonify, request, make_response
 import webview
-
+import webbrowser
 import app
 
 gui_dir = os.path.join(os.getcwd(), "gui")  # development path
@@ -63,6 +63,20 @@ def choose_path():
         response = {"status": "cancel"}
 
     return jsonify(response)
+
+
+@server.route("/fullscreen")
+def fullscreen():
+    webview.toggle_fullscreen()
+    return jsonify({})
+
+
+@server.route("/open-url", methods=["POST"])
+def open_url():
+    url = request.json["url"]
+    webbrowser.open_new_tab(url)
+
+    return jsonify({})
 
 
 @server.route("/do/stuff")
