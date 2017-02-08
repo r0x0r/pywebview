@@ -12,7 +12,6 @@ import logging
 from ctypes import windll
 
 import clr
-import ctypes
 clr.AddReference("System.Windows.Forms")
 clr.AddReference("System.Threading")
 import System.Windows.Forms as WinForms
