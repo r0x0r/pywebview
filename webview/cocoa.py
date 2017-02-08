@@ -25,9 +25,24 @@ class BrowserView:
     instance = None
     app = AppKit.NSApplication.sharedApplication()
 
+
     class AppDelegate(AppKit.NSObject):
+
+        def display_confirmation_dialog(self):
+            alert = AppKit.NSAlert.alloc().init()
+            alert.addButtonWithTitle_("OK")
+            alert.addButtonWithTitle_("Cancel")
+            alert.setMessageText_("Do you want to quit?")
+            #[alert setAlertStyle:NSWarningAlertStyle];
+
+            if alert.runModal() == AppKit.NSAlertFirstButtonReturn:
+                return True
+            else:
+                return False
+
         def windowWillClose_(self, notification):
-            BrowserView.app.stop_(self)
+            if self.display_confirmation_dialog():
+                BrowserView.app.stop_(self)
 
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
