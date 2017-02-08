@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 
 class BrowserView:
-
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
             self.Text = title
@@ -68,18 +67,26 @@ class BrowserView:
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
+                self.old_size = self.Size
+                self.old_state = self.WindowState
+                self.old_style = self.FormBorderStyle
+                self.old_location = self.Location
+
+                screen = WinForms.Screen.FromControl(self)
+
                 self.TopMost = True
                 self.FormBorderStyle = 0  # FormBorderStyle.None
                 self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
                 self.WindowState = WinForms.FormWindowState.Maximized
                 self.is_fullscreen = True
 
-                screen_x = windll.user32.GetSystemMetrics(0)
-                screen_y = windll.user32.GetSystemMetrics(1)
-                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, 0, 0, screen_x, screen_y, 64)
+                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y, screen.Bounds.Width, screen.Bounds.Height, 64)
             else:
-                self.WindowState = WinForms.FormWindowState.Maximized
-                self.FormBorderStyle = WinForms.FormBorderStyle.Sizable
+                self.TopMost = False
+                self.Size = self.old_size
+                self.WindowState = self.old_state
+                self.FormBorderStyle = self.old_style
+                self.Location = self.old_location
                 self.is_fullscreen = False
 
     instance = None

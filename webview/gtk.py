@@ -36,6 +36,7 @@ class BrowserView:
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
+        self.is_fullscreen = False
 
         Gdk.threads_init()
         window = gtk.Window(title=title)
@@ -49,9 +50,6 @@ class BrowserView:
         window.set_resizable(resizable)
         window.set_position(gtk.WindowPosition.CENTER)
 
-        if fullscreen:
-            window.fullscreen()
-
         window.connect("delete-event", gtk.main_quit)
 
         scrolled_window = gtk.ScrolledWindow()
@@ -64,8 +62,11 @@ class BrowserView:
         scrolled_window.add(self.webview)
         window.show_all()
 
-        if url != None:
+        if url is not None:
             self.webview.load_uri(url)
+
+        if fullscreen:
+            self.toggle_fullscreen()
 
     def _handle_webview_ready(self, arg1, arg2):
         self.webview_ready.set()
@@ -79,6 +80,16 @@ class BrowserView:
         Gdk.threads_enter()
         self.window.destroy()
         Gdk.threads_leave()
+
+    def toggle_fullscreen(self):
+        Gdk.threads_enter()
+        if self.is_fullscreen:
+            self.window.unfullscreen()
+        else:
+            self.window.fullscreen()
+        Gdk.threads_leave()
+
+        self.is_fullscreen = not self.is_fullscreen
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         Gdk.threads_enter()
@@ -142,8 +153,13 @@ def destroy_window():
     BrowserView.instance.destroy()
 
 
+def toggle_fullscreen():
+    BrowserView.instance.toggle_fullscreen()
+
+
 def load_url(url):
     BrowserView.instance.load_url(url)
+
 
 def load_html(content, base_uri):
     BrowserView.instance.load_html(content, base_uri)

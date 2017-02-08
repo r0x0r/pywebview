@@ -46,7 +46,7 @@ if _import_error:
 
         logger.debug("Using Qt5")
     except ImportError as e:
-        logger.warn("PyQt5 is not found")
+        logger.exception("PyQt5 is not found")
         _import_error = True
     else:
         _import_error = False
@@ -62,10 +62,12 @@ class BrowserView(QMainWindow):
     html_trigger = QtCore.pyqtSignal(str, str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str)
     destroy_trigger = QtCore.pyqtSignal()
+    fullscreen_trigger = QtCore.pyqtSignal()
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instance = self
+        self.is_fullscreen = False
 
         self._file_name_semaphor = threading.Semaphore(0)
 
@@ -75,14 +77,12 @@ class BrowserView(QMainWindow):
         if not resizable:
             self.setFixedSize(width, height)
 
-        if fullscreen:
-            self.showFullScreen()
-
         self.setMinimumSize(min_size[0], min_size[1])
 
         self.view = QWebView(self)
         self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
-        if url != None:
+
+        if url is not None:
             self.view.setUrl(QtCore.QUrl(url))
 
         self.setCentralWidget(self.view)
@@ -90,12 +90,15 @@ class BrowserView(QMainWindow):
         self.html_trigger.connect(self._handle_load_html)
         self.dialog_trigger.connect(self._handle_file_dialog)
         self.destroy_trigger.connect(self._handle_destroy_window)
+        self.fullscreen_trigger.connect(self._handle_fullscreen)
+
+        if fullscreen:
+            self.toggle_fullscreen()
 
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
         self.raise_()
         webview_ready.set()
-
 
     def _handle_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if dialog_type == FOLDER_DIALOG:
@@ -122,6 +125,14 @@ class BrowserView(QMainWindow):
     def _handle_destroy_window(self):
         self.close()
 
+    def _handle_fullscreen(self):
+        if self.is_fullscreen:
+            self.showNormal()
+        else:
+            self.showFullScreen()
+
+	self.is_fullscreen = not self.is_fullscreen
+
     def load_url(self, url):
         self.url_trigger.emit(url)
 
@@ -147,6 +158,8 @@ class BrowserView(QMainWindow):
     def destroy_(self):
         self.destroy_trigger.emit()
 
+    def toggle_fullscreen(self):
+        self.fullscreen_trigger.emit()
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
@@ -160,11 +173,17 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size, we
 def load_url(url):
     BrowserView.instance.load_url(url)
 
+
 def load_html(content, base_uri):
     BrowserView.instance.load_html(content, base_uri)
 
+
 def destroy_window():
     BrowserView.instance.destroy_()
+
+
+def toggle_fullscreen():
+    BrowserView.instance.toggle_fullscreen()
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):

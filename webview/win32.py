@@ -202,6 +202,9 @@ class BrowserView(object):
     def load_html(self, content):
         raise NotImplementedError("load_html not implemented for Win32. Use Windows Forms implementation")
 
+    def toggle_fullscreen(self):
+        raise NotImplementedError("toggle_fullscreen not implemented for Win32. Use Windows Forms implementation")
+
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if not directory:
             directory = os.environ['temp']
@@ -242,9 +245,7 @@ class BrowserView(object):
             logger.debug("File dialog crash", exc_info=True)
             file_path = None
 
-
         return file_path
-
 
     def _destroy(self):
         del self.browser
@@ -303,3 +304,7 @@ def load_html(content, base_uri):
 
 def destroy_window():
     BrowserView.instance.destroy()
+
+
+def toggle_fullscreen():
+    BrowserView.instance.toggle_fullscreen()
