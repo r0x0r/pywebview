@@ -183,6 +183,17 @@ def get_current_url():
         raise Exception("Create a web view window first, before invoking this function")
 
 
+def get_current_url():
+    """
+    Get a current URL
+    """
+    try:
+        _webview_ready.wait(5)
+        return gui.get_current_url()
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
+
+
 def destroy_window():
     """
     Destroy a web view window
