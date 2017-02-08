@@ -46,7 +46,7 @@ if _import_error:
 
         logger.debug("Using Qt5")
     except ImportError as e:
-        logger.warn("PyQt5 is not found")
+        logger.exception("PyQt5 is not found")
         _import_error = True
     else:
         _import_error = False
@@ -77,9 +77,6 @@ class BrowserView(QMainWindow):
         if not resizable:
             self.setFixedSize(width, height)
 
-        if fullscreen:
-            self.toggle_fullscreen()
-
         self.setMinimumSize(min_size[0], min_size[1])
 
         self.view = QWebView(self)
@@ -94,6 +91,9 @@ class BrowserView(QMainWindow):
         self.dialog_trigger.connect(self._handle_file_dialog)
         self.destroy_trigger.connect(self._handle_destroy_window)
         self.fullscreen_trigger.connect(self._handle_fullscreen)
+
+        if fullscreen:
+            self.toggle_fullscreen()
 
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
@@ -130,6 +130,8 @@ class BrowserView(QMainWindow):
             self.showNormal()
         else:
             self.showFullScreen()
+
+	self.is_fullscreen = not self.is_fullscreen
 
     def load_url(self, url):
         self.url_trigger.emit(url)

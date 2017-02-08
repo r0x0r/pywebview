@@ -36,7 +36,7 @@ class BrowserView:
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
-        self.is_fullscreen = false
+        self.is_fullscreen = False
 
         Gdk.threads_init()
         window = gtk.Window(title=title)
@@ -49,9 +49,6 @@ class BrowserView:
 
         window.set_resizable(resizable)
         window.set_position(gtk.WindowPosition.CENTER)
-
-        if fullscreen:
-            self.toggle_fullscreen()
 
         window.connect("delete-event", gtk.main_quit)
 
@@ -68,6 +65,9 @@ class BrowserView:
         if url is not None:
             self.webview.load_uri(url)
 
+        if fullscreen:
+            self.toggle_fullscreen()
+
     def _handle_webview_ready(self, arg1, arg2):
         self.webview_ready.set()
 
@@ -83,7 +83,10 @@ class BrowserView:
 
     def toggle_fullscreen(self):
         Gdk.threads_enter()
-        self.window.fullscreen()
+        if self.is_fullscreen:
+            self.window.unfullscreen()
+        else:
+            self.window.fullscreen()
         Gdk.threads_leave()
 
         self.is_fullscreen = not self.is_fullscreen
