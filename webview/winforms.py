@@ -179,6 +179,10 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
+def get_current_url():
+    return BrowserView.instance.get_current_url()
+
+
 def load_url(url):
     BrowserView.instance.load_url(url)
 

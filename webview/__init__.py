@@ -175,6 +175,17 @@ def create_window(title, url=None, width=800, height=600,
     gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size, _webview_ready)
 
 
+def get_current_url():
+    """
+    Get a current URL
+    """
+    try:
+        _webview_ready.wait(5)
+        return gui.get_current_url()
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
+
+
 def destroy_window():
     """
     Destroy a web view window
