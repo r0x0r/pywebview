@@ -111,6 +111,9 @@ class BrowserView:
     def destroy(self):
         self.browser.Close()
 
+    def get_current_url(self):
+        return self.browser.web_browser.Url.AbsoluteUri
+
     def load_url(self, url):
         self.url = url
         self.browser.web_browser.Navigate(url)
