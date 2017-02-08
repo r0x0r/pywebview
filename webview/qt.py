@@ -96,9 +96,6 @@ class BrowserView(QMainWindow):
         self.fullscreen_trigger.connect(self.on_fullscreen)
         self.current_url_trigger.connect(self.on_current_url)
 
-        #if confirm_quit:
-        #    self.close_window_trigger(self.on_close_window)
-
         if fullscreen:
             self.toggle_fullscreen()
 
