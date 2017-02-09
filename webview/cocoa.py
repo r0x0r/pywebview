@@ -25,7 +25,6 @@ class BrowserView:
     instance = None
     app = AppKit.NSApplication.sharedApplication()
 
-
     class AppDelegate(AppKit.NSObject):
         def display_confirmation_dialog(self):
             AppKit.NSApplication.sharedApplication()
@@ -48,8 +47,7 @@ class BrowserView:
                 return Foundation.NO
 
         def windowWillClose_(self, notification):
-            if self.display_confirmation_dialog():
-                BrowserView.app.stop_(self)
+            BrowserView.app.stop_(self)
 
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
