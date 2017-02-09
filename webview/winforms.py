@@ -186,7 +186,10 @@ class BrowserView:
         self.browser.toggle_fullscreen()
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
+    global _confirm_quit
+    _confirm_quit = confirm_quit
+
     set_ie_mode()
     browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
     browser_view.show()

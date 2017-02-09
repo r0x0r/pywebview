@@ -144,7 +144,10 @@ class BrowserView:
                       base_uri)
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
+    global _confirm_quit
+    _confirm_quit = confirm_quit
+
     browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
     browser.show()
 

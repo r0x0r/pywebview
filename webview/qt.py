@@ -175,7 +175,10 @@ class BrowserView(QMainWindow):
         self.fullscreen_trigger.emit()
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
+    global _confirm_quit
+    _confirm_quit = confirm_quit
+
     app = QApplication([])
 
     browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
