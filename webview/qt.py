@@ -119,7 +119,7 @@ class BrowserView(QMainWindow):
 
         self._file_name_semaphor.release()
 
-    def _handle_get_current_url(self):
+    def _handle_current_url(self):
         self._current_url = self.view.url().toString()
         self._current_url_semaphore.release()
 
