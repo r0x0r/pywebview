@@ -11,22 +11,15 @@ from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 logger = logging.getLogger(__name__)
 
-try:
-    # Try GTK 3
-    import gi
-    gi.require_version('Gtk', '3.0')
-    gi.require_version('Gdk', '3.0')
-    gi.require_version('WebKit', '3.0')
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('Gdk', '3.0')
+gi.require_version('WebKit', '3.0')
 
-    from gi.repository import Gtk as gtk
-    from gi.repository import Gdk
-    from gi.repository import GLib as glib
-    from gi.repository import WebKit as webkit
-except ImportError as e:
-    import_error = True
-    logger.warn("PyGObject is not found", exc_info=True)
-else:
-    import_error = False
+from gi.repository import Gtk as gtk
+from gi.repository import Gdk
+from gi.repository import GLib as glib
+from gi.repository import WebKit as webkit
 
 
 class BrowserView:
