@@ -58,12 +58,17 @@ class BrowserView:
             self.Controls.Add(self.web_browser)
             self.is_fullscreen = False
             self.Shown += self.on_shown
+            self.FromClosing += self.on_closing
 
             if fullscreen:
                 self.toggle_fullscreen()
 
         def on_shown(self, sender, args):
             self.webview_ready.set()
+
+        def on_closing(self, sender, args):
+            WinForms.MessageBox.Show(localization["global.fileFilter.allFiles"], "My Application",
+                                     WinForms.MessageBoxButtons.OKCancel, WinForms.MessageBoxIcon.Asterisk)
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
