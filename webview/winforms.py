@@ -58,7 +58,9 @@ class BrowserView:
             self.Controls.Add(self.web_browser)
             self.is_fullscreen = False
             self.Shown += self.on_shown
-            self.FromClosing += self.on_closing
+
+            if confirm_quit:
+                self.FormClosing += self.on_closing
 
             if confirm_quit:
                 self.FormClosing += self.on_closing
