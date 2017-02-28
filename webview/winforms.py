@@ -31,8 +31,7 @@ class BrowserView:
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
             self.Text = title
-            self.AutoScaleBaseSize = Size(5, 13)
-            self.ClientSize = Size(width, height);
+            self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
 
             if not resizable:
