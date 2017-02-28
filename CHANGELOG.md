@@ -3,6 +3,14 @@
 
 # Changelog
 
+## 1.5
+Released 09/02/2017
+- `New` [All] toggle_fullscreen function #52
+- `New` [All] get_current_url function #76
+- `New` [Winforms] Javascript errors are now suppressed
+- `Fix` [Winforms] Fixed resizable=False not being enforced #73
+
+
 ## 1.4
 Released 14/01/2017
 - `New` [All] pip installation now supports choosing what dependencies to install. See README for more information. Thanks @josePhoenix

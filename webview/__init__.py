@@ -39,35 +39,34 @@ _webview_ready = Event()
 
 def _initialize_imports():
     global _initialized, gui
+    import_error = False
 
     if not _initialized:
         if platform.system() == "Darwin":
-            try:
-                import webview.cocoa as gui
-            except ImportError:
-                import_error = True
-            else:
-                import_error = False
-
+            if not config["USE_QT"]:
+                try:
+                    import webview.cocoa as gui
+                except ImportError:
+                    logger.exception("PyObjC cannot be loaded")
+                    import_error = True
+                    
             if import_error or config["USE_QT"]:
                 try:
                     import webview.qt as gui
                     logger.info("Using QT")
                 except ImportError as e:
                     # Panic
-                    logger.exception("QT not found")
+                    logger.exception("QT cannot be loaded")
                     raise Exception("You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use this library.")
+        
         elif platform.system() == "Linux":
-            try:
-                #Try GTK first unless USE_QT flag is set
-                if not config["USE_QT"]:
+            if not config["USE_QT"]:
+                try:
                     import webview.gtk as gui
                     logger.info("Using GTK")
-            except ImportError as e:
-                logger.exception("GTK not found")
-                import_error = True
-            else:
-                import_error = False
+                except ImportError as e:
+                    logger.exception("GTK cannot be loaded")
+                    import_error = True
 
             if import_error or config["USE_QT"]:
                 try:
@@ -76,21 +75,19 @@ def _initialize_imports():
                     logger.info("Using QT")
                 except ImportError as e:
                     # Panic
-                    logger.exception("QT not found")
+                    logger.exception("QT cannot be loaded")
                     raise Exception("You must have either QT or GTK with Python extensions installed in order to use this library.")
 
         elif platform.system() == "Windows":
-
-            try:
-                #Try .NET first unless USE_WIN32 variable is defined
-                if not config["USE_WIN32"]:
+            #Try .NET first unless USE_WIN32 variable is defined
+            if not config["USE_WIN32"]:
+                try:
                     import webview.winforms as gui
                     logger.info("Using .NET")
-            except ImportError as e:
-                logger.exception("pythonnet not found")
-                import_error = True
-            else:
-                import_error = False
+                except ImportError as e:
+                    logger.exception("pythonnet cannot be loaded")
+                    import_error = True
+
 
             if import_error or config["USE_WIN32"]:
                 try:
@@ -99,13 +96,12 @@ def _initialize_imports():
                     logger.info("Using Win32")
                 except ImportError as e:
                     # Panic
-                    logger.exception(" not found")
+                    logger.exception("PyWin32 cannot be loaded")
                     raise Exception("You must have either pythonnet or pywin32 installed in order to use this library.")
         else:
             raise Exception("Unsupported platform. Only Windows, Linux and OS X are supported.")
 
         _initialized = True
-
 
 
 def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename=''):
@@ -129,7 +125,6 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
         raise Exception("Create a web view window first, before invoking this function")
 
 
-
 def load_url(url):
     """
     Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is
@@ -141,6 +136,7 @@ def load_url(url):
         gui.load_url(url)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+
 
 def load_html(content, base_uri=""):
     """
@@ -176,6 +172,17 @@ def create_window(title, url=None, width=800, height=600,
     gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size, _webview_ready)
 
 
+def get_current_url():
+    """
+    Get a current URL
+    """
+    try:
+        _webview_ready.wait(5)
+        return gui.get_current_url()
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
+
+
 def destroy_window():
     """
     Destroy a web view window
@@ -185,6 +192,18 @@ def destroy_window():
         gui.destroy_window()
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+
+
+def toggle_fullscreen():
+    """
+    Toggle fullscreen mode
+    """
+    try:
+        _webview_ready.wait(5)
+        gui.toggle_fullscreen()
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
+
 
 
 def _make_unicode(string):

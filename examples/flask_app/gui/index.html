@@ -19,10 +19,17 @@
 <h1>My first pywebview application</h1>
 
 <button onclick="openFolder()">Open folder</button>
+<button onclick="toggleFullscreen()">Toggle fullscreen</button>
 <button onclick="doStuff()">Do stuff</button>
 <div id="open-folder-container"></div>
 <div id="stuff-container"></div>
 <div id="json-container"></div>
+
+<div style="text-align: center; margin-top: 50px;">
+    <a href="http://mbsy.co/gHVfC" target="_blank" style="outline:none;border:none;" onclick="openLink(event)">
+        <img src="https://ambassador-api.s3.amazonaws.com/uploads/marketing/11948/2016_11_29_21_53_43.png" alt="DreamHost" border="0" />
+    </a>
+</div>
 
 <script>
     // Perform background initialization
@@ -64,6 +71,16 @@
     function doStuff() {
         doAjax("/do/stuff", "GET", doStuffHandler);
     }
+
+    function toggleFullscreen() {
+        doAjax("/fullscreen", "GET", doStuffHandler);
+    }
+
+    function openLink(e) {
+        e.preventDefault()
+        var request = {url: e.currentTarget.href}
+        doAjax("/open-url", "POST", false, JSON.stringify(request))
+    }
     
     // From https://gist.github.com/dharmavir/936328
     function getHttpRequestObject()
@@ -93,26 +110,23 @@
         async = true;
         data = data || null;
         
-        if(url == "")
-        {
+        if(url == "") {
             alert("URL can not be null/blank");
             return false;
         }
-        var xmlHttpRequst = getHttpRequestObject();
+        var xmlHttpRequest = getHttpRequestObject();
         
         // If AJAX supported
-        if(xmlHttpRequst != false)
-        {
-            xmlHttpRequst.open(method, url, async);
+        if(xmlHttpRequest != false) {
+            xmlHttpRequest.open(method, url, async);
             // Set request header (optional if GET method is used)
-            if(method == "POST")
-            {
-                xmlHttpRequst.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            if(method == "POST")  {
+                xmlHttpRequest.setRequestHeader("Content-Type", "application/json");
             }
             // Assign (or define) response-handler/callback when ReadyState is changed.
-            xmlHttpRequst.onreadystatechange = responseHandler;
+            xmlHttpRequest.onreadystatechange = responseHandler;
             // Send data
-            xmlHttpRequst.send(data);
+            xmlHttpRequest.send(data);
         }
         else
         {

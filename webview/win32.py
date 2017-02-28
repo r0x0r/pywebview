@@ -199,8 +199,14 @@ class BrowserView(object):
         self.url = url
         self.browser.Navigate2(url)
 
+    def get_current_url(self):
+        raise NotImplementedError("get_current_url not implemented for Win32. Use Windows Forms implementation")
+
     def load_html(self, content):
         raise NotImplementedError("load_html not implemented for Win32. Use Windows Forms implementation")
+
+    def toggle_fullscreen(self):
+        raise NotImplementedError("toggle_fullscreen not implemented for Win32. Use Windows Forms implementation")
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if not directory:
@@ -242,9 +248,7 @@ class BrowserView(object):
             logger.debug("File dialog crash", exc_info=True)
             file_path = None
 
-
         return file_path
-
 
     def _destroy(self):
         del self.browser
@@ -293,6 +297,10 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
+def get_current_url():
+    return BrowserView.instance.get_current_url()
+
+
 def load_url(url):
     BrowserView.instance.load_url(url)
 
@@ -303,3 +311,7 @@ def load_html(content, base_uri):
 
 def destroy_window():
     BrowserView.instance.destroy()
+
+
+def toggle_fullscreen():
+    BrowserView.instance.toggle_fullscreen()

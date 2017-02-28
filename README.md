@@ -106,6 +106,12 @@ an application scaffold and boilerplate code for a real-world application.
 
 - `webview.load_html(content)`
     Loads HTML content in the WebView window
+
+- `webview.get_current_url()`
+    Return a current URL
+    
+- `webview.toggle_fullscreen()`
+    Toggle a fullscreen mode on the active monitor    
     
 - `webview.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='')`
     Create an open file (`webview.OPEN_DIALOG`), open folder (`webview.FOLDER_DIALOG`) or save file (`webview.SAVE_DIALOG`) dialog. `allow_multiple=True` enables multiple selection. `directory` Initial directory. `save_filename` Default filename for save file dialog.

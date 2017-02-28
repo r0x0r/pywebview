@@ -11,22 +11,15 @@ from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 logger = logging.getLogger(__name__)
 
-try:
-    # Try GTK 3
-    import gi
-    gi.require_version('Gtk', '3.0')
-    gi.require_version('Gdk', '3.0')
-    gi.require_version('WebKit', '3.0')
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('Gdk', '3.0')
+gi.require_version('WebKit', '3.0')
 
-    from gi.repository import Gtk as gtk
-    from gi.repository import Gdk
-    from gi.repository import GLib as glib
-    from gi.repository import WebKit as webkit
-except ImportError as e:
-    import_error = True
-    logger.warn("PyGObject is not found", exc_info=True)
-else:
-    import_error = False
+from gi.repository import Gtk as gtk
+from gi.repository import Gdk
+from gi.repository import GLib as glib
+from gi.repository import WebKit as webkit
 
 
 class BrowserView:
@@ -36,6 +29,7 @@ class BrowserView:
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
+        self.is_fullscreen = False
 
         Gdk.threads_init()
         window = gtk.Window(title=title)
@@ -49,9 +43,6 @@ class BrowserView:
         window.set_resizable(resizable)
         window.set_position(gtk.WindowPosition.CENTER)
 
-        if fullscreen:
-            window.fullscreen()
-
         window.connect("delete-event", gtk.main_quit)
 
         scrolled_window = gtk.ScrolledWindow()
@@ -64,8 +55,11 @@ class BrowserView:
         scrolled_window.add(self.webview)
         window.show_all()
 
-        if url != None:
+        if url is not None:
             self.webview.load_uri(url)
+
+        if fullscreen:
+            self.toggle_fullscreen()
 
     def _handle_webview_ready(self, arg1, arg2):
         self.webview_ready.set()
@@ -79,6 +73,16 @@ class BrowserView:
         Gdk.threads_enter()
         self.window.destroy()
         Gdk.threads_leave()
+
+    def toggle_fullscreen(self):
+        Gdk.threads_enter()
+        if self.is_fullscreen:
+            self.window.unfullscreen()
+        else:
+            self.window.fullscreen()
+        Gdk.threads_leave()
+
+        self.is_fullscreen = not self.is_fullscreen
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         Gdk.threads_enter()
@@ -125,6 +129,13 @@ class BrowserView:
 
         return file_name
 
+    def get_current_url(self):
+        Gdk.threads_enter()
+        uri = self.webview.get_uri()
+        Gdk.threads_leave()
+
+        return uri
+
     def load_url(self, url):
         glib.idle_add(self.webview.load_uri, url)
 
@@ -142,8 +153,17 @@ def destroy_window():
     BrowserView.instance.destroy()
 
 
+def toggle_fullscreen():
+    BrowserView.instance.toggle_fullscreen()
+
+
+def get_current_url():
+    return BrowserView.instance.get_current_url()
+
+
 def load_url(url):
     BrowserView.instance.load_url(url)
+
 
 def load_html(content, base_uri):
     BrowserView.instance.load_html(content, base_uri)
