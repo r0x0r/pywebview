@@ -25,7 +25,7 @@ from gi.repository import WebKit as webkit
 class BrowserView:
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
@@ -49,8 +49,13 @@ class BrowserView:
         window.add(scrolled_window)
 
         self.window = window
+
+        if confirm_quit:
+            self.connect('destroy', gtk.main_quit)
+            self.connect('delete-event', self.on_destroy)
+
         self.webview = webkit.WebView()
-        self.webview.connect("notify::visible", self._handle_webview_ready)
+        self.webview.connect("notify::visible", self.on_webview_ready)
         self.webview.props.settings.props.enable_default_context_menu = False
         scrolled_window.add(self.webview)
         window.show_all()
@@ -61,7 +66,18 @@ class BrowserView:
         if fullscreen:
             self.toggle_fullscreen()
 
-    def _handle_webview_ready(self, arg1, arg2):
+    def on_destroy(self, widget=None, *data):
+        messagedialog = gtk.MessageDialog(parent=self, flags=gtk.DIALOG_MODAL & gtk.DIALOG_DESTROY_WITH_PARENT,
+                                          type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK_CANCEL,
+                                          message_format=localization["global.quitConfirmation"])
+        messagedialog.show_all()
+        result = messagedialog.run()
+        messagedialog.destroy()
+        if result == gtk.RESPONSE_CANCEL:
+            return True
+        return False
+
+    def on_webview_ready(self, arg1, arg2):
         self.webview_ready.set()
 
     def show(self):
@@ -145,10 +161,7 @@ class BrowserView:
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
-    global _confirm_quit
-    _confirm_quit = confirm_quit
-
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready)
     browser.show()
 
 

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 try:
     from PyQt4 import QtCore
     from PyQt4.QtWebKit import QWebView
-    from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog
+    from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox
 
     logger.debug("Using Qt4")
 except ImportError as e:
@@ -42,7 +42,7 @@ if _import_error:
         else:
             from PyQt5.QtWebKitWidgets import QWebView
 
-        from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog
+        from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox
 
         logger.debug("Using Qt5")
     except ImportError as e:
@@ -64,8 +64,9 @@ class BrowserView(QMainWindow):
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
+    close_window_trigger = QtCore.pyqtSignal()
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instance = self
         self.is_fullscreen = False
@@ -88,12 +89,16 @@ class BrowserView(QMainWindow):
             self.view.setUrl(QtCore.QUrl(url))
 
         self.setCentralWidget(self.view)
-        self.load_url_trigger.connect(self._handle_load_url)
-        self.html_trigger.connect(self._handle_load_html)
-        self.dialog_trigger.connect(self._handle_file_dialog)
-        self.destroy_trigger.connect(self._handle_destroy_window)
-        self.fullscreen_trigger.connect(self._handle_fullscreen)
-        self.current_url_trigger.connect(self._handle_current_url)
+
+        self.load_url_trigger.connect(self.on_load_url)
+        self.html_trigger.connect(self.on_load_html)
+        self.dialog_trigger.connect(self.on_file_dialog)
+        self.destroy_trigger.connect(self.on_destroy_window)
+        self.fullscreen_trigger.connect(self.on_fullscreen)
+        self.current_url_trigger.connect(self.on_current_url)
+
+        #if confirm_quit:
+        #    self.close_window_trigger(self.on_close_window)
 
         if fullscreen:
             self.toggle_fullscreen()
@@ -103,7 +108,7 @@ class BrowserView(QMainWindow):
         self.raise_()
         webview_ready.set()
 
-    def _handle_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
+    def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if dialog_type == FOLDER_DIALOG:
             self._file_name = QFileDialog.getExistingDirectory(self, localization["linux.openFolder"], options=QFileDialog.ShowDirsOnly)
         elif dialog_type == OPEN_DIALOG:
@@ -119,20 +124,29 @@ class BrowserView(QMainWindow):
 
         self._file_name_semaphor.release()
 
-    def _handle_current_url(self):
+    def on_current_url(self):
         self._current_url = self.view.url().toString()
         self._current_url_semaphore.release()
 
-    def _handle_load_url(self, url):
+    def on_load_url(self, url):
         self.view.setUrl(QtCore.QUrl(url))
 
-    def _handle_load_html(self, content, base_uri):
+    def on_load_html(self, content, base_uri):
         self.view.setHtml(content, QtCore.QUrl(base_uri))
 
-    def _handle_destroy_window(self):
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, self.title, localization["global.quitConfirmation"],
+                                     QMessageBox.Yes, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
+
+    def on_destroy_window(self):
         self.close()
 
-    def _handle_fullscreen(self):
+    def on_fullscreen(self):
         if self.is_fullscreen:
             self.showNormal()
         else:
@@ -176,12 +190,9 @@ class BrowserView(QMainWindow):
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
-    global _confirm_quit
-    _confirm_quit = confirm_quit
-
     app = QApplication([])
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready)
     browser.show()
     app.exec_()
 
