@@ -8,6 +8,7 @@ http://github.com/r0x0r/pywebview/
 """
 
 import os
+import sys
 import logging
 from ctypes import windll
 
@@ -115,12 +116,12 @@ class BrowserView:
 
     def show(self):
         def start():
-             if sys.getwindowsversion().major >= 6:
-                 windll.user32.SetProcessDPIAware()
+            if sys.getwindowsversion().major >= 6:
+                windll.user32.SetProcessDPIAware()
 
-             app = WinForms.Application
-             app.EnableVisualStyles()
-             app.SetCompatibleTextRenderingDefault(False)
+            app = WinForms.Application
+            app.EnableVisualStyles()
+            app.SetCompatibleTextRenderingDefault(False)
 
             self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
                                                    self.fullscreen, self.min_size, self.confirm_quit, self.webview_ready)
