@@ -49,7 +49,7 @@ def _initialize_imports():
                 except ImportError:
                     logger.exception("PyObjC cannot be loaded")
                     import_error = True
-                    
+
             if import_error or config["USE_QT"]:
                 try:
                     import webview.qt as gui
@@ -58,7 +58,7 @@ def _initialize_imports():
                     # Panic
                     logger.exception("QT cannot be loaded")
                     raise Exception("You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use this library.")
-        
+
         elif platform.system() == "Linux":
             if not config["USE_QT"]:
                 try:
@@ -153,7 +153,7 @@ def load_html(content, base_uri=""):
 
 
 def create_window(title, url=None, width=800, height=600,
-                  resizable=True, fullscreen=False, min_size=(200, 100), strings={}):
+                  resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -169,7 +169,7 @@ def create_window(title, url=None, width=800, height=600,
     """
     _initialize_imports()
     localization.update(strings)
-    gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size, _webview_ready)
+    gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size, confirm_quit, _webview_ready)
 
 
 def get_current_url():

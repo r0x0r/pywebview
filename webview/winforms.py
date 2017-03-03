@@ -8,7 +8,6 @@ http://github.com/r0x0r/pywebview/
 """
 
 import os
-import sys
 import logging
 from ctypes import windll
 
@@ -29,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 class BrowserView:
     class BrowserForm(WinForms.Form):
-        def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+        def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
             self.Text = title
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
@@ -59,11 +58,21 @@ class BrowserView:
             self.is_fullscreen = False
             self.Shown += self.on_shown
 
+            if confirm_quit:
+                self.FormClosing += self.on_closing
+
             if fullscreen:
                 self.toggle_fullscreen()
 
         def on_shown(self, sender, args):
             self.webview_ready.set()
+
+        def on_closing(self, sender, args):
+            result = WinForms.MessageBox.Show(localization["global.quitConfirmation"], self.Text,
+                                              WinForms.MessageBoxButtons.OKCancel, WinForms.MessageBoxIcon.Asterisk)
+
+            if result == WinForms.DialogResult.Cancel:
+                args.Cancel = True
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
@@ -78,7 +87,6 @@ class BrowserView:
                 self.FormBorderStyle = 0  # FormBorderStyle.None
                 self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
                 self.WindowState = WinForms.FormWindowState.Maximized
-                self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
                 self.is_fullscreen = True
 
                 windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y, screen.Bounds.Width, screen.Bounds.Height, 64)
@@ -92,7 +100,7 @@ class BrowserView:
 
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
         BrowserView.instance = self
         self.title = title
         self.url = url
@@ -101,20 +109,21 @@ class BrowserView:
         self.resizable = resizable
         self.fullscreen = fullscreen
         self.min_size = min_size
+        self.confirm_quit = confirm_quit
         self.webview_ready = webview_ready
         self.browser = None
 
     def show(self):
         def start():
-            if sys.getwindowsversion().major >= 6:
-                windll.user32.SetProcessDPIAware()
+             if sys.getwindowsversion().major >= 6:
+                 windll.user32.SetProcessDPIAware()
 
-            app = WinForms.Application
-            app.EnableVisualStyles()
-            app.SetCompatibleTextRenderingDefault(False)
+             app = WinForms.Application
+             app.EnableVisualStyles()
+             app.SetCompatibleTextRenderingDefault(False)
 
             self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
-                                                   self.fullscreen, self.min_size, self.webview_ready)
+                                                   self.fullscreen, self.min_size, self.confirm_quit, self.webview_ready)
             app.Run(self.browser)
 
         thread = Thread(ThreadStart(start))
@@ -186,9 +195,9 @@ class BrowserView:
         self.browser.toggle_fullscreen()
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
     set_ie_mode()
-    browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
+    browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready)
     browser_view.show()
 
 

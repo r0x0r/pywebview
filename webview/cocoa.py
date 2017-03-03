@@ -26,6 +26,26 @@ class BrowserView:
     app = AppKit.NSApplication.sharedApplication()
 
     class AppDelegate(AppKit.NSObject):
+        def display_confirmation_dialog(self):
+            AppKit.NSApplication.sharedApplication()
+            AppKit.NSRunningApplication.currentApplication().activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
+            alert = AppKit.NSAlert.alloc().init()
+            alert.addButtonWithTitle_(localization["global.quit"])
+            alert.addButtonWithTitle_(localization["global.cancel"])
+            alert.setMessageText_(localization["global.quitConfirmation"])
+            alert.setAlertStyle_(AppKit.NSWarningAlertStyle)
+
+            if alert.runModal() == AppKit.NSAlertFirstButtonReturn:
+                return True
+            else:
+                return False
+
+        def windowShouldClose_(self, notification):
+            if not _confirm_quit or self.display_confirmation_dialog():
+                return Foundation.YES
+            else:
+                return Foundation.NO
+
         def windowWillClose_(self, notification):
             BrowserView.app.stop_(self)
 
@@ -282,7 +302,7 @@ class BrowserView:
         return val
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, ready_event):
+def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, ready_event):
     """
     Create a WebView window using Cocoa on Mac.
     :param title: Window title
@@ -292,6 +312,9 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size, re
     :param resizable True if window can be resized, False otherwise
     :return:
     """
+    global _confirm_quit
+    _confirm_quit = confirm_quit
+
     browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, ready_event)
     browser.show()
 

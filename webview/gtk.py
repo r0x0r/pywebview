@@ -25,7 +25,7 @@ from gi.repository import WebKit as webkit
 class BrowserView:
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
@@ -43,14 +43,18 @@ class BrowserView:
         window.set_resizable(resizable)
         window.set_position(gtk.WindowPosition.CENTER)
 
-        window.connect("delete-event", gtk.main_quit)
-
         scrolled_window = gtk.ScrolledWindow()
         window.add(scrolled_window)
 
         self.window = window
+
+        if confirm_quit:
+            self.window.connect('delete-event', self.on_destroy)
+        else:
+            self.window.connect('delete-event', gtk.main_quit)
+
         self.webview = webkit.WebView()
-        self.webview.connect("notify::visible", self._handle_webview_ready)
+        self.webview.connect("notify::visible", self.on_webview_ready)
         self.webview.props.settings.props.enable_default_context_menu = False
         scrolled_window.add(self.webview)
         window.show_all()
@@ -61,7 +65,18 @@ class BrowserView:
         if fullscreen:
             self.toggle_fullscreen()
 
-    def _handle_webview_ready(self, arg1, arg2):
+    def on_destroy(self, widget=None, *data):
+        dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                          type=gtk.MessageType.QUESTION, buttons=gtk.ButtonsType.OK_CANCEL,
+                                          message_format=localization["global.quitConfirmation"])
+        result = dialog.run()
+        if result == gtk.ResponseType.OK:
+            gtk.main_quit()
+        else:
+            dialog.destroy()
+            return True
+
+    def on_webview_ready(self, arg1, arg2):
         self.webview_ready.set()
 
     def show(self):
@@ -144,8 +159,8 @@ class BrowserView:
                       base_uri)
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
+def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready)
     browser.show()
 
 

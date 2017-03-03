@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 localization = {
+    "global.quitConfirmation": u"Do you really want to quit?",
+    "global.quit": u"Quit",
+    "global.cancel": u"Cancel",
     "cocoa.menu.about": u"About",
     "cocoa.menu.services": u"Services",
     "cocoa.menu.view": u"View",
