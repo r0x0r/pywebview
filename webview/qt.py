@@ -74,7 +74,7 @@ class BrowserView(QMainWindow):
         self._current_url_semaphore = threading.Semaphore()
 
         self.resize(width, height)
-	self.title = title
+        self.title = title
         self.setWindowTitle(title)
 
         if not resizable:

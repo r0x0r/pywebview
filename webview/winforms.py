@@ -30,7 +30,6 @@ class BrowserView:
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
             self.Text = title
-            self.AutoScaleBaseSize = Size(5, 13)
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
 
@@ -58,9 +57,6 @@ class BrowserView:
             self.Controls.Add(self.web_browser)
             self.is_fullscreen = False
             self.Shown += self.on_shown
-
-            if confirm_quit:
-                self.FormClosing += self.on_closing
 
             if confirm_quit:
                 self.FormClosing += self.on_closing
@@ -119,9 +115,15 @@ class BrowserView:
 
     def show(self):
         def start():
+             if sys.getwindowsversion().major >= 6:
+                 windll.user32.SetProcessDPIAware()
+
+             app = WinForms.Application
+             app.EnableVisualStyles()
+             app.SetCompatibleTextRenderingDefault(False)
+
             self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
                                                    self.fullscreen, self.min_size, self.confirm_quit, self.webview_ready)
-            app = WinForms.Application
             app.Run(self.browser)
 
         thread = Thread(ThreadStart(start))
