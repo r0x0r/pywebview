@@ -43,16 +43,15 @@ class BrowserView:
         window.set_resizable(resizable)
         window.set_position(gtk.WindowPosition.CENTER)
 
-        window.connect("delete-event", gtk.main_quit)
-
         scrolled_window = gtk.ScrolledWindow()
         window.add(scrolled_window)
 
         self.window = window
 
         if confirm_quit:
-            self.connect('destroy', gtk.main_quit)
-            self.connect('delete-event', self.on_destroy)
+            self.window.connect('delete-event', self.on_destroy)
+        else:
+            self.window.connect('delete-event', gtk.main_quit)
 
         self.webview = webkit.WebView()
         self.webview.connect("notify::visible", self.on_webview_ready)
@@ -67,15 +66,15 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def on_destroy(self, widget=None, *data):
-        messagedialog = gtk.MessageDialog(parent=self, flags=gtk.DIALOG_MODAL & gtk.DIALOG_DESTROY_WITH_PARENT,
-                                          type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK_CANCEL,
+        dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                          type=gtk.MessageType.QUESTION, buttons=gtk.ButtonsType.OK_CANCEL,
                                           message_format=localization["global.quitConfirmation"])
-        messagedialog.show_all()
-        result = messagedialog.run()
-        messagedialog.destroy()
-        if result == gtk.RESPONSE_CANCEL:
+        result = dialog.run()
+        if result == gtk.ResponseType.OK:
+            gtk.main_quit()
+        else:
+            dialog.destroy()
             return True
-        return False
 
     def on_webview_ready(self, arg1, arg2):
         self.webview_ready.set()
