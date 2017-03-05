@@ -18,7 +18,7 @@ clr.AddReference("System.Threading")
 import System.Windows.Forms as WinForms
 from System import IntPtr, Int32
 from System.Threading import Thread, ThreadStart, ApartmentState
-from System.Drawing import Size, Point, Icon
+from System.Drawing import Size, SizeF, Point, Icon
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.localization import localization
@@ -33,6 +33,8 @@ class BrowserView:
             self.Text = title
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
+            self.AutoScaleDimensions = SizeF(96.0, 96.0)
+            self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
             if not resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
