@@ -7,4 +7,5 @@ If you found a bug and want to report it, please test it first in a web-browser 
 Hard cold cash is appreciated as well
 
 Donate with Paypal: http://bit.ly/2eg2Z5P
+
 Donate with Bitcoin: 19VmMFEsJUk8t7HA17VVkQTyrZvMdhB9V6
