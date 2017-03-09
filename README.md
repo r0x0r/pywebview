@@ -2,7 +2,7 @@
 
 pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, eliminating the need of launching a web browser. Combined with a lightweight web framework like [Flask](http://flask.pocoo.org/), [Bottle](http://bottlepy.org/docs/dev/index.html) or [web.py](http://webpy.org), you can create beautiful cross-platform HTML5 user interfaces targeting WebKit, while hiding implementation details from the end user. If HTML is not your strong point, you might want to use [REMI](https://github.com/dddomodossola/remi), which allows you to create HTML based interfaces using Python code only.
 
-pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: Win32 on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, it does not bundle a heavy GUI toolkit with it keeping the executable size small. Compatible with both Python 2 and 3. While Android is not supported, you can use the same codebase with solutions like [Python for Android](https://github.com/kivy/python-for-android) for creating an APK.
+pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: WinForms on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, it does not bundle a heavy GUI toolkit with it keeping the executable size small. Compatible with both Python 2 and 3. While Android is not supported, you can use the same codebase with solutions like [Python for Android](https://github.com/kivy/python-for-android) for creating an APK.
 
 
 # License
@@ -53,13 +53,14 @@ A second implementation for Windows using `pywin32` and `comtypes` is also avail
 
 ## Windows
 
-On Windows you can choose between Win32 and Windows Forms implementation.
+On Windows you can choose between Win32 and Windows Forms implementation. The Win32 implementation is not actively developed and misses some features.
+
+For Windows Forms
+`pythonnet`
 
 For Win32 you need
 `pywin32`, `comtypes`. ActiveState distribution of Python 2 comes with pywin32 preinstalled
 
-For Windows Forms
-`pythonnet`
 
 ## OS X 
 
@@ -117,12 +118,12 @@ an application scaffold and boilerplate code for a real-world application.
 
 For OS X and Linux systems you get WebKit. The actual version depends on the version of installed Safari on OS X and QT / GTK on Linux. 
 
-For Windows, you get MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. For Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9. For Windows 7/8/10, you will get the latest installed version. Embedding EdgeHTML engine in third party applications is not supported  by Microsoft at the moment. 
+For Windows, you get MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. For Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9. For Windows 7/8/10, you will get the latest installed version. Embedding EdgeHTML engine is not made possible by Microsoft. 
 
 
 # How do I freeze my application?
 
-Use py2app on OS X and py2exe/pyinstaller on Windows. For reference setup.py files, look in `examples/py2app_setup.py` and `examples/py2exe_setup.py`
+Use py2app on OS X and pyinstaller on Windows. For reference setup.py files, look in `examples/py2app_setup.py`. Pyinstaller builds a working executable out of the box, however you might need to Python.Runtime.dll (of pythonnet) to the target directory.
 
 # VirtualEnv issues 
 Under virtualenv on OS X, a window created with pywebview has issues with keyboard focus and Cmd+Tab. This behaviour is caused by the Python interpretor that comes with virtualenv. To solve this issue, you need to overwrite `your_venv/bin/python` with the Python interpretor found on your system. Alternatively you can configure your virtual environment to use another Python interpretor as described [here](https://virtualenv.pypa.io/en/stable/userguide/#using-virtualenv-without-bin-python).
