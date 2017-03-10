@@ -154,7 +154,7 @@ def load_html(content, base_uri=""):
     :param base_uri: Base URI for resolving links. Default is "".
     """
     try:
-        _webview_ready.wait(50)
+        _webview_ready.wait(5)
         gui.load_html(_make_unicode(content), base_uri)
     except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
