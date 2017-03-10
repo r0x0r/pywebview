@@ -13,21 +13,33 @@ import logging
 from ctypes import windll
 
 import clr
-clr.AddReference("System.Windows.Forms")
-clr.AddReference("System.Threading")
+clr.AddReference('System.Windows.Forms')
+clr.AddReference('System.Threading')
+clr.AddReference('System.Runtime.InteropServices')
+
 import System.Windows.Forms as WinForms
-from System import IntPtr, Int32
+from System import IntPtr, Int32, Guid
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, SizeF, Point, Icon
+from System.Runtime.InteropServices import Marshal
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
+
 logger = logging.getLogger(__name__)
 
 
 class BrowserView:
+    class UIHandler:
+        def GetHostInfo(self, info):
+            print("GetHostInfo")
+            info.dwFlags = 0x5a74012
+            info.dwFlags = info.dwFlags | 0x40000000
+
+            return True
+
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
             self.Text = title
@@ -53,6 +65,7 @@ class BrowserView:
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
             self.web_browser.ScriptErrorsSuppressed = True
+            self.web_browser.Navigated += self.on_navigate
 
             if url:
                 self.web_browser.Navigate(url)
@@ -66,6 +79,21 @@ class BrowserView:
 
             if fullscreen:
                 self.toggle_fullscreen()
+
+        def on_navigate(self, sender, args):
+            document = self.web_browser.Document
+            ui_handler = BrowserView.UIHandler()
+            try:
+                p_unknown = Marshal.GetIUnknownForObject(self.web_browser.Document)
+                p_out = IntPtr.op_Explicit(Int32(32))
+                _, _, p_customdoc = Marshal.QueryInterface(p_unknown, Guid('{3050F3F0-98B5-11CF-BB82-00AA00BDCE0B}'), p_out)
+                print('p_custom_doc {0}'.format(p_unknown))
+                print('p_custom_doc {0}'.format(p_customdoc))
+                custom_doc = Marshal.GetObjectForIUnknown(p_customdoc)
+                self.handler = BrowserView.UIHandler()
+                custom_doc.SetUIHandler(self.handler)
+            except Exception as e:
+                print(e)
 
         def on_shown(self, sender, args):
             self.webview_ready.set()
@@ -100,8 +128,6 @@ class BrowserView:
                 self.FormBorderStyle = self.old_style
                 self.Location = self.old_location
                 self.is_fullscreen = False
-
-    instance = None
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
         BrowserView.instance = self

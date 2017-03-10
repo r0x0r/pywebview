@@ -82,7 +82,7 @@ class BrowserView(object):
 
         self._register_window()
         # In order for system events (most notably WM_DESTROY for application quite) propagate correctly, we need to
-        # create two windows: AtAlxWin inside MyWin. AtlAxWin hosts the MSHTML ActiveX control and MainWin receiving
+        # create two windows: AtAlxWin inside MyWin. AtlAxWin hosts the MSHTML ActiveX control and MainWin receives
         # system messages.
         self._create_main_window()
         self._create_atlax_window()
