@@ -86,7 +86,7 @@ class BrowserView:
 
     def destroy(self):
         Gdk.threads_enter()
-        self.window.destroy()
+        self.window.emit('delete-event', Gdk.Event())
         Gdk.threads_leave()
 
     def toggle_fullscreen(self):
