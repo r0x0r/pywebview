@@ -8,6 +8,7 @@ http://github.com/r0x0r/pywebview/
 """
 
 import os
+import sys
 import logging
 from ctypes import windll
 
@@ -17,7 +18,7 @@ clr.AddReference("System.Threading")
 import System.Windows.Forms as WinForms
 from System import IntPtr, Int32
 from System.Threading import Thread, ThreadStart, ApartmentState
-from System.Drawing import Size, Point, Icon
+from System.Drawing import Size, SizeF, Point, Icon
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.localization import localization
@@ -32,6 +33,8 @@ class BrowserView:
             self.Text = title
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
+            self.AutoScaleDimensions = SizeF(96.0, 96.0)
+            self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
             if not resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
@@ -50,6 +53,7 @@ class BrowserView:
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
             self.web_browser.ScriptErrorsSuppressed = True
+            self.web_browser.IsWebBrowserContextMenuEnabled = False
 
             if url:
                 self.web_browser.Navigate(url)
@@ -115,12 +119,12 @@ class BrowserView:
 
     def show(self):
         def start():
-             if sys.getwindowsversion().major >= 6:
-                 windll.user32.SetProcessDPIAware()
+            if sys.getwindowsversion().major >= 6:
+                windll.user32.SetProcessDPIAware()
 
-             app = WinForms.Application
-             app.EnableVisualStyles()
-             app.SetCompatibleTextRenderingDefault(False)
+            app = WinForms.Application
+            app.EnableVisualStyles()
+            app.SetCompatibleTextRenderingDefault(False)
 
             self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
                                                    self.fullscreen, self.min_size, self.confirm_quit, self.webview_ready)

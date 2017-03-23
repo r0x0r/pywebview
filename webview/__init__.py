@@ -28,10 +28,18 @@ FOLDER_DIALOG = 20
 SAVE_DIALOG = 30
 
 
-config = {
-    "USE_QT": False,
-    "USE_WIN32": False
-}
+class Config (dict):
+    use_qt = False
+    use_win32 = False
+
+    def __getitem__(self, key):
+        return getattr(Config, key.lower())
+
+    def __setitem__(self, key, value):
+        setattr(Config, key.lower(), value)
+
+
+config = Config()
 
 _initialized = False
 _webview_ready = Event()
@@ -43,14 +51,14 @@ def _initialize_imports():
 
     if not _initialized:
         if platform.system() == "Darwin":
-            if not config["USE_QT"]:
+            if not config.use_qt:
                 try:
                     import webview.cocoa as gui
                 except ImportError:
                     logger.exception("PyObjC cannot be loaded")
                     import_error = True
 
-            if import_error or config["USE_QT"]:
+            if import_error or config.use_qt:
                 try:
                     import webview.qt as gui
                     logger.info("Using QT")
@@ -60,7 +68,7 @@ def _initialize_imports():
                     raise Exception("You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use this library.")
 
         elif platform.system() == "Linux":
-            if not config["USE_QT"]:
+            if not config.use_qt:
                 try:
                     import webview.gtk as gui
                     logger.info("Using GTK")
@@ -79,8 +87,8 @@ def _initialize_imports():
                     raise Exception("You must have either QT or GTK with Python extensions installed in order to use this library.")
 
         elif platform.system() == "Windows":
-            #Try .NET first unless USE_WIN32 variable is defined
-            if not config["USE_WIN32"]:
+            #Try .NET first unless use_win32 flag is set
+            if not config.use_win32:
                 try:
                     import webview.winforms as gui
                     logger.info("Using .NET")
@@ -89,7 +97,7 @@ def _initialize_imports():
                     import_error = True
 
 
-            if import_error or config["USE_WIN32"]:
+            if import_error or config.use_win32:
                 try:
                     # If .NET is not found, then try Win32
                     import webview.win32 as gui
@@ -146,7 +154,7 @@ def load_html(content, base_uri=""):
     :param base_uri: Base URI for resolving links. Default is "".
     """
     try:
-        _webview_ready.wait(50)
+        _webview_ready.wait(5)
         gui.load_html(_make_unicode(content), base_uri)
     except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
