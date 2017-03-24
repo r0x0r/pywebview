@@ -26,6 +26,10 @@ class BrowserView:
     app = AppKit.NSApplication.sharedApplication()
 
     class AppDelegate(AppKit.NSObject):
+        def applicationDidFinishLaunching_(self, notification):
+            BrowserView.instance.webview_ready.set()
+
+    class WindowDelegate(AppKit.NSObject):
         def display_confirmation_dialog(self):
             AppKit.NSApplication.sharedApplication()
             AppKit.NSRunningApplication.currentApplication().activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
@@ -52,9 +56,6 @@ class BrowserView:
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
             return nil
-
-        def webView_didFinishLoadForFrame_(self, webview, frame):
-            BrowserView.instance.webview_ready.set()
 
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
@@ -119,10 +120,12 @@ class BrowserView:
         self.window.setContentView_(self.webkit)
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init()
+        self._windowDelegate = BrowserView.WindowDelegate.alloc().init()
         self._appDelegate = BrowserView.AppDelegate.alloc().init()
         self.webkit.setUIDelegate_(self._browserDelegate)
         self.webkit.setFrameLoadDelegate_(self._browserDelegate)
-        self.window.setDelegate_(self._appDelegate)
+        self.window.setDelegate_(self._windowDelegate)
+        BrowserView.app.setDelegate_(self._appDelegate)
 
         self.load_url(url)
 

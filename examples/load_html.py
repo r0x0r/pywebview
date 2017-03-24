@@ -5,12 +5,12 @@ import threading
 This example demonstrates how to load HTML in a web view window
 """
 
-def change_url():
+def load_html():
     webview.load_html("<h1>This is dynamically loaded HTML</h1>")
 
 
 if __name__ == '__main__':
-    t = threading.Thread(target=change_url)
+    t = threading.Thread(target=load_html)
     t.start()
 
     # Create a non-resizable webview window with 800x600 dimensions
