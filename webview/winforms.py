@@ -24,6 +24,7 @@ from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,12 +40,13 @@ class BrowserView:
                 self.MaximizeBox = False
 
             # Application icon
-            try:  # Try loading an icon embedded in the exe file. This will crash when frozen with PyInstaller
-                handler = windll.kernel32.GetModuleHandleW(None)
-                icon_handler = windll.user32.LoadIconW(handler, 1)
-                self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handler)))
-            except:
-                pass
+            handle = windll.kernel32.GetModuleHandleW(None)
+            icon_handle = windll.shell32.ExtractIconW(handle, sys.executable, 0)
+
+            if icon_handle != 0:
+                self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handle))).Clone()
+
+            windll.user32.DestroyIcon(icon_handle)
 
             self.webview_ready = webview_ready
 
