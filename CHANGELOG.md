@@ -3,6 +3,18 @@
 
 # Changelog
 
+## 1.6
+Released 29/03/2017
+- `New` [All] Quit confirmation dialog
+- `New` [All] webview.config can be used using the dot notation (ie. webview.config.use_win32 = True)
+- `New` [Winforms] Disable context menu
+- `Fix` [Winforms] Application icon is now visible in the application window when frozen with PyInstaller
+- `Fix` [Mac] load_html() is invoked as soon as the webview is ready
+- `Fix` [QT] get_current_url() not working due a typo. Thanks @maroc81.
+- `Fix` [GTK] Better exception handling when GTK is not found
+- `Fix` [GTK] destroy_window()
+
+
 ## 1.5
 Released 09/02/2017
 - `New` [All] toggle_fullscreen function #52
