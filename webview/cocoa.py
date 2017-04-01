@@ -57,6 +57,27 @@ class BrowserView:
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
             return nil
 
+        def webView_printFrameView_(self, webview, frameview):
+            """
+            This delegate method is invoked when a script or a user wants to print a webpage (e.g. using the Javascript window.print() method)
+            :param webview: the webview that sent the message
+            :param frameview: the web frame view whose contents to print
+            """
+            def printView(frameview):
+                # check if the view can handle the content without intervention by the delegate
+                can_print = frameview.documentViewShouldHandlePrint()
+
+                if can_print:
+                    # tell the view to print the content
+                    frameview.printDocumentView()
+                else:
+                    # get an NSPrintOperaion object to print the view
+                    info = AppKit.NSPrintInfo.sharedPrintInfo()
+                    print_op = frameview.printOperationWithPrintInfo_(info)
+                    print_op.runOperation()
+
+            PyObjCTools.AppHelper.callAfter(printView, frameview)
+
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
             """
