@@ -12,6 +12,7 @@ def destroy():
     time.sleep(5)
     print("Destroying window..")
     webview.destroy_window()
+    print("Destroyed!")
 
 
 if __name__ == '__main__':
