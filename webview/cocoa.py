@@ -79,8 +79,7 @@ class BrowserView:
 
         self._file_name = None
         self._file_name_semaphor = threading.Semaphore(0)
-        self._current_url_semaphor = threading.Semaphore(
-            0)
+        self._current_url_semaphor = threading.Semaphore(0)
         self.webview_ready = webview_ready
         self.is_fullscreen = False
 
@@ -116,6 +115,7 @@ class BrowserView:
     def show(self):
         self.window.display()
         self.window.orderFrontRegardless()
+        BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
         BrowserView.app.run()
 
     def destroy(self):

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
+import pytest
+import threading
+from .util import run_test, destroy_window
 
-import webview
 
-"""
-This example demonstrates how to localize GUI strings used by pywebview.
-"""
+def localization():
+    import webview
 
-if __name__ == "__main__":
     strings = {
         "cocoa.menu.about": u"О программе",
         "cocoa.menu.services": u"Cлужбы",
@@ -24,5 +24,9 @@ if __name__ == "__main__":
         "linux.saveFile": u"Сохранить файл",
     }
 
-    webview.create_window("Simple browser", "http://www.flowrl.com", strings=strings)
+    destroy_window(webview, 0)
+    webview.create_window('', 'https://www.example.org', strings=strings)
 
+
+def test_localization():
+    run_test(localization)

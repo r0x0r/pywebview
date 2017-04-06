@@ -20,8 +20,10 @@ def mouseEvent(type, posx, posy):
                     kCGMouseButtonLeft)
         CGEventPost(kCGHIDEventTap, theEvent)
 
+
 def mousemove(posx, posy):
         mouseEvent(kCGEventMouseMoved, posx,posy);
+
 
 def mouseclick(posx, posy):
         # uncomment this line if you want to force the mouse
