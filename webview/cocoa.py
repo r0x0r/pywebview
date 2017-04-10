@@ -58,14 +58,11 @@ class BrowserView:
             return nil
 
         # Display a JavaScript alert panel containing the specified message
-        def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_\
-                (self, webview, message, frame):
-                    AppKit.NSRunningApplication.currentApplication().activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
-                    alert = AppKit.NSAlert.alloc().init()
-
-                    alert.setMessageText_(localization["cocoa.alert"])
-                    alert.setInformativeText_(message)
-                    alert.runModal()
+        def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
+            AppKit.NSRunningApplication.currentApplication().activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
+            alert = AppKit.NSAlert.alloc().init()
+            alert.setInformativeText_(message)
+            alert.runModal()
 
         def webView_printFrameView_(self, webview, frameview):
             """

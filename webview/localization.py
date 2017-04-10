@@ -12,7 +12,6 @@ localization = {
     "cocoa.menu.showAll": u"Show All",
     "cocoa.menu.quit": u"Quit",
     "cocoa.menu.fullscreen": u"Enter Fullscreen",
-    "cocoa.alert": u"Alert",
     "windows.fileFilter.allFiles": u"All files",
     "windows.fileFilter.otherFiles": u"Other file types",
     "linux.openFile": u"Open file",
