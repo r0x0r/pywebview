@@ -57,6 +57,13 @@ class BrowserView:
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
             return nil
 
+        # Display a JavaScript alert panel containing the specified message
+        def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
+            AppKit.NSRunningApplication.currentApplication().activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
+            alert = AppKit.NSAlert.alloc().init()
+            alert.setInformativeText_(message)
+            alert.runModal()
+
         def webView_printFrameView_(self, webview, frameview):
             """
             This delegate method is invoked when a script or a user wants to print a webpage (e.g. using the Javascript window.print() method)
