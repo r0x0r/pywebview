@@ -116,7 +116,7 @@ class BrowserView:
             button = gtk.STOCK_OPEN
         elif dialog_type == SAVE_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SAVE
-            title = localization["linux.saveFile"]
+            title = localization["global.saveFile"]
             button = gtk.STOCK_SAVE
 
         dialog = gtk.FileChooserDialog(title, self.window, gtk_dialog_type,

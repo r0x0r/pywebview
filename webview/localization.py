@@ -4,6 +4,7 @@ localization = {
     "global.quitConfirmation": u"Do you really want to quit?",
     "global.quit": u"Quit",
     "global.cancel": u"Cancel",
+    "global.saveFile": u"Save file",
     "cocoa.menu.about": u"About",
     "cocoa.menu.services": u"Services",
     "cocoa.menu.view": u"View",
@@ -17,5 +18,4 @@ localization = {
     "linux.openFile": u"Open file",
     "linux.openFiles": u"Open files",
     "linux.openFolder": u"Open folder",
-    "linux.saveFile": u"Save file",
 }

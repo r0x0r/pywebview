@@ -117,7 +117,7 @@ class BrowserView(QMainWindow):
             if directory:
                 save_filename = os.path.join(str(directory), str(save_filename))
 
-            self._file_name = QFileDialog.getSaveFileName(self, localization["linux.saveFile"], save_filename)
+            self._file_name = QFileDialog.getSaveFileName(self, localization["global.saveFile"], save_filename)
 
         self._file_name_semaphor.release()
 

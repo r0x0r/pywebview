@@ -8,6 +8,7 @@ This example demonstrates how to localize GUI strings used by pywebview.
 
 if __name__ == "__main__":
     strings = {
+        "global.saveFile": u"Сохранить файл",
         "cocoa.menu.about": u"О программе",
         "cocoa.menu.services": u"Cлужбы",
         "cocoa.menu.view": u"Вид",
@@ -21,7 +22,6 @@ if __name__ == "__main__":
         "linux.openFile": u"Открыть файл",
         "linux.openFiles": u"Открыть файлы",
         "linux.openFolder": u"Открыть папку",
-        "linux.saveFile": u"Сохранить файл",
     }
 
     webview.create_window("Simple browser", "http://www.flowrl.com", strings=strings)
