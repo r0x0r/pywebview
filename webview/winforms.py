@@ -55,6 +55,10 @@ class BrowserView:
             self.web_browser.ScriptErrorsSuppressed = True
             self.web_browser.IsWebBrowserContextMenuEnabled = False
 
+            self.cancel_back = False
+            self.web_browser.PreviewKeyDown += self.on_preview_keydown
+            self.web_browser.Navigating += self.on_navigating
+
             if url:
                 self.web_browser.Navigate(url)
 
@@ -77,6 +81,15 @@ class BrowserView:
 
             if result == WinForms.DialogResult.Cancel:
                 args.Cancel = True
+
+        def on_preview_keydown(self, sender, args):
+            if args.KeyCode == WinForms.Keys.Back:
+                self.cancel_back = True
+
+        def on_navigating(self, sender, args):
+            if self.cancel_back:
+                args.Cancel = True
+                self.cancel_back = False
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
