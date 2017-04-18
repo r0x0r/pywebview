@@ -86,6 +86,18 @@ class BrowserView:
             PyObjCTools.AppHelper.callAfter(printView, frameview)
 
     class WebKitHost(WebKit.WebView):
+        def keyDown_(self, theEvent):
+            print("This catches alphanumerical keys, but not backspace")
+
+        def acceptsFirstResponder(self):
+            return Foundation.YES
+
+        def becomeFirstResponder(self):
+            return Foundation.YES
+
+        def canBecomeFirstResponder(self):
+            return Foundation.YES
+
         def performKeyEquivalent_(self, theEvent):
             """
             Handle common hotkey shortcuts as copy/cut/paste/undo/select all/quit
@@ -146,6 +158,7 @@ class BrowserView:
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect)
         self.window.setContentView_(self.webkit)
+        self.window.makeFirstResponder_(self.webkit)
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init()
