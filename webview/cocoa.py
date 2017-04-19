@@ -85,6 +85,25 @@ class BrowserView:
 
             PyObjCTools.AppHelper.callAfter(printView, frameview)
 
+        # WebPolicyDelegate method, invoked when a navigation decision needs to be made
+        def webView_decidePolicyForNavigationAction_request_frame_decisionListener_(self, webview, action, request, frame, listener):
+            # The event that might have triggered the navigation
+            event = AppKit.NSApp.currentEvent()
+            action_type = action['WebActionNavigationTypeKey'] 
+
+            """ Disable back navigation on pressing the Delete key: """
+            # Check if the requested navigation action is Back/Forward
+            if action_type == WebKit.WebNavigationTypeBackForward:
+                # Check if the event is a Delete key press (keyCode = 51)
+                if event and event.type() == AppKit.NSKeyDown and event.keyCode() == 51:
+                    # If so, ignore the request and return
+                    listener.ignore()
+                    return
+
+            # Normal navigation, allow
+            listener.use()
+
+
     class WebKitHost(WebKit.WebView):
         def keyDown_(self, theEvent):
             print("This catches alphanumerical keys, but not backspace")
@@ -165,6 +184,7 @@ class BrowserView:
         self._appDelegate = BrowserView.AppDelegate.alloc().init()
         self.webkit.setUIDelegate_(self._browserDelegate)
         self.webkit.setFrameLoadDelegate_(self._browserDelegate)
+        self.webkit.setPolicyDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
 
