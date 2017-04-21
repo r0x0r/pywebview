@@ -89,7 +89,7 @@ an application scaffold and boilerplate code for a real-world application.
 
 ## API
 
-- `webview.create_window(title, url="", width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100)), strings={}, confirm_quit=False)
+- `webview.create_window(title, url="", width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100)), strings={}, confirm_quit=False)`
 	Create a new WebView window. Calling this function will block application execution, so you have to execute your
 	program logic in a separate thread.
 	`strings` is a dictionary with localized strings that overwrites default strings. Localized strings are defined in localization.py
