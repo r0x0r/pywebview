@@ -79,7 +79,28 @@ class BrowserView:
                     frameview.printDocumentView()
                 else:
                     # get an NSPrintOperaion object to print the view
-                    info = AppKit.NSPrintInfo.sharedPrintInfo()
+                    info = AppKit.NSPrintInfo.sharedPrintInfo().copy()
+
+                    # default print settings used by Safari
+                    info.setHorizontalPagination_(AppKit.NSFitPagination)
+                    info.setHorizontallyCentered_(Foundation.NO)
+                    info.setVerticallyCentered_(Foundation.NO)
+
+                    imageableBounds = info.imageablePageBounds()
+                    paperSize = info.paperSize()
+                    if (Foundation.NSWidth(imageableBounds) > paperSize.width):
+                        imageableBounds.origin.x = 0
+                        imageableBounds.size.width = paperSize.width
+                    if (Foundation.NSHeight(imageableBounds) > paperSize.height):
+                        imageableBounds.origin.y = 0
+                        imageableBounds.size.height = paperSize.height
+
+                    info.setBottomMargin_(Foundation.NSMinY(imageableBounds))
+                    info.setTopMargin_(paperSize.height - Foundation.NSMinY(imageableBounds) - Foundation.NSHeight(imageableBounds))
+                    info.setLeftMargin_(Foundation.NSMinX(imageableBounds))
+                    info.setRightMargin_(paperSize.width - Foundation.NSMinX(imageableBounds) - Foundation.NSWidth(imageableBounds))
+
+                    # show the print panel
                     print_op = frameview.printOperationWithPrintInfo_(info)
                     print_op.runOperation()
 
