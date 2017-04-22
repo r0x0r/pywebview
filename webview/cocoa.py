@@ -22,12 +22,13 @@ info["NSAppTransportSecurity"] = {"NSAllowsArbitraryLoads": Foundation.YES}
 
 
 class BrowserView:
-    instance = None
+    instances = []
+    active_instances = 0
     app = AppKit.NSApplication.sharedApplication()
 
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
-            BrowserView.instance.webview_ready.set()
+            BrowserView.instances[0].webview_ready.set()
 
     class WindowDelegate(AppKit.NSObject):
         def display_confirmation_dialog(self):
@@ -51,7 +52,11 @@ class BrowserView:
                 return Foundation.NO
 
         def windowWillClose_(self, notification):
-            BrowserView.app.stop_(self)
+            BrowserView.active_instances -= 1
+
+            # Quit app when the last window is destroyed
+            if BrowserView.active_instances <= 0:
+                BrowserView.app.stop_(self)
 
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
@@ -124,6 +129,34 @@ class BrowserView:
             # Normal navigation, allow
             listener.use()
 
+        def webView_createWebViewWithRequest_(self, webview, request):
+            """
+            This WebPolicyDelegate method is invoked when a link, a script or a
+            user tries to open a new window, i.e. via:
+                *  <a target="_blank" href="url">
+                *  JavaScript -> window.open(url, "_blank")
+                *  Right/Control click -> Open Link in New Window
+                   (Case 3 is unlikely here, since context menu is disabled)
+
+            :param webview: the webview that sent the message
+            :param request: the request to load
+
+            Due to an intentional change in WebKit, :request is always nil, and
+            this method is only expected to create a new window and return its
+            content webview. The proper request is send to the webview later as a
+            location-change navigation request.
+            """
+
+            # :url is intentionally empty as we don't want BrowserView.__init__()
+            # to load any url
+            new_browser = BrowserView(
+                    title='', url='', width=800, height=600,
+                    resizable=True, fullscreen=False,
+                    min_size=(200,100), webview_ready=None
+                    )
+            new_browser.show()
+            return new_browser.webkit
+
 
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
@@ -164,7 +197,7 @@ class BrowserView:
                     return handled
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
-        BrowserView.instance = self
+        BrowserView.instances.append(self)
 
         self._file_name = None
         self._file_name_semaphor = threading.Semaphore(0)
@@ -195,20 +228,27 @@ class BrowserView:
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
 
-        self.load_url(url)
+        # Load request only if the url is non-empty
+        if url:
+            self.load_url(url)
 
         # Add the default Cocoa application menu
-        self._add_app_menu()
-        self._add_view_menu()
+        # We need to call these only once, during the app startup
+        if not BrowserView.active_instances:
+            self._add_app_menu()
+            self._add_view_menu()
 
         if fullscreen:
             self.toggle_fullscreen()
 
+        BrowserView.active_instances += 1
+
     def show(self):
         self.window.display()
         self.window.orderFrontRegardless()
-        BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
-        BrowserView.app.run()
+        if not BrowserView.app.isRunning():
+            BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
+            BrowserView.app.run()
 
     def destroy(self):
         BrowserView.app.stop_(self)
@@ -392,24 +432,24 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size, co
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
 def load_url(url):
-    BrowserView.instance.load_url(url)
+    BrowserView.instances[0].load_url(url)
 
 
 def load_html(content, base_uri):
-    BrowserView.instance.load_html(content, base_uri)
+    BrowserView.instances[0].load_html(content, base_uri)
 
 
 def destroy_window():
-    BrowserView.instance.destroy()
+    BrowserView.instances[0].destroy()
 
 
 def toggle_fullscreen():
-    BrowserView.instance.toggle_fullscreen()
+    BrowserView.instances[0].toggle_fullscreen()
 
 
 def get_current_url():
-    return BrowserView.instance.get_current_url()
+    return BrowserView.instances[0].get_current_url()
