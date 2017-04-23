@@ -24,6 +24,7 @@ info["NSAppTransportSecurity"] = {"NSAllowsArbitraryLoads": Foundation.YES}
 class BrowserView:
     instances = []
     active_instances = 0
+    cascade_loc = Foundation.NSMakePoint(140.0, 0.0)
     app = AppKit.NSApplication.sharedApplication()
 
     class AppDelegate(AppKit.NSObject):
@@ -205,7 +206,7 @@ class BrowserView:
         self.webview_ready = webview_ready
         self.is_fullscreen = False
 
-        rect = AppKit.NSMakeRect(100.0, 350.0, width, height)
+        rect = AppKit.NSMakeRect(0.0, 0.0, width, height)
         window_mask = AppKit.NSTitledWindowMask | AppKit.NSClosableWindowMask | AppKit.NSMiniaturizableWindowMask
 
         if resizable:
@@ -215,6 +216,7 @@ class BrowserView:
             initWithContentRect_styleMask_backing_defer_(rect, window_mask, AppKit.NSBackingStoreBuffered, False)
         self.window.setTitle_(title)
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
+        BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect)
         self.window.setContentView_(self.webkit)
@@ -245,7 +247,7 @@ class BrowserView:
 
     def show(self):
         self.window.display()
-        self.window.orderFrontRegardless()
+        self.window.makeKeyAndOrderFront_(self.window)
         if not BrowserView.app.isRunning():
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             BrowserView.app.run()
