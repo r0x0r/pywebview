@@ -13,7 +13,7 @@ def load_html():
     t.start()
     destroy_window(webview)
 
-    webview.create_window('', 'https://www.example.org')
+    webview.create_window('Load html test', 'https://www.example.org')
 
 
 def test_load_html():

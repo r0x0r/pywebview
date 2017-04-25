@@ -24,8 +24,8 @@ def localization():
         "linux.saveFile": u"Сохранить файл",
     }
 
-    destroy_window(webview, 0)
-    webview.create_window('', 'https://www.example.org', strings=strings)
+    destroy_window(webview)
+    webview.create_window('Localization test', 'https://www.example.org', strings=strings)
 
 
 def test_localization():

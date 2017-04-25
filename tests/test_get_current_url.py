@@ -13,7 +13,7 @@ def get_current_url():
     t.start()
     destroy_window(webview)
 
-    webview.create_window('', 'https://www.example.org')
+    webview.create_window('Get current url test', 'https://www.example.org')
 
 
 def test_get_current_url():

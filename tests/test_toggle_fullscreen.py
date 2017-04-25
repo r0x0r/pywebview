@@ -13,7 +13,7 @@ def toggle_fullscreen():
     t.start()
     destroy_window(webview)
 
-    webview.create_window('', 'https://www.example.org')
+    webview.create_window('Toggle fullscreen test', 'https://www.example.org')
 
 
 def test_toggle_fullscreen():
