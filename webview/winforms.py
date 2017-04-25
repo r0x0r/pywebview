@@ -8,6 +8,7 @@ http://github.com/r0x0r/pywebview/
 """
 
 import os
+import sys
 import logging
 from ctypes import windll
 
@@ -23,15 +24,15 @@ from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
+
 logger = logging.getLogger(__name__)
 
 
 class BrowserView:
     class BrowserForm(WinForms.Form):
-        def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+        def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
             self.Text = title
-            self.AutoScaleBaseSize = Size(5, 13)
-            self.ClientSize = Size(width, height);
+            self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
 
             if not resizable:
@@ -39,18 +40,24 @@ class BrowserView:
                 self.MaximizeBox = False
 
             # Application icon
-            try:  # Try loading an icon embedded in the exe file. This will crash when frozen with PyInstaller
-                handler = windll.kernel32.GetModuleHandleW(None)
-                icon_handler = windll.user32.LoadIconW(handler, 1)
-                self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handler)))
-            except:
-                pass
+            handle = windll.kernel32.GetModuleHandleW(None)
+            icon_handle = windll.shell32.ExtractIconW(handle, sys.executable, 0)
+
+            if icon_handle != 0:
+                self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handle))).Clone()
+
+            windll.user32.DestroyIcon(icon_handle)
 
             self.webview_ready = webview_ready
 
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
             self.web_browser.ScriptErrorsSuppressed = True
+            self.web_browser.IsWebBrowserContextMenuEnabled = False
+
+            self.cancel_back = False
+            self.web_browser.PreviewKeyDown += self.on_preview_keydown
+            self.web_browser.Navigating += self.on_navigating
 
             if url:
                 self.web_browser.Navigate(url)
@@ -59,11 +66,30 @@ class BrowserView:
             self.is_fullscreen = False
             self.Shown += self.on_shown
 
+            if confirm_quit:
+                self.FormClosing += self.on_closing
+
             if fullscreen:
                 self.toggle_fullscreen()
 
         def on_shown(self, sender, args):
             self.webview_ready.set()
+
+        def on_closing(self, sender, args):
+            result = WinForms.MessageBox.Show(localization["global.quitConfirmation"], self.Text,
+                                              WinForms.MessageBoxButtons.OKCancel, WinForms.MessageBoxIcon.Asterisk)
+
+            if result == WinForms.DialogResult.Cancel:
+                args.Cancel = True
+
+        def on_preview_keydown(self, sender, args):
+            if args.KeyCode == WinForms.Keys.Back:
+                self.cancel_back = True
+
+        def on_navigating(self, sender, args):
+            if self.cancel_back:
+                args.Cancel = True
+                self.cancel_back = False
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
@@ -91,7 +117,7 @@ class BrowserView:
 
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
         BrowserView.instance = self
         self.title = title
         self.url = url
@@ -100,14 +126,15 @@ class BrowserView:
         self.resizable = resizable
         self.fullscreen = fullscreen
         self.min_size = min_size
+        self.confirm_quit = confirm_quit
         self.webview_ready = webview_ready
         self.browser = None
 
     def show(self):
         def start():
-            self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
-                                                   self.fullscreen, self.min_size, self.webview_ready)
             app = WinForms.Application
+            self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
+                                                   self.fullscreen, self.min_size, self.confirm_quit, self.webview_ready)
             app.Run(self.browser)
 
         thread = Thread(ThreadStart(start))
@@ -179,9 +206,9 @@ class BrowserView:
         self.browser.toggle_fullscreen()
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
     set_ie_mode()
-    browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
+    browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready)
     browser_view.show()
 
 

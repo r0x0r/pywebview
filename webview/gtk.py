@@ -11,28 +11,21 @@ from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 logger = logging.getLogger(__name__)
 
-try:
-    # Try GTK 3
-    import gi
-    gi.require_version('Gtk', '3.0')
-    gi.require_version('Gdk', '3.0')
-    gi.require_version('WebKit', '3.0')
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('Gdk', '3.0')
+gi.require_version('WebKit', '3.0')
 
-    from gi.repository import Gtk as gtk
-    from gi.repository import Gdk
-    from gi.repository import GLib as glib
-    from gi.repository import WebKit as webkit
-except ImportError as e:
-    import_error = True
-    logger.warn("PyGObject is not found", exc_info=True)
-else:
-    import_error = False
+from gi.repository import Gtk as gtk
+from gi.repository import Gdk
+from gi.repository import GLib as glib
+from gi.repository import WebKit as webkit
 
 
 class BrowserView:
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
@@ -50,14 +43,18 @@ class BrowserView:
         window.set_resizable(resizable)
         window.set_position(gtk.WindowPosition.CENTER)
 
-        window.connect("delete-event", gtk.main_quit)
-
         scrolled_window = gtk.ScrolledWindow()
         window.add(scrolled_window)
 
         self.window = window
+
+        if confirm_quit:
+            self.window.connect('delete-event', self.on_destroy)
+        else:
+            self.window.connect('delete-event', gtk.main_quit)
+
         self.webview = webkit.WebView()
-        self.webview.connect("notify::visible", self._handle_webview_ready)
+        self.webview.connect("notify::visible", self.on_webview_ready)
         self.webview.props.settings.props.enable_default_context_menu = False
         scrolled_window.add(self.webview)
         window.show_all()
@@ -68,7 +65,18 @@ class BrowserView:
         if fullscreen:
             self.toggle_fullscreen()
 
-    def _handle_webview_ready(self, arg1, arg2):
+    def on_destroy(self, widget=None, *data):
+        dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                          type=gtk.MessageType.QUESTION, buttons=gtk.ButtonsType.OK_CANCEL,
+                                          message_format=localization["global.quitConfirmation"])
+        result = dialog.run()
+        if result == gtk.ResponseType.OK:
+            gtk.main_quit()
+        else:
+            dialog.destroy()
+            return True
+
+    def on_webview_ready(self, arg1, arg2):
         self.webview_ready.set()
 
     def show(self):
@@ -78,7 +86,7 @@ class BrowserView:
 
     def destroy(self):
         Gdk.threads_enter()
-        self.window.destroy()
+        self.window.emit('delete-event', Gdk.Event())
         Gdk.threads_leave()
 
     def toggle_fullscreen(self):
@@ -108,7 +116,7 @@ class BrowserView:
             button = gtk.STOCK_OPEN
         elif dialog_type == SAVE_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SAVE
-            title = localization["linux.saveFile"]
+            title = localization["global.saveFile"]
             button = gtk.STOCK_SAVE
 
         dialog = gtk.FileChooserDialog(title, self.window, gtk_dialog_type,
@@ -151,8 +159,8 @@ class BrowserView:
                       base_uri)
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, webview_ready):
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
+def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready)
     browser.show()
 
 

@@ -3,6 +3,26 @@
 
 # Changelog
 
+## 1.6
+Released 29/03/2017
+- `New` [All] Quit confirmation dialog #31
+- `New` [All] webview.config can be used using the dot notation (ie. webview.config.use_win32 = True)
+- `New` [Winforms] Disable context menu
+- `Fix` [Winforms] Application icon is now visible in the application window when frozen with PyInstaller #91
+- `Fix` [Mac] load_html() is invoked as soon as the webview is ready #93
+- `Fix` [QT] get_current_url() not working due a typo. Thanks @maroc81. #85
+- `Fix` [GTK] Better exception handling when GTK is not found #94
+- `Fix` [GTK] destroy_window() #95
+
+
+## 1.5
+Released 09/02/2017
+- `New` [All] toggle_fullscreen function #52
+- `New` [All] get_current_url function #76
+- `New` [Winforms] Javascript errors are now suppressed
+- `Fix` [Winforms] Fixed resizable=False not being enforced #73
+
+
 ## 1.4
 Released 14/01/2017
 - `New` [All] pip installation now supports choosing what dependencies to install. See README for more information. Thanks @josePhoenix
