@@ -61,7 +61,7 @@ def _initialize_imports():
             if import_error or config.use_qt:
                 try:
                     import webview.qt as gui
-                    logger.info("Using QT")
+                    logger.debug("Using QT")
                 except ImportError as e:
                     # Panic
                     logger.exception("QT cannot be loaded")
@@ -71,8 +71,8 @@ def _initialize_imports():
             if not config.use_qt:
                 try:
                     import webview.gtk as gui
-                    logger.info("Using GTK")
-                except ImportError as e:
+                    logger.debug("Using GTK")
+                except (ImportError, ValueError) as e:
                     logger.exception("GTK cannot be loaded")
                     import_error = True
 
@@ -80,7 +80,7 @@ def _initialize_imports():
                 try:
                     # If GTK is not found, then try QT
                     import webview.qt as gui
-                    logger.info("Using QT")
+                    logger.debug("Using QT")
                 except ImportError as e:
                     # Panic
                     logger.exception("QT cannot be loaded")
@@ -91,7 +91,7 @@ def _initialize_imports():
             if not config.use_win32:
                 try:
                     import webview.winforms as gui
-                    logger.info("Using .NET")
+                    logger.debug("Using .NET")
                 except ImportError as e:
                     logger.exception("pythonnet cannot be loaded")
                     import_error = True
@@ -101,7 +101,7 @@ def _initialize_imports():
                 try:
                     # If .NET is not found, then try Win32
                     import webview.win32 as gui
-                    logger.info("Using Win32")
+                    logger.debug("Using Win32")
                 except ImportError as e:
                     # Panic
                     logger.exception("PyWin32 cannot be loaded")
