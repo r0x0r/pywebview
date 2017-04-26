@@ -1,1 +1,1 @@
-__author__ = 'roman.sirokov'
+pass
