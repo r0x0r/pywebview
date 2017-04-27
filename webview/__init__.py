@@ -29,8 +29,8 @@ SAVE_DIALOG = 30
 
 
 class Config (dict):
-    use_qt = False
-    use_win32 = False
+    use_qt = "USE_QT" in os.environ
+    use_win32 = "USE_WIN32" in os.environ
 
     def __getitem__(self, key):
         return getattr(Config, key.lower())
