@@ -72,7 +72,7 @@ def _initialize_imports():
                 try:
                     import webview.gtk as gui
                     logger.debug("Using GTK")
-                except ImportError as e:
+                except (ImportError, ValueError) as e:
                     logger.exception("GTK cannot be loaded")
                     import_error = True
 
