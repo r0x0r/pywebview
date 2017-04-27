@@ -16,7 +16,7 @@ import clr
 clr.AddReference("System.Windows.Forms")
 clr.AddReference("System.Threading")
 import System.Windows.Forms as WinForms
-from System import IntPtr, Int32
+from System import IntPtr, Int32, Func, Type
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon
 
@@ -54,6 +54,7 @@ class BrowserView:
             self.web_browser.Dock = WinForms.DockStyle.Fill
             self.web_browser.ScriptErrorsSuppressed = True
             self.web_browser.IsWebBrowserContextMenuEnabled = False
+            self.web_browser.WebBrowserShortcutsEnabled = False
 
             self.cancel_back = False
             self.web_browser.PreviewKeyDown += self.on_preview_keydown
@@ -85,6 +86,14 @@ class BrowserView:
         def on_preview_keydown(self, sender, args):
             if args.KeyCode == WinForms.Keys.Back:
                 self.cancel_back = True
+            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.C:
+                self.web_browser.Document.ExecCommand("Copy", False, None)
+            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.X:
+                self.web_browser.Document.ExecCommand("Cut", False, None)
+            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.V:
+                self.web_browser.Document.ExecCommand("Paste", False, None)
+            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.Z:
+                self.web_browser.Document.ExecCommand("Undo", False, None)
 
         def on_navigating(self, sender, args):
             if self.cancel_back:
@@ -153,7 +162,14 @@ class BrowserView:
         self.browser.web_browser.Navigate(url)
 
     def load_html(self, content):
-        self.browser.web_browser.DocumentText = content
+        def _load_html():
+            self.browser.web_browser.DocumentText = content
+
+        if self.browser.web_browser.InvokeRequired:
+            self.browser.web_browser.Invoke(Func[Type](_load_html))
+        else:
+            _load_html()
+
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if not directory:
