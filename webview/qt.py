@@ -69,6 +69,7 @@ class BrowserView(QMainWindow):
         super(BrowserView, self).__init__()
         BrowserView.instance = self
         self.is_fullscreen = False
+        self.confirm_quit = confirm_quit
 
         self._file_name_semaphor = threading.Semaphore(0)
         self._current_url_semaphore = threading.Semaphore()
@@ -132,13 +133,16 @@ class BrowserView(QMainWindow):
         self.view.setHtml(content, QtCore.QUrl(base_uri))
 
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, self.title, localization["global.quitConfirmation"],
-                                     QMessageBox.Yes, QMessageBox.No)
+        if self.confirm_quit:
+            reply = QMessageBox.question(self, self.title, localization["global.quitConfirmation"],
+                                         QMessageBox.Yes, QMessageBox.No)
 
-        if reply == QMessageBox.Yes:
-            event.accept()
+            if reply == QMessageBox.Yes:
+                event.accept()
+            else:
+                event.ignore()
         else:
-            event.ignore()
+            event.accept()
 
     def on_destroy_window(self):
         self.close()

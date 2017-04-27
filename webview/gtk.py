@@ -52,9 +52,10 @@ class BrowserView:
             self.window.connect('delete-event', self.on_destroy)
         else:
             self.window.connect('delete-event', gtk.main_quit)
+            self.window.connect('destroy', gtk.main_quit)
 
         self.webview = webkit.WebView()
-        self.webview.connect("notify::visible", self.on_webview_ready)
+        self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.props.settings.props.enable_default_context_menu = False
         scrolled_window.add(self.webview)
         window.show_all()
@@ -68,7 +69,7 @@ class BrowserView:
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
                                           type=gtk.MessageType.QUESTION, buttons=gtk.ButtonsType.OK_CANCEL,
-                                          message_format=localization["global.quitConfirmation"])
+                                          message_format=localization['global.quitConfirmation'])
         result = dialog.run()
         if result == gtk.ResponseType.OK:
             gtk.main_quit()
@@ -109,14 +110,14 @@ class BrowserView:
         elif dialog_type == OPEN_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.OPEN
             if allow_multiple:
-                title = localization["linux.openFiles"]
+                title = localization['linux.openFiles']
             else:
-                title = localization["linux.openFile"]
+                title = localization['linux.openFile']
 
             button = gtk.STOCK_OPEN
         elif dialog_type == SAVE_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SAVE
-            title = localization["global.saveFile"]
+            title = localization['global.saveFile']
             button = gtk.STOCK_SAVE
 
         dialog = gtk.FileChooserDialog(title, self.window, gtk_dialog_type,
@@ -155,8 +156,7 @@ class BrowserView:
         glib.idle_add(self.webview.load_uri, url)
 
     def load_html(self, content, base_uri):
-        glib.idle_add(self.webview.load_string, content, "text/html", "utf-8",
-                      base_uri)
+        glib.idle_add(self.webview.load_string, content, 'text/html', 'utf-8', base_uri)
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
