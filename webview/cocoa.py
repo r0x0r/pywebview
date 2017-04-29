@@ -415,6 +415,20 @@ class BrowserView:
             val += " {}".format(info["CFBundleName"])
         return val
 
+    @staticmethod
+    def get_key_instance():
+        """
+        Return the BrowserView instance that currently has focus
+        If no window has focus, return None
+        """
+        key_window = AppKit.NSApp.keyWindow()
+
+        for i in BrowserView.instances:
+            if i.window and i.window is key_window:
+                return i
+        else:
+            return None
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, ready_event):
     """
@@ -434,24 +448,24 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size, co
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    return BrowserView.get_key_instance().create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
 def load_url(url):
-    BrowserView.instances[0].load_url(url)
+    BrowserView.get_key_instance().load_url(url)
 
 
 def load_html(content, base_uri):
-    BrowserView.instances[0].load_html(content, base_uri)
+    BrowserView.get_key_instance().load_html(content, base_uri)
 
 
 def destroy_window():
-    BrowserView.instances[0].destroy()
+    BrowserView.get_key_instance().destroy()
 
 
 def toggle_fullscreen():
-    BrowserView.instances[0].toggle_fullscreen()
+    BrowserView.get_key_instance().toggle_fullscreen()
 
 
 def get_current_url():
-    return BrowserView.instances[0].get_current_url()
+    return BrowserView.get_key_instance().get_current_url()
