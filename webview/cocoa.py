@@ -160,6 +160,15 @@ class BrowserView:
             new_browser.show()
             return new_browser.webkit
 
+        # WebFrameLoadDelegate method, invoked when the page title of a frame loads or changes
+        def webView_didReceiveTitle_forFrame_(self, webview, title, frame):
+            parent_window = webview.window()
+
+            # If the window has no title (e.g. it was opened by JS), use the
+            # HTML page <title> as the window title
+            if parent_window and not parent_window.title() and frame is webview.mainFrame():
+                parent_window.setTitle_(title)
+
 
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
@@ -256,7 +265,7 @@ class BrowserView:
             BrowserView.app.run()
 
     def destroy(self):
-        BrowserView.app.stop_(self)
+        PyObjCTools.AppHelper.callAfter(self.window.close)
 
     def toggle_fullscreen(self):
         def toggle():
