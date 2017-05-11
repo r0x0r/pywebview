@@ -1,0 +1,31 @@
+sudo: false
+
+language: python
+python:
+  - 2.7
+  - 3.3
+  - 3.4
+  - 3.5
+  - 3.6
+  - 3.7-dev
+
+matrix:
+  allow_failures:
+    - python: 3.7-dev
+
+addons:
+  apt:
+    packages:
+      - python-gi
+      - gir1.2-webkit-3.0
+
+
+install:
+  - pip install --user PyGObject pytest
+
+script:
+  - pytest tests
+
+
+notifications:
+  email: true
