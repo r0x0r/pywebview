@@ -1,5 +1,7 @@
 # pywebview
 
+[![Build Status](https://travis-ci.org/r0x0r/pywebview.svg?branch=master)](https://travis-ci.org/r0x0r/pywebview)
+
 pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, eliminating the need of launching a web browser. Combined with a lightweight web framework like [Flask](http://flask.pocoo.org/), [Bottle](http://bottlepy.org/docs/dev/index.html) or [web.py](http://webpy.org), you can create beautiful cross-platform HTML5 user interfaces targeting WebKit, while hiding implementation details from the end user. If HTML is not your strong point, you might want to use [REMI](https://github.com/dddomodossola/remi), which allows you to create HTML based interfaces using Python code only.
 
 pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: WinForms on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, it does not bundle a heavy GUI toolkit with it keeping the executable size small. Compatible with both Python 2 and 3. While Android is not supported, you can use the same codebase with solutions like [Python for Android](https://github.com/kivy/python-for-android) for creating an APK.
