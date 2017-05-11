@@ -20,8 +20,8 @@ install:
   - pip install pytest
 
 script:
-  - pytest tests
+  - python -m pytest tests
 
 
 notifications:
-  email: true
+  email: false
