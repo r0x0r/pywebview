@@ -5,7 +5,7 @@ matrix:
       dist: trusty
       language: python
       python: "2.7_with_system_site_packages"
-      env: PACKAGES="xvfb gir1.2-gtk-3.0g ir1.2-webkit-3.0 python-gi python-gi-cairo pep8 pyflakes python-pytest" PYTHON="python"
+      env: PACKAGES="xvfb gir1.2-gtk-3.0 gir1.2-webkit-3.0 python-gi python-gi-cairo pep8 pyflakes python-pytest" PYTHON="python"
     - os: linux
       sudo: required
       dist: trusty
