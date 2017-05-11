@@ -17,7 +17,7 @@ addons:
 
 
 install:
-  - pip install PyGObject pytest
+  - pip install pytest
 
 script:
   - pytest tests
