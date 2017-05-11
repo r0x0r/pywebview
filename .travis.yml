@@ -1,27 +1,27 @@
-sudo: false
-
-language: python
-python:
-  - 2.7
-  - 3.6
-
 matrix:
-  allow_failures:
-    - python: 3.7-dev
+  include:
+    - os: linux
+      sudo: required
+      dist: trusty
+      language: python
+      python: "2.7_with_system_site_packages"
+      env: PACKAGES="xvfb gir1.2-gtk-3.0 python-gi python-gi-cairo pep8 pyflakes python-pytest" PYTHON="python"
+    - os: linux
+      sudo: required
+      dist: trusty
+      language: python
+      python: "3.4_with_system_site_packages"
+      env: PACKAGES="xvfb gir1.2-gtk-3.0 python3-gi python3-gi-cairo python3-pep8 pyflakes python3-pytest" PYTHON="python3"
 
-addons:
-  apt:
-    packages:
-      - python-gi
-      - gir1.2-webkit-3.0
-      
+install:
+  - sudo apt-get update -q
+  - sudo apt-get install --no-install-recommends -y $(echo $PACKAGES)
+  - pip install pytest
+    
 before_script:
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
-
-install:
-  - pip install pytest
 
 script:
   - python -m pytest tests
