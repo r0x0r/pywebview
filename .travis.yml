@@ -10,13 +10,13 @@ matrix:
       sudo: required
       dist: trusty
       language: python
-      python: "3.6_with_system_site_packages"
+      python: "3.4_with_system_site_packages"
       env: PACKAGES="xvfb gir1.2-gtk-3.0 gir1.2-webkit-3.0 python3-gi python3-gi-cairo python3-pep8 pyflakes python3-pytest" PYTHON="python3"
     - os: linux
       sudo: required
       dist: trusty
       language: python
-      python: "3.6_with_system_site_packages"
+      python: "3.4_with_system_site_packages"
       env: PACKAGES="xvfb pyqt5 python3-pep8 pyflakes python3-pytest" PYTHON="python3"
     - os: linux
       sudo: required
