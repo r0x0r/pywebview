@@ -23,7 +23,7 @@ matrix:
       dist: trusty
       language: python
       python: "2.7_with_system_site_packages"
-      env: PACKAGES="xvfb python-pyqt5 python-pyqt5.qtwebkit libqt5webkit5-dev pep8 pyflakes python-pytest" PYTHON="python"
+      env: PACKAGES="xvfb python-pyqt5 libqt5webkit5-dev pep8 pyflakes python-pytest" PYTHON="python"
 
 install:
   - sudo apt-get update -q
