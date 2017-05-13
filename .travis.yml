@@ -29,7 +29,7 @@ matrix:
       env: PACKAGES="xvfb python-qt4 libqtwebkit-dev pep8 pyflakes python-pytest" PYTHON="python"
 
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo pip install pytest; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo pip install pyobjc pytest; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -q; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install --no-install-recommends -y $(echo $PACKAGES); fi
     
