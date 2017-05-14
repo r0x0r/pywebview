@@ -4,10 +4,10 @@ matrix:
       language: generic
       sudo: required
       env: PYTHON_VERSION="2"
-    - os: osx
-      language: generic
-      sudo: required
-      env: PYTHON_VERSION="3"
+    #- os: osx
+    #  language: generic
+    #  sudo: required
+    #  env: PYTHON_VERSION="3"
     - os: linux
       sudo: required
       dist: trusty
