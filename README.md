@@ -1,6 +1,7 @@
 # pywebview
 
-[![Build Status](https://travis-ci.org/r0x0r/pywebview.svg?branch=master)](https://travis-ci.org/r0x0r/pywebview)
+[![Build Status](https://travis-ci.org/r0x0r/pywebview.svg?branch=master)](https://travis-ci.org/r0x0r/pywebview) [![Build status](https://ci.appveyor.com/api/projects/status/nu6mbhvbq03wudxd?svg=true)](https://ci.appveyor.com/project/r0x0r/pywebview)
+
 
 pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, eliminating the need of launching a web browser. Combined with a lightweight web framework like [Flask](http://flask.pocoo.org/), [Bottle](http://bottlepy.org/docs/dev/index.html) or [web.py](http://webpy.org), you can create beautiful cross-platform HTML5 user interfaces targeting WebKit, while hiding implementation details from the end user. If HTML is not your strong point, you might want to use [REMI](https://github.com/dddomodossola/remi), which allows you to create HTML based interfaces using Python code only.
 
@@ -114,6 +115,11 @@ an application scaffold and boilerplate code for a real-world application.
 
 - `webview.destroy_window()`
     Destroy the webview window
+
+
+# Testing
+
+pywebview uses [pytest](https://docs.pytest.org/en/latest/) for testing. To run tests, simply type `pytest tests` in the project root directory. Tests cover only trivial mistakes, syntax errors, exceptions and such, in other words there is no functional testing. Each test verifies that a pywebview window can be opened and exited without errors when run under different scenarios.
 
 
 # What web renderer is used?
