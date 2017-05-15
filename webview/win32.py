@@ -288,7 +288,7 @@ class BrowserView(object):
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, loading_image, ready_event):
+                  confirm_quit, background_color, loading_image, webview_ready):
     global _confirm_quit
     _confirm_quit = confirm_quit  # not implemented
 
