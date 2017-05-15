@@ -159,7 +159,8 @@ class BrowserView:
         glib.idle_add(self.webview.load_string, content, 'text/html', 'utf-8', base_uri)
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
+def create_window(title, url, width, height, resizable, fullscreen, min_size,
+                  confirm_quit, background_color, loading_image, ready_event):
     browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready)
     browser.show()
 

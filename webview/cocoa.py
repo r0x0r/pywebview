@@ -374,16 +374,8 @@ class BrowserView:
         return val
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, ready_event):
-    """
-    Create a WebView window using Cocoa on Mac.
-    :param title: Window title
-    :param url: URL to load
-    :param width: Window width
-    :param height: Window height
-    :param resizable True if window can be resized, False otherwise
-    :return:
-    """
+def create_window(title, url, width, height, resizable, fullscreen, min_size,
+                  confirm_quit, background_color, loading_image, ready_event):
     global _confirm_quit
     _confirm_quit = confirm_quit
 
