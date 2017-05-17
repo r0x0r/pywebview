@@ -21,6 +21,7 @@ def load_html():
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
         }
         
         .loading-container {
@@ -120,5 +121,5 @@ if __name__ == '__main__':
     t = threading.Thread(target=load_html)
     t.start()
 
-    webview.create_window('Background color', 'http://www.flowrl.com', background_color='#333333')
+    webview.create_window('Background color', background_color='#333333')
 
