@@ -25,7 +25,8 @@ from gi.repository import WebKit as webkit
 class BrowserView:
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
+                 confirm_quit, background_color, webview_ready):
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
@@ -43,6 +44,17 @@ class BrowserView:
         window.set_resizable(resizable)
         window.set_position(gtk.WindowPosition.CENTER)
 
+        # Set window background color
+        style_provider = gtk.CssProvider()
+        style_provider.load_from_data(
+            'GtkWindow {{ background-color: {}; }}'.format(background_color)
+        )
+        gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            style_provider,
+            gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+
         scrolled_window = gtk.ScrolledWindow()
         window.add(scrolled_window)
 
@@ -56,7 +68,9 @@ class BrowserView:
 
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
+        self.webview.connect('document-load-finished', self.on_load_finish)
         self.webview.props.settings.props.enable_default_context_menu = False
+        self.webview.props.opacity = 0.0
         scrolled_window.add(self.webview)
         window.show_all()
 
@@ -79,6 +93,11 @@ class BrowserView:
 
     def on_webview_ready(self, arg1, arg2):
         self.webview_ready.set()
+
+    def on_load_finish(self, webview, webframe):
+        # Show the webview if it's not already visible
+        if not webview.props.opacity:
+            glib.idle_add(webview.set_opacity, 1.0)
 
     def show(self):
         Gdk.threads_enter()
@@ -161,7 +180,8 @@ class BrowserView:
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, loading_image, webview_ready):
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen,
+                          min_size, confirm_quit, background_color, webview_ready)
     browser.show()
 
 
