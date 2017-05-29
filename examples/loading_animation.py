@@ -19,8 +19,11 @@ def load_html():
             width: 100%;
             height: 90vh;
             display: flex;
+            display: -webkit-flex;
             align-items: center;
+            -webkit-align-items: center;
             justify-content: center;
+            -webkit-justify-content: center;
             overflow: hidden;
         }
         
@@ -97,22 +100,24 @@ def load_html():
         
         
     </style>
-    <div class="main-container">
-        <div id="loader" class="loading-container">
-            <div class="loader">Loading...</div>
-        </div>
-        
-        <div id="main" class="loaded-container">
-            <h1>Content is loaded</h1>
-        </div>
-    </div>
-    
-    <script>
-        setTimeout(function() {
-            document.getElementById('loader').style.display = 'none'
-            document.getElementById('main').style.display = 'block'
-        }, 5000)
-    </script>
+    <body>
+      <div class="main-container">
+          <div id="loader" class="loading-container">
+              <div class="loader">Loading...</div>
+          </div>
+          
+          <div id="main" class="loaded-container">
+              <h1>Content is loaded!</h1>
+          </div>
+      </div>
+      
+      <script>
+          setTimeout(function() {
+              document.getElementById('loader').style.display = 'none'
+              document.getElementById('main').style.display = 'block'
+          }, 5000)
+      </script>
+    </body>
     
     """)
 
