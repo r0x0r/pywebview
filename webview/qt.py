@@ -7,6 +7,7 @@ http://github.com/r0x0r/pywebview/
 
 import sys
 import os
+import re
 import logging
 import threading
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 try:
     from PyQt4 import QtCore
     from PyQt4.QtWebKit import QWebView
-    from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox
+    from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
     logger.debug("Using Qt4")
 except ImportError as e:
@@ -43,6 +44,7 @@ if _import_error:
             from PyQt5.QtWebKitWidgets import QWebView
 
         from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox
+        from PyQt5.QtGui import QColor
 
         logger.debug("Using Qt5")
     except ImportError as e:
@@ -65,7 +67,8 @@ class BrowserView(QMainWindow):
     fullscreen_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen,
+                 min_size, confirm_quit, background_color, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instance = self
         self.is_fullscreen = False
@@ -77,6 +80,16 @@ class BrowserView(QMainWindow):
         self.resize(width, height)
         self.title = title
         self.setWindowTitle(title)
+
+        # Check if background_color is in valid hex format
+        hex_pattern = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
+        if re.match(hex_pattern, background_color):
+            # Set window background color
+            self.background_color = QColor()
+            self.background_color.setNamedColor(background_color)
+            palette = self.palette()
+            palette.setColor(self.backgroundRole(), self.background_color)
+            self.setPalette(palette)
 
         if not resizable:
             self.setFixedSize(width, height)
@@ -194,7 +207,8 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, loading_image, webview_ready):
     app = QApplication([])
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen,
+                          min_size, confirm_quit, background_color, webview_ready)
     browser.show()
     app.exec_()
 
