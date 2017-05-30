@@ -5,7 +5,6 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 
-import re
 import logging
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
@@ -45,19 +44,16 @@ class BrowserView:
         window.set_resizable(resizable)
         window.set_position(gtk.WindowPosition.CENTER)
 
-        # Check if background_color is in valid hex format
-        hex_pattern = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
-        if re.match(hex_pattern, background_color):
-            # Set window background color
-            style_provider = gtk.CssProvider()
-            style_provider.load_from_data(
-                'GtkWindow {{ background-color: {}; }}'.format(background_color).encode()
-            )
-            gtk.StyleContext.add_provider_for_screen(
-                Gdk.Screen.get_default(),
-                style_provider,
-                gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-            )
+        # Set window background color
+        style_provider = gtk.CssProvider()
+        style_provider.load_from_data(
+            'GtkWindow {{ background-color: {}; }}'.format(background_color).encode()
+        )
+        gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            style_provider,
+            gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
 
         scrolled_window = gtk.ScrolledWindow()
         window.add(scrolled_window)

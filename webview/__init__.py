@@ -15,6 +15,7 @@ http://github.com/r0x0r/pywebview/
 import platform
 import os
 import sys
+import re
 import logging
 from threading import Event
 
@@ -178,6 +179,10 @@ def create_window(title, url=None, width=800, height=600,
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :return:
     """
+    valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
+    if not re.match(valid_color, background_color):
+        raise ValueError('{0} is not a valid hex triplet color'.format(background_color))
+
     _initialize_imports()
     localization.update(strings)
     gui.create_window(_make_unicode(title), _transform_url(url),

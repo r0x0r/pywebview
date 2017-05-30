@@ -5,7 +5,6 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 import threading
-import re
 
 import Foundation
 import AppKit
@@ -391,21 +390,16 @@ class BrowserView:
         :hex_string: Hex code of the color as #RGB or #RRGGBB
         """
 
-        # Check if given hex color is in valid format
-        hex_pattern = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
-        if not re.match(hex_pattern, hex_string):
-            return None
-
         hex_string = hex_string[1:]     # Remove leading hash
         if len(hex_string) == 3:
             hex_string = ''.join([c*2 for c in hex_string]) # 3-digit to 6-digit
 
         hex_int = int(hex_string, 16)
         rgb = (
-                (hex_int >> 16) & 0xff,     # Red byte
-                (hex_int >> 8) & 0xff,      # Blue byte
-                (hex_int) & 0xff            # Green byte
-              )
+            (hex_int >> 16) & 0xff,     # Red byte
+            (hex_int >> 8) & 0xff,      # Blue byte
+            (hex_int) & 0xff            # Green byte
+        )
         rgb = [i / 255.0 for i in rgb]      # Normalize to range(0.0, 1.0)
 
         return AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(rgb[0], rgb[1], rgb[2], 1.0)

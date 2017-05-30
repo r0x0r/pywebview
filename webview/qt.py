@@ -81,15 +81,12 @@ class BrowserView(QMainWindow):
         self.title = title
         self.setWindowTitle(title)
 
-        # Check if background_color is in valid hex format
-        hex_pattern = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
-        if re.match(hex_pattern, background_color):
-            # Set window background color
-            self.background_color = QColor()
-            self.background_color.setNamedColor(background_color)
-            palette = self.palette()
-            palette.setColor(self.backgroundRole(), self.background_color)
-            self.setPalette(palette)
+        # Set window background color
+        self.background_color = QColor()
+        self.background_color.setNamedColor(background_color)
+        palette = self.palette()
+        palette.setColor(self.backgroundRole(), self.background_color)
+        self.setPalette(palette)
 
         if not resizable:
             self.setFixedSize(width, height)
