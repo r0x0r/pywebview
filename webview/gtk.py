@@ -183,7 +183,7 @@ class BrowserView:
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, loading_image, webview_ready):
+                  confirm_quit, background_color, webview_ready):
     browser = BrowserView(title, url, width, height, resizable, fullscreen,
                           min_size, confirm_quit, background_color, webview_ready)
     browser.show()

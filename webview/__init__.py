@@ -162,7 +162,7 @@ def load_html(content, base_uri=""):
 
 def create_window(title, url=None, width=800, height=600,
                   resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
-                  background_color='#FFFFFF', loading_image=None):
+                  background_color='#FFFFFF'):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -176,14 +176,13 @@ def create_window(title, url=None, width=800, height=600,
     :param strings: a dictionary with localized strings
     :param confirm_quit: Display a quit confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
-    :param loading_image: Path to placeholder image that is displayed before the content of webview is loaded. Default is None.
     :return:
     """
     _initialize_imports()
     localization.update(strings)
     gui.create_window(_make_unicode(title), _transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
-                      background_color, loading_image, _webview_ready)
+                      background_color, _webview_ready)
 
 
 def get_current_url():

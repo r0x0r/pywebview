@@ -171,7 +171,7 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, loading_image, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready):
         BrowserView.instance = self
 
         self._file_name = None
@@ -412,11 +412,11 @@ class BrowserView:
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, loading_image, webview_ready):
+                  confirm_quit, background_color, webview_ready):
     global _confirm_quit
     _confirm_quit = confirm_quit
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, loading_image, webview_ready)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready)
     browser.show()
 
 
