@@ -6,3 +6,6 @@ pywebview.egg-info
 MANIFEST
 build
 dist
+venv/
+.DS_Store
+.idea
