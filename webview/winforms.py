@@ -108,7 +108,7 @@ class BrowserView:
         def on_document_completed(self, sender, args):
             if self.first_load:
                 self.web_browser.Visible = True
-                #self.first_load = False
+                self.first_load = False
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
