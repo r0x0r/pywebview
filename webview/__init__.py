@@ -15,6 +15,7 @@ http://github.com/r0x0r/pywebview/
 import platform
 import os
 import sys
+import re
 import logging
 from threading import Event
 
@@ -161,7 +162,8 @@ def load_html(content, base_uri=""):
 
 
 def create_window(title, url=None, width=800, height=600,
-                  resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False):
+                  resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
+                  background_color='#FFFFFF'):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -173,11 +175,19 @@ def create_window(title, url=None, width=800, height=600,
     :param fullscreen: True if start in fullscreen mode. Default is False
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
     :param strings: a dictionary with localized strings
+    :param confirm_quit: Display a quit confirmation dialog. Default is False
+    :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :return:
     """
+    valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
+    if not re.match(valid_color, background_color):
+        raise ValueError('{0} is not a valid hex triplet color'.format(background_color))
+
     _initialize_imports()
     localization.update(strings)
-    gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size, confirm_quit, _webview_ready)
+    gui.create_window(_make_unicode(title), _transform_url(url),
+                      width, height, resizable, fullscreen, min_size, confirm_quit,
+                      background_color, _webview_ready)
 
 
 def get_current_url():

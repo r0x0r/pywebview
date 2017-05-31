@@ -124,6 +124,13 @@ class BrowserView:
             # Normal navigation, allow
             listener.use()
 
+        # Show the webview when it finishes loading
+        def webView_didFinishLoadForFrame_(self, webview, frame):
+            # Add the webview to the window if it's not yet the contentView
+            if not webview.window():
+                BrowserView.instance.window.setContentView_(webview)
+                BrowserView.instance.window.makeFirstResponder_(webview)
+
 
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
@@ -163,7 +170,7 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready):
         BrowserView.instance = self
 
         self._file_name = None
@@ -181,10 +188,12 @@ class BrowserView:
         self.window = AppKit.NSWindow.alloc().\
             initWithContentRect_styleMask_backing_defer_(rect, window_mask, AppKit.NSBackingStoreBuffered, False)
         self.window.setTitle_(title)
+        self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(background_color))
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
+        # Set the titlebar color (so that it does not change with the window color)
+        self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect)
-        self.window.setContentView_(self.webkit)
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init()
@@ -373,21 +382,35 @@ class BrowserView:
             val += " {}".format(info["CFBundleName"])
         return val
 
+    @staticmethod
+    def nscolor_from_hex(hex_string):
+        """
+        Convert given hex color to NSColor.
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, ready_event):
-    """
-    Create a WebView window using Cocoa on Mac.
-    :param title: Window title
-    :param url: URL to load
-    :param width: Window width
-    :param height: Window height
-    :param resizable True if window can be resized, False otherwise
-    :return:
-    """
+        :hex_string: Hex code of the color as #RGB or #RRGGBB
+        """
+
+        hex_string = hex_string[1:]     # Remove leading hash
+        if len(hex_string) == 3:
+            hex_string = ''.join([c*2 for c in hex_string]) # 3-digit to 6-digit
+
+        hex_int = int(hex_string, 16)
+        rgb = (
+            (hex_int >> 16) & 0xff,     # Red byte
+            (hex_int >> 8) & 0xff,      # Blue byte
+            (hex_int) & 0xff            # Green byte
+        )
+        rgb = [i / 255.0 for i in rgb]      # Normalize to range(0.0, 1.0)
+
+        return AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(rgb[0], rgb[1], rgb[2], 1.0)
+
+
+def create_window(title, url, width, height, resizable, fullscreen, min_size,
+                  confirm_quit, background_color, webview_ready):
     global _confirm_quit
     _confirm_quit = confirm_quit
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, ready_event)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready)
     browser.show()
 
 
