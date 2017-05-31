@@ -12,7 +12,6 @@ def get_current_url():
     t = threading.Thread(target=_get_current_url, args=(webview,))
     t.start()
     destroy_window(webview, 5)
-
     webview.create_window('Get current url test', 'https://www.example.org')
 
 
