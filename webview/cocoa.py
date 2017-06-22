@@ -64,6 +64,15 @@ class BrowserView:
             alert.setInformativeText_(message)
             alert.runModal()
 
+        # Display an open panel for <input type="file"> element
+        def webView_runOpenPanelForFileButtonWithResultListener_allowMultipleFiles_(self, webview, listener, allow_multiple):
+            files = BrowserView.instance.create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', main_thread=True)
+
+            if files:
+                listener.chooseFilenames_(files)
+            else:
+                listener.cancel()
+
         def webView_printFrameView_(self, webview, frameview):
             """
             This delegate method is invoked when a script or a user wants to print a webpage (e.g. using the Javascript window.print() method)
@@ -261,7 +270,7 @@ class BrowserView:
 
         PyObjCTools.AppHelper.callAfter(load, content, base_uri)
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, main_thread=False):
         def create_dialog(*args):
             dialog_type = args[0]
 
@@ -305,11 +314,15 @@ class BrowserView:
                 else:
                     self._file_name = None
 
-            self._file_name_semaphor.release()
+            if not main_thread:
+                self._file_name_semaphor.release()
 
-        PyObjCTools.AppHelper.callAfter(create_dialog, dialog_type, allow_multiple, save_filename)
+        if main_thread:
+            create_dialog(dialog_type, allow_multiple, save_filename)
+        else:
+            PyObjCTools.AppHelper.callAfter(create_dialog, dialog_type, allow_multiple, save_filename)
+            self._file_name_semaphor.acquire()
 
-        self._file_name_semaphor.acquire()
         return self._file_name
 
     def _add_app_menu(self):
