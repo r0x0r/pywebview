@@ -3,6 +3,17 @@
 
 # Changelog
 
+## 1.7
+Released 08/06/2017
+- `New` [All] Add a basic test suite and continuous integration. #88
+- `New` [All] Add a background_color parameter to create_window, which specifies the default color of the webview window. Refer to examples/loading_indicator.py for example use. Thanks to @shivaprsdv. #90
+- `New` [Cocoa] Disable backspace navigation. Thanks to @shivaprsdv. #102
+- `New` [Cocoa] Implementation of window.print() and window.confirm method. Thanks to @shivaprsdv. #97
+- `Fix` [Cocoa] Fix non-existing localization string in save file dialog
+- `New` [Winforms] Disable all the shortcut keys of web navigation
+- `Fix` [Winforms] Fix load_html failing sometimes due thread violation
+- `Fix` [GTK] Implement fall-through to QT, when GTK is present, but not GTK.WebKit.
+
 ## 1.6
 Released 29/03/2017
 - `New` [All] Quit confirmation dialog #31
