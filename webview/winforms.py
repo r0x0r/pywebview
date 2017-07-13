@@ -57,8 +57,15 @@ class BrowserView:
             self.web_browser.ScriptErrorsSuppressed = True
             self.web_browser.IsWebBrowserContextMenuEnabled = False
             self.web_browser.WebBrowserShortcutsEnabled = False
-            self.web_browser.Visible = False
-            self.first_load = True
+
+            # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
+            # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
+            # for the default background color.
+            if background_color != '#FFFFFF':
+                self.web_browser.Visible = False
+                self.first_load = True
+            else:
+                self.first_load = False
 
             self.cancel_back = False
             self.web_browser.PreviewKeyDown += self.on_preview_keydown
@@ -107,8 +114,8 @@ class BrowserView:
 
         def on_document_completed(self, sender, args):
             if self.first_load:
-                self.web_browser.Visible = True
-                #self.first_load = False
+                self.web_browser.Show()
+                self.first_load = False
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
@@ -180,7 +187,6 @@ class BrowserView:
             self.browser.web_browser.Invoke(Func[Type](_load_html))
         else:
             _load_html()
-
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if not directory:
