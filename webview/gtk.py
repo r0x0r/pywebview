@@ -20,19 +20,21 @@ from gi.repository import Gtk as gtk
 from gi.repository import Gdk
 from gi.repository import GLib as glib
 from gi.repository import WebKit as webkit
-
+from gi.repository import GObject
 
 class BrowserView:
     instance = None
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
                  confirm_quit, background_color, webview_ready):
+
+
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
         self.is_fullscreen = False
 
-        Gdk.threads_init()
+        GObject.threads_init()
         window = gtk.Window(title=title)
 
         if resizable:
@@ -63,8 +65,7 @@ class BrowserView:
         if confirm_quit:
             self.window.connect('delete-event', self.on_destroy)
         else:
-            self.window.connect('delete-event', gtk.main_quit)
-            self.window.connect('destroy', gtk.main_quit)
+            self.window.connect('delete-event', self.close_window)
 
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
@@ -80,13 +81,21 @@ class BrowserView:
         if fullscreen:
             self.toggle_fullscreen()
 
+    def close_window(self,*data):
+        self.window.destroy()
+        while gtk.events_pending():
+            gtk.main_iteration()
+        gtk.main_quit()
+
+            
+            
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
                                           type=gtk.MessageType.QUESTION, buttons=gtk.ButtonsType.OK_CANCEL,
                                           message_format=localization['global.quitConfirmation'])
         result = dialog.run()
         if result == gtk.ResponseType.OK:
-            gtk.main_quit()
+            close_window()
         else:
             dialog.destroy()
             return True
@@ -100,28 +109,21 @@ class BrowserView:
             glib.idle_add(webview.set_opacity, 1.0)
 
     def show(self):
-        Gdk.threads_enter()
         gtk.main()
-        Gdk.threads_leave()
+
 
     def destroy(self):
-        Gdk.threads_enter()
         self.window.emit('delete-event', Gdk.Event())
-        Gdk.threads_leave()
 
     def toggle_fullscreen(self):
-        Gdk.threads_enter()
         if self.is_fullscreen:
             self.window.unfullscreen()
         else:
             self.window.fullscreen()
-        Gdk.threads_leave()
 
         self.is_fullscreen = not self.is_fullscreen
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
-        Gdk.threads_enter()
-
         if dialog_type == FOLDER_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
             title = localization["linux.openFolder"]
@@ -160,15 +162,10 @@ class BrowserView:
 
         dialog.destroy()
 
-        Gdk.threads_leave()
-
         return file_name
 
     def get_current_url(self):
-        Gdk.threads_enter()
         uri = self.webview.get_uri()
-        Gdk.threads_leave()
-
         return uri
 
     def load_url(self, url):
@@ -177,7 +174,7 @@ class BrowserView:
     def load_html(self, content, base_uri):
         glib.idle_add(self.webview.load_string, content, 'text/html', 'utf-8', base_uri)
 
-
+ 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
     browser = BrowserView(title, url, width, height, resizable, fullscreen,
@@ -186,11 +183,16 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
 
 
 def destroy_window():
-    BrowserView.instance.destroy()
+    def dostuff():
+        BrowserView.instance.close_window()
+    GObject.idle_add(dostuff)
+
 
 
 def toggle_fullscreen():
-    BrowserView.instance.toggle_fullscreen()
+    def dostuff():
+            BrowserView.instance.toggle_fullscreen()
+    GObject.idle_add(dostuff)
 
 
 def get_current_url():
@@ -198,11 +200,17 @@ def get_current_url():
 
 
 def load_url(url):
-    BrowserView.instance.load_url(url)
+    def dostuff():
+        BrowserView.instance.load_url(url)
+    GObject.idle_add(dostuff)
+
 
 
 def load_html(content, base_uri):
-    BrowserView.instance.load_html(content, base_uri)
+    def dostuff():
+            BrowserView.instance.load_html(content, base_uri)
+    GObject.idle_add(dostuff)
+
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
