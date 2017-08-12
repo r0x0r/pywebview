@@ -223,6 +223,18 @@ def toggle_fullscreen():
         raise Exception("Create a web view window first, before invoking this function")
 
 
+def evaluate_js(script):
+    """
+    Evaluate given JavaScript code and return the result
+    :param script: The JavaScript to be evaluated
+    """
+    try:
+        _webview_ready.wait(5)
+        return gui.evaluate_js(script)
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
+
+
 
 def _make_unicode(string):
     """

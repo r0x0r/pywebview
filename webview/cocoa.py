@@ -185,6 +185,7 @@ class BrowserView:
         self._file_name = None
         self._file_name_semaphor = threading.Semaphore(0)
         self._current_url_semaphor = threading.Semaphore(0)
+        self._js_result_semaphor = threading.Semaphore(0)
         self.webview_ready = webview_ready
         self.is_fullscreen = False
 
@@ -269,6 +270,16 @@ class BrowserView:
             self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
 
         PyObjCTools.AppHelper.callAfter(load, content, base_uri)
+
+    def evaluate_js(self, script):
+        def evaluate(script):
+            self._js_result = self.webkit.windowScriptObject().evaluateWebScript_(script)
+            self._js_result_semaphor.release()
+
+        PyObjCTools.AppHelper.callAfter(evaluate, script)
+
+        self._js_result_semaphor.acquire()
+        return self._js_result
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, main_thread=False):
         def create_dialog(*args):
@@ -449,3 +460,6 @@ def toggle_fullscreen():
 
 def get_current_url():
     return BrowserView.instance.get_current_url()
+
+def evaluate_js(script):
+    return BrowserView.instance.evaluate_js(script)
