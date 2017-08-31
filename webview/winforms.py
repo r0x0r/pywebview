@@ -98,6 +98,8 @@ class BrowserView:
         def on_preview_keydown(self, sender, args):
             if args.KeyCode == WinForms.Keys.Back:
                 self.cancel_back = True
+            elif args.KeyCode == WinForms.Keys.Delete:
+                self.web_browser.Document.ExecCommand("Delete", False, None)
             elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.C:
                 self.web_browser.Document.ExecCommand("Copy", False, None)
             elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.X:
