@@ -27,8 +27,6 @@ class BrowserView:
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
                  confirm_quit, background_color, webview_ready):
-
-
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
@@ -87,8 +85,6 @@ class BrowserView:
             gtk.main_iteration()
         gtk.main_quit()
 
-            
-            
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
                                           type=gtk.MessageType.QUESTION, buttons=gtk.ButtonsType.OK_CANCEL,
@@ -110,7 +106,6 @@ class BrowserView:
 
     def show(self):
         gtk.main()
-
 
     def destroy(self):
         self.window.emit('delete-event', Gdk.Event())
@@ -183,16 +178,15 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
 
 
 def destroy_window():
-    def dostuff():
+    def _destroy_window():
         BrowserView.instance.close_window()
-    GObject.idle_add(dostuff)
-
+    GObject.idle_add(destroy_window)
 
 
 def toggle_fullscreen():
-    def dostuff():
+    def _toggle_fullscreen():
             BrowserView.instance.toggle_fullscreen()
-    GObject.idle_add(dostuff)
+    GObject.idle_add(_toggle_fullscreen)
 
 
 def get_current_url():
@@ -200,17 +194,15 @@ def get_current_url():
 
 
 def load_url(url):
-    def dostuff():
+    def _load_url():
         BrowserView.instance.load_url(url)
-    GObject.idle_add(dostuff)
-
+    GObject.idle_add(load_url)
 
 
 def load_html(content, base_uri):
-    def dostuff():
-            BrowserView.instance.load_html(content, base_uri)
-    GObject.idle_add(dostuff)
-
+    def _load_html():
+        BrowserView.instance.load_html(content, base_uri)
+    GObject.idle_add(_load_html)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
