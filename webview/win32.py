@@ -208,6 +208,9 @@ class BrowserView(object):
     def toggle_fullscreen(self):
         raise NotImplementedError("toggle_fullscreen not implemented for Win32. Use Windows Forms implementation")
 
+    def evaluate_js(self):
+        raise NotImplementedError("evaluate_js not implemented for Win32. Use Windows Forms implementation")
+
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if not directory:
             directory = os.environ['temp']
@@ -319,3 +322,7 @@ def destroy_window():
 
 def toggle_fullscreen():
     BrowserView.instance.toggle_fullscreen()
+
+
+def evaluate_js(script):
+    return BrowserView.instance.evaluate_js(script)

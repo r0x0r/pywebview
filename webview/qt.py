@@ -199,6 +199,9 @@ class BrowserView(QMainWindow):
     def toggle_fullscreen(self):
         self.fullscreen_trigger.emit()
 
+    def evaluate_js(self):
+        return
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
@@ -232,3 +235,7 @@ def toggle_fullscreen():
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+
+
+def evaluate_js(script):
+    return BrowserView.instance.evaluate_js(script)
