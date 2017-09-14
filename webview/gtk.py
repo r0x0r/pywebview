@@ -169,7 +169,10 @@ class BrowserView:
     def load_html(self, content, base_uri):
         glib.idle_add(self.webview.load_string, content, 'text/html', 'utf-8', base_uri)
 
- 
+    def evaluate_js(self):
+        return
+
+
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
     browser = BrowserView(title, url, width, height, resizable, fullscreen,
@@ -207,3 +210,7 @@ def load_html(content, base_uri):
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+
+
+def evaluate_js(script):
+    return BrowserView.instance.evaluate_js(script)

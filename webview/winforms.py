@@ -240,6 +240,9 @@ class BrowserView:
     def toggle_fullscreen(self):
         self.browser.toggle_fullscreen()
 
+    def evaluate_js(self):
+        return
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
@@ -271,3 +274,7 @@ def toggle_fullscreen():
 
 def destroy_window():
     BrowserView.instance.destroy()
+
+
+def evaluate_js(script):
+    return BrowserView.instance.evaluate_js(script)

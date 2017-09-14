@@ -461,5 +461,6 @@ def toggle_fullscreen():
 def get_current_url():
     return BrowserView.instance.get_current_url()
 
+
 def evaluate_js(script):
     return BrowserView.instance.evaluate_js(script)
