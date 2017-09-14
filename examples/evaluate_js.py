@@ -9,7 +9,7 @@ def evaluate_js():
     import time
     time.sleep(5)
 
-    # Evaluate JavaScript string and print return value
+    # Change document background color and print document title
     print(webview.evaluate_js(
         """
         /* Turn night mode ON */
@@ -27,5 +27,5 @@ if __name__ == '__main__':
     t = threading.Thread(target=evaluate_js)
     t.start()
 
-    webview.create_window("Run custorm JavaScript", "http://www.flowrl.com")
+    webview.create_window('Run custom JavaScript', 'http://www.flowrl.com')
 

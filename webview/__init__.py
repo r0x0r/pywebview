@@ -226,7 +226,8 @@ def toggle_fullscreen():
 def evaluate_js(script):
     """
     Evaluate given JavaScript code and return the result
-    :param script: The JavaScript to be evaluated
+    :param script: The JavaScript code to be evaluated
+    :return: Return value of the evaluated code
     """
     try:
         _webview_ready.wait(5)
