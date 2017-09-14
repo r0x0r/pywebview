@@ -79,7 +79,7 @@ class BrowserView:
         if fullscreen:
             self.toggle_fullscreen()
 
-    def close_window(self,*data):
+    def close_window(self, *data):
         self.window.destroy()
         while gtk.events_pending():
             gtk.main_iteration()
@@ -91,7 +91,7 @@ class BrowserView:
                                           message_format=localization['global.quitConfirmation'])
         result = dialog.run()
         if result == gtk.ResponseType.OK:
-            close_window()
+            self.close_window()
         else:
             dialog.destroy()
             return True
