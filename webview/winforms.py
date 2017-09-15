@@ -10,6 +10,8 @@ http://github.com/r0x0r/pywebview/
 import os
 import sys
 import logging
+import threading
+from uuid import uuid1
 from ctypes import windll
 
 import clr
@@ -158,6 +160,7 @@ class BrowserView:
         self.webview_ready = webview_ready
         self.background_color = background_color
         self.browser = None
+        self._js_result_semaphor = threading.Semaphore(0)
 
     def show(self):
         def start():
@@ -240,8 +243,23 @@ class BrowserView:
     def toggle_fullscreen(self):
         self.browser.toggle_fullscreen()
 
-    def evaluate_js(self):
-        return
+    def evaluate_js(self, script):
+        def _evaluate_js():
+            document = self.browser.web_browser.Document
+            script_element = document.CreateElement('script')
+            function_name = 'invoke' + uuid1().hex
+            script_element.InnerText = 'function {0}() {{{1}}}'.format(function_name, script)
+            document.Body.AppendChild(script_element)
+            self._js_result = document.InvokeScript(function_name)
+            self._js_result_semaphor.release()
+
+        if self.browser.web_browser.InvokeRequired:
+            self.browser.web_browser.Invoke(Func[Type](_evaluate_js))
+        else:
+            _evaluate_js()
+
+        self._js_result_semaphor.acquire()
+        return self._js_result
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
