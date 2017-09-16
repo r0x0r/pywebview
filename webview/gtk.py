@@ -29,7 +29,7 @@ class BrowserView:
     instance = None
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, webview_ready):
+                 confirm_quit, background_color, debug, webview_ready):
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
@@ -209,9 +209,9 @@ class BrowserView:
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, webview_ready):
+                  confirm_quit, background_color, debug, webview_ready):
     browser = BrowserView(title, url, width, height, resizable, fullscreen,
-                          min_size, confirm_quit, background_color, webview_ready)
+                          min_size, confirm_quit, background_color, debug, webview_ready)
     browser.show()
 
 
