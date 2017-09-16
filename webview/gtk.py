@@ -169,8 +169,8 @@ class BrowserView:
     def load_html(self, content, base_uri):
         glib.idle_add(self.webview.load_string, content, 'text/html', 'utf-8', base_uri)
 
-    def evaluate_js(self):
-        return
+    def evaluate_js(self, script):
+        glib.idle_add(self.webview.execute_script, script)
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
