@@ -180,7 +180,7 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
 def destroy_window():
     def _destroy_window():
         BrowserView.instance.close_window()
-    GObject.idle_add(destroy_window)
+    GObject.idle_add(_destroy_window)
 
 
 def toggle_fullscreen():
@@ -196,7 +196,7 @@ def get_current_url():
 def load_url(url):
     def _load_url():
         BrowserView.instance.load_url(url)
-    GObject.idle_add(load_url)
+    GObject.idle_add(_load_url)
 
 
 def load_html(content, base_uri):
