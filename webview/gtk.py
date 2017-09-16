@@ -79,7 +79,7 @@ class BrowserView:
         if fullscreen:
             self.toggle_fullscreen()
 
-    def close_window(self,*data):
+    def close_window(self, *data):
         self.window.destroy()
         while gtk.events_pending():
             gtk.main_iteration()
@@ -91,7 +91,7 @@ class BrowserView:
                                           message_format=localization['global.quitConfirmation'])
         result = dialog.run()
         if result == gtk.ResponseType.OK:
-            close_window()
+            self.close_window()
         else:
             dialog.destroy()
             return True
@@ -169,8 +169,8 @@ class BrowserView:
     def load_html(self, content, base_uri):
         glib.idle_add(self.webview.load_string, content, 'text/html', 'utf-8', base_uri)
 
-    def evaluate_js(self):
-        return
+    def evaluate_js(self, script):
+        glib.idle_add(self.webview.execute_script, script)
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
@@ -183,7 +183,7 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
 def destroy_window():
     def _destroy_window():
         BrowserView.instance.close_window()
-    GObject.idle_add(destroy_window)
+    GObject.idle_add(_destroy_window)
 
 
 def toggle_fullscreen():
@@ -199,7 +199,7 @@ def get_current_url():
 def load_url(url):
     def _load_url():
         BrowserView.instance.load_url(url)
-    GObject.idle_add(load_url)
+    GObject.idle_add(_load_url)
 
 
 def load_html(content, base_uri):

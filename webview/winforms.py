@@ -57,8 +57,8 @@ class BrowserView:
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
             self.web_browser.ScriptErrorsSuppressed = True
-            self.web_browser.IsWebBrowserContextMenuEnabled = False
-            self.web_browser.WebBrowserShortcutsEnabled = False
+            self.web_browser.IsWebBrowserContextMenuEnabled = True
+            self.web_browser.WebBrowserShortcutsEnabled = True
 
             # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
             # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
