@@ -248,7 +248,8 @@ class BrowserView:
             document = self.browser.web_browser.Document
             script_element = document.CreateElement('script')
             function_name = 'invoke' + uuid1().hex
-            script_element.InnerText = 'function {0}() {{{1}}}'.format(function_name, script)
+            escaped_script = 'function {0}() {{return eval("{1}")}}'.format(function_name, script.replace('"', '\\"'))
+            script_element.InnerText = escaped_script
             document.Body.AppendChild(script_element)
             self._js_result = document.InvokeScript(function_name)
             self._js_result_semaphor.release()
