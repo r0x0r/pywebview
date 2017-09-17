@@ -4,6 +4,7 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
+import threading
 
 import logging
 from webview.localization import localization
@@ -31,6 +32,8 @@ class BrowserView:
 
         self.webview_ready = webview_ready
         self.is_fullscreen = False
+        self._js_result_semaphore = threading.Semaphore(0)
+        self._js_result = None
 
         GObject.threads_init()
         window = gtk.Window(title=title)
@@ -67,6 +70,7 @@ class BrowserView:
 
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
+        self.webview.connect('notify::title', self.on_title_change)
         self.webview.connect('document-load-finished', self.on_load_finish)
         self.webview.props.settings.props.enable_default_context_menu = False
         self.webview.props.opacity = 0.0
@@ -170,7 +174,27 @@ class BrowserView:
         glib.idle_add(self.webview.load_string, content, 'text/html', 'utf-8', base_uri)
 
     def evaluate_js(self, script):
-        glib.idle_add(self.webview.execute_script, script)
+        # Escape double quotes and make the script single line
+        script = script.replace('"', r'\"').replace('\n', ' ')
+
+        # Backup the doc title and store the result in it with a custom prefix
+        code = 'pyweb_title = document.title; document.title = "pyweb_js_result::" + eval("' + script + '");'
+
+        glib.idle_add(self.webview.execute_script, code)
+        self._js_result_semaphore.acquire()
+
+        # Restore document title and return
+        code = 'document.title = pyweb_title;'
+        glib.idle_add(self.webview.execute_script, code)
+        return self._js_result
+
+    def on_title_change(self, webview, title):
+        title = webview.get_title()
+
+        # Check if title was changed by evaluate_js()
+        if title and title.startswith('pyweb_js_result::'):
+            self._js_result = title[17:]
+            self._js_result_semaphore.release()
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
