@@ -10,6 +10,8 @@ http://github.com/r0x0r/pywebview/
 import os
 import sys
 import logging
+import threading
+from uuid import uuid1
 from ctypes import windll
 
 import clr
@@ -20,7 +22,7 @@ from System import IntPtr, Int32, Func, Type
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator
 
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
@@ -158,6 +160,7 @@ class BrowserView:
         self.webview_ready = webview_ready
         self.background_color = background_color
         self.browser = None
+        self._js_result_semaphor = threading.Semaphore(0)
 
     def show(self):
         def start():
@@ -240,6 +243,26 @@ class BrowserView:
     def toggle_fullscreen(self):
         self.browser.toggle_fullscreen()
 
+    def evaluate_js(self, script):
+        def _evaluate_js():
+            document = self.browser.web_browser.Document
+            script_element = document.CreateElement('script')
+            function_name = 'invoke' + uuid1().hex
+            code = 'function {0}() {{return eval("{1}")}}'.format(function_name, escape_string(script))
+            script_element.InnerText = code
+            document.Body.AppendChild(script_element)
+            self._js_result = document.InvokeScript(function_name)
+            self._js_result_semaphor.release()
+
+        if self.browser.web_browser.InvokeRequired:
+            self.browser.web_browser.Invoke(Func[Type](_evaluate_js))
+        else:
+            _evaluate_js()
+
+        self._js_result_semaphor.acquire()
+
+        return self._js_result
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
@@ -271,3 +294,7 @@ def toggle_fullscreen():
 
 def destroy_window():
     BrowserView.instance.destroy()
+
+
+def evaluate_js(script):
+    return BrowserView.instance.evaluate_js(script)

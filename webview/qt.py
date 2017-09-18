@@ -1,9 +1,9 @@
-"""
+'''
 (C) 2014-2016 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
-"""
+'''
 
 import sys
 import os
@@ -23,9 +23,9 @@ try:
     from PyQt4.QtWebKit import QWebView
     from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
-    logger.debug("Using Qt4")
+    logger.debug('Using Qt4')
 except ImportError as e:
-    logger.warn("PyQt4 is not found")
+    logger.warn('PyQt4 is not found')
     _import_error = True
 else:
     _import_error = False
@@ -46,16 +46,16 @@ if _import_error:
         from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox
         from PyQt5.QtGui import QColor
 
-        logger.debug("Using Qt5")
+        logger.debug('Using Qt5')
     except ImportError as e:
-        logger.exception("PyQt5 is not found")
+        logger.exception('PyQt5 is not found')
         _import_error = True
     else:
         _import_error = False
 
 
 if _import_error:
-    raise Exception("This module requires PyQt4 or PyQt5 to work under Linux.")
+    raise Exception('This module requires PyQt4 or PyQt5 to work under Linux.')
 
 
 class BrowserView(QMainWindow):
@@ -66,6 +66,7 @@ class BrowserView(QMainWindow):
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
+    evaluate_js_trigger = QtCore.pyqtSignal(str)
 
     def __init__(self, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, webview_ready):
@@ -76,6 +77,11 @@ class BrowserView(QMainWindow):
 
         self._file_name_semaphor = threading.Semaphore(0)
         self._current_url_semaphore = threading.Semaphore()
+        self._evaluate_js_semaphor = threading.Semaphore(0)
+
+        self._evaluate_js_result = None
+        self._current_url = None
+        self._file_name = None
 
         self.resize(width, height)
         self.title = title
@@ -107,6 +113,7 @@ class BrowserView(QMainWindow):
         self.destroy_trigger.connect(self.on_destroy_window)
         self.fullscreen_trigger.connect(self.on_fullscreen)
         self.current_url_trigger.connect(self.on_current_url)
+        self.evaluate_js_trigger.connect(self.on_evaluate_js)
 
         if fullscreen:
             self.toggle_fullscreen()
@@ -118,17 +125,17 @@ class BrowserView(QMainWindow):
 
     def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if dialog_type == FOLDER_DIALOG:
-            self._file_name = QFileDialog.getExistingDirectory(self, localization["linux.openFolder"], options=QFileDialog.ShowDirsOnly)
+            self._file_name = QFileDialog.getExistingDirectory(self, localization['linux.openFolder'], options=QFileDialog.ShowDirsOnly)
         elif dialog_type == OPEN_DIALOG:
             if allow_multiple:
-                self._file_name = QFileDialog.getOpenFileNames(self, localization["linux.openFiles"], directory)
+                self._file_name = QFileDialog.getOpenFileNames(self, localization['linux.openFiles'], directory)
             else:
-                self._file_name = QFileDialog.getOpenFileName(self, localization["linux.openFile"], directory)
+                self._file_name = QFileDialog.getOpenFileName(self, localization['linux.openFile'], directory)
         elif dialog_type == SAVE_DIALOG:
             if directory:
                 save_filename = os.path.join(str(directory), str(save_filename))
 
-            self._file_name = QFileDialog.getSaveFileName(self, localization["global.saveFile"], save_filename)
+            self._file_name = QFileDialog.getSaveFileName(self, localization['global.saveFile'], save_filename)
 
         self._file_name_semaphor.release()
 
@@ -144,7 +151,7 @@ class BrowserView(QMainWindow):
 
     def closeEvent(self, event):
         if self.confirm_quit:
-            reply = QMessageBox.question(self, self.title, localization["global.quitConfirmation"],
+            reply = QMessageBox.question(self, self.title, localization['global.quitConfirmation'],
                                          QMessageBox.Yes, QMessageBox.No)
 
             if reply == QMessageBox.Yes:
@@ -164,6 +171,10 @@ class BrowserView(QMainWindow):
             self.showFullScreen()
 
         self.is_fullscreen = not self.is_fullscreen
+
+    def on_evaluate_js(self, script):
+        self._evaluate_js_result = self.view.page().mainFrame().evaluateJavaScript(script).toPyObject()
+        self._evaluate_js_semaphor.release()
 
     def get_current_url(self):
         self.current_url_trigger.emit()
@@ -199,6 +210,12 @@ class BrowserView(QMainWindow):
     def toggle_fullscreen(self):
         self.fullscreen_trigger.emit()
 
+    def evaluate_js(self, script):
+        self.evaluate_js_trigger.emit(script)
+        self._evaluate_js_semaphor.acquire()
+
+        return self._evaluate_js_result
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
@@ -232,3 +249,7 @@ def toggle_fullscreen():
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+
+
+def evaluate_js(script):
+    return BrowserView.instance.evaluate_js(script)

@@ -4,10 +4,11 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
-
+import threading
 import logging
+from uuid import uuid1
 from webview.localization import localization
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class BrowserView:
 
         self.webview_ready = webview_ready
         self.is_fullscreen = False
+        self._js_result_semaphore = threading.Semaphore(0)
 
         GObject.threads_init()
         window = gtk.Window(title=title)
@@ -169,7 +171,26 @@ class BrowserView:
     def load_html(self, content, base_uri):
         glib.idle_add(self.webview.load_string, content, 'text/html', 'utf-8', base_uri)
 
- 
+    def evaluate_js(self, script):
+        def _evaluate_js():
+            self.webview.execute_script(code)
+            self._js_result_semaphore.release()
+
+        unique_id = uuid1().hex
+
+        # Backup the doc title and store the result in it with a custom prefix
+        code = 'oldTitle{0} = document.title; document.title = eval("{1}");'.format(unique_id, escape_string(script))
+
+        glib.idle_add(_evaluate_js)
+        self._js_result_semaphore.acquire()
+
+        # Restore document title and return
+        _js_result = self.webview.get_title()
+        code = 'document.title = oldTitle{0};'.format(unique_id)
+        glib.idle_add(self.webview.execute_script, code)
+        return _js_result
+
+
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
     browser = BrowserView(title, url, width, height, resizable, fullscreen,
@@ -207,3 +228,7 @@ def load_html(content, base_uri):
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+
+
+def evaluate_js(script):
+    return BrowserView.instance.evaluate_js(script)
