@@ -12,11 +12,11 @@ def evaluate_js():
     # Change document background color and print document title
     print(webview.evaluate_js(
         """
-        /* Turn night mode ON */
+        // Turn night mode ON
         document.body.style.backgroundColor = '#212121';
         document.body.style.color = '#f2f2f2';
 
-        /* Return document title */
+        // Return document title
         document.title;
         """
         )

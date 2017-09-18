@@ -176,8 +176,8 @@ class BrowserView:
             self.webview.execute_script(code)
             self._js_result_semaphore.release()
 
-        # Escape double quotes and make the script single line
-        script = script.replace('"', r'\"').replace('\n', ' ')
+        # Escape double quotes and line breaks
+        script = script.replace('"', r'\"').replace('\n', r'\n')
         unique_id = uuid1().hex
 
         # Backup the doc title and store the result in it with a custom prefix
