@@ -236,6 +236,9 @@ def evaluate_js(script):
         raise Exception("Create a web view window first, before invoking this function")
 
 
+def escape_string(string):
+    return string.replace('"', r'\"').replace('\n', r'\n')
+
 
 def _make_unicode(string):
     """
