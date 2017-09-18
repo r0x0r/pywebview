@@ -90,19 +90,18 @@ an application scaffold and boilerplate code for a real-world application.
 ## API
 
 - `webview.create_window(title, url='', width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF')`
-	Create a new WebView window. Calling this function will block application execution, so you have to execute your
-	program logic in a separate thread.
-    `title` - Window title
-    `url` - URL to load
-    `width` - Window width. Default is 800px.
-    `height` - Window height. Default is 600px.
-    `resizable` - Whether window can be resized. Default is True
-    `fullscreen` - Whether to start in fullscreen mode. Default is False
-    `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
-    `strings` - a dictionary with localized strings
-    `confirm_quit` - Whether to display a quit confirmation dialog. Default is False
-    `background_color` - Background color of the window displayed before webview is loaded. Specified as a hex color. Default is white.
-	`strings` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
+Create a new WebView window. Calling this function will block application execution, so you have to execute your program logic in a separate thread.
+  * `title` - Window title
+  * `url` - URL to load
+  * `width` - Window width. Default is 800px.
+  * `height` - Window height. Default is 600px.
+  * `resizable` - Whether window can be resized. Default is True
+  * `fullscreen` - Whether to start in fullscreen mode. Default is False
+  * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
+  * `strings` - a dictionary with localized strings
+  * `confirm_quit` - Whether to display a quit confirmation dialog. Default is False
+  * `background_color` - Background color of the window displayed before webview is loaded. Specified as a hex color. Default is white.
+  * `strings` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
 
 These functions below must be invoked after webview windows is created with create_window(). Otherwise an exception is thrown. 
 
@@ -111,6 +110,9 @@ These functions below must be invoked after webview windows is created with crea
 
 - `webview.load_html(content)`
     Loads HTML content in the WebView window
+    
+- `webview.evaluate_js(script)`
+    Execute Javascript code. The last evaluated expression is returned.
 
 - `webview.get_current_url()`
     Return a current URL
