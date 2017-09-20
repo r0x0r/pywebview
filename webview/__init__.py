@@ -30,14 +30,16 @@ SAVE_DIALOG = 30
 
 
 class Config (dict):
-    use_qt = "USE_QT" in os.environ
-    use_win32 = "USE_WIN32" in os.environ
+
+    def __init__(self):
+        self.use_qt = "USE_QT" in os.environ
+        self.use_win32 = "USE_WIN32" in os.environ
 
     def __getitem__(self, key):
-        return getattr(Config, key.lower())
+        return getattr(self, key.lower())
 
     def __setitem__(self, key, value):
-        setattr(Config, key.lower(), value)
+        setattr(self, key.lower(), value)
 
 
 config = Config()
@@ -77,7 +79,7 @@ def _initialize_imports():
                     logger.exception("GTK cannot be loaded")
                     import_error = True
 
-            if import_error or config["USE_QT"]:
+            if import_error or config.use_qt:
                 try:
                     # If GTK is not found, then try QT
                     import webview.qt as gui
@@ -236,7 +238,7 @@ def evaluate_js(script):
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def escape_string(string):
+def _escape_string(string):
     return string.replace('"', r'\"').replace('\n', r'\n')
 
 
