@@ -8,7 +8,7 @@ import threading
 import logging
 from uuid import uuid1
 from webview.localization import localization
-from webview import escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import _escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 logger = logging.getLogger(__name__)
 
@@ -179,7 +179,7 @@ class BrowserView:
         unique_id = uuid1().hex
 
         # Backup the doc title and store the result in it with a custom prefix
-        code = 'oldTitle{0} = document.title; document.title = eval("{1}");'.format(unique_id, escape_string(script))
+        code = 'oldTitle{0} = document.title; document.title = eval("{1}");'.format(unique_id, _escape_string(script))
 
         glib.idle_add(_evaluate_js)
         self._js_result_semaphore.acquire()

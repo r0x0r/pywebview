@@ -22,7 +22,7 @@ from System import IntPtr, Int32, Func, Type
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator
 
-from webview import escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import _escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
@@ -250,7 +250,7 @@ class BrowserView:
             document = self.browser.web_browser.Document
             script_element = document.CreateElement('script')
             function_name = 'invoke' + uuid1().hex
-            code = 'function {0}() {{return eval("{1}")}}'.format(function_name, escape_string(script))
+            code = 'function {0}() {{return eval("{1}")}}'.format(function_name, _escape_string(script))
             script_element.InnerText = code
             document.Body.AppendChild(script_element)
             self._js_result = document.InvokeScript(function_name)
