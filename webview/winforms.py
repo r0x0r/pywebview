@@ -110,6 +110,8 @@ class BrowserView:
                 self.web_browser.Document.ExecCommand("Paste", False, None)
             elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.Z:
                 self.web_browser.Document.ExecCommand("Undo", False, None)
+            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.A:
+                self.web_browser.Document.ExecCommand("selectAll", False, None)
 
         def on_navigating(self, sender, args):
             if self.cancel_back:
