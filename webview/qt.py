@@ -17,42 +17,41 @@ from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 logger = logging.getLogger(__name__)
 
 
-# Try importing Qt4 modules
+# Try importing Qt5 modules
 try:
-    from PyQt4 import QtCore
-    from PyQt4.QtWebKit import QWebView
-    from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
+    from PyQt5 import QtCore
 
-    logger.debug('Using Qt4')
+    # Check to see if we're running Qt > 5.5
+    from PyQt5.QtCore import QT_VERSION_STR
+    if float(QT_VERSION_STR[:3]) > 5.5:
+        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
+    else:
+        from PyQt5.QtWebKitWidgets import QWebView
+
+    from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox
+    from PyQt5.QtGui import QColor
+
+    logger.debug('Using Qt5')
 except ImportError as e:
-    logger.warn('PyQt4 is not found')
+    logger.exception('PyQt5 is not found')
     _import_error = True
 else:
     _import_error = False
 
 
-# Try importing Qt5 modules
 if _import_error:
+    # Try importing Qt4 modules
     try:
-        from PyQt5 import QtCore
+        from PyQt4 import QtCore
+        from PyQt4.QtWebKit import QWebView
+        from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
-        # Check to see if we're running Qt > 5.5
-        from PyQt5.QtCore import QT_VERSION_STR
-        if float(QT_VERSION_STR[:3]) > 5.5:
-            from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
-        else:
-            from PyQt5.QtWebKitWidgets import QWebView
-
-        from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox
-        from PyQt5.QtGui import QColor
-
-        logger.debug('Using Qt5')
+        logger.debug('Using Qt4')
     except ImportError as e:
-        logger.exception('PyQt5 is not found')
+        logger.warn('PyQt4 is not found')
         _import_error = True
     else:
         _import_error = False
-
 
 if _import_error:
     raise Exception('This module requires PyQt4 or PyQt5 to work under Linux.')
