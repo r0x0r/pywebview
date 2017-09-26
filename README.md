@@ -1,4 +1,4 @@
-# pywebview
+<p align='center'><img src='https://user-images.githubusercontent.com/1549657/30855130-85cd49c0-a2bc-11e7-8181-b2c0badf3854.png' alt='pywebview logo'/></p>
 
 [![PyPI version](https://badge.fury.io/py/pywebview.svg)](https://badge.fury.io/py/pywebview) [![Build Status](https://travis-ci.org/r0x0r/pywebview.svg?branch=master)](https://travis-ci.org/r0x0r/pywebview) [![Build status](https://ci.appveyor.com/api/projects/status/nu6mbhvbq03wudxd?svg=true)](https://ci.appveyor.com/project/r0x0r/pywebview)
 
