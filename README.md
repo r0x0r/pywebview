@@ -1,6 +1,6 @@
-<p align='center'><img src='https://user-images.githubusercontent.com/1549657/30855130-85cd49c0-a2bc-11e7-8181-b2c0badf3854.png' alt='pywebview logo'/></p>
+<p align='center'><img src='logo/logo.png' width=480 alt='pywebview logo'/></p>
 
-[![PyPI version](https://badge.fury.io/py/pywebview.svg)](https://badge.fury.io/py/pywebview) [![Build Status](https://travis-ci.org/r0x0r/pywebview.svg?branch=master)](https://travis-ci.org/r0x0r/pywebview) [![Build status](https://ci.appveyor.com/api/projects/status/nu6mbhvbq03wudxd?svg=true)](https://ci.appveyor.com/project/r0x0r/pywebview)
+<p align='center'><a href="https://badge.fury.io/py/pywebview"><img src="https://badge.fury.io/py/pywebview.svg" alt="PyPI version" /></a> <a href="https://travis-ci.org/r0x0r/pywebview"><img src="https://travis-ci.org/r0x0r/pywebview.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/r0x0r/pywebview"><img src="https://ci.appveyor.com/api/projects/status/nu6mbhvbq03wudxd?svg=true" alt="Build status" /></a></p>
 
 
 pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, eliminating the need of launching a web browser. Combined with a lightweight web framework like [Flask](http://flask.pocoo.org/), [Bottle](http://bottlepy.org/docs/dev/index.html) or [web.py](http://webpy.org), you can create beautiful cross-platform HTML5 user interfaces targeting WebKit, while hiding implementation details from the end user. If HTML is not your strong point, you might want to use [REMI](https://github.com/dddomodossola/remi), which allows you to create HTML based interfaces using Python code only.
