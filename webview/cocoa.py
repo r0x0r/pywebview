@@ -22,12 +22,15 @@ info["NSAppTransportSecurity"] = {"NSAllowsArbitraryLoads": Foundation.YES}
 
 
 class BrowserView:
-    instance = None
+    instances = []
     app = AppKit.NSApplication.sharedApplication()
 
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
-            BrowserView.instance.webview_ready.set()
+            BrowserView.instances[0].webview_ready.set()
+
+        def applicationShouldTerminateAfterLastWindowClosed_(self, sender):
+            return Foundation.YES
 
     class WindowDelegate(AppKit.NSObject):
         def display_confirmation_dialog(self):
@@ -51,7 +54,11 @@ class BrowserView:
                 return Foundation.NO
 
         def windowWillClose_(self, notification):
-            BrowserView.app.stop_(self)
+            # Delete the closed instance from the list
+            for i in BrowserView.instances:
+                if i.window is notification.object():
+                    BrowserView.instances.remove(i)
+                    return
 
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
@@ -66,7 +73,7 @@ class BrowserView:
 
         # Display an open panel for <input type="file"> element
         def webView_runOpenPanelForFileButtonWithResultListener_allowMultipleFiles_(self, webview, listener, allow_multiple):
-            files = BrowserView.instance.create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', main_thread=True)
+            files = BrowserView.instances[0].create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', main_thread=True)
 
             if files:
                 listener.chooseFilenames_(files)
@@ -137,8 +144,9 @@ class BrowserView:
         def webView_didFinishLoadForFrame_(self, webview, frame):
             # Add the webview to the window if it's not yet the contentView
             if not webview.window():
-                BrowserView.instance.window.setContentView_(webview)
-                BrowserView.instance.window.makeFirstResponder_(webview)
+                i = next(i for i in BrowserView.instances if webview is i.webkit)   # parent instance
+                i.window.setContentView_(webview)
+                i.window.makeFirstResponder_(webview)
 
 
     class WebKitHost(WebKit.WebView):
@@ -180,7 +188,7 @@ class BrowserView:
                     return handled
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready):
-        BrowserView.instance = self
+        BrowserView.instances.append(self)
 
         self._file_name = None
         self._file_name_semaphor = threading.Semaphore(0)
@@ -195,42 +203,46 @@ class BrowserView:
         if resizable:
             window_mask = window_mask | AppKit.NSResizableWindowMask
 
+        # The allocated resources are retained because we would explicitly delete
+        # this instance when its window is closed
         self.window = AppKit.NSWindow.alloc().\
-            initWithContentRect_styleMask_backing_defer_(rect, window_mask, AppKit.NSBackingStoreBuffered, False)
+            initWithContentRect_styleMask_backing_defer_(rect, window_mask, AppKit.NSBackingStoreBuffered, False).retain()
         self.window.setTitle_(title)
         self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(background_color))
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
         # Set the titlebar color (so that it does not change with the window color)
         self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
 
-        self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect)
+        self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
 
-        self._browserDelegate = BrowserView.BrowserDelegate.alloc().init()
-        self._windowDelegate = BrowserView.WindowDelegate.alloc().init()
-        self._appDelegate = BrowserView.AppDelegate.alloc().init()
+        self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
+        self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
+        self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
         self.webkit.setUIDelegate_(self._browserDelegate)
         self.webkit.setFrameLoadDelegate_(self._browserDelegate)
         self.webkit.setPolicyDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
 
-        self.load_url(url)
-
-        # Add the default Cocoa application menu
-        self._add_app_menu()
-        self._add_view_menu()
+        if url:
+            self.load_url(url)
 
         if fullscreen:
             self.toggle_fullscreen()
 
     def show(self):
-        self.window.display()
-        self.window.orderFrontRegardless()
-        BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
-        BrowserView.app.run()
+        self.window.makeKeyAndOrderFront_(self.window)
+
+        if not BrowserView.app.isRunning():
+            # Add the default Cocoa application menu
+            self._add_app_menu()
+            self._add_view_menu()
+
+            BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
+            BrowserView.app.run()
 
     def destroy(self):
-        BrowserView.app.stop_(self)
+        PyObjCTools.AppHelper.callAfter(self.window.close)
 
     def toggle_fullscreen(self):
         def toggle():
@@ -431,36 +443,41 @@ class BrowserView:
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
-    global _confirm_quit
-    _confirm_quit = confirm_quit
+    def create():
+        global _confirm_quit
+        _confirm_quit = confirm_quit
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready)
-    browser.show()
+        browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready)
+        browser.show()
 
+    if not BrowserView.app.isRunning():
+        create()
+    else:
+        PyObjCTools.AppHelper.callAfter(create)
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
 def load_url(url):
-    BrowserView.instance.load_url(url)
+    BrowserView.instances[0].load_url(url)
 
 
 def load_html(content, base_uri):
-    BrowserView.instance.load_html(content, base_uri)
+    BrowserView.instances[0].load_html(content, base_uri)
 
 
 def destroy_window():
-    BrowserView.instance.destroy()
+    BrowserView.instances[0].destroy()
 
 
 def toggle_fullscreen():
-    BrowserView.instance.toggle_fullscreen()
+    BrowserView.instances[0].toggle_fullscreen()
 
 
 def get_current_url():
-    return BrowserView.instance.get_current_url()
+    return BrowserView.instances[0].get_current_url()
 
 
 def evaluate_js(script):
-    return BrowserView.instance.evaluate_js(script)
+    return BrowserView.instances[0].evaluate_js(script)
