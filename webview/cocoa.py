@@ -11,6 +11,7 @@ import AppKit
 import WebKit
 import PyObjCTools.AppHelper
 from objc import nil
+from uuid import uuid4
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
@@ -55,10 +56,8 @@ class BrowserView:
 
         def windowWillClose_(self, notification):
             # Delete the closed instance from the list
-            for i in BrowserView.instances:
-                if i.window is notification.object():
-                    BrowserView.instances.remove(i)
-                    return
+            i = BrowserView.get_instance('window', notification.object())
+            BrowserView.instances.remove(i)
 
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
@@ -144,7 +143,7 @@ class BrowserView:
         def webView_didFinishLoadForFrame_(self, webview, frame):
             # Add the webview to the window if it's not yet the contentView
             if not webview.window():
-                i = next(i for i in BrowserView.instances if webview is i.webkit)   # parent instance
+                i = BrowserView.get_instance('webkit', webview)
                 i.window.setContentView_(webview)
                 i.window.makeFirstResponder_(webview)
 
@@ -187,8 +186,9 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready):
+    def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready):
         BrowserView.instances.append(self)
+        self.uid = uid
 
         self._file_name = None
         self._file_name_semaphor = threading.Semaphore(0)
@@ -440,6 +440,21 @@ class BrowserView:
 
         return AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(rgb[0], rgb[1], rgb[2], 1.0)
 
+    @staticmethod
+    def get_instance(attr, value):
+        """
+        Return a BrowserView instance by the :value of its given :attribute,
+        and None if no match is found.
+        """
+        for i in BrowserView.instances:
+            try:
+                if getattr(i, attr) == value:
+                    return i
+            except AttributeError:
+                break
+
+        return None
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
@@ -447,37 +462,59 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
         global _confirm_quit
         _confirm_quit = confirm_quit
 
-        browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready)
+        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready)
         browser.show()
 
     if not BrowserView.app.isRunning():
+        uid = 'master'
         create()
     else:
+        uid = uuid4().hex
         PyObjCTools.AppHelper.callAfter(create)
+
+    return uid
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
-def load_url(url):
-    BrowserView.instances[0].load_url(url)
+def load_url(url, uid='master'):
+    try:
+        BrowserView.get_instance('uid', uid).load_url(url)
+    except AttributeError:
+        pass
 
 
-def load_html(content, base_uri):
-    BrowserView.instances[0].load_html(content, base_uri)
+def load_html(content, base_uri, uid='master'):
+    try:
+        BrowserView.get_instance('uid', uid).load_html(content, base_uri)
+    except AttributeError:
+        pass
 
 
-def destroy_window():
-    BrowserView.instances[0].destroy()
+def destroy_window(uid='master'):
+    try:
+        BrowserView.get_instance('uid', uid).destroy()
+    except AttributeError:
+        pass
 
 
-def toggle_fullscreen():
-    BrowserView.instances[0].toggle_fullscreen()
+def toggle_fullscreen(uid='master'):
+    try:
+        BrowserView.get_instance('uid', uid).toggle_fullscreen()
+    except AttributeError:
+        pass
 
 
-def get_current_url():
-    return BrowserView.instances[0].get_current_url()
+def get_current_url(uid='master'):
+    try:
+        return BrowserView.get_instance('uid', uid).get_current_url()
+    except AttributeError:
+        pass
 
 
-def evaluate_js(script):
-    return BrowserView.instances[0].evaluate_js(script)
+def evaluate_js(script, uid='master'):
+    try:
+        return BrowserView.get_instance('uid', uid).evaluate_js(script)
+    except AttributeError:
+        pass

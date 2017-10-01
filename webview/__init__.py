@@ -187,7 +187,7 @@ def create_window(title, url=None, width=800, height=600,
 
     _initialize_imports()
     localization.update(strings)
-    gui.create_window(_make_unicode(title), _transform_url(url),
+    return gui.create_window(_make_unicode(title), _transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
                       background_color, _webview_ready)
 
