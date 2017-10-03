@@ -48,8 +48,9 @@ class BrowserView:
             else:
                 return False
 
-        def windowShouldClose_(self, notification):
-            if not _confirm_quit or self.display_confirmation_dialog():
+        def windowShouldClose_(self, window):
+            i = BrowserView.get_instance('window', window)
+            if not i.confirm_quit or self.display_confirmation_dialog():
                 return Foundation.YES
             else:
                 return Foundation.NO
@@ -186,7 +187,7 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready):
+    def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, webview_ready):
         BrowserView.instances.append(self)
         self.uid = uid
 
@@ -195,6 +196,8 @@ class BrowserView:
         self._current_url_semaphor = threading.Semaphore(0)
         self._js_result_semaphor = threading.Semaphore(0)
         self.webview_ready = webview_ready
+        self.confirm_quit = confirm_quit
+
         self.is_fullscreen = False
 
         rect = AppKit.NSMakeRect(100.0, 350.0, width, height)
@@ -459,10 +462,7 @@ class BrowserView:
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
     def create():
-        global _confirm_quit
-        _confirm_quit = confirm_quit
-
-        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready)
+        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, webview_ready)
         browser.show()
 
     if not BrowserView.app.isRunning():
