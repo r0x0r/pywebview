@@ -461,13 +461,16 @@ class BrowserView:
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
-    def create():
+    def create(main_thread=False):
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, webview_ready)
         browser.show()
 
+        if not main_thread:
+            webview_ready.set()
+
     if not BrowserView.app.isRunning():
         uid = 'master'
-        create()
+        create(main_thread=True)
     else:
         uid = uuid4().hex
         PyObjCTools.AppHelper.callAfter(create)

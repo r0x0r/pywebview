@@ -181,12 +181,16 @@ def create_window(title, url=None, width=800, height=600,
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :return:
     """
+    _webview_ready.clear()
+
     valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
     if not re.match(valid_color, background_color):
         raise ValueError('{0} is not a valid hex triplet color'.format(background_color))
 
-    _initialize_imports()
-    localization.update(strings)
+    if not _initialized:
+        _initialize_imports()
+        localization.update(strings)
+
     return gui.create_window(_make_unicode(title), _transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
                       background_color, _webview_ready)
