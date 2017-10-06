@@ -17,7 +17,7 @@ import os
 import sys
 import re
 import logging
-from threading import Event
+from threading import Event, current_thread
 
 from .localization import localization
 
@@ -188,8 +188,13 @@ def create_window(title, url=None, width=800, height=600,
         raise ValueError('{0} is not a valid hex triplet color'.format(background_color))
 
     if not _initialized:
-        _initialize_imports()
-        localization.update(strings)
+        # Check if starting up from main thread; if not, wait; finally raise exception
+        if current_thread().name != 'MainThread':
+            if _webview_ready.wait(5) != True:
+                raise Exception("Call create_window from the main thread first, and then from subthreads")
+        else:
+            _initialize_imports()
+            localization.update(strings)
 
     return gui.create_window(_make_unicode(title), _transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
