@@ -24,11 +24,11 @@ from gi.repository import WebKit as webkit
 from gi.repository import GObject
 
 class BrowserView:
-    instance = None
+    instances = []
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
                  confirm_quit, background_color, webview_ready):
-        BrowserView.instance = self
+        BrowserView.instances.append(self)
 
         self.webview_ready = webview_ready
         self.is_fullscreen = False
@@ -73,7 +73,6 @@ class BrowserView:
         self.webview.props.settings.props.enable_default_context_menu = False
         self.webview.props.opacity = 0.0
         scrolled_window.add(self.webview)
-        window.show_all()
 
         if url is not None:
             self.webview.load_uri(url)
@@ -83,9 +82,13 @@ class BrowserView:
 
     def close_window(self, *data):
         self.window.destroy()
+        BrowserView.instances.remove(self)
+
         while gtk.events_pending():
             gtk.main_iteration()
-        gtk.main_quit()
+
+        if BrowserView.instances == []:
+            gtk.main_quit()
 
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
@@ -94,9 +97,9 @@ class BrowserView:
         result = dialog.run()
         if result == gtk.ResponseType.OK:
             self.close_window()
-        else:
-            dialog.destroy()
-            return True
+
+        dialog.destroy()
+        return True
 
     def on_webview_ready(self, arg1, arg2):
         self.webview_ready.set()
@@ -107,7 +110,10 @@ class BrowserView:
             glib.idle_add(webview.set_opacity, 1.0)
 
     def show(self):
-        gtk.main()
+        self.window.show_all()
+
+        if gtk.main_level() == 0:
+            gtk.main()
 
     def destroy(self):
         self.window.emit('delete-event', Gdk.Event())
@@ -183,7 +189,6 @@ class BrowserView:
 
         glib.idle_add(_evaluate_js)
         self._js_result_semaphore.acquire()
-
         # Restore document title and return
         _js_result = self.webview.get_title()
         code = 'document.title = oldTitle{0};'.format(unique_id)
@@ -193,42 +198,48 @@ class BrowserView:
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
-    browser = BrowserView(title, url, width, height, resizable, fullscreen,
+    def create():
+        browser = BrowserView(title, url, width, height, resizable, fullscreen,
                           min_size, confirm_quit, background_color, webview_ready)
-    browser.show()
+        browser.show()
+
+    if gtk.main_level() == 0:
+        create()
+    else:
+        glib.idle_add(create)
 
 
 def destroy_window():
     def _destroy_window():
-        BrowserView.instance.close_window()
+        BrowserView.instances[0].close_window()
     GObject.idle_add(_destroy_window)
 
 
 def toggle_fullscreen():
     def _toggle_fullscreen():
-            BrowserView.instance.toggle_fullscreen()
+        BrowserView.instances[0].toggle_fullscreen()
     GObject.idle_add(_toggle_fullscreen)
 
 
 def get_current_url():
-    return BrowserView.instance.get_current_url()
+    return BrowserView.instances[0].get_current_url()
 
 
 def load_url(url):
     def _load_url():
-        BrowserView.instance.load_url(url)
+        BrowserView.instances[0].load_url(url)
     GObject.idle_add(_load_url)
 
 
 def load_html(content, base_uri):
     def _load_html():
-        BrowserView.instance.load_html(content, base_uri)
+        BrowserView.instances[0].load_html(content, base_uri)
     GObject.idle_add(_load_html)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
 def evaluate_js(script):
-    return BrowserView.instance.evaluate_js(script)
+    return BrowserView.instances[0].evaluate_js(script)
