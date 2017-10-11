@@ -6,7 +6,7 @@ http://github.com/r0x0r/pywebview/
 """
 import threading
 import logging
-from uuid import uuid1
+from uuid import uuid1, uuid4
 from webview.localization import localization
 from webview import _escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
@@ -26,9 +26,10 @@ from gi.repository import GObject
 class BrowserView:
     instances = []
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
+    def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
                  confirm_quit, background_color, webview_ready):
         BrowserView.instances.append(self)
+        self.uid = uid
 
         self.webview_ready = webview_ready
         self.is_fullscreen = False
@@ -195,45 +196,79 @@ class BrowserView:
         glib.idle_add(self.webview.execute_script, code)
         return _js_result
 
+    @staticmethod
+    def get_instance(attr, value):
+        for i in BrowserView.instances:
+            try:
+                if getattr(i, attr) == value:
+                    return i
+            except AttributeError:
+                break
+
+        return None
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
     def create():
-        browser = BrowserView(title, url, width, height, resizable, fullscreen,
+        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
                           min_size, confirm_quit, background_color, webview_ready)
         browser.show()
 
     if gtk.main_level() == 0:
+        uid = 'master'
         create()
     else:
+        uid = uuid4().hex
         glib.idle_add(create)
 
+    return uid
 
-def destroy_window():
+
+def destroy_window(uid='master'):
     def _destroy_window():
-        BrowserView.instances[0].close_window()
+        try:
+            BrowserView.get_instance('uid', uid).close_window()
+        except AttributeError:
+            pass
+
     GObject.idle_add(_destroy_window)
 
 
-def toggle_fullscreen():
+def toggle_fullscreen(uid='master'):
     def _toggle_fullscreen():
-        BrowserView.instances[0].toggle_fullscreen()
+        try:
+            BrowserView.get_instance('uid', uid).toggle_fullscreen()
+        except AttributeError:
+            pass
+
     GObject.idle_add(_toggle_fullscreen)
 
 
-def get_current_url():
-    return BrowserView.instances[0].get_current_url()
+def get_current_url(uid='master'):
+    try:
+        return BrowserView.get_instance('uid', uid).get_current_url()
+    except AttributeError:
+        return None
 
 
-def load_url(url):
+def load_url(url, uid='master'):
     def _load_url():
-        BrowserView.instances[0].load_url(url)
+        try:
+            BrowserView.get_instance('uid', uid).load_url(url)
+        except AttributeError:
+            pass
+
     GObject.idle_add(_load_url)
 
 
-def load_html(content, base_uri):
+def load_html(content, base_uri, uid='master'):
     def _load_html():
-        BrowserView.instances[0].load_html(content, base_uri)
+        try:
+            BrowserView.get_instance('uid', uid).load_html(content, base_uri)
+        except AttributeError:
+            pass
+
     GObject.idle_add(_load_html)
 
 
@@ -241,5 +276,8 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
-def evaluate_js(script):
-    return BrowserView.instances[0].evaluate_js(script)
+def evaluate_js(script, uid='master'):
+    try:
+        return BrowserView.get_instance('uid', uid).evaluate_js(script)
+    except AttributeError:
+        return None
