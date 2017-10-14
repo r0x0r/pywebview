@@ -58,7 +58,9 @@ if _import_error:
 
 
 class BrowserView(QMainWindow):
-    instance = None
+    instances = []
+
+    create_window_trigger = QtCore.pyqtSignal(object)
     load_url_trigger = QtCore.pyqtSignal(str)
     html_trigger = QtCore.pyqtSignal(str, str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str)
@@ -70,7 +72,7 @@ class BrowserView(QMainWindow):
     def __init__(self, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, webview_ready):
         super(BrowserView, self).__init__()
-        BrowserView.instance = self
+        BrowserView.instances.append(self)
         self.is_fullscreen = False
         self.confirm_quit = confirm_quit
 
@@ -106,6 +108,7 @@ class BrowserView(QMainWindow):
 
         self.setCentralWidget(self.view)
 
+        self.create_window_trigger.connect(BrowserView.on_create_window)
         self.load_url_trigger.connect(self.on_load_url)
         self.html_trigger.connect(self.on_load_html)
         self.dialog_trigger.connect(self.on_file_dialog)
@@ -153,12 +156,12 @@ class BrowserView(QMainWindow):
             reply = QMessageBox.question(self, self.title, localization['global.quitConfirmation'],
                                          QMessageBox.Yes, QMessageBox.No)
 
-            if reply == QMessageBox.Yes:
-                event.accept()
-            else:
+            if reply == QMessageBox.No:
                 event.ignore()
-        else:
-            event.accept()
+                return
+
+        event.accept()
+        BrowserView.instances.remove(self)
 
     def on_destroy_window(self):
         self.close()
@@ -221,40 +224,51 @@ class BrowserView(QMainWindow):
 
         return self._evaluate_js_result
 
+    @staticmethod
+    # Receive func from subthread and execute it on the main thread
+    def on_create_window(func):
+        func()
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
-    app = QApplication([])
+    app = QApplication.instance() or QApplication([])
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen,
-                          min_size, confirm_quit, background_color, webview_ready)
-    browser.show()
-    app.exec_()
+    def _create():
+        browser = BrowserView(title, url, width, height, resizable, fullscreen,
+                              min_size, confirm_quit, background_color, webview_ready)
+        browser.show()
+
+    if not BrowserView.instances:
+        _create()
+        app.exec_()
+    else:
+        BrowserView.instances[0].create_window_trigger.emit(_create)
 
 
 def get_current_url():
-    return BrowserView.instance.get_current_url()
+    return BrowserView.instances[0].get_current_url()
 
 
 def load_url(url):
-    BrowserView.instance.load_url(url)
+    BrowserView.instances[0].load_url(url)
 
 
 def load_html(content, base_uri):
-    BrowserView.instance.load_html(content, base_uri)
+    BrowserView.instances[0].load_html(content, base_uri)
 
 
 def destroy_window():
-    BrowserView.instance.destroy_()
+    BrowserView.instances[0].destroy_()
 
 
 def toggle_fullscreen():
-    BrowserView.instance.toggle_fullscreen()
+    BrowserView.instances[0].toggle_fullscreen()
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
 def evaluate_js(script):
-    return BrowserView.instance.evaluate_js(script)
+    return BrowserView.instances[0].evaluate_js(script)
