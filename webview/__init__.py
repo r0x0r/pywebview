@@ -18,6 +18,7 @@ import sys
 import re
 import logging
 from threading import Event, current_thread
+from uuid import uuid4
 
 from .localization import localization
 
@@ -183,7 +184,7 @@ def create_window(title, url=None, width=800, height=600,
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :return:
     """
-    _webview_ready.clear()
+    uid = 'webview' + uuid4().hex
 
     valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
     if not re.match(valid_color, background_color):
@@ -197,10 +198,13 @@ def create_window(title, url=None, width=800, height=600,
         else:
             _initialize_imports()
             localization.update(strings)
+            uid = 'master'
 
-    return gui.create_window(_make_unicode(title), _transform_url(url),
+    _webview_ready.clear()
+    gui.create_window(uid, _make_unicode(title), _transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
                       background_color, _webview_ready)
+    return uid
 
 
 def get_current_url(uid='master'):

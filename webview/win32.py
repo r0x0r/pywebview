@@ -290,7 +290,7 @@ class BrowserView(object):
             custom_doc.SetUIHandler(self.handler)
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size,
+def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
     global _confirm_quit
     _confirm_quit = confirm_quit  # not implemented

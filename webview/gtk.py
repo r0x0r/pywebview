@@ -6,7 +6,7 @@ http://github.com/r0x0r/pywebview/
 """
 import threading
 import logging
-from uuid import uuid1, uuid4
+from uuid import uuid1
 from webview.localization import localization
 from webview import _escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
@@ -208,21 +208,17 @@ class BrowserView:
         return None
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size,
+def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
-                          min_size, confirm_quit, background_color, webview_ready)
+                              min_size, confirm_quit, background_color, webview_ready)
         browser.show()
 
-    if gtk.main_level() == 0:
-        uid = 'master'
+    if uid == 'master':
         create()
     else:
-        uid = uuid4().hex
         glib.idle_add(create)
-
-    return uid
 
 
 def destroy_window(uid):

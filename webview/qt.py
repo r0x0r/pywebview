@@ -13,7 +13,6 @@ import threading
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
@@ -244,7 +243,7 @@ class BrowserView(QMainWindow):
         return none
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size,
+def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
     app = QApplication.instance() or QApplication([])
 
@@ -253,15 +252,11 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
                               min_size, confirm_quit, background_color, webview_ready)
         browser.show()
 
-    if not BrowserView.instances:
-        uid = 'master'
+    if uid == 'master':
         _create()
         app.exec_()
     else:
-        uid = uuid4().hex
         BrowserView.instances[0].create_window_trigger.emit(_create)
-
-    return uid
 
 
 def get_current_url(uid):

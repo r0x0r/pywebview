@@ -11,7 +11,6 @@ import AppKit
 import WebKit
 import PyObjCTools.AppHelper
 from objc import nil
-from uuid import uuid4
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
@@ -459,23 +458,19 @@ class BrowserView:
         return None
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size,
+def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
-    def create(main_thread=False):
-        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, webview_ready)
+    def create():
+        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
+                              confirm_quit, background_color, webview_ready)
         browser.show()
+        webview_ready.set()
 
-        if not main_thread:
-            webview_ready.set()
-
-    if not BrowserView.app.isRunning():
-        uid = 'master'
-        create(main_thread=True)
+    if uid == 'master':
+        create()
     else:
-        uid = uuid4().hex
         PyObjCTools.AppHelper.callAfter(create)
 
-    return uid
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
