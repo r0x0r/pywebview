@@ -13,6 +13,7 @@ import threading
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
@@ -69,10 +70,12 @@ class BrowserView(QMainWindow):
     current_url_trigger = QtCore.pyqtSignal()
     evaluate_js_trigger = QtCore.pyqtSignal(str)
 
-    def __init__(self, title, url, width, height, resizable, fullscreen,
+    def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instances.append(self)
+        self.uid = uid
+
         self.is_fullscreen = False
         self.confirm_quit = confirm_quit
 
@@ -229,46 +232,79 @@ class BrowserView(QMainWindow):
     def on_create_window(func):
         func()
 
+    @staticmethod
+    def get_instance(attr, value):
+        for i in BrowserView.instances:
+            try:
+                if getattr(i, attr) == value:
+                    return i
+            except AttributeError:
+                break
+
+        return none
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
     app = QApplication.instance() or QApplication([])
 
     def _create():
-        browser = BrowserView(title, url, width, height, resizable, fullscreen,
+        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
                               min_size, confirm_quit, background_color, webview_ready)
         browser.show()
 
     if not BrowserView.instances:
+        uid = 'master'
         _create()
         app.exec_()
     else:
+        uid = uuid4().hex
         BrowserView.instances[0].create_window_trigger.emit(_create)
 
-
-def get_current_url():
-    return BrowserView.instances[0].get_current_url()
+    return uid
 
 
-def load_url(url):
-    BrowserView.instances[0].load_url(url)
+def get_current_url(uid='master'):
+    try:
+        return BrowserView.get_instance('uid', uid).get_current_url()
+    except AttributeError:
+        pass
 
 
-def load_html(content, base_uri):
-    BrowserView.instances[0].load_html(content, base_uri)
+def load_url(url, uid='master'):
+    try:
+        BrowserView.get_instance('uid', uid).load_url(url)
+    except AttributeError:
+        pass
 
 
-def destroy_window():
-    BrowserView.instances[0].destroy_()
+def load_html(content, base_uri, uid='master'):
+    try:
+        BrowserView.get_instance('uid', uid).load_html(content, base_uri)
+    except AttributeError:
+        pass
 
 
-def toggle_fullscreen():
-    BrowserView.instances[0].toggle_fullscreen()
+def destroy_window(uid='master'):
+    try:
+        BrowserView.get_instance('uid', uid).destroy_()
+    except AttributeError:
+        pass
+
+
+def toggle_fullscreen(uid='master'):
+    try:
+        BrowserView.get_instance('uid', uid).toggle_fullscreen()
+    except AttributeError:
+        pass
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
-def evaluate_js(script):
-    return BrowserView.instances[0].evaluate_js(script)
+def evaluate_js(script, uid='master'):
+    try:
+        return BrowserView.get_instance('uid', uid).evaluate_js(script)
+    except AttributeError:
+        pass
