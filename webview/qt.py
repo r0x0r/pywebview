@@ -172,8 +172,14 @@ class BrowserView(QMainWindow):
         self.is_fullscreen = not self.is_fullscreen
 
     def on_evaluate_js(self, script):
-        self._evaluate_js_result = self.view.page().mainFrame().evaluateJavaScript(script).toPyObject()
-        self._evaluate_js_semaphor.release()
+        def return_result(result):
+            self._evaluate_js_result = result
+            self._evaluate_js_semaphor.release()
+
+        try:    # PyQt4
+            return_result(self.view.page().mainFrame().evaluateJavaScript(script).toPyObject())
+        except AttributeError:  # PyQt5
+            self.view.page().runJavaScript(script, return_result)
 
     def get_current_url(self):
         self.current_url_trigger.emit()
