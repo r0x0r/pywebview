@@ -304,25 +304,25 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
-def get_current_url():
+def get_current_url(uid, uid):
     return BrowserView.instance.get_current_url()
 
 
-def load_url(url):
+def load_url(url, uid):
     BrowserView.instance.load_url(url)
 
 
-def load_html(content, base_uri):
+def load_html(content, base_uri, uid):
     BrowserView.instance.load_html(content)
 
 
-def destroy_window():
+def destroy_window(uid):
     BrowserView.instance.destroy()
 
 
-def toggle_fullscreen():
+def toggle_fullscreen(uid):
     BrowserView.instance.toggle_fullscreen()
 
 
-def evaluate_js(script):
+def evaluate_js(script, uid):
     return BrowserView.instance.evaluate_js(script)

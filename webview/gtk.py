@@ -225,7 +225,7 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
     return uid
 
 
-def destroy_window(uid='master'):
+def destroy_window(uid):
     def _destroy_window():
         try:
             BrowserView.get_instance('uid', uid).close_window()
@@ -235,7 +235,7 @@ def destroy_window(uid='master'):
     GObject.idle_add(_destroy_window)
 
 
-def toggle_fullscreen(uid='master'):
+def toggle_fullscreen(uid):
     def _toggle_fullscreen():
         try:
             BrowserView.get_instance('uid', uid).toggle_fullscreen()
@@ -245,14 +245,14 @@ def toggle_fullscreen(uid='master'):
     GObject.idle_add(_toggle_fullscreen)
 
 
-def get_current_url(uid='master'):
+def get_current_url(uid):
     try:
         return BrowserView.get_instance('uid', uid).get_current_url()
     except AttributeError:
         return None
 
 
-def load_url(url, uid='master'):
+def load_url(url, uid):
     def _load_url():
         try:
             BrowserView.get_instance('uid', uid).load_url(url)
@@ -262,7 +262,7 @@ def load_url(url, uid='master'):
     GObject.idle_add(_load_url)
 
 
-def load_html(content, base_uri, uid='master'):
+def load_html(content, base_uri, uid):
     def _load_html():
         try:
             BrowserView.get_instance('uid', uid).load_html(content, base_uri)
@@ -276,7 +276,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
-def evaluate_js(script, uid='master'):
+def evaluate_js(script, uid):
     try:
         return BrowserView.get_instance('uid', uid).evaluate_js(script)
     except AttributeError:

@@ -481,42 +481,42 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
-def load_url(url, uid='master'):
+def load_url(url, uid):
     try:
         BrowserView.get_instance('uid', uid).load_url(url)
     except AttributeError:
         pass
 
 
-def load_html(content, base_uri, uid='master'):
+def load_html(content, base_uri, uid):
     try:
         BrowserView.get_instance('uid', uid).load_html(content, base_uri)
     except AttributeError:
         pass
 
 
-def destroy_window(uid='master'):
+def destroy_window(uid):
     try:
         BrowserView.get_instance('uid', uid).destroy()
     except AttributeError:
         pass
 
 
-def toggle_fullscreen(uid='master'):
+def toggle_fullscreen(uid):
     try:
         BrowserView.get_instance('uid', uid).toggle_fullscreen()
     except AttributeError:
         pass
 
 
-def get_current_url(uid='master'):
+def get_current_url(uid):
     try:
         return BrowserView.get_instance('uid', uid).get_current_url()
     except AttributeError:
         pass
 
 
-def evaluate_js(script, uid='master'):
+def evaluate_js(script, uid):
     try:
         return BrowserView.get_instance('uid', uid).evaluate_js(script)
     except AttributeError:

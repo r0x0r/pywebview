@@ -136,29 +136,31 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def load_url(url):
+def load_url(url, uid='master'):
     """
     Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is
     created with create_window(). Otherwise an exception is thrown.
     :param url: url to load
+    :param uid: uid of the target instance
     """
     try:
         _webview_ready.wait(5)
-        gui.load_url(url)
+        gui.load_url(url, uid)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def load_html(content, base_uri=""):
+def load_html(content, base_uri='', uid='master'):
     """
     Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
     created with create_window(). Otherwise an exception is thrown.
     :param content: Content to load.
     :param base_uri: Base URI for resolving links. Default is "".
+    :param uid: uid of the target instance
     """
     try:
         _webview_ready.wait(5)
-        gui.load_html(_make_unicode(content), base_uri)
+        gui.load_html(_make_unicode(content), base_uri, uid)
     except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
 
@@ -201,48 +203,52 @@ def create_window(title, url=None, width=800, height=600,
                       background_color, _webview_ready)
 
 
-def get_current_url():
+def get_current_url(uid='master'):
     """
     Get a current URL
+    :param uid: uid of the target instance
     """
     try:
         _webview_ready.wait(5)
-        return gui.get_current_url()
+        return gui.get_current_url(uid)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def destroy_window():
+def destroy_window(uid='master'):
     """
     Destroy a web view window
+    :param uid: uid of the target instance
     """
     try:
         _webview_ready.wait(5)
-        gui.destroy_window()
+        gui.destroy_window(uid)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def toggle_fullscreen():
+def toggle_fullscreen(uid='master'):
     """
     Toggle fullscreen mode
+    :param uid: uid of the target instance
     """
     try:
         _webview_ready.wait(5)
-        gui.toggle_fullscreen()
+        gui.toggle_fullscreen(uid)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def evaluate_js(script):
+def evaluate_js(script, uid='master'):
     """
     Evaluate given JavaScript code and return the result
     :param script: The JavaScript code to be evaluated
+    :param uid: uid of the target instance
     :return: Return value of the evaluated code
     """
     try:
         _webview_ready.wait(5)
-        return gui.evaluate_js(script)
+        return gui.evaluate_js(script, uid)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 
