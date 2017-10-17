@@ -21,7 +21,6 @@ from gi.repository import Gtk as gtk
 from gi.repository import Gdk
 from gi.repository import GLib as glib
 from gi.repository import WebKit as webkit
-from gi.repository import GObject
 
 class BrowserView:
     instance = None
@@ -34,7 +33,7 @@ class BrowserView:
         self.is_fullscreen = False
         self._js_result_semaphore = threading.Semaphore(0)
 
-        GObject.threads_init()
+        glib.threads_init()
         window = gtk.Window(title=title)
 
         if resizable:
@@ -166,10 +165,10 @@ class BrowserView:
         return uri
 
     def load_url(self, url):
-        glib.idle_add(self.webview.load_uri, url)
+        self.webview.load_uri(url)
 
     def load_html(self, content, base_uri):
-        glib.idle_add(self.webview.load_string, content, 'text/html', 'utf-8', base_uri)
+        self.webview.load_string(content, 'text/html', 'utf-8', base_uri)
 
     def evaluate_js(self, script):
         def _evaluate_js():
@@ -201,13 +200,13 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
 def destroy_window():
     def _destroy_window():
         BrowserView.instance.close_window()
-    GObject.idle_add(_destroy_window)
+    glib.idle_add(_destroy_window)
 
 
 def toggle_fullscreen():
     def _toggle_fullscreen():
-            BrowserView.instance.toggle_fullscreen()
-    GObject.idle_add(_toggle_fullscreen)
+        BrowserView.instance.toggle_fullscreen()
+    glib.idle_add(_toggle_fullscreen)
 
 
 def get_current_url():
@@ -217,17 +216,27 @@ def get_current_url():
 def load_url(url):
     def _load_url():
         BrowserView.instance.load_url(url)
-    GObject.idle_add(_load_url)
+    glib.idle_add(_load_url)
 
 
 def load_html(content, base_uri):
     def _load_html():
         BrowserView.instance.load_html(content, base_uri)
-    GObject.idle_add(_load_html)
+    glib.idle_add(_load_html)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    file_name_semaphore = threading.Semaphore(0)
+    file_name = []
+
+    def _create():
+        file_name.append(BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename))
+        file_name_semaphore.release()
+
+    glib.idle_add(_create)
+    file_name_semaphore.acquire()
+
+    return file_name[0]
 
 
 def evaluate_js(script):
