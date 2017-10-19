@@ -248,12 +248,7 @@ class BrowserView:
     def evaluate_js(self, script):
         def _evaluate_js():
             document = self.browser.web_browser.Document
-            script_element = document.CreateElement('script')
-            function_name = 'invoke' + uuid1().hex
-            code = 'function {0}() {{return eval("{1}")}}'.format(function_name, _escape_string(script))
-            script_element.InnerText = code
-            document.Body.AppendChild(script_element)
-            self._js_result = document.InvokeScript(function_name)
+            self._js_result = document.InvokeScript('eval', (script,))
             self._js_result_semaphor.release()
 
         if self.browser.web_browser.InvokeRequired:
