@@ -22,7 +22,7 @@ from System import IntPtr, Int32, Func, Type
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator
 
-from webview import _escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
