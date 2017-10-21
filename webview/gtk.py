@@ -227,16 +227,21 @@ def load_html(content, base_uri):
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     file_name_semaphore = threading.Semaphore(0)
-    file_name = []
+    file_names = []
 
     def _create():
-        file_name.append(BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename))
+        result = BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+        if result is None:
+            file_names.append(None)
+        else:
+            file_names.append(tuple(result))
+        
         file_name_semaphore.release()
 
     glib.idle_add(_create)
     file_name_semaphore.acquire()
 
-    return file_name[0]
+    return file_names[0]
 
 
 def evaluate_js(script):
