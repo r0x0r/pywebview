@@ -197,17 +197,17 @@ class BrowserView(QMainWindow):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename)
         self._file_name_semaphor.acquire()
 
-        if dialog_type == FOLDER_DIALOG or not allow_multiple:
-            return str(self._file_name)
-        elif allow_multiple:
-            file_names = map(str, self._file_name)
-
-            if len(file_names) == 1:
-                return file_names[0]
-            else:
-                return file_names
+        if dialog_type == FOLDER_DIALOG:
+            file_names = (self._file_name,)
+        elif dialog_type == SAVE_DIALOG or not allow_multiple:
+            file_names = (self._file_name[0],)
         else:
+            file_names = tuple(self._file_name[0])
+
+        if not file_names or not file_names[0]:
             return None
+        else:
+            return file_names
 
     def destroy_(self):
         self.destroy_trigger.emit()
