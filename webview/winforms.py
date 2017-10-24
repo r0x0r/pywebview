@@ -16,6 +16,7 @@ from ctypes import windll
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
 import clr
+
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Threading')
 clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
@@ -25,7 +26,6 @@ from System import IntPtr, Int32, Func, Type #, EventHandler
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator
 from WebBrowserInterop import IWebBrowserInterop
-
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview import _parse_file_type, _parse_api_js, _js_bridge_call
@@ -38,7 +38,6 @@ logger = logging.getLogger(__name__)
 
 
 class BrowserView:
-
     class JSBridge(IWebBrowserInterop):
         __namespace__ = 'BrowserView.JSBridge'
         api = None
@@ -46,11 +45,17 @@ class BrowserView:
         def call(self, func_name, param):
             return _js_bridge_call(self.api, func_name, param)
 
-    class UIHandler:
+
+    class UIHandler(IDocHostUIHandler):
+        __namespace__ = 'UIHandler'
+
+        def __init__(self, *args, **kwargs):
+            super(BrowserView.UIHandler, self).__init__(self, *args, **kwargs)
+
         def GetHostInfo(self, info):
             print("GetHostInfo")
             info.dwFlags = 0x5a74012
-            info.dwFlags = info.dwFlags | 0x40000000
+            info.dwFlags |= 0x40000000
 
             return True
 
@@ -61,8 +66,9 @@ class BrowserView:
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
             self.BackColor = ColorTranslator.FromHtml(background_color)
-            self.BackColor = ColorTranslator.FromHtml(background_color)
 
+            #self.AutoScaleDimensions = SizeF(96.0, 96.0)
+            #self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
             if not resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
@@ -117,19 +123,12 @@ class BrowserView:
                 self.toggle_fullscreen()
 
         def on_navigate(self, sender, args):
-            document = self.web_browser.Document
-            ui_handler = BrowserView.UIHandler()
             try:
-                p_unknown = Marshal.GetIUnknownForObject(self.web_browser.Document)
-                p_out = IntPtr.op_Explicit(Int32(32))
-                _, _, p_customdoc = Marshal.QueryInterface(p_unknown, Guid('{3050F3F0-98B5-11CF-BB82-00AA00BDCE0B}'), p_out)
-                print('p_custom_doc {0}'.format(p_unknown))
-                print('p_custom_doc {0}'.format(p_customdoc))
-                custom_doc = Marshal.GetObjectForIUnknown(p_customdoc)
-                self.handler = BrowserView.UIHandler()
-                custom_doc.SetUIHandler(self.handler)
+                custom_doc = ICustomDoc(self.web_browser.Document.DomDocument)
+                ui_handler = BrowserView.UIHandler()
+                custom_doc.SetUIHandler(ui_handler)
             except Exception as e:
-                print(e)
+                logger.exception(e)
 
         def on_shown(self, sender, args):
             self.webview_ready.set()
