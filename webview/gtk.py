@@ -4,6 +4,7 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
+import sys
 import threading
 import logging
 from uuid import uuid1
@@ -231,7 +232,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
         if result is None:
             file_names.append(None)
         else:
-            result = map(unicode, result)
+            result = map(unicode, result) if sys.version < '3' else result
             file_names.append(tuple(result))
         
         file_name_semaphore.release()
