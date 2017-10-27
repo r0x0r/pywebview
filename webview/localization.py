@@ -2,6 +2,7 @@
 
 localization = {
     "global.quitConfirmation": u"Do you really want to quit?",
+    "global.ok": u"OK",
     "global.quit": u"Quit",
     "global.cancel": u"Cancel",
     "global.saveFile": u"Save file",

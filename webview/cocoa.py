@@ -30,22 +30,12 @@ class BrowserView:
             BrowserView.instance.webview_ready.set()
 
     class WindowDelegate(AppKit.NSObject):
-        def display_confirmation_dialog(self):
-            AppKit.NSApplication.sharedApplication()
-            AppKit.NSRunningApplication.currentApplication().activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
-            alert = AppKit.NSAlert.alloc().init()
-            alert.addButtonWithTitle_(localization["global.quit"])
-            alert.addButtonWithTitle_(localization["global.cancel"])
-            alert.setMessageText_(localization["global.quitConfirmation"])
-            alert.setAlertStyle_(AppKit.NSWarningAlertStyle)
-
-            if alert.runModal() == AppKit.NSAlertFirstButtonReturn:
-                return True
-            else:
-                return False
-
         def windowShouldClose_(self, notification):
-            if not _confirm_quit or self.display_confirmation_dialog():
+            quit = localization["global.quit"]
+            cancel = localization["global.cancel"]
+            msg = localization["global.quitConfirmation"]
+
+            if not _confirm_quit or BrowserView.display_confirmation_dialog(quit, cancel, msg):
                 return Foundation.YES
             else:
                 return Foundation.NO
@@ -63,6 +53,16 @@ class BrowserView:
             alert = AppKit.NSAlert.alloc().init()
             alert.setInformativeText_(message)
             alert.runModal()
+
+        # Display a JavaScript confirm panel containing the specified message
+        def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
+            ok = localization["global.ok"]
+            cancel = localization["global.cancel"]
+
+            if BrowserView.display_confirmation_dialog(ok, cancel, message):
+                return Foundation.YES
+            else:
+                return Foundation.NO
 
         # Display an open panel for <input type="file"> element
         def webView_runOpenPanelForFileButtonWithResultListener_allowMultipleFiles_(self, webview, listener, allow_multiple):
@@ -427,6 +427,21 @@ class BrowserView:
         rgb = [i / 255.0 for i in rgb]      # Normalize to range(0.0, 1.0)
 
         return AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(rgb[0], rgb[1], rgb[2], 1.0)
+
+    @staticmethod
+    def display_confirmation_dialog(first_button, second_button, message):
+        AppKit.NSApplication.sharedApplication()
+        AppKit.NSRunningApplication.currentApplication().activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
+        alert = AppKit.NSAlert.alloc().init()
+        alert.addButtonWithTitle_(first_button)
+        alert.addButtonWithTitle_(second_button)
+        alert.setMessageText_(message)
+        alert.setAlertStyle_(AppKit.NSWarningAlertStyle)
+
+        if alert.runModal() == AppKit.NSAlertFirstButtonReturn:
+            return True
+        else:
+            return False
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
