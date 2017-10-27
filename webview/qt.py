@@ -60,6 +60,8 @@ if _import_error:
 
 class BrowserView(QMainWindow):
     instance = None
+    running = False
+
     load_url_trigger = QtCore.pyqtSignal(str)
     html_trigger = QtCore.pyqtSignal(str, str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str)
@@ -122,6 +124,7 @@ class BrowserView(QMainWindow):
         self.activateWindow()
         self.raise_()
         webview_ready.set()
+        BrowserView.running = True
 
     def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if dialog_type == FOLDER_DIALOG:
@@ -154,12 +157,12 @@ class BrowserView(QMainWindow):
             reply = QMessageBox.question(self, self.title, localization['global.quitConfirmation'],
                                          QMessageBox.Yes, QMessageBox.No)
 
-            if reply == QMessageBox.Yes:
-                event.accept()
-            else:
+            if reply == QMessageBox.NO:
                 event.ignore()
-        else:
-            event.accept()
+                return
+
+        event.accept()
+        BrowserView.running = False
 
     def on_destroy_window(self):
         self.close()
@@ -275,3 +278,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 
 def evaluate_js(script):
     return BrowserView.instance.evaluate_js(script)
+
+
+def is_running():
+    return BrowserView.running
