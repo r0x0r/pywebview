@@ -214,7 +214,8 @@ class BrowserView(QMainWindow):
             else:
                 file_names = tuple([self._convert_string(s) for s in self._file_name])
 
-        if len(file_names) == 0:
+        # Check if we got an empty tuple, or a tuple with empty string
+        if len(file_names) == 0 or len(file_names[0]) == 0:
             return None
         else:
             return file_names
