@@ -24,10 +24,10 @@ setup(
     author_email="roman@flowrl.com",
     description=("A cross-platform lightweight native wrapper around a web view component"),
     url="http://github.com/r0x0r/pywebview",
-    download_url="https://github.com/r0x0r/pywebview/archive/1.7.tar.gz",
+    download_url="https://github.com/r0x0r/pywebview/archive/1.8.tar.gz",
     keywords=["gui", "webkit", "html", "web"],
     extras_require=extras_require,
-    version="1.7",
+    version="1.8",
     packages=["webview",],
     license="New BSD license",
     classifiers=[
