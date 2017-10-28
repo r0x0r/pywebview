@@ -3,6 +3,19 @@
 
 # Changelog
 
+## 1.8
+Released 29/10/2017
+- pywebview has an official logo
+- @shivaprsdv is now an official maintainer of the project
+- `New` [All] Add an ability to run Javascript code using `evaluate_js` function
+- `Fix` [Cocoa] Implement missing webview components (file input dialog, alert()/confirm() JS functions)
+- `Fix` [Winforms] Fix issue with non-responsive UI when a loading screen background color is used
+- `Fix` [Winforms] Add support for Del and Ctrl+A keys in input elements.
+- `New` [QT] QT5 is now prefererred over QT4
+- `Fix` [QT] Fix return parameters of `create_file_dialog` to have the same format as on other platforms
+- `Fix` [GTK] Better threading model. Thanks to @jorants #121
+
+
 ## 1.7
 Released 08/06/2017
 - `New` [All] Add a basic test suite and continuous integration. #88
