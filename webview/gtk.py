@@ -4,6 +4,7 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
+import sys
 import threading
 import logging
 from uuid import uuid1
@@ -149,10 +150,7 @@ class BrowserView:
         response = dialog.run()
 
         if response == gtk.ResponseType.OK:
-            if not allow_multiple or len(dialog.get_filenames()) == 1:
-                file_name = dialog.get_filename()
-            else:
-                file_name = dialog.get_filenames()
+            file_name = dialog.get_filenames()
         else:
             file_name = None
 
@@ -234,6 +232,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
         if result is None:
             file_names.append(None)
         else:
+            result = map(unicode, result) if sys.version < '3' else result
             file_names.append(tuple(result))
         
         file_name_semaphore.release()

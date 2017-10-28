@@ -31,13 +31,13 @@ try:
     from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox
     from PyQt5.QtGui import QColor
 
+    _qt_version = 5
     logger.debug('Using Qt5')
 except ImportError as e:
-    logger.exception('PyQt5 is not found')
+    logger.exception('PyQt5 or one of dependencies is not found')
     _import_error = True
 else:
     _import_error = False
-
 
 if _import_error:
     # Try importing Qt4 modules
@@ -46,9 +46,10 @@ if _import_error:
         from PyQt4.QtWebKit import QWebView
         from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
+        _qt_version = 4
         logger.debug('Using Qt4')
     except ImportError as e:
-        logger.warn('PyQt4 is not found')
+        logger.warn('PyQt4 or one of dependencies is not found')
         _import_error = True
     else:
         _import_error = False
@@ -197,17 +198,27 @@ class BrowserView(QMainWindow):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename)
         self._file_name_semaphor.acquire()
 
-        if dialog_type == FOLDER_DIALOG or not allow_multiple:
-            return str(self._file_name)
-        elif allow_multiple:
-            file_names = map(str, self._file_name)
-
-            if len(file_names) == 1:
-                return file_names[0]
+        if _qt_version == 5:  # QT5
+            if dialog_type == FOLDER_DIALOG:
+                file_names = (self._file_name,)
+            elif dialog_type == SAVE_DIALOG or not allow_multiple:
+                file_names = (self._file_name[0],)
             else:
-                return file_names
-        else:
+                file_names = tuple(self._file_name[0])
+
+        else:  # QT4
+            if dialog_type == FOLDER_DIALOG:
+                file_names = (self._convert_string(self._file_name),)
+            elif dialog_type == SAVE_DIALOG or not allow_multiple:
+                file_names = (self._convert_string(self._file_name[0]),)
+            else:
+                file_names = tuple([self._convert_string(s) for s in self._file_name])
+
+        # Check if we got an empty tuple, or a tuple with empty string
+        if len(file_names) == 0 or len(file_names[0]) == 0:
             return None
+        else:
+            return file_names
 
     def destroy_(self):
         self.destroy_trigger.emit()
@@ -220,6 +231,12 @@ class BrowserView(QMainWindow):
         self._evaluate_js_semaphor.acquire()
 
         return self._evaluate_js_result
+
+    def _convert_string(self, qstring):
+        if sys.version < '3':
+            return unicode(qstring)
+        else:
+            return str(qstring)
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
