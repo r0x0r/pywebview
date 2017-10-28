@@ -5,7 +5,7 @@
 
 ## 1.8
 Released 29/10/2017
-- pywebview has an official logo
+- pywebview has the official logo
 - @shivaprsdv is now an official maintainer of the project
 - `New` [All] Add an ability to run Javascript code using `evaluate_js` function
 - `Fix` [Cocoa] Implement missing webview components (file input dialog, alert()/confirm() JS functions)
