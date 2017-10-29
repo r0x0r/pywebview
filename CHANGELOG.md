@@ -8,7 +8,6 @@ Released 29/10/2017
 - pywebview has the official logo
 - @shivaprsdv is now an official maintainer of the project
 - `New` [All] Add an ability to run Javascript code using `evaluate_js` function
-- `New` [Cocoa] Debug mode (an ability to open a web inspector inside a pywebview window). Use `debug=True` in `create_window`
 - `Fix` [Cocoa] Implement missing webview components (file input dialog, alert()/confirm() JS functions)
 - `Fix` [Winforms] Fix issue with non-responsive UI when a loading screen background color is used
 - `Fix` [Winforms] Add support for Del and Ctrl+A keys in input elements.
