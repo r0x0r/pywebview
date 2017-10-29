@@ -58,7 +58,7 @@ if _import_error:
 
 
 class BrowserView(QMainWindow):
-    instances = []
+    instances = {}
 
     create_window_trigger = QtCore.pyqtSignal(object)
     load_url_trigger = QtCore.pyqtSignal(str)
@@ -72,7 +72,7 @@ class BrowserView(QMainWindow):
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, webview_ready):
         super(BrowserView, self).__init__()
-        BrowserView.instances.append(self)
+        BrowserView.instances[uid] = self
         self.uid = uid
 
         self.is_fullscreen = False
@@ -163,7 +163,7 @@ class BrowserView(QMainWindow):
                 return
 
         event.accept()
-        BrowserView.instances.remove(self)
+        del BrowserView.instances[self.uid]
 
     def on_destroy_window(self):
         self.close()
@@ -231,17 +231,6 @@ class BrowserView(QMainWindow):
     def on_create_window(func):
         func()
 
-    @staticmethod
-    def get_instance(attr, value):
-        for i in BrowserView.instances:
-            try:
-                if getattr(i, attr) == value:
-                    return i
-            except AttributeError:
-                break
-
-        return none
-
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
@@ -256,50 +245,52 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         _create()
         app.exec_()
     else:
-        BrowserView.instances[0].create_window_trigger.emit(_create)
+        i = list(BrowserView.instances.values())[0]     # arbitary instance
+        i.create_window_trigger.emit(_create)
 
 
 def get_current_url(uid):
     try:
-        return BrowserView.get_instance('uid', uid).get_current_url()
-    except AttributeError:
+        return BrowserView.instances[uid].get_current_url()
+    except KeyError:
         pass
 
 
 def load_url(url, uid):
     try:
-        BrowserView.get_instance('uid', uid).load_url(url)
-    except AttributeError:
+        BrowserView.instances[uid].load_url(url)
+    except KeyError:
         pass
 
 
 def load_html(content, base_uri, uid):
     try:
-        BrowserView.get_instance('uid', uid).load_html(content, base_uri)
-    except AttributeError:
+        BrowserView.instances[uid].load_html(content, base_uri)
+    except KeyError:
         pass
 
 
 def destroy_window(uid):
     try:
-        BrowserView.get_instance('uid', uid).destroy_()
-    except AttributeError:
+        BrowserView.instances[uid].destroy_()
+    except KeyError:
         pass
 
 
 def toggle_fullscreen(uid):
     try:
-        BrowserView.get_instance('uid', uid).toggle_fullscreen()
-    except AttributeError:
+        BrowserView.instances[uid].toggle_fullscreen()
+    except KeyError:
         pass
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    i = list(BrowserView.instances.values())[0]
+    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
 def evaluate_js(script, uid):
     try:
-        return BrowserView.get_instance('uid', uid).evaluate_js(script)
-    except AttributeError:
+        return BrowserView.instances[uid].evaluate_js(script)
+    except KeyError:
         pass

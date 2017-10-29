@@ -22,12 +22,13 @@ info["NSAppTransportSecurity"] = {"NSAllowsArbitraryLoads": Foundation.YES}
 
 
 class BrowserView:
-    instances = []
+    instances = {}
     app = AppKit.NSApplication.sharedApplication()
 
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
-            BrowserView.instances[0].webview_ready.set()
+            i = list(BrowserView.instances.values())[0]
+            i.webview_ready.set()
 
         def applicationShouldTerminateAfterLastWindowClosed_(self, sender):
             return Foundation.YES
@@ -57,7 +58,7 @@ class BrowserView:
         def windowWillClose_(self, notification):
             # Delete the closed instance from the list
             i = BrowserView.get_instance('window', notification.object())
-            BrowserView.instances.remove(i)
+            del BrowserView.instances[i.uid]
 
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
@@ -72,7 +73,8 @@ class BrowserView:
 
         # Display an open panel for <input type="file"> element
         def webView_runOpenPanelForFileButtonWithResultListener_allowMultipleFiles_(self, webview, listener, allow_multiple):
-            files = BrowserView.instances[0].create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', main_thread=True)
+            i = list(BrowserView.instances.values())[0]
+            files = i.create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', main_thread=True)
 
             if files:
                 listener.chooseFilenames_(files)
@@ -187,7 +189,7 @@ class BrowserView:
                     return handled
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, webview_ready):
-        BrowserView.instances.append(self)
+        BrowserView.instances[uid] = self
         self.uid = uid
 
         self._file_name = None
@@ -448,7 +450,7 @@ class BrowserView:
         Return a BrowserView instance by the :value of its given :attribute,
         and None if no match is found.
         """
-        for i in BrowserView.instances:
+        for i in list(BrowserView.instances.values()):
             try:
                 if getattr(i, attr) == value:
                     return i
@@ -473,46 +475,47 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    i = list(BrowserView.instances.values())[0]     # arbitary instance
+    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
 def load_url(url, uid):
     try:
-        BrowserView.get_instance('uid', uid).load_url(url)
-    except AttributeError:
+        BrowserView.instances[uid].load_url(url)
+    except KeyError:
         pass
 
 
 def load_html(content, base_uri, uid):
     try:
-        BrowserView.get_instance('uid', uid).load_html(content, base_uri)
-    except AttributeError:
+        BrowserView.instances[uid].load_html(content, base_uri)
+    except KeyError:
         pass
 
 
 def destroy_window(uid):
     try:
-        BrowserView.get_instance('uid', uid).destroy()
-    except AttributeError:
+        BrowserView.instances[uid].destroy()
+    except KeyError:
         pass
 
 
 def toggle_fullscreen(uid):
     try:
-        BrowserView.get_instance('uid', uid).toggle_fullscreen()
-    except AttributeError:
+        BrowserView.instances[uid].toggle_fullscreen()
+    except KeyError:
         pass
 
 
 def get_current_url(uid):
     try:
-        return BrowserView.get_instance('uid', uid).get_current_url()
-    except AttributeError:
+        return BrowserView.instances[uid].get_current_url()
+    except KeyError:
         pass
 
 
 def evaluate_js(script, uid):
     try:
-        return BrowserView.get_instance('uid', uid).evaluate_js(script)
-    except AttributeError:
+        return BrowserView.instances[uid].evaluate_js(script)
+    except KeyError:
         pass
