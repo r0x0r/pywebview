@@ -4,6 +4,7 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
+import sys
 import threading
 import logging
 from uuid import uuid1
@@ -21,7 +22,6 @@ from gi.repository import Gtk as gtk
 from gi.repository import Gdk
 from gi.repository import GLib as glib
 from gi.repository import WebKit as webkit
-from gi.repository import GObject
 
 class BrowserView:
     instances = {}
@@ -35,7 +35,7 @@ class BrowserView:
         self.is_fullscreen = False
         self._js_result_semaphore = threading.Semaphore(0)
 
-        GObject.threads_init()
+        glib.threads_init()
         window = gtk.Window(title=title)
 
         if resizable:
@@ -157,10 +157,7 @@ class BrowserView:
         response = dialog.run()
 
         if response == gtk.ResponseType.OK:
-            if not allow_multiple or len(dialog.get_filenames()) == 1:
-                file_name = dialog.get_filename()
-            else:
-                file_name = dialog.get_filenames()
+            file_name = dialog.get_filenames()
         else:
             file_name = None
 
@@ -173,10 +170,10 @@ class BrowserView:
         return uri
 
     def load_url(self, url):
-        glib.idle_add(self.webview.load_uri, url)
+        self.webview.load_uri(url)
 
     def load_html(self, content, base_uri):
-        glib.idle_add(self.webview.load_string, content, 'text/html', 'utf-8', base_uri)
+        self.webview.load_string(content, 'text/html', 'utf-8', base_uri)
 
     def evaluate_js(self, script):
         def _evaluate_js():
@@ -213,15 +210,13 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
 def destroy_window(uid):
     def _destroy_window():
         BrowserView.instances[uid].close_window()
-
-    GObject.idle_add(_destroy_window)
+    glib.idle_add(_destroy_window)
 
 
 def toggle_fullscreen(uid):
     def _toggle_fullscreen():
         BrowserView.instances[uid].toggle_fullscreen()
-
-    GObject.idle_add(_toggle_fullscreen)
+    glib.idle_add(_toggle_fullscreen)
 
 
 def get_current_url(uid):
@@ -231,20 +226,34 @@ def get_current_url(uid):
 def load_url(url, uid):
     def _load_url():
         BrowserView.instances[uid].load_url(url)
-
-    GObject.idle_add(_load_url)
+    glib.idle_add(_load_url)
 
 
 def load_html(content, base_uri, uid):
     def _load_html():
         BrowserView.instances[uid].load_html(content, base_uri)
-
-    GObject.idle_add(_load_html)
+    glib.idle_add(_load_html)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     i = list(BrowserView.instances.values())[0]     # arbitary instance
-    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    file_name_semaphore = threading.Semaphore(0)
+    file_names = []
+
+    def _create():
+        result = i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+        if result is None:
+            file_names.append(None)
+        else:
+            result = map(unicode, result) if sys.version < '3' else result
+            file_names.append(tuple(result))
+
+        file_name_semaphore.release()
+
+    glib.idle_add(_create)
+    file_name_semaphore.acquire()
+
+    return file_names[0]
 
 
 def evaluate_js(script, uid):
