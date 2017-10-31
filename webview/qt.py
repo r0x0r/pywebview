@@ -250,38 +250,23 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
 
 
 def get_current_url(uid):
-    try:
-        return BrowserView.instances[uid].get_current_url()
-    except KeyError:
-        pass
+    return BrowserView.instances[uid].get_current_url()
 
 
 def load_url(url, uid):
-    try:
-        BrowserView.instances[uid].load_url(url)
-    except KeyError:
-        pass
+    BrowserView.instances[uid].load_url(url)
 
 
 def load_html(content, base_uri, uid):
-    try:
-        BrowserView.instances[uid].load_html(content, base_uri)
-    except KeyError:
-        pass
+    BrowserView.instances[uid].load_html(content, base_uri)
 
 
 def destroy_window(uid):
-    try:
-        BrowserView.instances[uid].destroy_()
-    except KeyError:
-        pass
+    BrowserView.instances[uid].destroy_()
 
 
 def toggle_fullscreen(uid):
-    try:
-        BrowserView.instances[uid].toggle_fullscreen()
-    except KeyError:
-        pass
+    BrowserView.instances[uid].toggle_fullscreen()
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
@@ -290,7 +275,4 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 
 
 def evaluate_js(script, uid):
-    try:
-        return BrowserView.instances[uid].evaluate_js(script)
-    except KeyError:
-        pass
+    return BrowserView.instances[uid].evaluate_js(script)

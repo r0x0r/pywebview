@@ -212,47 +212,32 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
 
 def destroy_window(uid):
     def _destroy_window():
-        try:
-            BrowserView.instances[uid].close_window()
-        except KeyError:
-            pass
+        BrowserView.instances[uid].close_window()
 
     GObject.idle_add(_destroy_window)
 
 
 def toggle_fullscreen(uid):
     def _toggle_fullscreen():
-        try:
-            BrowserView.instances[uid].toggle_fullscreen()
-        except KeyError:
-            pass
+        BrowserView.instances[uid].toggle_fullscreen()
 
     GObject.idle_add(_toggle_fullscreen)
 
 
 def get_current_url(uid):
-    try:
-        return BrowserView.instances[uid].get_current_url()
-    except KeyError:
-        return None
+    return BrowserView.instances[uid].get_current_url()
 
 
 def load_url(url, uid):
     def _load_url():
-        try:
-            BrowserView.instances[uid].load_url(url)
-        except KeyError:
-            pass
+        BrowserView.instances[uid].load_url(url)
 
     GObject.idle_add(_load_url)
 
 
 def load_html(content, base_uri, uid):
     def _load_html():
-        try:
-            BrowserView.instances[uid].load_html(content, base_uri)
-        except KeyError:
-            pass
+        BrowserView.instances[uid].load_html(content, base_uri)
 
     GObject.idle_add(_load_html)
 
@@ -263,7 +248,4 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 
 
 def evaluate_js(script, uid):
-    try:
-        return BrowserView.instances[uid].evaluate_js(script)
-    except KeyError:
-        return None
+    return BrowserView.instances[uid].evaluate_js(script)

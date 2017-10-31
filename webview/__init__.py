@@ -135,6 +135,8 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
         return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
     except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
+    except KeyError:
+        raise Exception("Cannot call function: No webview exists with uid: {}".format(uid))
 
 
 def load_url(url, uid='master'):
@@ -149,6 +151,8 @@ def load_url(url, uid='master'):
         gui.load_url(url, uid)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+    except KeyError:
+        raise Exception("Cannot call function: No webview exists with uid: {}".format(uid))
 
 
 def load_html(content, base_uri='', uid='master'):
@@ -164,6 +168,8 @@ def load_html(content, base_uri='', uid='master'):
         gui.load_html(_make_unicode(content), base_uri, uid)
     except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
+    except KeyError:
+        raise Exception("Cannot call function: No webview exists with uid: {}".format(uid))
 
 
 def create_window(title, url=None, width=800, height=600,
@@ -217,6 +223,8 @@ def get_current_url(uid='master'):
         return gui.get_current_url(uid)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+    except KeyError:
+        raise Exception("Cannot call function: No webview exists with uid: {}".format(uid))
 
 
 def destroy_window(uid='master'):
@@ -229,6 +237,8 @@ def destroy_window(uid='master'):
         gui.destroy_window(uid)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+    except KeyError:
+        raise Exception("Cannot call function: No webview exists with uid: {}".format(uid))
 
 
 def toggle_fullscreen(uid='master'):
@@ -241,6 +251,8 @@ def toggle_fullscreen(uid='master'):
         gui.toggle_fullscreen(uid)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+    except KeyError:
+        raise Exception("Cannot call function: No webview exists with uid: {}".format(uid))
 
 
 def evaluate_js(script, uid='master'):
@@ -255,6 +267,8 @@ def evaluate_js(script, uid='master'):
         return gui.evaluate_js(script, uid)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+    except KeyError:
+        raise Exception("Cannot call function: No webview exists with uid: {}".format(uid))
 
 
 def _escape_string(string):
