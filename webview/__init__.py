@@ -190,7 +190,7 @@ def create_window(title, url=None, width=800, height=600,
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :return:
     """
-    uid = 'webview' + uuid4().hex
+    uid = 'child_' + uuid4().hex[:8]
 
     valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
     if not re.match(valid_color, background_color):
@@ -269,6 +269,19 @@ def evaluate_js(script, uid='master'):
         raise Exception("Create a web view window first, before invoking this function")
     except KeyError:
         raise Exception("Cannot call function: No webview exists with uid: {}".format(uid))
+
+
+def window_exists(uid='master'):
+    """
+    Check whether a webview with the given UID is up and running
+    :param uid: uid of the target instance
+    :return: True if the window exists, False otherwise
+    """
+    try:
+        get_current_url(uid)
+        return True
+    except:
+        return False
 
 
 def _escape_string(string):
