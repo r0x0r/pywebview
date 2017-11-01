@@ -178,6 +178,7 @@ class BrowserView:
 
     def destroy(self):
         self.browser.Close()
+        self._js_result_semaphor.release()
 
     def get_current_url(self):
         return self.browser.web_browser.Url.AbsoluteUri
@@ -295,3 +296,7 @@ def destroy_window():
 
 def evaluate_js(script):
     return BrowserView.instance.evaluate_js(script)
+
+
+def is_running():
+    return not BrowserView.instance.browser.IsDisposed
