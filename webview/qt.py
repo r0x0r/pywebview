@@ -64,7 +64,7 @@ class BrowserView(QMainWindow):
 
     load_url_trigger = QtCore.pyqtSignal(str)
     html_trigger = QtCore.pyqtSignal(str, str)
-    dialog_trigger = QtCore.pyqtSignal(int, str, bool, str)
+    dialog_trigger = QtCore.pyqtSignal(int, str, bool, str, str)
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
@@ -126,14 +126,14 @@ class BrowserView(QMainWindow):
         webview_ready.set()
         BrowserView.running = True
 
-    def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
+    def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         if dialog_type == FOLDER_DIALOG:
             self._file_name = QFileDialog.getExistingDirectory(self, localization['linux.openFolder'], options=QFileDialog.ShowDirsOnly)
         elif dialog_type == OPEN_DIALOG:
             if allow_multiple:
-                self._file_name = QFileDialog.getOpenFileNames(self, localization['linux.openFiles'], directory)
+                self._file_name = QFileDialog.getOpenFileNames(self, localization['linux.openFiles'], directory, file_filter)
             else:
-                self._file_name = QFileDialog.getOpenFileName(self, localization['linux.openFile'], directory)
+                self._file_name = QFileDialog.getOpenFileName(self, localization['linux.openFile'], directory, file_filter)
         elif dialog_type == SAVE_DIALOG:
             if directory:
                 save_filename = os.path.join(str(directory), str(save_filename))
@@ -197,8 +197,8 @@ class BrowserView(QMainWindow):
     def load_html(self, content, base_uri):
         self.html_trigger.emit(content, base_uri)
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
-        self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename)
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
+        self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
         self._file_name_semaphor.acquire()
 
         if _qt_version == 5:  # QT5
@@ -273,7 +273,11 @@ def toggle_fullscreen():
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    # Create a file filter by parsing allowed file types
+    file_types = [s.replace(';', ' ') for s in file_types]
+    file_filter = ';;'.join(file_types)
+
+    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
 def evaluate_js(script):

@@ -66,7 +66,7 @@ class BrowserView:
 
         # Display an open panel for <input type="file"> element
         def webView_runOpenPanelForFileButtonWithResultListener_allowMultipleFiles_(self, webview, listener, allow_multiple):
-            files = BrowserView.instance.create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', main_thread=True)
+            files = BrowserView.instance.create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', [], main_thread=True)
 
             if files:
                 listener.chooseFilenames_(files)
@@ -281,7 +281,7 @@ class BrowserView:
         self._js_result_semaphor.acquire()
         return self._js_result
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, main_thread=False):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_extensions, main_thread=False):
         def create_dialog(*args):
             dialog_type = args[0]
 
@@ -315,6 +315,10 @@ class BrowserView:
 
                 # Enable / disable multiple selection
                 open_dlg.setAllowsMultipleSelection_(allow_multiple)
+
+                # Set allowed file extensions
+                if file_extensions:
+                    open_dlg.setAllowedFileTypes_(file_extensions)
 
                 if directory:  # set initial directory
                     open_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
@@ -454,7 +458,15 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    file_extensions = []
+
+    # Parse file_types to obtain allowed file extensions
+    for s in file_types:
+        ext = s[s.find('(')+1:s.rfind(')')]
+        if ext != '*' and ext != '*.*':
+            file_extensions += [i.lstrip('*.') for i in ext.split(';')]
+
+    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_extensions)
 
 
 def load_url(url):
