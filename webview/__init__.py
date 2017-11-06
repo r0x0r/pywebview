@@ -123,8 +123,16 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
     :param directory: Initial directory
     :param allow_multiple: Allow multiple selection. Default is false.
     :param save_filename: Default filename for save file dialog.
+    :param file_types: Allowed file types in open file dialog. Should be a tuple of strings in the format:
+        filetypes = ('Description (*.extension[;*.extension[;...]])', ...)
     :return:
     """
+    valid_file_filter = r'^[\w ]+\(\*(\.(\w+|\*))*(;\*\.\w+)*\)$'
+    if type(file_types) != tuple and type(file_types) != list:
+        raise TypeError('file_types should be a tuple of strings')
+    for f in file_types:
+        if not re.match(valid_file_filter, f):
+            raise ValueError('{0} is not a valid file filter'.format(f))
 
     if not os.path.exists(directory):
         directory = ''
