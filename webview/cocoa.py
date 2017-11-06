@@ -453,7 +453,7 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
     browser.show()
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 

@@ -115,7 +115,7 @@ def _initialize_imports():
         _initialized = True
 
 
-def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename=''):
+def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=()):
     """
     Create a file dialog
     :param dialog_type: Dialog type: open file (OPEN_DIALOG), save file (SAVE_DIALOG), open folder (OPEN_FOLDER). Default
@@ -132,7 +132,7 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
     try:
         _webview_ready.wait(5)
         assert gui.is_running()
-        return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+        return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
     except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
     except AssertionError:
