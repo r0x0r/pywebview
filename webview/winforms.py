@@ -9,18 +9,23 @@ http://github.com/r0x0r/pywebview/
 
 import os
 import sys
+import json
 import logging
 import threading
-from uuid import uuid1
 from ctypes import windll
+
+base_dir = os.path.dirname(os.path.realpath(__file__))
 
 import clr
 clr.AddReference("System.Windows.Forms")
 clr.AddReference("System.Threading")
+clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop'))
 import System.Windows.Forms as WinForms
-from System import IntPtr, Int32, Func, Type
+
+from System import IntPtr, Int32, Func, Type #, EventHandler
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator
+from WebBrowserInterop import IWebBrowserInterop
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.localization import localization
@@ -31,6 +36,20 @@ logger = logging.getLogger(__name__)
 
 
 class BrowserView:
+    api = None
+
+    class JSBridge(IWebBrowserInterop):
+        __namespace__ = 'BrowserView.JSBridge'
+
+        def call(self, func_name, param):
+            function = getattr(BrowserView.api, func_name, None)
+            if function is not None:
+                try:
+                    func_params = param if param is None else json.loads(param)
+                    return function(func_params)
+                except Exception as e:
+                    logger.exception('Error occured while evaluating function {0}'.format(func_name))
+
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
                      confirm_quit, background_color, webview_ready):
@@ -56,9 +75,10 @@ class BrowserView:
 
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
-            self.web_browser.ScriptErrorsSuppressed = True
+            self.web_browser.ScriptErrorsSuppressed = False
             self.web_browser.IsWebBrowserContextMenuEnabled = False
             self.web_browser.WebBrowserShortcutsEnabled = False
+            self.web_browser.ObjectForScripting = BrowserView.JSBridge()
 
             # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
             # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
@@ -122,6 +142,10 @@ class BrowserView:
             if self.first_load:
                 self.web_browser.Visible = True
                 self.first_load = False
+                print('hello')
+
+        def on_message(self, sender, args):
+            print('sender: {0}/nargs: {1}/ntest: {2}'.format(sender, args))
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
@@ -138,7 +162,8 @@ class BrowserView:
                 self.WindowState = WinForms.FormWindowState.Maximized
                 self.is_fullscreen = True
 
-                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y, screen.Bounds.Width, screen.Bounds.Height, 64)
+                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y,
+                                           screen.Bounds.Width, screen.Bounds.Height, 64)
             else:
                 self.TopMost = False
                 self.Size = self.old_size
@@ -260,6 +285,14 @@ class BrowserView:
 
         return self._js_result
 
+    def set_api(self, api_object):
+        with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
+            BrowserView.api = api_object
+
+            func_list = str([f for f in dir(api_object) if callable(getattr(api_object, f))])
+            js_code = api_js.read() % func_list
+            BrowserView.instance.evaluate_js(js_code)
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, webview_ready):
@@ -295,3 +328,7 @@ def destroy_window():
 
 def evaluate_js(script):
     return BrowserView.instance.evaluate_js(script)
+
+
+def set_api(api_object):
+    BrowserView.instance.set_api(api_object)

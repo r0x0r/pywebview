@@ -238,6 +238,18 @@ def evaluate_js(script):
         raise Exception("Create a web view window first, before invoking this function")
 
 
+def set_api(api_object):
+    """
+    Set an API object that is exposed to Javascript as window.pywebview.api.
+    :param api_object: An instance of the object to be exposed
+    """
+    try:
+        _webview_ready.wait(5)
+        gui.set_api(api_object)
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
+
+
 def _escape_string(string):
     return string.replace('"', r'\"').replace('\n', r'\n')
 

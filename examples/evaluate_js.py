@@ -12,12 +12,21 @@ def evaluate_js():
     # Change document background color and print document title
     print(webview.evaluate_js(
         """
-        // Turn night mode ON
-        document.body.style.backgroundColor = '#212121';
-        document.body.style.color = '#f2f2f2';
+        window.pywebview = {
+            api: {}
+        }
+        var test = function(funcList) {
+            for (var i = 0; i < funcList.length; i++) {
+                pywebview.api[funcList[i]] = function (params) {
+                    alert(params)
+                    //return window.external.Invoke(funcList[i], params)
+                }
+            }
+        }
 
-        // Return document title
-        document.title;
+        test(['test', 'test2'])
+        pywebview.api.test('1')
+
         """
         )
     )
