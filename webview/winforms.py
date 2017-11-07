@@ -142,10 +142,6 @@ class BrowserView:
             if self.first_load:
                 self.web_browser.Visible = True
                 self.first_load = False
-                print('hello')
-
-        def on_message(self, sender, args):
-            print('sender: {0}/nargs: {1}/ntest: {2}'.format(sender, args))
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
