@@ -238,14 +238,14 @@ def evaluate_js(script):
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def set_js_api(api_object):
+def set_js_api(api_instance):
     """
     Set an API object that is exposed to Javascript as window.pywebview.api.
     :param api_object: An instance of the object to be exposed
     """
     try:
         _webview_ready.wait(5)
-        gui.set_js_api(api_object)
+        gui.set_js_api(api_instance)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 
