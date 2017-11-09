@@ -42,7 +42,7 @@ class BrowserView:
         api = None
 
         def call(self, func_name, param):
-            function = getattr(BrowserView.api, func_name, None)
+            function = getattr(self.api, func_name, None)
             if function is not None:
                 try:
                     func_params = param if param is None else json.loads(param)
@@ -80,7 +80,9 @@ class BrowserView:
             self.web_browser.ScriptErrorsSuppressed = False
             self.web_browser.IsWebBrowserContextMenuEnabled = False
             self.web_browser.WebBrowserShortcutsEnabled = False
-            self.web_browser.ObjectForScripting = BrowserView.JSBridge()
+
+            self.js_bridge = BrowserView.JSBridge()
+            self.web_browser.ObjectForScripting = self.js_bridge
 
             # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
             # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
@@ -285,7 +287,7 @@ class BrowserView:
 
     def set_js_api(self, api_instance):
         with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
-            BrowserView.api = api_instance
+            self.browser.js_bridge.api = api_instance
 
             func_list = str([f for f in dir(api_instance) if callable(getattr(api_instance, f))])
             js_code = api_js.read() % func_list
