@@ -10,10 +10,11 @@ import Foundation
 import AppKit
 import WebKit
 import PyObjCTools.AppHelper
-from objc import nil
+from objc import nil, super
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import _js_bridge_call, _parse_api_js
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -42,6 +43,24 @@ class BrowserView:
 
         def windowWillClose_(self, notification):
             BrowserView.app.stop_(self)
+
+    class JSBridge(AppKit.NSObject):
+        def initWithObject_(self, api_instance):
+            super(BrowserView.JSBridge, self).init()
+            self.api = api_instance
+            return self
+
+        def callFunc_withParam_(self, func_name, param):
+            if param is WebKit.WebUndefined.undefined():
+                param = None
+            return _js_bridge_call(self.api, func_name, param)
+
+        def isSelectorExcludedFromWebScript_(self, selector):
+            return Foundation.NO if selector == 'callFunc:withParam:' else Foundation.YES
+
+        @classmethod
+        def webScriptNameForSelector_(cls, selector):
+            return 'call' if selector == 'callFunc:withParam:' else None
 
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
@@ -139,7 +158,6 @@ class BrowserView:
             if not webview.window():
                 BrowserView.instance.window.setContentView_(webview)
                 BrowserView.instance.window.makeFirstResponder_(webview)
-
 
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
@@ -280,6 +298,14 @@ class BrowserView:
 
         self._js_result_semaphor.acquire()
         return self._js_result
+
+    def set_js_api(self, api_instance):
+        def create_ext_obj():
+            self.webkit.windowScriptObject().setValue_forKey_(self.js_bridge, 'external')
+
+        self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(api_instance)
+        self.evaluate_js(_parse_api_js(api_instance))
+        PyObjCTools.AppHelper.callAfter(create_ext_obj)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, main_thread=False):
         def create_dialog(*args):
@@ -479,3 +505,7 @@ def get_current_url():
 
 def evaluate_js(script):
     return BrowserView.instance.evaluate_js(script)
+
+
+def set_js_api(api_instance):
+    BrowserView.instance.set_js_api(api_instance)
