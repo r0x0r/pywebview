@@ -23,7 +23,7 @@ def create_app():
     webview.load_html("<h1>Serverless application</h1>")
 
     api = Api()
-    webview.set_api(api)
+    webview.set_js_api(api)
     webview.evaluate_js('alert(window.pywebview.api.init())')
 
 

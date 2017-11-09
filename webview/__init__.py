@@ -253,14 +253,14 @@ def evaluate_js(script):
         raise Exception("Cannot call function: the webview has been closed")
 
 
-def set_api(api_object):
+def set_js_api(api_object):
     """
     Set an API object that is exposed to Javascript as window.pywebview.api.
     :param api_object: An instance of the object to be exposed
     """
     try:
         _webview_ready.wait(5)
-        gui.set_api(api_object)
+        gui.set_js_api(api_object)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 

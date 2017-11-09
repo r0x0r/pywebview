@@ -37,10 +37,10 @@ logger = logging.getLogger(__name__)
 
 
 class BrowserView:
-    api = None
 
     class JSBridge(IWebBrowserInterop):
         __namespace__ = 'BrowserView.JSBridge'
+        api = None
 
         def call(self, func_name, param):
             function = getattr(BrowserView.api, func_name, None)
@@ -50,6 +50,8 @@ class BrowserView:
                     return function(func_params)
                 except Exception as e:
                     logger.exception('Error occured while evaluating function {0}'.format(func_name))
+            else:
+                logger.error('Function {}() does not exist'.format(func_name))
 
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
@@ -287,7 +289,7 @@ class BrowserView:
 
         return self._js_result
 
-    def set_api(self, api_object):
+    def set_js_api(self, api_object):
         with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
             BrowserView.api = api_object
 
@@ -336,5 +338,5 @@ def is_running():
     return not BrowserView.instance.browser.IsDisposed
 
 
-def set_api(api_object):
-    BrowserView.instance.set_api(api_object)
+def set_js_api(api_object):
+    BrowserView.instance.set_js_api(api_object)
