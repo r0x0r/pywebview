@@ -289,11 +289,11 @@ class BrowserView:
 
         return self._js_result
 
-    def set_js_api(self, api_object):
+    def set_js_api(self, api_instance):
         with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
-            BrowserView.api = api_object
+            BrowserView.api = api_instance
 
-            func_list = str([f for f in dir(api_object) if callable(getattr(api_object, f))])
+            func_list = str([f for f in dir(api_instance) if callable(getattr(api_instance, f))])
             js_code = api_js.read() % func_list
             BrowserView.instance.evaluate_js(js_code)
 
