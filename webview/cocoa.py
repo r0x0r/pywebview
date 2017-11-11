@@ -300,12 +300,13 @@ class BrowserView:
         return self._js_result
 
     def set_js_api(self, api_instance):
-        def create_ext_obj():
-            self.webkit.windowScriptObject().setValue_forKey_(self.js_bridge, 'external')
+        def create_bridge():
+            pwv_obj = self.webkit.windowScriptObject().valueForKey_('pywebview')
+            pwv_obj.setValue_forKey_(self.js_bridge, '_bridge')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(api_instance)
         self.evaluate_js(_parse_api_js(api_instance))
-        PyObjCTools.AppHelper.callAfter(create_ext_obj)
+        PyObjCTools.AppHelper.callAfter(create_bridge)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, main_thread=False):
         def create_dialog(*args):
