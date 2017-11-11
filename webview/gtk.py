@@ -9,9 +9,14 @@ import threading
 import logging
 from uuid import uuid1
 from webview.localization import localization
+<<<<<<< HEAD
 from webview import _escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview import _parse_file_type
 
+=======
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import _escape_string, _js_bridge_call, _parse_api_js
+>>>>>>> [GTK] Implement basic JS-Python bridge support
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +32,16 @@ from gi.repository import WebKit as webkit
 
 class BrowserView:
     instance = None
+
+    class JSBridge:
+        def __init__(self, api_instance):
+            self.api = api_instance
+            self.uid = uuid1().hex[:8]
+
+        def call(self, func_name, param):
+            if param == 'undefined':
+                param = None
+            return _js_bridge_call(self.api, func_name, param)
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
                  confirm_quit, background_color, debug, webview_ready):
@@ -72,6 +87,7 @@ class BrowserView:
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('document-load-finished', self.on_load_finish)
+        self.webview.connect('status-bar-text-changed', self.on_status_change)
         self.webview.props.settings.props.enable_default_context_menu = False
         self.webview.props.opacity = 0.0
         scrolled_window.add(self.webview)
@@ -109,6 +125,20 @@ class BrowserView:
         # Show the webview if it's not already visible
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)
+
+    def on_status_change(self, webview, status):
+        try:
+            delim = '_' + self.js_bridge.uid + '_'
+        except AttributeError:
+            return
+
+        # Check if status was updated by a JSBridge call
+        if status.startswith(delim):
+            _, func_name, param = status.split(delim)
+            return_val = self.js_bridge.call(func_name, param)
+            # Give back the return value to JS as a string
+            code = 'pywebview._bridge.return_val = "{0}";'.format(_escape_string(str(return_val)))
+            webview.execute_script(code)
 
     def show(self):
         gtk.main()
@@ -207,6 +237,25 @@ class BrowserView:
         glib.idle_add(self.webview.execute_script, code)
         return _js_result
 
+    def set_js_api(self, api_instance):
+        def create_bridge():
+            # Make the `call` method write the function name and param to the
+            # `status` attribute of the JS window, delimited by a unique token.
+            # The return value will be passed back to the `return_val` attribute
+            # of the bridge by the on_status_change handler.
+            code = """
+            window.pywebview._bridge.call = function(funcName, param) {{
+                window.status = "_{0}_" + funcName + "_{0}_" + param;
+                return this.return_val;
+            }};""".format(self.js_bridge.uid)
+
+            # Create the `pywebview` JS api object
+            self.webview.execute_script(_parse_api_js(api_instance))
+            self.webview.execute_script(code)
+
+        self.js_bridge = BrowserView.JSBridge(api_instance)
+        glib.idle_add(create_bridge)
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, debug, webview_ready):
@@ -269,3 +318,7 @@ def evaluate_js(script):
 
 def is_running():
     return bool(gtk.main_level())
+
+
+def set_js_api(api_instance):
+    BrowserView.instance.set_js_api(api_instance)
