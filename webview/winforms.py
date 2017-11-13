@@ -28,7 +28,8 @@ from System.Drawing import Size, Point, Icon, Color, ColorTranslator
 from WebBrowserInterop import IWebBrowserInterop
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _parse_file_type
+from webview import _parse_file_type, _parse_api_js, _js_bridge_call
+
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
@@ -43,15 +44,7 @@ class BrowserView:
         api = None
 
         def call(self, func_name, param):
-            function = getattr(self.api, func_name, None)
-            if function is not None:
-                try:
-                    func_params = param if param is None else json.loads(param)
-                    return function(func_params)
-                except Exception as e:
-                    logger.exception('Error occured while evaluating function {0}'.format(func_name))
-            else:
-                logger.error('Function {}() does not exist'.format(func_name))
+            return _js_bridge_call(self.api, func_name, param)
 
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
@@ -294,10 +287,7 @@ class BrowserView:
     def set_js_api(self, api_instance):
         with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
             self.browser.js_bridge.api = api_instance
-
-            func_list = str([f for f in dir(api_instance) if callable(getattr(api_instance, f))])
-            js_code = api_js.read() % func_list
-            BrowserView.instance.evaluate_js(js_code)
+            self.evaluate_js(_parse_api_js(api_instance))
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
