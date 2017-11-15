@@ -9,7 +9,6 @@ http://github.com/r0x0r/pywebview/
 
 import os
 import sys
-import json
 import logging
 import threading
 from ctypes import windll
@@ -279,9 +278,8 @@ class BrowserView:
         return self._js_result
 
     def set_js_api(self, api_instance):
-        with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
-            self.browser.js_bridge.api = api_instance
-            self.evaluate_js(_parse_api_js(api_instance))
+        self.browser.js_bridge.api = api_instance
+        self.evaluate_js(_parse_api_js(api_instance))
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
