@@ -127,12 +127,10 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
         filetypes = ('Description (*.extension[;*.extension[;...]])', ...)
     :return:
     """
-    valid_file_filter = r'^[\w ]+\(\*(\.(\w+|\*))*(;\*\.\w+)*\)$'
     if type(file_types) != tuple and type(file_types) != list:
-        raise TypeError('file_types should be a tuple of strings')
+        raise TypeError('file_types must be a tuple of strings')
     for f in file_types:
-        if not re.match(valid_file_filter, f):
-            raise ValueError('{0} is not a valid file filter'.format(f))
+        _parse_file_type(f)
 
     if not os.path.exists(directory):
         directory = ''
@@ -273,9 +271,23 @@ def _make_unicode(string):
 
 
 def _transform_url(url):
-    if url == None:
+    if url is None:
         return url
-    if url.find(":") == -1:
+    if url.find(':') == -1:
         return 'file://' + os.path.abspath(url)
     else:
         return url
+
+
+def _parse_file_type(file_type):
+    '''
+    :param file_type: file type string 'description (*.file_extension1;*.file_extension2)' as required by file filter in create_file_dialog
+    :return: (description, file extensions) tuple
+    '''
+    valid_file_filter = r'^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*\.\w+)*)\)$'
+    match = re.search(valid_file_filter, file_type)
+
+    if match:
+        return match.group(1).rstrip(), match.group(2)
+    else:
+        raise ValueError('{0} is not a valid file filter'.format(file_type))

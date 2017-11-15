@@ -14,6 +14,7 @@ from objc import nil
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import _parse_file_type
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -462,9 +463,8 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
     # Parse file_types to obtain allowed file extensions
     for s in file_types:
-        ext = s[s.find('(')+1:s.rfind(')')]
-        if ext != '*' and ext != '*.*':
-            file_extensions += [i.lstrip('*.') for i in ext.split(';')]
+        description, extensions = _parse_file_type(s)
+        file_extensions += [i.lstrip('*.') for i in extensions.split(';') if i != '*.*']
 
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_extensions)
 

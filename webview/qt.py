@@ -14,6 +14,7 @@ import threading
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
+
 logger = logging.getLogger(__name__)
 
 

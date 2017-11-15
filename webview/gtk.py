@@ -10,6 +10,8 @@ import logging
 from uuid import uuid1
 from webview.localization import localization
 from webview import _escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import _parse_file_type
+
 
 logger = logging.getLogger(__name__)
 
@@ -163,11 +165,11 @@ class BrowserView:
 
     def _add_file_filters(self, dialog, file_types):
         for s in file_types:
-            des, ext = s[:s.find('(')], s[s.find('(')+1:s.rfind(')')]
+            description, extensions = _parse_file_type(s)
 
             f = gtk.FileFilter()
-            f.set_name(des)
-            for e in ext.split(';'):
+            f.set_name(description)
+            for e in extensions.split(';'):
                 f.add_pattern(e)
 
             dialog.add_filter(f)
