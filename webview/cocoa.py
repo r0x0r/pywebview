@@ -14,6 +14,7 @@ from objc import nil
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import _parse_file_type
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -66,7 +67,7 @@ class BrowserView:
 
         # Display an open panel for <input type="file"> element
         def webView_runOpenPanelForFileButtonWithResultListener_allowMultipleFiles_(self, webview, listener, allow_multiple):
-            files = BrowserView.instance.create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', main_thread=True)
+            files = BrowserView.instance.create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', [], main_thread=True)
 
             if files:
                 listener.chooseFilenames_(files)
@@ -281,7 +282,7 @@ class BrowserView:
         self._js_result_semaphor.acquire()
         return self._js_result
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, main_thread=False):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_extensions, main_thread=False):
         def create_dialog(*args):
             dialog_type = args[0]
 
@@ -315,6 +316,10 @@ class BrowserView:
 
                 # Enable / disable multiple selection
                 open_dlg.setAllowsMultipleSelection_(allow_multiple)
+
+                # Set allowed file extensions
+                if file_extensions:
+                    open_dlg.setAllowedFileTypes_(file_extensions)
 
                 if directory:  # set initial directory
                     open_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
@@ -453,8 +458,15 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
     browser.show()
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
+    file_extensions = []
+
+    # Parse file_types to obtain allowed file extensions
+    for s in file_types:
+        description, extensions = _parse_file_type(s)
+        file_extensions += [i.lstrip('*.') for i in extensions.split(';') if i != '*.*']
+
+    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_extensions)
 
 
 def load_url(url):

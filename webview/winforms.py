@@ -23,6 +23,7 @@ from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import _parse_file_type
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
@@ -196,7 +197,7 @@ class BrowserView:
         else:
             _load_html()
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if not directory:
             directory = os.environ["HOMEPATH"]
 
@@ -215,7 +216,11 @@ class BrowserView:
 
                 dialog.Multiselect = allow_multiple
                 dialog.InitialDirectory = directory
-                dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
+
+                if len(file_types) > 0:
+                    dialog.Filter = '|'.join(['{0} ({1})|{1}'.format(*_parse_file_type(f)) for f in file_types])
+                else:
+                    dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
                 dialog.RestoreDirectory = True
 
                 result = dialog.ShowDialog(BrowserView.instance.browser)
@@ -270,8 +275,8 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
     browser_view.show()
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
+    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
 
 
 def get_current_url():
