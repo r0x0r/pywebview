@@ -131,9 +131,12 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
 
     try:
         _webview_ready.wait(5)
+        assert gui.is_running()
         return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
     except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
+    except AssertionError:
+        raise Exception("Cannot call function: the webview has been closed")
 
 
 def load_url(url):
@@ -198,9 +201,12 @@ def get_current_url():
     """
     try:
         _webview_ready.wait(5)
+        assert gui.is_running()
         return gui.get_current_url()
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+    except AssertionError:
+        raise Exception("Cannot call function: the webview has been closed")
 
 
 def destroy_window():
@@ -233,9 +239,12 @@ def evaluate_js(script):
     """
     try:
         _webview_ready.wait(5)
+        assert gui.is_running()
         return gui.evaluate_js(script)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+    except AssertionError:
+        raise Exception("Cannot call function: the webview has been closed")
 
 
 def _escape_string(string):

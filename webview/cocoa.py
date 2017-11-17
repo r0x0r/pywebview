@@ -41,7 +41,7 @@ class BrowserView:
                 return Foundation.NO
 
         def windowWillClose_(self, notification):
-            BrowserView.app.stop_(self)
+            PyObjCTools.AppHelper.callAfter(BrowserView.app.stop_, self)
 
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
@@ -230,7 +230,7 @@ class BrowserView:
         BrowserView.app.run()
 
     def destroy(self):
-        BrowserView.app.stop_(self)
+        PyObjCTools.AppHelper.callAfter(BrowserView.app.stop_, self)
 
     def toggle_fullscreen(self):
         def toggle():
@@ -479,3 +479,6 @@ def get_current_url():
 
 def evaluate_js(script):
     return BrowserView.instance.evaluate_js(script)
+
+def is_running():
+    return BrowserView.app.isRunning()

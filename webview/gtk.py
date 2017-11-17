@@ -82,10 +82,12 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
-        self.window.destroy()
         while gtk.events_pending():
             gtk.main_iteration()
+
+        self.window.destroy()
         gtk.main_quit()
+        self._js_result_semaphore.release()
 
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
@@ -181,6 +183,10 @@ class BrowserView:
         glib.idle_add(_evaluate_js)
         self._js_result_semaphore.acquire()
 
+        if not gtk.main_level():
+            # Webview has been closed, don't proceed
+            return None
+
         # Restore document title and return
         _js_result = self.webview.get_title()
         code = 'document.title = oldTitle{0};'.format(unique_id)
@@ -245,3 +251,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 
 def evaluate_js(script):
     return BrowserView.instance.evaluate_js(script)
+
+
+def is_running():
+    return bool(gtk.main_level())
