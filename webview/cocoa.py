@@ -7,13 +7,18 @@ http://github.com/r0x0r/pywebview/
 import sys
 import json
 import subprocess
+import webbrowser
+
 from threading import Event, Semaphore
 
 import Foundation
 import AppKit
 import WebKit
+
 from PyObjCTools import AppHelper, Conversion
 from objc import nil, super, pyobjc_unicode
+
+from objc import nil
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
@@ -152,6 +157,12 @@ class BrowserView:
                     print_op.runOperation()
 
             AppHelper.callAfter(printView, frameview)
+
+        # Open target="_blank" links in external browser
+        def webView_decidePolicyForNewWindowAction_request_newFrameName_decisionListener_(self, webview, action, request, name, listener):
+            if name == '_blank':
+                webbrowser.open(request.URL().absoluteString(), 2, True)
+            listener.ignore()
 
         # WebPolicyDelegate method, invoked when a navigation decision needs to be made
         def webView_decidePolicyForNavigationAction_request_frame_decisionListener_(self, webview, action, request, frame, listener):
