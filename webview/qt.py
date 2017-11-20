@@ -12,6 +12,7 @@ import logging
 import threading
 
 from webview.localization import localization
+from webview import _parse_api_js, _js_bridge_call
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 logger = logging.getLogger(__name__)
@@ -43,13 +44,13 @@ if _import_error:
     # Try importing Qt4 modules
     try:
         from PyQt4 import QtCore
-        from PyQt4.QtWebKit import QWebView
+        from PyQt4.QtWebKit import QWebView, QWebFrame
         from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
         _qt_version = 4
         logger.debug('Using Qt4')
     except ImportError as e:
-        logger.warn('PyQt4 or one of dependencies is not found')
+        logger.exception('PyQt4 or one of dependencies is not found')
         _import_error = True
     else:
         _import_error = False
@@ -68,6 +69,16 @@ class BrowserView(QMainWindow):
     current_url_trigger = QtCore.pyqtSignal()
     evaluate_js_trigger = QtCore.pyqtSignal(str)
 
+    class JSBridge(QtCore.QObject):
+        api = None
+
+        @QtCore.pyqtSlot(str, str, result=str)
+        def call(self, func_name, param):
+            func_name = BrowserView._convert_string(func_name)
+            param = BrowserView._convert_string(param)
+
+            return _js_bridge_call(self.api, func_name, param)
+
     def __init__(self, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, webview_ready):
         super(BrowserView, self).__init__()
@@ -82,6 +93,8 @@ class BrowserView(QMainWindow):
         self._evaluate_js_result = None
         self._current_url = None
         self._file_name = None
+
+        self.js_bridge = BrowserView.JSBridge()
 
         self.resize(width, height)
         self.title = title
@@ -178,7 +191,7 @@ class BrowserView(QMainWindow):
             self._evaluate_js_semaphor.release()
 
         try:    # PyQt4
-            return_result(self.view.page().mainFrame().evaluateJavaScript(script).toPyObject())
+            return_result(self.view.page().mainFrame().evaluateJavaScript(script))
         except AttributeError:  # PyQt5
             self.view.page().runJavaScript(script, return_result)
 
@@ -208,11 +221,11 @@ class BrowserView(QMainWindow):
 
         else:  # QT4
             if dialog_type == FOLDER_DIALOG:
-                file_names = (self._convert_string(self._file_name),)
+                file_names = (BrowserView._convert_string(self._file_name),)
             elif dialog_type == SAVE_DIALOG or not allow_multiple:
-                file_names = (self._convert_string(self._file_name[0]),)
+                file_names = (BrowserView._convert_string(self._file_name[0]),)
             else:
-                file_names = tuple([self._convert_string(s) for s in self._file_name])
+                file_names = tuple([BrowserView._convert_string(s) for s in self._file_name])
 
         # Check if we got an empty tuple, or a tuple with empty string
         if len(file_names) == 0 or len(file_names[0]) == 0:
@@ -232,7 +245,21 @@ class BrowserView(QMainWindow):
 
         return self._evaluate_js_result
 
-    def _convert_string(self, qstring):
+    def set_js_api(self, api_instance):
+        def _set_js_api():
+            frame.addToJavaScriptWindowObject('external', self.js_bridge)
+
+        self.js_bridge.api = api_instance
+        self.evaluate_js(_parse_api_js(api_instance))
+
+        if _qt_version == 4:
+            frame = self.view.page().mainFrame()
+            _set_js_api()
+            self.connect(frame, QtCore.SIGNAL('javaScriptWindowObjectCleared()'), _set_js_api)
+
+
+    @staticmethod
+    def _convert_string(qstring):
         if sys.version < '3':
             return unicode(qstring)
         else:
@@ -275,3 +302,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 
 def evaluate_js(script):
     return BrowserView.instance.evaluate_js(script)
+
+
+def set_js_api(api_instance):
+    BrowserView.instance.set_js_api(api_instance)

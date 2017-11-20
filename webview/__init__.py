@@ -256,7 +256,7 @@ def _js_bridge_call(api_instance, func_name, param):
 
     if function is not None:
         try:
-            func_params = param if param is None else json.loads(param)
+            func_params = param if not param else json.loads(param)
             return function(func_params)
         except Exception as e:
             logger.exception('Error occurred while evaluating function {0}'.format(func_name))

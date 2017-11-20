@@ -9,9 +9,9 @@ window.pywebview = {
         }
     },
     _bridge: {
-        call: function(params) {
+        call: function(func_name, params) {
             if (window.external) {
-                return window.external.call(params)
+                return window.external.call(func_name, params)
             }
         }
     },
