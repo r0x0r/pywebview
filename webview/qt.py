@@ -252,9 +252,10 @@ class BrowserView(QMainWindow):
         self.js_bridge.api = api_instance
         self.evaluate_js(_parse_api_js(api_instance))
 
+        frame = self.view.page().mainFrame()
+        _set_js_api()
+
         if _qt_version == 4:
-            frame = self.view.page().mainFrame()
-            _set_js_api()
             self.connect(frame, QtCore.SIGNAL('javaScriptWindowObjectCleared()'), _set_js_api)
 
 
