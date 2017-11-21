@@ -267,6 +267,9 @@ def _js_bridge_call(api_instance, func_name, param):
 def _parse_api_js(api_instance):
     base_dir = os.path.dirname(os.path.realpath(__file__))
 
+    #with open(os.path.join(base_dir, 'js', 'npo.js')) as npo_js:
+    #    js_code = npo_js.read()
+
     with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
         func_list = str([f for f in dir(api_instance) if callable(getattr(api_instance, f))])
         js_code = api_js.read() % func_list
