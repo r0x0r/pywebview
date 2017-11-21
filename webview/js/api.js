@@ -3,7 +3,14 @@ window.pywebview = {
         for (var i = 0; i < funcList.length; i++) {
             window.pywebview.api[funcList[i]] = (function (func_name) {
                 return function(params) {
-                    return window.pywebview._bridge.call(func_name, JSON.stringify(params))
+                    var promise = new Promise(function(resolve, reject){
+                        setTimeout(function(){
+                            var result = window.pywebview._bridge.call(func_name, JSON.stringify(params))
+                            resolve(result);
+                        }, 0);
+                    });
+
+                    return promise;
                 }
             })(funcList[i])
         }

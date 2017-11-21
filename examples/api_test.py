@@ -20,11 +20,14 @@ class Api:
 
 
 def create_app():
-    webview.load_html("<h1>Serverless application</h1>")
+    webview.load_html('<h1>Serverless application</h1>')
 
     api = Api()
     webview.set_js_api(api)
-    webview.evaluate_js('alert(window.pywebview.api.init())')
+
+    ## TODO this line is needed for some reason in order for the next line to work
+    webview.evaluate_js('alert(window.pywebview.api.do_heavy_stuff())')
+    webview.evaluate_js('window.pywebview.api.do_heavy_stuff().then(function(msg) {alert(msg)})')
 
 
 if __name__ == '__main__':
