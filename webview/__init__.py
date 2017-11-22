@@ -18,7 +18,7 @@ import sys
 import re
 import json
 import logging
-from threading import Event
+from threading import Event, Thread
 
 from .localization import localization
 
@@ -267,12 +267,17 @@ def set_js_api(api_instance):
 
 
 def _js_bridge_call(api_instance, func_name, param):
+    def _call():
+        result = function(func_params)
+        gui.evaluate_js('window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, result))
+
     function = getattr(api_instance, func_name, None)
 
     if function is not None:
         try:
             func_params = param if not param else json.loads(param)
-            return function(func_params)
+            t = Thread(target=_call)
+            t.start()
         except Exception as e:
             logger.exception('Error occurred while evaluating function {0}'.format(func_name))
     else:
