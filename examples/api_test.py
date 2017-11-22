@@ -27,12 +27,12 @@ def create_app():
 
     ## TODO this line is needed for some reason in order for the next line to work
     webview.evaluate_js('alert(window.pywebview.api.do_heavy_stuff())')
-    webview.evaluate_js('window.pywebview.api.do_heavy_stuff().then(function(msg) {alert(msg)})')
+    webview.evaluate_js('window.pywebview.api.do_heavy_stuff().then(function(msg) {alert(JSON.stringify(msg))})')
 
 
 if __name__ == '__main__':
     t = threading.Thread(target=create_app)
     t.start()
 
-    webview.create_window("API example")
+    webview.create_window('API example')
 

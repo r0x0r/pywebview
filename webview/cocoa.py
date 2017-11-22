@@ -4,7 +4,9 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
+import sys
 import threading
+import subprocess
 
 import Foundation
 import AppKit
@@ -418,7 +420,6 @@ class BrowserView:
         # TODO: localization of the Enter fullscreen string has no effect
         fullScreenMenuItem = viewMenu.addItemWithTitle_action_keyEquivalent_(localization["cocoa.menu.fullscreen"], "toggleFullScreen:", "f")
         fullScreenMenuItem.setKeyEquivalentModifierMask_(AppKit.NSControlKeyMask | AppKit.NSCommandKeyMask)
-
 
     def _append_app_name(self, val):
         """
