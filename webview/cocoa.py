@@ -4,7 +4,9 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
+import sys
 import threading
+import subprocess
 
 import Foundation
 import AppKit
@@ -25,6 +27,7 @@ info["NSAppTransportSecurity"] = {"NSAllowsArbitraryLoads": Foundation.YES}
 class BrowserView:
     instance = None
     app = AppKit.NSApplication.sharedApplication()
+    debug = False
 
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
@@ -46,7 +49,10 @@ class BrowserView:
 
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
-            return nil
+            if BrowserView.debug:
+                return defaultMenuItems
+            else:
+                return nil
 
         # Display a JavaScript alert panel containing the specified message
         def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
@@ -180,8 +186,12 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, debug, webview_ready):
         BrowserView.instance = self
+        BrowserView.debug = debug
+
+        if debug:
+            BrowserView._set_debugging()
 
         self._file_name = None
         self._file_name_semaphor = threading.Semaphore(0)
@@ -397,7 +407,6 @@ class BrowserView:
         fullScreenMenuItem = viewMenu.addItemWithTitle_action_keyEquivalent_(localization["cocoa.menu.fullscreen"], "toggleFullScreen:", "f")
         fullScreenMenuItem.setKeyEquivalentModifierMask_(AppKit.NSControlKeyMask | AppKit.NSCommandKeyMask)
 
-
     def _append_app_name(self, val):
         """
         Append the application name to a string if it's available. If not, the
@@ -448,13 +457,21 @@ class BrowserView:
         else:
             return False
 
+    @staticmethod
+    def _set_debugging():
+        command = ['defaults', 'write', 'org.python.python', 'WebKitDeveloperExtras', '-bool', 'true']
+        if sys.version < '3':
+            subprocess.call(command)
+        else:
+            subprocess.run(command)
+
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, webview_ready):
+                  confirm_quit, background_color, debug, webview_ready):
     global _confirm_quit
     _confirm_quit = confirm_quit
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, webview_ready)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, debug, webview_ready)
     browser.show()
 
 
