@@ -5,8 +5,8 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 import sys
-import threading
 import subprocess
+from threading import Event, Semaphore
 
 import Foundation
 import AppKit
@@ -16,11 +16,7 @@ from objc import nil, super
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-<<<<<<< HEAD
-from webview import _parse_file_type
-=======
-from webview import _js_bridge_call, _parse_api_js
->>>>>>> [Cocoa] Implement basic JS-Python bridge support
+from webview import _parse_file_type, _js_bridge_call, _parse_api_js
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -32,6 +28,7 @@ class BrowserView:
     instance = None
     app = AppKit.NSApplication.sharedApplication()
     debug = False
+    load_event = Event()
 
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
@@ -60,7 +57,8 @@ class BrowserView:
         def callFunc_withParam_(self, func_name, param):
             if param is WebKit.WebUndefined.undefined():
                 param = None
-            return _js_bridge_call(self.api, func_name, param)
+
+            _js_bridge_call(self.api, func_name, param)
 
         def isSelectorExcludedFromWebScript_(self, selector):
             return Foundation.NO if selector == 'callFunc:withParam:' else Foundation.YES
@@ -169,6 +167,9 @@ class BrowserView:
                 BrowserView.instance.window.setContentView_(webview)
                 BrowserView.instance.window.makeFirstResponder_(webview)
 
+            BrowserView.load_event.set()
+
+
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
             """
@@ -214,10 +215,10 @@ class BrowserView:
         if debug:
             BrowserView._set_debugging()
 
+        self.js_bridge = None
         self._file_name = None
-        self._file_name_semaphor = threading.Semaphore(0)
-        self._current_url_semaphor = threading.Semaphore(0)
-        self._js_result_semaphor = threading.Semaphore(0)
+        self._file_name_semaphore = Semaphore(0)
+        self._current_url_semaphore = Semaphore(0)
         self.webview_ready = webview_ready
         self.is_fullscreen = False
 
@@ -246,6 +247,7 @@ class BrowserView:
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
 
+        self.url = url
         self.load_url(url)
 
         # Add the default Cocoa application menu
@@ -280,11 +282,11 @@ class BrowserView:
     def get_current_url(self):
         def get():
             self._current_url = self.webkit.mainFrameURL()
-            self._current_url_semaphor.release()
+            self._current_url_semaphore.release()
 
         PyObjCTools.AppHelper.callAfter(get)
 
-        self._current_url_semaphor.acquire()
+        self._current_url_semaphore.acquire()
         return self._current_url
 
     def load_url(self, url):
@@ -294,6 +296,7 @@ class BrowserView:
             self.webkit.mainFrame().loadRequest_(req)
 
         self.url = url
+        BrowserView.load_event.clear()
         PyObjCTools.AppHelper.callAfter(load, url)
 
     def load_html(self, content, base_uri):
@@ -301,32 +304,36 @@ class BrowserView:
             url = Foundation.NSURL.URLWithString_(url)
             self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
 
+        BrowserView.load_event.clear()
         PyObjCTools.AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
         def evaluate(script):
-            self._js_result = self.webkit.windowScriptObject().evaluateWebScript_(script)
-            self._js_result_semaphor.release()
+            JSResult.result = self.webkit.windowScriptObject().evaluateWebScript_(script)
+            JSResult.result_semaphore.release()
+
+        class JSResult:
+            result = None
+            result_semaphore = Semaphore(0)
 
         PyObjCTools.AppHelper.callAfter(evaluate, script)
 
-        self._js_result_semaphor.acquire()
-        return self._js_result
+        JSResult.result_semaphore.acquire()
+        return JSResult.result
 
-<<<<<<< HEAD
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_extensions, main_thread=False):
-=======
     def set_js_api(self, api_instance):
         def create_bridge():
             pwv_obj = self.webkit.windowScriptObject().valueForKey_('pywebview')
             pwv_obj.setValue_forKey_(self.js_bridge, '_bridge')
 
+        if not BrowserView.load_event.is_set():
+            BrowserView.load_event.wait()  # Set up JS API only when DOM is ready
+
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(api_instance)
         self.evaluate_js(_parse_api_js(api_instance))
         PyObjCTools.AppHelper.callAfter(create_bridge)
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, main_thread=False):
->>>>>>> [Cocoa] Implement basic JS-Python bridge support
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_extensions, main_thread=False):
         def create_dialog(*args):
             dialog_type = args[0]
 
@@ -375,13 +382,13 @@ class BrowserView:
                     self._file_name = None
 
             if not main_thread:
-                self._file_name_semaphor.release()
+                self._file_name_semaphore.release()
 
         if main_thread:
             create_dialog(dialog_type, allow_multiple, save_filename)
         else:
             PyObjCTools.AppHelper.callAfter(create_dialog, dialog_type, allow_multiple, save_filename)
-            self._file_name_semaphor.acquire()
+            self._file_name_semaphore.acquire()
 
         return self._file_name
 
