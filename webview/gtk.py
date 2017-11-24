@@ -10,9 +10,9 @@ import logging
 from uuid import uuid1
 from threading import Event, Semaphore
 from webview.localization import localization
-
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview import _escape_string, _js_bridge_call, _parse_api_js, _parse_file_type
+
 
 logger = logging.getLogger(__name__)
 
