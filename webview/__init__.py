@@ -297,49 +297,6 @@ def _parse_api_js(api_instance):
     return js_code
 
 
-def set_js_api(api_instance):
-    """
-    Set an API object that is exposed to Javascript as window.pywebview.api.
-    :param api_instance: An instance of the object to be exposed
-    """
-    try:
-        _webview_ready.wait(5)
-        gui.set_js_api(api_instance)
-    except NameError:
-        raise Exception("Create a web view window first, before invoking this function")
-
-
-def _js_bridge_call(api_instance, func_name, param):
-    def _call():
-        result = function(func_params)
-        gui.evaluate_js('window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, result))
-
-    function = getattr(api_instance, func_name, None)
-
-    if function is not None:
-        try:
-            func_params = param if not param else json.loads(param)
-            t = Thread(target=_call)
-            t.start()
-        except Exception as e:
-            logger.exception('Error occurred while evaluating function {0}'.format(func_name))
-    else:
-        logger.error('Function {}() does not exist'.format(func_name))
-
-
-def _parse_api_js(api_instance):
-    base_dir = os.path.dirname(os.path.realpath(__file__))
-
-    with open(os.path.join(base_dir, 'js', 'npo.js')) as npo_js:
-        js_code = npo_js.read()
-
-    with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
-        func_list = str([f for f in dir(api_instance) if callable(getattr(api_instance, f))])
-        js_code += api_js.read() % func_list
-
-    return js_code
-
-
 def _escape_string(string):
     return string.replace('"', r'\"').replace('\n', r'\n')
 

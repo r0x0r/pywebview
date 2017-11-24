@@ -299,7 +299,7 @@ def load_html(content, base_uri):
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
-    file_name_semaphore = threading.Semaphore(0)
+    file_name_semaphore = Semaphore(0)
     file_names = []
 
     def _create():
