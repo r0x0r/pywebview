@@ -5,12 +5,14 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 import sys
-import threading
 import logging
+
 from uuid import uuid1
+from threading import Event, Semaphore
 from webview.localization import localization
+
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _escape_string, _js_bridge_call, _parse_api_js
+from webview import _escape_string, _js_bridge_call, _parse_api_js, _parse_file_type
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,7 @@ from gi.repository import Gtk as gtk
 from gi.repository import Gdk
 from gi.repository import GLib as glib
 from gi.repository import WebKit as webkit
+
 
 class BrowserView:
     instance = None
@@ -38,12 +41,13 @@ class BrowserView:
             return _js_bridge_call(self.api, func_name, param)
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, webview_ready):
+                 confirm_quit, background_color, debug, webview_ready):
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
         self.is_fullscreen = False
-        self._js_result_semaphore = threading.Semaphore(0)
+        self._js_result_semaphore = Semaphore(0)
+        self.load_event = Event()
 
         glib.threads_init()
         window = gtk.Window(title=title)
@@ -94,10 +98,12 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
-        self.window.destroy()
         while gtk.events_pending():
             gtk.main_iteration()
+
+        self.window.destroy()
         gtk.main_quit()
+        self._js_result_semaphore.release()
 
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
@@ -117,6 +123,9 @@ class BrowserView:
         # Show the webview if it's not already visible
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)
+
+        # signal set_js_api that the api can be loaded now
+        BrowserView.load_event.set()
 
     def on_status_change(self, webview, status):
         try:
@@ -146,7 +155,7 @@ class BrowserView:
 
         self.is_fullscreen = not self.is_fullscreen
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if dialog_type == FOLDER_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
             title = localization["linux.openFolder"]
@@ -169,6 +178,7 @@ class BrowserView:
 
         dialog.set_select_multiple(allow_multiple)
         dialog.set_current_folder(directory)
+        self._add_file_filters(dialog, file_types)
 
         if dialog_type == SAVE_DIALOG:
             dialog.set_current_name(save_filename)
@@ -184,14 +194,27 @@ class BrowserView:
 
         return file_name
 
+    def _add_file_filters(self, dialog, file_types):
+        for s in file_types:
+            description, extensions = _parse_file_type(s)
+
+            f = gtk.FileFilter()
+            f.set_name(description)
+            for e in extensions.split(';'):
+                f.add_pattern(e)
+
+            dialog.add_filter(f)
+
     def get_current_url(self):
         uri = self.webview.get_uri()
         return uri
 
     def load_url(self, url):
+        self.load_event.clear()
         self.webview.load_uri(url)
 
     def load_html(self, content, base_uri):
+        self.load_event.clear()
         self.webview.load_string(content, 'text/html', 'utf-8', base_uri)
 
     def evaluate_js(self, script):
@@ -206,6 +229,10 @@ class BrowserView:
 
         glib.idle_add(_evaluate_js)
         self._js_result_semaphore.acquire()
+
+        if not gtk.main_level():
+            # Webview has been closed, don't proceed
+            return None
 
         # Restore document title and return
         _js_result = self.webview.get_title()
@@ -229,14 +256,17 @@ class BrowserView:
             self.webview.execute_script(_parse_api_js(api_instance))
             self.webview.execute_script(code)
 
+        if not self.load_event.is_set():
+            self.load_event.wait()  # Set up JS API only when DOM is ready
+
         self.js_bridge = BrowserView.JSBridge(api_instance)
         glib.idle_add(create_bridge)
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, webview_ready):
+                  confirm_quit, background_color, debug, webview_ready):
     browser = BrowserView(title, url, width, height, resizable, fullscreen,
-                          min_size, confirm_quit, background_color, webview_ready)
+                          min_size, confirm_quit, background_color, debug, webview_ready)
     browser.show()
 
 
@@ -268,12 +298,12 @@ def load_html(content, base_uri):
     glib.idle_add(_load_html)
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
     file_name_semaphore = threading.Semaphore(0)
     file_names = []
 
     def _create():
-        result = BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+        result = BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
         if result is None:
             file_names.append(None)
         else:
@@ -290,6 +320,10 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
 
 def evaluate_js(script):
     return BrowserView.instance.evaluate_js(script)
+
+
+def is_running():
+    return bool(gtk.main_level())
 
 
 def set_js_api(api_instance):

@@ -15,6 +15,7 @@ from webview.localization import localization
 from webview import _parse_api_js, _js_bridge_call
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,9 +62,11 @@ if _import_error:
 
 class BrowserView(QMainWindow):
     instance = None
+    running = False
+
     load_url_trigger = QtCore.pyqtSignal(str)
     html_trigger = QtCore.pyqtSignal(str, str)
-    dialog_trigger = QtCore.pyqtSignal(int, str, bool, str)
+    dialog_trigger = QtCore.pyqtSignal(int, str, bool, str, str)
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
@@ -80,7 +83,7 @@ class BrowserView(QMainWindow):
             return _js_bridge_call(self.api, func_name, param)
 
     def __init__(self, title, url, width, height, resizable, fullscreen,
-                 min_size, confirm_quit, background_color, webview_ready):
+                 min_size, confirm_quit, background_color, debug, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instance = self
         self.is_fullscreen = False
@@ -135,15 +138,16 @@ class BrowserView(QMainWindow):
         self.activateWindow()
         self.raise_()
         webview_ready.set()
+        BrowserView.running = True
 
-    def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
+    def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         if dialog_type == FOLDER_DIALOG:
             self._file_name = QFileDialog.getExistingDirectory(self, localization['linux.openFolder'], options=QFileDialog.ShowDirsOnly)
         elif dialog_type == OPEN_DIALOG:
             if allow_multiple:
-                self._file_name = QFileDialog.getOpenFileNames(self, localization['linux.openFiles'], directory)
+                self._file_name = QFileDialog.getOpenFileNames(self, localization['linux.openFiles'], directory, file_filter)
             else:
-                self._file_name = QFileDialog.getOpenFileName(self, localization['linux.openFile'], directory)
+                self._file_name = QFileDialog.getOpenFileName(self, localization['linux.openFile'], directory, file_filter)
         elif dialog_type == SAVE_DIALOG:
             if directory:
                 save_filename = os.path.join(str(directory), str(save_filename))
@@ -167,12 +171,12 @@ class BrowserView(QMainWindow):
             reply = QMessageBox.question(self, self.title, localization['global.quitConfirmation'],
                                          QMessageBox.Yes, QMessageBox.No)
 
-            if reply == QMessageBox.Yes:
-                event.accept()
-            else:
+            if reply == QMessageBox.NO:
                 event.ignore()
-        else:
-            event.accept()
+                return
+
+        event.accept()
+        BrowserView.running = False
 
     def on_destroy_window(self):
         self.close()
@@ -207,8 +211,8 @@ class BrowserView(QMainWindow):
     def load_html(self, content, base_uri):
         self.html_trigger.emit(content, base_uri)
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
-        self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename)
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
+        self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
         self._file_name_semaphor.acquire()
 
         if _qt_version == 5:  # QT5
@@ -268,11 +272,11 @@ class BrowserView(QMainWindow):
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, webview_ready):
+                  confirm_quit, background_color, debug, webview_ready):
     app = QApplication([])
 
     browser = BrowserView(title, url, width, height, resizable, fullscreen,
-                          min_size, confirm_quit, background_color, webview_ready)
+                          min_size, confirm_quit, background_color, debug, webview_ready)
     browser.show()
     app.exec_()
 
@@ -297,12 +301,20 @@ def toggle_fullscreen():
     BrowserView.instance.toggle_fullscreen()
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
+    # Create a file filter by parsing allowed file types
+    file_types = [s.replace(';', ' ') for s in file_types]
+    file_filter = ';;'.join(file_types)
+
+    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
 def evaluate_js(script):
     return BrowserView.instance.evaluate_js(script)
+
+
+def is_running():
+    return BrowserView.running
 
 
 def set_js_api(api_instance):

@@ -27,7 +27,8 @@ from System.Drawing import Size, Point, Icon, Color, ColorTranslator
 from WebBrowserInterop import IWebBrowserInterop
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _parse_api_js, _js_bridge_call
+from webview import _parse_file_type, _parse_api_js, _js_bridge_call
+
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
@@ -46,7 +47,7 @@ class BrowserView:
 
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
-                     confirm_quit, background_color, webview_ready):
+                     confirm_quit, background_color, debug, webview_ready):
             self.Text = title
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
@@ -166,7 +167,7 @@ class BrowserView:
 
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, debug, webview_ready):
         BrowserView.instance = self
         self.title = title
         self.url = url
@@ -178,6 +179,7 @@ class BrowserView:
         self.confirm_quit = confirm_quit
         self.webview_ready = webview_ready
         self.background_color = background_color
+        self.debug = debug
         self.browser = None
         self._js_result_semaphor = threading.Semaphore(0)
 
@@ -185,7 +187,8 @@ class BrowserView:
         def start():
             app = WinForms.Application
             self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
-                                                   self.fullscreen, self.min_size, self.confirm_quit, self.background_color, self.webview_ready)
+                                                   self.fullscreen, self.min_size, self.confirm_quit, self.background_color, 
+                                                   self.debug, self.webview_ready)
             app.Run(self.browser)
 
         thread = Thread(ThreadStart(start))
@@ -195,6 +198,7 @@ class BrowserView:
 
     def destroy(self):
         self.browser.Close()
+        self._js_result_semaphor.release()
 
     def get_current_url(self):
         return self.browser.web_browser.Url.AbsoluteUri
@@ -212,7 +216,7 @@ class BrowserView:
         else:
             _load_html()
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if not directory:
             directory = os.environ["HOMEPATH"]
 
@@ -231,7 +235,11 @@ class BrowserView:
 
                 dialog.Multiselect = allow_multiple
                 dialog.InitialDirectory = directory
-                dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
+
+                if len(file_types) > 0:
+                    dialog.Filter = '|'.join(['{0} ({1})|{1}'.format(*_parse_file_type(f)) for f in file_types])
+                else:
+                    dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
                 dialog.RestoreDirectory = True
 
                 result = dialog.ShowDialog(BrowserView.instance.browser)
@@ -283,15 +291,15 @@ class BrowserView:
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, webview_ready):
+                  confirm_quit, background_color, debug, webview_ready):
     set_ie_mode()
     browser_view = BrowserView(title, url, width, height, resizable, fullscreen,
-                               min_size, confirm_quit, background_color, webview_ready)
+                               min_size, confirm_quit, background_color, debug, webview_ready)
     browser_view.show()
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
+    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
 
 
 def get_current_url():
@@ -316,6 +324,10 @@ def destroy_window():
 
 def evaluate_js(script):
     return BrowserView.instance.evaluate_js(script)
+
+
+def is_running():
+    return not BrowserView.instance.browser.IsDisposed
 
 
 def set_js_api(api_object):

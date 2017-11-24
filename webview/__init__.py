@@ -116,7 +116,7 @@ def _initialize_imports():
         _initialized = True
 
 
-def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename=''):
+def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=()):
     """
     Create a file dialog
     :param dialog_type: Dialog type: open file (OPEN_DIALOG), save file (SAVE_DIALOG), open folder (OPEN_FOLDER). Default
@@ -124,17 +124,26 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
     :param directory: Initial directory
     :param allow_multiple: Allow multiple selection. Default is false.
     :param save_filename: Default filename for save file dialog.
+    :param file_types: Allowed file types in open file dialog. Should be a tuple of strings in the format:
+        filetypes = ('Description (*.extension[;*.extension[;...]])', ...)
     :return:
     """
+    if type(file_types) != tuple and type(file_types) != list:
+        raise TypeError('file_types must be a tuple of strings')
+    for f in file_types:
+        _parse_file_type(f)
 
     if not os.path.exists(directory):
         directory = ''
 
     try:
         _webview_ready.wait(5)
-        return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+        assert gui.is_running()
+        return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
     except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
+    except AssertionError:
+        raise Exception("Cannot call function: the webview has been closed")
 
 
 def load_url(url):
@@ -166,7 +175,7 @@ def load_html(content, base_uri=""):
 
 def create_window(title, url=None, width=800, height=600,
                   resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
-                  background_color='#FFFFFF'):
+                  background_color='#FFFFFF', debug=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -190,7 +199,7 @@ def create_window(title, url=None, width=800, height=600,
     localization.update(strings)
     gui.create_window(_make_unicode(title), _transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
-                      background_color, _webview_ready)
+                      background_color, debug, _webview_ready)
 
 
 def get_current_url():
@@ -199,9 +208,12 @@ def get_current_url():
     """
     try:
         _webview_ready.wait(5)
+        assert gui.is_running()
         return gui.get_current_url()
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+    except AssertionError:
+        raise Exception("Cannot call function: the webview has been closed")
 
 
 def destroy_window():
@@ -234,9 +246,55 @@ def evaluate_js(script):
     """
     try:
         _webview_ready.wait(5)
+        assert gui.is_running()
         return gui.evaluate_js(script)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
+    except AssertionError:
+        raise Exception("Cannot call function: the webview has been closed")
+
+
+def set_js_api(api_instance):
+    """
+    Set an API object that is exposed to Javascript as window.pywebview.api.
+    :param api_instance: An instance of the object to be exposed
+    """
+    try:
+        _webview_ready.wait(5)
+        gui.set_js_api(api_instance)
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
+
+
+def _js_bridge_call(api_instance, func_name, param):
+    def _call():
+        result = function(func_params)
+        gui.evaluate_js('window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, result))
+
+    function = getattr(api_instance, func_name, None)
+
+    if function is not None:
+        try:
+            func_params = param if not param else json.loads(param)
+            t = Thread(target=_call)
+            t.start()
+        except Exception as e:
+            logger.exception('Error occurred while evaluating function {0}'.format(func_name))
+    else:
+        logger.error('Function {}() does not exist'.format(func_name))
+
+
+def _parse_api_js(api_instance):
+    base_dir = os.path.dirname(os.path.realpath(__file__))
+
+    with open(os.path.join(base_dir, 'js', 'npo.js')) as npo_js:
+        js_code = npo_js.read()
+
+    with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
+        func_list = str([f for f in dir(api_instance) if callable(getattr(api_instance, f))])
+        js_code += api_js.read() % func_list
+
+    return js_code
 
 
 def set_js_api(api_instance):
@@ -300,9 +358,23 @@ def _make_unicode(string):
 
 
 def _transform_url(url):
-    if url == None:
+    if url is None:
         return url
-    if url.find(":") == -1:
+    if url.find(':') == -1:
         return 'file://' + os.path.abspath(url)
     else:
         return url
+
+
+def _parse_file_type(file_type):
+    '''
+    :param file_type: file type string 'description (*.file_extension1;*.file_extension2)' as required by file filter in create_file_dialog
+    :return: (description, file extensions) tuple
+    '''
+    valid_file_filter = r'^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*\.\w+)*)\)$'
+    match = re.search(valid_file_filter, file_type)
+
+    if match:
+        return match.group(1).rstrip(), match.group(2)
+    else:
+        raise ValueError('{0} is not a valid file filter'.format(file_type))

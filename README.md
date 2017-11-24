@@ -123,12 +123,12 @@ These functions below must be invoked after webview windows is created with crea
 - `webview.toggle_fullscreen()`
     Toggle a fullscreen mode on the active monitor    
     
-- `webview.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='')`
+- `webview.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=())`
     Create an open file (`webview.OPEN_DIALOG`), open folder (`webview.FOLDER_DIALOG`) or save file (`webview.SAVE_DIALOG`) dialog. Return a tuple of selected files, None if cancelled
   * `allow_multiple=True` enables multiple selection.
   * `directory` Initial directory.
   * `save_filename` Default filename for save file dialog.
-
+  * `file_types` A tuple of supported file type strings in the open file dialog. A file type string must follow this format `"Description (*.ext1;*.ext2...)"`. If the argument is not specified, then the `"All files (*.*)"` mask is used by default. The "All files" string can be changed in the localization dictionary.
 - `webview.destroy_window()`
     Destroy the webview window
 
