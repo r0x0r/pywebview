@@ -150,7 +150,7 @@ class BrowserView:
 
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, debug, webview_ready):
         BrowserView.instance = self
         self.title = title
         self.url = url
@@ -162,6 +162,7 @@ class BrowserView:
         self.confirm_quit = confirm_quit
         self.webview_ready = webview_ready
         self.background_color = background_color
+        self.debug = debug
         self.browser = None
         self._js_result_semaphor = threading.Semaphore(0)
 
@@ -169,7 +170,8 @@ class BrowserView:
         def start():
             app = WinForms.Application
             self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
-                                                   self.fullscreen, self.min_size, self.confirm_quit, self.background_color, self.webview_ready)
+                                                   self.fullscreen, self.min_size, self.confirm_quit, self.background_color, 
+                                                   self.debug, self.webview_ready)
             app.Run(self.browser)
 
         thread = Thread(ThreadStart(start))
