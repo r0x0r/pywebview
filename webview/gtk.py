@@ -125,7 +125,7 @@ class BrowserView:
             glib.idle_add(webview.set_opacity, 1.0)
 
         # signal set_js_api that the api can be loaded now
-        BrowserView.load_event.set()
+        self.load_event.set()
 
     def on_status_change(self, webview, status):
         try:
