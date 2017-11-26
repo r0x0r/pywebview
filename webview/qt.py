@@ -14,6 +14,7 @@ import threading
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -64,14 +65,14 @@ class BrowserView(QMainWindow):
     create_window_trigger = QtCore.pyqtSignal(object)
     load_url_trigger = QtCore.pyqtSignal(str)
     html_trigger = QtCore.pyqtSignal(str, str)
-    dialog_trigger = QtCore.pyqtSignal(int, str, bool, str)
+    dialog_trigger = QtCore.pyqtSignal(int, str, bool, str, str)
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
     evaluate_js_trigger = QtCore.pyqtSignal(str)
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
-                 min_size, confirm_quit, background_color, webview_ready):
+                 min_size, confirm_quit, background_color, debug, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instances[uid] = self
         self.uid = uid
@@ -127,15 +128,16 @@ class BrowserView(QMainWindow):
         self.activateWindow()
         self.raise_()
         webview_ready.set()
+        BrowserView.running = True
 
-    def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
+    def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         if dialog_type == FOLDER_DIALOG:
             self._file_name = QFileDialog.getExistingDirectory(self, localization['linux.openFolder'], options=QFileDialog.ShowDirsOnly)
         elif dialog_type == OPEN_DIALOG:
             if allow_multiple:
-                self._file_name = QFileDialog.getOpenFileNames(self, localization['linux.openFiles'], directory)
+                self._file_name = QFileDialog.getOpenFileNames(self, localization['linux.openFiles'], directory, file_filter)
             else:
-                self._file_name = QFileDialog.getOpenFileName(self, localization['linux.openFile'], directory)
+                self._file_name = QFileDialog.getOpenFileName(self, localization['linux.openFile'], directory, file_filter)
         elif dialog_type == SAVE_DIALOG:
             if directory:
                 save_filename = os.path.join(str(directory), str(save_filename))
@@ -199,8 +201,8 @@ class BrowserView(QMainWindow):
     def load_html(self, content, base_uri):
         self.html_trigger.emit(content, base_uri)
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
-        self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename)
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
+        self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
         self._file_name_semaphor.acquire()
 
         if _qt_version == 5:  # QT5
@@ -250,12 +252,12 @@ class BrowserView(QMainWindow):
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, webview_ready):
+                  confirm_quit, background_color, debug, webview_ready):
     app = QApplication.instance() or QApplication([])
 
     def _create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
-                              min_size, confirm_quit, background_color, webview_ready)
+                              min_size, confirm_quit, background_color, debug, webview_ready)
         browser.show()
 
     if uid == 'master':
@@ -286,9 +288,13 @@ def toggle_fullscreen(uid):
     BrowserView.instances[uid].toggle_fullscreen()
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
+    # Create a file filter by parsing allowed file types
+    file_types = [s.replace(';', ' ') for s in file_types]
+    file_filter = ';;'.join(file_types)
+
     i = list(BrowserView.instances.values())[0]
-    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
 def evaluate_js(script, uid):

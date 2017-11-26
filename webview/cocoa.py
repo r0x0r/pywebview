@@ -4,7 +4,9 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
+import sys
 import threading
+import subprocess
 
 import Foundation
 import AppKit
@@ -14,6 +16,7 @@ from objc import nil
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import _parse_file_type
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -24,6 +27,7 @@ info["NSAppTransportSecurity"] = {"NSAllowsArbitraryLoads": Foundation.YES}
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
+    debug = False
 
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
@@ -47,13 +51,16 @@ class BrowserView:
                 return Foundation.NO
 
         def windowWillClose_(self, notification):
-            # Delete the closed instance from the list
+            # Delete the closed instance from the dict
             i = BrowserView.get_instance('window', notification.object())
             del BrowserView.instances[i.uid]
 
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
-            return nil
+            if BrowserView.debug:
+                return defaultMenuItems
+            else:
+                return nil
 
         # Display a JavaScript alert panel containing the specified message
         def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
@@ -75,7 +82,7 @@ class BrowserView:
         # Display an open panel for <input type="file"> element
         def webView_runOpenPanelForFileButtonWithResultListener_allowMultipleFiles_(self, webview, listener, allow_multiple):
             i = list(BrowserView.instances.values())[0]
-            files = i.create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', main_thread=True)
+            files = i.create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', [], main_thread=True)
 
             if files:
                 listener.chooseFilenames_(files)
@@ -150,6 +157,19 @@ class BrowserView:
                 i.window.setContentView_(webview)
                 i.window.makeFirstResponder_(webview)
 
+    class FileFilterChooser(AppKit.NSPopUpButton):
+        def initWithFilter_(self, file_filter):
+            super(BrowserView.FileFilterChooser, self).init()
+            self.filter = file_filter
+
+            self.addItemsWithTitles_([i[0] for i in self.filter])
+            self.setAction_('onChange:')
+            self.setTarget_(self)
+            return self
+
+        def onChange_(self, sender):
+            option = sender.indexOfSelectedItem()
+            self.window().setAllowedFileTypes_(self.filter[option][1])
 
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
@@ -189,9 +209,14 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, webview_ready):
+    def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
+                 confirm_quit, background_color, debug, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
+        BrowserView.debug = debug
+
+        if debug:
+            BrowserView._set_debugging()
 
         self._file_name = None
         self._file_name_semaphor = threading.Semaphore(0)
@@ -298,7 +323,7 @@ class BrowserView:
         self._js_result_semaphor.acquire()
         return self._js_result
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, main_thread=False):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter, main_thread=False):
         def create_dialog(*args):
             dialog_type = args[0]
 
@@ -332,6 +357,16 @@ class BrowserView:
 
                 # Enable / disable multiple selection
                 open_dlg.setAllowsMultipleSelection_(allow_multiple)
+
+                # Set allowed file extensions
+                if file_filter:
+                    open_dlg.setAllowedFileTypes_(file_filter[0][1])
+
+                    # Add a menu to choose between multiple file filters
+                    if len(file_filter) > 1:
+                        filter_chooser = BrowserView.FileFilterChooser.alloc().initWithFilter_(file_filter)
+                        open_dlg.setAccessoryView_(filter_chooser)
+                        open_dlg.setAccessoryViewDisclosed_(True)
 
                 if directory:  # set initial directory
                     open_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
@@ -409,7 +444,6 @@ class BrowserView:
         fullScreenMenuItem = viewMenu.addItemWithTitle_action_keyEquivalent_(localization["cocoa.menu.fullscreen"], "toggleFullScreen:", "f")
         fullScreenMenuItem.setKeyEquivalentModifierMask_(AppKit.NSControlKeyMask | AppKit.NSCommandKeyMask)
 
-
     def _append_app_name(self, val):
         """
         Append the application name to a string if it's available. If not, the
@@ -475,12 +509,20 @@ class BrowserView:
         else:
             return False
 
+    @staticmethod
+    def _set_debugging():
+        command = ['defaults', 'write', 'org.python.python', 'WebKitDeveloperExtras', '-bool', 'true']
+        if sys.version < '3':
+            subprocess.call(command)
+        else:
+            subprocess.run(command)
+
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, webview_ready):
+                  confirm_quit, background_color, debug, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, webview_ready)
+                              confirm_quit, background_color, debug, webview_ready)
         browser.show()
         webview_ready.set()
 
@@ -490,9 +532,17 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         PyObjCTools.AppHelper.callAfter(create)
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
+    file_filter = []
+
+    # Parse file_types to obtain allowed file extensions
+    for s in file_types:
+        description, extensions = _parse_file_type(s)
+        file_extensions = [i.lstrip('*.') for i in extensions.split(';') if i != '*.*']
+        file_filter.append([description, file_extensions or None])
+
     i = list(BrowserView.instances.values())[0]     # arbitary instance
-    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
 def load_url(url, uid):

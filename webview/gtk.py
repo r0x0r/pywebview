@@ -10,6 +10,8 @@ import logging
 from uuid import uuid1
 from webview.localization import localization
 from webview import _escape_string, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import _parse_file_type
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +29,7 @@ class BrowserView:
     instances = {}
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, webview_ready):
+                 confirm_quit, background_color, debug, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
 
@@ -82,14 +84,15 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
-        self.window.destroy()
-        del BrowserView.instances[self.uid]
-
         while gtk.events_pending():
             gtk.main_iteration()
 
+        self.window.destroy()
+        del BrowserView.instances[self.uid]
+
         if BrowserView.instances == {}:
             gtk.main_quit()
+        self._js_result_semaphore.release()
 
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
@@ -127,7 +130,7 @@ class BrowserView:
 
         self.is_fullscreen = not self.is_fullscreen
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if dialog_type == FOLDER_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
             title = localization["linux.openFolder"]
@@ -150,6 +153,7 @@ class BrowserView:
 
         dialog.set_select_multiple(allow_multiple)
         dialog.set_current_folder(directory)
+        self._add_file_filters(dialog, file_types)
 
         if dialog_type == SAVE_DIALOG:
             dialog.set_current_name(save_filename)
@@ -164,6 +168,17 @@ class BrowserView:
         dialog.destroy()
 
         return file_name
+
+    def _add_file_filters(self, dialog, file_types):
+        for s in file_types:
+            description, extensions = _parse_file_type(s)
+
+            f = gtk.FileFilter()
+            f.set_name(description)
+            for e in extensions.split(';'):
+                f.add_pattern(e)
+
+            dialog.add_filter(f)
 
     def get_current_url(self):
         uri = self.webview.get_uri()
@@ -187,6 +202,11 @@ class BrowserView:
 
         glib.idle_add(_evaluate_js)
         self._js_result_semaphore.acquire()
+
+        if not gtk.main_level():
+            # Webview has been closed, don't proceed
+            return None
+
         # Restore document title and return
         _js_result = self.webview.get_title()
         code = 'document.title = oldTitle{0};'.format(unique_id)
@@ -195,10 +215,10 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, webview_ready):
+                  confirm_quit, background_color, debug, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
-                              min_size, confirm_quit, background_color, webview_ready)
+                              min_size, confirm_quit, background_color, debug, webview_ready)
         browser.show()
 
     if uid == 'master':
@@ -235,13 +255,13 @@ def load_html(content, base_uri, uid):
     glib.idle_add(_load_html)
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
     i = list(BrowserView.instances.values())[0]     # arbitary instance
     file_name_semaphore = threading.Semaphore(0)
     file_names = []
 
     def _create():
-        result = i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+        result = i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
         if result is None:
             file_names.append(None)
         else:
