@@ -106,7 +106,7 @@ Create a new WebView window. Calling this function will block application execut
 These functions below must be invoked after webview windows is created with create_window(). Otherwise an exception is thrown. 
 
 - `webview.set_js_api(api_instance)`
-   Expose api_instance to the DOM of the current webview window. Callable functions of `api_instance` can be executed using Javascript  page through `window.pywebview.api` object. Custom functions accept a single parameter, either a primitive type or an object. Objects are converted to `dict` on the Python side.
+   Expose api_instance to the DOM of the current webview window. Callable functions of `api_instance` can be executed using Javascript  page through `window.pywebview.api` object. Custom functions accept a single parameter, either a primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate threads and are not thread-safe.
 
 - `webview.load_url(url)`
 	Load a new URL in the previously created WebView window. 
