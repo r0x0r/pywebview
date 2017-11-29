@@ -268,8 +268,9 @@ def set_js_api(api_instance):
 
 def _js_bridge_call(api_instance, func_name, param):
     def _call():
-        result = function(func_params)
-        gui.evaluate_js('window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, result))
+        result = _escape_string(json.dumps(function(func_params)))
+        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: "{1}"}}'.format(func_name, result)
+        gui.evaluate_js(code)
 
     function = getattr(api_instance, func_name, None)
 
@@ -298,7 +299,7 @@ def _parse_api_js(api_instance):
 
 
 def _escape_string(string):
-    return string.replace('"', r'\"').replace('\n', r'\n')
+    return string.replace('"', r'\"').replace('\n', r'\n').replace('\r', r'\\r')
 
 
 def _make_unicode(string):

@@ -31,11 +31,16 @@ window.pywebview = {
             var returnObj = window.pywebview._returnValues[funcName]
 
             if (returnObj.isSet) {
-                returnObj.isSet = false;
-                resolve(returnObj.value);
+                returnObj.isSet = false
+                try {
+                    resolve(JSON.parse(returnObj.value.replace(/\n/, '\\n')))
+                } catch(e) {
+                    resolve(returnObj.value)
+                }
+
                 clearInterval(check);
             }
-         }, 100);
+         }, 100)
     },
     api: {},
     _returnValues: {},
