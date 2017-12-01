@@ -292,7 +292,7 @@ def _parse_api_js(api_instance):
         js_code = npo_js.read()
 
     with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
-        func_list = str([f for f in dir(api_instance) if callable(getattr(api_instance, f))])
+        func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
         js_code += api_js.read() % func_list
 
     return js_code
