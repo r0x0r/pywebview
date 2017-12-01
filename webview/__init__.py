@@ -270,7 +270,7 @@ def _js_bridge_call(api_instance, func_name, param):
     def _call():
         result = _escape_string(json.dumps(function(func_params)))
         code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: "{1}"}}'.format(func_name, result)
-        gui.evaluate_js(code)
+        evaluate_js(code)
 
     function = getattr(api_instance, func_name, None)
 
