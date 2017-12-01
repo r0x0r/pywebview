@@ -38,7 +38,7 @@ html='''
 
 <h1>JS API Example</h1>
 <button onClick="initialize()">Hello Python</button><br/>
-<button onClick="doHeavyStuff()">Perform a heavy operation</button><br/>
+<button id="heavy-stuff-btn" onClick="doHeavyStuff()">Perform a heavy operation</button><br/>
 <button onClick="getRandomNumber()">Get a random number</button><br/>
 
 <div id="response-container"></div>
@@ -55,8 +55,21 @@ function initialize() {
 }
 
 function doHeavyStuff() {
-    pywebview.api.do_heavy_stuff().then(showResponse)
+    var btn = document.getElementById('heavy-stuff-btn')
+
+    pywebview.api.do_heavy_stuff().then(function(response) {
+        showResponse(response)
+        btn.onclick = doHeavyStuff
+        btn.innerText = 'Perform a heavy operation'
+    })
+
     showResponse({message: 'Working...'})
+    btn.innerText = 'Cancel the heavy operation'
+    btn.onclick = cancelHeavyStuff
+}
+
+function cancelHeavyStuff() {
+    pywebview.api.cancel_heavy_stuff()
 }
 
 function getRandomNumber() {
@@ -70,6 +83,9 @@ function getRandomNumber() {
 
 
 class Api:
+    def __init__(self):
+        self.cancel_heavy_stuff_flag = False
+
     def init(self, params):
         response = {
             'message': 'Hello from Python {0}'.format(sys.version)
@@ -82,17 +98,25 @@ class Api:
         }
         return response
 
-
     def do_heavy_stuff(self, params):
         time.sleep(0.1) # sleep to prevent from the ui thread from freezing for a moment
         now = time.time()
+        self.cancel_heavy_stuff_flag = False
         for i in range(0, 1000000):
-            temp = i * random.randint(0, 1000)
-        then = time.time()
-        response = {
-            'message': 'Operation took {0:.1f} seconds on the thread {1}'.format((then - now), threading.current_thread())
-        }
+            _ = i * random.randint(0, 1000)
+            if self.cancel_heavy_stuff_flag:
+                response = { 'message': 'Operation cancelled' }
+                break
+        else:
+            then = time.time()
+            response = {
+                'message': 'Operation took {0:.1f} seconds on the thread {1}'.format((then - now), threading.current_thread())
+            }
         return response
+
+    def cancel_heavy_stuff(self, params):
+        time.sleep(0.1)
+        self.cancel_heavy_stuff_flag = True
 
 
 def create_app():
