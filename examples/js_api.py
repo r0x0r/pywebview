@@ -37,7 +37,7 @@ html='''
 
 
 <h1>JS API Example</h1>
-<button onClick="initialize()">Init App</button><br/>
+<button onClick="initialize()">Hello Python</button><br/>
 <button onClick="doHeavyStuff()">Perform a heavy operation</button><br/>
 <button onClick="getRandomNumber()">Get a random number</button><br/>
 
@@ -86,8 +86,8 @@ class Api:
     def do_heavy_stuff(self, params):
         time.sleep(0.1) # sleep to prevent from the ui thread from freezing for a moment
         now = time.time()
-        for i in range(0, 100000000):
-            pass
+        for i in range(0, 1000000):
+            temp = i * random.randint(0, 1000)
         then = time.time()
         response = {
             'message': 'Operation took {0:.1f} seconds on the thread {1}'.format((then - now), threading.current_thread())
