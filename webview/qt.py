@@ -9,7 +9,7 @@ import sys
 import os
 import re
 import logging
-import threading
+from threading import Semaphore
 
 from webview.localization import localization
 from webview import _parse_api_js, _js_bridge_call
@@ -25,15 +25,17 @@ try:
 
     # Check to see if we're running Qt > 5.5
     from PyQt5.QtCore import QT_VERSION_STR
-    if float(QT_VERSION_STR[:3]) > 5.5:
+    _qt_version = float(QT_VERSION_STR[:3])
+
+    if _qt_version > 5.5:
         from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
+        from PyQt5.QtWebChannel import QWebChannel
     else:
         from PyQt5.QtWebKitWidgets import QWebView
 
     from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox
     from PyQt5.QtGui import QColor
 
-    _qt_version = 5
     logger.debug('Using Qt5')
 except ImportError as e:
     logger.exception('PyQt5 or one of dependencies is not found')
@@ -83,21 +85,19 @@ class BrowserView(QMainWindow):
             return _js_bridge_call(self.api, func_name, param)
 
     def __init__(self, title, url, width, height, resizable, fullscreen,
-                 min_size, confirm_quit, background_color, debug, webview_ready):
+                 min_size, confirm_quit, background_color, debug, js_api, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instance = self
         self.is_fullscreen = False
         self.confirm_quit = confirm_quit
 
-        self._file_name_semaphor = threading.Semaphore(0)
-        self._current_url_semaphore = threading.Semaphore()
-        self._evaluate_js_semaphor = threading.Semaphore(0)
+        self._file_name_semaphore = Semaphore(0)
+        self._current_url_semaphore = Semaphore()
+        self._evaluate_js_semaphore = Semaphore(0)
 
         self._evaluate_js_result = None
         self._current_url = None
         self._file_name = None
-
-        self.js_bridge = BrowserView.JSBridge()
 
         self.resize(width, height)
         self.title = title
@@ -116,7 +116,6 @@ class BrowserView(QMainWindow):
         self.setMinimumSize(min_size[0], min_size[1])
 
         self.view = QWebView(self)
-        self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
         if url is not None:
             self.view.setUrl(QtCore.QUrl(url))
@@ -131,8 +130,15 @@ class BrowserView(QMainWindow):
         self.current_url_trigger.connect(self.on_current_url)
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
 
+        self.js_bridge = BrowserView.JSBridge()
+        self.js_bridge.api = js_api
+
+        self.view.page().loadFinished.connect(self.on_load_finished)
+
         if fullscreen:
             self.toggle_fullscreen()
+
+        self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
@@ -154,7 +160,7 @@ class BrowserView(QMainWindow):
 
             self._file_name = QFileDialog.getSaveFileName(self, localization['global.saveFile'], save_filename)
 
-        self._file_name_semaphor.release()
+        self._file_name_semaphore.release()
 
     def on_current_url(self):
         self._current_url = self.view.url().toString()
@@ -192,12 +198,16 @@ class BrowserView(QMainWindow):
     def on_evaluate_js(self, script):
         def return_result(result):
             self._evaluate_js_result = result
-            self._evaluate_js_semaphor.release()
+            self._evaluate_js_semaphore.release()
 
         try:    # PyQt4
             return_result(self.view.page().mainFrame().evaluateJavaScript(script))
         except AttributeError:  # PyQt5
             self.view.page().runJavaScript(script, return_result)
+
+    def on_load_finished(self):
+        if self.js_bridge.api:
+            self._set_js_api()
 
     def get_current_url(self):
         self.current_url_trigger.emit()
@@ -213,9 +223,9 @@ class BrowserView(QMainWindow):
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
-        self._file_name_semaphor.acquire()
+        self._file_name_semaphore.acquire()
 
-        if _qt_version == 5:  # QT5
+        if _qt_version > 5:  # QT5
             if dialog_type == FOLDER_DIALOG:
                 file_names = (self._file_name,)
             elif dialog_type == SAVE_DIALOG or not allow_multiple:
@@ -245,22 +255,31 @@ class BrowserView(QMainWindow):
 
     def evaluate_js(self, script):
         self.evaluate_js_trigger.emit(script)
-        self._evaluate_js_semaphor.acquire()
+        self._evaluate_js_semaphore.acquire()
 
         return self._evaluate_js_result
 
-    def set_js_api(self, api_instance):
-        def _set_js_api():
+    def _set_js_api(self):
+        def _register_window_object():
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
-        self.js_bridge.api = api_instance
-        self.evaluate_js(_parse_api_js(api_instance))
+        script = _parse_api_js(self.js_bridge.api)
 
-        frame = self.view.page().mainFrame()
-        _set_js_api()
+        if _qt_version >= 5.5:
+            self.channel = QWebChannel(self.view.page())
+            self.view.page().setWebChannel(self.channel)
+            self.channel.registerObject('external', self.js_bridge)
+        elif _qt_version > 5:
+            frame = self.view.page().mainFrame()
+            _register_window_object()
+        else:
+            frame = self.view.page().mainFrame()
+            self.connect(frame, QtCore.SIGNAL('javaScriptWindowObjectCleared()'), _register_window_object)
 
-        if _qt_version == 4:
-            self.connect(frame, QtCore.SIGNAL('javaScriptWindowObjectCleared()'), _set_js_api)
+        try:    # PyQt4
+            self.view.page().mainFrame().evaluateJavaScript(script)
+        except AttributeError:  # PyQt5
+            self.view.page().runJavaScript(script)
 
 
     @staticmethod
@@ -272,11 +291,12 @@ class BrowserView(QMainWindow):
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, webview_ready):
+                  confirm_quit, background_color, debug, js_api, webview_ready):
     app = QApplication([])
 
     browser = BrowserView(title, url, width, height, resizable, fullscreen,
-                          min_size, confirm_quit, background_color, debug, webview_ready)
+                          min_size, confirm_quit, background_color, debug, js_api,
+                          webview_ready)
     browser.show()
     app.exec_()
 

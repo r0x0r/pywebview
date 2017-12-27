@@ -121,13 +121,13 @@ class Api:
 
 def create_app():
     webview.load_html(html)
-    api = Api()
-    webview.set_js_api(api)
+
 
 
 if __name__ == '__main__':
     t = threading.Thread(target=create_app)
     t.start()
 
-    webview.create_window('API example', debug=True)
+    api = Api()
+    webview.create_window('API example', debug=True, js_api=api)
 
