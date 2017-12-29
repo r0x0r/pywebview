@@ -22,6 +22,10 @@ window.pywebview = {
         call: function (func_name, params) {
             if (window.external) {
                 return window.external.call(func_name, params)
+            } else if (window.qt) {
+                new QWebChannel(qt.webChannelTransport, function(channel) {
+                  channel.objects.external.call(func_name, params)
+                });
             }
         }
     },

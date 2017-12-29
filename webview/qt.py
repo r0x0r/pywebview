@@ -77,10 +77,13 @@ class BrowserView(QMainWindow):
     class JSBridge(QtCore.QObject):
         api = None
 
-        @QtCore.pyqtSlot(str, str, result=str)
+        def __init__(self):
+            super(BrowserView.JSBridge, self).__init__()
+
+        @QtCore.pyqtSlot(str, QtCore.QJsonValue, result=str)
         def call(self, func_name, param):
             func_name = BrowserView._convert_string(func_name)
-            param = BrowserView._convert_string(param)
+            param = BrowserView._convert_string(param.toString())
 
             return _js_bridge_call(self.api, func_name, param)
 
@@ -132,6 +135,9 @@ class BrowserView(QMainWindow):
 
         self.js_bridge = BrowserView.JSBridge()
         self.js_bridge.api = js_api
+        if _qt_version >= 5.5:
+            self.channel = QWebChannel(self.view.page())
+            self.view.page().setWebChannel(self.channel)
 
         self.view.page().loadFinished.connect(self.on_load_finished)
 
@@ -266,9 +272,12 @@ class BrowserView(QMainWindow):
         script = _parse_api_js(self.js_bridge.api)
 
         if _qt_version >= 5.5:
-            self.channel = QWebChannel(self.view.page())
-            self.view.page().setWebChannel(self.channel)
-            self.channel.registerObject('external', self.js_bridge)
+            qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
+            if qwebchannel_js.open(QtCore.QFile.ReadOnly):
+                source = bytes(qwebchannel_js.readAll()).decode('utf-8')
+                self.view.page().runJavaScript(source)
+                self.channel.registerObject('external', self.js_bridge)
+                qwebchannel_js.close()
         elif _qt_version > 5:
             frame = self.view.page().mainFrame()
             _register_window_object()

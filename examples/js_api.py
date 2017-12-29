@@ -50,7 +50,7 @@ function showResponse(response) {
     container.style.display = 'block'
 }
 
-function initialize() {
+function initialize() {    
     pywebview.api.init().then(showResponse)
 }
 
