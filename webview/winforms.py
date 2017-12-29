@@ -47,10 +47,11 @@ class BrowserView:
 
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
-                     confirm_quit, background_color, debug, webview_ready):
+                     confirm_quit, background_color, debug, js_api, webview_ready):
             self.Text = title
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
+            self.BackColor = ColorTranslator.FromHtml(background_color)
             self.BackColor = ColorTranslator.FromHtml(background_color)
 
             if not resizable:
@@ -74,8 +75,10 @@ class BrowserView:
             self.web_browser.IsWebBrowserContextMenuEnabled = False
             self.web_browser.WebBrowserShortcutsEnabled = False
 
-            self.js_bridge = BrowserView.JSBridge()
-            self.web_browser.ObjectForScripting = self.js_bridge
+            if js_api:
+                self.js_bridge = BrowserView.JSBridge()
+                self.js_bridge.api = js_api
+                self.web_browser.ObjectForScripting = self.js_bridge
 
             # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
             # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
@@ -108,7 +111,7 @@ class BrowserView:
             self.webview_ready.set()
 
         def on_closing(self, sender, args):
-            result = WinForms.MessageBox.Show(localization["global.quitConfirmation"], self.Text,
+            result = WinForms.MessageBox.Show(localization['global.quitConfirmation'], self.Text,
                                               WinForms.MessageBoxButtons.OKCancel, WinForms.MessageBoxIcon.Asterisk)
 
             if result == WinForms.DialogResult.Cancel:
@@ -140,6 +143,10 @@ class BrowserView:
                 self.web_browser.Visible = True
                 self.first_load = False
 
+            if self.js_bridge.api:
+                document = self.web_browser.Document
+                document.InvokeScript('eval', (_parse_api_js(self.js_bridge.api),))
+
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
                 self.old_size = self.Size
@@ -167,7 +174,7 @@ class BrowserView:
 
     instance = None
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, debug, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, debug, js_api, webview_ready):
         BrowserView.instance = self
         self.title = title
         self.url = url
@@ -180,6 +187,7 @@ class BrowserView:
         self.webview_ready = webview_ready
         self.background_color = background_color
         self.debug = debug
+        self.js_api = js_api
         self.browser = None
         self._js_result_semaphor = threading.Semaphore(0)
 
@@ -188,7 +196,7 @@ class BrowserView:
             app = WinForms.Application
             self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
                                                    self.fullscreen, self.min_size, self.confirm_quit, self.background_color, 
-                                                   self.debug, self.webview_ready)
+                                                   self.debug, self.js_api, self.webview_ready)
             app.Run(self.browser)
 
         thread = Thread(ThreadStart(start))
@@ -218,7 +226,7 @@ class BrowserView:
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if not directory:
-            directory = os.environ["HOMEPATH"]
+            directory = os.environ['HOMEPATH']
 
         try:
             if dialog_type == FOLDER_DIALOG:
@@ -239,7 +247,7 @@ class BrowserView:
                 if len(file_types) > 0:
                     dialog.Filter = '|'.join(['{0} ({1})|{1}'.format(*_parse_file_type(f)) for f in file_types])
                 else:
-                    dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
+                    dialog.Filter = localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
                 dialog.RestoreDirectory = True
 
                 result = dialog.ShowDialog(BrowserView.instance.browser)
@@ -250,7 +258,7 @@ class BrowserView:
 
             elif dialog_type == SAVE_DIALOG:
                 dialog = WinForms.SaveFileDialog()
-                dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|"
+                dialog.Filter = localization['windows.fileFilter.allFiles'] + ' (*.*)|'
                 dialog.InitialDirectory = directory
                 dialog.RestoreDirectory = True
                 dialog.FileName = save_filename
@@ -264,7 +272,7 @@ class BrowserView:
             return file_path
 
         except:
-            logger.exception("Error invoking {0} dialog".format(dialog_type))
+            logger.exception('Error invoking {0} dialog'.format(dialog_type))
             return None
 
     def toggle_fullscreen(self):
@@ -285,16 +293,12 @@ class BrowserView:
 
         return self._js_result
 
-    def set_js_api(self, api_instance):
-        self.browser.js_bridge.api = api_instance
-        self.evaluate_js(_parse_api_js(api_instance))
-
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, webview_ready):
+                  confirm_quit, background_color, debug, js_api, webview_ready):
     set_ie_mode()
     browser_view = BrowserView(title, url, width, height, resizable, fullscreen,
-                               min_size, confirm_quit, background_color, debug, webview_ready)
+                               min_size, confirm_quit, background_color, debug, js_api, webview_ready)
     browser_view.show()
 
 
@@ -328,7 +332,3 @@ def evaluate_js(script):
 
 def is_running():
     return not BrowserView.instance.browser.IsDisposed
-
-
-def set_js_api(api_object):
-    BrowserView.instance.set_js_api(api_object)

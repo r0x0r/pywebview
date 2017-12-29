@@ -94,7 +94,7 @@ class Api:
 
     def get_random_number(self, params):
         response = {
-            'message': 'Here is a random number cortesy of randint: {0}'.format(random.randint(0, 100000000))
+            'message': 'Here is a random number courtesy of randint: {0}'.format(random.randint(0, 100000000))
         }
         return response
 
@@ -121,7 +121,6 @@ class Api:
 
 def create_app():
     webview.load_html(html)
-
 
 
 if __name__ == '__main__':
