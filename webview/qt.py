@@ -80,10 +80,15 @@ class BrowserView(QMainWindow):
         def __init__(self):
             super(BrowserView.JSBridge, self).__init__()
 
-        @QtCore.pyqtSlot(str, QtCore.QJsonValue, result=str)
+        try:
+            qtype = QtCore.QJsonValue # QT5
+        except AttributeError:
+            qtype = str # QT4
+
+        @QtCore.pyqtSlot(str, qtype, result=str)
         def call(self, func_name, param):
             func_name = BrowserView._convert_string(func_name)
-            param = BrowserView._convert_string(param.toString())
+            param = BrowserView._convert_string(param)
 
             return _js_bridge_call(self.api, func_name, param)
 
@@ -283,7 +288,7 @@ class BrowserView(QMainWindow):
             _register_window_object()
         else:
             frame = self.view.page().mainFrame()
-            self.connect(frame, QtCore.SIGNAL('javaScriptWindowObjectCleared()'), _register_window_object)
+            _register_window_object()
 
         try:    # PyQt4
             self.view.page().mainFrame().evaluateJavaScript(script)
