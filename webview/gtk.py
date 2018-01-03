@@ -41,7 +41,7 @@ class BrowserView:
             return _js_bridge_call(self.api, func_name, param)
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, webview_ready):
+                 confirm_quit, background_color, debug, js_api, webview_ready):
         BrowserView.instance = self
 
         self.webview_ready = webview_ready
@@ -81,6 +81,9 @@ class BrowserView:
             self.window.connect('delete-event', self.on_destroy)
         else:
             self.window.connect('delete-event', self.close_window)
+
+        if js_api:
+            self.js_bridge = BrowserView.JSBridge(js_api)
 
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
@@ -124,8 +127,8 @@ class BrowserView:
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)
 
-        # signal set_js_api that the api can be loaded now
-        self.load_event.set()
+        if self.js_bridge:
+            self.set_js_api()
 
     def on_status_change(self, webview, status):
         try:
@@ -240,7 +243,7 @@ class BrowserView:
         glib.idle_add(self.webview.execute_script, code)
         return _js_result
 
-    def set_js_api(self, api_instance):
+    def set_js_api(self):
         def create_bridge():
             # Make the `call` method write the function name and param to the
             # `status` attribute of the JS window, delimited by a unique token.
@@ -253,20 +256,16 @@ class BrowserView:
             }};""".format(self.js_bridge.uid)
 
             # Create the `pywebview` JS api object
-            self.webview.execute_script(_parse_api_js(api_instance))
+            self.webview.execute_script(_parse_api_js(self.js_bridge.api))
             self.webview.execute_script(code)
 
-        if not self.load_event.is_set():
-            self.load_event.wait()  # Set up JS API only when DOM is ready
-
-        self.js_bridge = BrowserView.JSBridge(api_instance)
         glib.idle_add(create_bridge)
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, webview_ready):
+                  confirm_quit, background_color, debug, js_api, webview_ready):
     browser = BrowserView(title, url, width, height, resizable, fullscreen,
-                          min_size, confirm_quit, background_color, debug, webview_ready)
+                          min_size, confirm_quit, background_color, debug, js_api, webview_ready)
     browser.show()
 
 
@@ -325,6 +324,3 @@ def evaluate_js(script):
 def is_running():
     return bool(gtk.main_level())
 
-
-def set_js_api(api_instance):
-    BrowserView.instance.set_js_api(api_instance)

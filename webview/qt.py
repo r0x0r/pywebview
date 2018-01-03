@@ -77,13 +77,13 @@ class BrowserView(QMainWindow):
     class JSBridge(QtCore.QObject):
         api = None
 
+        try:
+            qtype = QtCore.QJsonValue  # QT5
+        except AttributeError:
+            qtype = str  # QT4
+
         def __init__(self):
             super(BrowserView.JSBridge, self).__init__()
-
-        try:
-            qtype = QtCore.QJsonValue # QT5
-        except AttributeError:
-            qtype = str # QT4
 
         @QtCore.pyqtSlot(str, qtype, result=str)
         def call(self, func_name, param):
@@ -298,6 +298,11 @@ class BrowserView(QMainWindow):
 
     @staticmethod
     def _convert_string(qstring):
+        try:
+            qstring = qstring.toString() # QJsonValue conversion
+        except:
+            pass
+
         if sys.version < '3':
             return unicode(qstring)
         else:
