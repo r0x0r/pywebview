@@ -21,14 +21,13 @@ from webview import _parse_file_type, _js_bridge_call, _parse_api_js
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
-info["NSAppTransportSecurity"] = {"NSAllowsArbitraryLoads": Foundation.YES}
+info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
 
 
 class BrowserView:
     instance = None
     app = AppKit.NSApplication.sharedApplication()
     debug = False
-    load_event = Event()
 
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
@@ -36,9 +35,9 @@ class BrowserView:
 
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, notification):
-            quit = localization["global.quit"]
-            cancel = localization["global.cancel"]
-            msg = localization["global.quitConfirmation"]
+            quit = localization['global.quit']
+            cancel = localization['global.cancel']
+            msg = localization['global.quitConfirmation']
 
             if not _confirm_quit or BrowserView.display_confirmation_dialog(quit, cancel, msg):
                 return Foundation.YES
@@ -83,8 +82,8 @@ class BrowserView:
 
         # Display a JavaScript confirm panel containing the specified message
         def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
-            ok = localization["global.ok"]
-            cancel = localization["global.cancel"]
+            ok = localization['global.ok']
+            cancel = localization['global.cancel']
 
             if BrowserView.display_confirmation_dialog(ok, cancel, message):
                 return Foundation.YES
@@ -167,7 +166,8 @@ class BrowserView:
                 BrowserView.instance.window.setContentView_(webview)
                 BrowserView.instance.window.makeFirstResponder_(webview)
 
-            BrowserView.load_event.set()
+            if BrowserView.instance.js_bridge:
+                BrowserView.instance._set_js_api()
 
 
     class WebKitHost(WebKit.WebView):
@@ -208,7 +208,7 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, debug, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, debug, js_api, webview_ready):
         BrowserView.instance = self
         BrowserView.debug = debug
 
@@ -246,6 +246,9 @@ class BrowserView:
         self.webkit.setPolicyDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
+
+        if js_api:
+            self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(js_api)
 
         self.url = url
         self.load_url(url)
@@ -296,7 +299,6 @@ class BrowserView:
             self.webkit.mainFrame().loadRequest_(req)
 
         self.url = url
-        BrowserView.load_event.clear()
         PyObjCTools.AppHelper.callAfter(load, url)
 
     def load_html(self, content, base_uri):
@@ -304,7 +306,6 @@ class BrowserView:
             url = Foundation.NSURL.URLWithString_(url)
             self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
 
-        BrowserView.load_event.clear()
         PyObjCTools.AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
@@ -321,17 +322,16 @@ class BrowserView:
         JSResult.result_semaphore.acquire()
         return JSResult.result
 
-    def set_js_api(self, api_instance):
-        def create_bridge():
-            pwv_obj = self.webkit.windowScriptObject().valueForKey_('pywebview')
-            pwv_obj.setValue_forKey_(self.js_bridge, '_bridge')
+    def _set_js_api(self):
+        #def create_bridge():
+        script = _parse_api_js(self.js_bridge.api)
+        self.webkit.windowScriptObject().evaluateWebScript_(script)
 
-        if not BrowserView.load_event.is_set():
-            BrowserView.load_event.wait()  # Set up JS API only when DOM is ready
+        pwv_obj = self.webkit.windowScriptObject().valueForKey_('pywebview')
+        pwv_obj.setValue_forKey_(self.js_bridge, '_bridge')
 
-        self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(api_instance)
-        self.evaluate_js(_parse_api_js(api_instance))
-        PyObjCTools.AppHelper.callAfter(create_bridge)
+        #self.evaluate_js(_parse_api_js(self.js_bridge.api))
+        #PyObjCTools.AppHelper.callAfter(create_bridge)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_extensions, main_thread=False):
         def create_dialog(*args):
@@ -508,11 +508,11 @@ class BrowserView:
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, webview_ready):
+                  confirm_quit, background_color, debug, js_api, webview_ready):
     global _confirm_quit
     _confirm_quit = confirm_quit
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, debug, webview_ready)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, debug, js_api, webview_ready)
     browser.show()
 
 
@@ -553,7 +553,3 @@ def evaluate_js(script):
 
 def is_running():
     return BrowserView.app.isRunning()
-
-
-def set_js_api(api_instance):
-    BrowserView.instance.set_js_api(api_instance)
