@@ -89,10 +89,15 @@ an application scaffold and boilerplate code for a real-world application.
 
 ## API
 
-- `webview.create_window(title, url='', width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF')`
+- `webview.create_window(title, url='', js_api=None, width=800, height=600, resizable=True, fullscreen=False,
+                         min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF', debug=False)`
 Create a new WebView window. Calling this function will block application execution, so you have to execute your program logic in a separate thread.
   * `title` - Window title
   * `url` - URL to load
+  * `js_api` - Expose `js_api` to the DOM of the current webview window. Callable functions of `js_api` can be executed
+    using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a
+    primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate
+    threads and are not thread-safe.
   * `width` - Window width. Default is 800px.
   * `height` - Window height. Default is 600px.
   * `resizable` - Whether window can be resized. Default is True
@@ -102,11 +107,10 @@ Create a new WebView window. Calling this function will block application execut
   * `confirm_quit` - Whether to display a quit confirmation dialog. Default is False
   * `background_color` - Background color of the window displayed before webview is loaded. Specified as a hex color. Default is white.
   * `strings` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
+  * `debug` - (OSX only) Enables web inspector, when set to True.
 
-These functions below must be invoked after webview windows is created with create_window(). Otherwise an exception is thrown. 
 
-- `webview.set_js_api(api_instance)`
-   Expose api_instance to the DOM of the current webview window. Callable functions of `api_instance` can be executed using Javascript  page through `window.pywebview.api` object. Custom functions accept a single parameter, either a primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate threads and are not thread-safe.
+These functions below must be invoked after webview windows is created with `create_window()`. Otherwise an exception is thrown.
 
 - `webview.load_url(url)`
 	Load a new URL in the previously created WebView window. 
