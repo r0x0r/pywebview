@@ -18,8 +18,9 @@ def destroy_window(webview, delay=3):
     t.start()
 
 
-def run_test(test_func):
-    p = Process(target=test_func)
+def run_test(test_func, param=None):
+    args = (param,) if param else ()
+    p = Process(target=test_func, args=args)
     p.start()
     p.join()
     assert p.exitcode == 0
