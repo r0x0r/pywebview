@@ -12,9 +12,9 @@ except:
 from .util import run_test, destroy_window
 
 js_code = '''
-pywebviewResult = undefined
+window.pywebviewResult = undefined
 pywebview.api.{0}().then(function(response) {{
-    pywebviewResult = response
+    window.pywebviewResult = response
 }})
 '''
 
@@ -26,6 +26,7 @@ class Api:
     def get_string(self, params):
         return 'test'
 
+
 @pytest.fixture
 def create_api():
     return Api()
@@ -36,13 +37,12 @@ def js_bridge(api):
 
     def assertFunction(func_name, result):
         webview.evaluate_js(js_code.format(func_name))
-        sleep(0.1)
-        assert webview.evaluate_js('pywebviewResult') == result
+        sleep(2.0)
+        assert webview.evaluate_js('window.pywebviewResult') == result
 
     def _set_js_bridge(webview):
         try:
             webview.load_html('<html><body></body></html>')
-
             assertFunction('get_number', 5)
             assertFunction('get_string', 'test')
             q.put(0)
@@ -54,7 +54,7 @@ def js_bridge(api):
     t = threading.Thread(target=_set_js_bridge, args=(webview,))
     t.start()
 
-    destroy_window(webview)
+    destroy_window(webview, 10)
     webview.create_window('JSBridge test', js_api=api, debug=True)
     exitcode = q.get()
     sys.exit(exitcode)

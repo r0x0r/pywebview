@@ -105,7 +105,7 @@ class Api:
         for i in range(0, 1000000):
             _ = i * random.randint(0, 1000)
             if self.cancel_heavy_stuff_flag:
-                response = { 'message': 'Operation cancelled' }
+                response = {'message': 'Operation cancelled'}
                 break
         else:
             then = time.time()
