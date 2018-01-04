@@ -2,6 +2,7 @@ import pytest
 import sys
 import threading
 import traceback
+from time import sleep
 
 try:
     from queue import Queue
@@ -10,26 +11,40 @@ except:
 
 from .util import run_test, destroy_window
 
+js_code = '''
+pywebviewResult = undefined
+pywebview.api.{0}().then(function(response) {{
+    pywebviewResult = response
+}})
+'''
+
 
 class Api:
-    def get_number(self):
+    def get_number(self, params):
         return 5
 
-    def get_string(self):
+    def get_string(self, params):
         return 'test'
 
 @pytest.fixture
 def create_api():
     return Api()
 
+
 def js_bridge(api):
     import webview
+
+    def assertFunction(func_name, result):
+        webview.evaluate_js(js_code.format(func_name))
+        sleep(0.1)
+        assert webview.evaluate_js('pywebviewResult') == result
 
     def _set_js_bridge(webview):
         try:
             webview.load_html('<html><body></body></html>')
-            assert webview.evaluate_js('pywebview.api.get_number()') == 5
-            assert webview.evaluate_js('pywebview.api.get_string()') == 'test'
+
+            assertFunction('get_number', 5)
+            assertFunction('get_string', 'test')
             q.put(0)
         except Exception as e:
             q.put(1)
@@ -40,7 +55,7 @@ def js_bridge(api):
     t.start()
 
     destroy_window(webview)
-    webview.create_window('JSBridge test', js_api=api)
+    webview.create_window('JSBridge test', js_api=api, debug=True)
     exitcode = q.get()
     sys.exit(exitcode)
 
