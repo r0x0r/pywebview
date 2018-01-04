@@ -28,6 +28,7 @@ class BrowserView:
     instance = None
     app = AppKit.NSApplication.sharedApplication()
     debug = False
+    load_event = Event()
 
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
@@ -166,8 +167,11 @@ class BrowserView:
                 BrowserView.instance.window.setContentView_(webview)
                 BrowserView.instance.window.makeFirstResponder_(webview)
 
+            BrowserView.load_event.set()
             if BrowserView.instance.js_bridge:
                 BrowserView.instance._set_js_api()
+
+
 
 
     class WebKitHost(WebKit.WebView):
@@ -298,6 +302,7 @@ class BrowserView:
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
             self.webkit.mainFrame().loadRequest_(req)
 
+        BrowserView.load_event.clear()
         self.url = url
         PyObjCTools.AppHelper.callAfter(load, url)
 
@@ -306,6 +311,7 @@ class BrowserView:
             url = Foundation.NSURL.URLWithString_(url)
             self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
 
+        BrowserView.load_event.clear()
         PyObjCTools.AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
@@ -317,6 +323,7 @@ class BrowserView:
             result = None
             result_semaphore = Semaphore(0)
 
+        BrowserView.load_event.wait()
         PyObjCTools.AppHelper.callAfter(evaluate, script)
 
         JSResult.result_semaphore.acquire()
