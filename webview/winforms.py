@@ -16,8 +16,8 @@ from ctypes import windll
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
 import clr
-clr.AddReference("System.Windows.Forms")
-clr.AddReference("System.Threading")
+clr.AddReference('System.Windows.Forms')
+clr.AddReference('System.Threading')
 clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop'))
 import System.Windows.Forms as WinForms
 
@@ -53,6 +53,7 @@ class BrowserView:
             self.MinimumSize = Size(min_size[0], min_size[1])
             self.BackColor = ColorTranslator.FromHtml(background_color)
             self.BackColor = ColorTranslator.FromHtml(background_color)
+
 
             if not resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
@@ -147,6 +148,8 @@ class BrowserView:
                 document = self.web_browser.Document
                 document.InvokeScript('eval', (_parse_api_js(self.js_bridge.api),))
 
+            BrowserView.instance.load_event.set()
+
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
                 self.old_size = self.Size
@@ -173,6 +176,7 @@ class BrowserView:
                 self.is_fullscreen = False
 
     instance = None
+    load_event = threading.Event()
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, debug, js_api, webview_ready):
         BrowserView.instance = self
@@ -212,12 +216,15 @@ class BrowserView:
         return self.browser.web_browser.Url.AbsoluteUri
 
     def load_url(self, url):
+        self.load_event.clear()
         self.url = url
         self.browser.web_browser.Navigate(url)
 
     def load_html(self, content):
         def _load_html():
             self.browser.web_browser.DocumentText = content
+
+        self.load_event.clear()
 
         if self.browser.web_browser.InvokeRequired:
             self.browser.web_browser.Invoke(Func[Type](_load_html))
@@ -284,6 +291,7 @@ class BrowserView:
             self._js_result = document.InvokeScript('eval', (script,))
             self._js_result_semaphor.release()
 
+        self.load_event.wait()
         if self.browser.web_browser.InvokeRequired:
             self.browser.web_browser.Invoke(Func[Type](_evaluate_js))
         else:
