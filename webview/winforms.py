@@ -18,7 +18,7 @@ base_dir = os.path.dirname(os.path.realpath(__file__))
 import clr
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Threading')
-clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop'))
+clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
 import System.Windows.Forms as WinForms
 
 from System import IntPtr, Int32, Func, Type #, EventHandler
