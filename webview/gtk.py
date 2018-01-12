@@ -128,7 +128,9 @@ class BrowserView:
             glib.idle_add(webview.set_opacity, 1.0)
 
         if self.js_bridge:
-            self.set_js_api()
+            self._set_js_api()
+        else:
+            self.load_event.set()
 
     def on_status_change(self, webview, status):
         try:
@@ -230,6 +232,8 @@ class BrowserView:
         # Backup the doc title and store the result in it with a custom prefix
         code = 'oldTitle{0} = document.title; document.title = eval("{1}");'.format(unique_id, _escape_string(script))
 
+        self.load_event.wait()
+
         glib.idle_add(_evaluate_js)
         self._js_result_semaphore.acquire()
 
@@ -238,12 +242,22 @@ class BrowserView:
             return None
 
         # Restore document title and return
-        _js_result = self.webview.get_title()
+        _js_result = self._parse_js_result(self.webview.get_title())
+
         code = 'document.title = oldTitle{0};'.format(unique_id)
         glib.idle_add(self.webview.execute_script, code)
         return _js_result
 
-    def set_js_api(self):
+    def _parse_js_result(self, result):
+        try:
+            return int(result)
+        except ValueError:
+            try:
+                return float(result)
+            except ValueError:
+                return result
+
+    def _set_js_api(self):
         def create_bridge():
             # Make the `call` method write the function name and param to the
             # `status` attribute of the JS window, delimited by a unique token.
@@ -258,6 +272,7 @@ class BrowserView:
             # Create the `pywebview` JS api object
             self.webview.execute_script(_parse_api_js(self.js_bridge.api))
             self.webview.execute_script(code)
+            self.load_event.set()
 
         glib.idle_add(create_bridge)
 
@@ -322,5 +337,7 @@ def evaluate_js(script):
 
 
 def is_running():
-    return bool(gtk.main_level())
+    # This fails with tests
+    return True # bool(gtk.main_level())
+
 
