@@ -338,6 +338,6 @@ def evaluate_js(script):
 
 def is_running():
     # This fails with tests
-    return True # bool(gtk.main_level())
+    return bool(gtk.main_level())
 
 
