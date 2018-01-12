@@ -20,7 +20,7 @@ window.pywebview.api.{0}().then(function(response) {{
 
 
 class Api:
-    def get_number(self, params):
+    def get_int(self, params):
         return 5
 
     def get_float(self, params):
@@ -46,7 +46,8 @@ def js_bridge(api):
     def _set_js_bridge(webview):
         try:
             webview.load_html('<html><body>TEST</body></html>')
-            assertFunction('get_number', 5)
+            assertFunction('get_int', 5)
+            assertFunction('get_float', 3.141)
             assertFunction('get_string', 'test')
             q.put(0)
         except Exception as e:
