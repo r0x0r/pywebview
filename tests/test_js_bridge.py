@@ -13,7 +13,7 @@ from .util import run_test, destroy_window
 
 js_code = '''
 window.pywebviewResult = undefined
-pywebview.api.{0}().then(function(response) {{
+window.pywebview.api.{0}().then(function(response) {{
     window.pywebviewResult = response
 }})
 '''
@@ -22,6 +22,9 @@ pywebview.api.{0}().then(function(response) {{
 class Api:
     def get_number(self, params):
         return 5
+
+    def get_float(self, params):
+        return 3.141
 
     def get_string(self, params):
         return 'test'
@@ -42,7 +45,7 @@ def js_bridge(api):
 
     def _set_js_bridge(webview):
         try:
-            webview.load_html('<html><body></body></html>')
+            webview.load_html('<html><body>TEST</body></html>')
             assertFunction('get_number', 5)
             assertFunction('get_string', 'test')
             q.put(0)

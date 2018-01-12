@@ -9,7 +9,7 @@ import sys
 import os
 import re
 import logging
-from threading import Semaphore
+from threading import Semaphore, Event
 
 from webview.localization import localization
 from webview import _parse_api_js, _js_bridge_call
@@ -102,6 +102,7 @@ class BrowserView(QMainWindow):
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore()
         self._evaluate_js_semaphore = Semaphore(0)
+        self.load_event = Event()
 
         self._evaluate_js_result = None
         self._current_url = None
@@ -219,6 +220,8 @@ class BrowserView(QMainWindow):
     def on_load_finished(self):
         if self.js_bridge.api:
             self._set_js_api()
+        else:
+            self.load_event.set()
 
     def get_current_url(self):
         self.current_url_trigger.emit()
@@ -227,9 +230,11 @@ class BrowserView(QMainWindow):
         return self._current_url
 
     def load_url(self, url):
+        self.load_event.clear()
         self.load_url_trigger.emit(url)
 
     def load_html(self, content, base_uri):
+        self.load_event.clear()
         self.html_trigger.emit(content, base_uri)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
@@ -265,6 +270,8 @@ class BrowserView(QMainWindow):
         self.fullscreen_trigger.emit()
 
     def evaluate_js(self, script):
+        self.load_event.wait()
+
         self.evaluate_js_trigger.emit(script)
         self._evaluate_js_semaphore.acquire()
 
@@ -294,6 +301,8 @@ class BrowserView(QMainWindow):
             self.view.page().mainFrame().evaluateJavaScript(script)
         except AttributeError:  # PyQt5
             self.view.page().runJavaScript(script)
+
+        self.load_event.set()
 
 
     @staticmethod
