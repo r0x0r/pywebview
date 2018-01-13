@@ -120,17 +120,20 @@ class BrowserView:
             return True
 
     def on_webview_ready(self, arg1, arg2):
-        self.webview_ready.set()
+        glib.idle_add(self.webview_ready.set)
 
     def on_load_finish(self, webview, webframe):
         # Show the webview if it's not already visible
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)
 
-        if self.js_bridge:
-            self._set_js_api()
-        else:
-            self.load_event.set()
+        try:
+            if self.js_bridge:
+                self._set_js_api()
+            else:
+                self.load_event.set()
+        except AttributeError:
+            pass
 
     def on_status_change(self, webview, status):
         try:
@@ -337,7 +340,5 @@ def evaluate_js(script):
 
 
 def is_running():
-    # This fails with tests
     return bool(gtk.main_level())
-
 
