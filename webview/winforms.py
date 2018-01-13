@@ -94,7 +94,6 @@ class BrowserView:
             self.web_browser.PreviewKeyDown += self.on_preview_keydown
             self.web_browser.Navigating += self.on_navigating
             self.web_browser.DocumentCompleted += self.on_document_completed
-
             if url:
                 self.web_browser.Navigate(url)
 
@@ -140,6 +139,7 @@ class BrowserView:
                 self.cancel_back = False
 
         def on_document_completed(self, sender, args):
+            BrowserView.instance.load_event.set()
             if self.first_load:
                 self.web_browser.Visible = True
                 self.first_load = False
@@ -147,8 +147,6 @@ class BrowserView:
             if self.js_bridge.api:
                 document = self.web_browser.Document
                 document.InvokeScript('eval', (_parse_api_js(self.js_bridge.api),))
-
-            BrowserView.instance.load_event.set()
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
