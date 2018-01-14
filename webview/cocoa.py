@@ -166,13 +166,25 @@ class BrowserView:
             if not webview.window():
                 BrowserView.instance.window.setContentView_(webview)
                 BrowserView.instance.window.makeFirstResponder_(webview)
-
+                
             BrowserView.load_event.set()
             if BrowserView.instance.js_bridge:
                 BrowserView.instance._set_js_api()
 
 
+    class FileFilterChooser(AppKit.NSPopUpButton):
+        def initWithFilter_(self, file_filter):
+            super(BrowserView.FileFilterChooser, self).init()
+            self.filter = file_filter
 
+            self.addItemsWithTitles_([i[0] for i in self.filter])
+            self.setAction_('onChange:')
+            self.setTarget_(self)
+            return self
+
+        def onChange_(self, sender):
+            option = sender.indexOfSelectedItem()
+            self.window().setAllowedFileTypes_(self.filter[option][1])
 
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
@@ -340,7 +352,7 @@ class BrowserView:
         #self.evaluate_js(_parse_api_js(self.js_bridge.api))
         #PyObjCTools.AppHelper.callAfter(create_bridge)
 
-    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_extensions, main_thread=False):
+    def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter, main_thread=False):
         def create_dialog(*args):
             dialog_type = args[0]
 
@@ -376,8 +388,14 @@ class BrowserView:
                 open_dlg.setAllowsMultipleSelection_(allow_multiple)
 
                 # Set allowed file extensions
-                if file_extensions:
-                    open_dlg.setAllowedFileTypes_(file_extensions)
+                if file_filter:
+                    open_dlg.setAllowedFileTypes_(file_filter[0][1])
+
+                    # Add a menu to choose between multiple file filters
+                    if len(file_filter) > 1:
+                        filter_chooser = BrowserView.FileFilterChooser.alloc().initWithFilter_(file_filter)
+                        open_dlg.setAccessoryView_(filter_chooser)
+                        open_dlg.setAccessoryViewDisclosed_(True)
 
                 if directory:  # set initial directory
                     open_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
@@ -524,14 +542,15 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
-    file_extensions = []
+    file_filter = []
 
     # Parse file_types to obtain allowed file extensions
     for s in file_types:
         description, extensions = _parse_file_type(s)
-        file_extensions += [i.lstrip('*.') for i in extensions.split(';') if i != '*.*']
+        file_extensions = [i.lstrip('*.') for i in extensions.split(';') if i != '*.*']
+        file_filter.append([description, file_extensions or None])
 
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_extensions)
+    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
 def load_url(url):

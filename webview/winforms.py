@@ -199,6 +199,7 @@ class BrowserView:
             self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
                                                    self.fullscreen, self.min_size, self.confirm_quit, self.background_color, 
                                                    self.debug, self.js_api, self.webview_ready)
+
             app.Run(self.browser)
 
         thread = Thread(ThreadStart(start))
