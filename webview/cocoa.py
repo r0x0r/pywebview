@@ -330,15 +330,11 @@ class BrowserView:
         return JSResult.result
 
     def _set_js_api(self):
-        #def create_bridge():
         script = _parse_api_js(self.js_bridge.api)
         self.webkit.windowScriptObject().evaluateWebScript_(script)
 
         pwv_obj = self.webkit.windowScriptObject().valueForKey_('pywebview')
         pwv_obj.setValue_forKey_(self.js_bridge, '_bridge')
-
-        #self.evaluate_js(_parse_api_js(self.js_bridge.api))
-        #PyObjCTools.AppHelper.callAfter(create_bridge)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_extensions, main_thread=False):
         def create_dialog(*args):
