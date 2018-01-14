@@ -48,6 +48,7 @@ class BrowserView:
         self.is_fullscreen = False
         self._js_result_semaphore = Semaphore(0)
         self.load_event = Event()
+        self.js_bridge = None
 
         glib.threads_init()
         window = gtk.Window(title=title)
@@ -127,13 +128,10 @@ class BrowserView:
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)
 
-        try:
-            if self.js_bridge:
-                self._set_js_api()
-            else:
-                self.load_event.set()
-        except AttributeError:
-            pass
+        if self.js_bridge:
+            self._set_js_api()
+        else:
+            self.load_event.set()
 
     def on_status_change(self, webview, status):
         try:
