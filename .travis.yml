@@ -36,8 +36,7 @@ matrix:
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "3" ]]; then brew install python3; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "3" ]]; then pip3 install pyobjc pytest; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "2" ]]; then which pip; fi 
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "2" ]]; then /usr/local/bin/pip install pyobjc pytest; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "2" ]]; then sudo pip2 install pyobjc pytest; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -q; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install --no-install-recommends -y $(echo $PACKAGES); fi
     
