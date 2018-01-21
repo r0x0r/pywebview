@@ -11,19 +11,24 @@ import os
 import sys
 import logging
 import threading
-from uuid import uuid1
 from ctypes import windll
 
+base_dir = os.path.dirname(os.path.realpath(__file__))
+
 import clr
-clr.AddReference("System.Windows.Forms")
-clr.AddReference("System.Threading")
+clr.AddReference('System.Windows.Forms')
+clr.AddReference('System.Threading')
+clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
 import System.Windows.Forms as WinForms
-from System import IntPtr, Int32, Func, Type
+
+from System import IntPtr, Int32, Func, Type #, EventHandler
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator
+from WebBrowserInterop import IWebBrowserInterop
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _parse_file_type
+from webview import _parse_file_type, _parse_api_js, _js_bridge_call
+
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
@@ -32,13 +37,23 @@ logger = logging.getLogger(__name__)
 
 
 class BrowserView:
+
+    class JSBridge(IWebBrowserInterop):
+        __namespace__ = 'BrowserView.JSBridge'
+        api = None
+
+        def call(self, func_name, param):
+            return _js_bridge_call(self.api, func_name, param)
+
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
-                     confirm_quit, background_color, debug, webview_ready):
+                     confirm_quit, background_color, debug, js_api, webview_ready):
             self.Text = title
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
             self.BackColor = ColorTranslator.FromHtml(background_color)
+            self.BackColor = ColorTranslator.FromHtml(background_color)
+
 
             if not resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
@@ -57,9 +72,14 @@ class BrowserView:
 
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
-            self.web_browser.ScriptErrorsSuppressed = True
+            self.web_browser.ScriptErrorsSuppressed = False
             self.web_browser.IsWebBrowserContextMenuEnabled = False
             self.web_browser.WebBrowserShortcutsEnabled = False
+
+            if js_api:
+                self.js_bridge = BrowserView.JSBridge()
+                self.js_bridge.api = js_api
+                self.web_browser.ObjectForScripting = self.js_bridge
 
             # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
             # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
@@ -74,7 +94,6 @@ class BrowserView:
             self.web_browser.PreviewKeyDown += self.on_preview_keydown
             self.web_browser.Navigating += self.on_navigating
             self.web_browser.DocumentCompleted += self.on_document_completed
-
             if url:
                 self.web_browser.Navigate(url)
 
@@ -92,7 +111,7 @@ class BrowserView:
             self.webview_ready.set()
 
         def on_closing(self, sender, args):
-            result = WinForms.MessageBox.Show(localization["global.quitConfirmation"], self.Text,
+            result = WinForms.MessageBox.Show(localization['global.quitConfirmation'], self.Text,
                                               WinForms.MessageBoxButtons.OKCancel, WinForms.MessageBoxIcon.Asterisk)
 
             if result == WinForms.DialogResult.Cancel:
@@ -120,9 +139,14 @@ class BrowserView:
                 self.cancel_back = False
 
         def on_document_completed(self, sender, args):
+            BrowserView.instance.load_event.set()
             if self.first_load:
                 self.web_browser.Visible = True
                 self.first_load = False
+
+            if self.js_bridge.api:
+                document = self.web_browser.Document
+                document.InvokeScript('eval', (_parse_api_js(self.js_bridge.api),))
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
@@ -139,7 +163,8 @@ class BrowserView:
                 self.WindowState = WinForms.FormWindowState.Maximized
                 self.is_fullscreen = True
 
-                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y, screen.Bounds.Width, screen.Bounds.Height, 64)
+                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y,
+                                           screen.Bounds.Width, screen.Bounds.Height, 64)
             else:
                 self.TopMost = False
                 self.Size = self.old_size
@@ -149,8 +174,9 @@ class BrowserView:
                 self.is_fullscreen = False
 
     instance = None
+    load_event = threading.Event()
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, debug, webview_ready):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, debug, js_api, webview_ready):
         BrowserView.instance = self
         self.title = title
         self.url = url
@@ -163,6 +189,7 @@ class BrowserView:
         self.webview_ready = webview_ready
         self.background_color = background_color
         self.debug = debug
+        self.js_api = js_api
         self.browser = None
         self._js_result_semaphor = threading.Semaphore(0)
 
@@ -171,7 +198,8 @@ class BrowserView:
             app = WinForms.Application
             self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
                                                    self.fullscreen, self.min_size, self.confirm_quit, self.background_color, 
-                                                   self.debug, self.webview_ready)
+                                                   self.debug, self.js_api, self.webview_ready)
+
             app.Run(self.browser)
 
         thread = Thread(ThreadStart(start))
@@ -187,12 +215,15 @@ class BrowserView:
         return self.browser.web_browser.Url.AbsoluteUri
 
     def load_url(self, url):
+        self.load_event.clear()
         self.url = url
         self.browser.web_browser.Navigate(url)
 
     def load_html(self, content):
         def _load_html():
             self.browser.web_browser.DocumentText = content
+
+        self.load_event.clear()
 
         if self.browser.web_browser.InvokeRequired:
             self.browser.web_browser.Invoke(Func[Type](_load_html))
@@ -201,7 +232,7 @@ class BrowserView:
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if not directory:
-            directory = os.environ["HOMEPATH"]
+            directory = os.environ['HOMEPATH']
 
         try:
             if dialog_type == FOLDER_DIALOG:
@@ -222,7 +253,7 @@ class BrowserView:
                 if len(file_types) > 0:
                     dialog.Filter = '|'.join(['{0} ({1})|{1}'.format(*_parse_file_type(f)) for f in file_types])
                 else:
-                    dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
+                    dialog.Filter = localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
                 dialog.RestoreDirectory = True
 
                 result = dialog.ShowDialog(BrowserView.instance.browser)
@@ -233,7 +264,7 @@ class BrowserView:
 
             elif dialog_type == SAVE_DIALOG:
                 dialog = WinForms.SaveFileDialog()
-                dialog.Filter = localization["windows.fileFilter.allFiles"] + " (*.*)|"
+                dialog.Filter = localization['windows.fileFilter.allFiles'] + ' (*.*)|'
                 dialog.InitialDirectory = directory
                 dialog.RestoreDirectory = True
                 dialog.FileName = save_filename
@@ -247,7 +278,7 @@ class BrowserView:
             return file_path
 
         except:
-            logger.exception("Error invoking {0} dialog".format(dialog_type))
+            logger.exception('Error invoking {0} dialog'.format(dialog_type))
             return None
 
     def toggle_fullscreen(self):
@@ -259,6 +290,7 @@ class BrowserView:
             self._js_result = document.InvokeScript('eval', (script,))
             self._js_result_semaphor.release()
 
+        self.load_event.wait()
         if self.browser.web_browser.InvokeRequired:
             self.browser.web_browser.Invoke(Func[Type](_evaluate_js))
         else:
@@ -270,10 +302,10 @@ class BrowserView:
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, webview_ready):
+                  confirm_quit, background_color, debug, js_api, webview_ready):
     set_ie_mode()
     browser_view = BrowserView(title, url, width, height, resizable, fullscreen,
-                               min_size, confirm_quit, background_color, debug, webview_ready)
+                               min_size, confirm_quit, background_color, debug, js_api, webview_ready)
     browser_view.show()
 
 

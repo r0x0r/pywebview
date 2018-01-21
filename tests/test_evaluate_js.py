@@ -19,7 +19,7 @@ def evaluate_js():
 
     t = threading.Thread(target=_evaluate_js, args=(webview,))
     t.start()
-    destroy_window(webview)
+    destroy_window(webview, 5)
 
     webview.create_window('Evaluate JS test', 'https://www.example.org')
 
