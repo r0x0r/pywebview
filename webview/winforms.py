@@ -13,8 +13,8 @@ import logging
 import threading
 from ctypes import windll
 
-base_dir = os.path.dirname(os.path.realpath(__file__))
 
+base_dir = os.path.dirname(os.path.realpath(__file__))
 import clr
 
 clr.AddReference('System.Windows.Forms')
@@ -33,9 +33,7 @@ from webview import _parse_file_type, _parse_api_js, _js_bridge_call
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
-
 logger = logging.getLogger(__name__)
-
 
 class BrowserView:
     class JSBridge(IWebBrowserInterop):
@@ -142,9 +140,6 @@ class BrowserView:
         def on_document_completed(self, sender, args):
             try:
                 WebBrowserHelper(self.web_browser.Document)
-                #custom_doc = ICustomDoc(self.web_browser.Document.DomDocument)
-                #ui_handler = BrowserView.UIHandler()
-                #custom_doc.SetUIHandler(self)
             except Exception as e:
                 logger.exception(e)
 
