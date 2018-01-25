@@ -22,10 +22,10 @@ clr.AddReference('System.Threading')
 clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
 import System.Windows.Forms as WinForms
 
-from System import IntPtr, Int32, Func, Type #, EventHandler
+from System import IntPtr, Int32, Func, Type
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator
-from WebBrowserInterop import IWebBrowserInterop
+from WebBrowserInterop import IWebBrowserInterop, WebBrowserHelper
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview import _parse_file_type, _parse_api_js, _js_bridge_call
@@ -44,20 +44,6 @@ class BrowserView:
 
         def call(self, func_name, param):
             return _js_bridge_call(self.api, func_name, param)
-
-
-    class UIHandler(IDocHostUIHandler):
-        __namespace__ = 'UIHandler'
-
-        def __init__(self, *args, **kwargs):
-            super(BrowserView.UIHandler, self).__init__(self, *args, **kwargs)
-
-        def GetHostInfo(self, info):
-            print("GetHostInfo")
-            info.dwFlags = 0x5a74012
-            info.dwFlags |= 0x40000000
-
-            return True
 
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
@@ -122,14 +108,6 @@ class BrowserView:
             if fullscreen:
                 self.toggle_fullscreen()
 
-        def on_navigate(self, sender, args):
-            try:
-                custom_doc = ICustomDoc(self.web_browser.Document.DomDocument)
-                ui_handler = BrowserView.UIHandler()
-                custom_doc.SetUIHandler(ui_handler)
-            except Exception as e:
-                logger.exception(e)
-
         def on_shown(self, sender, args):
             self.webview_ready.set()
 
@@ -162,6 +140,14 @@ class BrowserView:
                 self.cancel_back = False
 
         def on_document_completed(self, sender, args):
+            try:
+                WebBrowserHelper(self.web_browser.Document)
+                #custom_doc = ICustomDoc(self.web_browser.Document.DomDocument)
+                #ui_handler = BrowserView.UIHandler()
+                #custom_doc.SetUIHandler(self)
+            except Exception as e:
+                logger.exception(e)
+
             BrowserView.instance.load_event.set()
             if self.first_load:
                 self.web_browser.Visible = True
