@@ -7,8 +7,6 @@ This example demonstrates how to change a window title.
 
 
 def change_url():
-    import time
-    time.sleep(10)
     webview.set_title('New title')
 
 

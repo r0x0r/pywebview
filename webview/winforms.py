@@ -225,7 +225,7 @@ class BrowserView:
 
     def set_title(self, title):
         def _set_title():
-            self.Text = title
+            self.browser.Text = title
 
         if self.browser.web_browser.InvokeRequired:
             self.browser.web_browser.Invoke(Func[Type](_set_title))
