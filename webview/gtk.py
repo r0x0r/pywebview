@@ -153,6 +153,9 @@ class BrowserView:
     def destroy(self):
         self.window.emit('delete-event', Gdk.Event())
 
+    def set_title(self, title):
+        pass
+
     def toggle_fullscreen(self):
         if self.is_fullscreen:
             self.window.unfullscreen()
@@ -283,6 +286,11 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
     browser = BrowserView(title, url, width, height, resizable, fullscreen,
                           min_size, confirm_quit, background_color, debug, js_api, webview_ready)
     browser.show()
+
+def set_title(title):
+    def _set_title():
+        BrowserView.instance.set_title(title)
+    glib.idle_add(_set_title)    
 
 
 def destroy_window():

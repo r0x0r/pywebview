@@ -157,6 +157,11 @@ class BrowserView:
                 document = self.web_browser.Document
                 document.InvokeScript('eval', (_parse_api_js(self.js_bridge.api),))
 
+            BrowserView.instance.load_event.set()
+
+        def set_title(self, title):
+            pass
+
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
                 self.old_size = self.Size
@@ -316,6 +321,10 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
     browser_view = BrowserView(title, url, width, height, resizable, fullscreen,
                                min_size, confirm_quit, background_color, debug, js_api, webview_ready)
     browser_view.show()
+
+
+def set_title(title):
+    BrowserView.instance.set_title(title)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):

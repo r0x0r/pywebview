@@ -285,6 +285,12 @@ class BrowserView:
     def destroy(self):
         PyObjCTools.AppHelper.callAfter(BrowserView.app.stop_, self)
 
+    def set_title(self, title):
+        def _set_title():
+            self.window.setTitle_(title)
+
+        PyObjCTools.AppHelper.callAfter(_set_title)
+
     def toggle_fullscreen(self):
         def toggle():
             if self.is_fullscreen:
@@ -535,6 +541,10 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
 
     browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, debug, js_api, webview_ready)
     browser.show()
+
+
+def set_title(title):
+    BrowserView.instance.set_title(title)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):

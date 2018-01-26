@@ -223,6 +223,9 @@ class BrowserView(QMainWindow):
         else:
             self.load_event.set()
 
+    def set_title(self, title):
+        pass
+
     def get_current_url(self):
         self.current_url_trigger.emit()
         self._current_url_semaphore.acquire()
@@ -327,6 +330,10 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
                           webview_ready)
     browser.show()
     app.exec_()
+
+
+def set_title(title):
+    BrowserView.instance.set_title(title)
 
 
 def get_current_url():
