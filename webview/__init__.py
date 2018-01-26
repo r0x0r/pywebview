@@ -219,6 +219,19 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
                       background_color, debug, js_api, _webview_ready)
     return uid
 
+def set_title(title):
+    """
+    Sets a new title of the window
+    """
+    try:
+        _webview_ready.wait(5)
+        assert gui.is_running()
+        return gui.set_title(title)
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
+    except AssertionError:
+        raise Exception("Cannot call function: the webview has been closed")
+
 
 def get_current_url(uid='master'):
     """
