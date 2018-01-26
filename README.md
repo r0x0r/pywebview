@@ -3,9 +3,9 @@
 <p align='center'><a href="https://badge.fury.io/py/pywebview"><img src="https://badge.fury.io/py/pywebview.svg" alt="PyPI version" /></a> <a href="https://travis-ci.org/r0x0r/pywebview"><img src="https://travis-ci.org/r0x0r/pywebview.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/r0x0r/pywebview"><img src="https://ci.appveyor.com/api/projects/status/nu6mbhvbq03wudxd?svg=true" alt="Build status" /></a></p>
 
 
-pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, eliminating the need of launching a web browser. Combined with a lightweight web framework like [Flask](http://flask.pocoo.org/), [Bottle](http://bottlepy.org/docs/dev/index.html) or [web.py](http://webpy.org), you can create beautiful cross-platform HTML5 user interfaces targeting WebKit, while hiding implementation details from the end user. If HTML is not your strong point, you might want to use [REMI](https://github.com/dddomodossola/remi), which allows you to create HTML based interfaces using Python code only.
+pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. You can use pywebview either with a lightweight web framework like [Flask](http://flask.pocoo.org/) or [Bottle](http://bottlepy.org/docs/dev/index.html) or on its own with a two way bridge between Python and DOM.
 
-pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: WinForms on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, it does not bundle a heavy GUI toolkit with it keeping the executable size small. Compatible with both Python 2 and 3. While Android is not supported, you can use the same codebase with solutions like [Python for Android](https://github.com/kivy/python-for-android) for creating an APK.
+pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: WinForms on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, pywebview does not bundle a heavy GUI toolkit with it keeping the executable size small. Compatible with both Python 2 and 3. While Android is not supported, you can use the same codebase with solutions like [Python for Android](https://github.com/kivy/python-for-android) for creating an APK.
 
 Licensed under the BSD license. Maintained by [Roman Sirokov](https://github.com/r0x0r/) and [Shiva Prasad](https://github.com/shivaprsdv).
 
@@ -89,10 +89,15 @@ an application scaffold and boilerplate code for a real-world application.
 
 ## API
 
-- `webview.create_window(title, url='', width=800, height=600, resizable=True, fullscreen=False, min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF')`
+- `webview.create_window(title, url='', js_api=None, width=800, height=600, resizable=True, fullscreen=False,
+                         min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF', debug=False)`
 Create a new WebView window. Calling this function will block application execution, so you have to execute your program logic in a separate thread.
   * `title` - Window title
   * `url` - URL to load
+  * `js_api` - Expose `js_api` to the DOM of the current webview window. Callable functions of `js_api` can be executed
+    using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a
+    primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate
+    threads and are not thread-safe.
   * `width` - Window width. Default is 800px.
   * `height` - Window height. Default is 600px.
   * `resizable` - Whether window can be resized. Default is True
@@ -102,8 +107,10 @@ Create a new WebView window. Calling this function will block application execut
   * `confirm_quit` - Whether to display a quit confirmation dialog. Default is False
   * `background_color` - Background color of the window displayed before webview is loaded. Specified as a hex color. Default is white.
   * `strings` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
+  * `debug` - (OSX only) Enables web inspector, when set to True.
 
-These functions below must be invoked after webview windows is created with create_window(). Otherwise an exception is thrown. 
+
+These functions below must be invoked after webview windows is created with `create_window()`. Otherwise an exception is thrown.
 
 - `webview.load_url(url)`
 	Load a new URL in the previously created WebView window. 

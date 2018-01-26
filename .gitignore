@@ -6,3 +6,8 @@ pywebview.egg-info
 MANIFEST
 build
 dist
+.cache
+.idea
+.vs
+bin
+obj

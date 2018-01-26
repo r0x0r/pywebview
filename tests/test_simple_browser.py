@@ -7,7 +7,6 @@ def simple_browser():
     import webview
     destroy_window(webview)
     webview.create_window('Simple browser test', 'https://www.example.org')
-    pass
 
 
 def test_simple_browser():

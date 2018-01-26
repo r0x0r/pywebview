@@ -16,8 +16,9 @@ import platform
 import os
 import sys
 import re
+import json
 import logging
-from threading import Event, current_thread
+from threading import Event, Thread, current_thread
 from uuid import uuid4
 
 from .localization import localization
@@ -178,7 +179,7 @@ def load_html(content, base_uri='', uid='master'):
         raise Exception("Cannot call function: No webview exists with uid: {}".format(uid))
 
 
-def create_window(title, url=None, width=800, height=600,
+def create_window(title, url=None, js_api=None, width=800, height=600,
                   resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
                   background_color='#FFFFFF', debug=False):
     """
@@ -215,7 +216,7 @@ def create_window(title, url=None, width=800, height=600,
     _webview_ready.clear()
     gui.create_window(uid, _make_unicode(title), _transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
-                      background_color, debug, _webview_ready)
+                      background_color, debug, js_api, _webview_ready)
     return uid
 
 
@@ -290,8 +291,56 @@ def window_exists(uid='master'):
         return False
 
 
+def set_js_api(api_instance):
+    """
+    Set an API object that is exposed to Javascript as window.pywebview.api.
+    :param api_instance: An instance of the object to be exposed
+    """
+    try:
+        _webview_ready.wait(5)
+        gui.set_js_api(api_instance)
+    except NameError:
+        raise Exception("Create a web view window first, before invoking this function")
+
+
+def _js_bridge_call(api_instance, func_name, param):
+    def _call():
+        result = json.dumps(function(func_params))
+        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, _escape_line_breaks(result))
+        evaluate_js(code)
+
+    function = getattr(api_instance, func_name, None)
+
+    if function is not None:
+        try:
+            func_params = param if not param else json.loads(param)
+            t = Thread(target=_call)
+            t.start()
+        except Exception as e:
+            logger.exception('Error occurred while evaluating function {0}'.format(func_name))
+    else:
+        logger.error('Function {}() does not exist'.format(func_name))
+
+
+def _parse_api_js(api_instance):
+    base_dir = os.path.dirname(os.path.realpath(__file__))
+
+    with open(os.path.join(base_dir, 'js', 'npo.js')) as npo_js:
+        js_code = npo_js.read()
+
+    with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
+        func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
+        js_code += api_js.read() % func_list
+
+    return js_code
+
+
 def _escape_string(string):
-    return string.replace('"', r'\"').replace('\n', r'\n')
+    return string.replace('"', r'\"').replace('\n', r'\n').replace('\r', r'\\r')
+
+
+def _escape_line_breaks(string):
+    return string.replace('\\n', r'\\n').replace('\\r', r'\\r')
 
 
 def _make_unicode(string):

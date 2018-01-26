@@ -5,29 +5,30 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 import sys
-import threading
 import subprocess
+from threading import Event, Semaphore
 
 import Foundation
 import AppKit
 import WebKit
 import PyObjCTools.AppHelper
-from objc import nil
+from objc import nil, super
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _parse_file_type
+from webview import _parse_file_type, _js_bridge_call, _parse_api_js
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
-info["NSAppTransportSecurity"] = {"NSAllowsArbitraryLoads": Foundation.YES}
+info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
 
 
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
     debug = False
+    load_event = Event()
 
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
@@ -55,6 +56,25 @@ class BrowserView:
             i = BrowserView.get_instance('window', notification.object())
             del BrowserView.instances[i.uid]
 
+    class JSBridge(AppKit.NSObject):
+        def initWithObject_(self, api_instance):
+            super(BrowserView.JSBridge, self).init()
+            self.api = api_instance
+            return self
+
+        def callFunc_withParam_(self, func_name, param):
+            if param is WebKit.WebUndefined.undefined():
+                param = None
+
+            _js_bridge_call(self.api, func_name, param)
+
+        def isSelectorExcludedFromWebScript_(self, selector):
+            return Foundation.NO if selector == 'callFunc:withParam:' else Foundation.YES
+
+        @classmethod
+        def webScriptNameForSelector_(cls, selector):
+            return 'call' if selector == 'callFunc:withParam:' else None
+
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
             if BrowserView.debug:
@@ -71,8 +91,8 @@ class BrowserView:
 
         # Display a JavaScript confirm panel containing the specified message
         def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
-            ok = localization["global.ok"]
-            cancel = localization["global.cancel"]
+            ok = localization['global.ok']
+            cancel = localization['global.cancel']
 
             if BrowserView.display_confirmation_dialog(ok, cancel, message):
                 return Foundation.YES
@@ -157,6 +177,11 @@ class BrowserView:
                 i.window.setContentView_(webview)
                 i.window.makeFirstResponder_(webview)
 
+                if i.js_bridge:
+                    i._set_js_api()
+
+            BrowserView.load_event.set()
+
     class FileFilterChooser(AppKit.NSPopUpButton):
         def initWithFilter_(self, file_filter):
             super(BrowserView.FileFilterChooser, self).init()
@@ -210,18 +235,18 @@ class BrowserView:
                     return handled
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, webview_ready):
+                 confirm_quit, background_color, debug, js_api, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
-        BrowserView.debug = debug
 
+        BrowserView.debug = debug
         if debug:
             BrowserView._set_debugging()
 
+        self.js_bridge = None
         self._file_name = None
-        self._file_name_semaphor = threading.Semaphore(0)
-        self._current_url_semaphor = threading.Semaphore(0)
-        self._js_result_semaphor = threading.Semaphore(0)
+        self._file_name_semaphore = Semaphore(0)
+        self._current_url_semaphore = Semaphore(0)
         self.webview_ready = webview_ready
         self.confirm_quit = confirm_quit
 
@@ -255,7 +280,11 @@ class BrowserView:
         BrowserView.app.setDelegate_(self._appDelegate)
 
         if url:
+            self.url = url
             self.load_url(url)
+
+        if js_api:
+            self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(js_api)
 
         if fullscreen:
             self.toggle_fullscreen()
@@ -290,11 +319,11 @@ class BrowserView:
     def get_current_url(self):
         def get():
             self._current_url = self.webkit.mainFrameURL()
-            self._current_url_semaphor.release()
+            self._current_url_semaphore.release()
 
         PyObjCTools.AppHelper.callAfter(get)
 
-        self._current_url_semaphor.acquire()
+        self._current_url_semaphore.acquire()
         return self._current_url
 
     def load_url(self, url):
@@ -303,6 +332,7 @@ class BrowserView:
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
             self.webkit.mainFrame().loadRequest_(req)
 
+        BrowserView.load_event.clear()
         self.url = url
         PyObjCTools.AppHelper.callAfter(load, url)
 
@@ -311,17 +341,30 @@ class BrowserView:
             url = Foundation.NSURL.URLWithString_(url)
             self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
 
+        BrowserView.load_event.clear()
         PyObjCTools.AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
         def evaluate(script):
-            self._js_result = self.webkit.windowScriptObject().evaluateWebScript_(script)
-            self._js_result_semaphor.release()
+            JSResult.result = self.webkit.windowScriptObject().evaluateWebScript_(script)
+            JSResult.result_semaphore.release()
 
+        class JSResult:
+            result = None
+            result_semaphore = Semaphore(0)
+
+        BrowserView.load_event.wait()
         PyObjCTools.AppHelper.callAfter(evaluate, script)
 
-        self._js_result_semaphor.acquire()
-        return self._js_result
+        JSResult.result_semaphore.acquire()
+        return JSResult.result
+
+    def _set_js_api(self):
+        script = _parse_api_js(self.js_bridge.api)
+        self.webkit.windowScriptObject().evaluateWebScript_(script)
+
+        pwv_obj = self.webkit.windowScriptObject().valueForKey_('pywebview')
+        pwv_obj.setValue_forKey_(self.js_bridge, '_bridge')
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter, main_thread=False):
         def create_dialog(*args):
@@ -378,13 +421,13 @@ class BrowserView:
                     self._file_name = None
 
             if not main_thread:
-                self._file_name_semaphor.release()
+                self._file_name_semaphore.release()
 
         if main_thread:
             create_dialog(dialog_type, allow_multiple, save_filename)
         else:
             PyObjCTools.AppHelper.callAfter(create_dialog, dialog_type, allow_multiple, save_filename)
-            self._file_name_semaphor.acquire()
+            self._file_name_semaphore.acquire()
 
         return self._file_name
 
@@ -519,10 +562,10 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, webview_ready):
+                  confirm_quit, background_color, debug, js_api, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, webview_ready)
+                              confirm_quit, background_color, debug, js_api, webview_ready)
         browser.show()
         webview_ready.set()
 
@@ -567,3 +610,7 @@ def get_current_url(uid):
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
+
+
+def is_running():
+    return BrowserView.app.isRunning()
