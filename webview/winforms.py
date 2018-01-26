@@ -159,8 +159,6 @@ class BrowserView:
 
             BrowserView.instance.load_event.set()
 
-        def set_title(self, title):
-            pass
 
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
@@ -187,7 +185,7 @@ class BrowserView:
                 self.Location = self.old_location
                 self.is_fullscreen = False
 
-    instance = None
+    cece = None
     load_event = threading.Event()
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, debug, js_api, webview_ready):
@@ -224,6 +222,15 @@ class BrowserView:
     def destroy(self):
         self.browser.Close()
         self._js_result_semaphor.release()
+
+    def set_title(self, title):
+        def _set_title():
+            self.Text = title
+
+        if self.browser.web_browser.InvokeRequired:
+            self.browser.web_browser.Invoke(Func[Type](_set_title))
+        else:
+            _set_title()
 
     def get_current_url(self):
         return self.browser.web_browser.Url.AbsoluteUri

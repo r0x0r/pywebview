@@ -51,16 +51,16 @@ class BrowserView:
         self.js_bridge = None
 
         glib.threads_init()
-        window = gtk.Window(title=title)
+        self.window = gtk.Window(title=title)
 
         if resizable:
-            window.set_size_request(min_size[0], min_size[1])
-            window.resize(width, height)
+            self.window.set_size_request(min_size[0], min_size[1])
+            self.window.resize(width, height)
         else:
-            window.set_size_request(width, height)
+            self.window.set_size_request(width, height)
 
-        window.set_resizable(resizable)
-        window.set_position(gtk.WindowPosition.CENTER)
+        self.window.set_resizable(resizable)
+        self.window.set_position(gtk.WindowPosition.CENTER)
 
         # Set window background color
         style_provider = gtk.CssProvider()
@@ -74,9 +74,7 @@ class BrowserView:
         )
 
         scrolled_window = gtk.ScrolledWindow()
-        window.add(scrolled_window)
-
-        self.window = window
+        self.window.add(scrolled_window)
 
         if confirm_quit:
             self.window.connect('delete-event', self.on_destroy)
@@ -85,6 +83,8 @@ class BrowserView:
 
         if js_api:
             self.js_bridge = BrowserView.JSBridge(js_api)
+        else:
+            self.js_bridge = None
 
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
@@ -93,7 +93,7 @@ class BrowserView:
         self.webview.props.settings.props.enable_default_context_menu = False
         self.webview.props.opacity = 0.0
         scrolled_window.add(self.webview)
-        window.show_all()
+        self.window.show_all()
 
         if url is not None:
             self.webview.load_uri(url)
@@ -154,7 +154,7 @@ class BrowserView:
         self.window.emit('delete-event', Gdk.Event())
 
     def set_title(self, title):
-        pass
+        self.window.set_title(title)
 
     def toggle_fullscreen(self):
         if self.is_fullscreen:

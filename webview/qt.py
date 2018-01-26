@@ -66,6 +66,7 @@ class BrowserView(QMainWindow):
     instance = None
     running = False
 
+    set_title_trigger = QtCore.pyqtSignal(str)
     load_url_trigger = QtCore.pyqtSignal(str)
     html_trigger = QtCore.pyqtSignal(str, str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str, str)
@@ -138,6 +139,7 @@ class BrowserView(QMainWindow):
         self.fullscreen_trigger.connect(self.on_fullscreen)
         self.current_url_trigger.connect(self.on_current_url)
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
+        self.set_title_trigger.connect(self.on_set_title)
 
         self.js_bridge = BrowserView.JSBridge()
         self.js_bridge.api = js_api
@@ -157,6 +159,9 @@ class BrowserView(QMainWindow):
         self.raise_()
         webview_ready.set()
         BrowserView.running = True
+
+    def on_set_title(self, title):
+        self.setWindowTitle(title)
 
     def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         if dialog_type == FOLDER_DIALOG:
@@ -224,7 +229,7 @@ class BrowserView(QMainWindow):
             self.load_event.set()
 
     def set_title(self, title):
-        pass
+        self.set_title_trigger.emit(title)
 
     def get_current_url(self):
         self.current_url_trigger.emit()
