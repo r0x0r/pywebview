@@ -76,6 +76,7 @@ class BrowserView(QMainWindow):
 
     class JSBridge(QtCore.QObject):
         api = None
+        parent_uid = None
 
         try:
             qtype = QtCore.QJsonValue  # QT5
@@ -90,7 +91,7 @@ class BrowserView(QMainWindow):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
 
-            return _js_bridge_call(self.api, func_name, param)
+            return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, debug, js_api, webview_ready):
@@ -144,6 +145,7 @@ class BrowserView(QMainWindow):
 
         self.js_bridge = BrowserView.JSBridge()
         self.js_bridge.api = js_api
+        self.js_bridge.parent_uid = self.uid
         if _qt_version >= 5.5:
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)

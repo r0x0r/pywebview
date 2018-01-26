@@ -66,7 +66,8 @@ class BrowserView:
             if param is WebKit.WebUndefined.undefined():
                 param = None
 
-            _js_bridge_call(self.api, func_name, param)
+            i = BrowserView.get_instance('js_bridge', self)
+            _js_bridge_call(i.uid, self.api, func_name, param)
 
         def isSelectorExcludedFromWebScript_(self, selector):
             return Foundation.NO if selector == 'callFunc:withParam:' else Foundation.YES

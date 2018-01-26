@@ -41,9 +41,10 @@ class BrowserView:
     class JSBridge(IWebBrowserInterop):
         __namespace__ = 'BrowserView.JSBridge'
         api = None
+        parent_uid = None
 
         def call(self, func_name, param):
-            return _js_bridge_call(self.api, func_name, param)
+            return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
         def alert(self, message):
             if message:
@@ -79,6 +80,7 @@ class BrowserView:
             self.web_browser.WebBrowserShortcutsEnabled = False
 
             self.js_bridge = BrowserView.JSBridge()
+            self.js_bridge.parent_uid = 'master' # Need to change this once multi-window functionality is implemented
             self.web_browser.ObjectForScripting = self.js_bridge
 
             if js_api:

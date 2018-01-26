@@ -31,14 +31,15 @@ class BrowserView:
     instances = {}
 
     class JSBridge:
-        def __init__(self, api_instance):
+        def __init__(self, api_instance, parent_uid):
             self.api = api_instance
             self.uid = uuid1().hex[:8]
+            self.parent_uid = parent_uid
 
         def call(self, func_name, param):
             if param == 'undefined':
                 param = None
-            return _js_bridge_call(self.api, func_name, param)
+            return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
                  confirm_quit, background_color, debug, js_api, webview_ready):
@@ -85,7 +86,7 @@ class BrowserView:
             self.window.connect('delete-event', self.close_window)
 
         if js_api:
-            self.js_bridge = BrowserView.JSBridge(js_api)
+            self.js_bridge = BrowserView.JSBridge(js_api, self.uid)
 
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)

@@ -303,11 +303,11 @@ def set_js_api(api_instance):
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def _js_bridge_call(api_instance, func_name, param):
+def _js_bridge_call(uid, api_instance, func_name, param):
     def _call():
         result = json.dumps(function(func_params))
         code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, _escape_line_breaks(result))
-        evaluate_js(code)
+        evaluate_js(code, uid)
 
     function = getattr(api_instance, func_name, None)
 
