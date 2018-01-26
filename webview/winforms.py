@@ -159,7 +159,6 @@ class BrowserView:
 
             BrowserView.instance.load_event.set()
 
-
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
                 self.old_size = self.Size
@@ -185,7 +184,7 @@ class BrowserView:
                 self.Location = self.old_location
                 self.is_fullscreen = False
 
-    cece = None
+    instance = None
     load_event = threading.Event()
 
     def __init__(self, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, debug, js_api, webview_ready):

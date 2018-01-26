@@ -5,7 +5,6 @@ import threading
 This example demonstrates how to change a window title.
 '''
 
-
 def change_url():
     webview.set_title('New title')
 
