@@ -112,6 +112,9 @@ Create a new WebView window. Calling this function will block application execut
 
 These functions below must be invoked after webview windows is created with `create_window()`. Otherwise an exception is thrown.
 
+- `webview.set_title(title)`
+	Change the window title.
+
 - `webview.load_url(url)`
 	Load a new URL in the previously created WebView window. 
 

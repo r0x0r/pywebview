@@ -10,7 +10,7 @@ def destroy_window(webview, delay=3):
         webview.destroy_window()
 
         if sys.platform == 'darwin':
-            from util_cocoa import mouseMoveRelative
+            from .util_cocoa import mouseMoveRelative
 
             mouseMoveRelative(1, 1)
 

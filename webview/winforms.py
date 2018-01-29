@@ -157,6 +157,8 @@ class BrowserView:
                 document = self.web_browser.Document
                 document.InvokeScript('eval', (_parse_api_js(self.js_bridge.api),))
 
+            BrowserView.instance.load_event.set()
+
         def toggle_fullscreen(self):
             if not self.is_fullscreen:
                 self.old_size = self.Size
@@ -199,17 +201,17 @@ class BrowserView:
         self.background_color = background_color
         self.debug = debug
         self.js_api = js_api
-        self.browser = None
+        self.form = None
         self._js_result_semaphor = threading.Semaphore(0)
 
     def show(self):
         def start():
             app = WinForms.Application
-            self.browser = BrowserView.BrowserForm(self.title, self.url, self.width,self.height, self.resizable,
-                                                   self.fullscreen, self.min_size, self.confirm_quit, self.background_color, 
-                                                   self.debug, self.js_api, self.webview_ready)
+            self.form = BrowserView.BrowserForm(self.title, self.url, self.width, self.height, self.resizable,
+                                                self.fullscreen, self.min_size, self.confirm_quit, self.background_color,
+                                                self.debug, self.js_api, self.webview_ready)
 
-            app.Run(self.browser)
+            app.Run(self.form)
 
         thread = Thread(ThreadStart(start))
         thread.SetApartmentState(ApartmentState.STA)
@@ -217,25 +219,34 @@ class BrowserView:
         thread.Join()
 
     def destroy(self):
-        self.browser.Close()
+        self.form.Close()
         self._js_result_semaphor.release()
 
+    def set_title(self, title):
+        def _set_title():
+            self.form.Text = title
+
+        if self.form.web_browser.InvokeRequired:
+            self.form.web_browser.Invoke(Func[Type](_set_title))
+        else:
+            _set_title()
+
     def get_current_url(self):
-        return self.browser.web_browser.Url.AbsoluteUri
+        return self.form.web_browser.Url.AbsoluteUri
 
     def load_url(self, url):
         self.load_event.clear()
         self.url = url
-        self.browser.web_browser.Navigate(url)
+        self.form.web_browser.Navigate(url)
 
     def load_html(self, content):
         def _load_html():
-            self.browser.web_browser.DocumentText = content
+            self.form.web_browser.DocumentText = content
 
         self.load_event.clear()
 
-        if self.browser.web_browser.InvokeRequired:
-            self.browser.web_browser.Invoke(Func[Type](_load_html))
+        if self.form.web_browser.InvokeRequired:
+            self.form.web_browser.Invoke(Func[Type](_load_html))
         else:
             _load_html()
 
@@ -248,7 +259,7 @@ class BrowserView:
                 dialog = WinForms.FolderBrowserDialog()
                 dialog.RestoreDirectory = True
 
-                result = dialog.ShowDialog(BrowserView.instance.browser)
+                result = dialog.ShowDialog(BrowserView.instance.form)
                 if result == WinForms.DialogResult.OK:
                     file_path = (dialog.SelectedPath,)
                 else:
@@ -265,7 +276,7 @@ class BrowserView:
                     dialog.Filter = localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
                 dialog.RestoreDirectory = True
 
-                result = dialog.ShowDialog(BrowserView.instance.browser)
+                result = dialog.ShowDialog(BrowserView.instance.form)
                 if result == WinForms.DialogResult.OK:
                     file_path = tuple(dialog.FileNames)
                 else:
@@ -278,7 +289,7 @@ class BrowserView:
                 dialog.RestoreDirectory = True
                 dialog.FileName = save_filename
 
-                result = dialog.ShowDialog(BrowserView.instance.browser)
+                result = dialog.ShowDialog(BrowserView.instance.form)
                 if result == WinForms.DialogResult.OK:
                     file_path = dialog.FileName
                 else:
@@ -291,17 +302,17 @@ class BrowserView:
             return None
 
     def toggle_fullscreen(self):
-        self.browser.toggle_fullscreen()
+        self.form.toggle_fullscreen()
 
     def evaluate_js(self, script):
         def _evaluate_js():
-            document = self.browser.web_browser.Document
+            document = self.form.web_browser.Document
             self._js_result = document.InvokeScript('eval', (script,))
             self._js_result_semaphor.release()
 
         self.load_event.wait()
-        if self.browser.web_browser.InvokeRequired:
-            self.browser.web_browser.Invoke(Func[Type](_evaluate_js))
+        if self.form.web_browser.InvokeRequired:
+            self.form.web_browser.Invoke(Func[Type](_evaluate_js))
         else:
             _evaluate_js()
 
@@ -316,6 +327,10 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size,
     browser_view = BrowserView(title, url, width, height, resizable, fullscreen,
                                min_size, confirm_quit, background_color, debug, js_api, webview_ready)
     browser_view.show()
+
+
+def set_title(title):
+    BrowserView.instance.set_title(title)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
@@ -347,4 +362,4 @@ def evaluate_js(script):
 
 
 def is_running():
-    return not BrowserView.instance.browser.IsDisposed
+    return not BrowserView.instance.form.IsDisposed
