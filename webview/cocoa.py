@@ -206,8 +206,12 @@ class BrowserView:
                 frame_size = BrowserView.instance.window.frame().size
                 drag_bar_height = 24
 
-                rect = AppKit.NSMakeRect(0, frame_size.height - drag_bar_height, frame_size.width, drag_bar_height)
+                # Flip the webview so our bar is position from the top, not bottom
+                webview.setFlipped_(True)
+
+                rect = AppKit.NSMakeRect(0, 0, frame_size.width, drag_bar_height)
                 drag_bar = DragBar.alloc().initWithFrame_(rect)
+                drag_bar.setAutoresizingMask_(AppKit.NSViewWidthSizable)
                 BrowserView.instance.window.contentView().addSubview_(drag_bar)
 
             BrowserView.load_event.set()
