@@ -4,8 +4,9 @@ import sys
 from multiprocessing import Process
 
 
-def destroy_window(webview, delay=3):
+def destroy_window(webview, delay=0):
     def stop():
+        event.wait()
         time.sleep(delay)
         webview.destroy_window()
 
@@ -14,8 +15,12 @@ def destroy_window(webview, delay=3):
 
             mouseMoveRelative(1, 1)
 
+    event = threading.Event()
+    event.clear()
     t = threading.Thread(target=stop)
     t.start()
+
+    return event
 
 
 def run_test(test_func, param=None):
