@@ -289,18 +289,6 @@ def evaluate_js(script, uid='master'):
         raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
 
 
-def set_js_api(api_instance):
-    """
-    Set an API object that is exposed to Javascript as window.pywebview.api.
-    :param api_instance: An instance of the object to be exposed
-    """
-    try:
-        _webview_ready.wait(5)
-        gui.set_js_api(api_instance)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-
-
 def window_exists(uid='master'):
     """
     Check whether a webview with the given UID is up and running
