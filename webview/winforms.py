@@ -208,6 +208,8 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         if uid == 'master':
             WinForms.Application.Run()
 
+    webview_ready.clear()
+
     if uid == 'master':
         set_ie_mode()
         thread = Thread(ThreadStart(create))

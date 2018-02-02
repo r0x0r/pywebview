@@ -314,11 +314,13 @@ def window_exists(uid='master'):
         return False
 
 
-def webview_ready(delay=None):
+def webview_ready(timeout=None):
     """
-    :return: True when webview master window is ready. Until then blocks the calling thread.
+    :param delay: optional timeout
+    :return: True when the last opened window is ready. False if the timeout is reached, when the timeout parameter is provided.
+    Until then blocks the calling thread.
     """
-    return _webview_ready.wait(delay)
+    return _webview_ready.wait(timeout)
 
 
 def _js_bridge_call(uid, api_instance, func_name, param):
