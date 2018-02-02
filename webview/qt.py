@@ -25,9 +25,9 @@ try:
 
     # Check to see if we're running Qt > 5.5
     from PyQt5.QtCore import QT_VERSION_STR
-    _qt_version = float(QT_VERSION_STR[:3])
+    _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
 
-    if _qt_version > 5.5:
+    if _qt_version > [5, 5]:
         from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
         from PyQt5.QtWebChannel import QWebChannel
     else:
@@ -50,7 +50,7 @@ if _import_error:
         from PyQt4.QtWebKit import QWebView, QWebFrame
         from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
-        _qt_version = 4
+        _qt_version = [4, 0]
         logger.debug('Using Qt4')
     except ImportError as e:
         logger.exception('PyQt4 or one of dependencies is not found')
@@ -143,7 +143,7 @@ class BrowserView(QMainWindow):
 
         self.js_bridge = BrowserView.JSBridge()
         self.js_bridge.api = js_api
-        if _qt_version >= 5.5:
+        if _qt_version >= [5, 5]:
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
 
@@ -249,7 +249,7 @@ class BrowserView(QMainWindow):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
         self._file_name_semaphore.acquire()
 
-        if _qt_version > 5:  # QT5
+        if _qt_version > [5, 0]:  # QT5
             if dialog_type == FOLDER_DIALOG:
                 file_names = (self._file_name,)
             elif dialog_type == SAVE_DIALOG or not allow_multiple:
@@ -291,14 +291,14 @@ class BrowserView(QMainWindow):
 
         script = _parse_api_js(self.js_bridge.api)
 
-        if _qt_version >= 5.5:
+        if _qt_version >= [5, 5]:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
             if qwebchannel_js.open(QtCore.QFile.ReadOnly):
                 source = bytes(qwebchannel_js.readAll()).decode('utf-8')
                 self.view.page().runJavaScript(source)
                 self.channel.registerObject('external', self.js_bridge)
                 qwebchannel_js.close()
-        elif _qt_version > 5:
+        elif _qt_version > [5, 0]:
             frame = self.view.page().mainFrame()
             _register_window_object()
         else:
