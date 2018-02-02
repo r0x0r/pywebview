@@ -51,9 +51,9 @@ class BrowserView:
                 WinForms.MessageBox.Show(message)
 
     class BrowserForm(WinForms.Form):
-        def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
+        def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
                      confirm_quit, background_color, debug, js_api, webview_ready):
-
+            self.uid = uid
             self.Text = title
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
@@ -83,7 +83,7 @@ class BrowserView:
 
             self.js_result_semaphor = threading.Semaphore(0)
             self.js_bridge = BrowserView.JSBridge()
-            self.js_bridge.parent_uid = 'master' # Need to change this once multi-window functionality is implemented
+            self.js_bridge.parent_uid = uid
             self.web_browser.ObjectForScripting = self.js_bridge
 
             if js_api:
@@ -108,6 +108,7 @@ class BrowserView:
             self.Controls.Add(self.web_browser)
             self.is_fullscreen = False
             self.Shown += self.on_shown
+            self.FormClosed += self.on_close
 
             if confirm_quit:
                 self.FormClosing += self.on_closing
@@ -121,6 +122,12 @@ class BrowserView:
 
         def on_shown(self, sender, args):
             self.webview_ready.set()
+
+        def on_close(self, sender, args):
+            del BrowserView.instances[self.uid]
+
+            if len(BrowserView.instances) == 0:
+                WinForms.Application.Exit()
 
         def on_closing(self, sender, args):
             result = WinForms.MessageBox.Show(localization['global.quitConfirmation'], self.Text,
@@ -189,56 +196,21 @@ class BrowserView:
                 self.Location = self.old_location
                 self.is_fullscreen = False
 
-    def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, background_color, debug, js_api, webview_ready):
-        self.uid = uid
-        self.title = title
-        self.url = url
-        self.width = width
-        self.height = height
-        self.resizable = resizable
-        self.fullscreen = fullscreen
-        self.min_size = min_size
-        self.confirm_quit = confirm_quit
-        self.webview_ready = webview_ready
-        self.background_color = background_color
-        self.debug = debug
-        self.js_api = js_api
-
-    def show(self):
-        def start():
-            app = WinForms.Application
-            BrowserView.instances[self.uid] = \
-                BrowserView.BrowserForm(self.title, self.url, self.width, self.height, self.resizable,
-                                        self.fullscreen, self.min_size, self.confirm_quit, self.background_color,
-                                        self.debug, self.js_api, self.webview_ready)
-
-            app.Run(BrowserView.instances[self.uid])
-
-        thread = Thread(ThreadStart(start))
-        thread.SetApartmentState(ApartmentState.STA)
-        thread.Start()
-        thread.Join()
-
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, debug, js_api, webview_ready):
     def create():
-        window = BrowserView.BrowserForm(title, url, width, height, resizable, fullscreen,
-                                   min_size, confirm_quit, background_color, debug, js_api, webview_ready)
+        window = BrowserView.BrowserForm(uid, title, url, width, height, resizable, fullscreen,
+                                         min_size, confirm_quit, background_color, debug, js_api, webview_ready)
         BrowserView.instances[uid] = window
         window.Show()
 
-    def start():
-        app = WinForms.Application
-        window = BrowserView.BrowserForm(title, url, width, height, resizable, fullscreen,
-                                         min_size, confirm_quit, background_color, debug, js_api,
-                                        webview_ready)
-        BrowserView.instances[uid] = window
-        app.Run(window)
+        if uid == 'master':
+            WinForms.Application.Run()
 
     if uid == 'master':
         set_ie_mode()
-        thread = Thread(ThreadStart(start))
+        thread = Thread(ThreadStart(create))
         thread.SetApartmentState(ApartmentState.STA)
         thread.Start()
         thread.Join()

@@ -204,7 +204,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     if not _initialized:
         # Check if starting up from main thread; if not, wait; finally raise exception
         if current_thread().name != 'MainThread':
-            if _webview_ready.wait(5) != True:
+            if not _webview_ready.wait(5):
                 raise Exception("Call create_window from the main thread first, and then from subthreads")
         else:
             _initialize_imports()
@@ -219,9 +219,9 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
 
 
 def set_title(title, uid='master'):
-    '''
+    """
     Sets a new title of the window
-    '''
+    """
     try:
         _webview_ready.wait(5)
         assert gui.is_running()
@@ -233,10 +233,10 @@ def set_title(title, uid='master'):
 
 
 def get_current_url(uid='master'):
-    '''
+    """
     Get a current URL
     :param uid: uid of the target instance
-    '''
+    """
     try:
         _webview_ready.wait(5)
         return gui.get_current_url(uid)
@@ -247,10 +247,10 @@ def get_current_url(uid='master'):
 
 
 def destroy_window(uid='master'):
-    '''
+    """
     Destroy a web view window
     :param uid: uid of the target instance
-    '''
+    """
     try:
         _webview_ready.wait(5)
         gui.destroy_window(uid)
@@ -261,10 +261,10 @@ def destroy_window(uid='master'):
 
 
 def toggle_fullscreen(uid='master'):
-    '''
+    """
     Toggle fullscreen mode
     :param uid: uid of the target instance
-    '''
+    """
     try:
         _webview_ready.wait(5)
         gui.toggle_fullscreen(uid)
@@ -275,12 +275,12 @@ def toggle_fullscreen(uid='master'):
 
 
 def evaluate_js(script, uid='master'):
-    '''
+    """
     Evaluate given JavaScript code and return the result
     :param script: The JavaScript code to be evaluated
     :param uid: uid of the target instance
     :return: Return value of the evaluated code
-    '''
+    """
     try:
         _webview_ready.wait(5)
         return gui.evaluate_js(script, uid)
@@ -291,10 +291,10 @@ def evaluate_js(script, uid='master'):
 
 
 def set_js_api(api_instance):
-    '''
+    """
     Set an API object that is exposed to Javascript as window.pywebview.api.
     :param api_instance: An instance of the object to be exposed
-    '''
+    """
     try:
         _webview_ready.wait(5)
         gui.set_js_api(api_instance)
@@ -303,11 +303,11 @@ def set_js_api(api_instance):
 
 
 def window_exists(uid='master'):
-    '''
+    """
     Check whether a webview with the given UID is up and running
     :param uid: uid of the target instance
     :return: True if the window exists, False otherwise
-    '''
+    """
     try:
         get_current_url(uid)
         return True
@@ -316,9 +316,9 @@ def window_exists(uid='master'):
 
 
 def webview_ready(delay=None):
-    '''
+    """
     :return: True when webview master window is ready. Until then blocks the calling thread.
-    '''
+    """
     return _webview_ready.wait(delay)
 
 
