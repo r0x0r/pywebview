@@ -575,6 +575,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
                               confirm_quit, background_color, debug, js_api, webview_ready)
         webview_ready.set()
         browser.show()
+        webview_ready.set()
 
     if uid == 'master':
         create()
@@ -582,8 +583,8 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         PyObjCTools.AppHelper.callAfter(create)
 
 
-def set_title(title):
-    BrowserView.instance.set_title(title)
+def set_title(title, uid):
+    BrowserView.instances[uid].set_title(title)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
@@ -621,7 +622,3 @@ def get_current_url(uid):
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
-
-
-def is_running():
-    return BrowserView.app.isRunning()

@@ -229,8 +229,8 @@ def set_title(title, uid):
         _set_title()
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
-    window = BrowserView.instances[uid]
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
+    window = list(BrowserView.instances.values())[0]     # arbitary instance
 
     if not directory:
         directory = os.environ['HOMEPATH']
@@ -342,7 +342,3 @@ def evaluate_js(script, uid):
     window.js_result_semaphor.acquire()
 
     return window.js_result
-
-
-def is_running():
-    return not BrowserView.instances['master'].IsDisposed

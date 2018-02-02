@@ -163,7 +163,6 @@ class BrowserView(QMainWindow):
         self.activateWindow()
         self.raise_()
         webview_ready.set()
-        BrowserView.running = True
 
     def on_set_title(self, title):
         self.setWindowTitle(title)
@@ -389,7 +388,3 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
-
-
-def is_running():
-    return BrowserView.running

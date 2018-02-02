@@ -301,9 +301,9 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         glib.idle_add(create)
 
 
-def set_title(title):
+def set_title(title, uid):
     def _set_title():
-        BrowserView.instance.set_title(title)
+        BrowserView.instances[uid].set_title(title)
     glib.idle_add(_set_title)    
 
 
@@ -358,7 +358,3 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
-
-
-def is_running():
-    return bool(gtk.main_level())
