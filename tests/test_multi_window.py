@@ -24,6 +24,8 @@ def bg_color():
 
     def _bg_color(webview):
         child_window = webview.create_window('Window #2', background_color='#0000FF')
+        webview.webview_ready()
+        webview.destroy_window(child_window)
         destroy_event.set()
 
     t = threading.Thread(target=_bg_color, args=(webview,))
@@ -58,6 +60,7 @@ def evaluate_js():
             test();
         """, uid=child_window)
         assert result2 == 4
+        webview.destroy_window(child_window)
         destroy_event.set()
 
     t = threading.Thread(target=_evaluate_js, args=(webview,))
@@ -72,6 +75,7 @@ def load_html():
     def _load_html(webview):
         child_window = webview.create_window('Window #2')
         webview.load_html('<body style="background: red;"><h1>Master Window</h1></body>', uid=child_window)
+        webview.destroy_window(child_window)
         destroy_event.set()
 
     t = threading.Thread(target=_load_html, args=(webview,))
@@ -87,6 +91,7 @@ def load_url():
     def _load_url(webview):
         child_window = webview.create_window('Window #2')
         webview.load_url('https://google.com', uid=child_window)
+        webview.destroy_window(child_window)
         destroy_event.set()
 
     t = threading.Thread(target=_load_url, args=(webview,))
