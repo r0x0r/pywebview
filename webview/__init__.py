@@ -224,12 +224,11 @@ def set_title(title, uid='master'):
     '''
     try:
         _webview_ready.wait(5)
-        assert gui.is_running()
         return gui.set_title(title, uid)
     except NameError:
         raise Exception('Create a web view window first, before invoking this function')
-    except AssertionError:
-        raise Exception('Cannot call function: the webview has been closed')
+    except KeyError:
+        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
 
 
 def get_current_url(uid='master'):

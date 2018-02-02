@@ -358,7 +358,3 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
-
-
-def is_running():
-    return bool(gtk.main_level())

@@ -621,7 +621,3 @@ def get_current_url(uid):
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
-
-
-def is_running():
-    return BrowserView.app.isRunning()

@@ -370,7 +370,3 @@ def evaluate_js(script, uid):
     window.js_result_semaphor.acquire()
 
     return window.js_result
-
-
-def is_running():
-    return not BrowserView.instances['master'].IsDisposed
