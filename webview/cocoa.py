@@ -573,7 +573,6 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
                               confirm_quit, background_color, debug, js_api, webview_ready)
-        webview_ready.set()
         browser.show()
         webview_ready.set()
 
