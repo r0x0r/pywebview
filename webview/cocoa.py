@@ -582,8 +582,8 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         PyObjCTools.AppHelper.callAfter(create)
 
 
-def set_title(title):
-    BrowserView.instance.set_title(title)
+def set_title(title, uid):
+    BrowserView.instances[uid].set_title(title)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
