@@ -24,10 +24,10 @@ try:
     from PyQt5 import QtCore
 
     # Check to see if we're running Qt > 5.5
-    from PyQt5.QtCore import QT_VERSION_STR
+    from QtCore import QT_VERSION_STR
     _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
 
-    if _qt_version > [5, 5]:
+    if _qt_version >= [5, 5]:
         from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
         from PyQt5.QtWebChannel import QWebChannel
     else:
@@ -249,7 +249,7 @@ class BrowserView(QMainWindow):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
         self._file_name_semaphore.acquire()
 
-        if _qt_version > [5, 0]:  # QT5
+        if _qt_version >= [5, 0]:  # QT5
             if dialog_type == FOLDER_DIALOG:
                 file_names = (self._file_name,)
             elif dialog_type == SAVE_DIALOG or not allow_multiple:
@@ -298,7 +298,7 @@ class BrowserView(QMainWindow):
                 self.view.page().runJavaScript(source)
                 self.channel.registerObject('external', self.js_bridge)
                 qwebchannel_js.close()
-        elif _qt_version > [5, 0]:
+        elif _qt_version >= [5, 0]:
             frame = self.view.page().mainFrame()
             _register_window_object()
         else:
