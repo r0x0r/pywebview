@@ -251,6 +251,7 @@ class BrowserView:
         self._current_url_semaphore = Semaphore(0)
         self.webview_ready = webview_ready
         self.confirm_quit = confirm_quit
+        self.title = title
 
         self.is_fullscreen = False
 
