@@ -35,7 +35,6 @@ def assert_js(webview, func_name, result, uid='master'):
     js_code = """
         window.pywebviewResult = undefined
         window.pywebview.api.{0}().then(function(response) {{
-            alert('w00t')
             window.pywebviewResult = response
         }})
     """
