@@ -28,6 +28,7 @@ class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
     debug = False
+    cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
     load_event = Event()
 
     class AppDelegate(AppKit.NSObject):
@@ -250,10 +251,11 @@ class BrowserView:
         self._current_url_semaphore = Semaphore(0)
         self.webview_ready = webview_ready
         self.confirm_quit = confirm_quit
+        self.title = title
 
         self.is_fullscreen = False
 
-        rect = AppKit.NSMakeRect(100.0, 350.0, width, height)
+        rect = AppKit.NSMakeRect(0.0, 0.0, width, height)
         window_mask = AppKit.NSTitledWindowMask | AppKit.NSClosableWindowMask | AppKit.NSMiniaturizableWindowMask
 
         if resizable:
@@ -266,6 +268,7 @@ class BrowserView:
         self.window.setTitle_(title)
         self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(background_color))
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
+        BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
         # Set the titlebar color (so that it does not change with the window color)
         self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
 
@@ -573,7 +576,6 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
                               confirm_quit, background_color, debug, js_api, webview_ready)
-        webview_ready.set()
         browser.show()
 
     if uid == 'master':
