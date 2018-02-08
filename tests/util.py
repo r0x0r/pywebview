@@ -41,5 +41,5 @@ def assert_js(webview, func_name, result, uid='master'):
 
     webview.evaluate_js(js_code.format(func_name))
     time.sleep(2.0)
-    res = webview.evaluate_js('window.pywebviewResult')
+    res = webview.evaluate_js('window.pywebviewResult', uid)
     assert res == result
