@@ -356,7 +356,16 @@ class BrowserView:
 
     def evaluate_js(self, script):
         def evaluate(script):
-            JSResult.result = self.webkit.windowScriptObject().evaluateWebScript_(script)
+            result = self.webkit.windowScriptObject().evaluateWebScript_(script)
+
+            if result is WebKit.WebUndefined.undefined():
+                JSResult.result = None
+            else:
+                try:
+                    JSResult.result = result.__reduce__()[1][0]
+                except TypeError:
+                    JSResult.result = result
+
             JSResult.result_semaphore.release()
 
         class JSResult:
