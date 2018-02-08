@@ -3,18 +3,22 @@ import threading
 from .util import run_test, destroy_window, assert_js
 
 
+@pytest.mark.skip
 def test_bg_color():
     run_test(bg_color)
 
 
+@pytest.mark.skip
 def test_load_html():
     run_test(load_html)
 
 
+@pytest.mark.skip
 def test_load_url():
     run_test(load_url)
 
 
+@pytest.mark.skip
 def test_evaluate_js():
     run_test(evaluate_js)
 
@@ -37,7 +41,6 @@ def bg_color():
     destroy_event = destroy_window(webview, 5)
 
     webview.create_window('Multi-window background test', 'https://www.example.org')
-
 
 
 def js_bridge():
@@ -69,7 +72,7 @@ def js_bridge():
     destroy_event = destroy_window(webview)
 
     api1 = Api1()
-    webview.create_window('Multi-window JS bridge test', js_api=api1)
+    webview.create_window('Multi-window JS bridge test', js_api=api1, debug=True)
 
 
 def evaluate_js():

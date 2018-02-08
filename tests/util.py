@@ -31,15 +31,19 @@ def run_test(test_func, param=None):
     assert p.exitcode == 0
 
 
-def assert_js(webview, func_name, result, uid='master'):
-    js_code = """
-        window.pywebviewResult = undefined
-        window.pywebview.api.{0}().then(function(response) {{
-            window.pywebviewResult = response
-        }})
-    """
+def assert_js(webview, func_name, expected_result, uid='master'):
+    execute_func = 'window.pywebview.api.{0}()'.format(func_name)
+    check_func =  """
+        var result = window.pywebview._returnValues['{0}']
+        result.isSet ? result.value : undefined
+    """.format(func_name)
 
-    webview.evaluate_js(js_code.format(func_name))
-    time.sleep(2.0)
-    res = webview.evaluate_js('window.pywebviewResult', uid)
-    assert res == result
+    webview.evaluate_js(execute_func, uid)
+
+    result = webview.evaluate_js(check_func, uid)
+
+    while result is None:
+        time.sleep(0.1)
+        result = webview.evaluate_js(check_func, uid)
+
+    assert expected_result == result
