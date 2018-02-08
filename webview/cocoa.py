@@ -241,8 +241,8 @@ class BrowserView:
         BrowserView.instances[uid] = self
         self.uid = uid
 
-        BrowserView.debug = debug
         if debug:
+            BrowserView.debug = debug
             BrowserView._set_debugging()
 
         self.js_bridge = None
