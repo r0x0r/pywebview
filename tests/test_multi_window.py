@@ -3,22 +3,18 @@ import threading
 from .util import run_test, destroy_window, assert_js
 
 
-@pytest.mark.skip
 def test_bg_color():
     run_test(bg_color)
 
 
-@pytest.mark.skip
 def test_load_html():
     run_test(load_html)
 
 
-@pytest.mark.skip
 def test_load_url():
     run_test(load_url)
 
 
-@pytest.mark.skip
 def test_evaluate_js():
     run_test(evaluate_js)
 

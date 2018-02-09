@@ -29,7 +29,6 @@ class BrowserView:
     app = AppKit.NSApplication.sharedApplication()
     debug = False
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
-    load_event = Event()
 
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
@@ -43,9 +42,9 @@ class BrowserView:
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
 
-            quit = localization["global.quit"]
-            cancel = localization["global.cancel"]
-            msg = localization["global.quitConfirmation"]
+            quit = localization['global.quit']
+            cancel = localization['global.cancel']
+            msg = localization['global.quitConfirmation']
 
             if not i.confirm_quit or BrowserView.display_confirmation_dialog(quit, cancel, msg):
                 return Foundation.YES
@@ -174,15 +173,16 @@ class BrowserView:
         # Show the webview when it finishes loading
         def webView_didFinishLoadForFrame_(self, webview, frame):
             # Add the webview to the window if it's not yet the contentView
+            i = BrowserView.get_instance('webkit', webview)
+
             if not webview.window():
-                i = BrowserView.get_instance('webkit', webview)
                 i.window.setContentView_(webview)
                 i.window.makeFirstResponder_(webview)
 
                 if i.js_bridge:
                     i._set_js_api()
 
-            BrowserView.load_event.set()
+            i.loaded.set()
 
     class FileFilterChooser(AppKit.NSPopUpButton):
         def initWithFilter_(self, file_filter):
@@ -250,6 +250,7 @@ class BrowserView:
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
         self.webview_ready = webview_ready
+        self.loaded = Event()
         self.confirm_quit = confirm_quit
         self.title = title
 
@@ -303,6 +304,8 @@ class BrowserView:
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             BrowserView.app.run()
+        else:
+            self.webview_ready.set()
 
     def destroy(self):
         PyObjCTools.AppHelper.callAfter(self.window.close)
@@ -342,7 +345,7 @@ class BrowserView:
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
             self.webkit.mainFrame().loadRequest_(req)
 
-        BrowserView.load_event.clear()
+        self.loaded.clear()
         self.url = url
         PyObjCTools.AppHelper.callAfter(load, url)
 
@@ -351,7 +354,7 @@ class BrowserView:
             url = Foundation.NSURL.URLWithString_(url)
             self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
 
-        BrowserView.load_event.clear()
+        self.loaded.clear()
         PyObjCTools.AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
@@ -372,7 +375,7 @@ class BrowserView:
             result = None
             result_semaphore = Semaphore(0)
 
-        BrowserView.load_event.wait()
+        self.loaded.wait()
         PyObjCTools.AppHelper.callAfter(evaluate, script)
 
         JSResult.result_semaphore.acquire()
