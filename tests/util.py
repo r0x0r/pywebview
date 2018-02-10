@@ -35,7 +35,7 @@ def assert_js(webview, func_name, expected_result, uid='master'):
     execute_func = 'window.pywebview.api.{0}()'.format(func_name)
     check_func =  """
         var result = window.pywebview._returnValues['{0}']
-        result.isSet ? result.value : undefined
+        result.value
     """.format(func_name)
 
     webview.evaluate_js(execute_func, uid)

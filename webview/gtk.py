@@ -174,7 +174,7 @@ class BrowserView:
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if dialog_type == FOLDER_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
-            title = localization["linux.openFolder"]
+            title = localization['linux.openFolder']
             button = gtk.STOCK_OPEN
         elif dialog_type == OPEN_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.OPEN
@@ -260,6 +260,9 @@ class BrowserView:
         return _js_result
 
     def _parse_js_result(self, result):
+        if result == 'undefined':
+            return None
+
         try:
             return int(result)
         except ValueError:
