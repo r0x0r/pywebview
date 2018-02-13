@@ -50,7 +50,6 @@ class BrowserView:
         self.is_fullscreen = False
         self._js_result_semaphore = Semaphore(0)
         self.load_event = Event()
-        self.js_bridge = None
 
         glib.threads_init()
         self.window = gtk.Window(title=title)
