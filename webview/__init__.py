@@ -175,7 +175,7 @@ def load_html(content, base_uri=""):
 
 def create_window(title, url=None, js_api=None, width=800, height=600,
                   resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
-                  background_color='#FFFFFF', debug=False, window_frame=True):
+                  background_color='#FFFFFF', debug=False, frameless=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -189,6 +189,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     :param strings: a dictionary with localized strings
     :param confirm_quit: Display a quit confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
+    :param frameless: Whether the window should havea frame.
     :return:
     """
     valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
@@ -199,7 +200,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     localization.update(strings)
     gui.create_window(_make_unicode(title), _transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
-                      background_color, debug, js_api, _webview_ready, window_frame)
+                      background_color, debug, js_api, _webview_ready, frameless)
 
 def set_title(title):
     """

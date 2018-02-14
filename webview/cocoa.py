@@ -271,7 +271,7 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, debug, js_api, webview_ready, window_frame):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, debug, js_api, webview_ready, frameless):
         BrowserView.instance = self
         BrowserView.debug = debug
 
@@ -291,7 +291,7 @@ class BrowserView:
         if resizable:
             window_mask = window_mask | AppKit.NSResizableWindowMask
 
-        if window_frame is False:
+        if frameless is True:
             window_mask = window_mask | AppKit.NSFullSizeContentViewWindowMask | AppKit.NSTexturedBackgroundWindowMask
 
         self.window = AppKit.NSWindow.alloc().\
@@ -300,9 +300,8 @@ class BrowserView:
         self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(background_color))
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
 
-        if window_frame is False:
+        if frameless is True:
             self.window.setTitlebarAppearsTransparent_(True)
-            self.window.setMovableByWindowBackground_(True)
             self.window.setTitleVisibility_(AppKit.NSWindowTitleHidden)
             webkit_rect = AppKit.NSMakeRect(0, -12, width, height - 12)
         else:
@@ -593,11 +592,11 @@ class BrowserView:
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, webview_ready, window_frame):
+                  confirm_quit, background_color, debug, js_api, webview_ready, frameless):
     global _confirm_quit
     _confirm_quit = confirm_quit
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, debug, js_api, webview_ready, window_frame)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, debug, js_api, webview_ready, frameless)
     browser.show()
 
 
