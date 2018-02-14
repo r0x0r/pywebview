@@ -1,4 +1,3 @@
-import pytest
 import threading
 from .util import run_test, destroy_window
 
@@ -16,13 +15,14 @@ def evaluate_js():
             test();
         """)
         assert result == 4
+        destroy_event.set()
 
     t = threading.Thread(target=_evaluate_js, args=(webview,))
     t.start()
-    destroy_window(webview, 5)
+    destroy_event = destroy_window(webview)
 
     webview.create_window('Evaluate JS test', 'https://www.example.org')
 
 
-def test_load_html():
+def test_evaluate_js():
     run_test(evaluate_js)

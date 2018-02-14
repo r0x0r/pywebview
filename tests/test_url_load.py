@@ -21,12 +21,13 @@ def url_load():
         except Exception as e:
             q.put(1)
             pytest.fail('Exception occured:\n{0}'.format(traceback.format_exc()))
+        destroy_event.set()
 
     q = Queue()
     t = threading.Thread(target=_change_url, args=(webview,))
     t.start()
 
-    destroy_window(webview)
+    destroy_event = destroy_window(webview)
     webview.create_window('URL change test', 'https://www.example.org')
     exitcode = q.get()
     sys.exit(exitcode)

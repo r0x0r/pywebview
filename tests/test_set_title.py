@@ -22,11 +22,13 @@ def set_title():
             q.put(1)
             pytest.fail('Exception occured:\n{0}'.format(traceback.format_exc()))
 
+        destroy_event.set()
+
     q = Queue()
     t = threading.Thread(target=_set_title, args=(webview,))
     t.start()
 
-    destroy_window(webview)
+    destroy_event = destroy_window(webview)
     webview.create_window('Set title test', 'https://www.example.org')
     exitcode = q.get()
     sys.exit(exitcode)

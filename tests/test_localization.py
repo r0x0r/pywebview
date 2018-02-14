@@ -7,6 +7,14 @@ from .util import run_test, destroy_window
 def localization():
     import webview
 
+    def _localization(webview):
+        assert webview.webview_ready(10)
+        destroy_event.set()
+
+    t = threading.Thread(target=_localization, args=(webview,))
+    t.start()
+    destroy_event = destroy_window(webview)
+
     strings = {
         "cocoa.menu.about": u"О программе",
         "cocoa.menu.services": u"Cлужбы",
@@ -24,7 +32,6 @@ def localization():
         "linux.saveFile": u"Сохранить файл",
     }
 
-    destroy_window(webview)
     webview.create_window('Localization test', 'https://www.example.org', strings=strings)
 
 
