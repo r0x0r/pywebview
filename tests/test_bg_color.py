@@ -1,9 +1,18 @@
+import threading
 import pytest
 from .util import destroy_window, run_test
 
+
 def bg_color():
     import webview
-    destroy_window(webview)
+
+    def _bg_color(webview):
+        assert webview.webview_ready(10)
+        destroy_event.set()
+
+    t = threading.Thread(target=_bg_color, args=(webview,))
+    t.start()
+    destroy_event = destroy_window(webview)
     webview.create_window('Background color test', 'https://www.example.org', background_color='#0000FF')
 
 

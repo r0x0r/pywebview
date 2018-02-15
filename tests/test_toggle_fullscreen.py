@@ -8,10 +8,11 @@ def toggle_fullscreen():
 
     def _toggle_fullscreen(webview):
         webview.toggle_fullscreen()
+        destroy_event.set()
 
     t = threading.Thread(target=_toggle_fullscreen, args=(webview,))
     t.start()
-    destroy_window(webview)
+    destroy_event = destroy_window(webview)
 
     webview.create_window('Toggle fullscreen test', 'https://www.example.org')
 

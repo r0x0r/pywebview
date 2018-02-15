@@ -28,39 +28,40 @@ from gi.repository import WebKit as webkit
 
 
 class BrowserView:
-    instance = None
+    instances = {}
 
     class JSBridge:
-        def __init__(self, api_instance):
+        def __init__(self, api_instance, parent_uid):
             self.api = api_instance
             self.uid = uuid1().hex[:8]
+            self.parent_uid = parent_uid
 
         def call(self, func_name, param):
             if param == 'undefined':
                 param = None
-            return _js_bridge_call(self.api, func_name, param)
+            return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
+    def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
                  confirm_quit, background_color, debug, js_api, webview_ready):
-        BrowserView.instance = self
+        BrowserView.instances[uid] = self
+        self.uid = uid
 
         self.webview_ready = webview_ready
         self.is_fullscreen = False
         self._js_result_semaphore = Semaphore(0)
         self.load_event = Event()
-        self.js_bridge = None
 
         glib.threads_init()
-        window = gtk.Window(title=title)
+        self.window = gtk.Window(title=title)
 
         if resizable:
-            window.set_size_request(min_size[0], min_size[1])
-            window.resize(width, height)
+            self.window.set_size_request(min_size[0], min_size[1])
+            self.window.resize(width, height)
         else:
-            window.set_size_request(width, height)
+            self.window.set_size_request(width, height)
 
-        window.set_resizable(resizable)
-        window.set_position(gtk.WindowPosition.CENTER)
+        self.window.set_resizable(resizable)
+        self.window.set_position(gtk.WindowPosition.CENTER)
 
         # Set window background color
         style_provider = gtk.CssProvider()
@@ -74,9 +75,7 @@ class BrowserView:
         )
 
         scrolled_window = gtk.ScrolledWindow()
-        window.add(scrolled_window)
-
-        self.window = window
+        self.window.add(scrolled_window)
 
         if confirm_quit:
             self.window.connect('delete-event', self.on_destroy)
@@ -84,7 +83,9 @@ class BrowserView:
             self.window.connect('delete-event', self.close_window)
 
         if js_api:
-            self.js_bridge = BrowserView.JSBridge(js_api)
+            self.js_bridge = BrowserView.JSBridge(js_api, self.uid)
+        else:
+            self.js_bridge = None
 
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
@@ -93,7 +94,6 @@ class BrowserView:
         self.webview.props.settings.props.enable_default_context_menu = False
         self.webview.props.opacity = 0.0
         scrolled_window.add(self.webview)
-        window.show_all()
 
         if url is not None:
             self.webview.load_uri(url)
@@ -106,7 +106,10 @@ class BrowserView:
             gtk.main_iteration()
 
         self.window.destroy()
-        gtk.main_quit()
+        del BrowserView.instances[self.uid]
+
+        if BrowserView.instances == {}:
+            gtk.main_quit()
         self._js_result_semaphore.release()
 
     def on_destroy(self, widget=None, *data):
@@ -116,9 +119,9 @@ class BrowserView:
         result = dialog.run()
         if result == gtk.ResponseType.OK:
             self.close_window()
-        else:
-            dialog.destroy()
-            return True
+
+        dialog.destroy()
+        return True
 
     def on_webview_ready(self, arg1, arg2):
         glib.idle_add(self.webview_ready.set)
@@ -148,10 +151,16 @@ class BrowserView:
             webview.execute_script(code)
 
     def show(self):
-        gtk.main()
+        self.window.show_all()
+
+        if gtk.main_level() == 0:
+            gtk.main()
 
     def destroy(self):
         self.window.emit('delete-event', Gdk.Event())
+
+    def set_title(self, title):
+        self.window.set_title(title)
 
     def toggle_fullscreen(self):
         if self.is_fullscreen:
@@ -164,7 +173,7 @@ class BrowserView:
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if dialog_type == FOLDER_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
-            title = localization["linux.openFolder"]
+            title = localization['linux.openFolder']
             button = gtk.STOCK_OPEN
         elif dialog_type == OPEN_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.OPEN
@@ -250,6 +259,9 @@ class BrowserView:
         return _js_result
 
     def _parse_js_result(self, result):
+        if result == 'undefined':
+            return None
+
         try:
             return int(result)
         except ValueError:
@@ -278,53 +290,66 @@ class BrowserView:
         glib.idle_add(create_bridge)
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size,
+def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, debug, js_api, webview_ready):
-    browser = BrowserView(title, url, width, height, resizable, fullscreen,
-                          min_size, confirm_quit, background_color, debug, js_api, webview_ready)
-    browser.show()
+    def create():
+        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
+                              confirm_quit, background_color, debug, js_api, webview_ready)
+        browser.show()
+
+    if uid == 'master':
+        create()
+    else:
+        glib.idle_add(create)
 
 
-def destroy_window():
+def set_title(title, uid):
+    def _set_title():
+        BrowserView.instances[uid].set_title(title)
+    glib.idle_add(_set_title)    
+
+
+def destroy_window(uid):
     def _destroy_window():
-        BrowserView.instance.close_window()
+        BrowserView.instances[uid].close_window()
     glib.idle_add(_destroy_window)
 
 
-def toggle_fullscreen():
+def toggle_fullscreen(uid):
     def _toggle_fullscreen():
-        BrowserView.instance.toggle_fullscreen()
+        BrowserView.instances[uid].toggle_fullscreen()
     glib.idle_add(_toggle_fullscreen)
 
 
-def get_current_url():
-    return BrowserView.instance.get_current_url()
+def get_current_url(uid):
+    return BrowserView.instances[uid].get_current_url()
 
 
-def load_url(url):
+def load_url(url, uid):
     def _load_url():
-        BrowserView.instance.load_url(url)
+        BrowserView.instances[uid].load_url(url)
     glib.idle_add(_load_url)
 
 
-def load_html(content, base_uri):
+def load_html(content, base_uri, uid):
     def _load_html():
-        BrowserView.instance.load_html(content, base_uri)
+        BrowserView.instances[uid].load_html(content, base_uri)
     glib.idle_add(_load_html)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
+    i = list(BrowserView.instances.values())[0]     # arbitary instance
     file_name_semaphore = Semaphore(0)
     file_names = []
 
     def _create():
-        result = BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
+        result = i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
         if result is None:
             file_names.append(None)
         else:
             result = map(unicode, result) if sys.version < '3' else result
             file_names.append(tuple(result))
-        
+
         file_name_semaphore.release()
 
     glib.idle_add(_create)
@@ -333,10 +358,5 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     return file_names[0]
 
 
-def evaluate_js(script):
-    return BrowserView.instance.evaluate_js(script)
-
-
-def is_running():
-    return bool(gtk.main_level())
-
+def evaluate_js(script, uid):
+    return BrowserView.instances[uid].evaluate_js(script)

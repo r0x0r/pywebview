@@ -24,10 +24,10 @@ try:
     from PyQt5 import QtCore
 
     # Check to see if we're running Qt > 5.5
-    from PyQt5.QtCore import QT_VERSION_STR
-    _qt_version = float(QT_VERSION_STR[:3])
+    from QtCore import QT_VERSION_STR
+    _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
 
-    if _qt_version > 5.5:
+    if _qt_version >= [5, 5]:
         from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
         from PyQt5.QtWebChannel import QWebChannel
     else:
@@ -50,7 +50,7 @@ if _import_error:
         from PyQt4.QtWebKit import QWebView, QWebFrame
         from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
-        _qt_version = 4
+        _qt_version = [4, 0]
         logger.debug('Using Qt4')
     except ImportError as e:
         logger.exception('PyQt4 or one of dependencies is not found')
@@ -63,9 +63,10 @@ if _import_error:
 
 
 class BrowserView(QMainWindow):
-    instance = None
-    running = False
+    instances = {}
 
+    create_window_trigger = QtCore.pyqtSignal(object)
+    set_title_trigger = QtCore.pyqtSignal(str)
     load_url_trigger = QtCore.pyqtSignal(str)
     html_trigger = QtCore.pyqtSignal(str, str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str, str)
@@ -76,6 +77,7 @@ class BrowserView(QMainWindow):
 
     class JSBridge(QtCore.QObject):
         api = None
+        parent_uid = None
 
         try:
             qtype = QtCore.QJsonValue  # QT5
@@ -90,12 +92,14 @@ class BrowserView(QMainWindow):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
 
-            return _js_bridge_call(self.api, func_name, param)
+            return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
-    def __init__(self, title, url, width, height, resizable, fullscreen,
+    def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, debug, js_api, webview_ready):
         super(BrowserView, self).__init__()
-        BrowserView.instance = self
+        BrowserView.instances[uid] = self
+        self.uid = uid
+
         self.is_fullscreen = False
         self.confirm_quit = confirm_quit
 
@@ -131,6 +135,7 @@ class BrowserView(QMainWindow):
 
         self.setCentralWidget(self.view)
 
+        self.create_window_trigger.connect(BrowserView.on_create_window)
         self.load_url_trigger.connect(self.on_load_url)
         self.html_trigger.connect(self.on_load_html)
         self.dialog_trigger.connect(self.on_file_dialog)
@@ -138,10 +143,13 @@ class BrowserView(QMainWindow):
         self.fullscreen_trigger.connect(self.on_fullscreen)
         self.current_url_trigger.connect(self.on_current_url)
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
+        self.set_title_trigger.connect(self.on_set_title)
 
         self.js_bridge = BrowserView.JSBridge()
         self.js_bridge.api = js_api
-        if _qt_version >= 5.5:
+        self.js_bridge.parent_uid = self.uid
+
+        if _qt_version >= [5, 5]:
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
 
@@ -156,7 +164,9 @@ class BrowserView(QMainWindow):
         self.activateWindow()
         self.raise_()
         webview_ready.set()
-        BrowserView.running = True
+
+    def on_set_title(self, title):
+        self.setWindowTitle(title)
 
     def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         if dialog_type == FOLDER_DIALOG:
@@ -189,12 +199,12 @@ class BrowserView(QMainWindow):
             reply = QMessageBox.question(self, self.title, localization['global.quitConfirmation'],
                                          QMessageBox.Yes, QMessageBox.No)
 
-            if reply == QMessageBox.NO:
+            if reply == QMessageBox.No:
                 event.ignore()
                 return
 
         event.accept()
-        BrowserView.running = False
+        del BrowserView.instances[self.uid]
 
     def on_destroy_window(self):
         self.close()
@@ -223,6 +233,9 @@ class BrowserView(QMainWindow):
         else:
             self.load_event.set()
 
+    def set_title(self, title):
+        self.set_title_trigger.emit(title)
+
     def get_current_url(self):
         self.current_url_trigger.emit()
         self._current_url_semaphore.acquire()
@@ -241,7 +254,7 @@ class BrowserView(QMainWindow):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
         self._file_name_semaphore.acquire()
 
-        if _qt_version > 5:  # QT5
+        if _qt_version >= [5, 0]:  # QT5
             if dialog_type == FOLDER_DIALOG:
                 file_names = (self._file_name,)
             elif dialog_type == SAVE_DIALOG or not allow_multiple:
@@ -283,14 +296,14 @@ class BrowserView(QMainWindow):
 
         script = _parse_api_js(self.js_bridge.api)
 
-        if _qt_version >= 5.5:
+        if _qt_version >= [5, 5]:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
             if qwebchannel_js.open(QtCore.QFile.ReadOnly):
                 source = bytes(qwebchannel_js.readAll()).decode('utf-8')
                 self.view.page().runJavaScript(source)
                 self.channel.registerObject('external', self.js_bridge)
                 qwebchannel_js.close()
-        elif _qt_version > 5:
+        elif _qt_version >= [5, 0]:
             frame = self.view.page().mainFrame()
             _register_window_object()
         else:
@@ -317,36 +330,52 @@ class BrowserView(QMainWindow):
         else:
             return str(qstring)
 
+    @staticmethod
+    # Receive func from subthread and execute it on the main thread
+    def on_create_window(func):
+        func()
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size,
+
+def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, debug, js_api, webview_ready):
-    app = QApplication([])
+    app = QApplication.instance() or QApplication([])
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen,
-                          min_size, confirm_quit, background_color, debug, js_api,
-                          webview_ready)
-    browser.show()
-    app.exec_()
+    def _create():
+        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
+                              min_size, confirm_quit, background_color, debug, js_api,
+                              webview_ready)
+        browser.show()
 
-
-def get_current_url():
-    return BrowserView.instance.get_current_url()
-
-
-def load_url(url):
-    BrowserView.instance.load_url(url)
-
-
-def load_html(content, base_uri):
-    BrowserView.instance.load_html(content, base_uri)
+    if uid == 'master':
+        _create()
+        app.exec_()
+    else:
+        i = list(BrowserView.instances.values())[0]     # arbitary instance
+        i.create_window_trigger.emit(_create)
 
 
-def destroy_window():
-    BrowserView.instance.destroy_()
+def set_title(title, uid):
+    BrowserView.instances[uid].set_title(title)
 
 
-def toggle_fullscreen():
-    BrowserView.instance.toggle_fullscreen()
+def get_current_url(uid):
+    return BrowserView.instances[uid].get_current_url()
+
+
+def load_url(url, uid):
+    BrowserView.instances[uid].load_url(url)
+
+
+def load_html(content, base_uri, uid):
+    BrowserView.instances[uid].load_html(content, base_uri)
+
+
+def destroy_window(uid):
+    BrowserView.instances[uid].destroy_()
+
+
+def toggle_fullscreen(uid):
+    BrowserView.instances[uid].toggle_fullscreen()
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
@@ -354,16 +383,9 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     file_types = [s.replace(';', ' ') for s in file_types]
     file_filter = ';;'.join(file_types)
 
-    return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
+    i = list(BrowserView.instances.values())[0]
+    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
-def evaluate_js(script):
-    return BrowserView.instance.evaluate_js(script)
-
-
-def is_running():
-    return BrowserView.running
-
-
-def set_js_api(api_instance):
-    BrowserView.instance.set_js_api(api_instance)
+def evaluate_js(script, uid):
+    return BrowserView.instances[uid].evaluate_js(script)
