@@ -5,7 +5,9 @@ using System.Windows.Forms;
 namespace WebBrowserInterop {
     public interface IWebBrowserInterop
     {
-        object Invoke(string message, object param);
+        object call(string message, object param);
+
+        void alert(string message);
     }
 
     public enum DOCHOSTUITYPE

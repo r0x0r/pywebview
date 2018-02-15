@@ -43,6 +43,10 @@ class BrowserView:
         def call(self, func_name, param):
             return _js_bridge_call(self.api, func_name, param)
 
+        def alert(self, message):
+            if message:
+                WinForms.MessageBox.Show(message)
+
     class BrowserForm(WinForms.Form):
         def __init__(self, title, url, width, height, resizable, fullscreen, min_size,
                      confirm_quit, background_color, debug, js_api, webview_ready):
@@ -75,10 +79,11 @@ class BrowserView:
             self.web_browser.IsWebBrowserContextMenuEnabled = False
             self.web_browser.WebBrowserShortcutsEnabled = False
 
+            self.js_bridge = BrowserView.JSBridge()
+            self.web_browser.ObjectForScripting = self.js_bridge
+
             if js_api:
-                self.js_bridge = BrowserView.JSBridge()
                 self.js_bridge.api = js_api
-                self.web_browser.ObjectForScripting = self.js_bridge
 
             # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
             # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
@@ -105,6 +110,10 @@ class BrowserView:
 
             if fullscreen:
                 self.toggle_fullscreen()
+
+        def _initialize_js(self):
+            with open(os.path.join(base_dir, 'js', 'alert.js')) as f:
+                self.web_browser.Document.InvokeScript('eval', (f.read(),))
 
         def on_shown(self, sender, args):
             self.webview_ready.set()
@@ -143,7 +152,10 @@ class BrowserView:
             except Exception as e:
                 logger.exception(e)
 
+            self._initialize_js()
+
             BrowserView.instance.load_event.set()
+
             if self.first_load:
                 self.web_browser.Visible = True
                 self.first_load = False

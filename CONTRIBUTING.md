@@ -8,4 +8,4 @@ Hard cold cash is appreciated as well.
 
 Donate with Paypal: http://bit.ly/2eg2Z5P
 
-Donate with Bitcoin: 19VmMFEsJUk8t7HA17VVkQTyrZvMdhB9V6
+Donate with Stellar Lumen (XLM): GB6WOS7PH75PD7VVJJISWFP5GMIOGGXTLKN7F4DXINJJ5KNVGV7PD3AM
