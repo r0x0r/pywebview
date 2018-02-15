@@ -54,9 +54,8 @@ class UIHandler(COMObject):
         # Disable context menu
         return False
 
-    def GetHostInfo(self, pDoc):
-        # Text selection is disabled by this interface by default. Let's enable it
-        pDoc.dwFlags = 0
+    def GetHostInfo(self, doc):
+        doc.contents.dwFlags |= 0x40000000
         return hresult.S_OK
 
 
@@ -82,7 +81,7 @@ class BrowserView(object):
 
         self._register_window()
         # In order for system events (most notably WM_DESTROY for application quite) propagate correctly, we need to
-        # create two windows: AtAlxWin inside MyWin. AtlAxWin hosts the MSHTML ActiveX control and MainWin receiving
+        # create two windows: AtAlxWin inside MyWin. AtlAxWin hosts the MSHTML ActiveX control and MainWin receives
         # system messages.
         self._create_main_window()
         self._create_atlax_window()
@@ -291,7 +290,7 @@ class BrowserView(object):
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, webview_ready):
+                  confirm_quit, background_color, debug, js_api, webview_ready):
     set_ie_mode()
     browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
     browser_view.show()
