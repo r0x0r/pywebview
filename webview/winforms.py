@@ -19,10 +19,10 @@ import clr
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Threading')
-clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
+clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop2.dll'))
 import System.Windows.Forms as WinForms
 
-from System import IntPtr, Int32, Func, Type
+from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator
 from WebBrowserInterop import IWebBrowserInterop, WebBrowserHelper
@@ -89,6 +89,7 @@ class BrowserView:
             self.js_bridge = BrowserView.JSBridge()
             self.js_bridge.parent_uid = uid
             self.web_browser.ObjectForScripting = self.js_bridge
+            WinForms.MessageBox.Show(Environment.Version.ToString())
 
             if js_api:
                 self.js_bridge.api = js_api
@@ -217,12 +218,19 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         window.Show()
 
         if uid == 'master':
-            WinForms.Application.Run()
+            app.Run()
 
     webview_ready.clear()
+    app = WinForms.Application
 
     if uid == 'master':
-        set_ie_mode()
+        set_ie_mode() 
+        if sys.getwindowsversion().major >= 6:
+            windll.user32.SetProcessDPIAware()
+        
+        app.EnableVisualStyles() 
+        app.SetCompatibleTextRenderingDefault(False) 
+        
         thread = Thread(ThreadStart(create))
         thread.SetApartmentState(ApartmentState.STA)
         thread.Start()
