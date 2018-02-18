@@ -61,7 +61,7 @@ class BrowserView:
             self.BackColor = ColorTranslator.FromHtml(background_color)
 
             #self.AutoScaleDimensions = SizeF(96.0, 96.0)
-            #self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
+            self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
             if not resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
