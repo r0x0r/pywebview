@@ -93,7 +93,13 @@ class BrowserView:
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('document-load-finished', self.on_load_finish)
         self.webview.connect('status-bar-text-changed', self.on_status_change)
-        self.webview.props.settings.props.enable_default_context_menu = False
+
+        if debug:
+            self.webview.props.settings.props.enable_developer_extras = True
+            self.webview.get_inspector().connect('inspect-web-view', self.on_inspect_webview)
+        else:
+            self.webview.props.settings.props.enable_default_context_menu = False
+
         self.webview.props.opacity = 0.0
         scrolled_window.add(self.webview)
 
@@ -111,6 +117,12 @@ class BrowserView:
 
         self.window.destroy()
         del BrowserView.instances[self.uid]
+
+        try:    # Close inspector if open
+            BrowserView.instances[self.uid + '-inspector'].window.destroy()
+            del BrowserView.instances[self.uid + '-inspector']
+        except KeyError:
+            pass
 
         if BrowserView.instances == {}:
             gtk.main_quit()
@@ -155,6 +167,15 @@ class BrowserView:
             # Give back the return value to JS as a string
             code = 'pywebview._bridge.return_val = "{0}";'.format(_escape_string(str(return_val)))
             webview.execute_script(code)
+
+    def on_inspect_webview(self, inspector, webview):
+        title = 'Web Inspector - {}'.format(self.window.get_title())
+        uid = self.uid + '-inspector'
+
+        inspector = BrowserView(uid, title, '', 700, 500, True, False, (300,200),
+                                False, '#fff', False, None, self.webview_ready)
+        inspector.show()
+        return inspector.webview
 
     def show(self):
         self.window.show_all()
