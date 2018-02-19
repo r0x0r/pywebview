@@ -56,7 +56,19 @@ def set_ie_mode():
                                                r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION",
                                                0, winreg.KEY_ALL_ACCESS)
 
+    try:
+        dpi_support = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                     r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL",
+                                     0, winreg.KEY_ALL_ACCESS)
+    except WindowsError:
+        dpi_support = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER,
+                                               r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL",
+                                               0, winreg.KEY_ALL_ACCESS)
+
     mode = get_ie_mode()
     executable_name = sys.executable.split("\\")[-1]
     winreg.SetValueEx(browser_emulation, executable_name, 0, winreg.REG_DWORD, mode)
     winreg.CloseKey(browser_emulation)
+
+    winreg.SetValueEx(dpi_support, executable_name, 0, winreg.REG_DWORD, 1)
+    winreg.CloseKey(dpi_support)

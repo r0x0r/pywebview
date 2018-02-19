@@ -24,7 +24,7 @@ import System.Windows.Forms as WinForms
 
 from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
-from System.Drawing import Size, Point, Icon, Color, ColorTranslator
+from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 from WebBrowserInterop import IWebBrowserInterop, WebBrowserHelper
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
@@ -59,8 +59,8 @@ class BrowserView:
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
             self.BackColor = ColorTranslator.FromHtml(background_color)
-
-            #self.AutoScaleDimensions = SizeF(96.0, 96.0)
+            
+            self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
             if not resizable:
@@ -84,12 +84,12 @@ class BrowserView:
             self.web_browser.ScriptErrorsSuppressed = True
             self.web_browser.IsWebBrowserContextMenuEnabled = False
             self.web_browser.WebBrowserShortcutsEnabled = False
+            self.web_browser.DpiAware = True
 
             self.js_result_semaphor = threading.Semaphore(0)
             self.js_bridge = BrowserView.JSBridge()
             self.js_bridge.parent_uid = uid
             self.web_browser.ObjectForScripting = self.js_bridge
-            WinForms.MessageBox.Show(Environment.Version.ToString())
 
             if js_api:
                 self.js_bridge.api = js_api
