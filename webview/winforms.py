@@ -13,17 +13,18 @@ import logging
 import threading
 from ctypes import windll
 
-base_dir = os.path.dirname(os.path.realpath(__file__))
 
+base_dir = os.path.dirname(os.path.realpath(__file__))
 import clr
+
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Threading')
 clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
 import System.Windows.Forms as WinForms
 
-from System import IntPtr, Int32, Func, Type #, EventHandler
+from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
-from System.Drawing import Size, Point, Icon, Color, ColorTranslator
+from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 from WebBrowserInterop import IWebBrowserInterop
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
@@ -58,6 +59,9 @@ class BrowserView:
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
             self.BackColor = ColorTranslator.FromHtml(background_color)
+            
+            self.AutoScaleDimensions = SizeF(96.0, 96.0)
+            self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
             if not resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
@@ -77,9 +81,10 @@ class BrowserView:
 
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
-            self.web_browser.ScriptErrorsSuppressed = False
+            self.web_browser.ScriptErrorsSuppressed = True
             self.web_browser.IsWebBrowserContextMenuEnabled = False
             self.web_browser.WebBrowserShortcutsEnabled = False
+            self.web_browser.DpiAware = True
 
             self.js_result_semaphor = threading.Semaphore(0)
             self.js_bridge = BrowserView.JSBridge()
@@ -159,6 +164,7 @@ class BrowserView:
 
         def on_document_completed(self, sender, args):
             self._initialize_js()
+
             self.load_event.set()
 
             if self.first_load:
@@ -206,12 +212,19 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         window.Show()
 
         if uid == 'master':
-            WinForms.Application.Run()
+            app.Run()
 
     webview_ready.clear()
+    app = WinForms.Application
 
     if uid == 'master':
-        set_ie_mode()
+        set_ie_mode() 
+        if sys.getwindowsversion().major >= 6:
+            windll.user32.SetProcessDPIAware()
+        
+        app.EnableVisualStyles() 
+        app.SetCompatibleTextRenderingDefault(False) 
+        
         thread = Thread(ThreadStart(create))
         thread.SetApartmentState(ApartmentState.STA)
         thread.Start()

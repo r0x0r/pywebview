@@ -215,6 +215,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     gui.create_window(uid, _make_unicode(title), _transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
                       background_color, debug, js_api, _webview_ready)
+
     return uid
 
 
