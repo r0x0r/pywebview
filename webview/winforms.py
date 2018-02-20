@@ -19,13 +19,13 @@ import clr
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Threading')
-clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop2.dll'))
+clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
 import System.Windows.Forms as WinForms
 
 from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
-from WebBrowserInterop import IWebBrowserInterop, WebBrowserHelper
+from WebBrowserInterop import IWebBrowserInterop
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview import _parse_file_type, _parse_api_js, _js_bridge_call
@@ -163,14 +163,8 @@ class BrowserView:
                 self.cancel_back = False
 
         def on_document_completed(self, sender, args):
-            try:
-                WebBrowserHelper(self.web_browser.Document)
-            except Exception as e:
-                logger.exception(e)
-
             self._initialize_js()
 
-            BrowserView.instance.load_event.set()
             self.load_event.set()
 
             if self.first_load:
