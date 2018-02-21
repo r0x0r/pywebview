@@ -175,14 +175,15 @@ class BrowserView:
             # Add the webview to the window if it's not yet the contentView
             i = BrowserView.get_instance('webkit', webview)
 
-            if not webview.window():
-                i.window.setContentView_(webview)
-                i.window.makeFirstResponder_(webview)
+            if i is not None:
+                if not webview.window():
+                    i.window.setContentView_(webview)
+                    i.window.makeFirstResponder_(webview)
 
-                if i.js_bridge:
-                    i._set_js_api()
+                    if i.js_bridge:
+                        i._set_js_api()
 
-            i.loaded.set()
+                i.loaded.set()
 
     class FileFilterChooser(AppKit.NSPopUpButton):
         def initWithFilter_(self, file_filter):
@@ -349,13 +350,13 @@ class BrowserView:
         self.url = url
         PyObjCTools.AppHelper.callAfter(load, url)
 
-    def load_html(self, content, base_uri):
-        def load(content, url):
-            url = Foundation.NSURL.URLWithString_(url)
+    def load_html(self, content):
+        def load(content):
+            url = Foundation.NSURL.URLWithString_('')
             self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
 
         self.loaded.clear()
-        PyObjCTools.AppHelper.callAfter(load, content, base_uri)
+        PyObjCTools.AppHelper.callAfter(load, content)
 
     def evaluate_js(self, script):
         def evaluate(script):
@@ -617,8 +618,8 @@ def load_url(url, uid):
     BrowserView.instances[uid].load_url(url)
 
 
-def load_html(content, base_uri, uid):
-    BrowserView.instances[uid].load_html(content, base_uri)
+def load_html(content, uid):
+    BrowserView.instances[uid].load_html(content)
 
 
 def destroy_window(uid):

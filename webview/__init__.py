@@ -160,17 +160,16 @@ def load_url(url, uid='master'):
         raise Exception("Cannot call function: No webview exists with uid: {}".format(uid))
 
 
-def load_html(content, base_uri='', uid='master'):
+def load_html(content, uid='master'):
     """
     Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
     created with create_window(). Otherwise an exception is thrown.
     :param content: Content to load.
-    :param base_uri: Base URI for resolving links. Default is "".
     :param uid: uid of the target instance
     """
     try:
         _webview_ready.wait(5)
-        gui.load_html(_make_unicode(content), base_uri, uid)
+        gui.load_html(_make_unicode(content), uid)
     except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
     except KeyError:
