@@ -2,7 +2,7 @@ import threading
 import time
 import sys
 import pytest
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 
 
 def destroy_window(webview, delay=0):
@@ -38,9 +38,8 @@ def run_test2(main_func, thread_func, webview, param=None):
             thread_func()
             destroy_event.set()
         except Exception as e:
+            q.put(e)
             destroy_event.set()
-            pytest.fail(e)
-
 
     def main():
         args = (param,) if param else ()
@@ -50,10 +49,15 @@ def run_test2(main_func, thread_func, webview, param=None):
 
         main_func()
 
+    q = Queue()
     p = Process(target=main)
     p.start()
     p.join()
     assert p.exitcode == 0
+
+    if not q.empty():
+        exception = q.get()
+        pytest.fail(exception)
 
 
 def assert_js(webview, func_name, expected_result, uid='master'):
