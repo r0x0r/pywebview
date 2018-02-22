@@ -84,11 +84,13 @@ class BrowserView:
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
             self.web_browser.ScriptErrorsSuppressed = True
-            self.web_browser.IsWebBrowserContextMenuEnabled = False
             self.web_browser.WebBrowserShortcutsEnabled = False
             self.web_browser.DpiAware = True
 
-            self.js_result_semaphore = Semaphore(0)
+            if not debug:
+                self.web_browser.IsWebBrowserContextMenuEnabled = False
+
+            self.js_result_semaphor = Semaphore(0)
             self.js_bridge = BrowserView.JSBridge()
             self.js_bridge.parent_uid = uid
             self.web_browser.ObjectForScripting = self.js_bridge
