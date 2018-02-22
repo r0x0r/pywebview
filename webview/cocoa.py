@@ -5,18 +5,19 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 import sys
+import json
 import subprocess
 from threading import Event, Semaphore
 
 import Foundation
 import AppKit
 import WebKit
-import PyObjCTools.AppHelper
-from objc import nil, super
+from PyObjCTools import AppHelper, Conversion
+from objc import nil, super, pyobjc_unicode
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _parse_file_type, _js_bridge_call, _parse_api_js
+from webview import _parse_file_type, _js_bridge_call, _parse_api_js, _convert_string
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -150,7 +151,7 @@ class BrowserView:
                     print_op = frameview.printOperationWithPrintInfo_(info)
                     print_op.runOperation()
 
-            PyObjCTools.AppHelper.callAfter(printView, frameview)
+            AppHelper.callAfter(printView, frameview)
 
         # WebPolicyDelegate method, invoked when a navigation decision needs to be made
         def webView_decidePolicyForNavigationAction_request_frame_decisionListener_(self, webview, action, request, frame, listener):
@@ -309,13 +310,13 @@ class BrowserView:
             self.webview_ready.set()
 
     def destroy(self):
-        PyObjCTools.AppHelper.callAfter(self.window.close)
+        AppHelper.callAfter(self.window.close)
 
     def set_title(self, title):
         def _set_title():
             self.window.setTitle_(title)
 
-        PyObjCTools.AppHelper.callAfter(_set_title)
+        AppHelper.callAfter(_set_title)
 
     def toggle_fullscreen(self):
         def toggle():
@@ -327,7 +328,7 @@ class BrowserView:
             self.window.setCollectionBehavior_(window_behaviour)
             self.window.toggleFullScreen_(None)
 
-        PyObjCTools.AppHelper.callAfter(toggle)
+        AppHelper.callAfter(toggle)
         self.is_fullscreen = not self.is_fullscreen
 
     def get_current_url(self):
@@ -335,7 +336,7 @@ class BrowserView:
             self._current_url = self.webkit.mainFrameURL()
             self._current_url_semaphore.release()
 
-        PyObjCTools.AppHelper.callAfter(get)
+        AppHelper.callAfter(get)
 
         self._current_url_semaphore.acquire()
         return self._current_url
@@ -348,7 +349,7 @@ class BrowserView:
 
         self.loaded.clear()
         self.url = url
-        PyObjCTools.AppHelper.callAfter(load, url)
+        AppHelper.callAfter(load, url)
 
     def load_html(self, content):
         def load(content):
@@ -356,20 +357,12 @@ class BrowserView:
             self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
 
         self.loaded.clear()
-        PyObjCTools.AppHelper.callAfter(load, content)
+        AppHelper.callAfter(load, content)
 
     def evaluate_js(self, script):
         def evaluate(script):
             result = self.webkit.windowScriptObject().evaluateWebScript_(script)
-
-            if result is WebKit.WebUndefined.undefined():
-                JSResult.result = None
-            else:
-                try:
-                    JSResult.result = result.__reduce__()[1][0]
-                except TypeError:
-                    JSResult.result = result
-
+            JSResult.result = BrowserView._convert_value(result)
             JSResult.result_semaphore.release()
 
         class JSResult:
@@ -377,7 +370,7 @@ class BrowserView:
             result_semaphore = Semaphore(0)
 
         self.loaded.wait()
-        PyObjCTools.AppHelper.callAfter(evaluate, script)
+        AppHelper.callAfter(evaluate, script)
 
         JSResult.result_semaphore.acquire()
         return JSResult.result
@@ -449,7 +442,7 @@ class BrowserView:
         if main_thread:
             create_dialog(dialog_type, allow_multiple, save_filename)
         else:
-            PyObjCTools.AppHelper.callAfter(create_dialog, dialog_type, allow_multiple, save_filename)
+            AppHelper.callAfter(create_dialog, dialog_type, allow_multiple, save_filename)
             self._file_name_semaphore.acquire()
 
         return self._file_name
@@ -583,6 +576,41 @@ class BrowserView:
         else:
             subprocess.run(command)
 
+    def _convert_value(result):
+        def convert_primitive(value):
+            if type(value) is pyobjc_unicode:
+                return _convert_string(value)
+
+            else:
+                try:
+                    value = value.__reduce__()[1][0]
+
+                    if value.is_integer():
+                        return int(value)
+
+                except TypeError:
+                    pass
+
+            return value
+
+        if result is WebKit.WebUndefined.undefined() or result is None:
+            return None
+        elif type(result) is WebKit.WebScriptObject:
+            result = result.JSValue()
+
+            if result.isArray():
+                result = result.toArray()
+                return [convert_primitive(e) for e in Conversion.pythonCollectionFromPropertyList(result)]
+
+            elif result.isObject():
+                result = result.toDictionary()
+                result = Foundation.NSJSONSerialization.dataWithJSONObject_options_error_(result, 0, None)[0]
+                result = Foundation.NSString.alloc().initWithData_encoding_(result, Foundation.NSUTF8StringEncoding)
+
+                return json.loads(result)
+        else:
+            return convert_primitive(result)
+
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, debug, js_api, webview_ready):
@@ -594,7 +622,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
     if uid == 'master':
         create()
     else:
-        PyObjCTools.AppHelper.callAfter(create)
+        AppHelper.callAfter(create)
 
 
 def set_title(title, uid):

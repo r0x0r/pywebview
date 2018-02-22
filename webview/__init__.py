@@ -385,3 +385,10 @@ def _parse_file_type(file_type):
         return match.group(1).rstrip(), match.group(2)
     else:
         raise ValueError('{0} is not a valid file filter'.format(file_type))
+
+
+def _convert_string(string):
+    if sys.version < '3':
+        return unicode(string)
+    else:
+        return str(string)
