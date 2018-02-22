@@ -1,11 +1,15 @@
 import threading
-from .util import run_test, destroy_window
+from .util import run_test, run_test2, destroy_window
+import webview
+import pytest
 
 
-def evaluate_js():
-    import webview
+def main_func():
+    webview.create_window('Evaluate JS test', 'https://www.example.org')
 
-    def _evaluate_js(webview):
+
+def test_mixed():
+    def thread_func():
         result = webview.evaluate_js("""
             document.body.style.backgroundColor = '#212121';
             // comment
@@ -15,14 +19,27 @@ def evaluate_js():
             test();
         """)
         assert result == 4
-        destroy_event.set()
 
-    t = threading.Thread(target=_evaluate_js, args=(webview,))
-    t.start()
-    destroy_event = destroy_window(webview)
-
-    webview.create_window('Evaluate JS test', 'https://www.example.org')
+    run_test2(main_func, thread_func, webview)
 
 
-def test_evaluate_js():
-    run_test(evaluate_js)
+
+
+def test_json_to_dict():
+    def thread_func():
+        result = webview.evaluate_js("""
+        function get_obj() { 
+            return {1: 2, 'test': true, obj: {2: false, 3: 'yes'}}
+        }
+
+        get_obj()
+        """)
+        assert result == {'1': 2, 'test': True, 'obj': {2: False, 3: 3.1}} # 1 is converted to '1' on OSX
+
+    run_test2(main_func, thread_func, webview)
+
+#def test_string():
+#    run_test(string_test)
+
+#def test_int():
+#    run_test(int_test)

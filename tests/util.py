@@ -1,6 +1,7 @@
 import threading
 import time
 import sys
+import pytest
 from multiprocessing import Process
 
 
@@ -26,6 +27,30 @@ def destroy_window(webview, delay=0):
 def run_test(test_func, param=None):
     args = (param,) if param else ()
     p = Process(target=test_func, args=args)
+    p.start()
+    p.join()
+    assert p.exitcode == 0
+
+
+def run_test2(main_func, thread_func, webview, param=None):
+    def thread(destroy_event, param):
+        try:
+            thread_func()
+            destroy_event.set()
+        except Exception as e:
+            destroy_event.set()
+            pytest.fail(e)
+
+
+    def main():
+        args = (param,) if param else ()
+        destroy_event = destroy_window(webview)
+        t = threading.Thread(target=thread, args=(destroy_event, args))
+        t.start()
+
+        main_func()
+
+    p = Process(target=main)
     p.start()
     p.join()
     assert p.exitcode == 0
