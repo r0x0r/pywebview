@@ -12,7 +12,7 @@ import logging
 from threading import Semaphore, Event
 
 from webview.localization import localization
-from webview import _parse_api_js, _js_bridge_call
+from webview import _parse_api_js, _js_bridge_call, _convert_string
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 
@@ -325,10 +325,7 @@ class BrowserView(QMainWindow):
         except:
             pass
 
-        if sys.version < '3':
-            return unicode(qstring)
-        else:
-            return str(qstring)
+        return _convert_string(qstring)
 
     @staticmethod
     # Receive func from subthread and execute it on the main thread
