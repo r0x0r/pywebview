@@ -189,7 +189,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     :param strings: a dictionary with localized strings
     :param confirm_quit: Display a quit confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
-    :param frameless: Whether the window should havea frame.
+    :param frameless: Whether the window should have a frame.
     :return:
     """
     valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
