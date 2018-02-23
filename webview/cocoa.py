@@ -51,8 +51,7 @@ class DragBar(AppKit.NSView):
 
         windowFrame = window.frame()
         if windowFrame is None:
-            sys.stderr.write('failed to obtain frame\n')
-            raise RuntimeError
+            raise RuntimeError('Failed to obtain screen')
 
         self.initialLocation = \
             window.convertBaseToScreen_(theEvent.locationInWindow())
