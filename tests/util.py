@@ -32,31 +32,32 @@ def run_test(test_func, param=None):
     assert p.exitcode == 0
 
 
-def run_test2(main_func, thread_func, webview, param=None):
+def _create_window(main_func, thread_func, queue, webview, param):
     def thread(destroy_event, param):
         try:
             thread_func()
             destroy_event.set()
         except Exception as e:
-            q.put(e)
+            queue.put(e)
             destroy_event.set()
 
-    def main():
-        args = (param,) if param else ()
-        destroy_event = destroy_window(webview)
-        t = threading.Thread(target=thread, args=(destroy_event, args))
-        t.start()
+    args = (param,) if param else ()
+    destroy_event = destroy_window(webview)
+    t = threading.Thread(target=thread, args=(destroy_event, args))
+    t.start()
 
-        main_func()
+    main_func()
 
-    q = Queue()
-    p = Process(target=main)
+
+def run_test2(main_func, thread_func, webview, param=None):
+    queue = Queue()
+    p = Process(target=_create_window, args=(main_func, thread_func, queue, webview, param))
     p.start()
     p.join()
     assert p.exitcode == 0
 
-    if not q.empty():
-        exception = q.get()
+    if not queue.empty():
+        exception = queue.get()
         pytest.fail(exception)
 
 
