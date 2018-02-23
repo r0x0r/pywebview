@@ -24,7 +24,7 @@ try:
     from PyQt5 import QtCore
 
     # Check to see if we're running Qt > 5.5
-    from QtCore import QT_VERSION_STR
+    from PyQt5.QtCore import QT_VERSION_STR
     _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
 
     if _qt_version >= [5, 5]:
