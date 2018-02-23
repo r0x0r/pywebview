@@ -270,7 +270,7 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, debug, js_api, webview_ready, frameless):
+    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, background_color, debug, js_api, frameless, webview_ready):
         BrowserView.instance = self
         BrowserView.debug = debug
 
@@ -591,11 +591,11 @@ class BrowserView:
 
 
 def create_window(title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, webview_ready, frameless):
+                  confirm_quit, background_color, debug, js_api, frameless, webview_ready):
     global _confirm_quit
     _confirm_quit = confirm_quit
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, debug, js_api, webview_ready, frameless)
+    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, background_color, debug, js_api, frameless, webview_ready)
     browser.show()
 
 

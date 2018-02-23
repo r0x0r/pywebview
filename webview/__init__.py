@@ -200,7 +200,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     localization.update(strings)
     gui.create_window(_make_unicode(title), _transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
-                      background_color, debug, js_api, _webview_ready, frameless)
+                      background_color, debug, js_api, frameless, _webview_ready)
 
 def set_title(title):
     """
