@@ -290,7 +290,7 @@ class BrowserView:
         if resizable:
             window_mask = window_mask | AppKit.NSResizableWindowMask
 
-        if frameless is True:
+        if frameless:
             window_mask = window_mask | AppKit.NSFullSizeContentViewWindowMask | AppKit.NSTexturedBackgroundWindowMask
 
         self.window = AppKit.NSWindow.alloc().\
@@ -299,7 +299,7 @@ class BrowserView:
         self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(background_color))
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
 
-        if frameless is True:
+        if frameless:
             self.window.setTitlebarAppearsTransparent_(True)
             self.window.setTitleVisibility_(AppKit.NSWindowTitleHidden)
             webkit_rect = AppKit.NSMakeRect(0, -12, width, height - 12)
