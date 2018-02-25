@@ -316,7 +316,7 @@ def load_url(url, uid):
         _load_url()
 
 
-def load_html(content, base_uri, uid):
+def load_html(content, uid):
     def _load_html():
         window.web_browser.DocumentText = content
 
