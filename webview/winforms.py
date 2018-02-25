@@ -11,6 +11,7 @@ import os
 import sys
 import logging
 import threading
+import json
 from ctypes import windll
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -18,16 +19,19 @@ base_dir = os.path.dirname(os.path.realpath(__file__))
 import clr
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Threading')
+clr.AddReference('System.Reflection')
+
 clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
 import System.Windows.Forms as WinForms
-
+import System.Reflection
 from System import IntPtr, Int32, Func, Type #, EventHandler
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator
+
 from WebBrowserInterop import IWebBrowserInterop
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _parse_file_type, _parse_api_js, _js_bridge_call
+from webview import _parse_file_type, _parse_api_js, _js_bridge_call, _escape_string
 
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
@@ -330,7 +334,9 @@ def destroy_window(uid):
 def evaluate_js(script, uid):
     def _evaluate_js():
         document = window.web_browser.Document
-        window.js_result = document.InvokeScript('eval', (script,))
+        result = document.InvokeScript('eval', ('JSON.stringify(eval("{0}"))'.format(_escape_string(script)),))
+        print(result)
+        window.js_result = None if result is None or result is 'null' else json.loads(result)
         window.js_result_semaphor.release()
 
     window = BrowserView.instances[uid]

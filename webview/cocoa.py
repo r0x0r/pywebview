@@ -17,7 +17,7 @@ from objc import nil, super, pyobjc_unicode
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _parse_file_type, _js_bridge_call, _parse_api_js, _convert_string
+from webview import _parse_file_type, _js_bridge_call, _parse_api_js, _convert_string, _escape_string
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -360,8 +360,8 @@ class BrowserView:
 
     def evaluate_js(self, script):
         def evaluate(script):
-            result = self.webkit.windowScriptObject().evaluateWebScript_(script)
-            JSResult.result = BrowserView._convert_value(result)
+            JSResult.result = self.webkit.windowScriptObject().evaluateWebScript_('JSON.stringify(eval("{0}"))'.format(_escape_string(script)))
+            #JSResult.result = BrowserView._convert_value(result)
             JSResult.result_semaphore.release()
 
         class JSResult:
