@@ -12,7 +12,7 @@ import logging
 from threading import Semaphore, Event
 
 from webview.localization import localization
-from webview import _parse_api_js, _js_bridge_call, _convert_string
+from webview import _parse_api_js, _js_bridge_call, _convert_string, _escape_string
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 
@@ -222,10 +222,12 @@ class BrowserView(QMainWindow):
             self._evaluate_js_result = result
             self._evaluate_js_semaphore.release()
 
+        escaped_script = 'JSON.stringify(eval("{0}"))'.format(_escape_string(script))
+
         try:    # PyQt4
-            return_result(self.view.page().mainFrame().evaluateJavaScript(script))
+            return_result(self.view.page().mainFrame().evaluateJavaScript(escaped_script))
         except AttributeError:  # PyQt5
-            self.view.page().runJavaScript(script, return_result)
+            self.view.page().runJavaScript(escaped_script, return_result)
 
     def on_load_finished(self):
         if self.js_bridge.api:

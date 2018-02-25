@@ -32,7 +32,8 @@ def run_test(test_func, param=None):
     assert p.exitcode == 0
 
 
-def _create_window(main_func, thread_func, queue, webview, param):
+def _create_window(main_func, thread_func, queue, param):
+    import webview
     def thread(destroy_event, param):
         try:
             thread_func()
@@ -51,7 +52,7 @@ def _create_window(main_func, thread_func, queue, webview, param):
 
 def run_test2(main_func, thread_func, webview, param=None):
     queue = Queue()
-    p = Process(target=_create_window, args=(main_func, thread_func, queue, webview, param))
+    p = Process(target=_create_window, args=(main_func, thread_func, queue, param))
     p.start()
     p.join()
     assert p.exitcode == 0

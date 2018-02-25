@@ -240,7 +240,7 @@ class BrowserView:
         unique_id = uuid1().hex
 
         # Backup the doc title and store the result in it with a custom prefix
-        code = 'oldTitle{0} = document.title; document.title = eval("{1}");'.format(unique_id, _escape_string(script))
+        code = 'oldTitle{0} = document.title; document.title = JSON.stringify(eval("{1}"));'.format(unique_id, _escape_string(script))
 
         self.load_event.wait()
 
