@@ -347,7 +347,6 @@ def evaluate_js(script, uid):
     def _evaluate_js():
         document = window.web_browser.Document
         result = document.InvokeScript('eval', ('JSON.stringify(eval("{0}"))'.format(_escape_string(script)),))
-        print(result)
         window.js_result = None if result is None or result is 'null' else json.loads(result)
         window.js_result_semaphor.release()
 
