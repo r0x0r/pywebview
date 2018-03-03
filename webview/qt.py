@@ -8,6 +8,7 @@ http://github.com/r0x0r/pywebview/
 import sys
 import os
 import re
+import json
 import logging
 from threading import Semaphore, Event
 
@@ -219,7 +220,7 @@ class BrowserView(QMainWindow):
 
     def on_evaluate_js(self, script):
         def return_result(result):
-            self._evaluate_js_result = result
+            self._evaluate_js_result = None if result is None or result == 'null' else json.loads(result)
             self._evaluate_js_semaphore.release()
 
         escaped_script = 'JSON.stringify(eval("{0}"))'.format(_escape_string(script))
