@@ -362,7 +362,7 @@ class BrowserView:
     def evaluate_js(self, script):
         def evaluate(script):
             result = self.webkit.windowScriptObject().evaluateWebScript_('JSON.stringify(eval("{0}"))'.format(_escape_string(script)))
-            JSResult.result = None if result is WebKit.WebUndefined.undefined() or result is 'null' else json.loads(result)
+            JSResult.result = None if result is WebKit.WebUndefined.undefined() or result == 'null' else json.loads(result)
             JSResult.result_semaphore.release()
 
         class JSResult:

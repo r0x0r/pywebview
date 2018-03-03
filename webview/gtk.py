@@ -6,6 +6,7 @@ http://github.com/r0x0r/pywebview/
 """
 import sys
 import logging
+import json
 
 from uuid import uuid1
 from threading import Event, Semaphore
@@ -252,23 +253,13 @@ class BrowserView:
             return None
 
         # Restore document title and return
-        _js_result = self._parse_js_result(self.webview.get_title())
+        result = self.webview.get_title()
+        result = None if result == 'undefined' or result == 'null' else json.loads(result)
 
         code = 'document.title = oldTitle{0};'.format(unique_id)
         glib.idle_add(self.webview.execute_script, code)
-        return _js_result
+        return result
 
-    def _parse_js_result(self, result):
-        if result == 'undefined':
-            return None
-
-        try:
-            return int(result)
-        except ValueError:
-            try:
-                return float(result)
-            except ValueError:
-                return result
 
     def _set_js_api(self):
         def create_bridge():
