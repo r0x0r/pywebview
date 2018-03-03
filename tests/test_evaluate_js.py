@@ -1,8 +1,5 @@
-import math
-import threading
-from .util import run_test, run_test2, destroy_window
+from .util import run_test2
 import webview
-import pytest
 
 
 def main_func():
