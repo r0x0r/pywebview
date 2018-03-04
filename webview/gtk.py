@@ -252,10 +252,10 @@ class BrowserView:
             # Webview has been closed, don't proceed
             return None
 
-        # Restore document title and return
         result = self.webview.get_title()
-        result = None if result == 'undefined' or result == 'null' else json.loads(result)
+        result = None if result == 'undefined' or result == 'null'  else result if result == ''  else json.loads(result)
 
+        # Restore document title and return
         code = 'document.title = oldTitle{0};'.format(unique_id)
         glib.idle_add(self.webview.execute_script, code)
         return result
