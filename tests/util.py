@@ -34,6 +34,7 @@ def run_test(test_func, param=None):
 
 def _create_window(main_func, thread_func, queue, param):
     import webview
+
     def thread(destroy_event, param):
         try:
             thread_func()
@@ -51,7 +52,6 @@ def _create_window(main_func, thread_func, queue, param):
 
 
 def run_test2(main_func, thread_func, webview, param=None):
-    __tracebackhide__ = True
     queue = Queue()
     p = Process(target=_create_window, args=(main_func, thread_func, queue, param))
     p.start()
@@ -65,10 +65,7 @@ def run_test2(main_func, thread_func, webview, param=None):
 
 def assert_js(webview, func_name, expected_result, uid='master'):
     execute_func = 'window.pywebview.api.{0}()'.format(func_name)
-    check_func = """
-        var result = window.pywebview._returnValues['{0}'].value
-        result
-    """.format(func_name)
+    check_func = 'window.pywebview._returnValues["{0}"].value'.format(func_name)
 
     webview.evaluate_js(execute_func, uid)
 

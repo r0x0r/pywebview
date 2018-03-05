@@ -253,7 +253,7 @@ class BrowserView:
             return None
 
         result = self.webview.get_title()
-        result = None if result == 'undefined' or result == 'null'  else result if result == ''  else json.loads(result)
+        result = None if result == 'undefined' or result == 'null' else result if result == ''  else json.loads(result)
 
         # Restore document title and return
         code = 'document.title = oldTitle{0};'.format(unique_id)
