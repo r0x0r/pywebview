@@ -243,10 +243,14 @@ class BrowserView:
         # Backup the doc title and store the result in it with a custom prefix
         code = 'oldTitle{0} = document.title; document.title = JSON.stringify(eval("{1}"));'.format(unique_id, _escape_string(script))
 
+        logger.error('EVALUATE JS LOAD EVENT WAIT')
         self.load_event.wait()
+        logger.error('EVALUATE JS LOAD EVENT RELEASE')
 
         glib.idle_add(_evaluate_js)
+        logger.error('EVALUATE JS _js_result_semaphore WAIT')
         self._js_result_semaphore.acquire()
+        logger.error('EVALUATE JS _js_result_semaphore WAIT')
 
         if not gtk.main_level():
             # Webview has been closed, don't proceed

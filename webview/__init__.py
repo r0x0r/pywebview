@@ -281,7 +281,9 @@ def evaluate_js(script, uid='master'):
     :return: Return value of the evaluated code
     """
     try:
+        logger.error('EVALUATE JS _webview_ready WAIT')
         _webview_ready.wait(5)
+        logger.error('EVALUATE JS _webview_ready RELEASE')
         return gui.evaluate_js(script, uid)
     except NameError:
         raise Exception('Create a web view window first, before invoking this function')
