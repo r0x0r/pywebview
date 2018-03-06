@@ -101,6 +101,10 @@ class BrowserView(QMainWindow):
         BrowserView.instances[uid] = self
         self.uid = uid
 
+        self.js_bridge = BrowserView.JSBridge()
+        self.js_bridge.api = js_api
+        self.js_bridge.parent_uid = self.uid
+
         self.is_fullscreen = False
         self.confirm_quit = confirm_quit
 
@@ -145,10 +149,6 @@ class BrowserView(QMainWindow):
         self.current_url_trigger.connect(self.on_current_url)
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
-
-        self.js_bridge = BrowserView.JSBridge()
-        self.js_bridge.api = js_api
-        self.js_bridge.parent_uid = self.uid
 
         if _qt_version >= [5, 5]:
             self.channel = QWebChannel(self.view.page())
@@ -220,7 +220,9 @@ class BrowserView(QMainWindow):
 
     def on_evaluate_js(self, script):
         def return_result(result):
-            self._evaluate_js_result = None if result is None or result == 'null' else json.loads(result)
+            print(script)
+            print(result)
+            self._evaluate_js_result = None if result is None or result == 'null' else json.loads(result.toString())
             self._evaluate_js_semaphore.release()
 
         escaped_script = 'JSON.stringify(eval("{0}"))'.format(_escape_string(script))

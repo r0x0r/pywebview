@@ -235,22 +235,22 @@ class BrowserView:
 
     def evaluate_js(self, script):
         def _evaluate_js():
+            logger.debug('executing code: ' + code)
             self.webview.execute_script(code)
+            logger.debug('executed code')
             self._js_result_semaphore.release()
 
-        unique_id = uuid1().hex
-
         # Backup the doc title and store the result in it with a custom prefix
-        code = 'oldTitle{0} = document.title; document.title = JSON.stringify(eval("{1}"));'.format(unique_id, _escape_string(script))
+        logger.debug('w00t')
+        code = 'window.pywebview._oldTitle = document.title; document.title = JSON.stringify(eval("{1}"));'.format(_escape_string(script))
 
-        logger.error('EVALUATE JS LOAD EVENT WAIT')
         self.load_event.wait()
-        logger.error('EVALUATE JS LOAD EVENT RELEASE')
-
+        logger.debug('w00t2')
         glib.idle_add(_evaluate_js)
-        logger.error('EVALUATE JS _js_result_semaphore WAIT')
+        logger.debug(code)
+        logger.debug('EVALUATE JS _js_result_semaphore wait')
         self._js_result_semaphore.acquire()
-        logger.error('EVALUATE JS _js_result_semaphore WAIT')
+        logger.debug('EVALUATE JS _js_result_semaphore release')
 
         if not gtk.main_level():
             # Webview has been closed, don't proceed
@@ -260,8 +260,8 @@ class BrowserView:
         result = None if result == 'undefined' or result == 'null' else result if result == ''  else json.loads(result)
 
         # Restore document title and return
-        code = 'document.title = oldTitle{0};'.format(unique_id)
-        glib.idle_add(self.webview.execute_script, code)
+        code = 'document.title = window.pywebview._oldTitle;'
+        glib.idle_add(_evaluate_js)
         return result
 
 
