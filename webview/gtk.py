@@ -49,7 +49,7 @@ class BrowserView:
 
         self.webview_ready = webview_ready
         self.is_fullscreen = False
-        self._js_result_semaphore = Semaphore(0)
+        self.js_result_semaphores = []
         self.load_event = Event()
 
         glib.threads_init()
@@ -111,7 +111,9 @@ class BrowserView:
 
         if BrowserView.instances == {}:
             gtk.main_quit()
-        self._js_result_semaphore.release()
+
+        for s in self.js_result_semaphores:
+            s.release()
 
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
@@ -235,33 +237,36 @@ class BrowserView:
 
     def evaluate_js(self, script):
         def _evaluate_js():
-            logger.debug('executing code: ' + code)
             self.webview.execute_script(code)
-            logger.debug('executed code')
-            self._js_result_semaphore.release()
+            result_semaphore.release()
 
+        result_semaphore = Semaphore(0)
+        self.js_result_semaphores.append(result_semaphore)
         # Backup the doc title and store the result in it with a custom prefix
-        logger.debug('w00t')
-        code = 'window.pywebview._oldTitle = document.title; document.title = JSON.stringify(eval("{1}"));'.format(_escape_string(script))
+        unique_id = uuid1().hex
+        code = 'window.oldTitle{0} = document.title; document.title = JSON.stringify(eval("{1}"));'.format(unique_id, _escape_string(script))
 
         self.load_event.wait()
-        logger.debug('w00t2')
         glib.idle_add(_evaluate_js)
-        logger.debug(code)
-        logger.debug('EVALUATE JS _js_result_semaphore wait')
-        self._js_result_semaphore.acquire()
-        logger.debug('EVALUATE JS _js_result_semaphore release')
+        result_semaphore.acquire()
 
         if not gtk.main_level():
             # Webview has been closed, don't proceed
             return None
 
         result = self.webview.get_title()
-        result = None if result == 'undefined' or result == 'null' else result if result == ''  else json.loads(result)
+        if result == '':
+            import time
+            time.sleep(0.1)
+            result = self.webview.get_title()
+
+        result = None if result == 'undefined' or result == 'null' else result if result == '' else json.loads(result)
 
         # Restore document title and return
-        code = 'document.title = window.pywebview._oldTitle;'
+        code = 'document.title = window.oldTitle{0}'.format(unique_id)
         glib.idle_add(_evaluate_js)
+        self.js_result_semaphores.remove(result_semaphore)
+
         return result
 
 

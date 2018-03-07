@@ -5,11 +5,11 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 '''
 
-import sys
 import os
-import re
 import json
 import logging
+from uuid import uuid1
+from copy import deepcopy
 from threading import Semaphore, Event
 
 from webview.localization import localization
@@ -74,7 +74,7 @@ class BrowserView(QMainWindow):
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
-    evaluate_js_trigger = QtCore.pyqtSignal(str)
+    evaluate_js_trigger = QtCore.pyqtSignal(str, object)
 
     class JSBridge(QtCore.QObject):
         api = None
@@ -110,10 +110,10 @@ class BrowserView(QMainWindow):
 
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore()
-        self._evaluate_js_semaphore = Semaphore(0)
+
         self.load_event = Event()
 
-        self._evaluate_js_result = None
+        self._js_results = {}
         self._current_url = None
         self._file_name = None
 
@@ -218,12 +218,11 @@ class BrowserView(QMainWindow):
 
         self.is_fullscreen = not self.is_fullscreen
 
-    def on_evaluate_js(self, script):
+    def on_evaluate_js(self, script, uuid):
         def return_result(result):
-            print(script)
-            print(result)
-            self._evaluate_js_result = None if result is None or result == 'null' else json.loads(result.toString())
-            self._evaluate_js_semaphore.release()
+            js_result = self._js_results[uuid]
+            js_result['result'] = None if result is None or result == 'null' else json.loads(result)
+            js_result['semaphore'].release()
 
         escaped_script = 'JSON.stringify(eval("{0}"))'.format(_escape_string(script))
 
@@ -290,10 +289,17 @@ class BrowserView(QMainWindow):
     def evaluate_js(self, script):
         self.load_event.wait()
 
-        self.evaluate_js_trigger.emit(script)
-        self._evaluate_js_semaphore.acquire()
+        result_semaphore = Semaphore(0)
+        unique_id = uuid1().hex
+        self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
 
-        return self._evaluate_js_result
+        self.evaluate_js_trigger.emit(script, unique_id)
+        result_semaphore.acquire()
+
+        result = deepcopy(self._js_results[unique_id]['result'])
+        del self._js_results[unique_id]
+
+        return result
 
     def _set_js_api(self):
         def _register_window_object():
@@ -321,7 +327,6 @@ class BrowserView(QMainWindow):
             self.view.page().runJavaScript(script)
 
         self.load_event.set()
-
 
     @staticmethod
     def _convert_string(qstring):
@@ -352,7 +357,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         _create()
         app.exec_()
     else:
-        i = list(BrowserView.instances.values())[0]     # arbitary instance
+        i = list(BrowserView.instances.values())[0] # arbitrary instance
         i.create_window_trigger.emit(_create)
 
 
