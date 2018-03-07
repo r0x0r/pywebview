@@ -221,11 +221,13 @@ class BrowserView(QMainWindow):
     def on_evaluate_js(self, script, uuid):
         def return_result(result):
             js_result = self._js_results[uuid]
-            js_result['result'] = None if result is None or result == 'null' else json.loads(result)
+            result = BrowserView._convert_string(result)
+            print('SCRIPT: {1} RESULT EVAL: {0}'.format(result, escaped_script))
+
+            js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
             js_result['semaphore'].release()
 
         escaped_script = 'JSON.stringify(eval("{0}"))'.format(_escape_string(script))
-
         try:    # PyQt4
             return_result(self.view.page().mainFrame().evaluateJavaScript(escaped_script))
         except AttributeError:  # PyQt5
@@ -330,9 +332,12 @@ class BrowserView(QMainWindow):
 
     @staticmethod
     def _convert_string(qstring):
+        if qstring is None:
+            return None
+
         try:
             qstring = qstring.toString() # QJsonValue conversion
-        except:
+        except Exception as e:
             pass
 
         return _convert_string(qstring)

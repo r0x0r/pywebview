@@ -104,7 +104,7 @@ def nan_test():
     """)
     assert result is None
 
-
+"""
 def test_mixed():
     run_test2(main_func, mixed_test, webview)
 
@@ -127,15 +127,16 @@ def test_int():
 
 def test_float():
     run_test2(main_func, float_test, webview)
-
+"""
 
 def test_undefined():
     run_test2(main_func, undefined_test, webview)
 
-
+"""
 def test_null():
     run_test2(main_func, null_test, webview)
 
 
 def test_nan():
     run_test2(main_func, nan_test, webview)
+"""

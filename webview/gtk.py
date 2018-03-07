@@ -9,7 +9,7 @@ import logging
 import json
 
 from uuid import uuid1
-from threading import Event, Semaphore
+from threading import Event, Semaphore, Lock
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview import _escape_string, _js_bridge_call, _parse_api_js, _parse_file_type
@@ -50,6 +50,7 @@ class BrowserView:
         self.webview_ready = webview_ready
         self.is_fullscreen = False
         self.js_result_semaphores = []
+        self.eval_js_lock = Lock()
         self.load_event = Event()
 
         glib.threads_init()
@@ -240,6 +241,7 @@ class BrowserView:
             self.webview.execute_script(code)
             result_semaphore.release()
 
+        self.eval_js_lock.acquire()
         result_semaphore = Semaphore(0)
         self.js_result_semaphores.append(result_semaphore)
         # Backup the doc title and store the result in it with a custom prefix
@@ -255,17 +257,15 @@ class BrowserView:
             return None
 
         result = self.webview.get_title()
-        if result == '':
-            import time
-            time.sleep(0.1)
-            result = self.webview.get_title()
-
         result = None if result == 'undefined' or result == 'null' else result if result == '' else json.loads(result)
+
+        print('Id: {2} Code: {0}. Result: {1}'.format(code, result, unique_id))
 
         # Restore document title and return
         code = 'document.title = window.oldTitle{0}'.format(unique_id)
         glib.idle_add(_evaluate_js)
         self.js_result_semaphores.remove(result_semaphore)
+        self.eval_js_lock.release()
 
         return result
 
