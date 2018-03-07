@@ -308,6 +308,7 @@ class BrowserView(QMainWindow):
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
         script = _parse_api_js(self.js_bridge.api)
+        print('_set_js_api start')
 
         if _qt_version >= [5, 5]:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
@@ -323,10 +324,12 @@ class BrowserView(QMainWindow):
             frame = self.view.page().mainFrame()
             _register_window_object()
 
+        print('_set_js_api middle')
         try:    # PyQt4
             self.view.page().mainFrame().evaluateJavaScript(script)
         except AttributeError:  # PyQt5
             self.view.page().runJavaScript(script)
+        print('_set_js_api end')
 
         self.load_event.set()
 
