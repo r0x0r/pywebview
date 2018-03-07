@@ -50,6 +50,7 @@ if _import_error:
         from PyQt4 import QtCore
         from PyQt4.QtWebKit import QWebView, QWebFrame
         from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
+        from PyQt4.QtScript import QScriptEngine
 
         _qt_version = [4, 0]
         logger.debug('Using Qt4')
@@ -94,6 +95,7 @@ class BrowserView(QMainWindow):
             param = BrowserView._convert_string(param)
 
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
+
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, debug, js_api, webview_ready):
@@ -153,6 +155,8 @@ class BrowserView(QMainWindow):
         if _qt_version >= [5, 5]:
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
+        elif _qt_version == [4, 0]:
+            self.script_engine = QScriptEngine()
 
         self.view.page().loadFinished.connect(self.on_load_finished)
 
@@ -221,17 +225,23 @@ class BrowserView(QMainWindow):
     def on_evaluate_js(self, script, uuid):
         def return_result(result):
             js_result = self._js_results[uuid]
+
+            if self.script_engine:
+                result = self.script_engine.toScriptValue(result)
+                print('PYQT4 result %s' % result)
             result = BrowserView._convert_string(result)
-            print('SCRIPT: {1} RESULT EVAL: {0}'.format(result, escaped_script))
 
             js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
             js_result['semaphore'].release()
 
         escaped_script = 'JSON.stringify(eval("{0}"))'.format(_escape_string(script))
+
         try:    # PyQt4
-            return_result(self.view.page().mainFrame().evaluateJavaScript(escaped_script))
+            result = self.view.page().mainFrame().evaluateJavaScript(escaped_script)
+            return_result(result)
         except AttributeError:  # PyQt5
             self.view.page().runJavaScript(escaped_script, return_result)
+
 
     def on_load_finished(self):
         if self.js_bridge.api:
@@ -293,7 +303,7 @@ class BrowserView(QMainWindow):
 
         result_semaphore = Semaphore(0)
         unique_id = uuid1().hex
-        self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
+        self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': ''}
 
         self.evaluate_js_trigger.emit(script, unique_id)
         result_semaphore.acquire()
@@ -308,7 +318,6 @@ class BrowserView(QMainWindow):
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
         script = _parse_api_js(self.js_bridge.api)
-        print('_set_js_api start')
 
         if _qt_version >= [5, 5]:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
@@ -324,12 +333,10 @@ class BrowserView(QMainWindow):
             frame = self.view.page().mainFrame()
             _register_window_object()
 
-        print('_set_js_api middle')
         try:    # PyQt4
             self.view.page().mainFrame().evaluateJavaScript(script)
         except AttributeError:  # PyQt5
             self.view.page().runJavaScript(script)
-        print('_set_js_api end')
 
         self.load_event.set()
 
@@ -338,9 +345,11 @@ class BrowserView(QMainWindow):
         if qstring is None:
             return None
 
+        print('RESULT %s' % qstring)
+
         try:
             qstring = qstring.toString() # QJsonValue conversion
-        except Exception as e:
+        except AttributeError:
             pass
 
         return _convert_string(qstring)

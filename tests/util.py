@@ -43,7 +43,6 @@ def _create_window(main_func, thread_func, queue, param):
             thread_func()
             destroy_event.set()
         except Exception as e:
-            print('EXCEPTION IN THREAD')
             logger.exception(e, exc_info=True)
             queue.put(e)
             destroy_event.set()
@@ -62,13 +61,10 @@ def run_test2(main_func, thread_func, webview, param=None):
     p = Process(target=_create_window, args=(main_func, thread_func, queue, param))
     p.start()
     p.join()
-    print('EXIT CODE: ' + str(p.exitcode))
     assert p.exitcode == 0
 
     if not queue.empty():
-        print('QUEUE FAIL')
         exception = queue.get()
-        print(exception)
         pytest.fail(exception)
 
 
