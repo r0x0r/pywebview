@@ -212,19 +212,7 @@ class BrowserView:
 
             if i is not None:
                 if not webview.window():
-                    i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
-
-                    frame_size = i.window.frame().size
-                    drag_bar_height = 24
-
-                    # Flip the webview so our bar is position from the top, not bottom
-                    webview.setFlipped_(True)
-
-                    rect = AppKit.NSMakeRect(0, 0, frame_size.width, drag_bar_height)
-                    drag_bar = DragBar.alloc().initWithFrame_(rect)
-                    drag_bar.setAutoresizingMask_(AppKit.NSViewWidthSizable)
-                    i.window.contentView().addSubview_(drag_bar)
 
                     if i.js_bridge:
                         i._set_js_api()
@@ -325,11 +313,9 @@ class BrowserView:
         if frameless:
             self.window.setTitlebarAppearsTransparent_(True)
             self.window.setTitleVisibility_(AppKit.NSWindowTitleHidden)
-            webkit_rect = AppKit.NSMakeRect(0, -12, width, height - 12)
         else:
             # Set the titlebar color (so that it does not change with the window color)
             self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
-            webkit_rect = rect
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
 
@@ -341,6 +327,20 @@ class BrowserView:
         self.webkit.setPolicyDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
+
+        self.window.setContentView_(self.webkit)
+
+        if frameless:
+            frame_size = self.window.frame().size
+            drag_bar_height = 24
+
+            # Flip the webview so our bar is position from the top, not bottom
+            self.webkit.setFlipped_(True)
+
+            rect = AppKit.NSMakeRect(0, 0, frame_size.width, drag_bar_height)
+            drag_bar = DragBar.alloc().initWithFrame_(rect)
+            drag_bar.setAutoresizingMask_(AppKit.NSViewWidthSizable)
+            self.window.contentView().addSubview_(drag_bar)
 
         if url:
             self.url = url
