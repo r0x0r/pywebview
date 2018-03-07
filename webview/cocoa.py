@@ -28,14 +28,12 @@ class DragBar(AppKit.NSView):
     def mouseDragged_(self, theEvent):
         screenFrame = AppKit.NSScreen.mainScreen().frame()
         if screenFrame is None:
-            sys.stderr.write('failed to obtain screen\n')
-            raise RuntimeError
+            raise RuntimeError('Failed to obtain screen')
 
         window = self.window()
         windowFrame = window.frame()
         if windowFrame is None:
-            sys.stderr.write('failed to obtain frame\n')
-            raise RuntimeError
+            raise RuntimeError('Failed to obtain frame')
 
         currentLocation = window.convertBaseToScreen_(window.mouseLocationOutsideOfEventStream())
         newOrigin = AppKit.NSMakePoint((currentLocation.x - self.initialLocation.x),
