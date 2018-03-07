@@ -1,3 +1,4 @@
+src = """
 /*! Native Promise Only
     v0.8.1 (c) Kyle Simpson
     MIT License: http://getify.mit-license.org
@@ -371,3 +372,4 @@
 
 	return Promise;
 });
+"""
