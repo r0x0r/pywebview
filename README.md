@@ -5,7 +5,7 @@
 
 pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. You can use pywebview either with a lightweight web framework like [Flask](http://flask.pocoo.org/) or [Bottle](http://bottlepy.org/docs/dev/index.html) or on its own with a two way bridge between Python and DOM.
 
-pywebview is lightweight and has no dependencies on an external GUI framework. It uses native GUI for creating a web component window: WinForms on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, pywebview does not bundle a heavy GUI toolkit with it keeping the executable size small. Compatible with both Python 2 and 3. While Android is not supported, you can use the same codebase with solutions like [Python for Android](https://github.com/kivy/python-for-android) for creating an APK.
+pywebview uses native GUI for creating a web component window: WinForms on Windows, Cocoa on Mac OSX and Qt4/5 or GTK3 on Linux. If you choose to freeze your application, pywebview does not bundle a heavy GUI toolkit or web renderer with it keeping the executable size small. Compatible with both Python 2 and 3. While Android is not supported, you can use the same codebase with solutions like [Python for Android](https://github.com/kivy/python-for-android) for creating an APK.
 
 Licensed under the BSD license. Maintained by [Roman Sirokov](https://github.com/r0x0r/) and [Shiva Prasad](https://github.com/shivaprsdv).
 
@@ -87,14 +87,19 @@ For more elaborated usage, refer to the examples in the `examples` directory.
 There is also a sample Flask application boilerplate provided in the `examples/flask_app` directory. It provides
 an application scaffold and boilerplate code for a real-world application.
 
+
 ## API
 
 - `webview.create_window(title, url='', js_api=None, width=800, height=600, resizable=True, fullscreen=False,
                          min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF', debug=False)`
-Create a new WebView window. Calling this function will block application execution, so you have to execute your program logic in a separate thread.
+  
+  Create a new WebView window. Calling this function for the first time will start the application and block program execution;
+  so you have to execute your program logic in a separate thread. Subsequent calls will return a unique `uid` for the created
+  window, which can be used to refer to the specific window in the API functions (single-window applications need not bother about
+  the `uid` and can simply omit it from function calls; see below).
   * `title` - Window title
   * `url` - URL to load
-  * `js_api` - Expose `js_api` to the DOM of the current webview window. Callable functions of `js_api` can be executed
+  * `js_api` - Expose `js_api` to the DOM of the current WebView window. Callable functions of `js_api` can be executed
     using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a
     primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate
     threads and are not thread-safe.
@@ -103,41 +108,49 @@ Create a new WebView window. Calling this function will block application execut
   * `resizable` - Whether window can be resized. Default is True
   * `fullscreen` - Whether to start in fullscreen mode. Default is False
   * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
-  * `strings` - a dictionary with localized strings
-  * `confirm_quit` - Whether to display a quit confirmation dialog. Default is False
-  * `background_color` - Background color of the window displayed before webview is loaded. Specified as a hex color. Default is white.
   * `strings` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
+  * `confirm_quit` - Whether to display a quit confirmation dialog. Default is False
+  * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
   * `debug` - (OSX only) Enables web inspector, when set to True.
 
 
-These functions below must be invoked after webview windows is created with `create_window()`. Otherwise an exception is thrown.
+These functions below must be invoked after atleast one WebView window is created with `create_window()`. Otherwise an exception is thrown.
+In all cases, `uid` is the uid of the target window returned by `create_window()`; if no window exists with the given `uid`, an exception
+is thrown. Default is `'master'`, which is the special uid given to the initial window.
 
-- `webview.set_title(title)`
-	Change the window title.
+- `webview.set_title(title, uid='master')`
+    Change the window title.
 
-- `webview.load_url(url)`
-	Load a new URL in the previously created WebView window. 
+- `webview.load_url(url, uid='master')`
+    Load a new URL into the specified WebView window. 
 
-- `webview.load_html(content)`
-    Loads HTML content in the WebView window
+- `webview.load_html(content, uid='master')`
+    Loads HTML content into the specified WebView window.
     
-- `webview.evaluate_js(script)`
-    Execute Javascript code. The last evaluated expression is returned.
+- `webview.evaluate_js(script, uid='master')`
+    Execute Javascript code in the specified window. The last evaluated expression is returned.
 
-- `webview.get_current_url()`
-    Return a current URL
+- `webview.get_current_url(uid='master')`
+    Return the currently loaded URL in the specified window.
     
-- `webview.toggle_fullscreen()`
-    Toggle a fullscreen mode on the active monitor    
+- `webview.toggle_fullscreen(uid='master')`
+    Toggle fullscreen mode of a window on the active monitor.
     
 - `webview.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=())`
-    Create an open file (`webview.OPEN_DIALOG`), open folder (`webview.FOLDER_DIALOG`) or save file (`webview.SAVE_DIALOG`) dialog. Return a tuple of selected files, None if cancelled
+
+  Create an open file (`webview.OPEN_DIALOG`), open folder (`webview.FOLDER_DIALOG`) or save file (`webview.SAVE_DIALOG`) dialog.
+  Return a tuple of selected files, None if cancelled.
   * `allow_multiple=True` enables multiple selection.
   * `directory` Initial directory.
   * `save_filename` Default filename for save file dialog.
-  * `file_types` A tuple of supported file type strings in the open file dialog. A file type string must follow this format `"Description (*.ext1;*.ext2...)"`. If the argument is not specified, then the `"All files (*.*)"` mask is used by default. The "All files" string can be changed in the localization dictionary.
-- `webview.destroy_window()`
-    Destroy the webview window
+  * `file_types` A tuple of supported file type strings in the open file dialog. A file type string must follow this format `"Description (*.ext1;*.ext2...)"`.
+  If the argument is not specified, then the `"All files (*.*)"` mask is used by default. The 'All files' string can be changed in the localization dictionary.
+
+- `webview.destroy_window(uid='master')`
+    Destroy the specified WebView window.
+
+- `webview.window_exists(uid='master')`
+    Return True if a WebView window with the given uid is up and running, False otherwise.
 
 
 # Testing

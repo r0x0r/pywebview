@@ -9,14 +9,7 @@ try:
 except:
     from Queue import Queue
 
-from .util import run_test, destroy_window
-
-js_code = '''
-window.pywebviewResult = undefined
-window.pywebview.api.{0}().then(function(response) {{
-    window.pywebviewResult = response
-}})
-'''
+from .util import run_test, destroy_window, assert_js
 
 
 class Api:
@@ -38,28 +31,24 @@ def create_api():
 def js_bridge(api):
     import webview
 
-    def assertFunction(func_name, result):
-        webview.evaluate_js(js_code.format(func_name))
-        sleep(2.0)
-        assert webview.evaluate_js('window.pywebviewResult') == result
-
     def _set_js_bridge(webview):
         try:
             webview.load_html('<html><body>TEST</body></html>')
-            assertFunction('get_int', 5)
-            assertFunction('get_float', 3.141)
-            assertFunction('get_string', 'test')
+            assert_js(webview, 'get_int', 5)
+            assert_js(webview, 'get_float', 3.141)
+            assert_js(webview, 'get_string', 'test')
             q.put(0)
         except Exception as e:
             q.put(1)
             pytest.fail('Exception occured:\n{0}'.format(traceback.format_exc()))
+        destroy_event.set()
 
     q = Queue()
     t = threading.Thread(target=_set_js_bridge, args=(webview,))
     t.start()
 
-    destroy_window(webview, 10)
-    webview.create_window('JSBridge test', js_api=api, debug=True)
+    destroy_event = destroy_window(webview)
+    webview.create_window('JSBridge test', js_api=api)
     exitcode = q.get()
     sys.exit(exitcode)
 

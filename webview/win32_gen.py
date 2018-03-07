@@ -39,8 +39,15 @@ class IDocHostUIHandler(IUnknown):
     _idlflags_ = []
 
 
-class _DOCHOSTUIINFO(Structure):
-    pass
+class DOCHOSTUIINFO(Structure):
+    _fields_ = [
+        ("cbSize", c_ulong),
+        ("dwFlags", DWORD),
+        ("dwDoubleClick", DWORD),
+        ("pchHostCss", POINTER(c_wchar)),
+        ("pchHostNS", POINTER(c_wchar))
+    ]
+    __slots__ = [f[0] for f in _fields_]
 
 
 class IDropTarget(IUnknown):
@@ -123,7 +130,7 @@ IDocHostUIHandler._methods_ = [
               ( ["in"], POINTER(IUnknown), "pcmdtReserved" ),
               ( ["in"], POINTER(IDispatch), "pdispReserved" )),
     COMMETHOD([], HRESULT, "GetHostInfo",
-              ( ["in"], POINTER(_DOCHOSTUIINFO), "pInfo" )),
+              ( ["in"], POINTER(DOCHOSTUIINFO), "pInfo" )),
     COMMETHOD([], HRESULT, "ShowUI",
               ( ["in"], c_ulong, "dwID" ),
               ( ["in"], POINTER(IOleInPlaceActiveObject), "pActiveObject" ),
@@ -172,3 +179,4 @@ class MINMAXINFO(Structure):
         ("ptMaxTrackSize", POINT)
     ]
     __slots__ = [f[0] for f in _fields_]
+
