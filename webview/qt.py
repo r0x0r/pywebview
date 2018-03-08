@@ -39,7 +39,7 @@ try:
 
     logger.debug('Using Qt5')
 except ImportError as e:
-    logger.exception('PyQt5 or one of dependencies is not found')
+    logger.info('PyQt5 or one of dependencies is not found')
     _import_error = True
 else:
     _import_error = False
@@ -55,7 +55,6 @@ if _import_error:
         _qt_version = [4, 0]
         logger.debug('Using Qt4')
     except ImportError as e:
-        logger.exception('PyQt4 or one of dependencies is not found')
         _import_error = True
     else:
         _import_error = False
@@ -95,7 +94,6 @@ class BrowserView(QMainWindow):
             param = BrowserView._convert_string(param)
 
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
-
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, debug, js_api, webview_ready):
@@ -155,8 +153,8 @@ class BrowserView(QMainWindow):
         if _qt_version >= [5, 5]:
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
-        elif _qt_version == [4, 0]:
-            self.script_engine = QScriptEngine()
+        #elif _qt_version == [4, 0]:
+        #    self.script_engine = QScriptEngine()
 
         self.view.page().loadFinished.connect(self.on_load_finished)
 
@@ -226,9 +224,9 @@ class BrowserView(QMainWindow):
         def return_result(result):
             js_result = self._js_results[uuid]
 
-            if self.script_engine:
-                result = self.script_engine.toScriptValue(result)
-                print('PYQT4 result %s' % result)
+            #if self.script_engine:
+            #    result = self.script_engine.toScriptValue(result)
+            #    print('PYQT4 result %s' % result)
             result = BrowserView._convert_string(result)
 
             js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
@@ -341,14 +339,12 @@ class BrowserView(QMainWindow):
         self.load_event.set()
 
     @staticmethod
-    def _convert_string(qstring):
-        if qstring is None:
-            return None
-
-        print('RESULT %s' % qstring)
-
+    def _convert_string(result):
         try:
-            qstring = qstring.toString() # QJsonValue conversion
+            if result is None or result.isNull():
+                return None
+
+            qstring = result.toString() # QJsonValue conversion
         except AttributeError:
             pass
 

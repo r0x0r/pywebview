@@ -1,9 +1,20 @@
+import threading
 from .util import run_test2
 import webview
 
 
 def main_func():
-    webview.create_window('Evaluate JS test', 'https://www.example.org')
+    def load_html():
+        webview.load_html('<h1>test</h1>')
+
+    t = threading.Thread(target=load_html)
+    t.start()
+    webview.create_window('Evaluate JS test')
+
+
+def load_html():
+    webview.load_html('<h1>test</h1>')
+
 
 def mixed_test():
     result = webview.evaluate_js("""
@@ -73,6 +84,7 @@ def float_test():
 
 
 def undefined_test():
+    load_html()
     result = webview.evaluate_js("""
     function getValue() {
         return undefined
@@ -104,7 +116,7 @@ def nan_test():
     """)
     assert result is None
 
-"""
+
 def test_mixed():
     run_test2(main_func, mixed_test, webview)
 
@@ -127,16 +139,15 @@ def test_int():
 
 def test_float():
     run_test2(main_func, float_test, webview)
-"""
+
 
 def test_undefined():
     run_test2(main_func, undefined_test, webview)
 
-"""
+
 def test_null():
     run_test2(main_func, null_test, webview)
 
 
 def test_nan():
     run_test2(main_func, nan_test, webview)
-"""

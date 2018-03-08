@@ -8,6 +8,7 @@ from multiprocessing import Process, Queue
 logger = logging.getLogger(__name__)
 
 
+
 def destroy_window(webview, delay=0):
     def stop():
         event.wait()
@@ -56,7 +57,7 @@ def _create_window(main_func, thread_func, queue, param):
 
 
 def run_test2(main_func, thread_func, webview, param=None):
-    #__tracebackhide__ = True
+    __tracebackhide__ = True
     queue = Queue()
     p = Process(target=_create_window, args=(main_func, thread_func, queue, param))
     p.start()
