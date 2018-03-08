@@ -79,8 +79,6 @@ class BrowserView:
             windll.user32.DestroyIcon(icon_handle)
 
             self.webview_ready = webview_ready
-            self.load_event = Event()
-            self.load_event.clear()
 
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
@@ -110,6 +108,7 @@ class BrowserView:
             self.web_browser.PreviewKeyDown += self.on_preview_keydown
             self.web_browser.Navigating += self.on_navigating
             self.web_browser.DocumentCompleted += self.on_document_completed
+
             if url:
                 self.web_browser.Navigate(url)
 
