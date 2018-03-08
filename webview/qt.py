@@ -108,9 +108,10 @@ class BrowserView(QMainWindow):
         self.confirm_quit = confirm_quit
 
         self._file_name_semaphore = Semaphore(0)
-        self._current_url_semaphore = Semaphore()
+        self._current_url_semaphore = Semaphore(0)
 
         self.load_event = Event()
+        self.load_event.clear()
 
         self._js_results = {}
         self._current_url = None
@@ -185,7 +186,7 @@ class BrowserView(QMainWindow):
         self._file_name_semaphore.release()
 
     def on_current_url(self):
-        self._current_url = self.view.url().toString()
+        self._current_url = BrowserView._convert_string(self.view.url().toString())
         self._current_url_semaphore.release()
 
     def on_load_url(self, url):
@@ -233,7 +234,6 @@ class BrowserView(QMainWindow):
         except AttributeError:  # PyQt5
             self.view.page().runJavaScript(escaped_script, return_result)
 
-
     def on_load_finished(self):
         if self.js_bridge.api:
             self._set_js_api()
@@ -244,6 +244,7 @@ class BrowserView(QMainWindow):
         self.set_title_trigger.emit(title)
 
     def get_current_url(self):
+        self.load_event.wait()
         self.current_url_trigger.emit()
         self._current_url_semaphore.acquire()
 

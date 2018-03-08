@@ -6,8 +6,6 @@ This example demonstrates creating a save file dialog.
 """
 
 def get_current_url():
-    import time
-    time.sleep(5)
     print(webview.get_current_url())
 
 

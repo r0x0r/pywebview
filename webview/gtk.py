@@ -225,6 +225,7 @@ class BrowserView:
             dialog.add_filter(f)
 
     def get_current_url(self):
+        self.load_event.wait()
         uri = self.webview.get_uri()
         return uri
 
