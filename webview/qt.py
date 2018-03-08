@@ -50,7 +50,6 @@ if _import_error:
         from PyQt4 import QtCore
         from PyQt4.QtWebKit import QWebView, QWebFrame
         from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
-        from PyQt4.QtScript import QScriptEngine
 
         _qt_version = [4, 0]
         logger.debug('Using Qt4')
@@ -153,8 +152,6 @@ class BrowserView(QMainWindow):
         if _qt_version >= [5, 5]:
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
-        #elif _qt_version == [4, 0]:
-        #    self.script_engine = QScriptEngine()
 
         self.view.page().loadFinished.connect(self.on_load_finished)
 
@@ -222,13 +219,9 @@ class BrowserView(QMainWindow):
 
     def on_evaluate_js(self, script, uuid):
         def return_result(result):
-            js_result = self._js_results[uuid]
-
-            #if self.script_engine:
-            #    result = self.script_engine.toScriptValue(result)
-            #    print('PYQT4 result %s' % result)
             result = BrowserView._convert_string(result)
 
+            js_result = self._js_results[uuid]
             js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
             js_result['semaphore'].release()
 
