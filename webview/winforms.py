@@ -10,26 +10,22 @@ http://github.com/r0x0r/pywebview/
 import os
 import sys
 import logging
-import threading
 import json
+from threading import Event, Semaphore
 from ctypes import windll
-
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 import clr
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Threading')
-clr.AddReference('System.Reflection')
 
 clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
 import System.Windows.Forms as WinForms
-import System.Reflection
 
 from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
-
 
 from WebBrowserInterop import IWebBrowserInterop
 
@@ -83,7 +79,8 @@ class BrowserView:
             windll.user32.DestroyIcon(icon_handle)
 
             self.webview_ready = webview_ready
-            self.load_event = threading.Event()
+            self.load_event = Event()
+            self.load_event.clear()
 
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
@@ -92,7 +89,7 @@ class BrowserView:
             self.web_browser.WebBrowserShortcutsEnabled = False
             self.web_browser.DpiAware = True
 
-            self.js_result_semaphor = threading.Semaphore(0)
+            self.js_result_semaphore = Semaphore(0)
             self.js_bridge = BrowserView.JSBridge()
             self.js_bridge.parent_uid = uid
             self.web_browser.ObjectForScripting = self.js_bridge
@@ -305,6 +302,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 def get_current_url(uid):
     window = BrowserView.instances[uid]
+    window.load_event.wait()
     return window.web_browser.Url.AbsoluteUri
 
 
@@ -343,7 +341,7 @@ def toggle_fullscreen(uid):
 def destroy_window(uid):
     window = BrowserView.instances[uid]
     window.Close()
-    window.js_result_semaphor.release()
+    window.js_result_semaphore.release()
 
 
 def evaluate_js(script, uid):
@@ -351,7 +349,7 @@ def evaluate_js(script, uid):
         document = window.web_browser.Document
         result = document.InvokeScript('eval', ('JSON.stringify(eval("{0}"))'.format(_escape_string(script)),))
         window.js_result = None if result is None or result is 'null' else json.loads(result)
-        window.js_result_semaphor.release()
+        window.js_result_semaphore.release()
 
     window = BrowserView.instances[uid]
 
@@ -361,6 +359,6 @@ def evaluate_js(script, uid):
     else:
         _evaluate_js()
 
-    window.js_result_semaphor.acquire()
+    window.js_result_semaphore.acquire()
 
     return window.js_result
