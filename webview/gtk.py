@@ -259,8 +259,6 @@ class BrowserView:
         result = self.webview.get_title()
         result = None if result == 'undefined' or result == 'null' else result if result == '' else json.loads(result)
 
-        print('Id: {2} Code: {0}. Result: {1}'.format(code, result, unique_id))
-
         # Restore document title and return
         code = 'document.title = window.oldTitle{0}'.format(unique_id)
         glib.idle_add(_evaluate_js)

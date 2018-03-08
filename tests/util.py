@@ -8,7 +8,6 @@ from multiprocessing import Process, Queue
 logger = logging.getLogger(__name__)
 
 
-
 def destroy_window(webview, delay=0):
     def stop():
         event.wait()

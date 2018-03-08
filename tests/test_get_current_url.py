@@ -1,19 +1,14 @@
-import pytest
-import threading
-from .util import run_test, destroy_window
+import webview
+from .util import run_test2
 
 
-def get_current_url():
-    import webview
-
-    def _get_current_url(webview):
-        webview.get_current_url()
-
-    t = threading.Thread(target=_get_current_url, args=(webview,))
-    t.start()
-    destroy_window(webview, 5)
-    webview.create_window('Get current url test', 'https://www.example.org')
+def main_func():
+    webview.create_window('Evaluate JS test', 'https://example.org')
 
 
-def test_get_current_url():
-    run_test(get_current_url)
+def current_url_test():
+    assert webview.get_current_url() == 'https://example.org/'
+
+
+def test_current_url():
+    run_test2(main_func, current_url_test, webview)
