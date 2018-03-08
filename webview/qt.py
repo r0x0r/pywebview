@@ -344,11 +344,11 @@ class BrowserView(QMainWindow):
             if result is None or result.isNull():
                 return None
 
-            qstring = result.toString() # QJsonValue conversion
+            result = result.toString() # QJsonValue conversion
         except AttributeError:
             pass
 
-        return _convert_string(qstring)
+        return _convert_string(result)
 
     @staticmethod
     # Receive func from subthread and execute it on the main thread
