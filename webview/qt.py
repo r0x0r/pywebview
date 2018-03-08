@@ -221,9 +221,9 @@ class BrowserView(QMainWindow):
     def on_evaluate_js(self, script, uuid):
         def return_result(result):
             result = BrowserView._convert_string(result)
-            uuid = BrowserView._convert_string(uuid)
+            uuid_ = BrowserView._convert_string(uuid)
 
-            js_result = self._js_results[uuid]
+            js_result = self._js_results[uuid_]
             js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
             js_result['semaphore'].release()
 
