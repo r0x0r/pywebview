@@ -111,7 +111,6 @@ class BrowserView(QMainWindow):
         self._current_url_semaphore = Semaphore(0)
 
         self.load_event = Event()
-        self.load_event.clear()
 
         self._js_results = {}
         self._current_url = None
@@ -137,6 +136,8 @@ class BrowserView(QMainWindow):
 
         if url is not None:
             self.view.setUrl(QtCore.QUrl(url))
+        else:
+            self.load_event.set()
 
         self.setCentralWidget(self.view)
 

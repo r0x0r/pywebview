@@ -289,6 +289,8 @@ class BrowserView:
         if url:
             self.url = url
             self.load_url(url)
+        else:
+            self.loaded.set()
 
         if js_api:
             self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(js_api)

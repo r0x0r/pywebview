@@ -99,6 +99,8 @@ class BrowserView:
 
         if url is not None:
             self.webview.load_uri(url)
+        else:
+            self.load_event.set()
 
         if fullscreen:
             self.toggle_fullscreen()
