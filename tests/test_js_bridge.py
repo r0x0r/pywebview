@@ -21,9 +21,9 @@ def main_func():
 
 def js_bridge():
     webview.load_html('<html><body>TEST</body></html>')
-    #assert_js(webview, 'get_int', 5)
+    assert_js(webview, 'get_int', 5)
     assert_js(webview, 'get_float', 3.141)
-    #assert_js(webview, 'get_string', 'test')
+    assert_js(webview, 'get_string', 'test')
 
 
 def test_js_bridge():

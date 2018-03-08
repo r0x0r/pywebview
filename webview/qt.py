@@ -39,7 +39,7 @@ try:
 
     logger.debug('Using Qt5')
 except ImportError as e:
-    logger.info('PyQt5 or one of dependencies is not found')
+    logger.debug('PyQt5 or one of dependencies is not found', exc_info=True)
     _import_error = True
 else:
     _import_error = False
@@ -73,7 +73,7 @@ class BrowserView(QMainWindow):
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
-    evaluate_js_trigger = QtCore.pyqtSignal(str, object)
+    evaluate_js_trigger = QtCore.pyqtSignal(str, str)
 
     class JSBridge(QtCore.QObject):
         api = None

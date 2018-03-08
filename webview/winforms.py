@@ -20,16 +20,13 @@ import clr
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Threading')
-clr.AddReference('System.Reflection')
 
 clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
 import System.Windows.Forms as WinForms
-import System.Reflection
 
 from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
-
 
 from WebBrowserInterop import IWebBrowserInterop
 

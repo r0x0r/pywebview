@@ -577,41 +577,6 @@ class BrowserView:
         else:
             subprocess.run(command)
 
-    def _convert_value(result):
-        def convert_primitive(value):
-            if type(value) is pyobjc_unicode:
-                return _convert_string(value)
-
-            else:
-                try:
-                    value = value.__reduce__()[1][0]
-
-                    if value.is_integer():
-                        return int(value)
-
-                except TypeError:
-                    pass
-
-            return value
-
-        if result is WebKit.WebUndefined.undefined() or result is None:
-            return None
-        elif type(result) is WebKit.WebScriptObject:
-            result = result.JSValue()
-
-            if result.isArray():
-                result = result.toArray()
-                return [convert_primitive(e) for e in Conversion.pythonCollectionFromPropertyList(result)]
-
-            elif result.isObject():
-                result = result.toDictionary()
-                result = Foundation.NSJSONSerialization.dataWithJSONObject_options_error_(result, 0, None)[0]
-                result = Foundation.NSString.alloc().initWithData_encoding_(result, Foundation.NSUTF8StringEncoding)
-
-                return json.loads(result)
-        else:
-            return convert_primitive(result)
-
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, debug, js_api, webview_ready):
