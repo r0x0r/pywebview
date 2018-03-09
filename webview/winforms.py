@@ -61,7 +61,7 @@ class BrowserView:
             self.ClientSize = Size(width, height)
             self.MinimumSize = Size(min_size[0], min_size[1])
             self.BackColor = ColorTranslator.FromHtml(background_color)
-            
+
             self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
@@ -112,8 +112,6 @@ class BrowserView:
 
             if url:
                 self.web_browser.Navigate(url)
-            else:
-                self.load_event.set()
 
             self.url = url
 
@@ -172,8 +170,6 @@ class BrowserView:
         def on_document_completed(self, sender, args):
             self._initialize_js()
 
-            self.load_event.set()
-
             if self.first_load:
                 self.web_browser.Visible = True
                 self.first_load = False
@@ -225,13 +221,13 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
     app = WinForms.Application
 
     if uid == 'master':
-        set_ie_mode() 
+        set_ie_mode()
         if sys.getwindowsversion().major >= 6:
             windll.user32.SetProcessDPIAware()
-        
-        app.EnableVisualStyles() 
-        app.SetCompatibleTextRenderingDefault(False) 
-        
+
+        app.EnableVisualStyles()
+        app.SetCompatibleTextRenderingDefault(False)
+
         thread = Thread(ThreadStart(create))
         thread.SetApartmentState(ApartmentState.STA)
         thread.Start()
@@ -355,13 +351,14 @@ def destroy_window(uid):
 def evaluate_js(script, uid):
     def _evaluate_js():
         document = window.web_browser.Document
+
         result = document.InvokeScript('eval', ('JSON.stringify(eval("{0}"))'.format(_escape_string(script)),))
         window.js_result = None if result is None or result is 'null' else json.loads(result)
         window.js_result_semaphore.release()
 
     window = BrowserView.instances[uid]
-
     window.load_event.wait()
+
     if window.web_browser.InvokeRequired:
         window.web_browser.Invoke(Func[Type](_evaluate_js))
     else:
