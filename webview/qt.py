@@ -187,7 +187,8 @@ class BrowserView(QMainWindow):
         self._file_name_semaphore.release()
 
     def on_current_url(self):
-        self._current_url = BrowserView._convert_string(self.view.url().toString())
+        url = BrowserView._convert_string(self.view.url().toString())
+        self._current_url = None if url == '' else url
         self._current_url_semaphore.release()
 
     def on_load_url(self, url):
