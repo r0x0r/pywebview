@@ -79,6 +79,7 @@ class BrowserView:
             windll.user32.DestroyIcon(icon_handle)
 
             self.webview_ready = webview_ready
+            self.load_event = Event()
 
             self.web_browser = WinForms.WebBrowser()
             self.web_browser.Dock = WinForms.DockStyle.Fill
@@ -111,6 +112,8 @@ class BrowserView:
 
             if url:
                 self.web_browser.Navigate(url)
+
+            self.url = url
 
             self.Controls.Add(self.web_browser)
             self.is_fullscreen = False
@@ -301,8 +304,12 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 def get_current_url(uid):
     window = BrowserView.instances[uid]
-    window.load_event.wait()
-    return window.web_browser.Url.AbsoluteUri
+
+    if window.url is None:
+        return None
+    else:
+        window.load_event.wait()
+        return window.web_browser.Url.AbsoluteUri
 
 
 def load_url(url, uid):
