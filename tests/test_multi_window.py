@@ -1,26 +1,25 @@
 import webview
-import threading
-from .util import run_test2, assert_js
+from .util import run_test, assert_js
 
 
 def test_bg_color():
-    run_test2(main_func, bg_color, webview)
+    run_test(webview, main_func, bg_color)
 
 
 def test_load_html():
-    run_test2(main_func, load_html, webview)
+    run_test(webview, main_func, load_html)
 
 
 def test_load_url():
-    run_test2(main_func, load_url, webview)
+    run_test(webview, main_func, load_url)
 
 
 def test_evaluate_js():
-    run_test2(main_func, evaluate_js, webview)
+    run_test(webview, main_func, evaluate_js)
 
 
 def test_js_bridge():
-    run_test2(main_api_func, js_bridge, webview)
+    run_test(webview, main_api_func, js_bridge)
 
 
 def main_func():

@@ -1,5 +1,5 @@
 import threading
-from .util import run_test2
+from .util import run_test
 import webview
 
 
@@ -118,36 +118,36 @@ def nan_test():
 
 
 def test_mixed():
-    run_test2(main_func, mixed_test, webview)
+    run_test(webview, main_func, mixed_test)
 
 
 def test_array():
-    run_test2(main_func, array_test, webview)
+    run_test(webview, main_func, array_test)
 
 
 def test_object():
-    run_test2(main_func, object_test, webview)
+    run_test(webview, main_func, object_test)
 
 
 def test_string():
-    run_test2(main_func, string_test, webview)
+    run_test(webview, main_func, string_test)
 
 
 def test_int():
-    run_test2(main_func, int_test, webview)
+    run_test(webview, main_func, int_test)
 
 
 def test_float():
-    run_test2(main_func, float_test, webview)
+    run_test(webview, main_func, float_test)
 
 
 def test_undefined():
-    run_test2(main_func, undefined_test, webview)
+    run_test(webview, main_func, undefined_test)
 
 
 def test_null():
-    run_test2(main_func, null_test, webview)
+    run_test(webview, main_func, null_test)
 
 
 def test_nan():
-    run_test2(main_func, nan_test, webview)
+    run_test(webview, main_func, nan_test)

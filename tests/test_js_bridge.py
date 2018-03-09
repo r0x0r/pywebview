@@ -1,6 +1,9 @@
 import webview
+from .util import run_test, assert_js
 
-from .util import run_test2, assert_js
+
+def test_js_bridge():
+    run_test(webview, main_func, js_bridge)
 
 
 class Api:
@@ -25,6 +28,3 @@ def js_bridge():
     assert_js(webview, 'get_float', 3.141)
     assert_js(webview, 'get_string', 'test')
 
-
-def test_js_bridge():
-    run_test2(main_func, js_bridge, webview)
