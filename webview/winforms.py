@@ -115,6 +115,8 @@ class BrowserView:
             else:
                 self.load_event.set()
 
+            self.url = url
+
             self.Controls.Add(self.web_browser)
             self.is_fullscreen = False
             self.Shown += self.on_shown
@@ -304,8 +306,12 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 def get_current_url(uid):
     window = BrowserView.instances[uid]
-    window.load_event.wait()
-    return window.web_browser.Url.AbsoluteUri
+
+    if window.url is None:
+        return None
+    else:
+        window.load_event.wait()
+        return window.web_browser.Url.AbsoluteUri
 
 
 def load_url(url, uid):

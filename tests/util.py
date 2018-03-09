@@ -2,60 +2,13 @@ import threading
 import time
 import sys
 import logging
+import traceback
 import pytest
 from multiprocessing import Process, Queue
 
 logger = logging.getLogger(__name__)
 
-
-def destroy_window(webview, delay=0):
-    def stop():
-        event.wait()
-        time.sleep(delay)
-        webview.destroy_window()
-
-        if sys.platform == 'darwin':
-            from .util_cocoa import mouseMoveRelative
-
-            mouseMoveRelative(1, 1)
-
-    event = threading.Event()
-    event.clear()
-    t = threading.Thread(target=stop)
-    t.start()
-
-    return event
-
-
-def run_test(test_func, param=None):
-    args = (param,) if param else ()
-    p = Process(target=test_func, args=args)
-    p.start()
-    p.join()
-    assert p.exitcode == 0
-
-
-def _create_window(main_func, thread_func, queue, param):
-    import webview
-
-    def thread(destroy_event, param):
-        try:
-            thread_func()
-            destroy_event.set()
-        except Exception as e:
-            logger.exception(e, exc_info=True)
-            queue.put(e)
-            destroy_event.set()
-
-    args = (param,) if param else ()
-    destroy_event = destroy_window(webview)
-    t = threading.Thread(target=thread, args=(destroy_event, args))
-    t.start()
-
-    main_func()
-
-
-def run_test2(main_func, thread_func, webview, param=None):
+def run_test(webview, main_func, thread_func=None, param=None):
     __tracebackhide__ = True
     queue = Queue()
     p = Process(target=_create_window, args=(main_func, thread_func, queue, param))
@@ -86,3 +39,45 @@ def assert_js(webview, func_name, expected_result, uid='master'):
             result = webview.evaluate_js(check_func, uid)
 
     assert expected_result == result
+
+
+def _create_window(main_func, thread_func, queue, param):
+    import webview
+
+    def thread(destroy_event, param):
+        try:
+            if thread_func:
+                thread_func()
+            destroy_event.set()
+        except Exception as e:
+            logger.exception(e, exc_info=True)
+            queue.put(traceback.format_exc())
+            destroy_event.set()
+
+    args = (param,) if param else ()
+    destroy_event = _destroy_window(webview)
+    t = threading.Thread(target=thread, args=(destroy_event, args))
+    t.start()
+
+    main_func()
+
+
+def _destroy_window(webview, delay=0):
+    def stop():
+        event.wait()
+        time.sleep(delay)
+        webview.destroy_window()
+
+        if sys.platform == 'darwin':
+            from .util_cocoa import mouseMoveRelative
+
+            mouseMoveRelative(1, 1)
+
+    event = threading.Event()
+    event.clear()
+    t = threading.Thread(target=stop)
+    t.start()
+
+    return event
+
+
