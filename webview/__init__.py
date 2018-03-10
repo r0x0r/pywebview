@@ -335,7 +335,7 @@ def _parse_api_js(api_instance):
     func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
     js_code = npo.src + api.src % func_list
 
-    return api.src % func_list #js_code
+    return js_code
 
 
 def _escape_string(string):
