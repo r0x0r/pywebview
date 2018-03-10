@@ -128,10 +128,10 @@ is thrown. Default is `'master'`, which is the special uid given to the initial 
     Loads HTML content into the specified WebView window.
     
 - `webview.evaluate_js(script, uid='master')`
-    Execute Javascript code in the specified window. The last evaluated expression is returned.
+    Execute Javascript code in the specified window. The last evaluated expression is returned. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
 
 - `webview.get_current_url(uid='master')`
-    Return the currently loaded URL in the specified window.
+    Return the currently loaded URL in the specified window. None if no url is loaded.
     
 - `webview.toggle_fullscreen(uid='master')`
     Toggle fullscreen mode of a window on the active monitor.
