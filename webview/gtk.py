@@ -6,9 +6,10 @@ http://github.com/r0x0r/pywebview/
 """
 import sys
 import logging
+import json
 
 from uuid import uuid1
-from threading import Event, Semaphore
+from threading import Event, Semaphore, Lock
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview import _escape_string, _js_bridge_call, _parse_api_js, _parse_file_type
@@ -48,7 +49,8 @@ class BrowserView:
 
         self.webview_ready = webview_ready
         self.is_fullscreen = False
-        self._js_result_semaphore = Semaphore(0)
+        self.js_result_semaphores = []
+        self.eval_js_lock = Lock()
         self.load_event = Event()
 
         glib.threads_init()
@@ -97,6 +99,8 @@ class BrowserView:
 
         if url is not None:
             self.webview.load_uri(url)
+        else:
+            self.load_event.set()
 
         if fullscreen:
             self.toggle_fullscreen()
@@ -110,7 +114,9 @@ class BrowserView:
 
         if BrowserView.instances == {}:
             gtk.main_quit()
-        self._js_result_semaphore.release()
+
+        for s in self.js_result_semaphores:
+            s.release()
 
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
@@ -221,6 +227,7 @@ class BrowserView:
             dialog.add_filter(f)
 
     def get_current_url(self):
+        self.load_event.wait()
         uri = self.webview.get_uri()
         return uri
 
@@ -235,40 +242,34 @@ class BrowserView:
     def evaluate_js(self, script):
         def _evaluate_js():
             self.webview.execute_script(code)
-            self._js_result_semaphore.release()
+            result_semaphore.release()
 
-        unique_id = uuid1().hex
-
+        self.eval_js_lock.acquire()
+        result_semaphore = Semaphore(0)
+        self.js_result_semaphores.append(result_semaphore)
         # Backup the doc title and store the result in it with a custom prefix
-        code = 'oldTitle{0} = document.title; document.title = eval("{1}");'.format(unique_id, _escape_string(script))
+        unique_id = uuid1().hex
+        code = 'window.oldTitle{0} = document.title; document.title = JSON.stringify(eval("{1}"));'.format(unique_id, _escape_string(script))
 
         self.load_event.wait()
-
         glib.idle_add(_evaluate_js)
-        self._js_result_semaphore.acquire()
+        result_semaphore.acquire()
 
         if not gtk.main_level():
             # Webview has been closed, don't proceed
             return None
 
+        result = self.webview.get_title()
+        result = None if result == 'undefined' or result == 'null' else result if result == '' else json.loads(result)
+
         # Restore document title and return
-        _js_result = self._parse_js_result(self.webview.get_title())
+        code = 'document.title = window.oldTitle{0}'.format(unique_id)
+        glib.idle_add(_evaluate_js)
+        self.js_result_semaphores.remove(result_semaphore)
+        self.eval_js_lock.release()
 
-        code = 'document.title = oldTitle{0};'.format(unique_id)
-        glib.idle_add(self.webview.execute_script, code)
-        return _js_result
+        return result
 
-    def _parse_js_result(self, result):
-        if result == 'undefined':
-            return None
-
-        try:
-            return int(result)
-        except ValueError:
-            try:
-                return float(result)
-            except ValueError:
-                return result
 
     def _set_js_api(self):
         def create_bridge():
