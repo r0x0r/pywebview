@@ -21,6 +21,7 @@ import logging
 from threading import Event, Thread, current_thread
 from uuid import uuid4
 
+from .js import api, npo
 from .localization import localization
 
 logger = logging.getLogger(__name__)
@@ -331,14 +332,8 @@ def _js_bridge_call(uid, api_instance, func_name, param):
 
 
 def _parse_api_js(api_instance):
-    base_dir = os.path.dirname(os.path.realpath(__file__))
-
-    with open(os.path.join(base_dir, 'js', 'npo.js')) as npo_js:
-        js_code = npo_js.read()
-
-    with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
-        func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
-        js_code += api_js.read() % func_list
+    func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
+    js_code = npo.src + api.src % func_list
 
     return js_code
 

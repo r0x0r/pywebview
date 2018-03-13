@@ -31,6 +31,7 @@ from WebBrowserInterop import IWebBrowserInterop
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview import _parse_file_type, _parse_api_js, _js_bridge_call, _escape_string
+from .js import alert
 
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
@@ -127,8 +128,7 @@ class BrowserView:
                 self.toggle_fullscreen()
 
         def _initialize_js(self):
-            with open(os.path.join(base_dir, 'js', 'alert.js')) as f:
-                self.web_browser.Document.InvokeScript('eval', (f.read(),))
+            self.web_browser.Document.InvokeScript('eval', (alert.src,))
 
         def on_shown(self, sender, args):
             self.webview_ready.set()
