@@ -244,7 +244,7 @@ class BrowserView:
 
     def load_html(self, content):
         self.load_event.clear()
-        self.webview.load_string(content, 'text/html', 'utf-8', '')
+        self.webview.load_string(content, 'text/html', 'utf-8', 'file://')
 
     def evaluate_js(self, script):
         def _evaluate_js():
@@ -302,7 +302,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
                   confirm_quit, background_color, debug, js_api, text_select, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, js_api, webview_ready)
+                              confirm_quit, background_color, debug, js_api, text_select, webview_ready)
         browser.show()
 
     if uid == 'master':
