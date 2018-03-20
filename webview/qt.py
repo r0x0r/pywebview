@@ -240,13 +240,13 @@ class BrowserView(QMainWindow):
             self.view.page().runJavaScript(escaped_script, return_result)
 
     def on_load_finished(self):
-        if not self.text_select:
-            webview.execute_script(disable_text_select)
-
         if self.js_bridge.api:
             self._set_js_api()
         else:
             self.load_event.set()
+
+        if not self.text_select:
+            self.evaluate_js(_escape_string(disable_text_select))
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)
