@@ -30,8 +30,9 @@ from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 from WebBrowserInterop import IWebBrowserInterop
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _parse_file_type, _parse_api_js, _js_bridge_call, _escape_string
+from webview import _parse_file_type, _parse_api_js, _js_bridge_call
 from .js import alert
+from .js.css_loader import disable_text_select
 
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
@@ -56,7 +57,7 @@ class BrowserView:
 
     class BrowserForm(WinForms.Form):
         def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                     confirm_quit, background_color, debug, js_api, webview_ready):
+                     confirm_quit, background_color, debug, js_api, text_select, webview_ready):
             self.uid = uid
             self.Text = title
             self.ClientSize = Size(width, height)
@@ -93,6 +94,8 @@ class BrowserView:
             self.js_bridge = BrowserView.JSBridge()
             self.js_bridge.parent_uid = uid
             self.web_browser.ObjectForScripting = self.js_bridge
+
+            self.text_select = text_select
 
             if js_api:
                 self.js_bridge.api = js_api
@@ -150,17 +153,17 @@ class BrowserView:
             if args.KeyCode == WinForms.Keys.Back:
                 self.cancel_back = True
             elif args.KeyCode == WinForms.Keys.Delete:
-                self.web_browser.Document.ExecCommand("Delete", False, None)
+                self.web_browser.Document.ExecCommand('Delete', False, None)
             elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.C:
-                self.web_browser.Document.ExecCommand("Copy", False, None)
+                self.web_browser.Document.ExecCommand('Copy', False, None)
             elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.X:
-                self.web_browser.Document.ExecCommand("Cut", False, None)
+                self.web_browser.Document.ExecCommand('Cut', False, None)
             elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.V:
-                self.web_browser.Document.ExecCommand("Paste", False, None)
+                self.web_browser.Document.ExecCommand('Paste', False, None)
             elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.Z:
-                self.web_browser.Document.ExecCommand("Undo", False, None)
+                self.web_browser.Document.ExecCommand('Undo', False, None)
             elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.A:
-                self.web_browser.Document.ExecCommand("selectAll", False, None)
+                self.web_browser.Document.ExecCommand('selectAll', False, None)
 
         def on_navigating(self, sender, args):
             if self.cancel_back:
@@ -177,6 +180,9 @@ class BrowserView:
             if self.js_bridge.api:
                 document = self.web_browser.Document
                 document.InvokeScript('eval', (_parse_api_js(self.js_bridge.api),))
+
+            if not self.text_select:
+                webview.execute_script(disable_text_select)
 
             self.load_event.set()
 
@@ -207,10 +213,11 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
     def create():
         window = BrowserView.BrowserForm(uid, title, url, width, height, resizable, fullscreen,
-                                         min_size, confirm_quit, background_color, debug, js_api, webview_ready)
+                                         min_size, confirm_quit, background_color, debug, js_api,
+                                         text_select, webview_ready)
         BrowserView.instances[uid] = window
         window.Show()
 
@@ -352,7 +359,7 @@ def evaluate_js(script, uid):
     def _evaluate_js():
         document = window.web_browser.Document
 
-        result = document.InvokeScript('eval', ('JSON.stringify(eval("{0}"))'.format(_escape_string(script)),))
+        result = document.InvokeScript('eval', ('JSON.stringify(eval("{0}"))'.format(script),))
         window.js_result = None if result is None or result is 'null' else json.loads(result)
         window.js_result_semaphore.release()
 

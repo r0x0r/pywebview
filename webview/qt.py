@@ -15,6 +15,7 @@ from threading import Semaphore, Event
 from webview.localization import localization
 from webview import _parse_api_js, _js_bridge_call, _convert_string, _escape_string
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview.js.css_loader import disable_text_select
 
 
 logger = logging.getLogger(__name__)
@@ -95,7 +96,7 @@ class BrowserView(QMainWindow):
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
-                 min_size, confirm_quit, background_color, debug, js_api, webview_ready):
+                 min_size, confirm_quit, background_color, debug, js_api, text_select, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instances[uid] = self
         self.uid = uid
@@ -106,6 +107,7 @@ class BrowserView(QMainWindow):
 
         self.is_fullscreen = False
         self.confirm_quit = confirm_quit
+        self.text_select = text_select
 
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
@@ -229,7 +231,7 @@ class BrowserView(QMainWindow):
             js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
             js_result['semaphore'].release()
 
-        escaped_script = 'JSON.stringify(eval("{0}"))'.format(_escape_string(script))
+        escaped_script = 'JSON.stringify(eval("{0}"))'.format(script)
 
         try:    # PyQt4
             result = self.view.page().mainFrame().evaluateJavaScript(escaped_script)
@@ -238,6 +240,9 @@ class BrowserView(QMainWindow):
             self.view.page().runJavaScript(escaped_script, return_result)
 
     def on_load_finished(self):
+        if not self.text_select:
+            webview.execute_script(disable_text_select)
+
         if self.js_bridge.api:
             self._set_js_api()
         else:
@@ -354,13 +359,13 @@ class BrowserView(QMainWindow):
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
     app = QApplication.instance() or QApplication([])
 
     def _create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
                               min_size, confirm_quit, background_color, debug, js_api,
-                              webview_ready)
+                              text_select, webview_ready)
         browser.show()
 
     if uid == 'master':
