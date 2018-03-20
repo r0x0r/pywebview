@@ -21,7 +21,7 @@ import logging
 from threading import Event, Thread, current_thread
 from uuid import uuid4
 
-from .js import api, npo
+from .js import api, npo, css_loader
 from .localization import localization
 
 logger = logging.getLogger(__name__)
@@ -118,6 +118,81 @@ def _initialize_imports():
         _initialized = True
 
 
+def start(title, html, css='', script='', js_api=None, options={}):
+    def inject_css(html):
+        style_tag = '<style type="text/css">%s</style>' % css
+
+        if '</head>' in html:
+            return html.replace('</head>', style_tag + '</head>')
+        elif '<body>' in html:
+            return html.replace('<body>', '<body>' + style_tag)
+        elif '</html>' in html:
+            return html.replace('</html>', style_tag + '</html>')
+        else:
+            style_tag + html
+
+    def load_assets():
+        if css:
+            load_html(inject_css(html))
+        else:
+            load_html(html)
+
+        if script:
+            evaluate_js(script)
+
+    if 'title' in options:
+        del options['title']
+
+    if 'js_api' in options:
+        del options['js_api']
+
+    t = Thread(target=load_assets)
+    t.start()
+    create_window(title, js_api=js_api, debug=True, **options)
+
+
+def create_window(title, url=None, js_api=None, width=800, height=600,
+                  resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
+                  background_color='#FFFFFF', text_select=False, debug=False):
+    """
+    Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
+    program logic must be executed in a separate thread.
+    :param title: Window title
+    :param url: URL to load
+    :param width: Optional window width (default: 800px)
+    :param height: Optional window height (default: 600px)
+    :param resizable True if window can be resized, False otherwise. Default is True
+    :param fullscreen: True if start in fullscreen mode. Default is False
+    :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
+    :param strings: a dictionary with localized strings
+    :param confirm_quit: Display a quit confirmation dialog. Default is False
+    :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
+    :return:
+    """
+    uid = 'child_' + uuid4().hex[:8]
+
+    valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
+    if not re.match(valid_color, background_color):
+        raise ValueError('{0} is not a valid hex triplet color'.format(background_color))
+
+    if not _initialized:
+        # Check if starting up from main thread; if not, wait; finally raise exception
+        if current_thread().name != 'MainThread':
+            if not _webview_ready.wait(5):
+                raise Exception('Call create_window from the main thread first, and then from subthreads')
+        else:
+            _initialize_imports()
+            localization.update(strings)
+            uid = 'master'
+
+    _webview_ready.clear()
+    gui.create_window(uid, _make_unicode(title), _transform_url(url),
+                      width, height, resizable, fullscreen, min_size, confirm_quit,
+                      background_color, debug, js_api, text_select, _webview_ready)
+
+    return uid
+
+
 def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=()):
     """
     Create a file dialog
@@ -168,55 +243,42 @@ def load_html(content, uid='master'):
     :param content: Content to load.
     :param uid: uid of the target instance
     """
+
+    def inject_base_uri():
+        base_uri = _base_uri()
+        base_tag = '<base href="%s">' % base_uri
+
+        if '<base>' in content:
+            return content
+        elif '<head>' in content:
+            return content.replace('<head>', '<head>' + base_tag )
+        elif '<html>' in content:
+            return content.replace('<html>', '<html>' + base_tag)
+        elif '<body>' in content:
+            return content.replace('<body>', base_tag + '<body>')
+        else:
+            return base_tag + content
+
     try:
         _webview_ready.wait(5)
-        gui.load_html(_make_unicode(content), uid)
+        content = _make_unicode(inject_base_uri())
+
+        gui.load_html(content, uid)
     except NameError as e:
         raise Exception('Create a web view window first, before invoking this function')
     except KeyError:
         raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
 
 
-def create_window(title, url=None, js_api=None, width=800, height=600,
-                  resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
-                  background_color='#FFFFFF', debug=False):
-    """
-    Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
-    program logic must be executed in a separate thread.
-    :param title: Window title
-    :param url: URL to load
-    :param width: Optional window width (default: 800px)
-    :param height: Optional window height (default: 600px)
-    :param resizable True if window can be resized, False otherwise. Default is True
-    :param fullscreen: True if start in fullscreen mode. Default is False
-    :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
-    :param strings: a dictionary with localized strings
-    :param confirm_quit: Display a quit confirmation dialog. Default is False
-    :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
-    :return:
-    """
-    uid = 'child_' + uuid4().hex[:8]
-
-    valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
-    if not re.match(valid_color, background_color):
-        raise ValueError('{0} is not a valid hex triplet color'.format(background_color))
-
-    if not _initialized:
-        # Check if starting up from main thread; if not, wait; finally raise exception
-        if current_thread().name != 'MainThread':
-            if not _webview_ready.wait(5):
-                raise Exception('Call create_window from the main thread first, and then from subthreads')
-        else:
-            _initialize_imports()
-            localization.update(strings)
-            uid = 'master'
-
-    _webview_ready.clear()
-    gui.create_window(uid, _make_unicode(title), _transform_url(url),
-                      width, height, resizable, fullscreen, min_size, confirm_quit,
-                      background_color, debug, js_api, _webview_ready)
-
-    return uid
+def load_css(css, uid='master'):
+    try:
+        _webview_ready.wait(5)
+        code = css_loader.src % css.replace('\n', '').replace('\r', '').replace('"', "'")
+        evaluate_js(code)
+    except NameError as e:
+        raise Exception('Create a web view window first, before invoking this function')
+    except KeyError:
+        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
 
 
 def set_title(title, uid='master'):
@@ -283,7 +345,9 @@ def evaluate_js(script, uid='master'):
     """
     try:
         _webview_ready.wait(5)
-        return gui.evaluate_js(script, uid)
+        escaped_script = 'JSON.stringify(eval("{0}"))'.format(_escape_string(script))
+
+        return gui.evaluate_js(escaped_script, uid)
     except NameError:
         raise Exception('Create a web view window first, before invoking this function')
     except KeyError:
@@ -333,17 +397,21 @@ def _js_bridge_call(uid, api_instance, func_name, param):
 
 def _parse_api_js(api_instance):
     func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
-    js_code = npo.src + api.src % func_list
+    js_code = api.src % func_list
 
     return js_code
 
 
 def _escape_string(string):
-    return string.replace('"', r'\"').replace('\n', r'\n').replace('\r', r'\\r')
+    return string\
+        .replace('\\', '\\\\') \
+        .replace('"', r'\"') \
+        .replace('\n', r'\n')\
+        .replace('\r', r'\r')
 
 
 def _escape_line_breaks(string):
-    return string.replace('\\n', r'\\n').replace('\\r', r'\\r')
+    return string.replace('\\n', '\\\\n').replace('\\r', '\\\\r')
 
 
 def _make_unicode(string):
@@ -360,12 +428,10 @@ def _make_unicode(string):
 
 
 def _transform_url(url):
-    if url is None:
+    if url is None or ':' not in url:
         return url
-    if url.find(':') == -1:
-        return 'file://' + os.path.abspath(url)
     else:
-        return url
+        return 'file://' + os.path.abspath(url)
 
 
 def _parse_file_type(file_type):
@@ -387,3 +453,14 @@ def _convert_string(string):
         return unicode(string)
     else:
         return str(string)
+
+
+def _base_uri(relative_path=''):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath('.')
+
+    return 'file://' + os.path.join(base_path, relative_path)

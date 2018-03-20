@@ -18,6 +18,7 @@ from objc import nil, super, pyobjc_unicode
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview import _parse_file_type, _js_bridge_call, _parse_api_js, _convert_string, _escape_string
+from .js.css_loader import disable_text_select
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -184,7 +185,11 @@ class BrowserView:
                     if i.js_bridge:
                         i._set_js_api()
 
+                if not i.text_select:
+                    i.webkit.windowScriptObject().evaluateWebScript_(disable_text_select)
+
                 i.loaded.set()
+
 
     class FileFilterChooser(AppKit.NSPopUpButton):
         def initWithFilter_(self, file_filter):
@@ -239,7 +244,7 @@ class BrowserView:
                     return handled
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, js_api, webview_ready):
+                 confirm_quit, background_color, debug, js_api, text_select, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
 
@@ -255,6 +260,7 @@ class BrowserView:
         self.loaded = Event()
         self.confirm_quit = confirm_quit
         self.title = title
+        self.text_select = text_select
 
         self.is_fullscreen = False
 
@@ -363,7 +369,7 @@ class BrowserView:
 
     def evaluate_js(self, script):
         def evaluate(script):
-            result = self.webkit.windowScriptObject().evaluateWebScript_('JSON.stringify(eval("{0}"))'.format(_escape_string(script)))
+            result = self.webkit.windowScriptObject().evaluateWebScript_(script)
             JSResult.result = None if result is WebKit.WebUndefined.undefined() or result == 'null' else json.loads(result)
 
             JSResult.result_semaphore.release()
@@ -581,10 +587,10 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, js_api, webview_ready)
+                              confirm_quit, background_color, debug, js_api, text_select, webview_ready)
         browser.show()
 
     if uid == 'master':

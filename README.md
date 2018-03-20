@@ -90,8 +90,27 @@ an application scaffold and boilerplate code for a real-world application.
 
 ## API
 
+- `webview.start(title, html, css='', script='', js_api=None, options={})`
+  Start a serverless WebView instance with provided HTML/CSS/JS code and JS API class instance. You can specify CSS and JS either
+  using the function parameters or embedded in your HTML file, either inline or linked as relative URLs. The base URL for relative
+  links is set to the directory the program is launched from
+   This function
+  is single window. To open multiple windows use `create_window`
+  * `title` - Window title
+  * `html` - HTML code
+  * `css` - CSS code
+  * `script` - Javascript code
+  * `title` - Window title
+  * `js_api` - Expose `js_api` to the DOM of the current WebView window. Callable functions of `js_api` can be executed
+    using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a
+    primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate
+    threads and are not thread-safe.
+  * `options` - parameters to `create_window` passed as a dict. `title` and `js_api` parameters are ignored.
+
+
 - `webview.create_window(title, url='', js_api=None, width=800, height=600, resizable=True, fullscreen=False,
-                         min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF', debug=False)`
+                         min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF', debug=False,
+                         text_select=False)`
   
   Create a new WebView window. Calling this function for the first time will start the application and block program execution;
   so you have to execute your program logic in a separate thread. Subsequent calls will return a unique `uid` for the created
@@ -112,6 +131,7 @@ an application scaffold and boilerplate code for a real-world application.
   * `confirm_quit` - Whether to display a quit confirmation dialog. Default is False
   * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
   * `debug` - (OSX only) Enables web inspector, when set to True.
+  * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) property.
 
 
 These functions below must be invoked after atleast one WebView window is created with `create_window()`. Otherwise an exception is thrown.
@@ -125,7 +145,11 @@ is thrown. Default is `'master'`, which is the special uid given to the initial 
     Load a new URL into the specified WebView window. 
 
 - `webview.load_html(content, uid='master')`
-    Loads HTML content into the specified WebView window.
+    Load HTML content into the specified WebView window. Base URL for resolving relative URLs is set to the directory
+    the program is launched from.
+
+- `webview.load_css(css, uid='master')`
+    Load CSS into the specified WebView window.
     
 - `webview.evaluate_js(script, uid='master')`
     Execute Javascript code in the specified window. The last evaluated expression is returned. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.

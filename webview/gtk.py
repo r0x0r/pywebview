@@ -13,6 +13,7 @@ from threading import Event, Semaphore, Lock
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview import _escape_string, _js_bridge_call, _parse_api_js, _parse_file_type
+from webview.js.css_loader import disable_text_select
 
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ class BrowserView:
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, js_api, webview_ready):
+                 confirm_quit, background_color, debug, js_api, text_select, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
 
@@ -88,6 +89,8 @@ class BrowserView:
             self.js_bridge = BrowserView.JSBridge(js_api, self.uid)
         else:
             self.js_bridge = None
+
+        self.text_select = text_select
 
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
@@ -137,6 +140,9 @@ class BrowserView:
         # Show the webview if it's not already visible
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)
+
+        if not self.text_select:
+            webview.execute_script(disable_text_select)
 
         if self.js_bridge:
             self._set_js_api()
@@ -250,7 +256,7 @@ class BrowserView:
         self.js_result_semaphores.append(result_semaphore)
         # Backup the doc title and store the result in it with a custom prefix
         unique_id = uuid1().hex
-        code = 'window.oldTitle{0} = document.title; document.title = JSON.stringify(eval("{1}"));'.format(unique_id, _escape_string(script))
+        code = 'window.oldTitle{0} = document.title; document.title = JSON.stringify(eval("{1}"));'.format(unique_id, script)
 
         self.load_event.wait()
         glib.idle_add(_evaluate_js)
@@ -293,7 +299,7 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
                               confirm_quit, background_color, debug, js_api, webview_ready)
