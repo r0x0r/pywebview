@@ -74,18 +74,20 @@ On Debian based systems run
 
 For QT based systems
 
-Either `PyQt4` or `PyQt5`
-
+Either `PyQt5` or `PyQt4`. PyQt4 is deprecated and will be removed in the future.
 
 # Usage
 
     import webview
-    
     webview.create_window("It works, Jim!", "http://www.flowrl.com")
 
-For more elaborated usage, refer to the examples in the `examples` directory.
-There is also a sample Flask application boilerplate provided in the `examples/flask_app` directory. It provides
-an application scaffold and boilerplate code for a real-world application.
+For more detailed usage, refer to the examples in the `examples` directory. There are three ways to build your app
+
+1) Open a web page as in the example above. The page can be either local (`file://`) or remote.
+2) Use `webview.start()` function to load your application and provide a js_api object for Python-JS intercommunication .
+   See `examples/todos`
+3) Run a local web server and point pywebview to display it. There is an example Flask application in the `examples/flask_app`
+   directory. 
 
 
 ## API
@@ -93,9 +95,8 @@ an application scaffold and boilerplate code for a real-world application.
 - `webview.start(title, html, css='', script='', js_api=None, options={})`
   Start a serverless WebView instance with provided HTML/CSS/JS code and JS API class instance. You can specify CSS and JS either
   using the function parameters or embedded in your HTML file, either inline or linked as relative URLs. The base URL for relative
-  links is set to the directory the program is launched from
-   This function
-  is single window. To open multiple windows use `create_window`
+  links is set to the directory the program is launched from. The function supports only a single window. To open multiple windows
+  use `create_window`.
   * `title` - Window title
   * `html` - HTML code
   * `css` - CSS code
@@ -106,6 +107,8 @@ an application scaffold and boilerplate code for a real-world application.
     primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate
     threads and are not thread-safe.
   * `options` - parameters to `create_window` passed as a dict. `title` and `js_api` parameters are ignored.
+
+  Note: You cannot use hash links (anchors) with this function.
 
 
 - `webview.create_window(title, url='', js_api=None, width=800, height=600, resizable=True, fullscreen=False,
