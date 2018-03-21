@@ -247,7 +247,7 @@ class BrowserView(QMainWindow):
             self.load_event.set()
 
         if not self.text_select:
-            self.evaluate_js(_escape_string(disable_text_select))
+            self.evaluate_js(escape_string(disable_text_select))
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)
