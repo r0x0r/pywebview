@@ -5,23 +5,24 @@
 pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its
 own dedicated window. Works on Windows, OS X and Linux and compatible with Python 2 and 3.
 
-(C) 2014-2016 Roman Sirokov and contributors
+(C) 2014-2018 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
 
 
-import platform
-import os
-import sys
-import re
 import json
 import logging
+import os
+import platform
+import re
+import sys
 from threading import Event, Thread, current_thread
 from uuid import uuid4
 
-from .js import api, npo, css_loader
+from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, inject_base_uri, inject_css
+from .js import api, npo, css
 from .localization import localization
 
 logger = logging.getLogger(__name__)
@@ -119,23 +120,13 @@ def _initialize_imports():
 
 
 def start(title, html, css='', script='', js_api=None, options={}):
-    def inject_css(html):
-        style_tag = '<style type="text/css">%s</style>' % css
-
-        if '</head>' in html:
-            return html.replace('</head>', style_tag + '</head>')
-        elif '<body>' in html:
-            return html.replace('<body>', '<body>' + style_tag)
-        elif '</html>' in html:
-            return html.replace('</html>', style_tag + '</html>')
-        else:
-            style_tag + html
-
     def load_assets():
+        injected_html = inject_base_uri(html)
+
         if css:
-            load_html(inject_css(html))
+            load_html(inject_css(injected_html, css))
         else:
-            load_html(html)
+            load_html(injected_html)
 
         if script:
             evaluate_js(script)
@@ -159,14 +150,15 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     program logic must be executed in a separate thread.
     :param title: Window title
     :param url: URL to load
-    :param width: Optional window width (default: 800px)
-    :param height: Optional window height (default: 600px)
+    :param width: window width. Default is 800px
+    :param height:window height. Default is 600px
     :param resizable True if window can be resized, False otherwise. Default is True
     :param fullscreen: True if start in fullscreen mode. Default is False
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
     :param strings: a dictionary with localized strings
     :param confirm_quit: Display a quit confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
+    :param text_select: Allow text selection on page. Default is False.
     :return:
     """
     uid = 'child_' + uuid4().hex[:8]
@@ -186,7 +178,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
             uid = 'master'
 
     _webview_ready.clear()
-    gui.create_window(uid, _make_unicode(title), _transform_url(url),
+    gui.create_window(uid, make_unicode(title), transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
                       background_color, debug, js_api, text_select, _webview_ready)
 
@@ -208,7 +200,7 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
     if type(file_types) != tuple and type(file_types) != list:
         raise TypeError('file_types must be a tuple of strings')
     for f in file_types:
-        _parse_file_type(f)
+        parse_file_type(f)
 
     if not os.path.exists(directory):
         directory = ''
@@ -244,24 +236,9 @@ def load_html(content, uid='master'):
     :param uid: uid of the target instance
     """
 
-    def inject_base_uri():
-        base_uri = _base_uri()
-        base_tag = '<base href="%s">' % base_uri
-
-        if '<base>' in content:
-            return content
-        elif '<head>' in content:
-            return content.replace('<head>', '<head>' + base_tag )
-        elif '<html>' in content:
-            return content.replace('<html>', '<html>' + base_tag)
-        elif '<body>' in content:
-            return content.replace('<body>', base_tag + '<body>')
-        else:
-            return base_tag + content
-
     try:
         _webview_ready.wait(5)
-        content = _make_unicode(inject_base_uri())
+        content = make_unicode(content)
 
         gui.load_html(content, uid)
     except NameError as e:
@@ -270,10 +247,10 @@ def load_html(content, uid='master'):
         raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
 
 
-def load_css(css, uid='master'):
+def load_css(stylesheet, uid='master'):
     try:
         _webview_ready.wait(5)
-        code = css_loader.src % css.replace('\n', '').replace('\r', '').replace('"', "'")
+        code = css.src % stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
         evaluate_js(code)
     except NameError as e:
         raise Exception('Create a web view window first, before invoking this function')
@@ -345,7 +322,7 @@ def evaluate_js(script, uid='master'):
     """
     try:
         _webview_ready.wait(5)
-        escaped_script = 'JSON.stringify(eval("{0}"))'.format(_escape_string(script))
+        escaped_script = 'JSON.stringify(eval("{0}"))'.format(escape_string(script))
 
         return gui.evaluate_js(escaped_script, uid)
     except NameError:
@@ -379,7 +356,7 @@ def webview_ready(timeout=None):
 def _js_bridge_call(uid, api_instance, func_name, param):
     def _call():
         result = json.dumps(function(func_params))
-        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, _escape_line_breaks(result))
+        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, escape_line_breaks(result))
         evaluate_js(code, uid)
 
     function = getattr(api_instance, func_name, None)
@@ -393,74 +370,3 @@ def _js_bridge_call(uid, api_instance, func_name, param):
             logger.exception('Error occurred while evaluating function {0}'.format(func_name))
     else:
         logger.error('Function {}() does not exist'.format(func_name))
-
-
-def _parse_api_js(api_instance):
-    func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
-    js_code = api.src % func_list
-
-    return js_code
-
-
-def _escape_string(string):
-    return string\
-        .replace('\\', '\\\\') \
-        .replace('"', r'\"') \
-        .replace('\n', r'\n')\
-        .replace('\r', r'\r')
-
-
-def _escape_line_breaks(string):
-    return string.replace('\\n', '\\\\n').replace('\\r', '\\\\r')
-
-
-def _make_unicode(string):
-    """
-    Python 2 and 3 compatibility function that converts a string to Unicode. In case of Unicode, the string is returned
-    unchanged
-    :param string: input string
-    :return: Unicode string
-    """
-    if sys.version < '3' and isinstance(string, str):
-        return unicode(string.decode('utf-8'))
-
-    return string
-
-
-def _transform_url(url):
-    if url is None or ':' not in url:
-        return url
-    else:
-        return 'file://' + os.path.abspath(url)
-
-
-def _parse_file_type(file_type):
-    '''
-    :param file_type: file type string 'description (*.file_extension1;*.file_extension2)' as required by file filter in create_file_dialog
-    :return: (description, file extensions) tuple
-    '''
-    valid_file_filter = r'^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*\.\w+)*)\)$'
-    match = re.search(valid_file_filter, file_type)
-
-    if match:
-        return match.group(1).rstrip(), match.group(2)
-    else:
-        raise ValueError('{0} is not a valid file filter'.format(file_type))
-
-
-def _convert_string(string):
-    if sys.version < '3':
-        return unicode(string)
-    else:
-        return str(string)
-
-
-def _base_uri(relative_path=''):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath('.')
-
-    return 'file://' + os.path.join(base_path, relative_path)

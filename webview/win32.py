@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-(C) 2014-2016 Roman Sirokov and contributors
+(C) 2014-2018 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/

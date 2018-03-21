@@ -30,5 +30,5 @@ if __name__ == '__main__':
     html = load_asset('index.html')
     api = Api()
 
-    webview.start('TODO app', html=html, css=css, js_api=api, options={'min_size': (600, 450)})
+    webview.start('TODOS BRAVOS', html=html, css=css, js_api=api, options={'min_size': (600, 450)})
 

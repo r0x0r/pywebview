@@ -1,5 +1,5 @@
 """
-(C) 2014-2016 Roman Sirokov and contributors
+(C) 2014-2018 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -16,9 +16,9 @@ from PyObjCTools import AppHelper, Conversion
 from objc import nil, super, pyobjc_unicode
 
 from webview.localization import localization
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _parse_file_type, _js_bridge_call, _parse_api_js, _convert_string, _escape_string
-from .js.css_loader import disable_text_select
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
+from webview.util import convert_string, parse_api_js
+from .js.css import disable_text_select
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -385,7 +385,7 @@ class BrowserView:
         return JSResult.result
 
     def _set_js_api(self):
-        script = _parse_api_js(self.js_bridge.api)
+        script = parse_api_js(self.js_bridge.api)
         self.webkit.windowScriptObject().evaluateWebScript_(script)
 
         pwv_obj = self.webkit.windowScriptObject().valueForKey_('pywebview')
@@ -608,7 +608,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
     # Parse file_types to obtain allowed file extensions
     for s in file_types:
-        description, extensions = _parse_file_type(s)
+        description, extensions = parse_file_type(s)
         file_extensions = [i.lstrip('*.') for i in extensions.split(';') if i != '*.*']
         file_filter.append([description, file_extensions or None])
 

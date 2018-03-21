@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-(C) 2014-2016 Roman Sirokov and contributors
+(C) 2014-2018 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -29,10 +29,10 @@ from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
 from WebBrowserInterop import IWebBrowserInterop
 
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _parse_file_type, _parse_api_js, _js_bridge_call
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, _js_bridge_call
+from webview.util import parse_api_js
 from .js import alert
-from .js.css_loader import disable_text_select
+from .js.css import disable_text_select
 
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
@@ -179,7 +179,7 @@ class BrowserView:
 
             if self.js_bridge.api:
                 document = self.web_browser.Document
-                document.InvokeScript('eval', (_parse_api_js(self.js_bridge.api),))
+                document.InvokeScript('eval', (parse_api_js(self.js_bridge.api),))
 
             if not self.text_select:
                 webview.execute_script(disable_text_select)
@@ -277,7 +277,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
             dialog.InitialDirectory = directory
 
             if len(file_types) > 0:
-                dialog.Filter = '|'.join(['{0} ({1})|{1}'.format(*_parse_file_type(f)) for f in file_types])
+                dialog.Filter = '|'.join(['{0} ({1})|{1}'.format(*parse_file_type(f)) for f in file_types])
             else:
                 dialog.Filter = localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
             dialog.RestoreDirectory = True

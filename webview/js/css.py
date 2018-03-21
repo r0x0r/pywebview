@@ -1,9 +1,9 @@
 src = """
 (function() {
-var css = document.createElement("style");
-css.type = "text/css";
-css.innerHTML = "%s";
-document.head.appendChild(css);
+    var css = document.createElement("style");
+    css.type = "text/css";
+    css.innerHTML = "%s";
+    document.head.appendChild(css);
 })()
 """
 
