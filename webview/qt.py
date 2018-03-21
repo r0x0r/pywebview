@@ -1,5 +1,5 @@
 '''
-(C) 2014-2016 Roman Sirokov and contributors
+(C) 2014-2018 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -13,9 +13,10 @@ from copy import deepcopy
 from threading import Semaphore, Event
 
 from webview.localization import localization
-from webview import _parse_api_js, _js_bridge_call, _convert_string, _escape_string
+from webview import escape_string, _js_bridge_call
+from webview.util import convert_string, parse_api_js
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview.js.css_loader import disable_text_select
+from webview.js.css import disable_text_select
 
 
 logger = logging.getLogger(__name__)
@@ -317,7 +318,7 @@ class BrowserView(QMainWindow):
         def _register_window_object():
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
-        script = _parse_api_js(self.js_bridge.api)
+        script = parse_api_js(self.js_bridge.api)
 
         if _qt_version >= [5, 5]:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
@@ -350,7 +351,7 @@ class BrowserView(QMainWindow):
         except AttributeError:
             pass
 
-        return _convert_string(result)
+        return convert_string(result)
 
     @staticmethod
     # Receive func from subthread and execute it on the main thread

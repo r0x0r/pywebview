@@ -1,5 +1,5 @@
 """
-(C) 2014-2016 Roman Sirokov and contributors
+(C) 2014-2018 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -11,9 +11,9 @@ import json
 from uuid import uuid1
 from threading import Event, Semaphore, Lock
 from webview.localization import localization
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _escape_string, _js_bridge_call, _parse_api_js, _parse_file_type
-from webview.js.css_loader import disable_text_select
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
+from webview.util import parse_api_js
+from webview.js.css import disable_text_select
 
 
 logger = logging.getLogger(__name__)
@@ -160,7 +160,7 @@ class BrowserView:
             _, func_name, param = status.split(delim)
             return_val = self.js_bridge.call(func_name, param)
             # Give back the return value to JS as a string
-            code = 'pywebview._bridge.return_val = "{0}";'.format(_escape_string(str(return_val)))
+            code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
             webview.execute_script(code)
 
     def show(self):
@@ -224,7 +224,7 @@ class BrowserView:
 
     def _add_file_filters(self, dialog, file_types):
         for s in file_types:
-            description, extensions = _parse_file_type(s)
+            description, extensions = parse_file_type(s)
 
             f = gtk.FileFilter()
             f.set_name(description)
@@ -291,7 +291,7 @@ class BrowserView:
             }};""".format(self.js_bridge.uid)
 
             # Create the `pywebview` JS api object
-            self.webview.execute_script(_parse_api_js(self.js_bridge.api))
+            self.webview.execute_script(parse_api_js(self.js_bridge.api))
             self.webview.execute_script(code)
             self.load_event.set()
 
