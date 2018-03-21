@@ -2,7 +2,12 @@ import os
 import platform
 from setuptools import setup
 
+package_data = {
+    'webview.js': ['*.py']
+}
+
 if platform.system() == "Windows":
+    package_data['webview.lib'] = ['*.dll']
     extras_require = {
         'win32': ['pywin32', 'comtypes'],
         'winforms': ['pythonnet'],
@@ -18,17 +23,20 @@ elif platform.system() == "Linux":
         'qt5': ['PyQt5'],
     }
 
+
 setup(
     name="pywebview",
     author="Roman Sirokov",
     author_email="roman@flowrl.com",
+    include_package_data=True,
+    package_data=package_data,
     description=("A cross-platform lightweight native wrapper around a web view component"),
     url="http://github.com/r0x0r/pywebview",
     download_url="https://github.com/r0x0r/pywebview/archive/1.8.tar.gz",
     keywords=["gui", "webkit", "html", "web"],
     extras_require=extras_require,
     version="1.8",
-    packages=["webview",],
+    packages=["webview"],
     license="New BSD license",
     classifiers=[
         "Intended Audience :: Developers",
