@@ -12,7 +12,7 @@ from threading import Event, Semaphore
 import Foundation
 import AppKit
 import WebKit
-from PyObjCTools import AppHelper, Conversion
+from PyObjCTools import AppHelper
 from objc import nil, super, pyobjc_unicode
 
 from webview.localization import localization
