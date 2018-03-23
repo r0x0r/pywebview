@@ -1,5 +1,6 @@
 """
-This is an example of py2exe setup.py script for freezing your pywebview application
+This is an example of py2exe setup.py script for freezing your
+pywebview application
 
 Usage:
     python setup.py py2exe

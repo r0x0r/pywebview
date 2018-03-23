@@ -3,17 +3,17 @@ import threading
 import time
 import sys
 import random
-import json
 
 '''
-This example demonstrates how to create a pywebview api without using a web server
+This example demonstrates how to create a pywebview api without using a web
+server
 '''
 
-html='''
+html = '''
 <!DOCTYPE html>
 <html>
 <head lang="en">
-<meta charset="UTF-8"> 
+<meta charset="UTF-8">
 
 <style>
     #response-container {
@@ -23,7 +23,7 @@ html='''
         font-size: 120%;
         border: 5px dashed #ccc;
     }
-    
+
     button {
         font-size: 100%;
         padding: 0.5rem;
@@ -45,12 +45,12 @@ html='''
 <script>
 function showResponse(response) {
     var container = document.getElementById('response-container')
-    
+
     container.innerText = response.message
     container.style.display = 'block'
 }
 
-function initialize() {    
+function initialize() {
     pywebview.api.init().then(showResponse)
 }
 
@@ -99,7 +99,7 @@ class Api:
         return response
 
     def do_heavy_stuff(self, params):
-        time.sleep(0.1) # sleep to prevent from the ui thread from freezing for a moment
+        time.sleep(0.1)  # sleep to prevent from the ui thread from freezing for a moment
         now = time.time()
         self.cancel_heavy_stuff_flag = False
         for i in range(0, 1000000):
@@ -129,4 +129,3 @@ if __name__ == '__main__':
 
     api = Api()
     webview.create_window('API example', js_api=api, debug=True)
-
