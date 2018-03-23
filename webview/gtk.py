@@ -94,6 +94,7 @@ class BrowserView:
         self.webview.connect('document-load-finished', self.on_load_finish)
         self.webview.connect('status-bar-text-changed', self.on_status_change)
         self.webview.props.settings.props.enable_default_context_menu = False
+        self.webview.props.settings.props.javascript_can_access_clipboard = True
         self.webview.props.opacity = 0.0
         scrolled_window.add(self.webview)
 
