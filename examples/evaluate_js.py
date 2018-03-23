@@ -5,9 +5,10 @@ import threading
 This example demonstrates evaluating JavaScript in a webpage.
 """
 
+
 def evaluate_js():
-    import time
-    time.sleep(5)
+    # wait until the webview window is ready:
+    webview.webview_ready()
 
     # Change document background color and print document title
     print(webview.evaluate_js(
@@ -28,4 +29,3 @@ if __name__ == '__main__':
     t.start()
 
     webview.create_window('Run custom JavaScript', 'http://www.flowrl.com')
-

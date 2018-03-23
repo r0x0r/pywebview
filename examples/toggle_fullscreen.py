@@ -5,9 +5,15 @@ import threading
 This example demonstrates how to toggle fullscreen mode programmatically.
 """
 
+
 def toggle_fullscreen():
+    # wait until the webview window is ready:
+    webview.webview_ready()
+
+    # let the user view the window a few seconds:
     import time
-    time.sleep(5)
+    time.sleep(4)
+
     webview.toggle_fullscreen()
 
 

@@ -1,8 +1,8 @@
 import webview
-import threading
 
 """
-This example demonstrates how to create a pywebview windows using QT (normally GTK is preferred)
+This example demonstrates how to create a pywebview windows using QT
+(normally GTK is preferred)
 """
 
 if __name__ == '__main__':

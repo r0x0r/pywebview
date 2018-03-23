@@ -5,7 +5,11 @@ import threading
 This example demonstrates creating a save file dialog.
 """
 
+
 def get_current_url():
+    # wait until the webview window is ready:
+    webview.webview_ready()
+
     print(webview.get_current_url())
 
 
@@ -14,4 +18,3 @@ if __name__ == '__main__':
     t.start()
 
     webview.create_window("Get current URL", "http://www.flowrl.com")
-
