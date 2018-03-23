@@ -7,9 +7,6 @@ This example demonstrates how to create and manage multiple windows
 
 
 def create_new_window():
-    # wait until the webview window is ready:
-    webview.webview_ready()
-
     # Create new window and store its uid
     child_window = webview.create_window('Window #2', width=800, height=400)
 

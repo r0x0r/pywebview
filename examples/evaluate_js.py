@@ -2,14 +2,11 @@ import webview
 import threading
 
 """
-This example demonstrates evaluating JavaScript in a webpage.
+This example demonstrates evaluating JavaScript in a web page.
 """
 
 
 def evaluate_js():
-    # wait until the webview window is ready:
-    webview.webview_ready()
-
     # Change document background color and print document title
     print(webview.evaluate_js(
         """
@@ -20,7 +17,7 @@ def evaluate_js():
         // Return document title
         document.title;
         """
-        )
+    )
     )
 
 

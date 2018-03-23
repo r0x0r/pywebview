@@ -126,4 +126,4 @@ if __name__ == '__main__':
     t = threading.Thread(target=load_html)
     t.start()
 
-    webview.create_window('Background color', background_color='#333333')
+    webview.create_window('Loading Animation', background_color='#333333')

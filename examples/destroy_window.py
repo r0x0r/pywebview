@@ -1,19 +1,16 @@
 import webview
 import threading
+import time
 
 """
 This example demonstrates how a webview window is created and destroyed
-programmatically after 5 seconds
+programmatically after 5 seconds.
 """
 
 
 def destroy():
-    # wait until the webview window is ready:
-    webview.webview_ready()
-
-    # let the user view the window a few seconds:
-    import time
-    time.sleep(4)
+    # show the window for a few seconds before destroying it:
+    time.sleep(5)
 
     print("Destroying window..")
     webview.destroy_window()
@@ -23,5 +20,5 @@ def destroy():
 if __name__ == '__main__':
     t = threading.Thread(target=destroy)
     t.start()
-    webview.create_window("Simple browser", "http://www.google.com")
+    webview.create_window("Destroy Window Example", "http://www.google.com")
     print("Window is destroyed")

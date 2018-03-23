@@ -1,6 +1,6 @@
 """
-This is an example of py2applet setup.py script for freezing your
-pywebview application
+This is an example of py2applet setup.py script for freezing your pywebview
+application
 
 Usage:
     python setup.py py2app
@@ -11,7 +11,8 @@ from setuptools import setup
 
 
 def tree(src):
-    return [(root, map(lambda f: os.path.join(root, f), files)) for (root, dirs, files) in os.walk(os.path.normpath(src))]
+    return [(root, map(lambda f: os.path.join(root, f), files))
+            for (root, dirs, files) in os.walk(os.path.normpath(src))]
 
 
 ENTRY_POINT = ['YOUR_EXAMPLE.py']

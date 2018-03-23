@@ -2,14 +2,11 @@ import webview
 import threading
 
 """
-This example demonstrates creating a save file dialog.
+This example demonstrates how to get the current url loaded in the webview.
 """
 
 
 def get_current_url():
-    # wait until the webview window is ready:
-    webview.webview_ready()
-
     print(webview.get_current_url())
 
 
