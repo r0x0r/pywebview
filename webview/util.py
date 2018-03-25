@@ -20,7 +20,10 @@ def base_uri(relative_path=''):
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath('.')
+        if 'pytest' in sys.modules:
+            base_path = os.path.dirname(os.path.realpath(sys.argv[1]))
+        else:
+            base_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 
     return 'file://%s' % os.path.join(base_path, relative_path)
 
@@ -62,7 +65,7 @@ def escape_string(string):
 
 
 def transform_url(url):
-    if url is None or ':' not in url:
+    if url is None or ':' in url:
         return url
     else:
         return 'file://' + os.path.abspath(url)

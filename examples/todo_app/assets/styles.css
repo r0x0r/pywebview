@@ -520,3 +520,5 @@ html .clear-completed:active {
 		bottom: 10px;
 	}
 }
+
+.logo { text-align: center; max-width: 300px; margin: 30px auto 0 auto; } .logo img { width: 300px; opacity: 0.9 }

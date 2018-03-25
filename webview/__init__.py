@@ -119,7 +119,18 @@ def _initialize_imports():
         _initialized = True
 
 
-def start(title, html, css='', script='', js_api=None, options={}):
+def start(title, html_file, js_api=None, options={}):
+    if 'title' in options:
+        del options['title']
+
+    if 'js_api' in options:
+        del options['js_api']
+
+    url = base_uri(html_file)
+    create_window(title, url, js_api=js_api, debug=True, **options)
+
+
+def start2(title, html, css='', script='', js_api=None, options={}):
     def load_assets():
         injected_html = inject_base_uri(html)
 

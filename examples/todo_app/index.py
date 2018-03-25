@@ -26,9 +26,9 @@ class Api():
 
 
 if __name__ == '__main__':
-    css = '.logo { text-align: center; max-width: 300px; margin: 30px auto 0 auto; } .logo img { width: 300px; opacity: 0.9 }'
     html = load_asset('index.html')
     api = Api()
 
-    webview.start('TODOS BRAVOS', html=html, css=css, js_api=api, options={'min_size': (600, 450)})
+    #webview.start('TODOS BRAVOS', html=html, css=css, js_api=api, options={'min_size': (600, 450)})
+    webview.start('TODOS BRAVOS', 'index.html', js_api=api, options={'min_size': (600, 450)})
 
