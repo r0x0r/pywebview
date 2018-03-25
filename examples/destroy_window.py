@@ -1,15 +1,17 @@
 import webview
 import threading
+import time
 
 """
-This example demonstrates how a webview window is created and destroyed programmatically after 5 seconds
+This example demonstrates how a webview window is created and destroyed
+programmatically after 5 seconds.
 """
-#import os
-#os.environ["USE_GTK"] = "true"
+
 
 def destroy():
-    import time
+    # show the window for a few seconds before destroying it:
     time.sleep(5)
+
     print("Destroying window..")
     webview.destroy_window()
     print("Destroyed!")
@@ -18,6 +20,5 @@ def destroy():
 if __name__ == '__main__':
     t = threading.Thread(target=destroy)
     t.start()
-    webview.create_window("Simple browser", "http://www.google.com")
+    webview.create_window("Destroy Window Example", "http://www.google.com")
     print("Window is destroyed")
-
