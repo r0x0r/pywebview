@@ -3,7 +3,6 @@ import platform
 from setuptools import setup
 
 package_data = {
-    # 'webview.js': ['*.py']
 }
 
 if platform.system() == "Windows":
