@@ -256,7 +256,7 @@ class BrowserView:
         self.js_result_semaphores.append(result_semaphore)
         # Backup the doc title and store the result in it with a custom prefix
         unique_id = uuid1().hex
-        code = 'window.oldTitle{0} = document.title; document.title = JSON.stringify(eval("{1}"));'.format(unique_id, script)
+        code = 'window.oldTitle{0} = document.title; document.title = {1};'.format(unique_id, script)
 
         self.load_event.wait()
         glib.idle_add(_evaluate_js)
