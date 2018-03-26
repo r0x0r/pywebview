@@ -65,10 +65,9 @@ def escape_string(string):
 
 
 def transform_url(url):
-    if url is None or ':' in url:
-        return url
-    else:
+    if url and ':' not in url:
         return 'file://' + os.path.abspath(url)
+    return url
 
 
 def make_unicode(string):
