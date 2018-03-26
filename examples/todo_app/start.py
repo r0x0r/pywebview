@@ -6,11 +6,6 @@ An example of serverless app architecture using webview.start() function
 """
 
 
-def load_asset(filename):
-    with open(filename) as f:
-        return f.read()
-
-
 class Api():
     def addItem(self, title):
         print('Added item %s' % title)
@@ -26,9 +21,6 @@ class Api():
 
 
 if __name__ == '__main__':
-    html = load_asset('index.html')
     api = Api()
-
-    #webview.start('TODOS BRAVOS', html=html, css=css, js_api=api, options={'min_size': (600, 450)})
-    webview.start('TODOS BRAVOS', 'index.html', js_api=api, options={'min_size': (600, 450)})
+    webview.start('TODOS BRAVOS', 'assets/index.html', js_api=api, options={'min_size': (600, 450)})
 
