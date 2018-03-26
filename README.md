@@ -92,24 +92,12 @@ For more detailed usage, refer to the examples in the `examples` directory. Ther
 
 ## API
 
-- `webview.start(title, html, css='', script='', js_api=None, options={})`
-  Start a serverless WebView instance with provided HTML/CSS/JS code and JS API class instance. You can specify CSS and JS either
-  using the function parameters or embedded in your HTML file, either inline or linked as relative URLs. The base URL for relative
-  links is set to the directory the program is launched from. The function supports only a single window. To open multiple windows
-  use `create_window`.
+- `webview.start(title, html_path, js_api=None, options={})`
+  Start a serverless WebView instance pointing to a local HTML file and JS API class instance. The path to the HTML file is relative to the application entry point. The function supports only a single window. To open multiple windows use `create_window`.
   * `title` - Window title
-  * `html` - HTML code
-  * `css` - CSS code
-  * `script` - Javascript code
-  * `title` - Window title
-  * `js_api` - Expose `js_api` to the DOM of the current WebView window. Callable functions of `js_api` can be executed
-    using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a
-    primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate
-    threads and are not thread-safe.
-  * `options` - parameters to `create_window` passed as a dict. `title` and `js_api` parameters are ignored.
-
-  Note: You cannot use hash links (anchors) with this function.
-
+  * `html_path` - the relative path to the application entry point. Paths in frozen application are resolved automatically. 
+  * `js_api` - Expose `js_api` to the DOM of the current WebView window. Callable functions of `js_api` can be executed  using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a  primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate threads and are not thread-safe.
+  * `options` - parameters to `create_window` passed as a dict. `title`, `url` and `js_api` parameters are ignored.
 
 - `webview.create_window(title, url='', js_api=None, width=800, height=600, resizable=True, fullscreen=False,
                          min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF', debug=False,
