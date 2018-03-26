@@ -3,7 +3,7 @@ import platform
 from setuptools import setup
 
 package_data = {
-    'webview.js': ['*.py']
+    # 'webview.js': ['*.py']
 }
 
 if platform.system() == "Windows":
@@ -36,7 +36,7 @@ setup(
     keywords=["gui", "webkit", "html", "web"],
     extras_require=extras_require,
     version="1.8",
-    packages=["webview"],
+    packages=["webview", "webview.js"],
     license="New BSD license",
     classifiers=[
         "Intended Audience :: Developers",
