@@ -333,7 +333,7 @@ def load_url(url, uid):
 
 def load_html(content, base_uri, uid):
     def _load_html():
-        window.web_browser.DocumentText = content
+        window.web_browser.DocumentText = inject_base_uri(content, base_uri)
 
     window = BrowserView.instances[uid]
     window.load_event.clear()

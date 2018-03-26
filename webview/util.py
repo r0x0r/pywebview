@@ -87,10 +87,9 @@ def escape_line_breaks(string):
     return string.replace('\\n', '\\\\n').replace('\\r', '\\\\r')
 
 
-def inject_base_uri(content):
-    _base_uri = base_uri()
+def inject_base_uri(content, base_uri):
     pattern = '<%s(?:[\s]+[^>]*|)>'
-    base_tag = '<base href="%s">' % _base_uri
+    base_tag = '<base href="%s">' % base_uri
 
     match = re.search(pattern % 'base', content)
 
@@ -113,21 +112,3 @@ def inject_base_uri(content):
         return content.replace(tag, base_tag + tag)
 
     return base_tag + content
-
-
-def inject_css(html, css):
-    pattern = '<%s(?:[\s]+[^>]*|)>'
-    style_tag = '<style type="text/css">%s</style>' % css
-
-    if '</head>' in html:
-        return html.replace('</head>', style_tag + '</head>')
-
-    match = re.search(pattern % 'body', content)
-    if match:
-        tag = match.group()
-        return content.replace(tag, tag + style_tag)
-
-    if '</html>' in html:
-        return html.replace('</html>', style_tag + '</html>')
-
-    return style_tag + html

@@ -21,7 +21,7 @@ import sys
 from threading import Event, Thread, current_thread
 from uuid import uuid4
 
-from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, inject_base_uri, inject_css
+from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, inject_base_uri
 from .js import api, npo, css
 from .localization import localization
 
@@ -130,29 +130,6 @@ def start(title, html_file, js_api=None, options={}):
     create_window(title, url, js_api=js_api, debug=True, **options)
 
 
-def start2(title, html, css='', script='', js_api=None, options={}):
-    def load_assets():
-        injected_html = inject_base_uri(html)
-
-        if css:
-            load_html(inject_css(injected_html, css))
-        else:
-            load_html(injected_html)
-
-        if script:
-            evaluate_js(script)
-
-    if 'title' in options:
-        del options['title']
-
-    if 'js_api' in options:
-        del options['js_api']
-
-    t = Thread(target=load_assets)
-    t.start()
-    create_window(title, js_api=js_api, debug=True, **options)
-
-
 def create_window(title, url=None, js_api=None, width=800, height=600,
                   resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
                   background_color='#FFFFFF', text_select=False, debug=False):
@@ -239,21 +216,21 @@ def load_url(url, uid='master'):
         raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
 
 
-def load_html(content, base_uri='', uid='master'):
+def load_html(content, base_uri=base_uri(), uid='master'):
     """
     Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
     created with create_window(). Otherwise an exception is thrown.
     :param content: Content to load.
-    :param base_uri: Base URI for resolving links. Default is "".
+    :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
     :param uid: uid of the target instance
     """
 
     try:
         _webview_ready.wait(5)
-        
+
         content = make_unicode(content)
         gui.load_html(content, base_uri, uid)
-    except NameError as e:
+    except NameError:
         raise Exception('Create a web view window first, before invoking this function')
     except KeyError:
         raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
