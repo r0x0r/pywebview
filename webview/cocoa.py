@@ -177,13 +177,12 @@ class BrowserView:
             # Add the webview to the window if it's not yet the contentView
             i = BrowserView.get_instance('webkit', webview)
 
-            if i is not None:
-                if not webview.window():
-                    i.window.setContentView_(webview)
-                    i.window.makeFirstResponder_(webview)
+            if not webview.window():
+                i.window.setContentView_(webview)
+                i.window.makeFirstResponder_(webview)
 
-                    if i.js_bridge:
-                        i._set_js_api()
+                if i.js_bridge:
+                    i._set_js_api()
 
                 if not i.text_select:
                     i.webkit.windowScriptObject().evaluateWebScript_(disable_text_select)
@@ -359,13 +358,13 @@ class BrowserView:
         self.url = url
         AppHelper.callAfter(load, url)
 
-    def load_html(self, content):
-        def load(content):
-            url = Foundation.NSURL.URLWithString_('')
+    def load_html(self, content, base_uri):
+        def load(content, url):
+            url = Foundation.NSURL.URLWithString_(url)
             self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
 
         self.loaded.clear()
-        AppHelper.callAfter(load, content)
+        AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
         def evaluate(script):
@@ -620,8 +619,8 @@ def load_url(url, uid):
     BrowserView.instances[uid].load_url(url)
 
 
-def load_html(content, uid):
-    BrowserView.instances[uid].load_html(content)
+def load_html(content, base_uri, uid):
+    BrowserView.instances[uid].load_html(content, base_uri)
 
 
 def destroy_window(uid):
