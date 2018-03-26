@@ -70,7 +70,7 @@ class BrowserView(QMainWindow):
     create_window_trigger = QtCore.pyqtSignal(object)
     set_title_trigger = QtCore.pyqtSignal(str)
     load_url_trigger = QtCore.pyqtSignal(str)
-    html_trigger = QtCore.pyqtSignal(str)
+    html_trigger = QtCore.pyqtSignal(str, str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str, str)
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
@@ -197,8 +197,8 @@ class BrowserView(QMainWindow):
     def on_load_url(self, url):
         self.view.setUrl(QtCore.QUrl(url))
 
-    def on_load_html(self, content):
-        self.view.setHtml(content, QtCore.QUrl(''))
+    def on_load_html(self, content, base_uri):
+        self.view.setHtml(content, QtCore.QUrl(base_uri))
 
     def closeEvent(self, event):
         if self.confirm_quit:
@@ -263,9 +263,9 @@ class BrowserView(QMainWindow):
         self.load_event.clear()
         self.load_url_trigger.emit(url)
 
-    def load_html(self, content):
+    def load_html(self, content, base_uri):
         self.load_event.clear()
-        self.html_trigger.emit(content)
+        self.html_trigger.emit(content, base_uri)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
@@ -389,8 +389,8 @@ def load_url(url, uid):
     BrowserView.instances[uid].load_url(url)
 
 
-def load_html(content, uid):
-    BrowserView.instances[uid].load_html(content)
+def load_html(content, base_uri, uid):
+    BrowserView.instances[uid].load_html(content, base_uri)
 
 
 def destroy_window(uid):

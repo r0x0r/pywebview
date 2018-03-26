@@ -308,7 +308,7 @@ def load_url(url, uid):
     BrowserView.instance.load_url(url)
 
 
-def load_html(content, uid):
+def load_html(content, base_uri, uid):
     BrowserView.instance.load_html(content)
 
 

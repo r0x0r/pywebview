@@ -242,9 +242,9 @@ class BrowserView:
         self.load_event.clear()
         self.webview.load_uri(url)
 
-    def load_html(self, content):
+    def load_html(self, content, base_uri):
         self.load_event.clear()
-        self.webview.load_string(content, 'text/html', 'utf-8', 'file://')
+        self.webview.load_string(content, 'text/html', 'utf-8', base_uri)
 
     def evaluate_js(self, script):
         def _evaluate_js():
@@ -339,9 +339,9 @@ def load_url(url, uid):
     glib.idle_add(_load_url)
 
 
-def load_html(content, uid):
+def load_html(content, base_uri, uid):
     def _load_html():
-        BrowserView.instances[uid].load_html(content)
+        BrowserView.instances[uid].load_html(content, base_uri)
     glib.idle_add(_load_html)
 
 
