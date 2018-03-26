@@ -20,6 +20,7 @@ import re
 import sys
 from threading import Event, Thread, current_thread
 from uuid import uuid4
+from functools import wraps
 
 from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, inject_base_uri
 from .js import css
@@ -119,6 +120,28 @@ def _initialize_imports():
         _initialized = True
 
 
+def _api_call(function):
+    """
+    Decorator to call a pywebview API, checking for _webview_ready and raisings
+    appropriate Exceptions on failure.
+    """
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        try:
+            _webview_ready.wait(5)
+            return function(*args, **kwargs)
+        except NameError:
+            raise Exception('Create a web view window first, before invoking this function')
+        except KeyError:
+            try:
+                uid = kwargs['uid']
+            except KeyError:
+                # uid not passed as a keyword arg, assumes it to be last in the arg list
+                uid = args[-1]
+            raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    return wrapper
+
+
 def create_window(title, url=None, js_api=None, width=800, height=600,
                   resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
                   background_color='#FFFFFF', text_select=False, debug=False):
@@ -136,7 +159,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     :param confirm_quit: Display a quit confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
-    :return:
+    :return: The uid of the created window.
     """
     uid = 'child_' + uuid4().hex[:8]
 
@@ -154,7 +177,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
             localization.update(strings)
             uid = 'master'
 
-    _webview_ready.clear()
+    _webview_ready.clear()  # Make API calls wait while the new window is created
     gui.create_window(uid, make_unicode(title), transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
                       background_color, debug, js_api, text_select, _webview_ready)
@@ -162,6 +185,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     return uid
 
 
+@_api_call
 def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=()):
     """
     Create a file dialog
@@ -172,7 +196,7 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
     :param save_filename: Default filename for save file dialog.
     :param file_types: Allowed file types in open file dialog. Should be a tuple of strings in the format:
         filetypes = ('Description (*.extension[;*.extension[;...]])', ...)
-    :return:
+    :return: A tuple of selected files, None if cancelled.
     """
     if type(file_types) != tuple and type(file_types) != list:
         raise TypeError('file_types must be a tuple of strings')
@@ -182,13 +206,10 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
     if not os.path.exists(directory):
         directory = ''
 
-    try:
-        _webview_ready.wait(5)
-        return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
-    except NameError as e:
-        raise Exception('Create a web view window first, before invoking this function')
+    return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
 
 
+@_api_call
 def load_url(url, uid='master'):
     """
     Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is
@@ -196,15 +217,10 @@ def load_url(url, uid='master'):
     :param url: url to load
     :param uid: uid of the target instance
     """
-    try:
-        _webview_ready.wait(5)
-        gui.load_url(url, uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    gui.load_url(url, uid)
 
 
+@_api_call
 def load_html(content, base_uri=base_uri(), uid='master'):
     """
     Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
@@ -213,84 +229,52 @@ def load_html(content, base_uri=base_uri(), uid='master'):
     :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
     :param uid: uid of the target instance
     """
-
-    try:
-        _webview_ready.wait(5)
-
-        content = make_unicode(content)
-        gui.load_html(content, base_uri, uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    content = make_unicode(content)
+    gui.load_html(content, base_uri, uid)
 
 
+@_api_call
 def load_css(stylesheet, uid='master'):
-    try:
-        _webview_ready.wait(5)
-        code = css.src % stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
-        evaluate_js(code)
-    except NameError as e:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    code = css.src % stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
+    gui.evaluate_js(code)
 
 
+@_api_call
 def set_title(title, uid='master'):
     """
     Sets a new title of the window
     """
-    try:
-        _webview_ready.wait(5)
-        return gui.set_title(title, uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    gui.set_title(title, uid)
 
 
+@_api_call
 def get_current_url(uid='master'):
     """
-    Get a current URL
+    Get the URL currently loaded in the target webview
     :param uid: uid of the target instance
     """
-    try:
-        _webview_ready.wait(5)
-        return gui.get_current_url(uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    return gui.get_current_url(uid)
 
 
+@_api_call
 def destroy_window(uid='master'):
     """
     Destroy a web view window
     :param uid: uid of the target instance
     """
-    try:
-        _webview_ready.wait(5)
-        gui.destroy_window(uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    gui.destroy_window(uid)
 
 
+@_api_call
 def toggle_fullscreen(uid='master'):
     """
     Toggle fullscreen mode
     :param uid: uid of the target instance
     """
-    try:
-        _webview_ready.wait(5)
-        gui.toggle_fullscreen(uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    gui.toggle_fullscreen(uid)
 
 
+@_api_call
 def evaluate_js(script, uid='master'):
     """
     Evaluate given JavaScript code and return the result
@@ -298,15 +282,8 @@ def evaluate_js(script, uid='master'):
     :param uid: uid of the target instance
     :return: Return value of the evaluated code
     """
-    try:
-        _webview_ready.wait(5)
-        escaped_script = 'JSON.stringify(eval("{0}"))'.format(escape_string(script))
-
-        return gui.evaluate_js(escaped_script, uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    escaped_script = 'JSON.stringify(eval("{0}"))'.format(escape_string(script))
+    return gui.evaluate_js(escaped_script, uid)
 
 
 def window_exists(uid='master'):
