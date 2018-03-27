@@ -21,7 +21,8 @@ def base_uri(relative_path=''):
         base_path = sys._MEIPASS
     except Exception:
         if 'pytest' in sys.modules:
-            base_path = os.path.dirname(os.path.realpath(sys.argv[1]))
+            path = os.path.realpath(sys.argv[1])
+            base_path = path if os.path.isdir(path) else os.path.dirname(path)
         else:
             base_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -69,8 +70,9 @@ def escape_string(string):
 
 def transform_url(url):
     if url and ':' not in url:
-        return 'file://' + os.path.abspath(url)
-    return url
+        return base_uri(url)
+    else:
+        return url
 
 
 def make_unicode(string):
