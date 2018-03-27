@@ -5,14 +5,15 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 '''
 
-import sys
 import os
-import re
+import json
 import logging
+from uuid import uuid1
+from copy import deepcopy
 from threading import Semaphore, Event
 
 from webview.localization import localization
-from webview import _parse_api_js, _js_bridge_call
+from webview import _parse_api_js, _js_bridge_call, _convert_string, _escape_string
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
 
@@ -38,7 +39,7 @@ try:
 
     logger.debug('Using Qt5')
 except ImportError as e:
-    logger.exception('PyQt5 or one of dependencies is not found')
+    logger.debug('PyQt5 or one of dependencies is not found', exc_info=True)
     _import_error = True
 else:
     _import_error = False
@@ -53,7 +54,6 @@ if _import_error:
         _qt_version = [4, 0]
         logger.debug('Using Qt4')
     except ImportError as e:
-        logger.exception('PyQt4 or one of dependencies is not found')
         _import_error = True
     else:
         _import_error = False
@@ -68,12 +68,12 @@ class BrowserView(QMainWindow):
     create_window_trigger = QtCore.pyqtSignal(object)
     set_title_trigger = QtCore.pyqtSignal(str)
     load_url_trigger = QtCore.pyqtSignal(str)
-    html_trigger = QtCore.pyqtSignal(str, str)
+    html_trigger = QtCore.pyqtSignal(str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str, str)
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
-    evaluate_js_trigger = QtCore.pyqtSignal(str)
+    evaluate_js_trigger = QtCore.pyqtSignal(str, str)
 
     class JSBridge(QtCore.QObject):
         api = None
@@ -100,15 +100,19 @@ class BrowserView(QMainWindow):
         BrowserView.instances[uid] = self
         self.uid = uid
 
+        self.js_bridge = BrowserView.JSBridge()
+        self.js_bridge.api = js_api
+        self.js_bridge.parent_uid = self.uid
+
         self.is_fullscreen = False
         self.confirm_quit = confirm_quit
 
         self._file_name_semaphore = Semaphore(0)
-        self._current_url_semaphore = Semaphore()
-        self._evaluate_js_semaphore = Semaphore(0)
+        self._current_url_semaphore = Semaphore(0)
+
         self.load_event = Event()
 
-        self._evaluate_js_result = None
+        self._js_results = {}
         self._current_url = None
         self._file_name = None
 
@@ -132,6 +136,8 @@ class BrowserView(QMainWindow):
 
         if url is not None:
             self.view.setUrl(QtCore.QUrl(url))
+        else:
+            self.load_event.set()
 
         self.setCentralWidget(self.view)
 
@@ -144,10 +150,6 @@ class BrowserView(QMainWindow):
         self.current_url_trigger.connect(self.on_current_url)
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
-
-        self.js_bridge = BrowserView.JSBridge()
-        self.js_bridge.api = js_api
-        self.js_bridge.parent_uid = self.uid
 
         if _qt_version >= [5, 5]:
             self.channel = QWebChannel(self.view.page())
@@ -185,14 +187,15 @@ class BrowserView(QMainWindow):
         self._file_name_semaphore.release()
 
     def on_current_url(self):
-        self._current_url = self.view.url().toString()
+        url = BrowserView._convert_string(self.view.url().toString())
+        self._current_url = None if url == '' else url
         self._current_url_semaphore.release()
 
     def on_load_url(self, url):
         self.view.setUrl(QtCore.QUrl(url))
 
-    def on_load_html(self, content, base_uri):
-        self.view.setHtml(content, QtCore.QUrl(base_uri))
+    def on_load_html(self, content):
+        self.view.setHtml(content, QtCore.QUrl(''))
 
     def closeEvent(self, event):
         if self.confirm_quit:
@@ -217,15 +220,22 @@ class BrowserView(QMainWindow):
 
         self.is_fullscreen = not self.is_fullscreen
 
-    def on_evaluate_js(self, script):
+    def on_evaluate_js(self, script, uuid):
         def return_result(result):
-            self._evaluate_js_result = result
-            self._evaluate_js_semaphore.release()
+            result = BrowserView._convert_string(result)
+            uuid_ = BrowserView._convert_string(uuid)
+
+            js_result = self._js_results[uuid_]
+            js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
+            js_result['semaphore'].release()
+
+        escaped_script = 'JSON.stringify(eval("{0}"))'.format(_escape_string(script))
 
         try:    # PyQt4
-            return_result(self.view.page().mainFrame().evaluateJavaScript(script))
+            result = self.view.page().mainFrame().evaluateJavaScript(escaped_script)
+            return_result(result)
         except AttributeError:  # PyQt5
-            self.view.page().runJavaScript(script, return_result)
+            self.view.page().runJavaScript(escaped_script, return_result)
 
     def on_load_finished(self):
         if self.js_bridge.api:
@@ -237,6 +247,7 @@ class BrowserView(QMainWindow):
         self.set_title_trigger.emit(title)
 
     def get_current_url(self):
+        self.load_event.wait()
         self.current_url_trigger.emit()
         self._current_url_semaphore.acquire()
 
@@ -246,9 +257,9 @@ class BrowserView(QMainWindow):
         self.load_event.clear()
         self.load_url_trigger.emit(url)
 
-    def load_html(self, content, base_uri):
+    def load_html(self, content):
         self.load_event.clear()
-        self.html_trigger.emit(content, base_uri)
+        self.html_trigger.emit(content)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
@@ -285,10 +296,17 @@ class BrowserView(QMainWindow):
     def evaluate_js(self, script):
         self.load_event.wait()
 
-        self.evaluate_js_trigger.emit(script)
-        self._evaluate_js_semaphore.acquire()
+        result_semaphore = Semaphore(0)
+        unique_id = uuid1().hex
+        self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': ''}
 
-        return self._evaluate_js_result
+        self.evaluate_js_trigger.emit(script, unique_id)
+        result_semaphore.acquire()
+
+        result = deepcopy(self._js_results[unique_id]['result'])
+        del self._js_results[unique_id]
+
+        return result
 
     def _set_js_api(self):
         def _register_window_object():
@@ -317,18 +335,17 @@ class BrowserView(QMainWindow):
 
         self.load_event.set()
 
-
     @staticmethod
-    def _convert_string(qstring):
+    def _convert_string(result):
         try:
-            qstring = qstring.toString() # QJsonValue conversion
-        except:
+            if result is None or result.isNull():
+                return None
+
+            result = result.toString() # QJsonValue conversion
+        except AttributeError:
             pass
 
-        if sys.version < '3':
-            return unicode(qstring)
-        else:
-            return str(qstring)
+        return _convert_string(result)
 
     @staticmethod
     # Receive func from subthread and execute it on the main thread
@@ -350,7 +367,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         _create()
         app.exec_()
     else:
-        i = list(BrowserView.instances.values())[0]     # arbitary instance
+        i = list(BrowserView.instances.values())[0] # arbitrary instance
         i.create_window_trigger.emit(_create)
 
 
@@ -366,8 +383,8 @@ def load_url(url, uid):
     BrowserView.instances[uid].load_url(url)
 
 
-def load_html(content, base_uri, uid):
-    BrowserView.instances[uid].load_html(content, base_uri)
+def load_html(content, uid):
+    BrowserView.instances[uid].load_html(content)
 
 
 def destroy_window(uid):

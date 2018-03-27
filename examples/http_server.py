@@ -3,15 +3,17 @@ import sys
 import threading
 
 try:
-    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+    from BaseHTTPServer import HTTPServer
     from SimpleHTTPServer import SimpleHTTPRequestHandler
 except ImportError:
     from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 
 """
-This example demonstrates how a trivial application can be built using a HTTP server combined with a web view.
+This example demonstrates how a trivial application can be built using a HTTP
+server combined with a web view.
 """
+
 
 def start_server():
     HandlerClass = SimpleHTTPRequestHandler
@@ -30,8 +32,9 @@ if __name__ == '__main__':
     t.daemon = True
     t.start()
 
-    webview.create_window("My first HTML5 application", "http://127.0.0.1:23948")
+    webview.create_window("My first HTML5 application",
+                          "http://127.0.0.1:23948")
 
-    # do clean up procedure and destroy any remaining threads after the window is destroyed
+    # do clean up procedure and destroy any remaining threads after the window
+    # is destroyed
     sys.exit()
-

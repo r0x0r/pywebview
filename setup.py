@@ -2,7 +2,6 @@ import os
 import platform
 from setuptools import setup
 
-
 data_files = []
 
 if platform.system() == "Windows":
@@ -22,6 +21,7 @@ elif platform.system() == "Linux":
         'qt5': ['PyQt5'],
     }
 
+
 setup(
     name="pywebview",
     author="Roman Sirokov",
@@ -33,7 +33,7 @@ setup(
     keywords=["gui", "webkit", "html", "web"],
     extras_require=extras_require,
     version="1.8",
-    packages=["webview",],
+    packages=["webview", "webview.js"],
     license="New BSD license",
     classifiers=[
         "Intended Audience :: Developers",

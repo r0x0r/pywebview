@@ -2,12 +2,11 @@ import webview
 import threading
 
 """
-This example demonstrates creating a save file dialog.
+This example demonstrates how to get the current url loaded in the webview.
 """
 
+
 def get_current_url():
-    import time
-    time.sleep(5)
     print(webview.get_current_url())
 
 
@@ -16,4 +15,3 @@ if __name__ == '__main__':
     t.start()
 
     webview.create_window("Get current URL", "http://www.flowrl.com")
-
