@@ -343,7 +343,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
     def _create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
                               min_size, confirm_quit, background_color, debug, js_api,
-                              webview_ready)
+                              frameless, webview_ready)
         browser.show()
 
     if uid == 'master':
