@@ -3,7 +3,7 @@ from .util import run_test
 
 
 def test_noresize():
-    run_test(webview, no_resize)
+    run_test(no_resize)
 
 
 def no_resize():
