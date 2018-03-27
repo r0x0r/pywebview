@@ -22,7 +22,7 @@ from threading import Event, Thread, current_thread
 from uuid import uuid4
 
 from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, inject_base_uri
-from .js import api, npo, css
+from .js import css
 from .localization import localization
 
 logger = logging.getLogger(__name__)
@@ -126,8 +126,12 @@ def start(title, html_file, js_api=None, options={}):
     if 'js_api' in options:
         del options['js_api']
 
+    if 'url' in options:
+        del options['url']
+
     url = base_uri(html_file)
-    create_window(title, url, js_api=js_api, debug=True, **options)
+
+    create_window(title, url, js_api=js_api, **options)
 
 
 def create_window(title, url=None, js_api=None, width=800, height=600,

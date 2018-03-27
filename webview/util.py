@@ -11,7 +11,7 @@ import os
 import re
 import sys
 
-from .js import api
+from .js import api, npo
 
 
 def base_uri(relative_path=''):
@@ -24,6 +24,9 @@ def base_uri(relative_path=''):
             base_path = os.path.dirname(os.path.realpath(sys.argv[1]))
         else:
             base_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+
+    if not os.path.exists(base_path):
+        raise ValueError('Path %s does not exist' % base_path)
 
     return 'file://%s' % os.path.join(base_path, relative_path)
 
@@ -51,7 +54,7 @@ def parse_file_type(file_type):
 
 def parse_api_js(api_instance):
     func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
-    js_code = api.src % func_list
+    js_code = npo.src + api.src % func_list
 
     return js_code
 

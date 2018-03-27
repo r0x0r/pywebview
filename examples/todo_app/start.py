@@ -22,5 +22,5 @@ class Api():
 
 if __name__ == '__main__':
     api = Api()
-    webview.start('TODOS BRAVOS', 'assets/index.html', js_api=api, options={'min_size': (600, 450)})
+    webview.start('Todos magnificos', 'assets/index.html', js_api=api, options={'min_size': (600, 450)})
 
