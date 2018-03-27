@@ -8,10 +8,10 @@ from multiprocessing import Process, Queue
 
 logger = logging.getLogger(__name__)
 
-def run_test(webview, main_func, thread_func=None, param=None):
+def run_test(main_func, thread_func=None, param=None, no_destroy=False):
     __tracebackhide__ = True
     queue = Queue()
-    p = Process(target=_create_window, args=(main_func, thread_func, queue, param))
+    p = Process(target=_create_window, args=(main_func, thread_func, queue, param, no_destroy))
     p.start()
     p.join()
     assert p.exitcode == 0
@@ -41,7 +41,7 @@ def assert_js(webview, func_name, expected_result, uid='master'):
     assert expected_result == result
 
 
-def _create_window(main_func, thread_func, queue, param):
+def _create_window(main_func, thread_func, queue, param, no_destroy):
     import webview
 
     def thread(destroy_event, param):
@@ -54,12 +54,15 @@ def _create_window(main_func, thread_func, queue, param):
             queue.put(traceback.format_exc())
             destroy_event.set()
 
-    args = (param,) if param else ()
-    destroy_event = _destroy_window(webview)
-    t = threading.Thread(target=thread, args=(destroy_event, args))
-    t.start()
+    if not no_destroy:
+        args = (param,) if param else ()
+        destroy_event = _destroy_window(webview)
+
+        t = threading.Thread(target=thread, args=(destroy_event, args))
+        t.start()
 
     main_func()
+    pass
 
 
 def _destroy_window(webview, delay=0):
