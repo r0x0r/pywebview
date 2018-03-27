@@ -29,7 +29,7 @@ from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
 from WebBrowserInterop import IWebBrowserInterop
 
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, _js_bridge_call
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, _js_bridge_call, inject_base_uri
 from webview.util import parse_api_js
 from .js import alert
 from .js.css import disable_text_select
@@ -177,12 +177,13 @@ class BrowserView:
                 self.web_browser.Visible = True
                 self.first_load = False
 
+            document = self.web_browser.Document
+
             if self.js_bridge.api:
-                document = self.web_browser.Document
                 document.InvokeScript('eval', (parse_api_js(self.js_bridge.api),))
 
             if not self.text_select:
-                webview.execute_script(disable_text_select)
+                document.InvokeScript('eval', (disable_text_select,))
 
             self.load_event.set()
 
@@ -359,7 +360,7 @@ def evaluate_js(script, uid):
     def _evaluate_js():
         document = window.web_browser.Document
 
-        result = document.InvokeScript('eval', ('JSON.stringify(eval("{0}"))'.format(script),))
+        result = document.InvokeScript('eval', (script,))
         window.js_result = None if result is None or result is 'null' else json.loads(result)
         window.js_result_semaphore.release()
 
