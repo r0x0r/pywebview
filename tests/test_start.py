@@ -1,5 +1,4 @@
 import os
-import threading
 from time import sleep
 from .util import run_test, assert_js
 import webview
@@ -16,7 +15,7 @@ def test_start():
 
 def main_func():
     api = Api()
-    webview.start('JSBridge test', os.path.join('assets', 'test.html'), js_api=api)
+    webview.create_window('Relative URL test', 'assets/test.html', debug=True, js_api=api)
 
 
 def assert_func():

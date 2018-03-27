@@ -1,5 +1,5 @@
 
-A simple app using webview.start() API.
+A simple app built with a relative url and JS API.
 
 
 This example has code adapted from [TodoMVC](https://github.com/tastejs/todomvc) released under MIT license.

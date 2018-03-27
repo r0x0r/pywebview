@@ -119,21 +119,6 @@ def _initialize_imports():
         _initialized = True
 
 
-def start(title, html_file, js_api=None, options={}):
-    if 'title' in options:
-        del options['title']
-
-    if 'js_api' in options:
-        del options['js_api']
-
-    if 'url' in options:
-        del options['url']
-
-    url = base_uri(html_file)
-
-    create_window(title, url, js_api=js_api, **options)
-
-
 def create_window(title, url=None, js_api=None, width=800, height=600,
                   resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
                   background_color='#FFFFFF', text_select=False, debug=False):

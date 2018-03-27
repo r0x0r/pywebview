@@ -83,32 +83,26 @@ Either `PyQt5` or `PyQt4`. PyQt4 is deprecated and will be removed in the future
 
 For more detailed usage, refer to the examples in the `examples` directory. There are three ways to build your app
 
-1) Open a web page as in the example above. The page can be either local (`file://`) or remote.
-2) Use `webview.start()` function to load your application and provide a js_api object for Python-JS intercommunication .
-   See `examples/todos`
+1) Open a web page as in the example above. The page can be either local (`file://`) or remote. Using `file://` urls won't work
+   with application is frozen
+2) Use a relative url to load your application and provide a js_api object for Python-JS intercommunication. The URL is resolved
+   automatically to work in a frozen environment as well. See `examples/todos`.
 3) Run a local web server and point pywebview to display it. There is an example Flask application in the `examples/flask_app`
    directory. 
 
 
 ## API
 
-- `webview.start(title, html_path, js_api=None, options={})`
-  Start a serverless WebView instance pointing to a local HTML file and JS API class instance. The path to the HTML file is relative to the application entry point. The function supports only a single window. To open multiple windows use `create_window`.
-  * `title` - Window title
-  * `html_path` - the relative path to the application entry point. Paths in frozen application are resolved automatically. 
-  * `js_api` - Expose `js_api` to the DOM of the current WebView window. Callable functions of `js_api` can be executed  using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a  primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate threads and are not thread-safe.
-  * `options` - parameters to `create_window` passed as a dict. `title`, `url` and `js_api` parameters are ignored.
-
 - `webview.create_window(title, url='', js_api=None, width=800, height=600, resizable=True, fullscreen=False,
                          min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF', debug=False,
                          text_select=False)`
   
-  Create a new WebView window. Calling this function for the first time will start the application and block program execution;
-  so you have to execute your program logic in a separate thread. Subsequent calls will return a unique `uid` for the created
+  Create a new WebView window. Calling this function for the first time will start the application and block program execution.
+  You have to execute your program logic in a separate thread. Subsequent calls will return a unique `uid` for the created
   window, which can be used to refer to the specific window in the API functions (single-window applications need not bother about
   the `uid` and can simply omit it from function calls; see below).
   * `title` - Window title
-  * `url` - URL to load
+  * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point.
   * `js_api` - Expose `js_api` to the DOM of the current WebView window. Callable functions of `js_api` can be executed
     using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a
     primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate

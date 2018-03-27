@@ -62,7 +62,6 @@ def _create_window(main_func, thread_func, queue, param, no_destroy):
         t.start()
 
     main_func()
-    pass
 
 
 def _destroy_window(webview, delay=0):

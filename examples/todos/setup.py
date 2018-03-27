@@ -9,7 +9,7 @@ def tree(src):
     return [(root, map(lambda f: os.path.join(root, f), filter(lambda f: os.path.splitext(f)[1] != ".map", files))) for (root, dirs, files) in os.walk(os.path.normpath(src))]
 
 
-APP = ['index.py']
+APP = ['start.py']
 DATA_FILES = tree('assets')
 OPTIONS_OSX = {'argv_emulation': False,
                'strip': True,
