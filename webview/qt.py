@@ -232,13 +232,12 @@ class BrowserView(QMainWindow):
             js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
             js_result['semaphore'].release()
 
-        escaped_script = 'JSON.stringify(eval("{0}"))'.format(script)
 
         try:    # PyQt4
-            result = self.view.page().mainFrame().evaluateJavaScript(escaped_script)
+            result = self.view.page().mainFrame().evaluateJavaScript(script)
             return_result(result)
         except AttributeError:  # PyQt5
-            self.view.page().runJavaScript(escaped_script, return_result)
+            self.view.page().runJavaScript(script, return_result)
 
     def on_load_finished(self):
         if self.js_bridge.api:
