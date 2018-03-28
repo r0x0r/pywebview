@@ -11,6 +11,7 @@ import logging
 from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
+from socket import socket
 
 from webview.localization import localization
 from webview import _parse_api_js, _js_bridge_call, _convert_string, _escape_string
@@ -34,7 +35,7 @@ try:
     else:
         from PyQt5.QtWebKitWidgets import QWebView
 
-    from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox
+    from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox, QAction
     from PyQt5.QtGui import QColor
 
     logger.debug('Using Qt5')
@@ -94,6 +95,38 @@ class BrowserView(QMainWindow):
 
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
+    class WebView(QWebView):
+        def __init__(self):
+            super(BrowserView.WebView, self).__init__()
+            self.inspector_port = None  # The localhost port at which the Remote debugger listens
+
+        def contextMenuEvent(self, event):
+            menu = self.page().createStandardContextMenu()
+
+            # If 'Inspect Element' is present in the default context menu, it
+            # means the inspector is already up and running.
+            for i in menu.actions():
+                if i.text() == 'Inspect Element':
+                    break
+            else:
+                # Inspector is not up yet, so create a pseudo 'Inspect Element'
+                # menu that will fire it up.
+                inspect_element = QAction('Inspect Element')
+                inspect_element.triggered.connect(self.show_inspector)
+                menu.addAction(inspect_element)
+
+            menu.exec_(event.globalPos())
+
+        # Create a new webview window pointing at the Remote debugger server
+        def show_inspector(self):
+            title = 'Web Inspector - {}'.format(self.parent().title)
+            uid = self.parent().uid + '-inspector'
+            url = 'http://localhost:{}'.format(self.inspector_port)
+
+            inspector = BrowserView(uid, title, url, 700, 500, True, False, (300,200),
+                                    False, '#fff', False, None, self.parent().webview_ready)
+            inspector.show()
+
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, debug, js_api, webview_ready):
         super(BrowserView, self).__init__()
@@ -111,6 +144,7 @@ class BrowserView(QMainWindow):
         self._current_url_semaphore = Semaphore(0)
 
         self.load_event = Event()
+        self.webview_ready = webview_ready
 
         self._js_results = {}
         self._current_url = None
@@ -132,7 +166,13 @@ class BrowserView(QMainWindow):
 
         self.setMinimumSize(min_size[0], min_size[1])
 
-        self.view = QWebView(self)
+        self.view = BrowserView.WebView()
+
+        if debug and _qt_version > [5, 5]:
+            self.view.inspector_port = BrowserView._get_free_port()
+            os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = self.view.inspector_port
+        else:
+            self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
         if url is not None:
             self.view.setUrl(QtCore.QUrl(url))
@@ -159,8 +199,6 @@ class BrowserView(QMainWindow):
 
         if fullscreen:
             self.toggle_fullscreen()
-
-        self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
@@ -208,6 +246,12 @@ class BrowserView(QMainWindow):
 
         event.accept()
         del BrowserView.instances[self.uid]
+
+        try:    # Close inpsector if open
+            BrowserView.instances[self.uid + '-inspector'].close()
+            del BrowserView.instances[self.uid + '-inspector']
+        except KeyError:
+            pass
 
     def on_destroy_window(self):
         self.close()
@@ -346,6 +390,15 @@ class BrowserView(QMainWindow):
             pass
 
         return _convert_string(result)
+
+    @staticmethod
+    # A simple function to obtain an unused localhost port from the os return it
+    def _get_free_port():
+        s = socket()
+        s.bind(('localhost', 0))
+        port = str(s.getsockname()[1])
+        s.close()
+        return port
 
     @staticmethod
     # Receive func from subthread and execute it on the main thread
