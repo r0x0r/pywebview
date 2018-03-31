@@ -223,7 +223,7 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
     def create():
         window = BrowserView.BrowserForm(uid, title, url, width, height, resizable, fullscreen,
                                          min_size, confirm_quit, background_color, debug, js_api,
