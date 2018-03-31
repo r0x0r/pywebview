@@ -166,7 +166,7 @@ class BrowserView:
         def webView_decidePolicyForNavigationAction_request_frame_decisionListener_(self, webview, action, request, frame, listener):
             # The event that might have triggered the navigation
             event = AppKit.NSApp.currentEvent()
-            action_type = action['WebActionNavigationTypeKey'] 
+            action_type = action['WebActionNavigationTypeKey']
 
             """ Disable back navigation on pressing the Delete key: """
             # Check if the requested navigation action is Back/Forward
@@ -213,6 +213,49 @@ class BrowserView:
             option = sender.indexOfSelectedItem()
             self.window().setAllowedFileTypes_(self.filter[option][1])
 
+    class DragBar(AppKit.NSView):
+        default_height = 22
+        # Fallbacks, in case these constants are not wrapped by PyObjC
+        try:
+            NSFullSizeContentViewWindowMask = AppKit.NSFullSizeContentViewWindowMask
+        except AttributeError:
+            NSFullSizeContentViewWindowMask = 1 << 15
+        try:
+            NSWindowTitleHidden = AppKit.NSWindowTitleHidden
+        except AttributeError:
+            NSWindowTitleHidden = 1
+
+        def mouseDragged_(self, theEvent):
+            screenFrame = AppKit.NSScreen.mainScreen().frame()
+            if screenFrame is None:
+                raise RuntimeError('Failed to obtain screen')
+
+            window = self.window()
+            windowFrame = window.frame()
+            if windowFrame is None:
+                raise RuntimeError('Failed to obtain frame')
+
+            currentLocation = window.convertBaseToScreen_(window.mouseLocationOutsideOfEventStream())
+            newOrigin = AppKit.NSMakePoint((currentLocation.x - self.initialLocation.x),
+                                    (currentLocation.y - self.initialLocation.y))
+            if (newOrigin.y + windowFrame.size.height) > \
+                (screenFrame.origin.y + screenFrame.size.height):
+                newOrigin.y = screenFrame.origin.y + \
+                              (screenFrame.size.height + windowFrame.size.height)
+            window.setFrameOrigin_(newOrigin)
+
+        def mouseDown_(self, theEvent):
+            window = self.window()
+
+            windowFrame = window.frame()
+            if windowFrame is None:
+                raise RuntimeError('Failed to obtain screen')
+
+            self.initialLocation = \
+                window.convertBaseToScreen_(theEvent.locationInWindow())
+            self.initialLocation.x -= windowFrame.origin.x
+            self.initialLocation.y -= windowFrame.origin.y
+
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
             """
@@ -251,8 +294,9 @@ class BrowserView:
 
                     return handled
 
+
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                 confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
 
@@ -287,8 +331,6 @@ class BrowserView:
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
         self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
-        # Set the titlebar color (so that it does not change with the window color)
-        self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
 
@@ -300,6 +342,26 @@ class BrowserView:
         self.webkit.setPolicyDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
+
+        if frameless:
+            # Make content full size and titlebar transparent
+            window_mask = window_mask | BrowserView.DragBar.NSFullSizeContentViewWindowMask | AppKit.NSTexturedBackgroundWindowMask
+            self.window.setStyleMask_(window_mask)
+            self.window.setTitlebarAppearsTransparent_(True)
+            self.window.setTitleVisibility_(BrowserView.DragBar.NSWindowTitleHidden)
+
+            # Flip the webview so our bar is position from the top, not bottom
+            self.webkit.setFlipped_(True)
+
+            rect = AppKit.NSMakeRect(0, 0, width, BrowserView.DragBar.default_height)
+            drag_bar = BrowserView.DragBar.alloc().initWithFrame_(rect)
+            drag_bar.setAutoresizingMask_(AppKit.NSViewWidthSizable)
+
+            # Add DragBar on top of the webview
+            self.webkit.addSubview_(drag_bar)
+        else:
+            # Set the titlebar color (so that it does not change with the window color)
+            self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
 
         if url:
             self.url = url
@@ -596,10 +658,10 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, js_api, text_select, webview_ready)
+                              confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready)
         browser.show()
 
     if uid == 'master':
