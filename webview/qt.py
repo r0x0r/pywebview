@@ -65,6 +65,7 @@ if _import_error:
 
 class BrowserView(QMainWindow):
     instances = {}
+    inspector_port = None  # The localhost port at which the Remote debugger listens
 
     create_window_trigger = QtCore.pyqtSignal(object)
     set_title_trigger = QtCore.pyqtSignal(str)
@@ -98,7 +99,6 @@ class BrowserView(QMainWindow):
     class WebView(QWebView):
         def __init__(self):
             super(BrowserView.WebView, self).__init__()
-            self.inspector_port = None  # The localhost port at which the Remote debugger listens
 
         def contextMenuEvent(self, event):
             menu = self.page().createStandardContextMenu()
@@ -119,13 +119,18 @@ class BrowserView(QMainWindow):
 
         # Create a new webview window pointing at the Remote debugger server
         def show_inspector(self):
-            title = 'Web Inspector - {}'.format(self.parent().title)
             uid = self.parent().uid + '-inspector'
-            url = 'http://localhost:{}'.format(self.inspector_port)
+            try:
+                # If inspector already exists, bring it to the front
+                BrowserView.instances[uid].raise_()
+                BrowserView.instances[uid].activateWindow()
+            except KeyError:
+                title = 'Web Inspector - {}'.format(self.parent().title)
+                url = 'http://localhost:{}'.format(BrowserView.inspector_port)
 
-            inspector = BrowserView(uid, title, url, 700, 500, True, False, (300,200),
-                                    False, '#fff', False, None, self.parent().webview_ready)
-            inspector.show()
+                inspector = BrowserView(uid, title, url, 700, 500, True, False, (300,200),
+                                        False, '#fff', False, None, self.parent().webview_ready)
+                inspector.show()
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, debug, js_api, webview_ready):
@@ -169,8 +174,10 @@ class BrowserView(QMainWindow):
         self.view = BrowserView.WebView()
 
         if debug and _qt_version > [5, 5]:
-            self.view.inspector_port = BrowserView._get_free_port()
-            os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = self.view.inspector_port
+            # Initialise Remote debugging (need to be done only once)
+            if not BrowserView.inspector_port:
+                BrowserView.inspector_port = BrowserView._get_free_port()
+                os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = BrowserView.inspector_port
         else:
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
