@@ -130,8 +130,7 @@ is thrown. Default is `'master'`, which is the special uid given to the initial 
     Load a new URL into the specified WebView window. 
 
 - `webview.load_html(content, base_uri=base_uri(), uid='master')`
-    Load HTML content into the specified WebView window. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when load
-    HTML using function.
+    Load HTML content into the specified WebView window. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way.
 
 - `webview.load_css(css, uid='master')`
     Load CSS into the specified WebView window.
