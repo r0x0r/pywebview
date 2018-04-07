@@ -18,8 +18,6 @@ import WebKit
 from PyObjCTools import AppHelper, Conversion
 from objc import nil, super, pyobjc_unicode
 
-from objc import nil
-
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview import _parse_file_type, _js_bridge_call, _parse_api_js, _convert_string, _escape_string
