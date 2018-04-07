@@ -15,11 +15,12 @@ import webbrowser
 from threading import Event, Semaphore
 from ctypes import windll
 
-base_dir = os.path.dirname(os.path.realpath(__file__))
+import clr
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Threading')
 
+base_dir = os.path.dirname(os.path.realpath(__file__))
 clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
 import System.Windows.Forms as WinForms
 
