@@ -52,5 +52,4 @@ window.pywebview = {
 
 }
 window.pywebview._createApi(%s);
-
 """

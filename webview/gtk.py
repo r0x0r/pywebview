@@ -1,5 +1,5 @@
 """
-(C) 2014-2016 Roman Sirokov and contributors
+(C) 2014-2018 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -11,8 +11,9 @@ import json
 from uuid import uuid1
 from threading import Event, Semaphore, Lock
 from webview.localization import localization
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _escape_string, _js_bridge_call, _parse_api_js, _parse_file_type
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
+from webview.util import parse_api_js
+from webview.js.css import disable_text_select
 
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ class BrowserView:
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, js_api, webview_ready):
+                 confirm_quit, background_color, debug, js_api, text_select, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
 
@@ -88,6 +89,8 @@ class BrowserView:
             self.js_bridge = BrowserView.JSBridge(js_api, self.uid)
         else:
             self.js_bridge = None
+
+        self.text_select = text_select
 
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
@@ -138,6 +141,9 @@ class BrowserView:
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)
 
+        if not self.text_select:
+            webview.execute_script(disable_text_select)
+
         if self.js_bridge:
             self._set_js_api()
         else:
@@ -154,7 +160,7 @@ class BrowserView:
             _, func_name, param = status.split(delim)
             return_val = self.js_bridge.call(func_name, param)
             # Give back the return value to JS as a string
-            code = 'pywebview._bridge.return_val = "{0}";'.format(_escape_string(str(return_val)))
+            code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
             webview.execute_script(code)
 
     def show(self):
@@ -218,7 +224,7 @@ class BrowserView:
 
     def _add_file_filters(self, dialog, file_types):
         for s in file_types:
-            description, extensions = _parse_file_type(s)
+            description, extensions = parse_file_type(s)
 
             f = gtk.FileFilter()
             f.set_name(description)
@@ -236,9 +242,9 @@ class BrowserView:
         self.load_event.clear()
         self.webview.load_uri(url)
 
-    def load_html(self, content):
+    def load_html(self, content, base_uri):
         self.load_event.clear()
-        self.webview.load_string(content, 'text/html', 'utf-8', '')
+        self.webview.load_string(content, 'text/html', 'utf-8', base_uri)
 
     def evaluate_js(self, script):
         def _evaluate_js():
@@ -250,7 +256,7 @@ class BrowserView:
         self.js_result_semaphores.append(result_semaphore)
         # Backup the doc title and store the result in it with a custom prefix
         unique_id = uuid1().hex
-        code = 'window.oldTitle{0} = document.title; document.title = JSON.stringify(eval("{1}"));'.format(unique_id, _escape_string(script))
+        code = 'window.oldTitle{0} = document.title; document.title = {1};'.format(unique_id, script)
 
         self.load_event.wait()
         glib.idle_add(_evaluate_js)
@@ -285,7 +291,7 @@ class BrowserView:
             }};""".format(self.js_bridge.uid)
 
             # Create the `pywebview` JS api object
-            self.webview.execute_script(_parse_api_js(self.js_bridge.api))
+            self.webview.execute_script(parse_api_js(self.js_bridge.api))
             self.webview.execute_script(code)
             self.load_event.set()
 
@@ -293,10 +299,10 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, js_api, webview_ready)
+                              confirm_quit, background_color, debug, js_api, text_select, webview_ready)
         browser.show()
 
     if uid == 'master':
@@ -333,9 +339,9 @@ def load_url(url, uid):
     glib.idle_add(_load_url)
 
 
-def load_html(content, uid):
+def load_html(content, base_uri, uid):
     def _load_html():
-        BrowserView.instances[uid].load_html(content)
+        BrowserView.instances[uid].load_html(content, base_uri)
     glib.idle_add(_load_html)
 
 

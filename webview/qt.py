@@ -1,5 +1,5 @@
 '''
-(C) 2014-2016 Roman Sirokov and contributors
+(C) 2014-2018 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -13,8 +13,10 @@ from copy import deepcopy
 from threading import Semaphore, Event
 
 from webview.localization import localization
-from webview import _parse_api_js, _js_bridge_call, _convert_string, _escape_string
+from webview import escape_string, _js_bridge_call
+from webview.util import convert_string, parse_api_js
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview.js.css import disable_text_select
 
 
 logger = logging.getLogger(__name__)
@@ -68,7 +70,7 @@ class BrowserView(QMainWindow):
     create_window_trigger = QtCore.pyqtSignal(object)
     set_title_trigger = QtCore.pyqtSignal(str)
     load_url_trigger = QtCore.pyqtSignal(str)
-    html_trigger = QtCore.pyqtSignal(str)
+    html_trigger = QtCore.pyqtSignal(str, str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str, str)
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
@@ -95,7 +97,7 @@ class BrowserView(QMainWindow):
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
-                 min_size, confirm_quit, background_color, debug, js_api, webview_ready):
+                 min_size, confirm_quit, background_color, debug, js_api, text_select, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instances[uid] = self
         self.uid = uid
@@ -106,6 +108,7 @@ class BrowserView(QMainWindow):
 
         self.is_fullscreen = False
         self.confirm_quit = confirm_quit
+        self.text_select = text_select
 
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
@@ -194,8 +197,8 @@ class BrowserView(QMainWindow):
     def on_load_url(self, url):
         self.view.setUrl(QtCore.QUrl(url))
 
-    def on_load_html(self, content):
-        self.view.setHtml(content, QtCore.QUrl(''))
+    def on_load_html(self, content, base_uri):
+        self.view.setHtml(content, QtCore.QUrl(base_uri))
 
     def closeEvent(self, event):
         if self.confirm_quit:
@@ -229,19 +232,21 @@ class BrowserView(QMainWindow):
             js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
             js_result['semaphore'].release()
 
-        escaped_script = 'JSON.stringify(eval("{0}"))'.format(_escape_string(script))
 
         try:    # PyQt4
-            result = self.view.page().mainFrame().evaluateJavaScript(escaped_script)
+            result = self.view.page().mainFrame().evaluateJavaScript(script)
             return_result(result)
         except AttributeError:  # PyQt5
-            self.view.page().runJavaScript(escaped_script, return_result)
+            self.view.page().runJavaScript(script, return_result)
 
     def on_load_finished(self):
         if self.js_bridge.api:
             self._set_js_api()
         else:
             self.load_event.set()
+
+        if not self.text_select:
+            self.evaluate_js(escape_string(disable_text_select))
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)
@@ -257,9 +262,9 @@ class BrowserView(QMainWindow):
         self.load_event.clear()
         self.load_url_trigger.emit(url)
 
-    def load_html(self, content):
+    def load_html(self, content, base_uri):
         self.load_event.clear()
-        self.html_trigger.emit(content)
+        self.html_trigger.emit(content, base_uri)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
@@ -312,7 +317,7 @@ class BrowserView(QMainWindow):
         def _register_window_object():
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
-        script = _parse_api_js(self.js_bridge.api)
+        script = parse_api_js(self.js_bridge.api)
 
         if _qt_version >= [5, 5]:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
@@ -345,7 +350,7 @@ class BrowserView(QMainWindow):
         except AttributeError:
             pass
 
-        return _convert_string(result)
+        return convert_string(result)
 
     @staticmethod
     # Receive func from subthread and execute it on the main thread
@@ -354,13 +359,13 @@ class BrowserView(QMainWindow):
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
     app = QApplication.instance() or QApplication([])
 
     def _create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
                               min_size, confirm_quit, background_color, debug, js_api,
-                              webview_ready)
+                              text_select, webview_ready)
         browser.show()
 
     if uid == 'master':
@@ -383,8 +388,8 @@ def load_url(url, uid):
     BrowserView.instances[uid].load_url(url)
 
 
-def load_html(content, uid):
-    BrowserView.instances[uid].load_html(content)
+def load_html(content, base_uri, uid):
+    BrowserView.instances[uid].load_html(content, base_uri)
 
 
 def destroy_window(uid):
