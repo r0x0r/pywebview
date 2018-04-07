@@ -117,3 +117,25 @@ def inject_base_uri(content, base_uri):
         return content.replace(tag, base_tag + tag)
 
     return base_tag + content
+
+
+def interop_dll_path():
+    # Unfrozen path
+    dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', 'WebBrowserInterop.dll')
+    if os.path.exists(dll_path):
+        return dll_path
+
+    # Frozen path, dll in the same dir as the executable
+    dll_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'WebBrowserInterop.dll')
+    if os.path.exists(dll_path):
+        return dll_path
+
+    try:
+        # Frozen path packed as onefile
+        dll_path = os.path.join(sys._MEIPASS, 'WebBrowserInterop.dll')
+        if os.path.exists(dll_path):
+            return dll_path
+    except Exception:
+        pass
+
+    raise Exception('Cannot find WebBrowserInterop.dll')
