@@ -14,28 +14,26 @@ import json
 from threading import Event, Semaphore
 from ctypes import windll
 
-base_dir = os.path.dirname(os.path.realpath(__file__))
 import clr
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Threading')
 
-clr.AddReference(os.path.join(base_dir, 'lib', 'WebBrowserInterop.dll'))
 import System.Windows.Forms as WinForms
-
 from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
-from WebBrowserInterop import IWebBrowserInterop
-
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, _js_bridge_call, inject_base_uri
-from webview.util import parse_api_js
+from webview.util import parse_api_js, interop_dll_path
 from .js import alert
 from .js.css import disable_text_select
 
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
+
+clr.AddReference(interop_dll_path())
+from WebBrowserInterop import IWebBrowserInterop
 
 logger = logging.getLogger(__name__)
 
