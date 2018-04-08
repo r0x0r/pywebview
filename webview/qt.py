@@ -8,6 +8,7 @@ http://github.com/r0x0r/pywebview/
 import os
 import json
 import logging
+import webbrowser
 from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
@@ -29,10 +30,11 @@ try:
     _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
 
     if _qt_version >= [5, 5]:
-        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
+        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
         from PyQt5.QtWebChannel import QWebChannel
     else:
-        from PyQt5.QtWebKitWidgets import QWebView
+        from PyQt5 import QtWebKitWidgets
+        from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 
     from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox
     from PyQt5.QtGui import QColor
@@ -94,6 +96,21 @@ class BrowserView(QMainWindow):
 
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
+    class WebPage(QWebPage):
+        def __init__(self, parent=None):
+            super().__init__()
+            self.parent = parent
+
+        def acceptNavigationRequest(self, frame, request, type):
+            if frame is None:
+                webbrowser.open(request.url().toString())
+                return False
+
+            return True
+
+        def createWindow(self, type):
+            pass
+
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, debug, js_api, webview_ready):
         super(BrowserView, self).__init__()
@@ -133,6 +150,7 @@ class BrowserView(QMainWindow):
         self.setMinimumSize(min_size[0], min_size[1])
 
         self.view = QWebView(self)
+        self.view.setPage(BrowserView.WebPage(self.view))
 
         if url is not None:
             self.view.setUrl(QtCore.QUrl(url))
