@@ -128,4 +128,4 @@ if __name__ == '__main__':
     t.start()
 
     api = Api()
-    webview.create_window('API example', js_api=api, debug=True)
+    webview.create_window('API example', js_api=api)
