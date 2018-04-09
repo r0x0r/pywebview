@@ -50,7 +50,7 @@ if _import_error:
     # Try importing Qt4 modules
     try:
         from PyQt4 import QtCore
-        from PyQt4.QtWebKit import QWebView, QWebFrame
+        from PyQt4.QtWebKit import QWebView, QWebPage, QWebFrame
         from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
         _qt_version = [4, 0]
@@ -98,8 +98,7 @@ class BrowserView(QMainWindow):
 
     class WebPage(QWebPage):
         def __init__(self, parent=None):
-            super().__init__()
-            self.parent = parent
+            super(BrowserView.WebPage, self).__init__(parent)
 
         def acceptNavigationRequest(self, frame, request, type):
             if frame is None:
