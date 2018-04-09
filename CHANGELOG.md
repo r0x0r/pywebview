@@ -3,6 +3,26 @@
 
 # Changelog
 
+## 2.0
+
+Released xx/xx/2018
+- `New` [All] Multi-window support
+- `New` [All] Ability to call Python code from Javascript via `window.pywebview.api`
+- `New` [All] TODO debug feature
+- `New` [All] File filter support in `create_file_dialog`
+- `New` [All] `target='_blank'` links are now opened in an external browser
+- `New` [All] Change window title via a `set_title` function #159
+- `New` [All] `load_css` function
+- `New` [All] Support for relative local URLs in `create_window` / `load_html`. Linked local resources are resolved as well. #186
+- `New` [All] `todos` example app demonstrating js api and relative local URLs.
+- `Fix` [All] `base_uri` parameter of `load_html` defaults to the directory of the entry script
+- `Fix` [All] Consistent return types with `evaluate_js` across different platforms #175
+- `Fix` [All] Various concurrency issues and deadlocks
+- `Fix` [Winforms] Hide `Message from webpage` when using `alert` Javascript function #150
+- `Fix` [Winforms] Support for high DPI #179
+- `Fix` [QT] Support for QT 5.10 #171. Thanks @adbenitez
+
+
 ## 1.8
 Released 29/10/2017
 - pywebview has the official logo
