@@ -21,6 +21,8 @@ Released xx/xx/2018
 - `Fix` [Winforms] Hide `Message from webpage` when using `alert` Javascript function #150
 - `Fix` [Winforms] Support for high DPI #179
 - `Fix` [QT] Support for QT 5.10 #171. Thanks @adbenitez
+- `Fix` [QT] Deprecate QT4. Starting from this verison new features won't be tested on QT4 and support will be removed in the future.
+
 
 
 ## 1.8
