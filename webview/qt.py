@@ -96,19 +96,29 @@ class BrowserView(QMainWindow):
 
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
+    # New-window-requests handler for Qt 5.5+ only
+    class NavigationHandler(QWebPage):
+        def __init__(self, parent=None):
+            super(BrowserView.NavigationHandler, self).__init__(parent)
+
+        def acceptNavigationRequest(self, url, type, is_main_frame):
+            webbrowser.open(url.toString(), 2, True)
+            return False
+
     class WebPage(QWebPage):
         def __init__(self, parent=None):
             super(BrowserView.WebPage, self).__init__(parent)
+            self.nav_handler = BrowserView.NavigationHandler(self) if _qt_version >= [5, 5] else None
 
-        def acceptNavigationRequest(self, frame, request, type):
-            if frame is None:
-                webbrowser.open(request.url().toString())
-                return False
-
-            return True
+        if _qt_version < [5, 5]:
+            def acceptNavigationRequest(self, frame, request, type):
+                if frame is None:
+                    webbrowser.open(request.url().toString(), 2, True)
+                    return False
+                return True
 
         def createWindow(self, type):
-            pass
+            return self.nav_handler
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, debug, js_api, webview_ready):
