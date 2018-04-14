@@ -6,6 +6,7 @@ http://github.com/r0x0r/pywebview/
 '''
 
 import os
+import platform
 import json
 import logging
 from uuid import uuid1
@@ -30,7 +31,7 @@ try:
     from PyQt5.QtCore import QT_VERSION_STR
     _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
 
-    if _qt_version >= [5, 5]:
+    if _qt_version >= [5, 5] and platform.version() == 'Linux':
         from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
         from PyQt5.QtWebChannel import QWebChannel
     else:
@@ -154,7 +155,7 @@ class BrowserView(QMainWindow):
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
 
-        if _qt_version >= [5, 5]:
+        if _qt_version >= [5, 5] and platform.version() == 'Linux':
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
 

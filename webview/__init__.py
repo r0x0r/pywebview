@@ -75,7 +75,7 @@ def _initialize_imports():
                     logger.exception('QT cannot be loaded')
                     raise Exception('You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use this library.')
 
-        elif platform.system() == 'Linux':
+        elif platform.system() == 'Linux' or platform.system() == 'OpenBSD':
             if not config.use_qt:
                 try:
                     import webview.gtk as gui
@@ -115,7 +115,7 @@ def _initialize_imports():
                     logger.exception('PyWin32 cannot be loaded')
                     raise Exception('You must have either pythonnet or pywin32 installed in order to use this library.')
         else:
-            raise Exception('Unsupported platform. Only Windows, Linux and OS X are supported.')
+            raise Exception('Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.')
 
         _initialized = True
 
