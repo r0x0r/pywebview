@@ -4,12 +4,12 @@ import time
 import sys
 import random
 
-'''
+"""
 This example demonstrates how to create a pywebview api without using a web
 server
-'''
+"""
 
-html = '''
+html = """
 <!DOCTYPE html>
 <html>
 <head lang="en">
@@ -57,7 +57,7 @@ function initialize() {
 function doHeavyStuff() {
     var btn = document.getElementById('heavy-stuff-btn')
 
-    pywebview.api.do_heavy_stuff().then(function(response) {
+    pywebview.api.doHeavyStuff().then(function(response) {
         showResponse(response)
         btn.onclick = doHeavyStuff
         btn.innerText = 'Perform a heavy operation'
@@ -69,17 +69,17 @@ function doHeavyStuff() {
 }
 
 function cancelHeavyStuff() {
-    pywebview.api.cancel_heavy_stuff()
+    pywebview.api.cancelHeavyStuff()
 }
 
 function getRandomNumber() {
-    pywebview.api.get_random_number().then(showResponse)
+    pywebview.api.getRandomNumber().then(showResponse)
 }
 
 </script>
 </body>
 </html>
-'''
+"""
 
 
 class Api:
@@ -92,13 +92,13 @@ class Api:
         }
         return response
 
-    def get_random_number(self, params):
+    def getRandomNumber(self, params):
         response = {
             'message': 'Here is a random number courtesy of randint: {0}'.format(random.randint(0, 100000000))
         }
         return response
 
-    def do_heavy_stuff(self, params):
+    def doHeavyStuff(self, params):
         time.sleep(0.1)  # sleep to prevent from the ui thread from freezing for a moment
         now = time.time()
         self.cancel_heavy_stuff_flag = False
@@ -114,7 +114,7 @@ class Api:
             }
         return response
 
-    def cancel_heavy_stuff(self, params):
+    def cancelHeavyStuff(self, params):
         time.sleep(0.1)
         self.cancel_heavy_stuff_flag = True
 
@@ -128,4 +128,4 @@ if __name__ == '__main__':
     t.start()
 
     api = Api()
-    webview.create_window('API example', js_api=api, debug=True)
+    webview.create_window('API example', js_api=api)

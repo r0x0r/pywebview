@@ -3,7 +3,7 @@ from .util import run_test
 
 
 def test_url_load():
-    run_test(webview, main_func, url_load)
+    run_test(main_func, url_load)
 
 
 def main_func():

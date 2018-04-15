@@ -1,5 +1,5 @@
 """
-(C) 2014-2016 Roman Sirokov and contributors
+(C) 2014-2018 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -14,13 +14,13 @@ from threading import Event, Semaphore
 import Foundation
 import AppKit
 import WebKit
-
-from PyObjCTools import AppHelper, Conversion
+from PyObjCTools import AppHelper
 from objc import nil, super, pyobjc_unicode
 
 from webview.localization import localization
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview import _parse_file_type, _js_bridge_call, _parse_api_js, _convert_string, _escape_string
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
+from webview.util import convert_string, parse_api_js
+from .js.css import disable_text_select
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -185,15 +185,18 @@ class BrowserView:
             # Add the webview to the window if it's not yet the contentView
             i = BrowserView.get_instance('webkit', webview)
 
-            if i is not None:
-                if not webview.window():
-                    i.window.setContentView_(webview)
-                    i.window.makeFirstResponder_(webview)
+            if not webview.window():
+                i.window.setContentView_(webview)
+                i.window.makeFirstResponder_(webview)
 
-                    if i.js_bridge:
-                        i._set_js_api()
+                if i.js_bridge:
+                    i._set_js_api()
+
+                if not i.text_select:
+                    i.webkit.windowScriptObject().evaluateWebScript_(disable_text_select)
 
                 i.loaded.set()
+
 
     class FileFilterChooser(AppKit.NSPopUpButton):
         def initWithFilter_(self, file_filter):
@@ -248,7 +251,7 @@ class BrowserView:
                     return handled
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, js_api, webview_ready):
+                 confirm_quit, background_color, debug, js_api, text_select, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
 
@@ -264,6 +267,7 @@ class BrowserView:
         self.loaded = Event()
         self.confirm_quit = confirm_quit
         self.title = title
+        self.text_select = text_select
 
         self.is_fullscreen = False
 
@@ -362,17 +366,17 @@ class BrowserView:
         self.url = url
         AppHelper.callAfter(load, url)
 
-    def load_html(self, content):
-        def load(content):
-            url = Foundation.NSURL.URLWithString_('')
+    def load_html(self, content, base_uri):
+        def load(content, url):
+            url = Foundation.NSURL.URLWithString_(url)
             self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
 
         self.loaded.clear()
-        AppHelper.callAfter(load, content)
+        AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
         def evaluate(script):
-            result = self.webkit.windowScriptObject().evaluateWebScript_('JSON.stringify(eval("{0}"))'.format(_escape_string(script)))
+            result = self.webkit.windowScriptObject().evaluateWebScript_(script)
             JSResult.result = None if result is WebKit.WebUndefined.undefined() or result == 'null' else json.loads(result)
 
             JSResult.result_semaphore.release()
@@ -388,7 +392,7 @@ class BrowserView:
         return JSResult.result
 
     def _set_js_api(self):
-        script = _parse_api_js(self.js_bridge.api)
+        script = parse_api_js(self.js_bridge.api)
         self.webkit.windowScriptObject().evaluateWebScript_(script)
 
         pwv_obj = self.webkit.windowScriptObject().valueForKey_('pywebview')
@@ -590,10 +594,10 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, js_api, webview_ready)
+                              confirm_quit, background_color, debug, js_api, text_select, webview_ready)
         browser.show()
 
     if uid == 'master':
@@ -611,7 +615,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
     # Parse file_types to obtain allowed file extensions
     for s in file_types:
-        description, extensions = _parse_file_type(s)
+        description, extensions = parse_file_type(s)
         file_extensions = [i.lstrip('*.') for i in extensions.split(';') if i != '*.*']
         file_filter.append([description, file_extensions or None])
 
@@ -623,8 +627,8 @@ def load_url(url, uid):
     BrowserView.instances[uid].load_url(url)
 
 
-def load_html(content, uid):
-    BrowserView.instances[uid].load_html(content)
+def load_html(content, base_uri, uid):
+    BrowserView.instances[uid].load_html(content, base_uri)
 
 
 def destroy_window(uid):
