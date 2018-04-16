@@ -15,6 +15,7 @@ Released xx/xx/2018
 - `New` [All] `load_css` function
 - `New` [All] Support for relative local URLs in `create_window` / `load_html`. Linked local resources are resolved as well. #186
 - `New` [All] `todos` example app demonstrating js api and relative local URLs.
+- `New` [QT] OpenBSD 6.x support #213. Thanks @hucste.
 - `Fix` [All] `base_uri` parameter of `load_html` defaults to the directory of the entry script
 - `Fix` [All] Consistent return types with `evaluate_js` across different platforms #175
 - `Fix` [All] Various concurrency issues and deadlocks
