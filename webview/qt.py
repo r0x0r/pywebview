@@ -6,6 +6,7 @@ http://github.com/r0x0r/pywebview/
 '''
 
 import os
+import platform
 import json
 import logging
 import webbrowser
@@ -31,7 +32,7 @@ try:
     from PyQt5.QtCore import QT_VERSION_STR
     _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
 
-    if _qt_version >= [5, 5]:
+    if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
         from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
         from PyQt5.QtWebChannel import QWebChannel
     else:
@@ -63,7 +64,7 @@ if _import_error:
         _import_error = False
 
 if _import_error:
-    raise Exception('This module requires PyQt4 or PyQt5 to work under Linux.')
+    raise Exception('This module requires PyQt4 or PyQt5 to work under Linux or *BSD.')
 
 
 class BrowserView(QMainWindow):
@@ -181,7 +182,7 @@ class BrowserView(QMainWindow):
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
 
-        if _qt_version >= [5, 5]:
+        if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
 

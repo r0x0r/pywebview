@@ -20,7 +20,10 @@ elif platform.system() == "Linux":
         'gtk3': ['PyGObject'],
         'qt5': ['PyQt5'],
     }
-
+elif platform.system() == 'OpenBSD':
+    extras_require = {
+        'qt5': ['PyQt5'],
+    }
 
 setup(
     name="pywebview",
