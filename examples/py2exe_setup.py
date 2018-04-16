@@ -1,5 +1,6 @@
 """
-This is an example of py2exe setup.py script for freezing your pywebview application
+This is an example of py2exe setup.py script for freezing your pywebview
+application
 
 Usage:
     python setup.py py2exe
@@ -8,7 +9,6 @@ Usage:
 from distutils.core import setup
 
 import sys
-import py2exe
 import os
 
 # ModuleFinder can't handle runtime changes to __path__, but win32com uses them
@@ -22,10 +22,10 @@ try:
         import py2exe.mf as modulefinder
     except ImportError:
         import modulefinder
-    import win32com, sys
+    import win32com
     for p in win32com.__path__[1:]:
         modulefinder.AddPackagePath("win32com", p)
-    for extra in ["win32com.shell"]: #,"win32com.mapi"
+    for extra in ["win32com.shell"]:  # ,"win32com.mapi"
         __import__(extra)
         m = sys.modules[extra]
         for p in m.__path__[1:]:
@@ -36,7 +36,8 @@ except ImportError:
 
 
 def tree(src):
-    return [(root, map(lambda f: os.path.join(root, f), files)) for (root, dirs, files) in os.walk(os.path.normpath(src))]
+    return [(root, map(lambda f: os.path.join(root, f), files))
+            for (root, dirs, files) in os.walk(os.path.normpath(src))]
 
 
 ENTRY_POINT = ['YOUR_EXAMPLE.py']
@@ -47,7 +48,8 @@ OPTIONS = {
     # if you figure it out, drop me a line
     'bundle_files': 3,
     'compressed': False,
-    'includes': ['win32gui', 'win32con', 'win32api', 'win32ui', 'ctypes', 'comtypes', 'webview']}
+    'includes': ['win32gui', 'win32con', 'win32api', 'win32ui', 'ctypes',
+                 'comtypes', 'webview']}
 
 setup(
     data_files=DATA_FILES,

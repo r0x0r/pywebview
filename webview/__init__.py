@@ -5,22 +5,25 @@
 pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its
 own dedicated window. Works on Windows, OS X and Linux and compatible with Python 2 and 3.
 
-(C) 2014-2016 Roman Sirokov and contributors
+(C) 2014-2018 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
 
 
-import platform
-import os
-import sys
-import re
 import json
 import logging
+import os
+import platform
+import re
+import sys
 from threading import Event, Thread, current_thread
 from uuid import uuid4
+from functools import wraps
 
+from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, inject_base_uri
+from .js import css
 from .localization import localization
 
 logger = logging.getLogger(__name__)
@@ -72,7 +75,7 @@ def _initialize_imports():
                     logger.exception('QT cannot be loaded')
                     raise Exception('You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use this library.')
 
-        elif platform.system() == 'Linux':
+        elif platform.system() == 'Linux' or platform.system() == 'OpenBSD':
             if not config.use_qt:
                 try:
                     import webview.gtk as gui
@@ -112,87 +115,51 @@ def _initialize_imports():
                     logger.exception('PyWin32 cannot be loaded')
                     raise Exception('You must have either pythonnet or pywin32 installed in order to use this library.')
         else:
-            raise Exception('Unsupported platform. Only Windows, Linux and OS X are supported.')
+            raise Exception('Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.')
 
         _initialized = True
 
 
-def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=()):
+def _api_call(function):
     """
-    Create a file dialog
-    :param dialog_type: Dialog type: open file (OPEN_DIALOG), save file (SAVE_DIALOG), open folder (OPEN_FOLDER). Default
-                        is open file.
-    :param directory: Initial directory
-    :param allow_multiple: Allow multiple selection. Default is false.
-    :param save_filename: Default filename for save file dialog.
-    :param file_types: Allowed file types in open file dialog. Should be a tuple of strings in the format:
-        filetypes = ('Description (*.extension[;*.extension[;...]])', ...)
-    :return:
+    Decorator to call a pywebview API, checking for _webview_ready and raisings
+    appropriate Exceptions on failure.
     """
-    if type(file_types) != tuple and type(file_types) != list:
-        raise TypeError('file_types must be a tuple of strings')
-    for f in file_types:
-        _parse_file_type(f)
-
-    if not os.path.exists(directory):
-        directory = ''
-
-    try:
-        _webview_ready.wait(5)
-        return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
-    except NameError as e:
-        raise Exception('Create a web view window first, before invoking this function')
-
-
-def load_url(url, uid='master'):
-    """
-    Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is
-    created with create_window(). Otherwise an exception is thrown.
-    :param url: url to load
-    :param uid: uid of the target instance
-    """
-    try:
-        _webview_ready.wait(5)
-        gui.load_url(url, uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
-
-
-def load_html(content, uid='master'):
-    """
-    Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
-    created with create_window(). Otherwise an exception is thrown.
-    :param content: Content to load.
-    :param uid: uid of the target instance
-    """
-    try:
-        _webview_ready.wait(5)
-        gui.load_html(_make_unicode(content), uid)
-    except NameError as e:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        try:
+            _webview_ready.wait(5)
+            return function(*args, **kwargs)
+        except NameError:
+            raise Exception('Create a web view window first, before invoking this function')
+        except KeyError:
+            try:
+                uid = kwargs['uid']
+            except KeyError:
+                # uid not passed as a keyword arg, assumes it to be last in the arg list
+                uid = args[-1]
+            raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    return wrapper
 
 
 def create_window(title, url=None, js_api=None, width=800, height=600,
                   resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
-                  background_color='#FFFFFF', debug=False):
+                  background_color='#FFFFFF', text_select=False, debug=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
     :param title: Window title
     :param url: URL to load
-    :param width: Optional window width (default: 800px)
-    :param height: Optional window height (default: 600px)
+    :param width: window width. Default is 800px
+    :param height:window height. Default is 600px
     :param resizable True if window can be resized, False otherwise. Default is True
     :param fullscreen: True if start in fullscreen mode. Default is False
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
     :param strings: a dictionary with localized strings
     :param confirm_quit: Display a quit confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
-    :return:
+    :param text_select: Allow text selection on page. Default is False.
+    :return: The uid of the created window.
     """
     uid = 'child_' + uuid4().hex[:8]
 
@@ -210,69 +177,104 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
             localization.update(strings)
             uid = 'master'
 
-    _webview_ready.clear()
-    gui.create_window(uid, _make_unicode(title), _transform_url(url),
+    _webview_ready.clear()  # Make API calls wait while the new window is created
+    gui.create_window(uid, make_unicode(title), transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
-                      background_color, debug, js_api, _webview_ready)
+                      background_color, debug, js_api, text_select, _webview_ready)
 
     return uid
 
 
+@_api_call
+def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=()):
+    """
+    Create a file dialog
+    :param dialog_type: Dialog type: open file (OPEN_DIALOG), save file (SAVE_DIALOG), open folder (OPEN_FOLDER). Default
+                        is open file.
+    :param directory: Initial directory
+    :param allow_multiple: Allow multiple selection. Default is false.
+    :param save_filename: Default filename for save file dialog.
+    :param file_types: Allowed file types in open file dialog. Should be a tuple of strings in the format:
+        filetypes = ('Description (*.extension[;*.extension[;...]])', ...)
+    :return: A tuple of selected files, None if cancelled.
+    """
+    if type(file_types) != tuple and type(file_types) != list:
+        raise TypeError('file_types must be a tuple of strings')
+    for f in file_types:
+        parse_file_type(f)
+
+    if not os.path.exists(directory):
+        directory = ''
+
+    return gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
+
+
+@_api_call
+def load_url(url, uid='master'):
+    """
+    Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is
+    created with create_window(). Otherwise an exception is thrown.
+    :param url: url to load
+    :param uid: uid of the target instance
+    """
+    gui.load_url(url, uid)
+
+
+@_api_call
+def load_html(content, base_uri=base_uri(), uid='master'):
+    """
+    Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
+    created with create_window(). Otherwise an exception is thrown.
+    :param content: Content to load.
+    :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
+    :param uid: uid of the target instance
+    """
+    content = make_unicode(content)
+    gui.load_html(content, base_uri, uid)
+
+
+@_api_call
+def load_css(stylesheet, uid='master'):
+    code = css.src % stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
+    gui.evaluate_js(code)
+
+
+@_api_call
 def set_title(title, uid='master'):
     """
     Sets a new title of the window
     """
-    try:
-        _webview_ready.wait(5)
-        return gui.set_title(title, uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    gui.set_title(title, uid)
 
 
+@_api_call
 def get_current_url(uid='master'):
     """
-    Get a current URL
+    Get the URL currently loaded in the target webview
     :param uid: uid of the target instance
     """
-    try:
-        _webview_ready.wait(5)
-        return gui.get_current_url(uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    return gui.get_current_url(uid)
 
 
+@_api_call
 def destroy_window(uid='master'):
     """
     Destroy a web view window
     :param uid: uid of the target instance
     """
-    try:
-        _webview_ready.wait(5)
-        gui.destroy_window(uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    gui.destroy_window(uid)
 
 
+@_api_call
 def toggle_fullscreen(uid='master'):
     """
     Toggle fullscreen mode
     :param uid: uid of the target instance
     """
-    try:
-        _webview_ready.wait(5)
-        gui.toggle_fullscreen(uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    gui.toggle_fullscreen(uid)
 
 
+@_api_call
 def evaluate_js(script, uid='master'):
     """
     Evaluate given JavaScript code and return the result
@@ -280,13 +282,8 @@ def evaluate_js(script, uid='master'):
     :param uid: uid of the target instance
     :return: Return value of the evaluated code
     """
-    try:
-        _webview_ready.wait(5)
-        return gui.evaluate_js(script, uid)
-    except NameError:
-        raise Exception('Create a web view window first, before invoking this function')
-    except KeyError:
-        raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+    escaped_script = 'JSON.stringify(eval("{0}"))'.format(escape_string(script))
+    return gui.evaluate_js(escaped_script, uid)
 
 
 def window_exists(uid='master'):
@@ -314,7 +311,7 @@ def webview_ready(timeout=None):
 def _js_bridge_call(uid, api_instance, func_name, param):
     def _call():
         result = json.dumps(function(func_params))
-        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, _escape_line_breaks(result))
+        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, escape_line_breaks(result))
         evaluate_js(code, uid)
 
     function = getattr(api_instance, func_name, None)
@@ -328,67 +325,3 @@ def _js_bridge_call(uid, api_instance, func_name, param):
             logger.exception('Error occurred while evaluating function {0}'.format(func_name))
     else:
         logger.error('Function {}() does not exist'.format(func_name))
-
-
-def _parse_api_js(api_instance):
-    base_dir = os.path.dirname(os.path.realpath(__file__))
-
-    with open(os.path.join(base_dir, 'js', 'npo.js')) as npo_js:
-        js_code = npo_js.read()
-
-    with open(os.path.join(base_dir, 'js', 'api.js')) as api_js:
-        func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
-        js_code += api_js.read() % func_list
-
-    return js_code
-
-
-def _escape_string(string):
-    return string.replace('"', r'\"').replace('\n', r'\n').replace('\r', r'\\r')
-
-
-def _escape_line_breaks(string):
-    return string.replace('\\n', r'\\n').replace('\\r', r'\\r')
-
-
-def _make_unicode(string):
-    """
-    Python 2 and 3 compatibility function that converts a string to Unicode. In case of Unicode, the string is returned
-    unchanged
-    :param string: input string
-    :return: Unicode string
-    """
-    if sys.version < '3' and isinstance(string, str):
-        return unicode(string.decode('utf-8'))
-
-    return string
-
-
-def _transform_url(url):
-    if url is None:
-        return url
-    if url.find(':') == -1:
-        return 'file://' + os.path.abspath(url)
-    else:
-        return url
-
-
-def _parse_file_type(file_type):
-    '''
-    :param file_type: file type string 'description (*.file_extension1;*.file_extension2)' as required by file filter in create_file_dialog
-    :return: (description, file extensions) tuple
-    '''
-    valid_file_filter = r'^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*\.\w+)*)\)$'
-    match = re.search(valid_file_filter, file_type)
-
-    if match:
-        return match.group(1).rstrip(), match.group(2)
-    else:
-        raise ValueError('{0} is not a valid file filter'.format(file_type))
-
-
-def _convert_string(string):
-    if sys.version < '3':
-        return unicode(string)
-    else:
-        return str(string)
