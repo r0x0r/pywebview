@@ -9,6 +9,7 @@ import os
 import platform
 import json
 import logging
+import webbrowser
 from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
@@ -32,10 +33,11 @@ try:
     _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
 
     if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
-        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
+        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
         from PyQt5.QtWebChannel import QWebChannel
     else:
-        from PyQt5.QtWebKitWidgets import QWebView
+        from PyQt5 import QtWebKitWidgets
+        from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 
     from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox
     from PyQt5.QtGui import QColor
@@ -51,7 +53,7 @@ if _import_error:
     # Try importing Qt4 modules
     try:
         from PyQt4 import QtCore
-        from PyQt4.QtWebKit import QWebView, QWebFrame
+        from PyQt4.QtWebKit import QWebView, QWebPage, QWebFrame
         from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
         _qt_version = [4, 0]
@@ -97,6 +99,30 @@ class BrowserView(QMainWindow):
 
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
+    # New-window-requests handler for Qt 5.5+ only
+    class NavigationHandler(QWebPage):
+        def __init__(self, parent=None):
+            super(BrowserView.NavigationHandler, self).__init__(parent)
+
+        def acceptNavigationRequest(self, url, type, is_main_frame):
+            webbrowser.open(url.toString(), 2, True)
+            return False
+
+    class WebPage(QWebPage):
+        def __init__(self, parent=None):
+            super(BrowserView.WebPage, self).__init__(parent)
+            self.nav_handler = BrowserView.NavigationHandler(self) if _qt_version >= [5, 5] else None
+
+        if _qt_version < [5, 5]:
+            def acceptNavigationRequest(self, frame, request, type):
+                if frame is None:
+                    webbrowser.open(request.url().toString(), 2, True)
+                    return False
+                return True
+
+        def createWindow(self, type):
+            return self.nav_handler
+
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, debug, js_api, text_select, webview_ready):
         super(BrowserView, self).__init__()
@@ -137,6 +163,7 @@ class BrowserView(QMainWindow):
         self.setMinimumSize(min_size[0], min_size[1])
 
         self.view = QWebView(self)
+        self.view.setPage(BrowserView.WebPage(self.view))
 
         if url is not None:
             self.view.setUrl(QtCore.QUrl(url))

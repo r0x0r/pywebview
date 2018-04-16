@@ -7,6 +7,7 @@ http://github.com/r0x0r/pywebview/
 import sys
 import logging
 import json
+import webbrowser
 
 from uuid import uuid1
 from threading import Event, Semaphore, Lock
@@ -96,6 +97,8 @@ class BrowserView:
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('document-load-finished', self.on_load_finish)
         self.webview.connect('status-bar-text-changed', self.on_status_change)
+        self.webview.connect('new-window-policy-decision-requested', self.on_new_window_request)
+
         self.webview.props.settings.props.enable_default_context_menu = False
         self.webview.props.settings.props.javascript_can_access_clipboard = True
         self.webview.props.opacity = 0.0
@@ -162,6 +165,11 @@ class BrowserView:
             # Give back the return value to JS as a string
             code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
             webview.execute_script(code)
+
+    def on_new_window_request(self, webview, frame, request, action, decision, *data):
+        if action.get_target_frame() == '_blank':
+            webbrowser.open(request.get_uri(), 2, True)
+        decision.ignore()
 
     def show(self):
         self.window.show_all()
