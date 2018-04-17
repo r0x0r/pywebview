@@ -102,8 +102,8 @@ class BrowserView(QMainWindow):
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
     class WebView(QWebView):
-        def __init__(self):
-            super(BrowserView.WebView, self).__init__()
+        def __init__(self, parent=None):
+            super(BrowserView.WebView, self).__init__(parent)
 
         def contextMenuEvent(self, event):
             menu = self.page().createStandardContextMenu()
