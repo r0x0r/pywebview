@@ -90,6 +90,9 @@ class BrowserView:
             self.web_browser.WebBrowserShortcutsEnabled = False
             self.web_browser.DpiAware = True
 
+            self.web_browser.ScriptErrorsSuppressed = not debug
+            self.web_browser.IsWebBrowserContextMenuEnabled = debug
+
             self.js_result_semaphore = Semaphore(0)
             self.js_bridge = BrowserView.JSBridge()
             self.js_bridge.parent_uid = uid
