@@ -6,11 +6,14 @@ http://github.com/r0x0r/pywebview/
 '''
 
 import os
+import platform
 import json
 import logging
+import webbrowser
 from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
+from socket import socket
 
 from webview.localization import localization
 from webview import escape_string, _js_bridge_call
@@ -30,13 +33,14 @@ try:
     from PyQt5.QtCore import QT_VERSION_STR
     _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
 
-    if _qt_version >= [5, 5]:
-        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
+    if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
+        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
         from PyQt5.QtWebChannel import QWebChannel
     else:
-        from PyQt5.QtWebKitWidgets import QWebView
+        from PyQt5 import QtWebKitWidgets
+        from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 
-    from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox
+    from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox, QAction
     from PyQt5.QtGui import QColor
 
     logger.debug('Using Qt5')
@@ -50,7 +54,7 @@ if _import_error:
     # Try importing Qt4 modules
     try:
         from PyQt4 import QtCore
-        from PyQt4.QtWebKit import QWebView, QWebFrame
+        from PyQt4.QtWebKit import QWebView, QWebPage, QWebFrame
         from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
         _qt_version = [4, 0]
@@ -61,11 +65,12 @@ if _import_error:
         _import_error = False
 
 if _import_error:
-    raise Exception('This module requires PyQt4 or PyQt5 to work under Linux.')
+    raise Exception('This module requires PyQt4 or PyQt5 to work under Linux or *BSD.')
 
 
 class BrowserView(QMainWindow):
     instances = {}
+    inspector_port = None  # The localhost port at which the Remote debugger listens
 
     create_window_trigger = QtCore.pyqtSignal(object)
     set_title_trigger = QtCore.pyqtSignal(str)
@@ -96,6 +101,66 @@ class BrowserView(QMainWindow):
 
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
+    class WebView(QWebView):
+        def __init__(self, parent=None):
+            super(BrowserView.WebView, self).__init__(parent)
+
+        def contextMenuEvent(self, event):
+            menu = self.page().createStandardContextMenu()
+
+            # If 'Inspect Element' is present in the default context menu, it
+            # means the inspector is already up and running.
+            for i in menu.actions():
+                if i.text() == 'Inspect Element':
+                    break
+            else:
+                # Inspector is not up yet, so create a pseudo 'Inspect Element'
+                # menu that will fire it up.
+                inspect_element = QAction('Inspect Element')
+                inspect_element.triggered.connect(self.show_inspector)
+                menu.addAction(inspect_element)
+
+            menu.exec_(event.globalPos())
+
+        # Create a new webview window pointing at the Remote debugger server
+        def show_inspector(self):
+            uid = self.parent().uid + '-inspector'
+            try:
+                # If inspector already exists, bring it to the front
+                BrowserView.instances[uid].raise_()
+                BrowserView.instances[uid].activateWindow()
+            except KeyError:
+                title = 'Web Inspector - {}'.format(self.parent().title)
+                url = 'http://localhost:{}'.format(BrowserView.inspector_port)
+
+                inspector = BrowserView(uid, title, url, 700, 500, True, False, (300,200),
+                                        False, '#fff', False, None, self.parent().webview_ready)
+                inspector.show()
+
+    # New-window-requests handler for Qt 5.5+ only
+    class NavigationHandler(QWebPage):
+        def __init__(self, parent=None):
+            super(BrowserView.NavigationHandler, self).__init__(parent)
+
+        def acceptNavigationRequest(self, url, type, is_main_frame):
+            webbrowser.open(url.toString(), 2, True)
+            return False
+
+    class WebPage(QWebPage):
+        def __init__(self, parent=None):
+            super(BrowserView.WebPage, self).__init__(parent)
+            self.nav_handler = BrowserView.NavigationHandler(self) if _qt_version >= [5, 5] else None
+
+        if _qt_version < [5, 5]:
+            def acceptNavigationRequest(self, frame, request, type):
+                if frame is None:
+                    webbrowser.open(request.url().toString(), 2, True)
+                    return False
+                return True
+
+        def createWindow(self, type):
+            return self.nav_handler
+
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
                  min_size, confirm_quit, background_color, debug, js_api, text_select, webview_ready):
         super(BrowserView, self).__init__()
@@ -114,6 +179,7 @@ class BrowserView(QMainWindow):
         self._current_url_semaphore = Semaphore(0)
 
         self.load_event = Event()
+        self.webview_ready = webview_ready
 
         self._js_results = {}
         self._current_url = None
@@ -135,7 +201,16 @@ class BrowserView(QMainWindow):
 
         self.setMinimumSize(min_size[0], min_size[1])
 
-        self.view = QWebView(self)
+        self.view = BrowserView.WebView(self)
+        self.view.setPage(BrowserView.WebPage(self.view))
+
+        if debug and _qt_version > [5, 5]:
+            # Initialise Remote debugging (need to be done only once)
+            if not BrowserView.inspector_port:
+                BrowserView.inspector_port = BrowserView._get_free_port()
+                os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = BrowserView.inspector_port
+        else:
+            self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
         if url is not None:
             self.view.setUrl(QtCore.QUrl(url))
@@ -154,7 +229,7 @@ class BrowserView(QMainWindow):
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
 
-        if _qt_version >= [5, 5]:
+        if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
 
@@ -162,8 +237,6 @@ class BrowserView(QMainWindow):
 
         if fullscreen:
             self.toggle_fullscreen()
-
-        self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
@@ -211,6 +284,12 @@ class BrowserView(QMainWindow):
 
         event.accept()
         del BrowserView.instances[self.uid]
+
+        try:    # Close inpsector if open
+            BrowserView.instances[self.uid + '-inspector'].close()
+            del BrowserView.instances[self.uid + '-inspector']
+        except KeyError:
+            pass
 
     def on_destroy_window(self):
         self.close()
@@ -351,6 +430,15 @@ class BrowserView(QMainWindow):
             pass
 
         return convert_string(result)
+
+    @staticmethod
+    # A simple function to obtain an unused localhost port from the os return it
+    def _get_free_port():
+        s = socket()
+        s.bind(('localhost', 0))
+        port = str(s.getsockname()[1])
+        s.close()
+        return port
 
     @staticmethod
     # Receive func from subthread and execute it on the main thread

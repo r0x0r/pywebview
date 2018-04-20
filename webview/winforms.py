@@ -11,6 +11,7 @@ import os
 import sys
 import logging
 import json
+import webbrowser
 from threading import Event, Semaphore
 from ctypes import windll
 
@@ -24,8 +25,9 @@ from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, _js_bridge_call, inject_base_uri
-from webview.util import parse_api_js, interop_dll_path
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _js_bridge_call
+from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri
+
 from .js import alert
 from .js.css import disable_text_select
 
@@ -33,7 +35,7 @@ from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
 clr.AddReference(interop_dll_path())
-from WebBrowserInterop import IWebBrowserInterop
+from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 
 logger = logging.getLogger(__name__)
 
@@ -81,12 +83,15 @@ class BrowserView:
             self.webview_ready = webview_ready
             self.load_event = Event()
 
-            self.web_browser = WinForms.WebBrowser()
+            self.web_browser = WebBrowserEx()
             self.web_browser.Dock = WinForms.DockStyle.Fill
             self.web_browser.ScriptErrorsSuppressed = not debug
             self.web_browser.IsWebBrowserContextMenuEnabled = debug
             self.web_browser.WebBrowserShortcutsEnabled = False
             self.web_browser.DpiAware = True
+
+            self.web_browser.ScriptErrorsSuppressed = not debug
+            self.web_browser.IsWebBrowserContextMenuEnabled = debug
 
             self.js_result_semaphore = Semaphore(0)
             self.js_bridge = BrowserView.JSBridge()
@@ -110,6 +115,7 @@ class BrowserView:
             self.cancel_back = False
             self.web_browser.PreviewKeyDown += self.on_preview_keydown
             self.web_browser.Navigating += self.on_navigating
+            self.web_browser.NewWindow3 += self.on_new_window
             self.web_browser.DocumentCompleted += self.on_document_completed
 
             if url:
@@ -162,6 +168,10 @@ class BrowserView:
                 self.web_browser.Document.ExecCommand('Undo', False, None)
             elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.A:
                 self.web_browser.Document.ExecCommand('selectAll', False, None)
+
+        def on_new_window(self, sender, args):
+            args.Cancel = True
+            webbrowser.open(args.Url)
 
         def on_navigating(self, sender, args):
             if self.cancel_back:
@@ -254,7 +264,7 @@ def set_title(title, uid):
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
-    window = list(BrowserView.instances.values())[0]     # arbitary instance
+    window = list(BrowserView.instances.values())[0]     # arbitrary instance
 
     if not directory:
         directory = os.environ['HOMEPATH']

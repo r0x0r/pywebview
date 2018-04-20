@@ -580,6 +580,7 @@
 		this.$footer = qs('.footer');
 		this.$toggleAll = qs('.toggle-all');
 		this.$newTodo = qs('.new-todo');
+		this.$toggleFullscreen = qs('.toggle-fullscreen')
 	}
 
 	View.prototype._removeItem = function (id) {
@@ -767,7 +768,13 @@
 
 		} else if (event === 'itemEditCancel') {
 			self._bindItemEditCancel(handler);
-		}
+
+		} else if (event === 'toggleFullscreen') {
+			$on(self.$toggleFullscreen, 'click', function (e) {
+				e.preventDefault()
+				handler();
+			});
+        }
 	};
 
 	// Export to window
@@ -827,6 +834,10 @@
 
 		self.view.bind('toggleAll', function (status) {
 			self.toggleAll(status.completed);
+		});
+
+		self.view.bind('toggleFullscreen', function () {
+			window.pywebview.api.toggleFullscreen()
 		});
 	}
 
