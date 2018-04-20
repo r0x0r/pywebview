@@ -115,7 +115,7 @@ For more detailed usage, refer to the examples in the `examples` directory. Ther
   * `strings` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
   * `confirm_quit` - Whether to display a quit confirmation dialog. Default is False
   * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
-  * `debug` - (OSX only) Enables web inspector, when set to True.
+  * `debug` - Enabled debug mode. OSX, GTK and QT feature a full-fledged web inspector and WinForms has rudimentary error reporting. To activate the web inspector, right click on the page and select Inspect.
   * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) property.
 
 
