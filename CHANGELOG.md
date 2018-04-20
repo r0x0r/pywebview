@@ -8,7 +8,7 @@
 Released xx/xx/2018
 - `New` [All] Multi-window support
 - `New` [All] Ability to call Python code from Javascript via `window.pywebview.api`
-- `New` [All] TODO debug feature
+- `New` [All] Debug mode. Web inspector for Cocoa/GTK/QT and basic debug information for WinForms.
 - `New` [All] File filter support in `create_file_dialog`
 - `New` [All] `target='_blank'` links are now opened in an external browser
 - `New` [All] Change window title via a `set_title` function #159
