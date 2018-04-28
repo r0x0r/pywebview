@@ -10,6 +10,7 @@ http://github.com/r0x0r/pywebview/
 import os
 import re
 import sys
+import platform
 
 from .js import api, npo
 
@@ -120,19 +121,21 @@ def inject_base_uri(content, base_uri):
 
 
 def interop_dll_path():
+    dll_name = 'WebBrowserInterop.x64.dll' if platform.architecture()[0] == '64bit' else 'WebBrowserInterop.x86.dll'
+
     # Unfrozen path
-    dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', 'WebBrowserInterop.dll')
+    dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', dll_name)
     if os.path.exists(dll_path):
         return dll_path
 
     # Frozen path, dll in the same dir as the executable
-    dll_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'WebBrowserInterop.dll')
+    dll_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), dll_name)
     if os.path.exists(dll_path):
         return dll_path
 
     try:
         # Frozen path packed as onefile
-        dll_path = os.path.join(sys._MEIPASS, 'WebBrowserInterop.dll')
+        dll_path = os.path.join(sys._MEIPASS, dll_name)
         if os.path.exists(dll_path):
             return dll_path
     except Exception:
