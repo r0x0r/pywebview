@@ -5,7 +5,7 @@
 
 ## 2.0
 
-Released xx/xx/2018
+Released 28/04/2018
 - `New` [All] Multi-window support
 - `New` [All] Ability to call Python code from Javascript via `window.pywebview.api`
 - `New` [All] Debug mode. Web inspector for Cocoa/GTK/QT and basic debug information for WinForms.
@@ -15,6 +15,7 @@ Released xx/xx/2018
 - `New` [All] `load_css` function
 - `New` [All] Support for relative local URLs in `create_window` / `load_html`. Linked local resources are resolved as well. #186
 - `New` [All] `todos` example app demonstrating js api and relative local URLs.
+- `New` [All] Text select in the webview window is disabled by default. Added `text_select` argument to `create_window` function.
 - `New` [QT] OpenBSD 6.x support #213. Thanks @hucste.
 - `Fix` [All] `base_uri` parameter of `load_html` defaults to the directory of the entry script
 - `Fix` [All] Consistent return types with `evaluate_js` across different platforms #175
