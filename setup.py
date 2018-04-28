@@ -32,10 +32,10 @@ setup(
     data_files=data_files,
     description=("A cross-platform lightweight native wrapper around a web view component"),
     url="http://github.com/r0x0r/pywebview",
-    download_url="https://github.com/r0x0r/pywebview/archive/1.8.tar.gz",
+    download_url="https://github.com/r0x0r/pywebview/archive/2.0.tar.gz",
     keywords=["gui", "webkit", "html", "web"],
     extras_require=extras_require,
-    version="1.8",
+    version="2.0",
     packages=["webview", "webview.js"],
     license="New BSD license",
     classifiers=[
