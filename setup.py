@@ -5,7 +5,7 @@ from setuptools import setup
 data_files = []
 
 if platform.system() == "Windows":
-    data_files.append(('webview/lib', ['webview/lib/WebBrowserInterop.dll']))
+    data_files.append(('webview/lib', ['webview/lib/WebBrowserInterop.x64.dll', 'webview/lib/WebBrowserInterop.x86.dll']))
     extras_require = {
         'win32': ['pywin32', 'comtypes'],
         'winforms': ['pythonnet'],
