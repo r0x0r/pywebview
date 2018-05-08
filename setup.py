@@ -2,9 +2,6 @@ import os
 import platform
 from setuptools import setup
 
-data_files = []
-data_files.append(('webview/lib', ['webview/lib/WebBrowserInterop.x64.dll', 'webview/lib/WebBrowserInterop.x86.dll']))
-
 
 if platform.system() == "Windows":
     extras_require = {
@@ -30,14 +27,15 @@ setup(
     name="pywebview",
     author="Roman Sirokov",
     author_email="roman@flowrl.com",
-    data_files=data_files,
     description=("A cross-platform lightweight native wrapper around a web view component"),
     url="http://github.com/r0x0r/pywebview",
-    download_url="https://github.com/r0x0r/pywebview/archive/2.0.1.tar.gz",
+    download_url="https://github.com/r0x0r/pywebview/archive/2.0.2.tar.gz",
     keywords=["gui", "webkit", "html", "web"],
     extras_require=extras_require,
-    version="2.0.1",
+    version="2.0.2",
+    include_package_data=True,
     packages=["webview", "webview.js"],
+    package_data={"webview": ['webview/lib/WebBrowserInterop.x64.dll', 'webview/lib/WebBrowserInterop.x86.dll']},
     license="New BSD license",
     classifiers=[
         "Intended Audience :: Developers",
