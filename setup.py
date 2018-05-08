@@ -35,7 +35,7 @@ setup(
     version="2.0.2",
     include_package_data=True,
     packages=["webview", "webview.js"],
-    package_data={"webview": ['webview/lib/WebBrowserInterop.x64.dll', 'webview/lib/WebBrowserInterop.x86.dll']},
+    package_data={"webview": ['lib/WebBrowserInterop.x64.dll', 'lib/WebBrowserInterop.x86.dll']},
     license="New BSD license",
     classifiers=[
         "Intended Audience :: Developers",
