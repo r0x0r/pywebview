@@ -3,9 +3,10 @@ import platform
 from setuptools import setup
 
 data_files = []
+data_files.append(('webview/lib', ['webview/lib/WebBrowserInterop.x64.dll', 'webview/lib/WebBrowserInterop.x86.dll']))
+
 
 if platform.system() == "Windows":
-    data_files.append(('webview/lib', ['webview/lib/WebBrowserInterop.x64.dll', 'webview/lib/WebBrowserInterop.x86.dll']))
     extras_require = {
         'win32': ['pywin32', 'comtypes'],
         'winforms': ['pythonnet'],
@@ -32,10 +33,10 @@ setup(
     data_files=data_files,
     description=("A cross-platform lightweight native wrapper around a web view component"),
     url="http://github.com/r0x0r/pywebview",
-    download_url="https://github.com/r0x0r/pywebview/archive/2.0.tar.gz",
+    download_url="https://github.com/r0x0r/pywebview/archive/2.0.1.tar.gz",
     keywords=["gui", "webkit", "html", "web"],
     extras_require=extras_require,
-    version="2.0",
+    version="2.0.1",
     packages=["webview", "webview.js"],
     license="New BSD license",
     classifiers=[
