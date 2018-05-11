@@ -37,7 +37,7 @@ SAVE_DIALOG = 30
 class Config (dict):
 
     def __init__(self):
-        self.use_qt = 'USE_QT' in os.environ
+        self.use_qt = 'USE_QT' in os.environ or 'KDE_FULL_SESSION' in os.environ
         self.use_win32 = 'USE_WIN32' in os.environ
 
     def __getitem__(self, key):
