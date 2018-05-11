@@ -74,31 +74,35 @@ On Debian based systems run
 
 For QT based systems
 
-Either `PyQt4` or `PyQt5`
-
+Either `PyQt5` or `PyQt4`. PyQt4 is deprecated and will be removed in the future.
 
 # Usage
 
     import webview
-    
     webview.create_window("It works, Jim!", "http://www.flowrl.com")
 
-For more elaborated usage, refer to the examples in the `examples` directory.
-There is also a sample Flask application boilerplate provided in the `examples/flask_app` directory. It provides
-an application scaffold and boilerplate code for a real-world application.
+For more detailed usage, refer to the examples in the `examples` directory. There are three ways to build your app
+
+1) Open a web page as in the example above. The page can be either local (`file://`) or remote. Using `file://` urls won't work
+   with application is frozen
+2) Use a relative url to load your application and provide a js_api object for Python-JS intercommunication. The URL is resolved
+   automatically to work in a frozen environment as well. See `examples/todos`.
+3) Run a local web server and point pywebview to display it. There is an example Flask application in the `examples/flask_app`
+   directory. 
 
 
 ## API
 
 - `webview.create_window(title, url='', js_api=None, width=800, height=600, resizable=True, fullscreen=False,
-                         min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF', debug=False)`
+                         min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF', debug=False,
+                         text_select=False)`
   
-  Create a new WebView window. Calling this function for the first time will start the application and block program execution;
-  so you have to execute your program logic in a separate thread. Subsequent calls will return a unique `uid` for the created
+  Create a new WebView window. Calling this function for the first time will start the application and block program execution.
+  You have to execute your program logic in a separate thread. Subsequent calls will return a unique `uid` for the created
   window, which can be used to refer to the specific window in the API functions (single-window applications need not bother about
   the `uid` and can simply omit it from function calls; see below).
   * `title` - Window title
-  * `url` - URL to load
+  * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point.
   * `js_api` - Expose `js_api` to the DOM of the current WebView window. Callable functions of `js_api` can be executed
     using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a
     primitive type or an object. Objects are converted to `dict` on the Python side. Functions are executed in separate
@@ -111,7 +115,8 @@ an application scaffold and boilerplate code for a real-world application.
   * `strings` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
   * `confirm_quit` - Whether to display a quit confirmation dialog. Default is False
   * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
-  * `debug` - (OSX only) Enables web inspector, when set to True.
+  * `debug` - Enabled debug mode. OSX, GTK and QT feature a full-fledged web inspector and WinForms has rudimentary error reporting. To activate the web inspector, right click on the page and select Inspect.
+  * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) property.
 
 
 These functions below must be invoked after atleast one WebView window is created with `create_window()`. Otherwise an exception is thrown.
@@ -124,8 +129,11 @@ is thrown. Default is `'master'`, which is the special uid given to the initial 
 - `webview.load_url(url, uid='master')`
     Load a new URL into the specified WebView window. 
 
-- `webview.load_html(content, uid='master')`
-    Loads HTML content into the specified WebView window.
+- `webview.load_html(content, base_uri=base_uri(), uid='master')`
+    Load HTML content into the specified WebView window. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way.
+
+- `webview.load_css(css, uid='master')`
+    Load CSS into the specified WebView window.
     
 - `webview.evaluate_js(script, uid='master')`
     Execute Javascript code in the specified window. The last evaluated expression is returned. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.

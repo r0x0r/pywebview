@@ -3,7 +3,7 @@ from .util import run_test
 
 
 def test_toggle_fullscreen():
-    run_test(webview, main_func, toggle_fullscreen)
+    run_test(main_func, toggle_fullscreen)
 
 
 def main_func():

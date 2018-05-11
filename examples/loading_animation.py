@@ -14,7 +14,7 @@ def load_html():
             color: white;
             font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
         }
-        
+
         .main-container {
             width: 100%;
             height: 90vh;
@@ -26,10 +26,10 @@ def load_html():
             -webkit-justify-content: center;
             overflow: hidden;
         }
-        
+
         .loading-container {
         }
-        
+
         .loader {
           font-size: 10px;
           margin: 50px auto;
@@ -97,20 +97,20 @@ def load_html():
         .loaded-container {
             display: none;
         }
-        
-        
+
+
     </style>
     <body>
       <div class="main-container">
           <div id="loader" class="loading-container">
               <div class="loader">Loading...</div>
           </div>
-          
+
           <div id="main" class="loaded-container">
               <h1>Content is loaded!</h1>
           </div>
       </div>
-      
+
       <script>
           setTimeout(function() {
               document.getElementById('loader').style.display = 'none'
@@ -118,7 +118,7 @@ def load_html():
           }, 5000)
       </script>
     </body>
-    
+
     """)
 
 
@@ -126,5 +126,4 @@ if __name__ == '__main__':
     t = threading.Thread(target=load_html)
     t.start()
 
-    webview.create_window('Background color', background_color='#333333')
-
+    webview.create_window('Loading Animation', background_color='#333333')

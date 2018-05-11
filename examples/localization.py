@@ -24,5 +24,6 @@ if __name__ == "__main__":
         "linux.openFolder": u"Открыть папку",
     }
 
-    webview.create_window("Simple browser", "http://www.flowrl.com", strings=strings)
-
+    webview.create_window("Localization Example",
+                          "http://www.flowrl.com",
+                          strings=strings)

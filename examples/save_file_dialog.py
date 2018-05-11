@@ -5,10 +5,13 @@ import threading
 This example demonstrates creating a save file dialog.
 """
 
+
 def save_file_dialog():
     import time
     time.sleep(5)
-    print(webview.create_file_dialog(webview.SAVE_DIALOG, directory="/", save_filename='test.file'))
+    print(webview.create_file_dialog(webview.SAVE_DIALOG,
+                                     directory="/",
+                                     save_filename='test.file'))
 
 
 if __name__ == '__main__':
@@ -16,4 +19,3 @@ if __name__ == '__main__':
     t.start()
 
     webview.create_window("Save file dialog", "http://www.flowrl.com")
-
