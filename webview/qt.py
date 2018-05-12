@@ -51,21 +51,12 @@ else:
     _import_error = False
 
 if _import_error:
-    # Try importing Qt4 modules
-    try:
-        from PyQt4 import QtCore
-        from PyQt4.QtWebKit import QWebView, QWebPage, QWebFrame
-        from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
+    from PyQt4 import QtCore
+    from PyQt4.QtWebKit import QWebView, QWebPage, QWebFrame
+    from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
-        _qt_version = [4, 0]
-        logger.debug('Using Qt4')
-    except ImportError as e:
-        _import_error = True
-    else:
-        _import_error = False
-
-if _import_error:
-    raise Exception('This module requires PyQt4 or PyQt5 to work under Linux or *BSD.')
+    _qt_version = [4, 0]
+    logger.debug('Using Qt4')
 
 
 class BrowserView(QMainWindow):
