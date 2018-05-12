@@ -31,9 +31,9 @@ try:
 
     # Check to see if we're running Qt > 5.5
     from PyQt5.QtCore import QT_VERSION_STR
-    _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
+    _qt_version = tuple(int(n) for n in QT_VERSION_STR.split('.'))
 
-    if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
+    if _qt_version >= (5, 5) and platform.system() != 'OpenBSD':
         from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
         from PyQt5.QtWebChannel import QWebChannel
     else:
@@ -51,21 +51,12 @@ else:
     _import_error = False
 
 if _import_error:
-    # Try importing Qt4 modules
-    try:
-        from PyQt4 import QtCore
-        from PyQt4.QtWebKit import QWebView, QWebPage, QWebFrame
-        from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
+    from PyQt4 import QtCore
+    from PyQt4.QtWebKit import QWebView, QWebPage, QWebFrame
+    from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
 
-        _qt_version = [4, 0]
-        logger.debug('Using Qt4')
-    except ImportError as e:
-        _import_error = True
-    else:
-        _import_error = False
-
-if _import_error:
-    raise Exception('This module requires PyQt4 or PyQt5 to work under Linux or *BSD.')
+    _qt_version = (4, 0)
+    logger.debug('Using Qt4')
 
 
 class BrowserView(QMainWindow):
@@ -149,9 +140,9 @@ class BrowserView(QMainWindow):
     class WebPage(QWebPage):
         def __init__(self, parent=None):
             super(BrowserView.WebPage, self).__init__(parent)
-            self.nav_handler = BrowserView.NavigationHandler(self) if _qt_version >= [5, 5] else None
+            self.nav_handler = BrowserView.NavigationHandler(self) if _qt_version >= (5, 5) else None
 
-        if _qt_version < [5, 5]:
+        if _qt_version < (5, 5):
             def acceptNavigationRequest(self, frame, request, type):
                 if frame is None:
                     webbrowser.open(request.url().toString(), 2, True)
@@ -204,7 +195,7 @@ class BrowserView(QMainWindow):
         self.view = BrowserView.WebView(self)
         self.view.setPage(BrowserView.WebPage(self.view))
 
-        if debug and _qt_version > [5, 5]:
+        if debug and _qt_version > (5, 5):
             # Initialise Remote debugging (need to be done only once)
             if not BrowserView.inspector_port:
                 BrowserView.inspector_port = BrowserView._get_free_port()
@@ -229,7 +220,7 @@ class BrowserView(QMainWindow):
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
 
-        if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
+        if _qt_version >= (5, 5) and platform.system() != 'OpenBSD':
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
 
@@ -349,7 +340,7 @@ class BrowserView(QMainWindow):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
         self._file_name_semaphore.acquire()
 
-        if _qt_version >= [5, 0]:  # QT5
+        if _qt_version >= (5, 0):  # QT5
             if dialog_type == FOLDER_DIALOG:
                 file_names = (self._file_name,)
             elif dialog_type == SAVE_DIALOG or not allow_multiple:
@@ -398,14 +389,14 @@ class BrowserView(QMainWindow):
 
         script = parse_api_js(self.js_bridge.api)
 
-        if _qt_version >= [5, 5]:
+        if _qt_version >= (5, 5):
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
             if qwebchannel_js.open(QtCore.QFile.ReadOnly):
                 source = bytes(qwebchannel_js.readAll()).decode('utf-8')
                 self.view.page().runJavaScript(source)
                 self.channel.registerObject('external', self.js_bridge)
                 qwebchannel_js.close()
-        elif _qt_version >= [5, 0]:
+        elif _qt_version >= (5, 0):
             frame = self.view.page().mainFrame()
             _register_window_object()
         else:
