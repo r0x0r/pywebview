@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its
-own dedicated window. Works on Windows, OS X and Linux and compatible with Python 2 and 3.
+pywebview is a lightweight cross-platform wrapper around a webview component
+that allows to display HTML content in its own dedicated window. Works on
+Windows, OS X and Linux and compatible with Python 2 and 3.
 
 (C) 2014-2018 Roman Sirokov and contributors
 Licensed under BSD license
@@ -17,12 +18,12 @@ import logging
 import os
 import platform
 import re
-import sys
 from threading import Event, Thread, current_thread
 from uuid import uuid4
 from functools import wraps
 
-from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, inject_base_uri
+from webview.util import base_uri, parse_file_type, escape_string,\
+    transform_url, make_unicode, escape_line_breaks
 from .js import css
 from .localization import localization
 
@@ -37,8 +38,14 @@ SAVE_DIALOG = 30
 class Config (dict):
 
     def __init__(self):
-        self.use_qt = 'USE_QT' in os.environ or 'KDE_FULL_SESSION' in os.environ
+        self.use_qt = 'USE_QT' in os.environ
         self.use_win32 = 'USE_WIN32' in os.environ
+        self.pywebview_gui = []  # consider removing duplicates
+        if 'KDE_FULL_SESSION' in os.environ:  # prefer qt in qt-based OS
+            self.pywebview_gui.insert(0, 'qt')
+        if 'PYWEBVIEW_GUI' in os.environ:
+            self.pywebview_gui = os.environ['PYWEBVIEW_GUI'].split('|')\
+                                 + self.pywebview_gui
 
     def __getitem__(self, key):
         return getattr(self, key.lower())
@@ -54,68 +61,59 @@ _webview_ready = Event()
 
 
 def _initialize_imports():
-    global _initialized, gui
-    import_error = False
+    global _initialized
 
     if not _initialized:
+        def qt():
+            global gui; import webview.qt as gui
+
         if platform.system() == 'Darwin':
-            if not config.use_qt:
-                try:
-                    import webview.cocoa as gui
-                except ImportError:
-                    logger.exception('PyObjC cannot be loaded')
-                    import_error = True
-
-            if import_error or config.use_qt:
-                try:
-                    import webview.qt as gui
-                    logger.debug('Using QT')
-                except ImportError as e:
-                    # Panic
-                    logger.exception('QT cannot be loaded')
-                    raise Exception('You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use this library.')
-
+            def cocoa():
+                global gui; import webview.cocoa as gui
+            toolkits = [cocoa, qt]
+            deps = ['PyObjC', 'PyQt4/PyQt5']
         elif platform.system() == 'Linux' or platform.system() == 'OpenBSD':
-            if not config.use_qt:
-                try:
-                    import webview.gtk as gui
-                    logger.debug('Using GTK')
-                except (ImportError, ValueError) as e:
-                    logger.exception('GTK cannot be loaded')
-                    import_error = True
-
-            if import_error or config.use_qt:
-                try:
-                    # If GTK is not found, then try QT
-                    import webview.qt as gui
-                    logger.debug('Using QT')
-                except ImportError as e:
-                    # Panic
-                    logger.exception('QT cannot be loaded')
-                    raise Exception('You must have either QT or GTK with Python extensions installed in order to use this library.')
-
+            def gtk():
+                global gui; import webview.gtk as gui
+            toolkits = [gtk, qt]
+            deps = ['PyGObject', 'PyQt4/PyQt5']
         elif platform.system() == 'Windows':
-            #Try .NET first unless use_win32 flag is set
-            if not config.use_win32:
-                try:
-                    import webview.winforms as gui
-                    logger.debug('Using .NET')
-                except ImportError as e:
-                    logger.exception('pythonnet cannot be loaded')
-                    import_error = True
-
-
-            if import_error or config.use_win32:
-                try:
-                    # If .NET is not found, then try Win32
-                    import webview.win32 as gui
-                    logger.debug('Using Win32')
-                except ImportError as e:
-                    # Panic
-                    logger.exception('PyWin32 cannot be loaded')
-                    raise Exception('You must have either pythonnet or pywin32 installed in order to use this library.')
+            def winforms():
+                global gui; import webview.winforms as gui
+            def win32():
+                global gui; import webview.win32 as gui
+            toolkits = [winforms, win32]  # qt
+            deps = ['pythonnet', 'pywin32']  # , 'PyQt4/PyQt5'
         else:
-            raise Exception('Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.')
+            raise Exception('Unsupported platform. Only Windows, Linux, OS X,'
+                            'OpenBSD are supported.')
+
+        # keep compatibility with older versions
+        if config.use_win32:
+            config.pywebview_gui.insert(0, 'win32')
+        if config.use_qt:
+            config.pywebview_gui.insert(0, 'qt')
+
+        # sort gui toolkits in the preferred order
+        for webview_gui in reversed(config.pywebview_gui):
+            webview_gui = webview_gui.lower()
+            for toolkit in toolkits.copy():
+                if webview_gui == toolkit.__name__:
+                    toolkits.remove(toolkit)
+                    toolkits.insert(0, toolkit)
+                    break
+
+        for toolkit in toolkits:
+            try:
+                toolkit()
+                logger.debug('Using %s', toolkit.__name__)
+                break
+            except ImportError:
+                logger.exception('%s cannot be loaded', toolkit.__name__)
+        else:
+            # Panic
+            raise Exception('You must have', ', '.join(deps[:-1]), 'or',
+                            deps[-1], 'installed in order to use this library.')
 
         _initialized = True
 
@@ -131,20 +129,24 @@ def _api_call(function):
             _webview_ready.wait(5)
             return function(*args, **kwargs)
         except NameError:
-            raise Exception('Create a web view window first, before invoking this function')
+            raise Exception('Create a web view window first, before invoking'
+                            'this function')
         except KeyError:
             try:
                 uid = kwargs['uid']
             except KeyError:
-                # uid not passed as a keyword arg, assumes it to be last in the arg list
+                # uid not passed as a keyword arg, assumes it to be last in
+                # the arg list
                 uid = args[-1]
-            raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
+            raise Exception('Cannot call function: No webview exists with'
+                            'uid: {}'.format(uid))
     return wrapper
 
 
 def create_window(title, url=None, js_api=None, width=800, height=600,
-                  resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
-                  background_color='#FFFFFF', text_select=False, debug=False):
+                  resizable=True, fullscreen=False, min_size=(200, 100),
+                  strings={}, confirm_quit=False, background_color='#FFFFFF',
+                  text_select=False, debug=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
