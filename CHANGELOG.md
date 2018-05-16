@@ -8,6 +8,7 @@
 Released 16/05/2018
 
 - `Fix` [QT] Fix a deadlock preventing QT implementation from starting
+- `Fix` [QT] QT is set to default on QT-based systems
 
 
 ## 2.0.1/2.0.2
