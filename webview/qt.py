@@ -65,7 +65,7 @@ if _import_error:
         _import_error = False
 
 if _import_error:
-    raise Exception('This module requires PyQt4 or PyQt5 to work under Linux or *BSD.')
+    raise ImportError('This module requires PyQt4 or PyQt5 to work under Linux or *BSD.')
 
 
 class BrowserView(QMainWindow):
@@ -325,7 +325,12 @@ class BrowserView(QMainWindow):
             self.load_event.set()
 
         if not self.text_select:
-            self.evaluate_js(escape_string(disable_text_select))
+            script = disable_text_select.replace('\n', '')
+
+            try:  # PyQt4
+                self.view.page().mainFrame().evaluateJavaScript(script)
+            except AttributeError:  # PyQt5
+                self.view.page().runJavaScript(script)
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)
