@@ -3,6 +3,19 @@
 
 # Changelog
 
+## 2.0.3
+
+Released 16/05/2018
+
+- `Fix` [QT] Fix a deadlock preventing QT implementation from starting
+
+
+## 2.0.1/2.0.2
+
+Released 08/05/2018
+
+- `Fix` [Winforms] Fix installation of dlls
+
 ## 2.0
 
 Released 28/04/2018
