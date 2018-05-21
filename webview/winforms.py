@@ -249,7 +249,8 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         thread.Start()
         thread.Join()
     else:
-        BrowserView.instances['master'].Invoke(Func[Type](create))
+        i = list(BrowserView.instances.values())[0]     # arbitary instance
+        i.Invoke(Func[Type](create))
 
 
 def set_title(title, uid):
