@@ -42,6 +42,10 @@ class BrowserView:
         def applicationShouldTerminateAfterLastWindowClosed_(self, sender):
             return Foundation.YES
 
+        def applicationShouldTerminate_(self, sender):
+            sender.stop_(self)
+            return False
+
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
@@ -185,7 +189,7 @@ class BrowserView:
             # Add the webview to the window if it's not yet the contentView
             i = BrowserView.get_instance('webkit', webview)
 
-            if not webview.window():
+            if i and not webview.window():
                 i.window.setContentView_(webview)
                 i.window.makeFirstResponder_(webview)
 
@@ -246,7 +250,7 @@ class BrowserView:
                             responder.undoManager().undo()
                             handled = True
                     elif keyCode == 12:  # quit
-                        BrowserView.app.terminate_(self)
+                        BrowserView.app.stop_(self)
 
                     return handled
 
@@ -321,6 +325,7 @@ class BrowserView:
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             BrowserView.app.run()
+            pass
         else:
             self.webview_ready.set()
 
