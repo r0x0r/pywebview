@@ -166,13 +166,13 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     if not re.match(valid_color, background_color):
         raise ValueError('{0} is not a valid hex triplet color'.format(background_color))
 
-    if not _initialized:
-        _initialize_imports()
-        localization.update(strings)
-
     # Check if starting up from main thread; if not, wait; finally raise exception
     if current_thread().name == 'MainThread':
         uid = 'master'
+
+        if not _initialized:
+            _initialize_imports()
+            localization.update(strings)
     else:
         uid = 'child_' + uuid4().hex[:8]
 

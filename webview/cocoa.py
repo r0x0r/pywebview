@@ -325,7 +325,6 @@ class BrowserView:
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             BrowserView.app.run()
-            pass
         else:
             self.webview_ready.set()
 
