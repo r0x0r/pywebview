@@ -151,7 +151,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     :param title: Window title
     :param url: URL to load
     :param width: window width. Default is 800px
-    :param height:window h  eight. Default is 600px
+    :param height:window height. Default is 600px
     :param resizable True if window can be resized, False otherwise. Default is True
     :param fullscreen: True if start in fullscreen mode. Default is False
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100

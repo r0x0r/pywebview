@@ -249,7 +249,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         thread.Start()
         thread.Join()
     else:
-        i = list(BrowserView.instances.values())[0]     # arbitary instance
+        i = list(BrowserView.instances.values())[0]     # arbitrary instance
         i.Invoke(Func[Type](create))
 
 
