@@ -202,7 +202,6 @@ class BrowserView(QMainWindow):
         self.setMinimumSize(min_size[0], min_size[1])
 
         self.view = BrowserView.WebView(self)
-        self.view.setPage(BrowserView.WebPage(self.view))
 
         if debug and _qt_version > [5, 5]:
             # Initialise Remote debugging (need to be done only once)
@@ -211,6 +210,8 @@ class BrowserView(QMainWindow):
                 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = BrowserView.inspector_port
         else:
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
+
+        self.view.setPage(BrowserView.WebPage(self.view))
 
         if url is not None:
             self.view.setUrl(QtCore.QUrl(url))
