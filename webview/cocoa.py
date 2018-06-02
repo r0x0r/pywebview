@@ -39,13 +39,6 @@ class BrowserView:
             i = list(BrowserView.instances.values())[0]
             i.webview_ready.set()
 
-        def applicationShouldTerminateAfterLastWindowClosed_(self, sender):
-            return Foundation.YES
-
-        def applicationShouldTerminate_(self, sender):
-            sender.stop_(self)
-            return False
-
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
@@ -63,6 +56,9 @@ class BrowserView:
             # Delete the closed instance from the dict
             i = BrowserView.get_instance('window', notification.object())
             del BrowserView.instances[i.uid]
+
+            if BrowserView.instances == {}:
+                AppHelper.callAfter(BrowserView.app.stop_, self)
 
     class JSBridge(AppKit.NSObject):
         def initWithObject_(self, api_instance):
@@ -288,6 +284,7 @@ class BrowserView:
         self.window.setTitle_(title)
         self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(background_color))
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
+        self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
         # Set the titlebar color (so that it does not change with the window color)
         self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
