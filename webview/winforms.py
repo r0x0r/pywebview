@@ -197,13 +197,11 @@ class BrowserView:
 
         def toggle_fullscreen(self):
             screen = WinForms.Screen.FromControl(self)
-
             if not self.is_fullscreen:
                 self.old_size = self.Size
                 self.old_state = self.WindowState
                 self.old_style = self.FormBorderStyle
                 self.old_location = self.Location
-
 
                 self.TopMost = True
                 self.FormBorderStyle = 0  # FormBorderStyle.None
