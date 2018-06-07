@@ -133,8 +133,8 @@ class BrowserView(QMainWindow):
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
 
-                inspector = BrowserView(uid, title, url, 700, 500, True, False, (300,200),
-                                        False, '#fff', False, None, self.parent().webview_ready)
+                inspector = BrowserView(uid, title, url, 700, 500, True, False, (300, 200),
+                                        False, '#fff', False, None, True, self.parent().webview_ready)
                 inspector.show()
 
     # New-window-requests handler for Qt 5.5+ only
@@ -202,7 +202,6 @@ class BrowserView(QMainWindow):
         self.setMinimumSize(min_size[0], min_size[1])
 
         self.view = BrowserView.WebView(self)
-        self.view.setPage(BrowserView.WebPage(self.view))
 
         if debug and _qt_version > [5, 5]:
             # Initialise Remote debugging (need to be done only once)
@@ -211,6 +210,8 @@ class BrowserView(QMainWindow):
                 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = BrowserView.inspector_port
         else:
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
+
+        self.view.setPage(BrowserView.WebPage(self.view))
 
         if url is not None:
             self.view.setUrl(QtCore.QUrl(url))
@@ -285,11 +286,14 @@ class BrowserView(QMainWindow):
         event.accept()
         del BrowserView.instances[self.uid]
 
-        try:    # Close inpsector if open
+        try:    # Close inspector if open
             BrowserView.instances[self.uid + '-inspector'].close()
             del BrowserView.instances[self.uid + '-inspector']
         except KeyError:
             pass
+
+        if len(BrowserView.instances) == 0:
+            _app.exit()
 
     def on_destroy_window(self):
         self.close()
@@ -453,7 +457,8 @@ class BrowserView(QMainWindow):
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, debug, js_api, text_select, webview_ready):
-    app = QApplication.instance() or QApplication([])
+    global _app
+    _app = QApplication.instance() or QApplication([])
 
     def _create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
@@ -463,7 +468,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
 
     if uid == 'master':
         _create()
-        app.exec_()
+        _app.exec_()
     else:
         i = list(BrowserView.instances.values())[0] # arbitrary instance
         i.create_window_trigger.emit(_create)

@@ -39,9 +39,6 @@ class BrowserView:
             i = list(BrowserView.instances.values())[0]
             i.webview_ready.set()
 
-        def applicationShouldTerminateAfterLastWindowClosed_(self, sender):
-            return Foundation.YES
-
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
@@ -59,6 +56,9 @@ class BrowserView:
             # Delete the closed instance from the dict
             i = BrowserView.get_instance('window', notification.object())
             del BrowserView.instances[i.uid]
+
+            if BrowserView.instances == {}:
+                AppHelper.callAfter(BrowserView.app.stop_, self)
 
     class JSBridge(AppKit.NSObject):
         def initWithObject_(self, api_instance):
@@ -185,7 +185,7 @@ class BrowserView:
             # Add the webview to the window if it's not yet the contentView
             i = BrowserView.get_instance('webkit', webview)
 
-            if not webview.window():
+            if i and not webview.window():
                 i.window.setContentView_(webview)
                 i.window.makeFirstResponder_(webview)
 
@@ -246,7 +246,7 @@ class BrowserView:
                             responder.undoManager().undo()
                             handled = True
                     elif keyCode == 12:  # quit
-                        BrowserView.app.terminate_(self)
+                        BrowserView.app.stop_(self)
 
                     return handled
 
@@ -284,6 +284,7 @@ class BrowserView:
         self.window.setTitle_(title)
         self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(background_color))
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
+        self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
         # Set the titlebar color (so that it does not change with the window color)
         self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())

@@ -54,6 +54,7 @@ class BrowserView:
         self.js_result_semaphores = []
         self.eval_js_lock = Lock()
         self.load_event = Event()
+        self.load_event.clear()
 
         glib.threads_init()
         self.window = gtk.Window(title=title)
@@ -111,7 +112,7 @@ class BrowserView:
 
         if url is not None:
             self.webview.load_uri(url)
-        else:
+        elif js_api is None:
             self.load_event.set()
 
         if fullscreen:
@@ -182,7 +183,7 @@ class BrowserView:
         uid = self.uid + '-inspector'
 
         inspector = BrowserView(uid, title, '', 700, 500, True, False, (300,200),
-                                False, '#fff', False, None, self.webview_ready)
+                                False, '#fff', False, None, True, self.webview_ready)
         inspector.show()
         return inspector.webview
 
@@ -295,7 +296,7 @@ class BrowserView:
             return None
 
         result = self.webview.get_title()
-        result = None if result == 'undefined' or result == 'null' else result if result == '' else json.loads(result)
+        result = None if result == 'undefined' or result == 'null' or result is None else result if result == '' else json.loads(result)
 
         # Restore document title and return
         code = 'document.title = window.oldTitle{0}'.format(unique_id)
