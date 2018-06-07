@@ -182,7 +182,7 @@ class BrowserView:
         uid = self.uid + '-inspector'
 
         inspector = BrowserView(uid, title, '', 700, 500, True, False, (300,200),
-                                False, '#fff', False, None, self.webview_ready)
+                                False, '#fff', False, None, True, self.webview_ready)
         inspector.show()
         return inspector.webview
 

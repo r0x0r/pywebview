@@ -72,7 +72,7 @@ def _destroy_window(webview, delay=0):
 
         if sys.platform == 'darwin':
             from .util_cocoa import mouseMoveRelative
-
+            time.sleep(1)
             mouseMoveRelative(1, 1)
 
     event = threading.Event()
