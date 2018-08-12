@@ -238,7 +238,7 @@ def load_html(content, base_uri=base_uri(), uid='master'):
 @_api_call
 def load_css(stylesheet, uid='master'):
     code = css.src % stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
-    gui.evaluate_js(code)
+    gui.evaluate_js(code, uid)
 
 
 @_api_call
