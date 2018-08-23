@@ -94,7 +94,7 @@ For more detailed usage, refer to the examples in the `examples` directory. Ther
 ## API
 
 - `webview.create_window(title, url='', js_api=None, width=800, height=600, resizable=True, fullscreen=False,
-                         min_size=(200, 100)), strings={}, confirm_quit=False, background_color='#FFF', debug=False,
+                         min_size=(200, 100), strings={}, confirm_quit=False, background_color='#FFF', debug=False,
                          text_select=False)`
   
   Create a new WebView window. Calling this function for the first time will start the application and block program execution.
