@@ -22,12 +22,12 @@ logger = logging.getLogger(__name__)
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
-gi.require_version('WebKit', '3.0')
+gi.require_version('WebKit2', '4.0')
 
 from gi.repository import Gtk as gtk
 from gi.repository import Gdk
 from gi.repository import GLib as glib
-from gi.repository import WebKit as webkit
+from gi.repository import WebKit2 as webkit
 
 
 class BrowserView:
@@ -96,18 +96,20 @@ class BrowserView:
 
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
-        self.webview.connect('document-load-finished', self.on_load_finish)
-        self.webview.connect('status-bar-text-changed', self.on_status_change)
-        self.webview.connect('new-window-policy-decision-requested', self.on_new_window_request)
+        self.webview.connect('load_changed', self.on_load_finish)
+        self.webview.connect('notify::title', self.on_title_change)
+
+        #self.webview.connect('status-bar-text-changed', self.on_status_change) TODO
+        self.webview.connect('decide-policy', self.on_new_window_request)
 
         if debug:
             self.webview.props.settings.props.enable_developer_extras = True
             self.webview.get_inspector().connect('inspect-web-view', self.on_inspect_webview)
         else:
-            self.webview.props.settings.props.enable_default_context_menu = False
+            self.webview.connect('context-menu', lambda a,b,c,d: True) # Disable context menu
 
-        self.webview.props.settings.props.javascript_can_access_clipboard = True
-        self.webview.props.opacity = 0.0
+        #self.webview.props.settings.props.javascript_can_access_clipboard = True TODO
+        #self.webview.props.opacity = 0.0
         scrolled_window.add(self.webview)
 
         if url is not None:
@@ -157,7 +159,7 @@ class BrowserView:
             glib.idle_add(webview.set_opacity, 1.0)
 
         if not self.text_select:
-            webview.execute_script(disable_text_select)
+            webview.run_javascript(disable_text_select)
 
         if self.js_bridge:
             self._set_js_api()
@@ -178,6 +180,9 @@ class BrowserView:
             code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
             webview.execute_script(code)
 
+    def on_title_change(self, webview, title):
+        print(webview.get_title())
+
     def on_inspect_webview(self, inspector, webview):
         title = 'Web Inspector - {}'.format(self.window.get_title())
         uid = self.uid + '-inspector'
@@ -187,10 +192,10 @@ class BrowserView:
         inspector.show()
         return inspector.webview
 
-    def on_new_window_request(self, webview, frame, request, action, decision, *data):
-        if action.get_target_frame() == '_blank':
-            webbrowser.open(request.get_uri(), 2, True)
-        decision.ignore()
+    def on_new_window_request(self, webview, decision, decision_type):
+        if type(decision) == webkit.NavigationPolicyDecision and decision.get_frame_name() == '_blank':
+            webbrowser.open(decision.get_request().get_uri(), 2, True)
+            decision.ignore()
 
     def show(self):
         self.window.show_all()
@@ -273,12 +278,17 @@ class BrowserView:
 
     def load_html(self, content, base_uri):
         self.load_event.clear()
-        self.webview.load_string(content, 'text/html', 'utf-8', base_uri)
+        self.webview.load_html(content, base_uri)
 
     def evaluate_js(self, script):
         def _evaluate_js():
-            self.webview.execute_script(code)
+            self.webview.run_javascript(code)
             result_semaphore.release()
+
+        def _get_result(source, res, data):
+            js_result = self.webview.run_javascript_finish(res)
+
+            result[0] = js_result
 
         self.eval_js_lock.acquire()
         result_semaphore = Semaphore(0)
