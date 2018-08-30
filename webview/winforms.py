@@ -116,6 +116,7 @@ class BrowserView:
             self.web_browser.PreviewKeyDown += self.on_preview_keydown
             self.web_browser.Navigating += self.on_navigating
             self.web_browser.NewWindow3 += self.on_new_window
+            self.web_browser.DownloadComplete += self.on_download_complete
             self.web_browser.DocumentCompleted += self.on_document_completed
 
             if url:
@@ -173,6 +174,15 @@ class BrowserView:
             args.Cancel = True
             webbrowser.open(args.Url)
 
+        def on_download_complete(self, sender, args):
+            document = self.web_browser.Document
+
+            if self.js_bridge.api:
+                document.InvokeScript('eval', (parse_api_js(self.js_bridge.api),))
+
+            if not self.text_select:
+                document.InvokeScript('eval', (disable_text_select,))
+
         def on_navigating(self, sender, args):
             if self.cancel_back:
                 args.Cancel = True
@@ -184,14 +194,6 @@ class BrowserView:
             if self.first_load:
                 self.web_browser.Visible = True
                 self.first_load = False
-
-            document = self.web_browser.Document
-
-            if self.js_bridge.api:
-                document.InvokeScript('eval', (parse_api_js(self.js_bridge.api),))
-
-            if not self.text_select:
-                document.InvokeScript('eval', (disable_text_select,))
 
             self.load_event.set()
 

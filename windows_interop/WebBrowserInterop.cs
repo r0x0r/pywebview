@@ -45,6 +45,9 @@ namespace WebBrowserInterop
             [In] uint dwFlags,
             [In, MarshalAs(UnmanagedType.BStr)] string bstrUrlContext,
             [In, MarshalAs(UnmanagedType.BStr)] string bstrUrl);
+
+        [DispId(0x68)]
+        void DownloadComplete();
     }
 
     public partial class WebBrowserEx : WebBrowser
@@ -52,6 +55,7 @@ namespace WebBrowserInterop
         AxHost.ConnectionPointCookie cookie;
         DWebBrowserEvent2Helper helper;
         [Browsable(true)]
+        public event EventHandler DownloadComplete;
         public event EventHandler<WebBrowserNewWindowEventArgs> NewWindow3;
         [PermissionSetAttribute(SecurityAction.LinkDemand, Name = "FullTrust")]
         public WebBrowserEx()
@@ -94,6 +98,15 @@ namespace WebBrowserInterop
                 this.NewWindow3(this, e);
             }
         }
+
+        protected virtual void OnDownloadComplete()
+        {
+            if (this.DownloadComplete != null)
+            {
+                this.DownloadComplete(this, null);
+            }
+        }
+
         private class DWebBrowserEvent2Helper : StandardOleMarshalObject, DWebBrowserEvents2
         {
             private WebBrowserEx parent;
@@ -113,6 +126,11 @@ namespace WebBrowserInterop
                 var e = new WebBrowserNewWindowEventArgs(bstrUrl, Cancel);
                 this.parent.OnNewWindow3(e);
                 Cancel = e.Cancel;
+            }
+
+            public void DownloadComplete()
+            {
+                this.parent.OnDownloadComplete();
             }
         }
     }
