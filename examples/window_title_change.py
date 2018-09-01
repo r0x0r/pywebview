@@ -19,6 +19,6 @@ if __name__ == '__main__':
     t.start()
 
     webview.create_window('First Tile',
-                          'http://www.flowrl.com',
+                          'http://pywebview.flowrl.com',
                           width=800, height=600,
                           resizable=True)

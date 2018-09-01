@@ -25,4 +25,4 @@ if __name__ == '__main__':
     t = threading.Thread(target=evaluate_js)
     t.start()
 
-    webview.create_window('Run custom JavaScript', 'http://www.flowrl.com')
+    webview.create_window('Run custom JavaScript', 'http://pywebview.flowrl.com')

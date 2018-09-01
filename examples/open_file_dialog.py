@@ -18,4 +18,4 @@ if __name__ == '__main__':
     t = threading.Thread(target=open_file_dialog)
     t.start()
 
-    webview.create_window("Open file dialog example", "http://www.flowrl.com")
+    webview.create_window("Open file dialog example", "http://pywebview.flowrl.com")

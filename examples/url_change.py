@@ -13,7 +13,7 @@ def change_url():
     time.sleep(10)
 
     # change url:
-    webview.load_url("http://www.html5zombo.com/")
+    webview.load_url("http://pywebview.flowrl.com")
 
 
 if __name__ == '__main__':
