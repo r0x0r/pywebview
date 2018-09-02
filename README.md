@@ -62,9 +62,10 @@ For Win32 you need
 `pywin32`, `comtypes`. ActiveState distribution of Python 2 comes with pywin32 preinstalled
 
 
-## OS X 
+## macOS
 
-`pyobjc`. PyObjC comes presintalled with the Python bundled in OS X. For a stand-alone Python installation you have to install it separately.
+`pyobjc`. PyObjC comes presintalled with the Python bundled in macOS. For a stand-alone Python installation you have to install it separately. QT is supported as well.
+
 
 ## Linux
 
@@ -76,10 +77,16 @@ For QT based systems
 
 Either `PyQt5` or `PyQt4`. PyQt4 is deprecated and will be removed in the future.
 
+GTK has a preference over QT, except on KDE systems.
+
+
+To force a GUI library, use `PYWEBVIEW_GUI` environment variable or set `webview.config.gui` variable. Possible values are `qt`, `gtk` or `win32`.
+
+
 # Usage
 
     import webview
-    webview.create_window("It works, Jim!", "http://www.flowrl.com")
+    webview.create_window("It works, Jim!", "http://pywebview.flowrl.com")
 
 For more detailed usage, refer to the examples in the `examples` directory. There are three ways to build your app
 
