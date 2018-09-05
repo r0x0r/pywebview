@@ -65,7 +65,7 @@ if _import_error:
         _import_error = False
 
 if _import_error:
-    raise ImportError('This module requires PyQt4 or PyQt5 to work under Linux or *BSD.')
+    raise ImportError('This module requires PyQt4 or PyQt5.')
 
 
 class BrowserView(QMainWindow):
