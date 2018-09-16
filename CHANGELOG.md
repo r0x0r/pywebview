@@ -3,6 +3,18 @@
 
 # Changelog
 
+## 2.1
+
+Released 16/09/2018
+
+- `New` [All] Introduce `PYWEBVIEW_GUI` environment variable and `webview.config.gui` property. Acceptable values are are `qt`, `gtk` and `win32`. `USE_QT` and `USE_WIN32` is deprecated.
+- `Fix` [Cocoa] Closing main window does not result in program termination
+- `Fix` [All] New main window re-creation after closing. #229
+- `Fix` [QT] Debug mode #233
+- `Fix` [Cocoa/Windows] Preserve JS API on page reload
+- `Fix` [Windows] `toggle_fullscreen()` function #232. Thanks @lt94
+- `Fix` [Windows] `load_css()` function. Thanks @wormius.
+
 ## 2.0.3
 
 Released 16/05/2018
