@@ -57,7 +57,7 @@ class BrowserView:
 
     class BrowserForm(WinForms.Form):
         def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                     confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                     confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
             self.uid = uid
             self.Text = title
             self.ClientSize = Size(width, height)
@@ -132,6 +132,10 @@ class BrowserView:
             if confirm_quit:
                 self.FormClosing += self.on_closing
 
+            if frameless:
+                self.frameless = frameless
+                self.FormBorderStyle = 0
+
             if fullscreen:
                 self.toggle_fullscreen()
 
@@ -197,6 +201,16 @@ class BrowserView:
 
             self.load_event.set()
 
+
+            if self.frameless:
+                self.web_browser.Document.MouseMove += self.on_mouse_move
+
+        def on_mouse_move(self, sender, e):
+            if e.MouseButtonsPressed == WinForms.MouseButtons.Left:
+                WebBrowserEx.ReleaseCapture()
+                WebBrowserEx.SendMessage(self.Handle, WebBrowserEx.WM_NCLBUTTONDOWN, WebBrowserEx.HT_CAPTION, 0)
+
+
         def toggle_fullscreen(self):
             screen = WinForms.Screen.FromControl(self)
             if not self.is_fullscreen:
@@ -227,7 +241,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
     def create():
         window = BrowserView.BrowserForm(uid, title, url, width, height, resizable, fullscreen,
                                          min_size, confirm_quit, background_color, debug, js_api,
-                                         text_select, webview_ready)
+                                         text_select, frameless, webview_ready)
         BrowserView.instances[uid] = window
         window.Show()
 
