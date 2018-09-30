@@ -104,7 +104,7 @@ class BrowserView:
         self.webview.connect('decide-policy', self.on_navigation)
 
         if debug:
-            self.webview.get_inspector().connect('inspect-web-view', self.on_inspect_webview)
+            self.webview.get_settings().props.enable_developer_extras = True
         else:
             self.webview.connect('context-menu', lambda a,b,c,d: True) # Disable context menu
 
@@ -125,12 +125,6 @@ class BrowserView:
 
         self.window.destroy()
         del BrowserView.instances[self.uid]
-
-        try:    # Close inspector if open
-            BrowserView.instances[self.uid + '-inspector'].window.destroy()
-            del BrowserView.instances[self.uid + '-inspector']
-        except KeyError:
-            pass
 
         if BrowserView.instances == {}:
             gtk.main_quit()
@@ -181,15 +175,6 @@ class BrowserView:
             # Give back the return value to JS as a string
             code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
             webview.run_javascript(code)
-
-    def on_inspect_webview(self, inspector, webview):
-        title = 'Web Inspector - {}'.format(self.window.get_title())
-        uid = self.uid + '-inspector'
-
-        inspector = BrowserView(uid, title, '', 700, 500, True, False, (300,200),
-                                False, '#fff', False, None, True, self.webview_ready)
-        inspector.show()
-        return inspector.webview
 
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) == webkit.NavigationPolicyDecision:
