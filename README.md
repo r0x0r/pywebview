@@ -9,6 +9,11 @@ pywebview uses native GUI for creating a web component window: WinForms on Windo
 
 Licensed under the BSD license. Maintained by [Roman Sirokov](https://github.com/r0x0r/) and [Shiva Prasad](https://github.com/shivaprsdv).
 
+# Supporting pywebview
+
+pywebview is a BSD licensed open source project. It is an independent project with no corporate backing. If you find it useful, consider supporting it.
+
+<a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button"><img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/></a>
 
 # Gallery
 
