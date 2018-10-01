@@ -55,6 +55,7 @@ class BrowserView:
 
         self.webview_ready = webview_ready
         self.is_fullscreen = False
+        self.js_result_lock = Lock()
         self.js_results = {}
         self.load_event = Event()
         self.load_event.clear()
@@ -177,6 +178,7 @@ class BrowserView:
             webview.run_javascript(code)
 
     def on_navigation(self, webview, decision, decision_type):
+        self.js_result_lock.acquire()
         if type(decision) == webkit.NavigationPolicyDecision:
             uri = decision.get_request().get_uri()
             if decision.get_frame_name() == '_blank':
@@ -189,6 +191,9 @@ class BrowserView:
                 js = self.js_results[unique_id]
                 js['result'] = unquote(result)
                 js['semaphore'].release()
+
+        self.js_result_lock.release()
+
 
     def show(self):
         self.window.show_all()
