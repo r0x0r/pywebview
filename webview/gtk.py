@@ -45,7 +45,7 @@ class BrowserView:
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                 confirm_quit, background_color, debug, js_api, text_select, minimized, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
 
@@ -328,10 +328,11 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, minimized, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, js_api, text_select, webview_ready)
+                              confirm_quit, background_color, debug, js_api, text_select, minimized, 
+                              webview_ready)
         browser.show()
 
     if uid == 'master':

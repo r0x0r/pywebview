@@ -129,7 +129,7 @@ For more detailed usage, refer to the examples in the `examples` directory. Ther
   * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
   * `debug` - Enabled debug mode. OSX, GTK and QT feature a full-fledged web inspector and WinForms has rudimentary error reporting. To activate the web inspector, right click on the page and select Inspect.
   * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) property.
-
+  * `minimized` - Start window minimzed. Default is False.
 
 These functions below must be invoked after atleast one WebView window is created with `create_window()`. Otherwise an exception is thrown.
 In all cases, `uid` is the uid of the target window returned by `create_window()`; if no window exists with the given `uid`, an exception

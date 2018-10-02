@@ -162,7 +162,8 @@ class BrowserView(QMainWindow):
             return self.nav_handler
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
-                 min_size, confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                 min_size, confirm_quit, background_color, debug, js_api, text_select, minimized, 
+                 webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instances[uid] = self
         self.uid = uid
@@ -456,14 +457,15 @@ class BrowserView(QMainWindow):
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, minimized, 
+                  webview_ready):
     global _app
     _app = QApplication.instance() or QApplication([])
 
     def _create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
                               min_size, confirm_quit, background_color, debug, js_api,
-                              text_select, webview_ready)
+                              text_select, minimized, webview_ready)
         browser.show()
 
     if uid == 'master':

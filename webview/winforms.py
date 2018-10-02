@@ -57,7 +57,7 @@ class BrowserView:
 
     class BrowserForm(WinForms.Form):
         def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                     confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                     confirm_quit, background_color, debug, js_api, text_select, minimized, webview_ready):
             self.uid = uid
             self.Text = title
             self.ClientSize = Size(width, height)
@@ -223,11 +223,11 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, minimized, webview_ready):
     def create():
         window = BrowserView.BrowserForm(uid, title, url, width, height, resizable, fullscreen,
                                          min_size, confirm_quit, background_color, debug, js_api,
-                                         text_select, webview_ready)
+                                         text_select, minimized, webview_ready)
         BrowserView.instances[uid] = window
         window.Show()
 

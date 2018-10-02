@@ -189,7 +189,7 @@ def _api_call(function):
 
 def create_window(title, url=None, js_api=None, width=800, height=600,
                   resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
-                  background_color='#FFFFFF', text_select=False, debug=False):
+                  background_color='#FFFFFF', text_select=False, debug=False, minimized=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -204,6 +204,8 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     :param confirm_quit: Display a quit confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
+    :param debug: Enable web debugging. Default is False
+    :para minimized: Start minimized. Default is False
     :return: The uid of the created window.
     """
 
@@ -227,7 +229,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
     _webview_ready.clear()  # Make API calls wait while the new window is created
     gui.create_window(uid, make_unicode(title), transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
-                      background_color, debug, js_api, text_select, _webview_ready)
+                      background_color, debug, js_api, text_select, minimized, _webview_ready)
 
     return uid
 
