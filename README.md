@@ -88,6 +88,13 @@ GTK has a preference over QT, except on KDE systems.
 To force a GUI library, use `PYWEBVIEW_GUI` environment variable or set `webview.config.gui` variable. Possible values are `qt`, `gtk` or `win32`.
 
 
+# Serious CSRF warnings
+
+CSRF attacks can be a major problem if not implemented correctly,
+be sure to use a library such as [flask-seasurf](https://flask-seasurf.readthedocs.io/en/latest/) alongside flask, or other CSRF prevention methods with your favourite libraries to prevent such attacks,
+
+after all,  one does not want [utorrent style attacks](https://en.wikipedia.org/wiki/Cross-site_request_forgery#Example_and_characteristics) if a project using pywebview goes popular.
+
 # Usage
 
     import webview
