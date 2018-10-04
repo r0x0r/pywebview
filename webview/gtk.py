@@ -5,6 +5,7 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 import sys
+import re
 import logging
 import json
 import webbrowser
@@ -57,6 +58,7 @@ class BrowserView:
         self.is_fullscreen = False
         self.js_result_lock = Lock()
         self.js_results = {}
+        self.js_result_uid = uuid1().hex[:8]
         self.load_event = Event()
         self.load_event.clear()
 
@@ -121,6 +123,9 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
+        for res in self.js_results.values():
+            res['semaphore'].release()
+
         while gtk.events_pending():
             gtk.main_iteration()
 
@@ -129,9 +134,6 @@ class BrowserView:
 
         if BrowserView.instances == {}:
             gtk.main_quit()
-
-        for res in self.js_results:
-            res['semaphore'].release()
 
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
@@ -145,7 +147,10 @@ class BrowserView:
         return True
 
     def on_webview_ready(self, arg1, arg2):
-        glib.idle_add(self.webview_ready.set)
+        # in webkit2 notify:visible fires after the window was closed and BrowserView object destroyed.
+        # for a lack of better solution we check that BrowserView has 'webview_ready' attribute
+        if 'webview_ready' in dir(self):
+            self.webview_ready.set()
 
     def on_load_finish(self, webview, status):
         # Show the webview if it's not already visible
@@ -162,38 +167,41 @@ class BrowserView:
                 self.load_event.set()
 
     def on_title_change(self, webview, title):
-        try:
-            delim = '_' + self.js_bridge.uid + '_'
-        except AttributeError:
-            return
-
         title = webview.get_title()
 
-        # Check if status was updated by a JSBridge call
-        if title.startswith(delim):
-            _, func_name, param = title.split(delim)
-            return_val = self.js_bridge.call(func_name, param)
-            # Give back the return value to JS as a string
-            code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
-            webview.run_javascript(code)
+        try:
+            js_data = json.loads(title)
+
+            if 'type' not in js_data:
+                return
+
+            elif js_data['type'] == 'eval':  # return result of evaluate_js
+                unique_id = js_data['uid']
+                result = js_data['result'] if 'result' in js_data else None
+
+                js = self.js_results[unique_id]
+                js['result'] = result
+                js['semaphore'].release()
+
+            elif js_data['type'] == 'invoke':  # invoke js api's function
+                func_name = js_data['function']
+                param = js_data['param'] if 'param' in js_data else None
+                return_val = self.js_bridge.call(func_name, param)
+
+                # Give back the return value to JS as a string
+                code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
+                webview.run_javascript(code)
+
+        except json.JSONDecodeError:
+            pass
 
     def on_navigation(self, webview, decision, decision_type):
-        self.js_result_lock.acquire()
         if type(decision) == webkit.NavigationPolicyDecision:
             uri = decision.get_request().get_uri()
+
             if decision.get_frame_name() == '_blank':
                 webbrowser.open(uri, 2, True)
                 decision.ignore()
-            elif '?pywebview' in uri:
-                decision.ignore()
-
-                unique_id, result = uri.split('?pywebview')[1].split('=')
-                js = self.js_results[unique_id]
-                js['result'] = unquote(result)
-                js['semaphore'].release()
-
-        self.js_result_lock.release()
-
 
     def show(self):
         self.window.show_all()
@@ -282,12 +290,11 @@ class BrowserView:
         def _evaluate_js():
             self.webview.run_javascript(code, None, None, None)
 
-
         unique_id = uuid1().hex
         result_semaphore = Semaphore(0)
         self.js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
 
-        code = 'window.location.href = "?pywebview{0}=" + {1};'.format(unique_id, script)
+        code = 'document.title = JSON.stringify({{"type": "eval", "uid": "{0}", "result": {1}}})'.format(unique_id, script)
 
         self.load_event.wait()
         glib.idle_add(_evaluate_js)
@@ -298,8 +305,8 @@ class BrowserView:
             return None
 
         result = self.js_results[unique_id]['result']
-        result = None if result == 'undefined' or result == 'null' or result is None else result if result == '' else json.loads(result)
 
+        result = None if result == 'undefined' or result == 'null' or result is None else result if result == '' else json.loads(result)
 
         del self.js_results[unique_id]
 
@@ -313,7 +320,7 @@ class BrowserView:
             # of the bridge by the on_status_change handler.
             code = """
             window.pywebview._bridge.call = function(funcName, param) {{
-                document.title = "_{0}_" + funcName + "_{0}_" + param;
+                document.title = JSON.stringify({{"type": "invoke", "uid": "{0}", "function": funcName, "param": param}})
                 return this.return_val;
             }};""".format(self.js_bridge.uid)
 
