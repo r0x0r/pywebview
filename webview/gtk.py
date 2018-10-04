@@ -5,7 +5,6 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 import sys
-import re
 import logging
 import json
 import webbrowser
@@ -15,7 +14,7 @@ except ImportError:
     from urllib import unquote
 
 from uuid import uuid1
-from threading import Event, Semaphore, Lock
+from threading import Event, Semaphore
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
 from webview.util import parse_api_js
@@ -56,9 +55,7 @@ class BrowserView:
 
         self.webview_ready = webview_ready
         self.is_fullscreen = False
-        self.js_result_lock = Lock()
         self.js_results = {}
-        self.js_result_uid = uuid1().hex[:8]
         self.load_event = Event()
         self.load_event.clear()
 
