@@ -42,5 +42,5 @@ install:
 
 test_script:
   # Run the project tests
-  - "%CMD_IN_ENV% python -m pytest tests"
+  - "%CMD_IN_ENV% python -m pytest tests -s"
 
