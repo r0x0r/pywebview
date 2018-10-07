@@ -181,7 +181,7 @@ class BrowserView:
             listener.use()
 
         # Show the webview when it finishes loading
-        def webView_didFinishLoadForFrame_(self, webview, frame):
+        def webView_didFinishNavigation_(self, webview, nav):
             # Add the webview to the window if it's not yet the contentView
             i = BrowserView.get_instance('webkit', webview)
 
@@ -213,7 +213,7 @@ class BrowserView:
             option = sender.indexOfSelectedItem()
             self.window().setAllowedFileTypes_(self.filter[option][1])
 
-    class WebKitHost(WebKit.WebView):
+    class WebKitHost(WebKit.WKWebView):
         def performKeyEquivalent_(self, theEvent):
             """
             Handle common hotkey shortcuts as copy/cut/paste/undo/select all/quit
@@ -296,8 +296,8 @@ class BrowserView:
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
         self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
         self.webkit.setUIDelegate_(self._browserDelegate)
-        self.webkit.setFrameLoadDelegate_(self._browserDelegate)
-        self.webkit.setPolicyDelegate_(self._browserDelegate)
+        self.webkit.setNavigationDelegate_(self._browserDelegate)
+        #self.webkit.setPolicyDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
 
@@ -350,7 +350,7 @@ class BrowserView:
 
     def get_current_url(self):
         def get():
-            self._current_url = self.webkit.mainFrameURL()
+            self._current_url = self.webkit.URL()
             self._current_url_semaphore.release()
 
         AppHelper.callAfter(get)
@@ -362,7 +362,7 @@ class BrowserView:
         def load(url):
             page_url = Foundation.NSURL.URLWithString_(url)
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
-            self.webkit.mainFrame().loadRequest_(req)
+            self.webkit.loadRequest_(req)
 
         self.loaded.clear()
         self.url = url
@@ -371,7 +371,7 @@ class BrowserView:
     def load_html(self, content, base_uri):
         def load(content, url):
             url = Foundation.NSURL.URLWithString_(url)
-            self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
+            self.webkit.loadHTMLString_baseURL_(content, url)
 
         self.loaded.clear()
         AppHelper.callAfter(load, content, base_uri)
