@@ -31,7 +31,6 @@ info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
-    debug = False
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
 
     class AppDelegate(AppKit.NSObject):
@@ -81,12 +80,6 @@ class BrowserView:
             return 'call' if selector == 'callFunc:withParam:' else None
 
     class BrowserDelegate(AppKit.NSObject):
-        def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
-            if BrowserView.debug:
-                return defaultMenuItems
-            else:
-                return nil
-
         # Display a JavaScript alert panel containing the specified message
         def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
             AppKit.NSRunningApplication.currentApplication().activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
@@ -256,10 +249,6 @@ class BrowserView:
         BrowserView.instances[uid] = self
         self.uid = uid
 
-        if debug:
-            BrowserView.debug = debug
-            BrowserView._set_debugging()
-
         self.js_bridge = None
         self._file_name = None
         self._file_name_semaphore = Semaphore(0)
@@ -306,6 +295,9 @@ class BrowserView:
             self.load_url(url)
         else:
             self.loaded.set()
+
+        if debug:
+            self.webkit.configuration().preferences().setValue_forKey_(Foundation.YES, "developerExtrasEnabled")
 
         if js_api:
             self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(js_api)
@@ -600,14 +592,6 @@ class BrowserView:
             return True
         else:
             return False
-
-    @staticmethod
-    def _set_debugging():
-        command = ['defaults', 'write', 'org.python.python', 'WebKitDeveloperExtras', '-bool', 'true']
-        if sys.version < '3':
-            subprocess.call(command)
-        else:
-            subprocess.run(command)
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
