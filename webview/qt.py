@@ -162,7 +162,7 @@ class BrowserView(QMainWindow):
             return self.nav_handler
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
-                 min_size, confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                 min_size, confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instances[uid] = self
         self.uid = uid
@@ -238,6 +238,9 @@ class BrowserView(QMainWindow):
 
         if fullscreen:
             self.toggle_fullscreen()
+
+        if frameless:
+            self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
 
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
@@ -463,7 +466,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
     def _create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
                               min_size, confirm_quit, background_color, debug, js_api,
-                              text_select, webview_ready)
+                              text_select, frameless, webview_ready)
         browser.show()
 
     if uid == 'master':
