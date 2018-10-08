@@ -49,7 +49,7 @@ class BrowserView:
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                 confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
 
@@ -102,6 +102,10 @@ class BrowserView:
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('notify::title', self.on_title_change)
         self.webview.connect('decide-policy', self.on_navigation)
+
+        if frameless:
+            self.window.set_decorated(False)
+            # TODO: implement window easy drag
 
         if debug:
             self.webview.get_settings().props.enable_developer_extras = True
@@ -333,7 +337,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
                   confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, js_api, text_select, webview_ready)
+                              confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready)
         browser.show()
 
     if uid == 'master':
