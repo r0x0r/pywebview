@@ -105,6 +105,10 @@ class BrowserView(QMainWindow):
         def __init__(self, parent=None):
             super(BrowserView.WebView, self).__init__(parent)
 
+            if parent.frameless:
+                QApplication.instance().installEventFilter(self)
+                self.setMouseTracking(True)
+
         def contextMenuEvent(self, event):
             menu = self.page().createStandardContextMenu()
 
@@ -136,6 +140,25 @@ class BrowserView(QMainWindow):
                 inspector = BrowserView(uid, title, url, 700, 500, True, False, (300, 200),
                                         False, '#fff', False, None, True, self.parent().webview_ready)
                 inspector.show()
+
+        def mousePressEvent(self, event):
+            if event.button() == QtCore.Qt.LeftButton:
+                self.drag_pos = event.globalPos() - self.parent().frameGeometry().topLeft()
+
+            event.accept()
+
+        def mouseMoveEvent(self, event):
+            if self.parent().frameless and int(event.buttons()) == 1:  # left button is pressed
+                self.parent().move(event.globalPos() - self.drag_pos)
+
+        def eventFilter(self, object, event):
+            if object.parent() == self:
+                if event.type() == QtCore.QEvent.MouseMove:
+                    self.mouseMoveEvent(event)
+                elif event.type() == QtCore.QEvent.MouseButtonPress:
+                    self.mousePressEvent(event)
+
+            return False
 
     # New-window-requests handler for Qt 5.5+ only
     class NavigationHandler(QWebPage):
@@ -201,6 +224,10 @@ class BrowserView(QMainWindow):
 
         self.setMinimumSize(min_size[0], min_size[1])
 
+        self.frameless = frameless
+        if frameless:
+            self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
+
         self.view = BrowserView.WebView(self)
 
         if debug and _qt_version > [5, 5]:
@@ -238,9 +265,6 @@ class BrowserView(QMainWindow):
 
         if fullscreen:
             self.toggle_fullscreen()
-
-        if frameless:
-            self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
 
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
