@@ -105,7 +105,10 @@ class BrowserView:
 
         if frameless:
             self.window.set_decorated(False)
-            # TODO: implement window easy drag
+            self.move_progress = False
+            self.webview.connect('button-release-event', self.on_mouse_release)
+            self.webview.connect('button-press-event', self.on_mouse_press)
+            self.window.connect('motion-notify-event', self.on_mouse_move)
 
         if debug:
             self.webview.get_settings().props.enable_developer_extras = True
@@ -203,6 +206,18 @@ class BrowserView:
             if decision.get_frame_name() == '_blank':
                 webbrowser.open(uri, 2, True)
                 decision.ignore()
+
+    def on_mouse_release(self, sender, event):
+        self.move_progress = False
+
+    def on_mouse_press(self, _, event):
+        self.point_diff = [x - y for x, y in zip(self.window.get_position(), [event.x_root, event.y_root])]
+        self.move_progress = True
+
+    def on_mouse_move(self, _, event):
+        if self.move_progress:
+            point = [x + y for x, y in zip((event.x_root, event.y_root), self.point_diff)]
+            self.window.move(point[0], point[1])
 
     def show(self):
         self.window.show_all()

@@ -342,7 +342,6 @@ class BrowserView(QMainWindow):
             js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
             js_result['semaphore'].release()
 
-
         try:    # PyQt4
             result = self.view.page().mainFrame().evaluateJavaScript(script)
             return_result(result)
