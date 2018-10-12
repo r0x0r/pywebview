@@ -187,7 +187,7 @@ class BrowserView:
                     i._set_js_api()
 
                 if not i.text_select:
-                    i.webkit.windowScriptObject().evaluateWebScript_(disable_text_select)
+                    i.webkit.evaluateJavaScript_completionHandler_(disable_text_select, None)
 
                 i.loaded.set()
 
@@ -384,10 +384,8 @@ class BrowserView:
         AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
-        def evaluate(script):
-            result = self.webkit.windowScriptObject().evaluateWebScript_(script)
+        def handler(result, error):
             JSResult.result = None if result is WebKit.WebUndefined.undefined() or result == 'null' else json.loads(result)
-
             JSResult.result_semaphore.release()
 
         class JSResult:
@@ -395,12 +393,13 @@ class BrowserView:
             result_semaphore = Semaphore(0)
 
         self.loaded.wait()
-        AppHelper.callAfter(evaluate, script)
+        AppHelper.callAfter(self.webkit.evaluateJavaScript_completionHandler_, script, handler)
 
         JSResult.result_semaphore.acquire()
         return JSResult.result
 
     def _set_js_api(self):
+        # TODO: Fix me: WKWebView does not have this interface
         script = parse_api_js(self.js_bridge.api)
         self.webkit.windowScriptObject().evaluateWebScript_(script)
 
