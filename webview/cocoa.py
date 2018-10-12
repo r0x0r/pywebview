@@ -214,7 +214,7 @@ class BrowserView:
             self.window().setAllowedFileTypes_(self.filter[option][1])
 
     class DragBar(AppKit.NSView):
-        default_height = 22
+
         # Fallbacks, in case these constants are not wrapped by PyObjC
         try:
             NSFullSizeContentViewWindowMask = AppKit.NSFullSizeContentViewWindowMask
@@ -350,10 +350,15 @@ class BrowserView:
             self.window.setTitlebarAppearsTransparent_(True)
             self.window.setTitleVisibility_(BrowserView.DragBar.NSWindowTitleHidden)
 
+            # Hide standard buttons
+            self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
+
             # Flip the webview so our bar is position from the top, not bottom
             self.webkit.setFlipped_(True)
 
-            rect = AppKit.NSMakeRect(0, 0, width, BrowserView.DragBar.default_height)
+            rect = AppKit.NSMakeRect(0, 0, width, height)
             drag_bar = BrowserView.DragBar.alloc().initWithFrame_(rect)
             drag_bar.setAutoresizingMask_(AppKit.NSViewWidthSizable)
 
