@@ -65,19 +65,13 @@ class BrowserView:
             self.api = api_instance
             return self
 
-        def callFunc_withParam_(self, func_name, param):
+        def userContentController_didReceiveScriptMessage_(self, controller, message):
+            func_name, param = json.loads(message.body())
             if param is WebKit.WebUndefined.undefined():
                 param = None
 
             i = BrowserView.get_instance('js_bridge', self)
             _js_bridge_call(i.uid, self.api, func_name, param)
-
-        def isSelectorExcludedFromWebScript_(self, selector):
-            return Foundation.NO if selector == 'callFunc:withParam:' else Foundation.YES
-
-        @classmethod
-        def webScriptNameForSelector_(cls, selector):
-            return 'call' if selector == 'callFunc:withParam:' else None
 
     class BrowserDelegate(AppKit.NSObject):
         # Display a JavaScript alert panel containing the specified message
@@ -184,7 +178,8 @@ class BrowserView:
                     i.window.makeFirstResponder_(webview)
 
                 if i.js_bridge:
-                    i._set_js_api()
+                    script = parse_api_js(i.js_bridge.api)
+                    i.webkit.evaluateJavaScript_completionHandler_(script, None)
 
                 if not i.text_select:
                     i.webkit.evaluateJavaScript_completionHandler_(disable_text_select, None)
@@ -301,6 +296,7 @@ class BrowserView:
 
         if js_api:
             self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(js_api)
+            self.webkit.configuration().userContentController().addScriptMessageHandler_name_(self.js_bridge, "jsBridge")
 
         if fullscreen:
             self.toggle_fullscreen()
@@ -397,14 +393,6 @@ class BrowserView:
 
         JSResult.result_semaphore.acquire()
         return JSResult.result
-
-    def _set_js_api(self):
-        # TODO: Fix me: WKWebView does not have this interface
-        script = parse_api_js(self.js_bridge.api)
-        self.webkit.windowScriptObject().evaluateWebScript_(script)
-
-        pwv_obj = self.webkit.windowScriptObject().valueForKey_('pywebview')
-        pwv_obj.setValue_forKey_(self.js_bridge, '_bridge')
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter, main_thread=False):
         def create_dialog(*args):
