@@ -1,0 +1,3 @@
+# Security considerations
+
+When using a local web server, [CSRF attacks](https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)) can be a major problem if not implemented correctly. To prevent such an attack, you have to secure your local web server API. For an example a library like [flask-seasurf](https://flask-seasurf.readthedocs.io/en/latest/) alongside Flask can be used to secure the API.
