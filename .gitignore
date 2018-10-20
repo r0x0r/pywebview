@@ -11,6 +11,5 @@ dist
 .vs
 bin
 obj
-.*
 node_modules
-
+dist
