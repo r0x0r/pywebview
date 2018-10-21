@@ -1,8 +1,11 @@
-# What web renderer is used?
+# Web engine
 
-For OS X and Linux systems you get WebKit. The actual version depends on the version of installed Safari on OS X and QT / GTK on Linux. 
-
-For Windows, you get MSHTML (Trident) in all its glory. The version depends on the installed version of Internet Explorer. For Windows XP systems, you cannot get anything better than IE8. For Vista, you are limited to IE9. For Windows 7/8/10, you will get the latest installed version. Embedding EdgeHTML engine is not made possible by Microsoft. 
+The following renderers are used on each platform
 
 
-
+| Platform | Renderer | Provider                                          | Browser compatibility |
+|----------|----------|---------------------------------------------------|-----------------------| 
+| GTK      | WebKit   | WebKit2                                           |                       |
+| macOS    | WebKit   | WebKit.WebView (bundled with OS)                  |                       |
+| QT       | WebKit   | QtWebKit                                          |                       |
+| Windows  | Trident  | MSHTML via .NET / System.Windows.Forms.WebBrowser | IE11 (Windows 10/8/7) |

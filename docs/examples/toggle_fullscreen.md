@@ -19,5 +19,5 @@ if __name__ == '__main__':
     t = threading.Thread(target=toggle_fullscreen)
     t.start()
 
-    webview.create_window("Full-screen window", "http://pywebview.flowrl.com")
+    webview.create_window("Full-screen window", "https://pywebview.flowrl.com/hello")
 ```

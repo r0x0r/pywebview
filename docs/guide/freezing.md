@@ -1,8 +1,10 @@
 # Freezing
 
-Use py2app on OS X and pyinstaller on Windows. For reference setup.py files, look in `examples/py2app_setup.py`. Pyinstaller builds a working executable out of the box, however you need to include .NET assembly Python.Runtime.dll (of pythonnet) to the target directory by providing built-in pyinstaller hook. The proper way to use this clr hook is to specify --hidden-import=clr from command-line or hiddenimports=['clr'] in spec file. This should take care of finding Python.Runtime.DLL hidden import for Windows.
+To freeze your application use [py2app](https://py2app.readthedocs.io/en/latest/) on macOS ans [pyinstaller](https://www.pyinstaller.org/) on Windows. For a reference setup.py for py2app, look [here](https://github.com/r0x0r/pywebview/blob/master/examples/py2app_setup.py)
+
+For Pyinstaller you need to include either [WebBrowserInterop.x86.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x86.dll) or [WebBrowserInterop.x64.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x64.dll) depending on whether you build against 32-bit or 64-bit Python. The DLLs bundled with _pywebview_ and are located in the `site-packages/webview/lib` directory. There is currently an effort to provide a hook for pyinstaller that would bundle this DLL automatically, but for now you have to resort to this step.
 
 
-
+_TODO: add Linux freezing guide_
 
 

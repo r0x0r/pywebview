@@ -15,5 +15,5 @@ if __name__ == '__main__':
     t = threading.Thread(target=get_current_url)
     t.start()
 
-    webview.create_window("Get current URL", "http://pywebview.flowrl.com")
+    webview.create_window("Get current URL", "https://pywebview.flowrl.com/hello")
 ```

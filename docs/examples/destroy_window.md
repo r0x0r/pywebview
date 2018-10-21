@@ -19,6 +19,6 @@ def destroy():
 if __name__ == '__main__':
     t = threading.Thread(target=destroy)
     t.start()
-    webview.create_window("Destroy Window Example", "http://pywebview.flowrl.com")
+    webview.create_window("Destroy Window Example", "https://pywebview.flowrl.com/hello")
     print("Window is destroyed")
 ```

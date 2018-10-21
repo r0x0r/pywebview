@@ -31,14 +31,15 @@ module.exports = {
             '/guide/api',
             '/guide/debugging',
             '/guide/freezing',
-            '/guide/renderer',
             '/guide/security',
             '/guide/virtualenv',
+            '/guide/renderer',
           ]
         }
       ],
       '/examples/': [
         'change_url',
+        'css_load',
         'debug',
         'destroy_window',
         'fullscreen',

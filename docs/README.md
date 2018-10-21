@@ -1,6 +1,6 @@
 ---
 home: true
-heroImage: https://github.com/r0x0r/pywebview/raw/master/logo/logo.png
+heroImage: logo.png
 actionText: Get Started →
 actionLink: /guide/
 footer: BSD Licensed | Copyright © 2014-present Roman Sirokov
@@ -18,14 +18,14 @@ pip install pywebview
 Hello world:
 ``` python
 import webview
-webview.create_window('http://pywebview.flowrl.com/')
+webview.create_window('https://pywebview.flowrl.com/')
 ```
 
 
 
 # Support the project 
 
-pywebview is a BSD licensed open source project. It is an independent project with no corporate backing. If you find it useful, consider supporting it.
+If you find _pywebview_ useful, please support it.
 
 <div class="center spc-m spc-bottom">
     <a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button">

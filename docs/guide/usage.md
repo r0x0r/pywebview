@@ -4,7 +4,7 @@ The bare minimum to get pywebview started is
 
 ``` python
 import webview
-webview.create_window("It works, Jim!", "http://pywebview.flowrl.com")
+webview.create_window("It works, Jim!", "https://pywebview.flowrl.com")
 ```
 
 The second argument `url` can point to either to a remote a local url, a local path or be left empty. If empty, you can load HTML using a `load_html` function. E.g.

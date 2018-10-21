@@ -18,8 +18,5 @@ if __name__ == '__main__':
     t = threading.Thread(target=change_title)
     t.start()
 
-    webview.create_window('First Tile',
-                          'http://pywebview.flowrl.com',
-                          width=800, height=600,
-                          resizable=True)
+    webview.create_window('Change window title', 'https://pywebview.flowrl.com/hello')
 ```

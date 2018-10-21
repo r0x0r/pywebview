@@ -27,6 +27,6 @@ if __name__ == "__main__":
     }
 
     webview.create_window("Localization Example",
-                          "http://pywebview.flowrl.com",
+                          "https://pywebview.flowrl.com/hello",
                           strings=strings)
 ```
