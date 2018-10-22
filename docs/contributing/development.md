@@ -4,7 +4,7 @@ Before you get busy coding a new feature, create an issue and discuss the detail
 
 ## Environment set-up
 
-This guide assumes you have a [GitHub](https://github.com) account, as well as [Python 3](https://python.org), [virtualenv](https://virtualenv.pypa.io/en/stable/) and [Git](https://git-scm.com) installed
+This guide assumes you have a [GitHub](https://github.com) account, as well as [Python 3](https://python.org), [virtualenv](https://virtualenv.pypa.io/en/stable/) and [Git](https://git-scm.com) installed. The guide is written for Bash, for Windows you can use for example Bash bundled with Git.
 
 * [Fork](https://github.com/r0x0r/pywebview/fork) _pywebview_ 
 * Clone your forked repository
@@ -19,12 +19,14 @@ cd pywebview
 virtualenv -p python3 venv
 source venv/bin/activate
 pip intall -e .
+pip install pytest
 ```
 
 * Hello world
 ``` bash
 python examples/simple_browser.py
 ```
+
 
 ## Development work-flow
 
@@ -34,6 +36,12 @@ git checkout -b new-branch master
 ```
 
 * Make your changes
+
+* Run tests
+``` bash
+pytest tests
+```
+
 * Commit and push your work
 
 ``` bash
@@ -47,7 +55,21 @@ git push -u origin new-branch
 
 ## Testing
 
-pywebview uses [pytest](https://docs.pytest.org/en/latest/) for testing. To run tests, simply type `pytest tests` in the project root directory. Tests cover only trivial mistakes, syntax errors, exceptions and such, in other words there is no functional testing. Each test verifies that a pywebview window can be opened and exited without errors when run under different scenarios. Tests are automatically run on a every commit via Travis / AppVeyor pipelines. Note that when run in a CI/CD environment, tests tend to fail randomly. The cause for this issue is not known.
+pywebview uses [pytest](https://docs.pytest.org/en/latest/) for testing. 
+
+To run all the tests in the project root directory
+
+``` bash
+ pytest tests
+```
+
+To run a specific test
+
+``` bash
+pytest tests/test_simple_browser.py
+```
+
+ Tests cover only trivial mistakes, syntax errors, exceptions and such. In other words there is no functional testing. Each test verifies that a pywebview window can be opened and exited without errors when run under different scenarios. Sometimes test fail / stuck randomly. The cause of the issue is not known, any help on resolving random fails is greatly appreciated.
 
 ## Learning
 
