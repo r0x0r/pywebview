@@ -5,8 +5,8 @@
 
 ## 2.2
 
-Released 22/10/2018
-
+Released 23/10/2018
+- `New` Brand new documentation at https://pywebview.flowrl.com
 - `Improvement` Simplify installation. Now pywebview can be installed by `pip install pywebview`. Dependencies will be resolved and installed automatically
 - `Improvement` [GTK] Update to WebKit2
 
