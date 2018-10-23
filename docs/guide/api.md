@@ -115,7 +115,7 @@ load_url(url, uid='master')
 
 Load a new URL into the specified _pywebview_ window. 
 
-[Example](/examples/chane_url.html)
+[Example](/examples/change_url.html)
 
 
 ## set_title

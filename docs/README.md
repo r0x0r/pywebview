@@ -8,14 +8,16 @@ footer: BSD Licensed | Copyright © 2014-present Roman Sirokov
 
 # Getting Started
 
-Install:
+### Install:
 
 ``` bash
 pip install pywebview
 ```
 
+_On Linux you might need additional libraries. Refer to the [installation](/guide/installation.html) page for details._
 
-Hello world:
+
+### Hello world:
 ``` python
 import webview
 webview.create_window('https://pywebview.flowrl.com/')
