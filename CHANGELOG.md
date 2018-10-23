@@ -3,6 +3,13 @@
 
 # Changelog
 
+## 2.2
+
+Released 22/10/2018
+
+- `Improvement` Simplify installation. Now pywebview can be installed by `pip install pywebview`. Dependencies will be resolved and installed automatically
+- `Improvement` [GTK] Update to WebKit2
+
 ## 2.1
 
 Released 16/09/2018
