@@ -1,9 +1,10 @@
+# Get current URL
+
+Print current URL after page is loaded.
+
+``` python
 import webview
 import threading
-
-"""
-This example demonstrates how to get the current url loaded in the webview.
-"""
 
 
 def get_current_url():
@@ -15,3 +16,4 @@ if __name__ == '__main__':
     t.start()
 
     webview.create_window("Get current URL", "https://pywebview.flowrl.com/hello")
+```

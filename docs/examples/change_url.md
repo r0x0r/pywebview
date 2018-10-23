@@ -1,11 +1,11 @@
+# Change URL
+
+Change URL ten seconds after the first URL is loaded.
+
+``` python
 import webview
 import threading
 import time
-
-"""
-This example demonstrates how a webview window is created and URL is changed
-after 10 seconds.
-"""
 
 
 def change_url():
@@ -25,3 +25,4 @@ if __name__ == '__main__':
                           "http://www.google.com",
                           width=800, height=600,
                           resizable=True)
+```

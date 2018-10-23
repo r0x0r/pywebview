@@ -1,9 +1,11 @@
+# Open file dialog
+
+Create an open file dialog after page content is loaded.
+
+
+``` python
 import webview
 import threading
-
-"""
-This example demonstrates creating an open file dialog.
-"""
 
 
 def open_file_dialog():
@@ -19,3 +21,4 @@ if __name__ == '__main__':
     t.start()
 
     webview.create_window("Open file dialog example", "https://pywebview.flowrl.com/hello")
+```

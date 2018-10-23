@@ -1,10 +1,12 @@
+# Localization
+
+Localize system text string used by pywebview. For a full list of used string, refer to the `webview/localization.py` file. 
+
+``` python
 # -*- coding: utf-8 -*-
 
 import webview
 
-"""
-This example demonstrates how to localize GUI strings used by pywebview.
-"""
 
 if __name__ == "__main__":
     strings = {
@@ -27,3 +29,4 @@ if __name__ == "__main__":
     webview.create_window("Localization Example",
                           "https://pywebview.flowrl.com/hello",
                           strings=strings)
+```

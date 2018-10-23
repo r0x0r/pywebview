@@ -1,12 +1,11 @@
+## Destroy window
+
+Programmatically destroy created window after five seconds.
+
+``` python
 import webview
 import threading
 import time
-
-"""
-This example demonstrates how a webview window is created and destroyed
-programmatically after 5 seconds.
-"""
-
 
 def destroy():
     # show the window for a few seconds before destroying it:
@@ -22,3 +21,4 @@ if __name__ == '__main__':
     t.start()
     webview.create_window("Destroy Window Example", "https://pywebview.flowrl.com/hello")
     print("Window is destroyed")
+```

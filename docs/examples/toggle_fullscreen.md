@@ -1,10 +1,11 @@
+# Toggle full-screen
+
+Switch application window to a full-screen mode after five seconds.
+
+``` python
 import webview
 import threading
 import time
-
-"""
-This example demonstrates how to toggle fullscreen mode programmatically.
-"""
 
 
 def toggle_fullscreen():
@@ -19,3 +20,4 @@ if __name__ == '__main__':
     t.start()
 
     webview.create_window("Full-screen window", "https://pywebview.flowrl.com/hello")
+```

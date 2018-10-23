@@ -1,9 +1,11 @@
+# Save file dialog
+
+Create a save file dialog after page content is loaded.
+
+
+``` python
 import webview
 import threading
-
-"""
-This example demonstrates creating a save file dialog.
-"""
 
 
 def save_file_dialog():
@@ -19,3 +21,4 @@ if __name__ == '__main__':
     t.start()
 
     webview.create_window("Save file dialog", "https://pywebview.flowrl.com/hello")
+```
