@@ -4,20 +4,10 @@ from setuptools import setup
 
 
 
-#  install_requires = ['PyQt5'] if 'KDE_FULL_SESSION' in os.environ else ['PyGObject']
-
-'''
-extras_require = {
-    ':sys_platform == "win32"': 'pythonnet',
-    ':sys_platform == "darwin"': 'pyobjc',
-    ':sys_platform == "openbsd6"': 'PyQt5',
-}
-'''
-
-install_requires=[
-    'pythonnet ; sys_platform == "win32",
-    'pyobjc ; sys_platform == "darwin",
-    'PyQt5 ; sys_platform == "openbsd6",
+install_requires = [
+    'pythonnet ; sys_platform == "win32"',
+    'pyobjc ; sys_platform == "darwin"',
+    'PyQt5 ; sys_platform == "openbsd6"',
 ]
 
 
