@@ -14,7 +14,7 @@ footer: BSD Licensed | Copyright © 2014-present Roman Sirokov
 pip install pywebview
 ```
 
-_On Linux you might need additional libraries. Refer to the [installation](/guide/installation.html) page for details._
+_On Linux you need additional libraries. Refer to the [installation](/guide/installation.html) page for details._
 
 
 ### Hello world:

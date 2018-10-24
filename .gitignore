@@ -1,6 +1,6 @@
 *.pyc
 *.spec
-upload.sh
+*.sh
 setup.cfg
 pywebview.egg-info
 MANIFEST

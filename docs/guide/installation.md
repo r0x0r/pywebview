@@ -4,7 +4,11 @@
 pip install pywebview
 ```
 
-This will install _pywebview_ with default dependencies.
+This will install _pywebview_ with default dependencies. To install _pywebview_ with PyQt5 (available on Linux and macOS) use
+
+``` bash
+pip install pywebview[qt]
+```
 
 
 ## Dependencies
@@ -25,29 +29,20 @@ You can also use QT5 in macOS
 
 ### Linux
 
-If you are running KDE, QT will be chosen, otherwise GTK is the default. Additionally for both GTK and QT you have to install WebKit separately. 
+You have to install Linux dependencies manually. You can choose between GTK and QT.
 
-[PyGObject](https://pygobject.readthedocs.io/en/latest/) library is used with GTK. To install dependencies on Ubuntu 
+[PyGObject](https://pygobject.readthedocs.io/en/latest/) is used with GTK. To install dependencies on Ubuntu for both Python 3 and 2
 
-**Python 3**
 ``` bash
-sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.0
+sudo apt install python-gi python-gi-cairo python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.0
 ```
 
-**Python 2**
-``` bash
-sudo apt install python-gi python-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.0
-```
+For other distributions, consult the [PyGObject documentation](https://pygobject.readthedocs.io/en/latest/getting_started.html)
+
 <br/><br/>
 
 [PyQt5](http://pyqt.sourceforge.net/Docs/PyQt5/index.html) is used with QT. On Ubuntu you need following packages
 
-**Python 3**
 ``` bash
-sudo apt install python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev 
-```
-
-**Python 2**
-``` bash
-sudo apt install python-pyqt5 python-pyqt5.qtwebkit libqt5webkit5-dev 
+sudo apt install python3-pyqt5 python3-pyqt5.qtwebkit python-pyqt5 python-pyqt5.qtwebkit  libqt5webkit5-dev 
 ```
