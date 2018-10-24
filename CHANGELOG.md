@@ -3,6 +3,13 @@
 
 # Changelog
 
+## 2.2.1
+
+_Released 24/10/2018_
+
+- `Fix` Dependency installation
+- `New` Reintroduce [qt] extra require switch
+
 ## 2.2
 
 _Released 23/10/2018_
