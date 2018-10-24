@@ -2,7 +2,9 @@ import os
 import platform
 from setuptools import setup
 
-
+extras_require = {
+    'qt': ['PyQt5'],
+}
 
 install_requires = [
     'pythonnet ; sys_platform == "win32"',
@@ -25,6 +27,7 @@ setup(
     download_url="https://github.com/r0x0r/pywebview/archive/2.2.1.tar.gz",
     keywords=["gui", "webkit", "html", "web"],
     install_requires=install_requires,
+    extras_require=extras_require,
     version="2.2.1",
     include_package_data=True,
     packages=["webview", "webview.js"],
