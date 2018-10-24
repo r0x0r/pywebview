@@ -3,14 +3,22 @@ import platform
 from setuptools import setup
 
 
-if platform.system() == "Windows":
-    install_requires = ['pythonnet']
-elif platform.system() == "Darwin":
-    install_requires = ['pyobjc']
-elif platform.system() == "Linux":
-    install_requires = ['PyQt5'] if 'KDE_FULL_SESSION' in os.environ else ['PyGObject']
-elif platform.system() == 'OpenBSD':
-    install_requires = ['PyQt5']
+
+#  install_requires = ['PyQt5'] if 'KDE_FULL_SESSION' in os.environ else ['PyGObject']
+
+'''
+extras_require = {
+    ':sys_platform == "win32"': 'pythonnet',
+    ':sys_platform == "darwin"': 'pyobjc',
+    ':sys_platform == "openbsd6"': 'PyQt5',
+}
+'''
+
+install_requires=[
+    'pythonnet ; sys_platform == "win32",
+    'pyobjc ; sys_platform == "darwin",
+    'PyQt5 ; sys_platform == "openbsd6",
+]
 
 
 with open("README.md") as fh:
@@ -24,10 +32,10 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/r0x0r/pywebview",
-    download_url="https://github.com/r0x0r/pywebview/archive/2.2.tar.gz",
+    download_url="https://github.com/r0x0r/pywebview/archive/2.2.1.tar.gz",
     keywords=["gui", "webkit", "html", "web"],
     install_requires=install_requires,
-    version="2.2",
+    version="2.2.1",
     include_package_data=True,
     packages=["webview", "webview.js"],
     package_data={"webview": ['webview/lib/WebBrowserInterop.x64.dll', 'webview/lib/WebBrowserInterop.x86.dll']},
@@ -50,5 +58,5 @@ setup(
         "Topic :: Software Development :: Libraries :: Application Frameworks",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Software Development :: User Interfaces"
-        ],
+    ],
 )
