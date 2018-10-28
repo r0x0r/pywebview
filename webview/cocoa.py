@@ -271,6 +271,7 @@ class BrowserView:
         self.text_select = text_select
 
         self.is_fullscreen = False
+        self.is_minimized = False
 
         rect = AppKit.NSMakeRect(0.0, 0.0, width, height)
         window_mask = AppKit.NSTitledWindowMask | AppKit.NSClosableWindowMask | AppKit.NSMiniaturizableWindowMask
@@ -313,6 +314,9 @@ class BrowserView:
         if fullscreen:
             self.toggle_fullscreen()
 
+        if minimized:
+            self.toggle_minimize()
+
     def show(self):
         self.window.makeKeyAndOrderFront_(self.window)
 
@@ -347,6 +351,16 @@ class BrowserView:
 
         AppHelper.callAfter(toggle)
         self.is_fullscreen = not self.is_fullscreen
+
+    def toggle_minimize(self):
+        def toggle():
+            if self.is_minimized:
+                self.window.miniaturize_(None)
+            else:
+                self.window.deminiaturize_(None)
+
+        AppHelper.callAfter(toggle)
+        self.is_minimized = not self.is_minimized
 
     def get_current_url(self):
         def get():
@@ -640,6 +654,10 @@ def destroy_window(uid):
 
 def toggle_fullscreen(uid):
     BrowserView.instances[uid].toggle_fullscreen()
+
+
+def toggle_minimize(uid):
+    BrowserView.instances[uid].toggle_minimize()
 
 
 def get_current_url(uid):
