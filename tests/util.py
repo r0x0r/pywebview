@@ -4,9 +4,15 @@ import sys
 import logging
 import traceback
 import pytest
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, set_start_method
 
 logger = logging.getLogger(__name__)
+
+try:
+    set_start_method('spawn')
+except:
+    pass
+
 
 def run_test(main_func, thread_func=None, param=None, no_destroy=False):
     __tracebackhide__ = True
