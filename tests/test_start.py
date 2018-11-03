@@ -10,7 +10,7 @@ class Api:
 
 
 def test_start():
-    run_test(main_func, assert_func)
+    run_test(webview, main_func, assert_func)
 
 
 def main_func():

@@ -4,11 +4,11 @@ from .util import run_test
 
 
 def test_bg_color():
-    run_test(bg_color)
+    run_test(webview, bg_color)
 
 
 def test_invalid_bg_color():
-    run_test(invalid_bg_color, no_destroy=True)
+    run_test(webview, invalid_bg_color, no_destroy=True)
 
 
 def bg_color():
