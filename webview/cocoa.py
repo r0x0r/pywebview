@@ -365,8 +365,11 @@ class BrowserView:
         AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
+        def eval():
+            self.webkit.evaluateJavaScript_completionHandler_(script, handler)
+
         def handler(result, error):
-            JSResult.result = None if result is WebKit.WebUndefined.undefined() or result == 'null' else json.loads(result)
+            JSResult.result = None if result is None or result == 'null' else json.loads(result)
             JSResult.result_semaphore.release()
 
         class JSResult:
@@ -374,7 +377,7 @@ class BrowserView:
             result_semaphore = Semaphore(0)
 
         self.loaded.wait()
-        AppHelper.callAfter(self.webkit.evaluateJavaScript_completionHandler_, script, handler)
+        AppHelper.callAfter(eval)
 
         JSResult.result_semaphore.acquire()
         return JSResult.result
