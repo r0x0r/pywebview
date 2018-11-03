@@ -3,23 +3,23 @@ from .util import run_test, assert_js
 
 
 def test_bg_color():
-    run_test(main_func, bg_color)
+    run_test(webview, main_func, bg_color)
 
 
 def test_load_html():
-    run_test(main_func, load_html)
+    run_test(webview, main_func, load_html)
 
 
 def test_load_url():
-    run_test(main_func, load_url)
+    run_test(webview, main_func, load_url)
 
 
 def test_evaluate_js():
-    run_test(main_func, evaluate_js)
+    run_test(webview, main_func, evaluate_js)
 
 
 def test_js_bridge():
-    run_test(main_api_func, js_bridge)
+    run_test(webview, main_api_func, js_bridge)
 
 
 def main_func():

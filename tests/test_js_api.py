@@ -3,7 +3,7 @@ from .util import run_test, assert_js
 
 
 def test_js_bridge():
-    run_test(main_func, js_bridge)
+    run_test(webview, main_func, js_bridge)
 
 
 class Api:
