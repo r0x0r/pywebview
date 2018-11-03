@@ -4,7 +4,7 @@ matrix:
       osx_image: xcode8
       language: generic
       sudo: required
-      env: PYTHON_VERSION="2"
+      env: PYTHON_VERSION="3"
     #- os: osx
     #  language: generic
     #  sudo: required
