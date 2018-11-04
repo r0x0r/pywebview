@@ -228,7 +228,7 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
 
     gui.create_window(uid, make_unicode(title), transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
-                          background_color, debug, js_api, text_select, _webview_ready)
+                      background_color, debug, js_api, text_select, _webview_ready)
 
     if uid == 'master':
         _webview_ready.clear()
