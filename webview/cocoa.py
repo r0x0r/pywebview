@@ -75,14 +75,14 @@ class BrowserView:
 
     class BrowserDelegate(AppKit.NSObject):
         # Display a JavaScript alert panel containing the specified message
-        def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
+        def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_completionHandler_(self, webview, message, frame, handler):
             AppKit.NSRunningApplication.currentApplication().activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
             alert = AppKit.NSAlert.alloc().init()
             alert.setInformativeText_(message)
             alert.runModal()
 
         # Display a JavaScript confirm panel containing the specified message
-        def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
+        def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_completionHandler_(self, webview, message, frame, handler):
             ok = localization['global.ok']
             cancel = localization['global.cancel']
 
@@ -201,6 +201,7 @@ class BrowserView:
             option = sender.indexOfSelectedItem()
             self.window().setAllowedFileTypes_(self.filter[option][1])
 
+
     class WebKitHost(WebKit.WKWebView):
         def performKeyEquivalent_(self, theEvent):
             """
@@ -281,7 +282,6 @@ class BrowserView:
         self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
         self.webkit.setUIDelegate_(self._browserDelegate)
         self.webkit.setNavigationDelegate_(self._browserDelegate)
-        #self.webkit.setPolicyDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
 
