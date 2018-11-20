@@ -74,11 +74,12 @@ evaluate_js(script, uid='master')
 ```
 
 Execute Javascript code in the specified window. The last evaluated expression is returned. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
+You must escape \n and \r among other escape sequences if they present in Javascript code. Otherwise they get parsed by Python. r'strings' is a recommended way to load Javascript.
 
 ## get_current_url
 
 ``` python
-get_curren_url(uid='master')
+get_current_url(uid='master')
 ```
 
 Return the current URL in the specified window. None if no url is loaded.
