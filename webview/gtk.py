@@ -189,7 +189,9 @@ class BrowserView:
                 code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
                 webview.run_javascript(code)
 
-        except json.JSONDecodeError:
+        except ValueError: # Python 2
+            pass
+        except json.JSONDecodeError: # Python 3
             pass
 
     def on_navigation(self, webview, decision, decision_type):

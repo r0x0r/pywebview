@@ -20,7 +20,7 @@ _pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/). Maintained
 ``` bash
 pip install pywebview
 ```
-_On Linux you might need additional libraries. Refer to the [installation](https://pywebview.flowrl.com/guide/installation.html) page for details._
+_On Linux you need additional libraries. Refer to the [installation](https://pywebview.flowrl.com/guide/installation.html) page for details._
 
 
 ### Hello world
