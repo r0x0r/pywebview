@@ -14,6 +14,10 @@ import platform
 
 from .js import api, npo
 
+try:
+    from urllib import quote    # python 2.x
+except:
+    from urllib.parse import quote  # python 3.x
 
 def base_uri(relative_path=''):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -30,7 +34,7 @@ def base_uri(relative_path=''):
     if not os.path.exists(base_path):
         raise ValueError('Path %s does not exist' % base_path)
 
-    return 'file://%s' % os.path.join(base_path, relative_path)
+    return 'file://%s' % quote(os.path.join(base_path, relative_path))
 
 
 def convert_string(string):
