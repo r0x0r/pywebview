@@ -121,6 +121,8 @@ class BrowserView:
 
             if url:
                 self.web_browser.Navigate(url)
+            else:
+                self.web_browser.DocumentText = '<!doctype html><html><head></head><body></body></html>'
 
             self.url = url
 
