@@ -24,6 +24,11 @@ html = """
         border: 5px dashed #ccc;
     }
 
+    label {
+        margin-left: 0.3rem;
+        margin-right: 0.3rem;
+    }
+     
     button {
         font-size: 100%;
         padding: 0.5rem;
@@ -40,6 +45,8 @@ html = """
 <button onClick="initialize()">Hello Python</button><br/>
 <button id="heavy-stuff-btn" onClick="doHeavyStuff()">Perform a heavy operation</button><br/>
 <button onClick="getRandomNumber()">Get a random number</button><br/>
+<label for="name_input">Say hello to:</label><input id="name_input" placeholder="put a name here">
+<button onClick="greet()">Greet</button><br/>
 
 <div id="response-container"></div>
 <script>
@@ -74,6 +81,11 @@ function cancelHeavyStuff() {
 
 function getRandomNumber() {
     pywebview.api.getRandomNumber().then(showResponse)
+}
+
+function greet() {
+    var name_input= document.getElementById('name_input').value;
+    pywebview.api.sayHelloTo(name_input).then(showResponse)
 }
 
 </script>
@@ -117,6 +129,12 @@ class Api:
     def cancelHeavyStuff(self, params):
         time.sleep(0.1)
         self.cancel_heavy_stuff_flag = True
+
+    def sayHelloTo(self, params):
+        response = {
+            'message': 'Hello {0}!'.format(params)
+        }
+        return response
 
 
 def create_app():
