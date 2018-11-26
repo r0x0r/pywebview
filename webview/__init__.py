@@ -48,7 +48,7 @@ class Config (dict):
 
         self.gui = 'qt' if 'KDE_FULL_SESSION' in os.environ else None
         self.gui = os.environ['PYWEBVIEW_GUI'].lower() \
-            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in ['qt', 'gtk', 'win32'] \
+            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in ['qt', 'gtk', 'win32', 'cef'] \
             else None
 
     def __getitem__(self, key):

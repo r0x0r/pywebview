@@ -25,7 +25,7 @@ from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _js_bridge_call
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _js_bridge_call, config
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html
 
 from .js import alert
@@ -39,6 +39,11 @@ from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 
 logger = logging.getLogger('pywebview')
 
+is_cef = config.gui == 'cef'
+
+if is_cef:
+    from . import cef as CEF
+    from cefpython3 import cefpython as cef
 
 class BrowserView:
     instances = {}
@@ -81,7 +86,29 @@ class BrowserView:
 
             self.webview_ready = webview_ready
             self.load_event = Event()
+            self.background_color = background_color
+            self.url = url
+            
+            if js_api:
+                self.js_bridge.api = js_api
 
+            if is_cef:
+                CEF.create_browser(self.Handle.ToInt32(), url)
+            else:
+                self.create_mshtml_browser()
+
+            self.text_select = text_select
+            self.Shown += self.on_shown
+            self.FormClosed += self.on_close
+
+            if confirm_quit:
+                self.FormClosing += self.on_closing
+
+            self.is_fullscreen = False
+            if fullscreen:
+                self.toggle_fullscreen()
+
+        def _create_mshtml_browser(self):
             self.web_browser = WebBrowserEx()
             self.web_browser.Dock = WinForms.DockStyle.Fill
             self.web_browser.ScriptErrorsSuppressed = not debug
@@ -97,15 +124,10 @@ class BrowserView:
             self.js_bridge.parent_uid = uid
             self.web_browser.ObjectForScripting = self.js_bridge
 
-            self.text_select = text_select
-
-            if js_api:
-                self.js_bridge.api = js_api
-
             # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
             # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
             # for the default background color.
-            if background_color != '#FFFFFF':
+            if self.background_color != '#FFFFFF':
                 self.web_browser.Visible = False
                 self.first_load = True
             else:
@@ -123,18 +145,7 @@ class BrowserView:
             else:
                 self.web_browser.DocumentText = default_html
 
-            self.url = url
-
-            self.Controls.Add(self.web_browser)
-            self.is_fullscreen = False
-            self.Shown += self.on_shown
-            self.FormClosed += self.on_close
-
-            if confirm_quit:
-                self.FormClosing += self.on_closing
-
-            if fullscreen:
-                self.toggle_fullscreen()
+            self.Controls.Add(self.web_browser)    
 
         def _initialize_js(self):
             self.web_browser.Document.InvokeScript('eval', (alert.src,))
@@ -246,6 +257,9 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         set_ie_mode()
         if sys.getwindowsversion().major >= 6:
             windll.user32.SetProcessDPIAware()
+
+        if is_cef:
+            CEF.init()
 
         app.EnableVisualStyles()
         app.SetCompatibleTextRenderingDefault(False)
