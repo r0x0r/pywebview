@@ -85,7 +85,7 @@ function getRandomNumber() {
 }
 
 function greet() {
-    var name_input= document.getElementById('name_input').value;
+    var name_input = document.getElementById('name_input').value;
     pywebview.api.sayHelloTo(name_input).then(showResponse)
 }
 
