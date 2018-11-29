@@ -222,6 +222,10 @@ class BrowserView:
                 self.Location = self.old_location
                 self.is_fullscreen = False
 
+        def set_window_size(self, width, height):
+            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
+                width, height, 64)
+
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
                   confirm_quit, background_color, debug, js_api, text_select, webview_ready):
@@ -359,6 +363,11 @@ def load_html(content, base_uri, uid):
 def toggle_fullscreen(uid):
     window = BrowserView.instances[uid]
     window.toggle_fullscreen()
+
+
+def set_window_size(width, height, uid):
+    window = BrowserView.instances[uid]
+    window.set_window_size(width, height)
 
 
 def destroy_window(uid):
