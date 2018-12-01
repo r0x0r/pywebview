@@ -15,12 +15,13 @@ import Foundation
 import AppKit
 import WebKit
 from PyObjCTools import AppHelper
-from objc import nil, super, pyobjc_unicode
+from objc import nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
 from webview.util import convert_string, parse_api_js
 from .js.css import disable_text_select
+from .metadata import eval_js_metadata
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -179,10 +180,10 @@ class BrowserView:
 
                 if i.js_bridge:
                     script = parse_api_js(i.js_bridge.api)
-                    i.webkit.evaluateJavaScript_completionHandler_(script, None)
+                    i.webkit.evaluateJavaScript_completionHandler_(script, lambda a,b: None)
 
                 if not i.text_select:
-                    i.webkit.evaluateJavaScript_completionHandler_(disable_text_select, None)
+                    i.webkit.evaluateJavaScript_completionHandler_(disable_text_select, lambda a,b: None)
 
                 i.loaded.set()
 
@@ -284,6 +285,11 @@ class BrowserView:
         self.webkit.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
+
+        try:
+            self.webkit.evaluateJavaScript_completionHandler_("", lambda a, b: None)
+        except TypeError:
+            registerMetaDataForSelector(b"WKWebView", b"evaluateJavaScript:completionHandler:", eval_js_metadata)
 
         if url:
             self.url = url
