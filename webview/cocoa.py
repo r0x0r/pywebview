@@ -8,14 +8,14 @@ import sys
 import json
 import subprocess
 import webbrowser
-
+import ctypes
 from threading import Event, Semaphore
 
 import Foundation
 import AppKit
 import WebKit
 from PyObjCTools import AppHelper
-from objc import nil, super, pyobjc_unicode, registerMetaDataForSelector
+from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
@@ -28,6 +28,8 @@ bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
 info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
 
+# Dynamic library required by BrowserView.pyobjc_method_signature()
+_objc_so = ctypes.cdll.LoadLibrary(_objc.__file__)
 
 class BrowserView:
     instances = {}
@@ -82,25 +84,36 @@ class BrowserView:
             alert.setInformativeText_(message)
             alert.runModal()
 
+            if not handler.__block_signature__:
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature("v@")
+            handler()
+
         # Display a JavaScript confirm panel containing the specified message
         def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_completionHandler_(self, webview, message, frame, handler):
             ok = localization['global.ok']
             cancel = localization['global.cancel']
 
+            if not handler.__block_signature__:
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature("v@B")
+
             if BrowserView.display_confirmation_dialog(ok, cancel, message):
-                return Foundation.YES
+                handler(Foundation.YES)
             else:
-                return Foundation.NO
+                handler(Foundation.NO)
 
         # Display an open panel for <input type="file"> element
-        def webView_runOpenPanelForFileButtonWithResultListener_allowMultipleFiles_(self, webview, listener, allow_multiple):
+        def webView_runOpenPanelWithParameters_initiatedByFrame_completionHandler_(self, webview, param, frame, handler):
             i = list(BrowserView.instances.values())[0]
-            files = i.create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', [], main_thread=True)
+            files = i.create_file_dialog(OPEN_DIALOG, '', param.allowsMultipleSelection(), '', [], main_thread=True)
+
+            if not handler.__block_signature__:
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature("v@@")
 
             if files:
-                listener.chooseFilenames_(files)
+                urls = [Foundation.NSURL.URLWithString_(i) for i in files]
+                handler(urls)
             else:
-                listener.cancel()
+                handler(nil)
 
         def webView_printFrameView_(self, webview, frameview):
             """
@@ -588,6 +601,18 @@ class BrowserView:
             return True
         else:
             return False
+
+    @staticmethod
+    def pyobjc_method_signature(signature_str):
+        """
+        Return a PyObjCMethodSignature object for given signature string.
+
+        :param signature_str: The type encoding for the method signature
+        :return: A method signature object, assignable to attributes like __block_signature__
+        :rtype: <type objc._method_signature>
+        """
+        _objc_so.PyObjCMethodSignature_WithMetaData.restype = ctypes.py_object
+        return _objc_so.PyObjCMethodSignature_WithMetaData(ctypes.create_string_buffer(signature_str), None, False)
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
