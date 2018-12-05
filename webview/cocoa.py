@@ -85,7 +85,7 @@ class BrowserView:
             alert.runModal()
 
             if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature("v@")
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@')
             handler()
 
         # Display a JavaScript confirm panel containing the specified message
@@ -94,7 +94,7 @@ class BrowserView:
             cancel = localization['global.cancel']
 
             if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature("v@B")
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@B')
 
             if BrowserView.display_confirmation_dialog(ok, cancel, message):
                 handler(Foundation.YES)
@@ -107,7 +107,7 @@ class BrowserView:
             files = i.create_file_dialog(OPEN_DIALOG, '', param.allowsMultipleSelection(), '', [], main_thread=True)
 
             if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature("v@@")
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@@')
 
             if files:
                 urls = [Foundation.NSURL.URLWithString_(i) for i in files]
@@ -607,7 +607,7 @@ class BrowserView:
         """
         Return a PyObjCMethodSignature object for given signature string.
 
-        :param signature_str: The type encoding for the method signature
+        :param signature_str: A byte string containing the type encoding for the method signature
         :return: A method signature object, assignable to attributes like __block_signature__
         :rtype: <type objc._method_signature>
         """
