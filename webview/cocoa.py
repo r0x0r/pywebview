@@ -219,6 +219,18 @@ class BrowserView:
 
 
     class WebKitHost(WebKit.WKWebView):
+        def mouseDown_(self, event):
+            if event.modifierFlags() & getattr(AppKit, 'NSEventModifierFlagControl', 1 << 18):
+                i = BrowserView.get_instance('webkit', self)
+                if i and not i.debug:
+                    return
+            super(BrowserView.WebKitHost, self).mouseDown_(event)
+
+        def rightMouseDown_(self, event):
+            i = BrowserView.get_instance('webkit', self)
+            if i and i.debug:
+                super(BrowserView.WebKitHost, self).rightMouseDown_(event)
+
         def performKeyEquivalent_(self, theEvent):
             """
             Handle common hotkey shortcuts as copy/cut/paste/undo/select all/quit
@@ -269,6 +281,7 @@ class BrowserView:
         self.loaded = Event()
         self.confirm_quit = confirm_quit
         self.title = title
+        self.debug = debug
         self.text_select = text_select
 
         self.is_fullscreen = False
@@ -312,7 +325,7 @@ class BrowserView:
         else:
             self.loaded.set()
 
-        if debug:
+        if self.debug:
             self.webkit.configuration().preferences().setValue_forKey_(Foundation.YES, "developerExtrasEnabled")
 
         if js_api:
