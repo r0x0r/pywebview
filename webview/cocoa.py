@@ -158,28 +158,30 @@ class BrowserView:
             AppHelper.callAfter(printView, frameview)
 
         # Open target="_blank" links in external browser
-        def webView_decidePolicyForNewWindowAction_request_newFrameName_decisionListener_(self, webview, action, request, name, listener):
-            if name == '_blank':
-                webbrowser.open(request.URL().absoluteString(), 2, True)
-            listener.ignore()
+        def webView_createWebViewWithConfiguration_forNavigationAction_windowFeatures_(self, webview, config, action, features):
+            if action.navigationType() == getattr(WebKit, 'WKNavigationTypeLinkActivated', 0):
+                webbrowser.open(action.request().URL().absoluteString(), 2, True)
+            return nil
 
-        # WebPolicyDelegate method, invoked when a navigation decision needs to be made
-        def webView_decidePolicyForNavigationAction_request_frame_decisionListener_(self, webview, action, request, frame, listener):
+        # WKNavigationDelegate method, invoked when a navigation decision needs to be made
+        def webView_decidePolicyForNavigationAction_decisionHandler_(self, webview, action, handler):
             # The event that might have triggered the navigation
             event = AppKit.NSApp.currentEvent()
-            action_type = action['WebActionNavigationTypeKey'] 
+
+            if not handler.__block_signature__:
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b"v@i")
 
             """ Disable back navigation on pressing the Delete key: """
             # Check if the requested navigation action is Back/Forward
-            if action_type == WebKit.WebNavigationTypeBackForward:
+            if action.navigationType() == getattr(WebKit, 'WKNavigationTypeBackForward', 2):
                 # Check if the event is a Delete key press (keyCode = 51)
                 if event and event.type() == AppKit.NSKeyDown and event.keyCode() == 51:
                     # If so, ignore the request and return
-                    listener.ignore()
+                    handler(getattr(WebKit, 'WKNavigationActionPolicyCancel', 0))
                     return
 
             # Normal navigation, allow
-            listener.use()
+            handler(getattr(WebKit, 'WKNavigationActionPolicyAllow', 1))
 
         # Show the webview when it finishes loading
         def webView_didFinishNavigation_(self, webview, nav):
