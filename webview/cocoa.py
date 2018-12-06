@@ -115,48 +115,6 @@ class BrowserView:
             else:
                 handler(nil)
 
-        def webView_printFrameView_(self, webview, frameview):
-            """
-            This delegate method is invoked when a script or a user wants to print a webpage (e.g. using the Javascript window.print() method)
-            :param webview: the webview that sent the message
-            :param frameview: the web frame view whose contents to print
-            """
-            def printView(frameview):
-                # check if the view can handle the content without intervention by the delegate
-                can_print = frameview.documentViewShouldHandlePrint()
-
-                if can_print:
-                    # tell the view to print the content
-                    frameview.printDocumentView()
-                else:
-                    # get an NSPrintOperaion object to print the view
-                    info = AppKit.NSPrintInfo.sharedPrintInfo().copy()
-
-                    # default print settings used by Safari
-                    info.setHorizontalPagination_(AppKit.NSFitPagination)
-                    info.setHorizontallyCentered_(Foundation.NO)
-                    info.setVerticallyCentered_(Foundation.NO)
-
-                    imageableBounds = info.imageablePageBounds()
-                    paperSize = info.paperSize()
-                    if (Foundation.NSWidth(imageableBounds) > paperSize.width):
-                        imageableBounds.origin.x = 0
-                        imageableBounds.size.width = paperSize.width
-                    if (Foundation.NSHeight(imageableBounds) > paperSize.height):
-                        imageableBounds.origin.y = 0
-                        imageableBounds.size.height = paperSize.height
-
-                    info.setBottomMargin_(Foundation.NSMinY(imageableBounds))
-                    info.setTopMargin_(paperSize.height - Foundation.NSMinY(imageableBounds) - Foundation.NSHeight(imageableBounds))
-                    info.setLeftMargin_(Foundation.NSMinX(imageableBounds))
-                    info.setRightMargin_(paperSize.width - Foundation.NSMinX(imageableBounds) - Foundation.NSWidth(imageableBounds))
-
-                    # show the print panel
-                    print_op = frameview.printOperationWithPrintInfo_(info)
-                    print_op.runOperation()
-
-            AppHelper.callAfter(printView, frameview)
-
         # Open target="_blank" links in external browser
         def webView_createWebViewWithConfiguration_forNavigationAction_windowFeatures_(self, webview, config, action, features):
             if action.navigationType() == getattr(WebKit, 'WKNavigationTypeLinkActivated', 0):
@@ -200,7 +158,16 @@ class BrowserView:
                 if not i.text_select:
                     i.webkit.evaluateJavaScript_completionHandler_(disable_text_select, lambda a,b: None)
 
+                print_hook = 'window.print = function() { window.webkit.messageHandlers.browserDelegate.postMessage("print") };'
+                i.webkit.evaluateJavaScript_completionHandler_(print_hook, lambda a,b: None)
+
                 i.loaded.set()
+
+        # Handle JavaScript window.print()
+        def userContentController_didReceiveScriptMessage_(self, controller, message):
+            if message.body() == 'print':
+                i = BrowserView.get_instance('_browserDelegate', self)
+                BrowserView.print_webview(i.webkit)
 
 
     class FileFilterChooser(AppKit.NSPopUpButton):
@@ -319,13 +286,9 @@ class BrowserView:
         except TypeError:
             registerMetaDataForSelector(b"WKWebView", b"evaluateJavaScript:completionHandler:", eval_js_metadata)
 
-        if url:
-            self.url = url
-            self.load_url(url)
-        else:
-            self.loaded.set()
-
         config = self.webkit.configuration()
+        config.userContentController().addScriptMessageHandler_name_(self._browserDelegate, "browserDelegate")
+
         try:
             config.preferences().setValue_forKey_(Foundation.NO, "backspaceKeyNavigationEnabled")
         except:
@@ -334,9 +297,18 @@ class BrowserView:
         if self.debug:
             config.preferences().setValue_forKey_(Foundation.YES, "developerExtrasEnabled")
 
+        if self.debug:
+            config.preferences().setValue_forKey_(Foundation.YES, "developerExtrasEnabled")
+
         if js_api:
             self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(js_api)
             config.userContentController().addScriptMessageHandler_name_(self.js_bridge, "jsBridge")
+
+        if url:
+            self.url = url
+            self.load_url(url)
+        else:
+            self.loaded.set()
 
         if fullscreen:
             self.toggle_fullscreen()
@@ -622,6 +594,33 @@ class BrowserView:
             return True
         else:
             return False
+
+    @staticmethod
+    def print_webview(webview):
+        info = AppKit.NSPrintInfo.sharedPrintInfo().copy()
+
+        # default print settings used by Safari
+        info.setHorizontalPagination_(AppKit.NSFitPagination)
+        info.setHorizontallyCentered_(Foundation.NO)
+        info.setVerticallyCentered_(Foundation.NO)
+
+        imageableBounds = info.imageablePageBounds()
+        paperSize = info.paperSize()
+        if (Foundation.NSWidth(imageableBounds) > paperSize.width):
+            imageableBounds.origin.x = 0
+            imageableBounds.size.width = paperSize.width
+        if (Foundation.NSHeight(imageableBounds) > paperSize.height):
+            imageableBounds.origin.y = 0
+            imageableBounds.size.height = paperSize.height
+
+        info.setBottomMargin_(Foundation.NSMinY(imageableBounds))
+        info.setTopMargin_(paperSize.height - Foundation.NSMinY(imageableBounds) - Foundation.NSHeight(imageableBounds))
+        info.setLeftMargin_(Foundation.NSMinX(imageableBounds))
+        info.setRightMargin_(paperSize.width - Foundation.NSMinX(imageableBounds) - Foundation.NSWidth(imageableBounds))
+
+        # show the print panel
+        print_op = webview._printOperationWithPrintInfo_(info)
+        print_op.runOperationModalForWindow_delegate_didRunSelector_contextInfo_(webview.window(), nil, nil, nil)
 
     @staticmethod
     def pyobjc_method_signature(signature_str):
