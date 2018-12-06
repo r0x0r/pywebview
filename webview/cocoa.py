@@ -325,12 +325,18 @@ class BrowserView:
         else:
             self.loaded.set()
 
+        config = self.webkit.configuration()
+        try:
+            config.preferences().setValue_forKey_(Foundation.NO, "backspaceKeyNavigationEnabled")
+        except:
+            pass
+
         if self.debug:
-            self.webkit.configuration().preferences().setValue_forKey_(Foundation.YES, "developerExtrasEnabled")
+            config.preferences().setValue_forKey_(Foundation.YES, "developerExtrasEnabled")
 
         if js_api:
             self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(js_api)
-            self.webkit.configuration().userContentController().addScriptMessageHandler_name_(self.js_bridge, "jsBridge")
+            config.userContentController().addScriptMessageHandler_name_(self.js_bridge, "jsBridge")
 
         if fullscreen:
             self.toggle_fullscreen()
