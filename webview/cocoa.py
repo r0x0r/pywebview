@@ -19,7 +19,7 @@ from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
-from webview.util import convert_string, parse_api_js
+from webview.util import convert_string, parse_api_js, quote
 from .js.css import disable_text_select
 from .metadata import eval_js_metadata
 
@@ -110,7 +110,7 @@ class BrowserView:
                 handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@@')
 
             if files:
-                urls = [Foundation.NSURL.URLWithString_(i) for i in files]
+                urls = [Foundation.NSURL.URLWithString_(quote(i)) for i in files]
                 handler(urls)
             else:
                 handler(nil)
@@ -360,7 +360,7 @@ class BrowserView:
 
     def load_url(self, url):
         def load(url):
-            page_url = Foundation.NSURL.URLWithString_(url)
+            page_url = Foundation.NSURL.URLWithString_(quote(url))
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
             self.webkit.loadRequest_(req)
 
@@ -370,7 +370,7 @@ class BrowserView:
 
     def load_html(self, content, base_uri):
         def load(content, url):
-            url = Foundation.NSURL.URLWithString_(url)
+            url = Foundation.NSURL.URLWithString_(quote(url))
             self.webkit.loadHTMLString_baseURL_(content, url)
 
         self.loaded.clear()
