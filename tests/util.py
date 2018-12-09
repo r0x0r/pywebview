@@ -18,15 +18,6 @@ def run_test(webview, main_func, thread_func=None, param=None, no_destroy=False)
     except Exception as e:
         pytest.fail(e)
 
-    #p = Process(target=_create_window, args=(main_func, thread_func, queue, param, no_destroy))
-    #p.start()
-    #p.join()
-    #assert p.exitcode == 0
-
-    #if not queue.empty():
-    #    exception = queue.get()
-    #
-
 
 def assert_js(webview, func_name, expected_result, uid='master'):
     execute_func = 'window.pywebview.api.{0}()'.format(func_name)
