@@ -52,8 +52,7 @@ class BrowserView:
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
         def alert(self, message):
-            if message:
-                WinForms.MessageBox.Show(message)
+            WinForms.MessageBox.Show(message)
 
     class BrowserForm(WinForms.Form):
         def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
@@ -121,6 +120,8 @@ class BrowserView:
 
             if url:
                 self.web_browser.Navigate(url)
+            else:
+                self.web_browser.DocumentText = '<!doctype html><html><head></head><body></body></html>'
 
             self.url = url
 

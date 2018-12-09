@@ -11,16 +11,16 @@ matrix:
       env: PYTHON_VERSION="3"
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       language: python
       python: "2.7_with_system_site_packages"
       env: PACKAGES="xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python-gi python-gi-cairo pep8 pyflakes python-pytest python-six" PYTHON="python"
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       language: python
-      python: "3.4_with_system_site_packages"
       env: PACKAGES="xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
+      python: "3.5_with_system_site_packages"
     - os: linux
       sudo: required
       dist: trusty
