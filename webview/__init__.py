@@ -135,7 +135,6 @@ def _initialize_imports():
 
         return False
 
-
     global _initialized
 
     if not _initialized:
@@ -378,13 +377,13 @@ def webview_ready(timeout=None):
 
 def _js_bridge_call(uid, api_instance, func_name, param):
     def _call():
-        result = json.dumps(function(func_params))
+        result = json.dumps(func(func_params))
         code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, escape_line_breaks(result))
         evaluate_js(code, uid)
 
-    function = getattr(api_instance, func_name, None)
+    func = getattr(api_instance, func_name, None)
 
-    if function is not None:
+    if func is not None:
         try:
             func_params = param if not param else json.loads(param)
             t = Thread(target=_call)
