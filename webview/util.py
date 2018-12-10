@@ -19,6 +19,8 @@ try:
 except:
     from urllib.parse import quote  # python 3.x
 
+default_html = '<!doctype html><html><head></head><body></body></html>'
+
 def base_uri(relative_path=''):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:

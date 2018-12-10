@@ -19,7 +19,7 @@ from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
-from webview.util import convert_string, parse_api_js, quote
+from webview.util import convert_string, parse_api_js, quote, default_html
 from .js.css import disable_text_select
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
@@ -305,10 +305,9 @@ class BrowserView:
             config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
         if url:
-            self.url = url
             self.load_url(url)
         else:
-            self.loaded.set()
+            self.load_html(default_html, '')
 
         if fullscreen:
             self.toggle_fullscreen()
