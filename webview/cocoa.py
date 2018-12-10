@@ -130,7 +130,7 @@ class BrowserView:
             event = AppKit.NSApp.currentEvent()
 
             if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b"v@i")
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@i')
 
             """ Disable back navigation on pressing the Delete key: """
             # Check if the requested navigation action is Back/Forward
@@ -285,27 +285,24 @@ class BrowserView:
         BrowserView.app.setDelegate_(self._appDelegate)
 
         try:
-            self.webkit.evaluateJavaScript_completionHandler_("", lambda a, b: None)
+            self.webkit.evaluateJavaScript_completionHandler_('', lambda a, b: None)
         except TypeError:
-            registerMetaDataForSelector(b"WKWebView", b"evaluateJavaScript:completionHandler:", _eval_js_metadata)
+            registerMetaDataForSelector(b'WKWebView', b'evaluateJavaScript:completionHandler:', _eval_js_metadata)
 
         config = self.webkit.configuration()
-        config.userContentController().addScriptMessageHandler_name_(self._browserDelegate, "browserDelegate")
+        config.userContentController().addScriptMessageHandler_name_(self._browserDelegate, 'browserDelegate')
 
         try:
-            config.preferences().setValue_forKey_(Foundation.NO, "backspaceKeyNavigationEnabled")
+            config.preferences().setValue_forKey_(Foundation.NO, 'backspaceKeyNavigationEnabled')
         except:
             pass
 
         if self.debug:
-            config.preferences().setValue_forKey_(Foundation.YES, "developerExtrasEnabled")
-
-        if self.debug:
-            config.preferences().setValue_forKey_(Foundation.YES, "developerExtrasEnabled")
+            config.preferences().setValue_forKey_(Foundation.YES, 'developerExtrasEnabled')
 
         if js_api:
             self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(js_api)
-            config.userContentController().addScriptMessageHandler_name_(self.js_bridge, "jsBridge")
+            config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
         if url:
             self.url = url
@@ -363,7 +360,7 @@ class BrowserView:
 
     def load_url(self, url):
         def load(url):
-            page_url = Foundation.NSURL.URLWithString_(quote(url))
+            page_url = Foundation.NSURL.URLWithString_(quote(url, ':/'))
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
             self.webkit.loadRequest_(req)
 
@@ -373,7 +370,7 @@ class BrowserView:
 
     def load_html(self, content, base_uri):
         def load(content, url):
-            url = Foundation.NSURL.URLWithString_(quote(url))
+            url = Foundation.NSURL.URLWithString_(quote(url, ':/'))
             self.webkit.loadHTMLString_baseURL_(content, url)
 
         self.loaded.clear()
