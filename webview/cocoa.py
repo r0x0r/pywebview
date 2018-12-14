@@ -19,7 +19,7 @@ from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
-from webview.util import convert_string, parse_api_js, quote, default_html
+from webview.util import convert_string, parse_api_js, default_html
 from .js.css import disable_text_select
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
@@ -113,7 +113,7 @@ class BrowserView:
                 handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@@')
 
             if files:
-                urls = [Foundation.NSURL.URLWithString_(quote(i)) for i in files]
+                urls = [Foundation.NSURL.URLWithString_(BrowserView.quote(i)) for i in files]
                 handler(urls)
             else:
                 handler(nil)
@@ -374,7 +374,7 @@ class BrowserView:
 
     def load_url(self, url):
         def load(url):
-            page_url = Foundation.NSURL.URLWithString_(quote(url, ':/'))
+            page_url = Foundation.NSURL.URLWithString_(BrowserView.quote(url))
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
             self.webkit.loadRequest_(req)
 
@@ -384,7 +384,7 @@ class BrowserView:
 
     def load_html(self, content, base_uri):
         def load(content, url):
-            url = Foundation.NSURL.URLWithString_(quote(url, ':/'))
+            url = Foundation.NSURL.URLWithString_(BrowserView.quote(url))
             self.webkit.loadHTMLString_baseURL_(content, url)
 
         self.loaded.clear()
@@ -632,6 +632,10 @@ class BrowserView:
         """
         _objc_so.PyObjCMethodSignature_WithMetaData.restype = ctypes.py_object
         return _objc_so.PyObjCMethodSignature_WithMetaData(ctypes.create_string_buffer(signature_str), None, False)
+
+    @staticmethod
+    def quote(string):
+        return string.replace(' ', '%20')
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
