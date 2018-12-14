@@ -326,6 +326,17 @@ def toggle_fullscreen(uid='master'):
 
 
 @_api_call
+def set_window_size(width, height, uid='master'):
+    """
+    Set Window Size
+    :param width: desired width of target window
+    :param height: desired height of target window
+    :param uid: uid of the target instance
+    """
+    gui.set_window_size(width, height, uid)
+
+
+@_api_call
 def evaluate_js(script, uid='master'):
     """
     Evaluate given JavaScript code and return the result

@@ -347,6 +347,21 @@ class BrowserView:
         AppHelper.callAfter(toggle)
         self.is_fullscreen = not self.is_fullscreen
 
+    def set_window_size(self, width, height):
+        def _set_window_size():
+            frame = self.window.frame()
+
+            # Keep the top left of the window in the same place
+            frame.origin.y += frame.size.height
+            frame.origin.y -= height
+
+            frame.size.width = width
+            frame.size.height = height
+
+            self.window.setFrame_display_(frame, True)
+
+        AppHelper.callAfter(_set_window_size)
+
     def get_current_url(self):
         def get():
             self._current_url = self.webkit.URL()
@@ -663,6 +678,10 @@ def destroy_window(uid):
 
 def toggle_fullscreen(uid):
     BrowserView.instances[uid].toggle_fullscreen()
+
+
+def set_window_size(width, height, uid):
+    BrowserView.instances[uid].set_window_size(width, height)
 
 
 def get_current_url(uid):
