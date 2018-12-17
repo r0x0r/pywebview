@@ -14,11 +14,6 @@ import platform
 
 from .js import api, npo
 
-try:
-    from urllib import quote    # python 2.x
-except:
-    from urllib.parse import quote  # python 3.x
-
 default_html = '<!doctype html><html><head></head><body></body></html>'
 
 def base_uri(relative_path=''):
