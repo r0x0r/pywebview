@@ -38,7 +38,6 @@ def base_uri(relative_path=''):
     return 'file://%s' % os.path.join(base_path, relative_path)
 
 
-
 def convert_string(string):
     if sys.version < '3':
         return unicode(string)
