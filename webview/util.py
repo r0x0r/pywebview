@@ -23,8 +23,12 @@ def base_uri(relative_path=''):
         base_path = sys._MEIPASS
     except Exception:
         if 'pytest' in sys.modules:
-            path = os.path.realpath(sys.argv[1])
-            base_path = path if os.path.isdir(path) else os.path.dirname(path)
+            for arg in reversed(sys.argv):
+                path = os.path.realpath(arg)
+
+                if os.path.exists(path):
+                    base_path = path if os.path.isdir(path) else os.path.dirname(path)
+                    break
         else:
             base_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -32,6 +36,7 @@ def base_uri(relative_path=''):
         raise ValueError('Path %s does not exist' % base_path)
 
     return 'file://%s' % os.path.join(base_path, relative_path)
+
 
 
 def convert_string(string):
