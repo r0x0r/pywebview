@@ -58,7 +58,7 @@ class BrowserView:
             del BrowserView.instances[i.uid]
 
             if BrowserView.instances == {}:
-                AppHelper.callAfter(BrowserView.app.stop_, self)
+                BrowserView.app.stop_(self)
 
     class JSBridge(AppKit.NSObject):
         def initWithObject_(self, api_instance):
@@ -197,7 +197,6 @@ class BrowserView:
                     i.webkit.windowScriptObject().evaluateWebScript_(disable_text_select)
 
                 i.loaded.set()
-
 
     class FileFilterChooser(AppKit.NSPopUpButton):
         def initWithFilter_(self, file_filter):
