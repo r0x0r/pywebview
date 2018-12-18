@@ -10,12 +10,12 @@ class Api:
 
 
 def test_start():
-    run_test(main_func, assert_func)
+    run_test(webview, main_func, assert_func)
 
 
 def main_func():
     api = Api()
-    webview.create_window('Relative URL test', 'assets/test.html', debug=True, js_api=api)
+    webview.create_window('Relative URL test', 'assets/test.html', js_api=api)
 
 
 def assert_func():

@@ -8,18 +8,18 @@ import sys
 import json
 import subprocess
 import webbrowser
-
+import ctypes
 from threading import Event, Semaphore
 
 import Foundation
 import AppKit
 import WebKit
 from PyObjCTools import AppHelper
-from objc import nil, super, pyobjc_unicode
+from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
-from webview.util import convert_string, parse_api_js
+from webview.util import convert_string, parse_api_js, default_html
 from .js.css import disable_text_select
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
@@ -27,11 +27,16 @@ bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
 info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
 
+# Dynamic library required by BrowserView.pyobjc_method_signature()
+_objc_so = ctypes.cdll.LoadLibrary(_objc.__file__)
+
+# Bridgesupport metadata for [WKWebView evaluateJavaScript:completionHandler:]
+_eval_js_metadata = { 'arguments': { 3: { 'callable': { 'retval': { 'type': b'v' },
+                      'arguments': { 0: { 'type': b'^v' }, 1: { 'type': b'@' }, 2: { 'type': b'@' }}}}}}
 
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
-    debug = False
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
 
     class AppDelegate(AppKit.NSObject):
@@ -66,122 +71,81 @@ class BrowserView:
             self.api = api_instance
             return self
 
-        def callFunc_withParam_(self, func_name, param):
+        def userContentController_didReceiveScriptMessage_(self, controller, message):
+            func_name, param = json.loads(message.body())
             if param is WebKit.WebUndefined.undefined():
                 param = None
 
             i = BrowserView.get_instance('js_bridge', self)
             _js_bridge_call(i.uid, self.api, func_name, param)
 
-        def isSelectorExcludedFromWebScript_(self, selector):
-            return Foundation.NO if selector == 'callFunc:withParam:' else Foundation.YES
-
-        @classmethod
-        def webScriptNameForSelector_(cls, selector):
-            return 'call' if selector == 'callFunc:withParam:' else None
-
     class BrowserDelegate(AppKit.NSObject):
-        def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
-            if BrowserView.debug:
-                return defaultMenuItems
-            else:
-                return nil
-
         # Display a JavaScript alert panel containing the specified message
-        def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
+        def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_completionHandler_(self, webview, message, frame, handler):
             AppKit.NSRunningApplication.currentApplication().activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps)
             alert = AppKit.NSAlert.alloc().init()
             alert.setInformativeText_(message)
             alert.runModal()
 
+            if not handler.__block_signature__:
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@')
+            handler()
+
         # Display a JavaScript confirm panel containing the specified message
-        def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_(self, webview, message, frame):
+        def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_completionHandler_(self, webview, message, frame, handler):
             ok = localization['global.ok']
             cancel = localization['global.cancel']
 
+            if not handler.__block_signature__:
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@B')
+
             if BrowserView.display_confirmation_dialog(ok, cancel, message):
-                return Foundation.YES
+                handler(Foundation.YES)
             else:
-                return Foundation.NO
+                handler(Foundation.NO)
 
         # Display an open panel for <input type="file"> element
-        def webView_runOpenPanelForFileButtonWithResultListener_allowMultipleFiles_(self, webview, listener, allow_multiple):
+        def webView_runOpenPanelWithParameters_initiatedByFrame_completionHandler_(self, webview, param, frame, handler):
             i = list(BrowserView.instances.values())[0]
-            files = i.create_file_dialog(OPEN_DIALOG, '', allow_multiple, '', [], main_thread=True)
+            files = i.create_file_dialog(OPEN_DIALOG, '', param.allowsMultipleSelection(), '', [], main_thread=True)
+
+            if not handler.__block_signature__:
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@@')
 
             if files:
-                listener.chooseFilenames_(files)
+                urls = [Foundation.NSURL.URLWithString_(BrowserView.quote(i)) for i in files]
+                handler(urls)
             else:
-                listener.cancel()
-
-        def webView_printFrameView_(self, webview, frameview):
-            """
-            This delegate method is invoked when a script or a user wants to print a webpage (e.g. using the Javascript window.print() method)
-            :param webview: the webview that sent the message
-            :param frameview: the web frame view whose contents to print
-            """
-            def printView(frameview):
-                # check if the view can handle the content without intervention by the delegate
-                can_print = frameview.documentViewShouldHandlePrint()
-
-                if can_print:
-                    # tell the view to print the content
-                    frameview.printDocumentView()
-                else:
-                    # get an NSPrintOperaion object to print the view
-                    info = AppKit.NSPrintInfo.sharedPrintInfo().copy()
-
-                    # default print settings used by Safari
-                    info.setHorizontalPagination_(AppKit.NSFitPagination)
-                    info.setHorizontallyCentered_(Foundation.NO)
-                    info.setVerticallyCentered_(Foundation.NO)
-
-                    imageableBounds = info.imageablePageBounds()
-                    paperSize = info.paperSize()
-                    if (Foundation.NSWidth(imageableBounds) > paperSize.width):
-                        imageableBounds.origin.x = 0
-                        imageableBounds.size.width = paperSize.width
-                    if (Foundation.NSHeight(imageableBounds) > paperSize.height):
-                        imageableBounds.origin.y = 0
-                        imageableBounds.size.height = paperSize.height
-
-                    info.setBottomMargin_(Foundation.NSMinY(imageableBounds))
-                    info.setTopMargin_(paperSize.height - Foundation.NSMinY(imageableBounds) - Foundation.NSHeight(imageableBounds))
-                    info.setLeftMargin_(Foundation.NSMinX(imageableBounds))
-                    info.setRightMargin_(paperSize.width - Foundation.NSMinX(imageableBounds) - Foundation.NSWidth(imageableBounds))
-
-                    # show the print panel
-                    print_op = frameview.printOperationWithPrintInfo_(info)
-                    print_op.runOperation()
-
-            AppHelper.callAfter(printView, frameview)
+                handler(nil)
 
         # Open target="_blank" links in external browser
-        def webView_decidePolicyForNewWindowAction_request_newFrameName_decisionListener_(self, webview, action, request, name, listener):
-            if name == '_blank':
-                webbrowser.open(request.URL().absoluteString(), 2, True)
-            listener.ignore()
+        def webView_createWebViewWithConfiguration_forNavigationAction_windowFeatures_(self, webview, config, action, features):
+            if action.navigationType() == getattr(WebKit, 'WKNavigationTypeLinkActivated', 0):
+                webbrowser.open(action.request().URL().absoluteString(), 2, True)
+            return nil
 
-        # WebPolicyDelegate method, invoked when a navigation decision needs to be made
-        def webView_decidePolicyForNavigationAction_request_frame_decisionListener_(self, webview, action, request, frame, listener):
+        # WKNavigationDelegate method, invoked when a navigation decision needs to be made
+        def webView_decidePolicyForNavigationAction_decisionHandler_(self, webview, action, handler):
             # The event that might have triggered the navigation
             event = AppKit.NSApp.currentEvent()
-            action_type = action['WebActionNavigationTypeKey'] 
+
+            if not handler.__block_signature__:
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@i')
 
             """ Disable back navigation on pressing the Delete key: """
             # Check if the requested navigation action is Back/Forward
-            if action_type == WebKit.WebNavigationTypeBackForward:
+            if action.navigationType() == getattr(WebKit, 'WKNavigationTypeBackForward', 2):
                 # Check if the event is a Delete key press (keyCode = 51)
                 if event and event.type() == AppKit.NSKeyDown and event.keyCode() == 51:
                     # If so, ignore the request and return
-                    listener.ignore()
+                    handler(getattr(WebKit, 'WKNavigationActionPolicyCancel', 0))
                     return
 
             # Normal navigation, allow
-            listener.use()
+            handler(getattr(WebKit, 'WKNavigationActionPolicyAllow', 1))
 
         # Show the webview when it finishes loading
-        def webView_didFinishLoadForFrame_(self, webview, frame):
+        def webView_didFinishNavigation_(self, webview, nav):
             # Add the webview to the window if it's not yet the contentView
             i = BrowserView.get_instance('webkit', webview)
 
@@ -191,12 +155,22 @@ class BrowserView:
                     i.window.makeFirstResponder_(webview)
 
                 if i.js_bridge:
-                    i._set_js_api()
+                    script = parse_api_js(i.js_bridge.api)
+                    i.webkit.evaluateJavaScript_completionHandler_(script, lambda a,b: None)
 
                 if not i.text_select:
-                    i.webkit.windowScriptObject().evaluateWebScript_(disable_text_select)
+                    i.webkit.evaluateJavaScript_completionHandler_(disable_text_select, lambda a,b: None)
+
+                print_hook = 'window.print = function() { window.webkit.messageHandlers.browserDelegate.postMessage("print") };'
+                i.webkit.evaluateJavaScript_completionHandler_(print_hook, lambda a,b: None)
 
                 i.loaded.set()
+
+        # Handle JavaScript window.print()
+        def userContentController_didReceiveScriptMessage_(self, controller, message):
+            if message.body() == 'print':
+                i = BrowserView.get_instance('_browserDelegate', self)
+                BrowserView.print_webview(i.webkit)
 
 
     class FileFilterChooser(AppKit.NSPopUpButton):
@@ -213,7 +187,20 @@ class BrowserView:
             option = sender.indexOfSelectedItem()
             self.window().setAllowedFileTypes_(self.filter[option][1])
 
-    class WebKitHost(WebKit.WebView):
+
+    class WebKitHost(WebKit.WKWebView):
+        def mouseDown_(self, event):
+            if event.modifierFlags() & getattr(AppKit, 'NSEventModifierFlagControl', 1 << 18):
+                i = BrowserView.get_instance('webkit', self)
+                if i and not i.debug:
+                    return
+            super(BrowserView.WebKitHost, self).mouseDown_(event)
+
+        def rightMouseDown_(self, event):
+            i = BrowserView.get_instance('webkit', self)
+            if i and i.debug:
+                super(BrowserView.WebKitHost, self).rightMouseDown_(event)
+
         def performKeyEquivalent_(self, theEvent):
             """
             Handle common hotkey shortcuts as copy/cut/paste/undo/select all/quit
@@ -256,10 +243,6 @@ class BrowserView:
         BrowserView.instances[uid] = self
         self.uid = uid
 
-        if debug:
-            BrowserView.debug = debug
-            BrowserView._set_debugging()
-
         self.js_bridge = None
         self._file_name = None
         self._file_name_semaphore = Semaphore(0)
@@ -268,6 +251,7 @@ class BrowserView:
         self.loaded = Event()
         self.confirm_quit = confirm_quit
         self.title = title
+        self.debug = debug
         self.text_select = text_select
 
         self.is_fullscreen = False
@@ -296,19 +280,34 @@ class BrowserView:
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
         self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
         self.webkit.setUIDelegate_(self._browserDelegate)
-        self.webkit.setFrameLoadDelegate_(self._browserDelegate)
-        self.webkit.setPolicyDelegate_(self._browserDelegate)
+        self.webkit.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
 
-        if url:
-            self.url = url
-            self.load_url(url)
-        else:
-            self.loaded.set()
+        try:
+            self.webkit.evaluateJavaScript_completionHandler_('', lambda a, b: None)
+        except TypeError:
+            registerMetaDataForSelector(b'WKWebView', b'evaluateJavaScript:completionHandler:', _eval_js_metadata)
+
+        config = self.webkit.configuration()
+        config.userContentController().addScriptMessageHandler_name_(self._browserDelegate, 'browserDelegate')
+
+        try:
+            config.preferences().setValue_forKey_(Foundation.NO, 'backspaceKeyNavigationEnabled')
+        except:
+            pass
+
+        if self.debug:
+            config.preferences().setValue_forKey_(Foundation.YES, 'developerExtrasEnabled')
 
         if js_api:
             self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(js_api)
+            config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
+
+        if url:
+            self.load_url(url)
+        else:
+            self.load_html(default_html, '')
 
         if fullscreen:
             self.toggle_fullscreen()
@@ -365,7 +364,7 @@ class BrowserView:
 
     def get_current_url(self):
         def get():
-            self._current_url = self.webkit.mainFrameURL()
+            self._current_url = self.webkit.URL()
             self._current_url_semaphore.release()
 
         AppHelper.callAfter(get)
@@ -375,9 +374,9 @@ class BrowserView:
 
     def load_url(self, url):
         def load(url):
-            page_url = Foundation.NSURL.URLWithString_(url)
+            page_url = Foundation.NSURL.URLWithString_(BrowserView.quote(url))
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
-            self.webkit.mainFrame().loadRequest_(req)
+            self.webkit.loadRequest_(req)
 
         self.loaded.clear()
         self.url = url
@@ -385,17 +384,18 @@ class BrowserView:
 
     def load_html(self, content, base_uri):
         def load(content, url):
-            url = Foundation.NSURL.URLWithString_(url)
-            self.webkit.mainFrame().loadHTMLString_baseURL_(content, url)
+            url = Foundation.NSURL.URLWithString_(BrowserView.quote(url))
+            self.webkit.loadHTMLString_baseURL_(content, url)
 
         self.loaded.clear()
         AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
-        def evaluate(script):
-            result = self.webkit.windowScriptObject().evaluateWebScript_(script)
-            JSResult.result = None if result is WebKit.WebUndefined.undefined() or result == 'null' else json.loads(result)
+        def eval():
+            self.webkit.evaluateJavaScript_completionHandler_(script, handler)
 
+        def handler(result, error):
+            JSResult.result = None if result is None or result == 'null' else json.loads(result)
             JSResult.result_semaphore.release()
 
         class JSResult:
@@ -403,17 +403,10 @@ class BrowserView:
             result_semaphore = Semaphore(0)
 
         self.loaded.wait()
-        AppHelper.callAfter(evaluate, script)
+        AppHelper.callAfter(eval)
 
         JSResult.result_semaphore.acquire()
         return JSResult.result
-
-    def _set_js_api(self):
-        script = parse_api_js(self.js_bridge.api)
-        self.webkit.windowScriptObject().evaluateWebScript_(script)
-
-        pwv_obj = self.webkit.windowScriptObject().valueForKey_('pywebview')
-        pwv_obj.setValue_forKey_(self.js_bridge, '_bridge')
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter, main_thread=False):
         def create_dialog(*args):
@@ -602,12 +595,47 @@ class BrowserView:
             return False
 
     @staticmethod
-    def _set_debugging():
-        command = ['defaults', 'write', 'org.python.python', 'WebKitDeveloperExtras', '-bool', 'true']
-        if sys.version < '3':
-            subprocess.call(command)
-        else:
-            subprocess.run(command)
+    def print_webview(webview):
+        info = AppKit.NSPrintInfo.sharedPrintInfo().copy()
+
+        # default print settings used by Safari
+        info.setHorizontalPagination_(AppKit.NSFitPagination)
+        info.setHorizontallyCentered_(Foundation.NO)
+        info.setVerticallyCentered_(Foundation.NO)
+
+        imageableBounds = info.imageablePageBounds()
+        paperSize = info.paperSize()
+        if (Foundation.NSWidth(imageableBounds) > paperSize.width):
+            imageableBounds.origin.x = 0
+            imageableBounds.size.width = paperSize.width
+        if (Foundation.NSHeight(imageableBounds) > paperSize.height):
+            imageableBounds.origin.y = 0
+            imageableBounds.size.height = paperSize.height
+
+        info.setBottomMargin_(Foundation.NSMinY(imageableBounds))
+        info.setTopMargin_(paperSize.height - Foundation.NSMinY(imageableBounds) - Foundation.NSHeight(imageableBounds))
+        info.setLeftMargin_(Foundation.NSMinX(imageableBounds))
+        info.setRightMargin_(paperSize.width - Foundation.NSMinX(imageableBounds) - Foundation.NSWidth(imageableBounds))
+
+        # show the print panel
+        print_op = webview._printOperationWithPrintInfo_(info)
+        print_op.runOperationModalForWindow_delegate_didRunSelector_contextInfo_(webview.window(), nil, nil, nil)
+
+    @staticmethod
+    def pyobjc_method_signature(signature_str):
+        """
+        Return a PyObjCMethodSignature object for given signature string.
+
+        :param signature_str: A byte string containing the type encoding for the method signature
+        :return: A method signature object, assignable to attributes like __block_signature__
+        :rtype: <type objc._method_signature>
+        """
+        _objc_so.PyObjCMethodSignature_WithMetaData.restype = ctypes.py_object
+        return _objc_so.PyObjCMethodSignature_WithMetaData(ctypes.create_string_buffer(signature_str), None, False)
+
+    @staticmethod
+    def quote(string):
+        return string.replace(' ', '%20')
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,

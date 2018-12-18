@@ -3,7 +3,7 @@ from .util import run_test
 
 
 def test_simple_browser():
-    run_test(main_func)
+    run_test(webview, main_func)
 
 
 def main_func():

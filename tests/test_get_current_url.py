@@ -4,11 +4,11 @@ from .util import run_test
 
 
 def test_current_url():
-    run_test(main_func, current_url_test)
+    run_test(webview, main_func, current_url_test)
 
 
 def test_no_url():
-    run_test(no_url_func, no_url_test)
+    run_test(webview, no_url_func, no_url_test)
 
 
 def main_func():
