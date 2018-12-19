@@ -280,8 +280,6 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         thread.Start()
         thread.Join()
 
-        if is_cef:
-            CEF.shutdown()
     else:
         i = list(BrowserView.instances.values())[0]     # arbitrary instance
         i.Invoke(Func[Type](create))

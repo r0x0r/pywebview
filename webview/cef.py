@@ -1,4 +1,7 @@
 import json
+import sys
+import atexit
+
 from functools import wraps
 from uuid import uuid1
 from threading import Event
@@ -11,6 +14,7 @@ from webview import _webview_ready, _js_bridge_call
 from webview.util import escape_string, inject_base_uri, parse_api_js, blank_html
 
 
+sys.excepthook = cef.ExceptHook
 instances = {}
 
 
@@ -59,6 +63,9 @@ class Browser:
         self.initialized = True
         self.loaded.set()
 
+    def close(self):
+        self.browser.CloseBrowser()
+
     def evaluate_js(self, code):
         self.loaded.wait()
 
@@ -83,8 +90,6 @@ class Browser:
 
     def load_html(self, html):
         self.browser.LoadUrl('data:text/html,{0}'.format(html))
-
-
 
 
 def find_instance(browser):
@@ -116,11 +121,14 @@ def _cef_call(func):
 
     return wrapper
 
-
 def init():
-    settings = {'multi_threaded_message_loop': True}
-    cef.Initialize(settings=settings)
-    cef.DpiAware.EnableHighDpiSupport()
+    global _initialized
+
+    if not _initialized:
+        settings = {'multi_threaded_message_loop': True}
+        cef.Initialize(settings=settings)
+        cef.DpiAware.EnableHighDpiSupport()
+        _initialized = True
 
 
 def create_browser(uid, handle, url=None, js_api=None, text_select=False):
@@ -131,7 +139,6 @@ def create_browser(uid, handle, url=None, js_api=None, text_select=False):
         browser.SetClientHandler(LoadHandler())
 
         _webview_ready.set()
-
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)
     cef.PostTask(cef.TID_UI, _create)
@@ -170,9 +177,17 @@ def resize(width, height, uid):
 
 @_cef_call
 def close_window(uid):
+    instance = instances[uid]
+    instance.close()
+
     del instances[uid]
 
 
+
 def shutdown():
-    if len(instances) == 0:
-        cef.Shutdown()
+    cef.Shutdown()
+
+atexit.register(shutdown)
+
+_initialized = False
+init()
