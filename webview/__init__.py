@@ -28,8 +28,11 @@ from .localization import localization
 
 
 logger = logging.getLogger('pywebview')
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('[pywebview] %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 
 OPEN_DIALOG = 10

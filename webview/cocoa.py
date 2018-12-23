@@ -172,8 +172,6 @@ class BrowserView:
 
                 i.loaded.set()
 
-<<<<<<< HEAD
-=======
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):
             if message.body() == 'print':
@@ -181,7 +179,6 @@ class BrowserView:
                 BrowserView.print_webview(i.webkit)
 
 
->>>>>>> 40e424fbf948480f5403ab5813a6ceadf081b491
     class FileFilterChooser(AppKit.NSPopUpButton):
         def initWithFilter_(self, file_filter):
             super(BrowserView.FileFilterChooser, self).init()
