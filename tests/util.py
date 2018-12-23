@@ -8,17 +8,15 @@ from multiprocessing import Process, Queue
 
 logger = logging.getLogger(__name__)
 
-def run_test(main_func, thread_func=None, param=None, no_destroy=False):
+
+def run_test(webview, main_func, thread_func=None, param=None, no_destroy=False):
     __tracebackhide__ = True
     queue = Queue()
-    p = Process(target=_create_window, args=(main_func, thread_func, queue, param, no_destroy))
-    p.start()
-    p.join()
-    assert p.exitcode == 0
 
-    if not queue.empty():
-        exception = queue.get()
-        pytest.fail(exception)
+    try:
+        _create_window(webview, main_func, thread_func, queue, param, no_destroy)
+    except Exception as e:
+        pytest.fail(e)
 
 
 def assert_js(webview, func_name, expected_result, uid='master'):
@@ -41,8 +39,7 @@ def assert_js(webview, func_name, expected_result, uid='master'):
     assert expected_result == result
 
 
-def _create_window(main_func, thread_func, queue, param, no_destroy):
-    import webview
+def _create_window(webview, main_func, thread_func, queue, param, no_destroy):
 
     def thread(destroy_event, param):
         try:

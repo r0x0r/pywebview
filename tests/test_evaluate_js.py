@@ -4,39 +4,41 @@ import webview
 
 
 def test_mixed():
-    run_test(main_func, mixed_test)
+    run_test(webview, main_func, mixed_test)
 
 
 def test_array():
-    run_test(main_func, array_test)
+    run_test(webview, main_func, array_test)
 
 
 def test_object():
-    run_test(main_func, object_test)
+    run_test(webview, main_func, object_test)
 
 
 def test_string():
-    run_test(main_func, string_test)
+    run_test(webview, main_func, string_test)
 
 
 def test_int():
-    run_test(main_func, int_test)
+    run_test(webview, main_func, int_test)
 
 
 def test_float():
-    run_test(main_func, float_test)
+    run_test(webview, main_func, float_test)
 
 
 def test_undefined():
-    run_test(main_func, undefined_test)
+    run_test(webview, main_func, undefined_test)
 
 
 def test_null():
-    run_test(main_func, null_test)
+    run_test(webview, main_func, null_test)
 
 
 def test_nan():
-    run_test(main_func, nan_test)
+    import webview
+
+    run_test(webview, main_func, nan_test)
 
 
 def main_func():

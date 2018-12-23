@@ -26,7 +26,7 @@ from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _js_bridge_call
-from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri
+from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html
 
 from .js import alert
 from .js.css import disable_text_select
@@ -121,7 +121,7 @@ class BrowserView:
             if url:
                 self.web_browser.Navigate(url)
             else:
-                self.web_browser.DocumentText = '<!doctype html><html><head></head><body></body></html>'
+                self.web_browser.DocumentText = default_html
 
             self.url = url
 

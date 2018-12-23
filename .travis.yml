@@ -5,29 +5,29 @@ matrix:
       language: generic
       sudo: required
       env: PYTHON_VERSION="2"
-    #- os: osx
-    #  language: generic
-    #  sudo: required
-    #  env: PYTHON_VERSION="3"
+    - os: osx
+      language: generic
+      sudo: required
+      env: PYTHON_VERSION="3"
     - os: linux
       sudo: required
       dist: xenial
       language: python
       python: "2.7_with_system_site_packages"
-      env: PACKAGES="xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python-gi python-gi-cairo pep8 pyflakes python-pytest" PYTHON="python"
+      env: PACKAGES="xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python-gi python-gi-cairo pep8 pyflakes python-pytest python-six" PYTHON="python"
     - os: linux
       sudo: required
       dist: xenial
       language: python
+      env: PACKAGES="xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
       python: "3.5_with_system_site_packages"
-      env: PACKAGES="xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes python3-pytest" PYTHON="python3"
     - os: linux
       sudo: required
       dist: trusty
       language: python
       python: "3.4_with_system_site_packages"
       env: 
-         - PACKAGES="xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest" PYTHON="python3"
+         - PACKAGES="xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
          - USE_QT="True"
     - os: linux
       sudo: required
@@ -39,9 +39,8 @@ matrix:
           - USE_QT="True"
 
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "3" ]]; then brew install python3; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "3" ]]; then pip3 install pyobjc pytest; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "2" ]]; then sudo pip2 install pyobjc pytest; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "3" ]]; then pip3 install pyobjc pytest six; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "2" ]]; then sudo pip2 install pyobjc pytest six; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -q; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install --no-install-recommends -y $(echo $PACKAGES); fi
     

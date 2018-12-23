@@ -3,7 +3,7 @@ from .util import run_test
 
 
 def test_set_window_size():
-    run_test(main_func, set_window_size)
+    run_test(webview, main_func, set_window_size)
 
 
 def main_func():
