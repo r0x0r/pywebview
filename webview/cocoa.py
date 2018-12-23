@@ -6,6 +6,7 @@ http://github.com/r0x0r/pywebview/
 """
 import sys
 import json
+import logging
 import subprocess
 import webbrowser
 
@@ -27,6 +28,10 @@ bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
 info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
 
+
+
+logger = logging.getLogger('pywebview')
+logger.debug('Using Cocoa')
 
 class BrowserView:
     instances = {}

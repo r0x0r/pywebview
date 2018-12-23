@@ -22,7 +22,7 @@ from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.js.css import disable_text_select
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('pywebview')
 
 
 # Try importing Qt5 modules

@@ -27,7 +27,7 @@ from webview.win32_shared import set_ie_mode
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('pywebview')
 
 """
 

@@ -26,8 +26,11 @@ from webview.util import base_uri, parse_file_type, escape_string, transform_url
 from .js import css
 from .localization import localization
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+
+logger = logging.getLogger('pywebview')
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.INFO)
+
 
 OPEN_DIALOG = 10
 FOLDER_DIALOG = 20

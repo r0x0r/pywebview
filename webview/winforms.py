@@ -37,7 +37,7 @@ from webview.win32_shared import set_ie_mode
 clr.AddReference(interop_dll_path())
 from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('pywebview')
 
 
 class BrowserView:

@@ -21,7 +21,7 @@ from webview.util import parse_api_js
 from webview.js.css import disable_text_select
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('pywebview')
 
 import gi
 gi.require_version('Gtk', '3.0')
