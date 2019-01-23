@@ -25,47 +25,23 @@ from webview.js.css import disable_text_select
 logger = logging.getLogger('pywebview')
 
 
-# Try importing Qt5 modules
-try:
-    from PyQt5 import QtCore
+from PyQt5 import QtCore
 
-    # Check to see if we're running Qt > 5.5
-    from PyQt5.QtCore import QT_VERSION_STR
-    _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
+# Check to see if we're running Qt > 5.5
+from PyQt5.QtCore import QT_VERSION_STR
+_qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
 
-    if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
-        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
-        from PyQt5.QtWebChannel import QWebChannel
-    else:
-        from PyQt5 import QtWebKitWidgets
-        from PyQt5.QtWebKitWidgets import QWebView, QWebPage
-
-    from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox, QAction
-    from PyQt5.QtGui import QColor
-
-    logger.debug('Using Qt5')
-except ImportError as e:
-    logger.debug('PyQt5 or one of dependencies is not found', exc_info=True)
-    _import_error = True
+if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
+    from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
+    from PyQt5.QtWebChannel import QWebChannel
 else:
-    _import_error = False
+    from PyQt5 import QtWebKitWidgets
+    from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 
-if _import_error:
-    # Try importing Qt4 modules
-    try:
-        from PyQt4 import QtCore
-        from PyQt4.QtWebKit import QWebView, QWebPage, QWebFrame
-        from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
+from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox, QAction
+from PyQt5.QtGui import QColor
 
-        _qt_version = [4, 0]
-        logger.debug('Using Qt4')
-    except ImportError as e:
-        _import_error = True
-    else:
-        _import_error = False
-
-if _import_error:
-    raise ImportError('This module requires PyQt4 or PyQt5.')
+logger.debug('Using Qt5')
 
 
 class BrowserView(QMainWindow):
@@ -86,11 +62,7 @@ class BrowserView(QMainWindow):
     class JSBridge(QtCore.QObject):
         api = None
         parent_uid = None
-
-        try:
-            qtype = QtCore.QJsonValue  # QT5
-        except AttributeError:
-            qtype = str  # QT4
+        qtype = QtCore.QJsonValue
 
         def __init__(self):
             super(BrowserView.JSBridge, self).__init__()
@@ -320,12 +292,7 @@ class BrowserView(QMainWindow):
             js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
             js_result['semaphore'].release()
 
-
-        try:    # PyQt4
-            result = self.view.page().mainFrame().evaluateJavaScript(script)
-            return_result(result)
-        except AttributeError:  # PyQt5
-            self.view.page().runJavaScript(script, return_result)
+        self.view.page().runJavaScript(script, return_result)
 
     def on_load_finished(self):
         if self.js_bridge.api:
@@ -335,11 +302,7 @@ class BrowserView(QMainWindow):
 
         if not self.text_select:
             script = disable_text_select.replace('\n', '')
-
-            try:  # PyQt4
-                self.view.page().mainFrame().evaluateJavaScript(script)
-            except AttributeError:  # PyQt5
-                self.view.page().runJavaScript(script)
+            self.view.page().runJavaScript(script)
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)
@@ -363,21 +326,12 @@ class BrowserView(QMainWindow):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
         self._file_name_semaphore.acquire()
 
-        if _qt_version >= [5, 0]:  # QT5
-            if dialog_type == FOLDER_DIALOG:
-                file_names = (self._file_name,)
-            elif dialog_type == SAVE_DIALOG or not allow_multiple:
-                file_names = (self._file_name[0],)
-            else:
-                file_names = tuple(self._file_name[0])
-
-        else:  # QT4
-            if dialog_type == FOLDER_DIALOG:
-                file_names = (BrowserView._convert_string(self._file_name),)
-            elif dialog_type == SAVE_DIALOG or not allow_multiple:
-                file_names = (BrowserView._convert_string(self._file_name[0]),)
-            else:
-                file_names = tuple([BrowserView._convert_string(s) for s in self._file_name])
+        if dialog_type == FOLDER_DIALOG:
+            file_names = (self._file_name,)
+        elif dialog_type == SAVE_DIALOG or not allow_multiple:
+            file_names = (self._file_name[0],)
+        else:
+            file_names = tuple(self._file_name[0])
 
         # Check if we got an empty tuple, or a tuple with empty string
         if len(file_names) == 0 or len(file_names[0]) == 0:
@@ -429,11 +383,7 @@ class BrowserView(QMainWindow):
             frame = self.view.page().mainFrame()
             _register_window_object()
 
-        try:    # PyQt4
-            self.view.page().mainFrame().evaluateJavaScript(script)
-        except AttributeError:  # PyQt5
-            self.view.page().runJavaScript(script)
-
+        self.view.page().runJavaScript(script)
         self.load_event.set()
 
     @staticmethod
