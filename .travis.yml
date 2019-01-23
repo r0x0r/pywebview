@@ -23,7 +23,7 @@ matrix:
       python: "3.5_with_system_site_packages"
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       language: python
       python: "3.4_with_system_site_packages"
       env: 
@@ -31,7 +31,7 @@ matrix:
          - PYWEBVIEW_GUI=qt
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       language: python
       python: "2.7_with_system_site_packages"
       env: 
