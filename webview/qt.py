@@ -41,7 +41,7 @@ else:
 from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox, QAction
 from PyQt5.QtGui import QColor
 
-logger.debug('Using Qt5')
+logger.debug('Using Qt %s' % QT_VERSION_STR)
 
 
 class BrowserView(QMainWindow):
@@ -62,7 +62,11 @@ class BrowserView(QMainWindow):
     class JSBridge(QtCore.QObject):
         api = None
         parent_uid = None
-        qtype = QtCore.QJsonValue
+
+        try:
+            qtype = QtCore.QJsonValue
+        except AttributeError:
+            qtype = QtCore.QVariant
 
         def __init__(self):
             super(BrowserView.JSBridge, self).__init__()
