@@ -104,7 +104,7 @@ Load CSS as string into the specified window.
 load_html(content, base_uri=base_uri(), uid='master')
 ```
 
-Load HTML content into the specified window. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way.
+Load HTML code into the specified window. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way.
 
 [Example](/examples/html_load.html)
 
