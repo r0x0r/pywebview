@@ -28,7 +28,7 @@ matrix:
       python: "3.4_with_system_site_packages"
       env: 
          - PACKAGES="xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
-         - USE_QT="True"
+         - PYWEBVIEW_GUI=qt
     - os: linux
       sudo: required
       dist: trusty
@@ -36,7 +36,7 @@ matrix:
       python: "2.7_with_system_site_packages"
       env: 
           - PACKAGES="xvfb python-qt4 libqtwebkit-dev pep8 pyflakes python-pytest" PYTHON="python"
-          - USE_QT="True"
+          - PYWEBVIEW_GUI=qt
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "3" ]]; then pip3 install pyobjc pytest six; fi
@@ -51,7 +51,7 @@ before_script:
 
 script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then if [[ "$PYTHON_VERSION" == "3" ]]; then python3 -m pytest tests; else python2 -m pytest tests; fi; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then python -m pytest tests -s; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then xvfb-run python -m pytest tests -s; fi
 
 notifications:
   email: false
