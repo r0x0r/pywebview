@@ -26,12 +26,15 @@ logger = logging.getLogger('pywebview')
 
 
 from PyQt5 import QtCore
-
-# Check to see if we're running Qt > 5.5
 from PyQt5.QtCore import QT_VERSION_STR
+
+logger.debug('Using Qt %s' % QT_VERSION_STR)
+
 _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
 
-if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
+from PyQt5.QtWebChannel import QWebChannel
+
+if _qt_version >= [5, 6] and platform.system() != 'OpenBSD':
     from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
     from PyQt5.QtWebChannel import QWebChannel
 else:
@@ -41,7 +44,6 @@ else:
 from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox, QAction
 from PyQt5.QtGui import QColor
 
-logger.info('Using Qt %s' % QT_VERSION_STR)
 
 
 class BrowserView(QMainWindow):

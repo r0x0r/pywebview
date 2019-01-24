@@ -43,7 +43,7 @@ matrix:
       language: python
       python: "2.7_with_system_site_packages"
       env: 
-          - PACKAGES="xvfb python-qt4 libqtwebkit-dev pep8 pyflakes python-pytest" PYTHON="python"
+          - PACKAGES="xvfb python-qt5 python3-pyqt5.qtwebkit libqt5webkit5-dev pep8 pyflakes python-pytest" PYTHON="python"
           - PYWEBVIEW_GUI=qt
 
 install:

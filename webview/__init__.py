@@ -32,7 +32,7 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter('[pywebview] %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 OPEN_DIALOG = 10
