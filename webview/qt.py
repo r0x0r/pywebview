@@ -41,7 +41,7 @@ else:
 from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox, QAction
 from PyQt5.QtGui import QColor
 
-logger.debug('Using Qt %s' % QT_VERSION_STR)
+logger.info('Using Qt %s' % QT_VERSION_STR)
 
 
 class BrowserView(QMainWindow):
