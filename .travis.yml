@@ -53,8 +53,9 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install --no-install-recommends -y $(echo $PACKAGES); fi
     
 before_script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export DISPLAY=:0; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh -e Xvfb :0 -screen 0 1024x768x24 & ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export DISPLAY=:99.0; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sleep 3; fi
 
 script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then if [[ "$PYTHON_VERSION" == "3" ]]; then python3 -m pytest tests; else python2 -m pytest tests; fi; fi
