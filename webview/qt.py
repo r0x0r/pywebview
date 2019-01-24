@@ -66,7 +66,7 @@ class BrowserView(QMainWindow):
         try:
             qtype = QtCore.QJsonValue
         except AttributeError:
-            qtype = QtCore.QVariant
+            qtype = str
 
         def __init__(self):
             super(BrowserView.JSBridge, self).__init__()
