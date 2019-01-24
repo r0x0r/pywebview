@@ -61,7 +61,7 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then python -m pytest tests -s; fi
 
 after_script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then killall Xvfb fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then killall Xvfb; fi
 
 notifications:
   email: false
