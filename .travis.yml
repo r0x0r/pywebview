@@ -23,6 +23,14 @@ matrix:
       python: "3.5_with_system_site_packages"
     - os: linux
       sudo: required
+      dist: trusty
+      language: python
+      python: "3.4_with_system_site_packages"
+      env: 
+         - PACKAGES="xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
+         - PYWEBVIEW_GUI=qt
+    - os: linux
+      sudo: required
       dist: xenial
       language: python
       python: "3.5_with_system_site_packages"
@@ -51,6 +59,9 @@ before_script:
 script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then if [[ "$PYTHON_VERSION" == "3" ]]; then python3 -m pytest tests; else python2 -m pytest tests; fi; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then python -m pytest tests -s; fi
+
+after_script:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then killall Xvfb fi
 
 notifications:
   email: false
