@@ -296,7 +296,13 @@ class BrowserView(QMainWindow):
             js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
             js_result['semaphore'].release()
 
-        self.view.page().runJavaScript(script, return_result)
+        try:    # < Qt5.6
+            result = self.view.page().mainFrame().evaluateJavaScript(script)
+            return_result(result)
+        except AttributeError:
+            print('w00t')
+            self.view.page().runJavaScript(script, return_result)
+
 
     def on_load_finished(self):
         if self.js_bridge.api:
