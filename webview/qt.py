@@ -300,7 +300,6 @@ class BrowserView(QMainWindow):
             result = self.view.page().mainFrame().evaluateJavaScript(script)
             return_result(result)
         except AttributeError:
-            print('w00t')
             self.view.page().runJavaScript(script, return_result)
 
 
@@ -312,7 +311,11 @@ class BrowserView(QMainWindow):
 
         if not self.text_select:
             script = disable_text_select.replace('\n', '')
-            self.view.page().runJavaScript(script)
+            
+            try:  # QT < 5.6
+                self.view.page().mainFrame().evaluateJavaScript(script)
+            except AttributeError:
+                self.view.page().runJavaScript(script)
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)
