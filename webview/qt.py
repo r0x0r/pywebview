@@ -390,7 +390,11 @@ class BrowserView(QMainWindow):
             frame = self.view.page().mainFrame()
             _register_window_object()
 
-        self.view.page().runJavaScript(script)
+        try:    # < QT 5.6
+            self.view.page().mainFrame().evaluateJavaScript(script)
+        except AttributeError:
+            self.view.page().runJavaScript(script)
+
         self.load_event.set()
 
     @staticmethod
