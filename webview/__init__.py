@@ -83,7 +83,6 @@ def _initialize_imports():
 
         try:
             import webview.qt as gui
-            logger.debug('Using QT')
 
             return True
         except ImportError as e:
