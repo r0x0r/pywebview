@@ -45,10 +45,11 @@ class Config (dict):
     def __init__(self):
         self.use_qt = 'USE_QT' in os.environ
         self.use_win32 = 'USE_WIN32' in os.environ
+        self.use_winforms = 'USE_WINFORMS' in os.environ
 
         self.gui = 'qt' if 'KDE_FULL_SESSION' in os.environ else None
         self.gui = os.environ['PYWEBVIEW_GUI'].lower() \
-            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in ['qt', 'gtk', 'win32'] \
+            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in ['qt', 'gtk', 'win32', 'winforms'] \
             else None
 
     def __getitem__(self, key):
@@ -126,6 +127,18 @@ def _initialize_imports():
             logger.exception('pythonnet cannot be loaded')
             return False
 
+    def import_winforms_web_view():
+        global gui
+
+        try:
+            import webview.winforms_web_view as gui
+            logger.debug('Using .NET UI Controls WebView')
+
+            return True
+        except ImportError as e:
+            logger.exception('pythonnet cannot be loaded')
+            return False
+
     def try_import(guis):
         while guis:
             import_func = guis.pop(0)
@@ -159,9 +172,11 @@ def _initialize_imports():
 
         elif platform.system() == 'Windows':
             if config.gui == 'win32' or config.use_win32:
-                guis = [import_win32, import_winforms]
+                guis = [import_win32, import_winforms, import_winforms_web_view]
+            elif config.gui == 'winforms' or config.use_winforms:
+                guis = [import_winforms, import_winforms_web_view, import_win32]
             else:
-                guis = [import_winforms, import_win32]
+                guis = [import_winforms_web_view, import_winforms, import_win32]
 
             if not try_import(guis):
                 raise Exception('You must have either pythonnet or pywin32 installed in order to use pywebview.')

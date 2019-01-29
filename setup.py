@@ -31,7 +31,13 @@ setup(
     version="2.2.1",
     include_package_data=True,
     packages=["webview", "webview.js"],
-    package_data={"webview": ['webview/lib/WebBrowserInterop.x64.dll', 'webview/lib/WebBrowserInterop.x86.dll']},
+    package_data={
+        "webview": [
+            'webview/lib/WebBrowserInterop.x64.dll',
+            'webview/lib/WebBrowserInterop.x86.dll',
+            'webview/lib/MicrosoftCommunityToolkit/Microsoft.Toolkit.Forms.UI.Controls.WebView.dll'
+        ]
+    },
     license="New BSD license",
     classifiers=[
         "Intended Audience :: Developers",

@@ -21,6 +21,12 @@ window.pywebview = {
     },
     _bridge: {
         call: function (func_name, params) {
+            switch (window.pywebview.platform) {
+                case "Win_Form_WebView":
+                    return window.external.notify(JSON.stringify([func_name, params]))
+                    break
+            }
+        
             if (window.qt) {
                 new QWebChannel(qt.webChannelTransport, function(channel) {
                   channel.objects.external.call(func_name, params);
@@ -53,5 +59,6 @@ window.pywebview = {
     _returnValues: {},
 
 }
-window.pywebview._createApi(%s);
+window.pywebview._createApi(${api_func});
+window.pywebview.platform = "${plataform}"
 """

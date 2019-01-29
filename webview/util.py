@@ -11,10 +11,12 @@ import os
 import re
 import sys
 import platform
+from string import Template
 
 from .js import api, npo
 
 default_html = '<!doctype html><html><head></head><body></body></html>'
+
 
 def base_uri(relative_path=''):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -46,10 +48,10 @@ def convert_string(string):
 
 
 def parse_file_type(file_type):
-    '''
+    """
     :param file_type: file type string 'description (*.file_extension1;*.file_extension2)' as required by file filter in create_file_dialog
     :return: (description, file extensions) tuple
-    '''
+    """
     valid_file_filter = r'^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*\.\w+)*)\)$'
     match = re.search(valid_file_filter, file_type)
 
@@ -59,18 +61,19 @@ def parse_file_type(file_type):
         raise ValueError('{0} is not a valid file filter'.format(file_type))
 
 
-def parse_api_js(api_instance):
+def parse_api_js(api_instance, *, web_platform=""):
     func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
-    js_code = npo.src + api.src % func_list
+
+    js_code = npo.src + Template(api.src).safe_substitute(api_func=func_list, plataform=web_platform)
 
     return js_code
 
 
 def escape_string(string):
-    return string\
+    return string \
         .replace('\\', '\\\\') \
         .replace('"', r'\"') \
-        .replace('\n', r'\n')\
+        .replace('\n', r'\n') \
         .replace('\r', r'\r')
 
 
@@ -99,7 +102,7 @@ def escape_line_breaks(string):
 
 
 def inject_base_uri(content, base_uri):
-    pattern = '<%s(?:[\s]+[^>]*|)>'
+    pattern = r'<%s(?:[\s]+[^>]*|)>'
     base_tag = '<base href="%s">' % base_uri
 
     match = re.search(pattern % 'base', content)
@@ -147,3 +150,27 @@ def interop_dll_path():
         pass
 
     raise Exception('Cannot find WebBrowserInterop.dll')
+
+
+def webview_toolkit_ui_dll_path():
+    dll_rel_path = os.path.join("MicrosoftCommunityToolkit", "Microsoft.Toolkit.Forms.UI.Controls.WebView.dll")
+
+    # Unfrozen path
+    dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', dll_rel_path)
+    if os.path.exists(dll_path):
+        return dll_path
+
+    # Frozen path, dll in the same dir as the executable
+    dll_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), dll_rel_path)
+    if os.path.exists(dll_path):
+        return dll_path
+
+    try:
+        # Frozen path packed as onefile
+        dll_path = os.path.join(sys._MEIPASS, dll_rel_path)
+        if os.path.exists(dll_path):
+            return dll_path
+    except Exception:
+        pass
+
+    raise Exception('Cannot find Microsoft.Toolkit.Forms.UI.Controls.WebView.dll')
