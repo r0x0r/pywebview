@@ -62,11 +62,7 @@ class BrowserView(QMainWindow):
     class JSBridge(QtCore.QObject):
         api = None
         parent_uid = None
-
-        try:
-            qtype = QtCore.QJsonValue
-        except AttributeError:
-            qtype = str
+        qtype = QtCore.QJsonValue if _qt_version >= [5, 6] else str
 
         def __init__(self):
             super(BrowserView.JSBridge, self).__init__()
@@ -93,7 +89,7 @@ class BrowserView(QMainWindow):
             else:
                 # Inspector is not up yet, so create a pseudo 'Inspect Element'
                 # menu that will fire it up.
-                inspect_element = QAction('Inspect Element')
+                inspect_element = QAction('Inspect Element', menu)
                 inspect_element.triggered.connect(self.show_inspector)
                 menu.addAction(inspect_element)
 
@@ -109,7 +105,6 @@ class BrowserView(QMainWindow):
             except KeyError:
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
-
                 inspector = BrowserView(uid, title, url, 700, 500, True, False, (300, 200),
                                         False, '#fff', False, None, True, self.parent().webview_ready)
                 inspector.show()
@@ -363,7 +358,6 @@ class BrowserView(QMainWindow):
 
     def evaluate_js(self, script):
         self.load_event.wait()
-
         result_semaphore = Semaphore(0)
         unique_id = uuid1().hex
         self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': ''}
@@ -397,7 +391,6 @@ class BrowserView(QMainWindow):
             self.view.page().mainFrame().evaluateJavaScript(script)
         except AttributeError:
             self.view.page().runJavaScript(script)
-
         self.load_event.set()
 
     @staticmethod
