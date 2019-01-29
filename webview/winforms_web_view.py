@@ -326,5 +326,5 @@ def destroy_window(uid):
 def evaluate_js(script, uid):
     window = BrowserView.instances[uid]
     window.load_event.wait()
-    result = window.web_browser.InvokeScript('eval', (script,))
-    return None if result is None or result is 'null' else json.loads(result)
+    result = window.web_view.InvokeScript('eval', (script,))
+    return None if result is None or result is 'null' or result == '' else json.loads(result)
