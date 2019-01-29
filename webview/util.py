@@ -61,7 +61,7 @@ def parse_file_type(file_type):
         raise ValueError('{0} is not a valid file filter'.format(file_type))
 
 
-def parse_api_js(api_instance, *, web_platform=""):
+def parse_api_js(api_instance, web_platform=""):
     func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
 
     js_code = npo.src + Template(api.src).safe_substitute(api_func=func_list, plataform=web_platform)
