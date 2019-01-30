@@ -30,18 +30,17 @@ from PyQt5.QtCore import QT_VERSION_STR
 
 logger.debug('Using Qt %s' % QT_VERSION_STR)
 
-_qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
-
-if _qt_version >= [5, 6] and platform.system() != 'OpenBSD':
-    from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
-    from PyQt5.QtWebChannel import QWebChannel
-else:
-    from PyQt5 import QtWebKitWidgets
-    from PyQt5.QtWebKitWidgets import QWebView, QWebPage
-
 from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox, QAction
 from PyQt5.QtGui import QColor
 
+try:
+    from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
+    from PyQt5.QtWebChannel import QWebChannel
+    is_webengine = True
+except ImportError:
+    from PyQt5 import QtWebKitWidgets
+    from PyQt5.QtWebKitWidgets import QWebView, QWebPage
+    is_webengine = False
 
 
 class BrowserView(QMainWindow):
@@ -62,7 +61,7 @@ class BrowserView(QMainWindow):
     class JSBridge(QtCore.QObject):
         api = None
         parent_uid = None
-        qtype = QtCore.QJsonValue if _qt_version >= [5, 6] else str
+        qtype = QtCore.QJsonValue if is_webengine else str
 
         def __init__(self):
             super(BrowserView.JSBridge, self).__init__()
@@ -121,9 +120,9 @@ class BrowserView(QMainWindow):
     class WebPage(QWebPage):
         def __init__(self, parent=None):
             super(BrowserView.WebPage, self).__init__(parent)
-            self.nav_handler = BrowserView.NavigationHandler(self) if _qt_version >= [5, 6] else None
+            self.nav_handler = BrowserView.NavigationHandler(self) if is_webengine else None
 
-        if _qt_version < [5, 6]:
+        if not is_webengine:
             def acceptNavigationRequest(self, frame, request, type):
                 if frame is None:
                     webbrowser.open(request.url().toString(), 2, True)
@@ -175,7 +174,7 @@ class BrowserView(QMainWindow):
 
         self.view = BrowserView.WebView(self)
 
-        if debug and _qt_version >= [5, 6]:
+        if debug and is_webengine:
             # Initialise Remote debugging (need to be done only once)
             if not BrowserView.inspector_port:
                 BrowserView.inspector_port = BrowserView._get_free_port()
@@ -203,7 +202,7 @@ class BrowserView(QMainWindow):
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
 
-        if _qt_version >= [5, 6] and platform.system() != 'OpenBSD':
+        if is_webengine and platform.system() != 'OpenBSD':
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
 
@@ -376,7 +375,7 @@ class BrowserView(QMainWindow):
 
         script = parse_api_js(self.js_bridge.api)
 
-        if _qt_version >= [5, 6]:
+        if is_webengine:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
             if qwebchannel_js.open(QtCore.QFile.ReadOnly):
                 source = bytes(qwebchannel_js.readAll()).decode('utf-8')
