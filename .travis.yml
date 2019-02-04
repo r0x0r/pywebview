@@ -58,3 +58,4 @@ after_script:
 
 notifications:
   email: false
+
