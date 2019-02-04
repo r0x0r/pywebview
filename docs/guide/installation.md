@@ -52,8 +52,16 @@ For other distributions, consult the [PyGObject documentation](https://pygobject
 
 <br/><br/>
 
-[PyQt5](http://pyqt.sourceforge.net/Docs/PyQt5/index.html) is used with QT. On Ubuntu you need following packages
+[PyQt5](http://pyqt.sourceforge.net/Docs/PyQt5/index.html) is used with QT. `pywebview` supports both QtWebChannel (newer and preferred) and QtWebKit implementations. Use QtWebChannel, unless it is not available on your system.
+
+To install QtWebChannel on Debian-based systems.
 
 ``` bash
-sudo apt install python3-pyqt5 python3-pyqt5.qtwebkit python-pyqt5 python-pyqt5.qtwebkit  libqt5webkit5-dev 
+sudo apt install python3-pyqt5 python3-pyqt5.qtwebengine python3-pyqt5.qtwebchannel python-pyqt5 python-pyqt5.qtwebengine python-pyqt5.qtwebchannel libqt5webkit5-dev 
+```
+
+To install QtWebKit.
+
+``` bash
+sudo apt install python3-pyqt5 python3-pyqt5.qtwebkit python-pyqt5 python-pyqt5.qtwebkit libqt5webkit5-dev 
 ```
