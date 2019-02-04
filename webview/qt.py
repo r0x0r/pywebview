@@ -25,47 +25,22 @@ from webview.js.css import disable_text_select
 logger = logging.getLogger('pywebview')
 
 
-# Try importing Qt5 modules
+from PyQt5 import QtCore
+from PyQt5.QtCore import QT_VERSION_STR
+
+logger.debug('Using Qt %s' % QT_VERSION_STR)
+
+from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox, QAction
+from PyQt5.QtGui import QColor
+
 try:
-    from PyQt5 import QtCore
-
-    # Check to see if we're running Qt > 5.5
-    from PyQt5.QtCore import QT_VERSION_STR
-    _qt_version = [int(n) for n in QT_VERSION_STR.split('.')]
-
-    if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
-        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
-        from PyQt5.QtWebChannel import QWebChannel
-    else:
-        from PyQt5 import QtWebKitWidgets
-        from PyQt5.QtWebKitWidgets import QWebView, QWebPage
-
-    from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox, QAction
-    from PyQt5.QtGui import QColor
-
-    logger.debug('Using Qt5')
-except ImportError as e:
-    logger.debug('PyQt5 or one of dependencies is not found', exc_info=True)
-    _import_error = True
-else:
-    _import_error = False
-
-if _import_error:
-    # Try importing Qt4 modules
-    try:
-        from PyQt4 import QtCore
-        from PyQt4.QtWebKit import QWebView, QWebPage, QWebFrame
-        from PyQt4.QtGui import QWidget, QMainWindow, QVBoxLayout, QApplication, QDialog, QFileDialog, QMessageBox, QColor
-
-        _qt_version = [4, 0]
-        logger.debug('Using Qt4')
-    except ImportError as e:
-        _import_error = True
-    else:
-        _import_error = False
-
-if _import_error:
-    raise ImportError('This module requires PyQt4 or PyQt5.')
+    from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
+    from PyQt5.QtWebChannel import QWebChannel
+    is_webengine = True
+except ImportError:
+    from PyQt5 import QtWebKitWidgets
+    from PyQt5.QtWebKitWidgets import QWebView, QWebPage
+    is_webengine = False
 
 
 class BrowserView(QMainWindow):
@@ -86,11 +61,7 @@ class BrowserView(QMainWindow):
     class JSBridge(QtCore.QObject):
         api = None
         parent_uid = None
-
-        try:
-            qtype = QtCore.QJsonValue  # QT5
-        except AttributeError:
-            qtype = str  # QT4
+        qtype = QtCore.QJsonValue if is_webengine else str
 
         def __init__(self):
             super(BrowserView.JSBridge, self).__init__()
@@ -117,7 +88,7 @@ class BrowserView(QMainWindow):
             else:
                 # Inspector is not up yet, so create a pseudo 'Inspect Element'
                 # menu that will fire it up.
-                inspect_element = QAction('Inspect Element')
+                inspect_element = QAction('Inspect Element', menu)
                 inspect_element.triggered.connect(self.show_inspector)
                 menu.addAction(inspect_element)
 
@@ -133,7 +104,6 @@ class BrowserView(QMainWindow):
             except KeyError:
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
-
                 inspector = BrowserView(uid, title, url, 700, 500, True, False, (300, 200),
                                         False, '#fff', False, None, True, self.parent().webview_ready)
                 inspector.show()
@@ -150,9 +120,9 @@ class BrowserView(QMainWindow):
     class WebPage(QWebPage):
         def __init__(self, parent=None):
             super(BrowserView.WebPage, self).__init__(parent)
-            self.nav_handler = BrowserView.NavigationHandler(self) if _qt_version >= [5, 5] else None
+            self.nav_handler = BrowserView.NavigationHandler(self) if is_webengine else None
 
-        if _qt_version < [5, 5]:
+        if not is_webengine:
             def acceptNavigationRequest(self, frame, request, type):
                 if frame is None:
                     webbrowser.open(request.url().toString(), 2, True)
@@ -204,7 +174,7 @@ class BrowserView(QMainWindow):
 
         self.view = BrowserView.WebView(self)
 
-        if debug and _qt_version > [5, 5]:
+        if debug and is_webengine:
             # Initialise Remote debugging (need to be done only once)
             if not BrowserView.inspector_port:
                 BrowserView.inspector_port = BrowserView._get_free_port()
@@ -232,7 +202,7 @@ class BrowserView(QMainWindow):
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
 
-        if _qt_version >= [5, 5] and platform.system() != 'OpenBSD':
+        if is_webengine and platform.system() != 'OpenBSD':
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
 
@@ -320,12 +290,12 @@ class BrowserView(QMainWindow):
             js_result['result'] = None if result is None or result == 'null' else result if result == '' else json.loads(result)
             js_result['semaphore'].release()
 
-
-        try:    # PyQt4
+        try:    # < Qt5.6
             result = self.view.page().mainFrame().evaluateJavaScript(script)
             return_result(result)
-        except AttributeError:  # PyQt5
+        except AttributeError:
             self.view.page().runJavaScript(script, return_result)
+
 
     def on_load_finished(self):
         if self.js_bridge.api:
@@ -335,10 +305,10 @@ class BrowserView(QMainWindow):
 
         if not self.text_select:
             script = disable_text_select.replace('\n', '')
-
-            try:  # PyQt4
+            
+            try:  # QT < 5.6
                 self.view.page().mainFrame().evaluateJavaScript(script)
-            except AttributeError:  # PyQt5
+            except AttributeError:
                 self.view.page().runJavaScript(script)
 
     def set_title(self, title):
@@ -363,21 +333,12 @@ class BrowserView(QMainWindow):
         self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
         self._file_name_semaphore.acquire()
 
-        if _qt_version >= [5, 0]:  # QT5
-            if dialog_type == FOLDER_DIALOG:
-                file_names = (self._file_name,)
-            elif dialog_type == SAVE_DIALOG or not allow_multiple:
-                file_names = (self._file_name[0],)
-            else:
-                file_names = tuple(self._file_name[0])
-
-        else:  # QT4
-            if dialog_type == FOLDER_DIALOG:
-                file_names = (BrowserView._convert_string(self._file_name),)
-            elif dialog_type == SAVE_DIALOG or not allow_multiple:
-                file_names = (BrowserView._convert_string(self._file_name[0]),)
-            else:
-                file_names = tuple([BrowserView._convert_string(s) for s in self._file_name])
+        if dialog_type == FOLDER_DIALOG:
+            file_names = (self._file_name,)
+        elif dialog_type == SAVE_DIALOG or not allow_multiple:
+            file_names = (self._file_name[0],)
+        else:
+            file_names = tuple(self._file_name[0])
 
         # Check if we got an empty tuple, or a tuple with empty string
         if len(file_names) == 0 or len(file_names[0]) == 0:
@@ -396,7 +357,6 @@ class BrowserView(QMainWindow):
 
     def evaluate_js(self, script):
         self.load_event.wait()
-
         result_semaphore = Semaphore(0)
         unique_id = uuid1().hex
         self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': ''}
@@ -415,25 +375,21 @@ class BrowserView(QMainWindow):
 
         script = parse_api_js(self.js_bridge.api)
 
-        if _qt_version >= [5, 5]:
+        if is_webengine:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
             if qwebchannel_js.open(QtCore.QFile.ReadOnly):
                 source = bytes(qwebchannel_js.readAll()).decode('utf-8')
                 self.view.page().runJavaScript(source)
                 self.channel.registerObject('external', self.js_bridge)
                 qwebchannel_js.close()
-        elif _qt_version >= [5, 0]:
-            frame = self.view.page().mainFrame()
-            _register_window_object()
         else:
             frame = self.view.page().mainFrame()
             _register_window_object()
 
-        try:    # PyQt4
+        try:    # < QT 5.6
             self.view.page().mainFrame().evaluateJavaScript(script)
-        except AttributeError:  # PyQt5
+        except AttributeError:
             self.view.page().runJavaScript(script)
-
         self.load_event.set()
 
     @staticmethod
