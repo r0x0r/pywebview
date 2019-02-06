@@ -1,6 +1,10 @@
 import json
+import logging
+import os
+import shutil
 import sys
 import atexit
+import webbrowser
 
 from functools import wraps
 from uuid import uuid1
@@ -8,14 +12,16 @@ from threading import Event
 from cefpython3 import cefpython as cef
 from copy import copy
 
-from .js import cef as cef_script, api
 from .js.css import disable_text_select
-from webview import _webview_ready, _js_bridge_call
-from webview.util import escape_string, inject_base_uri, parse_api_js, blank_html
+from webview import _js_bridge_call
+from webview.util import parse_api_js, blank_html
 
 
 sys.excepthook = cef.ExceptHook
 instances = {}
+
+logger = logging.getLogger(__name__)
+
 
 
 class JSBridge:
@@ -24,9 +30,9 @@ class JSBridge:
         self.eval_events = eval_events
         self.api = api
         self.uid = uid
-        
+
     def return_result(self, result, uid):
-        self.results[uid] = json.loads(result)
+        self.results[uid] = json.loads(result) if result else None
         self.eval_events[uid].set()
 
     def call(self, func_name, param):
@@ -50,30 +56,34 @@ class Browser:
         if self.initialized:
             return
 
-        bindings = cef.JavascriptBindings()
-
         if self.api:
             self.browser.ExecuteJavascript(parse_api_js(self.api))
-        else:
-            self.browser.ExecuteJavascript('window.pywebview={ _evalResults: {} }')
 
-        bindings.SetObject('external', self.js_bridge)
-        self.browser.SetJavascriptBindings(bindings)
-        self.browser.ExecuteJavascript(cef_script.src)
+        if not self.text_select:
+            self.browser.ExecuteJavascript(disable_text_select)
+
         self.initialized = True
         self.loaded.set()
 
     def close(self):
-        self.browser.CloseBrowser()
+        self.browser.CloseBrowser(True)
 
     def evaluate_js(self, code):
         self.loaded.wait()
+        eval_script = """
+            try {{
+                window.external.return_result({0}, '{1}');
+            }} catch(e) {{
+                console.error(e.stack);
+                window.external.return_result(null, '{1}');
+            }}
+        """
 
         id_ = uuid1().hex[:8]
         self.eval_events[id_] = Event()
-        self.browser.ExecuteJavascript('window.pywebview._evalResults["{0}"] = {1}'.format(id_, code))
-        self.browser.ExecuteJavascript('window.pywebview._checkEvalResult("{0}")'.format(id_))
-        self.eval_events[id_].wait()
+        self.browser.ExecuteJavascript(eval_script.format(code, id_))
+        self.eval_events[id_].wait()  # result is obtained via JSBridge.return_result
+
         result = copy(self.js_bridge.results[id_])
 
         del self.eval_events[id_]
@@ -101,10 +111,22 @@ def find_instance(browser):
 
 
 class LoadHandler(object):
+    def OnBeforePopup(self, **args):
+        url = args['target_url']
+        user_gesture = args['user_gesture']
+
+        if user_gesture:
+            webbrowser.open(url)
+
+        return True
+
     def OnLoadingStateChange(self, browser, is_loading, **_):
-        if not is_loading:
-            instance = find_instance(browser)
-            assert(instance is not None)
+        instance = find_instance(browser)
+        assert (instance is not None)
+
+        if is_loading:
+            instance.initialized = False
+        else:
             instance.initialize()
 
 
@@ -121,24 +143,42 @@ def _cef_call(func):
 
     return wrapper
 
-def init():
-    global _initialized
+
+_webview_ready = None
+
+
+def init(webview_ready, debug):
+    global _initialized, _webview_ready
+    _webview_ready = webview_ready
 
     if not _initialized:
-        settings = {'multi_threaded_message_loop': True}
+        settings = {
+            'multi_threaded_message_loop': True,
+            'context_menu': {
+                'enabled': debug
+            }
+        }
         cef.Initialize(settings=settings)
         cef.DpiAware.EnableHighDpiSupport()
         _initialized = True
 
 
-def create_browser(uid, handle, url=None, js_api=None, text_select=False):
+def create_browser(uid, handle, alert_func, url=None, js_api=None, text_select=False):
     def _create():
         real_url = url or 'data:text/html,{0}'.format(blank_html)
-        browser = cef.CreateBrowserSync(window_info=window_info, url=real_url)
-        instances[uid] = Browser(handle, browser, js_api, text_select, uid)
-        browser.SetClientHandler(LoadHandler())
+        cef_browser = cef.CreateBrowserSync(window_info=window_info, url=real_url)
+        browser = Browser(handle, cef_browser, js_api, text_select, uid)
 
+        bindings = cef.JavascriptBindings()
+        bindings.SetObject('external', browser.js_bridge)
+        bindings.SetFunction('alert', alert_func)
+
+        cef_browser.SetJavascriptBindings(bindings)
+        cef_browser.SetClientHandler(LoadHandler())
+
+        instances[uid] = browser
         _webview_ready.set()
+
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)
     cef.PostTask(cef.TID_UI, _create)
@@ -165,7 +205,12 @@ def evaluate_js(code, uid):
 @_cef_call
 def get_current_url(uid):
     instance = instances[uid]
-    return instance.get_current_url()
+    url = instance.get_current_url()
+
+    if url.startswith('data:text/html,'):
+        return None
+    else:
+        return url
 
 
 @_cef_call
@@ -183,11 +228,22 @@ def close_window(uid):
     del instances[uid]
 
 
-
 def shutdown():
+    try:
+        if os.path.exists('blob_storage'):
+            shutil.rmtree('blob_storage')
+
+        if os.path.exists('webrtc_event_logs'):
+            shutil.rmtree('webrtc_event_logs')
+
+        if os.path.exists('error.log'):
+            shutil.rmtree('error.log')
+
+    except Exception as e:
+        logger.debug(e, exc_info=True)
+
     cef.Shutdown()
 
 atexit.register(shutdown)
 
 _initialized = False
-init()

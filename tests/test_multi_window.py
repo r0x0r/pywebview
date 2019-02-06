@@ -52,7 +52,6 @@ def js_bridge():
     child_window = webview.create_window('Window #2', js_api=api2)
     assert child_window != 'MainWindow'
     webview.load_html('<html><body><h1>Secondary window</h1></body></html>', uid=child_window)
-
     assert_js(webview, 'test1', 1)
     assert_js(webview, 'test2', 2, uid=child_window)
 
@@ -83,7 +82,6 @@ def evaluate_js():
     """, uid=child_window)
     assert result2 == 4
     webview.destroy_window(child_window)
-
 
 
 def load_html():

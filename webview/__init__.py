@@ -191,7 +191,7 @@ def _api_call(function):
             raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
     return wrapper
 
-
+import time
 def create_window(title, url=None, js_api=None, width=800, height=600,
                   resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
                   background_color='#FFFFFF', text_select=False, debug=False):
@@ -225,12 +225,10 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
             localization.update(strings)
     else:
         uid = 'child_' + uuid4().hex[:8]
-
         if not _webview_ready.wait(5):
-            raise Exception('Call create_window from the main thread first, and then from subthreads')
+            raise Exception('Call create_window from the main thread first')
 
     _webview_ready.clear()  # Make API calls wait while the new window is created
-
     gui.create_window(uid, make_unicode(title), transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
                       background_color, debug, js_api, text_select, _webview_ready)

@@ -14,8 +14,29 @@ environment:
       PYTHON_ARCH: "32"
 
     - PYTHON: "C:\\Python36-x64"
-      PYTHON_VERSION: "3.6.x" 
+      PYTHON_VERSION: "3.6.x"
       PYTHON_ARCH: "64"
+      PYWEBVIEW_GUI: "cef"
+
+    - PYTHON: "C:\\Python27"
+      PYTHON_VERSION: "2.7.x"
+      PYTHON_ARCH: "32"
+      PYWEBVIEW_GUI: "cef"
+
+    - PYTHON: "C:\\Python27-x64"
+      PYTHON_VERSION: "2.7.x"
+      PYTHON_ARCH: "64"
+      PYWEBVIEW_GUI: "cef"
+
+    - PYTHON: "C:\\Python36"
+      PYTHON_VERSION: "3.6.x"
+      PYTHON_ARCH: "32"
+      PYWEBVIEW_GUI: "cef"
+
+    - PYTHON: "C:\\Python36-x64"
+      PYTHON_VERSION: "3.6.x"
+      PYTHON_ARCH: "64"
+      PYWEBVIEW_GUI: "cef"
       
 build: off
 
@@ -38,6 +59,7 @@ install:
   # pip will build them from source using the MSVC compiler matching the
   # target Python version and architecture
   - "%CMD_IN_ENV% pip install pytest pythonnet six"
+  - "IF %PYWEBVIEW_GUI% EQU cef pip install cefpython3"
 
 
 test_script:

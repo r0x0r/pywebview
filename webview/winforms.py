@@ -57,7 +57,7 @@ class BrowserView:
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
         def alert(self, message):
-            WinForms.MessageBox.Show(message)
+            BrowserView.alert(message)
 
     class BrowserForm(WinForms.Form):
         def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
@@ -89,16 +89,14 @@ class BrowserView:
             self.background_color = background_color
             self.url = url
 
-            self.js_bridge = BrowserView.JSBridge()
-
-            if js_api:
-                self.js_bridge.api = js_api
-                self.js_bridge.parent_uid = self.uid
+            self.is_fullscreen = False
+            if fullscreen:
+                self.toggle_fullscreen()
 
             if is_cef:
-                CEF.create_browser(self.uid, self.Handle.ToInt32(), url, js_api)
+                CEF.create_browser(self.uid, self.Handle.ToInt32(), BrowserView.alert, url, js_api)
             else:
-                self._create_mshtml_browser(url, debug)
+                self._create_mshtml_browser(url, js_api, debug)
 
             self.text_select = text_select
             self.Shown += self.on_shown
@@ -110,11 +108,7 @@ class BrowserView:
             if confirm_quit:
                 self.FormClosing += self.on_closing
 
-            self.is_fullscreen = False
-            if fullscreen:
-                self.toggle_fullscreen()
-
-        def _create_mshtml_browser(self, url, debug):
+        def _create_mshtml_browser(self, url, js_api, debug):
             self.web_browser = WebBrowserEx()
             self.web_browser.Dock = WinForms.DockStyle.Fill
             self.web_browser.ScriptErrorsSuppressed = not debug
@@ -126,6 +120,12 @@ class BrowserView:
             self.web_browser.IsWebBrowserContextMenuEnabled = debug
 
             self.js_result_semaphore = Semaphore(0)
+            self.js_bridge = BrowserView.JSBridge()
+
+            if js_api:
+                self.js_bridge.api = js_api
+                self.js_bridge.parent_uid = self.uid
+
             self.web_browser.ObjectForScripting = self.js_bridge
 
             # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
@@ -222,18 +222,17 @@ class BrowserView:
 
         def toggle_fullscreen(self):
             screen = WinForms.Screen.FromControl(self)
+
             if not self.is_fullscreen:
                 self.old_size = self.Size
                 self.old_state = self.WindowState
                 self.old_style = self.FormBorderStyle
                 self.old_location = self.Location
-
                 self.TopMost = True
                 self.FormBorderStyle = 0  # FormBorderStyle.None
                 self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
                 self.WindowState = WinForms.FormWindowState.Maximized
                 self.is_fullscreen = True
-
                 windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y,
                                            screen.Bounds.Width, screen.Bounds.Height, 64)
             else:
@@ -247,6 +246,10 @@ class BrowserView:
         def set_window_size(self, width, height):
             windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
                 width, height, 64)
+
+    @staticmethod
+    def alert(message):
+        WinForms.MessageBox.Show(message)
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
@@ -270,7 +273,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
             windll.user32.SetProcessDPIAware()
 
         if is_cef:
-            CEF.init()
+            CEF.init(webview_ready, debug)
 
         app.EnableVisualStyles()
         app.SetCompatibleTextRenderingDefault(False)

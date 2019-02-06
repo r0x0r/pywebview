@@ -1,5 +1,5 @@
 import threading
-from .util import run_test
+from .util import run_test, get_test_name
 import webview
 
 
@@ -42,11 +42,6 @@ def test_nan():
 
 
 def main_func():
-    def load_html():
-        webview.load_html('<h1>test</h1>')
-
-    t = threading.Thread(target=load_html)
-    t.start()
     webview.create_window('Evaluate JS test')
 
 
@@ -67,7 +62,6 @@ def array_test():
     function getValue() {
         return [undefined, 1, 'two', 3.00001, {four: true}]
     }
-
     getValue()
     """)
     assert result == [None, 1, 'two', 3.00001, {'four': True}]

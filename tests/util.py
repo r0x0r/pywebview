@@ -1,5 +1,6 @@
 import threading
 import time
+import os
 import sys
 import logging
 import traceback
@@ -45,6 +46,7 @@ def _create_window(webview, main_func, thread_func, queue, param, no_destroy):
         try:
             if thread_func:
                 thread_func()
+
             destroy_event.set()
         except Exception as e:
             logger.exception(e, exc_info=True)
@@ -59,6 +61,10 @@ def _create_window(webview, main_func, thread_func, queue, param, no_destroy):
         t.start()
 
     main_func()
+
+
+def get_test_name():
+    return os.environ.get('PYTEST_CURRENT_TEST').split(':')[-1].split(' ')[0]
 
 
 def _destroy_window(webview, delay=0):
