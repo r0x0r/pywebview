@@ -10,6 +10,12 @@ This will install _pywebview_ with default dependencies. To install _pywebview_ 
 pip install pywebview[qt]
 ```
 
+To install _pywebview_ with CEF (available on Windows) use
+
+``` bash
+pip install pywebview[cef]
+```
+
 
 ## Dependencies
 
@@ -19,6 +25,11 @@ pip install pywebview[qt]
 
 `pythonnet` requires to have .NET 4.0 installed
 
+[cefpython](https://github.com/cztomczak/cefpython/)
+
+``` bash
+pip install cefpython3
+```
 
 ### macOS
 
