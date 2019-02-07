@@ -221,27 +221,30 @@ class BrowserView:
             self.load_event.set()
 
         def toggle_fullscreen(self):
-            screen = WinForms.Screen.FromControl(self)
+            def _toggle():
+                screen = WinForms.Screen.FromControl(self)
+                if not self.is_fullscreen:
+                    self.old_size = self.Size
+                    self.old_state = self.WindowState
+                    self.old_style = self.FormBorderStyle
+                    self.old_location = self.Location
+                    self.TopMost = True
+                    self.FormBorderStyle = 0  # FormBorderStyle.None
+                    self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
+                    self.WindowState = WinForms.FormWindowState.Maximized
+                    self.is_fullscreen = True
+                    windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y,
+                                            screen.Bounds.Width, screen.Bounds.Height, 64)
+                else:
+                    self.TopMost = False
+                    self.Size = self.old_size
+                    self.WindowState = self.old_state
+                    self.FormBorderStyle = self.old_style
+                    self.Location = self.old_location
+                    self.is_fullscreen = False
 
-            if not self.is_fullscreen:
-                self.old_size = self.Size
-                self.old_state = self.WindowState
-                self.old_style = self.FormBorderStyle
-                self.old_location = self.Location
-                self.TopMost = True
-                self.FormBorderStyle = 0  # FormBorderStyle.None
-                self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
-                self.WindowState = WinForms.FormWindowState.Maximized
-                self.is_fullscreen = True
-                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y,
-                                           screen.Bounds.Width, screen.Bounds.Height, 64)
-            else:
-                self.TopMost = False
-                self.Size = self.old_size
-                self.WindowState = self.old_state
-                self.FormBorderStyle = self.old_style
-                self.Location = self.old_location
-                self.is_fullscreen = False
+            window = BrowserView.instances[self.uid]
+            window.Invoke(Func[Type](_toggle))
 
         def set_window_size(self, width, height):
             windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
