@@ -25,9 +25,6 @@ window.pywebview = {
                 new QWebChannel(qt.webChannelTransport, function(channel) {
                   channel.objects.external.call(func_name, params);
                 });
-            } else if (window.cefApi) {
-                debugger
-                window.cefApi[func_name].apply(null, [params])
             } else if (window.external) {
                 return window.external.call(func_name, params);
             } else if (window.webkit) {
@@ -52,8 +49,7 @@ window.pywebview = {
          }, 100)
     },
     api: {},
-    _returnValues: {},
-    _evalResults: {} // CEF
+    _returnValues: {}
 }
 window.pywebview._createApi(%s);
 """

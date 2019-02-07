@@ -14,7 +14,7 @@ from copy import copy
 
 from .js.css import disable_text_select
 from webview import _js_bridge_call
-from webview.util import parse_api_js, blank_html
+from webview.util import parse_api_js, default_html
 
 
 sys.excepthook = cef.ExceptHook
@@ -165,7 +165,7 @@ def init(webview_ready, debug):
 
 def create_browser(uid, handle, alert_func, url=None, js_api=None, text_select=False):
     def _create():
-        real_url = url or 'data:text/html,{0}'.format(blank_html)
+        real_url = url or 'data:text/html,{0}'.format(default_html)
         cef_browser = cef.CreateBrowserSync(window_info=window_info, url=real_url)
         browser = Browser(handle, cef_browser, js_api, text_select, uid)
 
