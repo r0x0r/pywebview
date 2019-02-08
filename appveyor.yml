@@ -16,7 +16,6 @@ environment:
     - PYTHON: "C:\\Python36-x64"
       PYTHON_VERSION: "3.6.x"
       PYTHON_ARCH: "64"
-      PYWEBVIEW_GUI: "cef"
 
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: "2.7.x"
