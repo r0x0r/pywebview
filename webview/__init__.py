@@ -192,7 +192,7 @@ def _api_call(function):
     return wrapper
 
 
-sdef create_window(title, url=None, js_api=None, width=800, height=600,
+def create_window(title, url=None, js_api=None, width=800, height=600,
                   resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False,
                   background_color='#FFFFFF', text_select=False, debug=False):
     """
