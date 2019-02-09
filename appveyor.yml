@@ -21,25 +21,21 @@ environment:
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "32"
       PYWEBVIEW_GUI: "cef"
-      CMD_IN_ENV: "pip install cefpython3==66.0"
 
     - PYTHON: "C:\\Python27-x64"
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
       PYWEBVIEW_GUI: "cef"
-      CMD_IN_ENV: "pip install cefpython3==66.0"
 
     - PYTHON: "C:\\Python36"
       PYTHON_VERSION: "3.6.x"
       PYTHON_ARCH: "32"
       PYWEBVIEW_GUI: "cef"
-      CMD_IN_ENV: "pip install cefpython3==66.0"
 
     - PYTHON: "C:\\Python36-x64"
       PYTHON_VERSION: "3.6.x"
       PYTHON_ARCH: "64"
       PYWEBVIEW_GUI: "cef"
-      CMD_IN_ENV: "pip install cefpython3==66.0"
 
 build: off
 
@@ -61,7 +57,7 @@ install:
   # compiled extensions and are not provided as pre-built wheel packages,
   # pip will build them from source using the MSVC compiler matching the
   # target Python version and architecture
-  - "%CMD_IN_ENV% pip install pytest pythonnet six"
+  - "%CMD_IN_ENV% pip install pytest pythonnet six cefpython3==66.0"
   #- ps: if ($env:PYWEBVIEW_GUI -imatch "cef") { pip install cefpython3 }
 
 
