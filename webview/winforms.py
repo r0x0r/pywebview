@@ -149,7 +149,7 @@ class BrowserView:
             else:
                 self.web_browser.DocumentText = default_html
 
-            self.Controls.Add(self.web_browser)    
+            self.Controls.Add(self.web_browser)
 
         def _initialize_js(self):
             self.web_browser.Document.InvokeScript('eval', (alert.src,))
@@ -243,8 +243,9 @@ class BrowserView:
                     self.Location = self.old_location
                     self.is_fullscreen = False
 
-            window = BrowserView.instances[self.uid]
-            window.Invoke(Func[Type](_toggle))
+            if window.InvokeRequired:
+                window = BrowserView.instances[self.uid]
+                window.Invoke(Func[Type](_toggle))
 
         def set_window_size(self, width, height):
             windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
