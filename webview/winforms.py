@@ -243,9 +243,8 @@ class BrowserView:
                     self.Location = self.old_location
                     self.is_fullscreen = False
 
-            if window.InvokeRequired:
-                window = BrowserView.instances[self.uid]
-                window.Invoke(Func[Type](_toggle))
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](_toggle))
 
         def set_window_size(self, width, height):
             windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
