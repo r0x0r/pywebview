@@ -18,8 +18,8 @@ def test_evaluate_js():
     run_test(webview, main_func, evaluate_js)
 
 
-def test_js_bridge():
-    run_test(webview, main_api_func, js_bridge)
+#def test_js_bridge():
+#    run_test(webview, main_api_func, js_bridge)
 
 
 def main_func():
