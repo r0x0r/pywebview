@@ -182,11 +182,14 @@ def _api_call(function):
             return function(*args, **kwargs)
         except NameError:
             raise Exception('Create a web view window first, before invoking this function')
-        except KeyError:
+        except KeyError as e:
             try:
+                print(args)
+                print(kwargs)
                 uid = kwargs['uid']
             except KeyError:
                 # uid not passed as a keyword arg, assumes it to be last in the arg list
+                print(args)
                 uid = args[-1]
             raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
     return wrapper
@@ -366,7 +369,7 @@ def window_exists(uid='master'):
 
 def webview_ready(timeout=None):
     """
-    :param delay: optional timeout
+    :param timeout: optional timeout
     :return: True when the last opened window is ready. False if the timeout is reached, when the timeout parameter is provided.
     Until then blocks the calling thread.
     """

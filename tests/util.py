@@ -17,6 +17,7 @@ def run_test(webview, main_func, thread_func=None, param=None, no_destroy=False)
     try:
         _create_window(webview, main_func, thread_func, queue, param, no_destroy)
     except Exception as e:
+        print(e)
         pytest.fail(e)
 
 
