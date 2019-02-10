@@ -160,7 +160,8 @@ class BrowserView:
 
         def on_close(self, sender, args):
             def _shutdown():
-                CEF.shutdown()
+                if is_cef:
+                    CEF.shutdown()
                 WinForms.Application.Exit()
 
             if is_cef:
@@ -417,17 +418,10 @@ def set_window_size(width, height, uid):
 
 def destroy_window(uid):
     window = BrowserView.instances[uid]
-    logger.debug('destroy_window %s' % uid)
-    try:
-        window.Close()
-    except Exception as e:
-        logger.exception(e)
-
-    logger.debug('destroy_window CLOSED %s' % uid)
+    window.Close()
 
     if not is_cef:
         window.js_result_semaphore.release()
-        logger.debug('RELEASED CLOSED %s' % uid)
 
 
 def evaluate_js(script, uid):
