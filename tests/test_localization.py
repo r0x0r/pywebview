@@ -4,6 +4,7 @@ from .util import run_test
 
 
 def test_localization():
+    print('test loca')
     run_test(webview, localization)
 
 

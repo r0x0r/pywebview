@@ -10,12 +10,12 @@ from multiprocessing import Process, Queue
 logger = logging.getLogger(__name__)
 
 
-def run_test(webview, main_func, thread_func=None, param=None, no_destroy=False):
+def run_test(webview, main_func, thread_func=None, param=None, no_destroy=False, destroy_delay=0):
     __tracebackhide__ = True
     queue = Queue()
 
     try:
-        _create_window(webview, main_func, thread_func, queue, param, no_destroy)
+        _create_window(webview, main_func, thread_func, queue, param, no_destroy, destroy_delay)
     except Exception as e:
         print(e)
         pytest.fail(e)
@@ -41,7 +41,7 @@ def assert_js(webview, func_name, expected_result, uid='master'):
     assert expected_result == result
 
 
-def _create_window(webview, main_func, thread_func, queue, param, no_destroy):
+def _create_window(webview, main_func, thread_func, queue, param, no_destroy, destroy_delay):
 
     def thread(destroy_event, param):
         try:
@@ -56,7 +56,7 @@ def _create_window(webview, main_func, thread_func, queue, param, no_destroy):
 
     if not no_destroy:
         args = (param,) if param else ()
-        destroy_event = _destroy_window(webview)
+        destroy_event = _destroy_window(webview, destroy_delay)
 
         t = threading.Thread(target=thread, args=(destroy_event, args))
         t.start()
@@ -68,7 +68,7 @@ def get_test_name():
     return os.environ.get('PYTEST_CURRENT_TEST').split(':')[-1].split(' ')[0]
 
 
-def _destroy_window(webview, delay=0):
+def _destroy_window(webview, delay):
     def stop():
         event.wait()
         time.sleep(delay)

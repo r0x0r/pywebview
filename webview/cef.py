@@ -122,12 +122,14 @@ class LoadHandler(object):
 
     def OnLoadingStateChange(self, browser, is_loading, **_):
         instance = find_instance(browser)
-        assert (instance is not None)
 
-        if is_loading:
-            instance.initialized = False
+        if instance is not None:
+            if is_loading:
+                instance.initialized = False
+            else:
+                instance.initialize()
         else:
-            instance.initialize()
+            logger.debug('CEF instance is not found %s ' % browser)
 
 
 def _cef_call(func):
@@ -158,6 +160,7 @@ def init(webview_ready, debug):
                 'enabled': debug
             }
         }
+        print('init')
         cef.Initialize(settings=settings)
         cef.DpiAware.EnableHighDpiSupport()
         _initialized = True
@@ -224,7 +227,6 @@ def resize(width, height, uid):
 def close_window(uid):
     instance = instances[uid]
     instance.close()
-
     del instances[uid]
 
 
@@ -241,9 +243,7 @@ def shutdown():
 
     except Exception as e:
         logger.debug(e, exc_info=True)
-
     cef.Shutdown()
 
-atexit.register(shutdown)
 
 _initialized = False

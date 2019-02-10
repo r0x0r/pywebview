@@ -159,13 +159,17 @@ class BrowserView:
                 self.webview_ready.set()
 
         def on_close(self, sender, args):
+            def _shutdown():
+                CEF.shutdown()
+                WinForms.Application.Exit()
+
             if is_cef:
                 CEF.close_window(self.uid)
 
             del BrowserView.instances[self.uid]
 
             if len(BrowserView.instances) == 0:
-                WinForms.Application.Exit()
+                self.Invoke(Func[Type](_shutdown))
 
         def on_closing(self, sender, args):
             result = WinForms.MessageBox.Show(localization['global.quitConfirmation'], self.Text,
