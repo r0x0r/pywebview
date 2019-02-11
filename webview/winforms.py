@@ -417,10 +417,13 @@ def set_window_size(width, height, uid):
 
 def destroy_window(uid):
     window = BrowserView.instances[uid]
+    logger.debug('destroy_window %s' % uid)
     window.Close()
+    logger.debug('destroy_window CLOSED %s' % uid)
 
     if not is_cef:
         window.js_result_semaphore.release()
+        logger.debug('RELEASED CLOSED %s' % uid)
 
 
 def evaluate_js(script, uid):
