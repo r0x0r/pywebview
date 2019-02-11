@@ -7,7 +7,7 @@ import traceback
 import pytest
 from multiprocessing import Process, Queue
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('pywebview')
 
 
 def run_test(webview, main_func, thread_func=None, param=None, no_destroy=False, destroy_delay=0):
@@ -70,7 +70,9 @@ def get_test_name():
 
 def _destroy_window(webview, delay):
     def stop():
+        logger.debug('Destroy event wait')
         event.wait()
+        logger.debug('Destroy event release')
         time.sleep(delay)
         webview.destroy_window()
 
