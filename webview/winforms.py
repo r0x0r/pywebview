@@ -418,7 +418,11 @@ def set_window_size(width, height, uid):
 def destroy_window(uid):
     window = BrowserView.instances[uid]
     logger.debug('destroy_window %s' % uid)
-    window.Close()
+    try:
+        window.Close()
+    except Exception as e:
+        logger.exception(e)
+
     logger.debug('destroy_window CLOSED %s' % uid)
 
     if not is_cef:
