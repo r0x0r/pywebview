@@ -58,7 +58,6 @@ install:
   # pip will build them from source using the MSVC compiler matching the
   # target Python version and architecture
   - "%CMD_IN_ENV% pip install pytest pythonnet six cefpython3==66.0"
-  #- ps: if ($env:PYWEBVIEW_GUI -imatch "cef") { pip install cefpython3 }
 
 
 test_script:
