@@ -8,5 +8,5 @@ import webview
 
 if __name__ == '__main__':
     webview.gui = 'cef'
-    webview.create_window('URL Change Example', 'https://pywebview.flowrl.com/hello')
+    webview.create_window('CEF Example', 'https://pywebview.flowrl.com/hello')
 ```
