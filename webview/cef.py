@@ -160,7 +160,6 @@ def init(webview_ready, debug):
                 'enabled': debug
             }
         }
-        print('init')
         cef.Initialize(settings=settings)
         cef.DpiAware.EnableHighDpiSupport()
         _initialized = True

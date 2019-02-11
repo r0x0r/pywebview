@@ -15,9 +15,9 @@ def run_test(webview, main_func, thread_func=None, param=None, no_destroy=False,
     queue = Queue()
 
     try:
+        time.sleep(2)
         _create_window(webview, main_func, thread_func, queue, param, no_destroy, destroy_delay)
     except Exception as e:
-        print(e)
         pytest.fail(e)
 
 
