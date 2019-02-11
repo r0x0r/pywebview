@@ -32,7 +32,9 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter('[pywebview] %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+
+log_level = logging.DEBUG if os.environ.get('PYWEBVIEW_LOG') == 'debug' else logging.INFO
+logger.setLevel(log_level)
 
 
 OPEN_DIALOG = 10
@@ -99,7 +101,7 @@ def _initialize_imports():
             return True
         except ImportError:
             logger.exception('PyObjC cannot be loaded')
-            
+
             return False
 
     def import_win32():
@@ -143,7 +145,7 @@ def _initialize_imports():
                 guis = [import_qt, import_cocoa]
             else:
                 guis = [import_cocoa, import_qt]
-                
+
             if not try_import(guis):
                 raise Exception('You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use pywebview.')
 
