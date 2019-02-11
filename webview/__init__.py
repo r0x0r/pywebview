@@ -186,12 +186,9 @@ def _api_call(function):
             raise Exception('Create a web view window first, before invoking this function')
         except KeyError as e:
             try:
-                print(args)
-                print(kwargs)
                 uid = kwargs['uid']
             except KeyError:
                 # uid not passed as a keyword arg, assumes it to be last in the arg list
-                print(args)
                 uid = args[-1]
             raise Exception('Cannot call function: No webview exists with uid: {}'.format(uid))
     return wrapper
