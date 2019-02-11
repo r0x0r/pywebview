@@ -70,11 +70,11 @@ def get_test_name():
 
 def _destroy_window(webview, delay):
     def stop():
-        logger.debug('Destroy event wait')
         event.wait()
-        logger.debug('Destroy event release')
         time.sleep(delay)
+        logger.debug('Destroying window')
         webview.destroy_window()
+        logger.debug('Destroying window. Done.')
 
         if sys.platform == 'darwin':
             from .util_cocoa import mouseMoveRelative
