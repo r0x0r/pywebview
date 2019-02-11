@@ -1,7 +1,7 @@
 import webview
 from .util import run_test, assert_js
 
-
+"""
 def test_bg_color():
     run_test(webview, main_func, bg_color)
 
@@ -20,7 +20,7 @@ def test_evaluate_js():
 
 def test_js_bridge():
     run_test(webview, main_api_func, js_bridge)
-
+"""
 
 def main_func():
     webview.create_window('Multi-window test', 'https://www.example.org')
