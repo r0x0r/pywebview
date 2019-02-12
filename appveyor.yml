@@ -57,7 +57,7 @@ install:
   # compiled extensions and are not provided as pre-built wheel packages,
   # pip will build them from source using the MSVC compiler matching the
   # target Python version and architecture
-  - "%CMD_IN_ENV% pip install pytest pythonnet six cefpython3==66.0"
+  - "%CMD_IN_ENV% pip install pytest==4.1.1 pythonnet six cefpython3==66.0"
 
 
 test_script:
