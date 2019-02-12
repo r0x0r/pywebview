@@ -4,6 +4,7 @@ from setuptools import setup
 
 extras_require = {
     'qt': ['PyQt5'],
+    'cef': ['cefpython3'],
 }
 
 install_requires = [

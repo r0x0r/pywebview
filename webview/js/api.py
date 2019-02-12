@@ -36,7 +36,6 @@ window.pywebview = {
     _checkValue: function(funcName, resolve) {
          var check = setInterval(function () {
             var returnObj = window.pywebview._returnValues[funcName];
-
             if (returnObj.isSet) {
                 returnObj.isSet = false;
                 try {
@@ -50,8 +49,7 @@ window.pywebview = {
          }, 100)
     },
     api: {},
-    _returnValues: {},
-
+    _returnValues: {}
 }
 window.pywebview._createApi(%s);
 """

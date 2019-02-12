@@ -21,4 +21,6 @@ if __name__ == '__main__':
     webview.create_window('Load HTML example')
 ```
 
+To change a web renderer, set `webview.gui` to the desired value (e.g `cef`). See [Renderer](/guide/renderer.md) for details.
+
 Note that `webview.create_window` blocks the main thread execution, so other code has to be run on a separate thread.

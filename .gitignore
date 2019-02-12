@@ -15,3 +15,6 @@ node_modules
 dist
 .DS_Store
 venv*
+.vscode
+.pytest_cache
+

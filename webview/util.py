@@ -16,6 +16,7 @@ from .js import api, npo
 
 default_html = '<!doctype html><html><head></head><body></body></html>'
 
+
 def base_uri(relative_path=''):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:

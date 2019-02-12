@@ -2,7 +2,6 @@ import webview
 from .util import run_test
 
 
-
 def test_current_url():
     run_test(webview, main_func, current_url_test)
 

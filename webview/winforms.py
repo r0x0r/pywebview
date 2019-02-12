@@ -25,7 +25,7 @@ from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _js_bridge_call
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _js_bridge_call, config
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html
 
 from .js import alert
@@ -38,6 +38,11 @@ clr.AddReference(interop_dll_path())
 from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 
 logger = logging.getLogger('pywebview')
+
+is_cef = config.gui == 'cef'
+
+if is_cef:
+    from . import cef as CEF
 
 
 class BrowserView:
@@ -52,7 +57,7 @@ class BrowserView:
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
         def alert(self, message):
-            WinForms.MessageBox.Show(message)
+            BrowserView.alert(message)
 
     class BrowserForm(WinForms.Form):
         def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
@@ -81,7 +86,29 @@ class BrowserView:
 
             self.webview_ready = webview_ready
             self.load_event = Event()
+            self.background_color = background_color
+            self.url = url
 
+            self.is_fullscreen = False
+            if fullscreen:
+                self.toggle_fullscreen()
+
+            if is_cef:
+                CEF.create_browser(self.uid, self.Handle.ToInt32(), BrowserView.alert, url, js_api)
+            else:
+                self._create_mshtml_browser(url, js_api, debug)
+
+            self.text_select = text_select
+            self.Shown += self.on_shown
+            self.FormClosed += self.on_close
+
+            if is_cef:
+                self.Resize += self.on_resize
+
+            if confirm_quit:
+                self.FormClosing += self.on_closing
+
+        def _create_mshtml_browser(self, url, js_api, debug):
             self.web_browser = WebBrowserEx()
             self.web_browser.Dock = WinForms.DockStyle.Fill
             self.web_browser.ScriptErrorsSuppressed = not debug
@@ -94,18 +121,17 @@ class BrowserView:
 
             self.js_result_semaphore = Semaphore(0)
             self.js_bridge = BrowserView.JSBridge()
-            self.js_bridge.parent_uid = uid
-            self.web_browser.ObjectForScripting = self.js_bridge
-
-            self.text_select = text_select
 
             if js_api:
                 self.js_bridge.api = js_api
+                self.js_bridge.parent_uid = self.uid
+
+            self.web_browser.ObjectForScripting = self.js_bridge
 
             # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
             # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
             # for the default background color.
-            if background_color != '#FFFFFF':
+            if self.background_color != '#FFFFFF':
                 self.web_browser.Visible = False
                 self.first_load = True
             else:
@@ -123,30 +149,28 @@ class BrowserView:
             else:
                 self.web_browser.DocumentText = default_html
 
-            self.url = url
-
             self.Controls.Add(self.web_browser)
-            self.is_fullscreen = False
-            self.Shown += self.on_shown
-            self.FormClosed += self.on_close
-
-            if confirm_quit:
-                self.FormClosing += self.on_closing
-
-            if fullscreen:
-                self.toggle_fullscreen()
 
         def _initialize_js(self):
             self.web_browser.Document.InvokeScript('eval', (alert.src,))
 
         def on_shown(self, sender, args):
-            self.webview_ready.set()
+            if not is_cef:
+                self.webview_ready.set()
 
         def on_close(self, sender, args):
+            def _shutdown():
+                if is_cef:
+                    CEF.shutdown()
+                WinForms.Application.Exit()
+
+            if is_cef:
+                CEF.close_window(self.uid)
+
             del BrowserView.instances[self.uid]
 
             if len(BrowserView.instances) == 0:
-                WinForms.Application.Exit()
+                self.Invoke(Func[Type](_shutdown))
 
         def on_closing(self, sender, args):
             result = WinForms.MessageBox.Show(localization['global.quitConfirmation'], self.Text,
@@ -154,6 +178,9 @@ class BrowserView:
 
             if result == WinForms.DialogResult.Cancel:
                 args.Cancel = True
+
+        def on_resize(self, sender, args):
+            CEF.resize(self.Width, self.Height, self.uid)
 
         def on_preview_keydown(self, sender, args):
             if args.KeyCode == WinForms.Keys.Back:
@@ -199,32 +226,38 @@ class BrowserView:
             self.load_event.set()
 
         def toggle_fullscreen(self):
-            screen = WinForms.Screen.FromControl(self)
-            if not self.is_fullscreen:
-                self.old_size = self.Size
-                self.old_state = self.WindowState
-                self.old_style = self.FormBorderStyle
-                self.old_location = self.Location
+            def _toggle():
+                screen = WinForms.Screen.FromControl(self)
+                if not self.is_fullscreen:
+                    self.old_size = self.Size
+                    self.old_state = self.WindowState
+                    self.old_style = self.FormBorderStyle
+                    self.old_location = self.Location
+                    self.TopMost = True
+                    self.FormBorderStyle = 0  # FormBorderStyle.None
+                    self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
+                    self.WindowState = WinForms.FormWindowState.Maximized
+                    self.is_fullscreen = True
+                    windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y,
+                                            screen.Bounds.Width, screen.Bounds.Height, 64)
+                else:
+                    self.TopMost = False
+                    self.Size = self.old_size
+                    self.WindowState = self.old_state
+                    self.FormBorderStyle = self.old_style
+                    self.Location = self.old_location
+                    self.is_fullscreen = False
 
-                self.TopMost = True
-                self.FormBorderStyle = 0  # FormBorderStyle.None
-                self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
-                self.WindowState = WinForms.FormWindowState.Maximized
-                self.is_fullscreen = True
-
-                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y,
-                                           screen.Bounds.Width, screen.Bounds.Height, 64)
-            else:
-                self.TopMost = False
-                self.Size = self.old_size
-                self.WindowState = self.old_state
-                self.FormBorderStyle = self.old_style
-                self.Location = self.old_location
-                self.is_fullscreen = False
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](_toggle))
 
         def set_window_size(self, width, height):
             windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
                 width, height, 64)
+
+    @staticmethod
+    def alert(message):
+        WinForms.MessageBox.Show(message)
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
@@ -247,6 +280,9 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         if sys.getwindowsversion().major >= 6:
             windll.user32.SetProcessDPIAware()
 
+        if is_cef:
+            CEF.init(webview_ready, debug)
+
         app.EnableVisualStyles()
         app.SetCompatibleTextRenderingDefault(False)
 
@@ -254,6 +290,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
         thread.SetApartmentState(ApartmentState.STA)
         thread.Start()
         thread.Join()
+
     else:
         i = list(BrowserView.instances.values())[0]     # arbitrary instance
         i.Invoke(Func[Type](create))
@@ -264,8 +301,8 @@ def set_title(title, uid):
         window.Text = title
 
     window = BrowserView.instances[uid]
-    if window.web_browser.InvokeRequired:
-        window.web_browser.Invoke(Func[Type](_set_title))
+    if window.InvokeRequired:
+        window.Invoke(Func[Type](_set_title))
     else:
         _set_title()
 
@@ -324,13 +361,16 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 
 def get_current_url(uid):
-    window = BrowserView.instances[uid]
-
-    if window.url is None:
-        return None
+    if is_cef:
+        return CEF.get_current_url(uid)
     else:
-        window.load_event.wait()
-        return window.web_browser.Url.AbsoluteUri
+        window = BrowserView.instances[uid]
+
+        if window.url is None:
+            return None
+        else:
+            window.load_event.wait()
+            return window.web_browser.Url.AbsoluteUri
 
 
 def load_url(url, uid):
@@ -341,7 +381,9 @@ def load_url(url, uid):
     window = BrowserView.instances[uid]
     window.load_event.clear()
 
-    if window.web_browser.InvokeRequired:
+    if is_cef:
+        CEF.load_url(url, uid)
+    elif window.web_browser.InvokeRequired:
         window.web_browser.Invoke(Func[Type](_load_url))
     else:
         _load_url()
@@ -351,11 +393,15 @@ def load_html(content, base_uri, uid):
     def _load_html():
         window.web_browser.DocumentText = inject_base_uri(content, base_uri)
 
+    if is_cef:
+        CEF.load_html(inject_base_uri(content, base_uri), uid)
+        return
+
     window = BrowserView.instances[uid]
     window.load_event.clear()
 
-    if window.web_browser.InvokeRequired:
-        window.web_browser.Invoke(Func[Type](_load_html))
+    if window.InvokeRequired:
+        window.Invoke(Func[Type](_load_html))
     else:
         _load_html()
 
@@ -373,7 +419,9 @@ def set_window_size(width, height, uid):
 def destroy_window(uid):
     window = BrowserView.instances[uid]
     window.Close()
-    window.js_result_semaphore.release()
+
+    if not is_cef:
+        window.js_result_semaphore.release()
 
 
 def evaluate_js(script, uid):
@@ -384,14 +432,12 @@ def evaluate_js(script, uid):
         window.js_result = None if result is None or result is 'null' else json.loads(result)
         window.js_result_semaphore.release()
 
-    window = BrowserView.instances[uid]
-    window.load_event.wait()
-
-    if window.web_browser.InvokeRequired:
-        window.web_browser.Invoke(Func[Type](_evaluate_js))
+    if is_cef:
+        return CEF.evaluate_js(script, uid)
     else:
-        _evaluate_js()
+        window = BrowserView.instances[uid]
+        window.load_event.wait()
+        window.Invoke(Func[Type](_evaluate_js))
+        window.js_result_semaphore.acquire()
 
-    window.js_result_semaphore.acquire()
-
-    return window.js_result
+        return window.js_result
