@@ -3,6 +3,22 @@
 
 # Changelog
 
+## 2.3
+
+_Released 12/02/2019_
+
+- `New` [All] Ability to resize window after creation `webview.set_window_size(width, height)`. Thanks @aprowe #274
+- `New` [Windows] Chrome Embedded Framework (CEF) support #15
+- `Improvement` [All] _pywebview_ does not interfer with Python's logger configuration #295
+- `Fix` [All] Empty DOM issues when window is created without a URL #285
+- `Improvement` [macOS] Web renderer upgraded to WKWebView
+- `Improvement` [macOS] Add support for Mojave dark mode
+- `Fix` [macOS] Problem with handling paths containing spaces #283
+- `Fix` [QT] Better support for QTWebKit and QTWebChannel #304
+- `Improvement` [QT] Remove support for QT4
+- `Fix` [GTK] Thrown exception not Python 2 compatible #277
+
+
 ## 2.2.1
 
 _Released 24/10/2018_
@@ -135,7 +151,7 @@ Released 10/10/2016
 
 - `Fix` [All] Python 2 compatibility issue in Flask Example (#52). Thanks to @bastula.
 - `Fix` [Windows] Python 3 compatibility issue in Windows Forms implementation (#51)
-- `Fix` [Linux] Resizing width/height: 100% problem on GTK (#53). Thanks to @klausweiss. 
+- `Fix` [Linux] Resizing width/height: 100% problem on GTK (#53). Thanks to @klausweiss.
 
 
 ## 1.2.1
