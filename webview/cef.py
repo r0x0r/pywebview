@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import sys
-import atexit
 import webbrowser
 
 from functools import wraps
@@ -21,7 +20,6 @@ sys.excepthook = cef.ExceptHook
 instances = {}
 
 logger = logging.getLogger(__name__)
-
 
 
 class JSBridge:
@@ -55,6 +53,8 @@ class Browser:
     def initialize(self):
         if self.initialized:
             return
+
+        self.browser.GetJavascriptBindings().Rebind()
 
         if self.api:
             self.browser.ExecuteJavascript(parse_api_js(self.api))
@@ -96,9 +96,13 @@ class Browser:
         return self.browser.GetUrl()
 
     def load_url(self, url):
+        self.initialized = False
+        self.loaded.clear()
         self.browser.LoadUrl(url)
 
     def load_html(self, html):
+        self.initialized = False
+        self.loaded.clear()
         self.browser.LoadUrl('data:text/html,{0}'.format(html))
 
 
@@ -242,6 +246,7 @@ def shutdown():
 
     except Exception as e:
         logger.debug(e, exc_info=True)
+
     cef.Shutdown()
 
 
