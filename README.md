@@ -15,6 +15,8 @@ _pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/). Maintained
 
 # Getting started
 
+[![Join the chat at https://gitter.im/pywebview/community](https://badges.gitter.im/pywebview/community.svg)](https://gitter.im/pywebview/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 ### Install
 
 ``` bash
