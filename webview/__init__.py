@@ -387,7 +387,7 @@ def _js_bridge_call(uid, api_instance, func_name, param):
             func_params = param if not param else json.loads(param)
             t = Thread(target=_call)
             t.start()
-        except Exception as e:
+        except Exception:
             logger.exception('Error occurred while evaluating function {0}'.format(func_name))
     else:
         logger.error('Function {}() does not exist'.format(func_name))
