@@ -3,7 +3,7 @@ from .util import run_test
 
 
 def test_min_size():
-    run_test(frameless)
+    run_test(webview, frameless)
 
 
 def frameless():
