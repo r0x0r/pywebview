@@ -1,6 +1,7 @@
 module.exports = {
   title: 'pywebview',
   description: 'Build GUI for your Python program with JavaScript, HTML, and CSS',
+  ga: 'UA-12494025-18',
   themeConfig: {
     repo: 'r0x0r/pywebview',
     docsDir: 'docs',
@@ -27,7 +28,7 @@ module.exports = {
         {
           title: 'Development',
           collapsable: false,
-          children: [ 
+          children: [
             '/guide/api',
             '/guide/debugging',
             '/guide/freezing',
