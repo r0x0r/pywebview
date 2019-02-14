@@ -57,10 +57,20 @@ namespace WebBrowserInterop
         [Browsable(true)]
         public event EventHandler DownloadComplete;
         public event EventHandler<WebBrowserNewWindowEventArgs> NewWindow3;
+        public const int WM_NCLBUTTONDOWN = 161;
+        public const int HT_CAPTION = 2;
+
         [PermissionSetAttribute(SecurityAction.LinkDemand, Name = "FullTrust")]
         public WebBrowserEx()
         {
         }
+
+        [DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
         /// <summary>
         /// Associates the underlying ActiveX control with a client that can 
         /// handle control events including NewWindow3 event.
@@ -132,13 +142,6 @@ namespace WebBrowserInterop
             {
                 this.parent.OnDownloadComplete();
             }
-
-            [DllImport("user32.dll")]
-            public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
-
-            [DllImport("user32.dll")]
-            public static extern bool ReleaseCapture();
-
         }
     }
     public class WebBrowserNewWindowEventArgs : EventArgs
