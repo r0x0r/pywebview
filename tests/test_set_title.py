@@ -3,7 +3,7 @@ from .util import run_test
 
 
 def test_set_title():
-    run_test(main_func, set_title)
+    run_test(webview, main_func, set_title)
 
 
 def main_func():

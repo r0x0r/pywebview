@@ -3,5 +3,5 @@ import pytest
 
 
 if __name__ == '__main__':
-    os.environ['USE_QT'] = ''
+    os.environ['PYWEBVIEW_GUI'] = 'qt'
     pytest.main()

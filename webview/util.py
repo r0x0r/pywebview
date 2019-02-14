@@ -14,6 +14,8 @@ import platform
 
 from .js import api, npo
 
+default_html = '<!doctype html><html><head></head><body></body></html>'
+
 
 def base_uri(relative_path=''):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -22,8 +24,12 @@ def base_uri(relative_path=''):
         base_path = sys._MEIPASS
     except Exception:
         if 'pytest' in sys.modules:
-            path = os.path.realpath(sys.argv[1])
-            base_path = path if os.path.isdir(path) else os.path.dirname(path)
+            for arg in reversed(sys.argv):
+                path = os.path.realpath(arg)
+
+                if os.path.exists(path):
+                    base_path = path if os.path.isdir(path) else os.path.dirname(path)
+                    break
         else:
             base_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 

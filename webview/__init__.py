@@ -26,8 +26,16 @@ from webview.util import base_uri, parse_file_type, escape_string, transform_url
 from .js import css
 from .localization import localization
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+
+logger = logging.getLogger('pywebview')
+handler = logging.StreamHandler()
+formatter = logging.Formatter('[pywebview] %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+log_level = logging.DEBUG if os.environ.get('PYWEBVIEW_LOG') == 'debug' else logging.INFO
+logger.setLevel(log_level)
+
 
 OPEN_DIALOG = 10
 FOLDER_DIALOG = 20
@@ -42,7 +50,7 @@ class Config (dict):
 
         self.gui = 'qt' if 'KDE_FULL_SESSION' in os.environ else None
         self.gui = os.environ['PYWEBVIEW_GUI'].lower() \
-            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in ['qt', 'gtk', 'win32'] \
+            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in ['qt', 'gtk', 'win32', 'cef'] \
             else None
 
     def __getitem__(self, key):
@@ -77,7 +85,6 @@ def _initialize_imports():
 
         try:
             import webview.qt as gui
-            logger.debug('Using QT')
 
             return True
         except ImportError as e:
@@ -93,7 +100,7 @@ def _initialize_imports():
             return True
         except ImportError:
             logger.exception('PyObjC cannot be loaded')
-            
+
             return False
 
     def import_win32():
@@ -129,7 +136,6 @@ def _initialize_imports():
 
         return False
 
-
     global _initialized
 
     if not _initialized:
@@ -138,7 +144,7 @@ def _initialize_imports():
                 guis = [import_qt, import_cocoa]
             else:
                 guis = [import_cocoa, import_qt]
-                
+
             if not try_import(guis):
                 raise Exception('You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use pywebview.')
 
@@ -177,7 +183,7 @@ def _api_call(function):
             return function(*args, **kwargs)
         except NameError:
             raise Exception('Create a web view window first, before invoking this function')
-        except KeyError:
+        except KeyError as e:
             try:
                 uid = kwargs['uid']
             except KeyError:
@@ -221,16 +227,18 @@ def create_window(title, url=None, js_api=None, width=800, height=600,
             localization.update(strings)
     else:
         uid = 'child_' + uuid4().hex[:8]
-
         if not _webview_ready.wait(5):
-            raise Exception('Call create_window from the main thread first, and then from subthreads')
+            raise Exception('Call create_window from the main thread first')
 
     _webview_ready.clear()  # Make API calls wait while the new window is created
     gui.create_window(uid, make_unicode(title), transform_url(url),
                       width, height, resizable, fullscreen, min_size, confirm_quit,
                       background_color, debug, js_api, text_select, frameless, _webview_ready)
 
-    return uid
+    if uid == 'master':
+        _webview_ready.clear()
+    else:
+        return uid
 
 
 @_api_call
@@ -323,6 +331,17 @@ def toggle_fullscreen(uid='master'):
 
 
 @_api_call
+def set_window_size(width, height, uid='master'):
+    """
+    Set Window Size
+    :param width: desired width of target window
+    :param height: desired height of target window
+    :param uid: uid of the target instance
+    """
+    gui.set_window_size(width, height, uid)
+
+
+@_api_call
 def evaluate_js(script, uid='master'):
     """
     Evaluate given JavaScript code and return the result
@@ -349,7 +368,7 @@ def window_exists(uid='master'):
 
 def webview_ready(timeout=None):
     """
-    :param delay: optional timeout
+    :param timeout: optional timeout
     :return: True when the last opened window is ready. False if the timeout is reached, when the timeout parameter is provided.
     Until then blocks the calling thread.
     """
@@ -358,18 +377,18 @@ def webview_ready(timeout=None):
 
 def _js_bridge_call(uid, api_instance, func_name, param):
     def _call():
-        result = json.dumps(function(func_params))
+        result = json.dumps(func(func_params))
         code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, escape_line_breaks(result))
         evaluate_js(code, uid)
 
-    function = getattr(api_instance, func_name, None)
+    func = getattr(api_instance, func_name, None)
 
-    if function is not None:
+    if func is not None:
         try:
             func_params = param if not param else json.loads(param)
             t = Thread(target=_call)
             t.start()
-        except Exception as e:
+        except Exception:
             logger.exception('Error occurred while evaluating function {0}'.format(func_name))
     else:
         logger.error('Function {}() does not exist'.format(func_name))

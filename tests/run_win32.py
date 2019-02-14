@@ -3,5 +3,5 @@ import pytest
 
 
 if __name__ == '__main__':
-    os.environ['USE_WIN32'] = ''
+    os.environ['PYWEBVIEW_GUI'] = 'win32'
     pytest.main()

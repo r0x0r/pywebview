@@ -5,7 +5,7 @@ from .util import run_test
 
 
 def test_load_html():
-    run_test(main_func, load_html)
+    run_test(webview, main_func, load_html, destroy_delay=0)
 
 
 def main_func():

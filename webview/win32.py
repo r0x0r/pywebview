@@ -27,7 +27,7 @@ from webview.win32_shared import set_ie_mode
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('pywebview')
 
 """
 
@@ -194,6 +194,12 @@ class BrowserView(object):
     def destroy(self):
         win32gui.SendMessage(self.hwnd, win32con.WM_DESTROY)
 
+    def set_window_size(self, width, height):
+        self.width = width
+        self.height = height
+        win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOP, self.pos_x, self.pos_y, width, height,
+                              win32con.SWP_SHOWWINDOW)
+
     def load_url(self, url):
         self.url = url
         self.browser.Navigate2(url)
@@ -318,6 +324,10 @@ def destroy_window(uid):
 
 def toggle_fullscreen(uid):
     BrowserView.instance.toggle_fullscreen()
+
+
+def set_window_size(width, height, uid):
+    BrowserView.instance.set_window_size(width, height)
 
 
 def evaluate_js(script, uid):

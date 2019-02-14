@@ -1,50 +1,47 @@
 import threading
-from .util import run_test
+from .util import run_test, get_test_name
 import webview
 
 
 def test_mixed():
-    run_test(main_func, mixed_test)
+    run_test(webview, main_func, mixed_test)
 
 
 def test_array():
-    run_test(main_func, array_test)
+    run_test(webview, main_func, array_test)
 
 
 def test_object():
-    run_test(main_func, object_test)
+    run_test(webview, main_func, object_test)
 
 
 def test_string():
-    run_test(main_func, string_test)
+    run_test(webview, main_func, string_test)
 
 
 def test_int():
-    run_test(main_func, int_test)
+    run_test(webview, main_func, int_test)
 
 
 def test_float():
-    run_test(main_func, float_test)
+    run_test(webview, main_func, float_test)
 
 
 def test_undefined():
-    run_test(main_func, undefined_test)
+    run_test(webview, main_func, undefined_test)
 
 
 def test_null():
-    run_test(main_func, null_test)
+    run_test(webview, main_func, null_test)
 
 
 def test_nan():
-    run_test(main_func, nan_test)
+    import webview
+
+    run_test(webview, main_func, nan_test)
 
 
 def main_func():
-    def load_html():
-        webview.load_html('<h1>test</h1>')
-
-    t = threading.Thread(target=load_html)
-    t.start()
     webview.create_window('Evaluate JS test')
 
 
@@ -65,7 +62,6 @@ def array_test():
     function getValue() {
         return [undefined, 1, 'two', 3.00001, {four: true}]
     }
-
     getValue()
     """)
     assert result == [None, 1, 'two', 3.00001, {'four': True}]

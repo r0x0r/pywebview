@@ -3,23 +3,23 @@ from .util import run_test, assert_js
 
 
 def test_bg_color():
-    run_test(main_func, bg_color)
+    run_test(webview, main_func, bg_color)
 
 
 def test_load_html():
-    run_test(main_func, load_html)
+    run_test(webview, main_func, load_html)
 
 
 def test_load_url():
-    run_test(main_func, load_url)
+    run_test(webview, main_func, load_url)
 
 
 def test_evaluate_js():
-    run_test(main_func, evaluate_js)
+    run_test(webview, main_func, evaluate_js)
 
 
 def test_js_bridge():
-    run_test(main_api_func, js_bridge)
+    run_test(webview, main_api_func, js_bridge)
 
 
 def main_func():
@@ -52,7 +52,6 @@ def js_bridge():
     child_window = webview.create_window('Window #2', js_api=api2)
     assert child_window != 'MainWindow'
     webview.load_html('<html><body><h1>Secondary window</h1></body></html>', uid=child_window)
-
     assert_js(webview, 'test1', 1)
     assert_js(webview, 'test2', 2, uid=child_window)
 
@@ -83,7 +82,6 @@ def evaluate_js():
     """, uid=child_window)
     assert result2 == 4
     webview.destroy_window(child_window)
-
 
 
 def load_html():

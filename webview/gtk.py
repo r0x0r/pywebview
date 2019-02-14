@@ -21,7 +21,7 @@ from webview.util import parse_api_js
 from webview.js.css import disable_text_select
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('pywebview')
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -196,7 +196,9 @@ class BrowserView:
                 code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
                 webview.run_javascript(code)
 
-        except json.JSONDecodeError:
+        except ValueError: # Python 2
+            pass
+        except json.JSONDecodeError: # Python 3
             pass
 
     def on_navigation(self, webview, decision, decision_type):
@@ -238,6 +240,9 @@ class BrowserView:
             self.window.fullscreen()
 
         self.is_fullscreen = not self.is_fullscreen
+
+    def set_window_size(self, width, height):
+        self.window.resize(width, height)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if dialog_type == FOLDER_DIALOG:
@@ -377,6 +382,12 @@ def toggle_fullscreen(uid):
     def _toggle_fullscreen():
         BrowserView.instances[uid].toggle_fullscreen()
     glib.idle_add(_toggle_fullscreen)
+
+
+def set_window_size(width, height, uid):
+    def _set_window_size():
+        BrowserView.instances[uid].set_window_size(width,height)
+    glib.idle_add(_set_window_size)
 
 
 def get_current_url(uid):

@@ -1,5 +1,5 @@
 """
-This is an example of py2applet setup.py script for freezing your pywebview
+This is an example of py2app setup.py script for freezing your pywebview
 application
 
 Usage:
@@ -12,15 +12,15 @@ from setuptools import setup
 
 def tree(src):
     return [(root, map(lambda f: os.path.join(root, f), files))
-            for (root, dirs, files) in os.walk(os.path.normpath(src))]
+        for (root, dirs, files) in os.walk(os.path.normpath(src))]
 
 
-ENTRY_POINT = ['YOUR_EXAMPLE.py']
+ENTRY_POINT = ['simple_browser.py']
 
 DATA_FILES = tree('DATA_FILES_DIR') + tree('DATA_FILE_DIR2')
 OPTIONS = {'argv_emulation': False,
            'strip': True,
-           'iconfile': 'icon.icns',
+           #'iconfile': 'icon.icns', # uncomment to include an icon
            'includes': ['WebKit', 'Foundation', 'webview']}
 
 setup(

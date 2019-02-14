@@ -1,6 +1,6 @@
 *.pyc
 *.spec
-upload.sh
+*.sh
 setup.cfg
 pywebview.egg-info
 MANIFEST
@@ -11,4 +11,10 @@ dist
 .vs
 bin
 obj
-.*
+node_modules
+dist
+.DS_Store
+venv*
+.vscode
+.pytest_cache
+__pycache__
