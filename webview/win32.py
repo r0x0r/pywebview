@@ -296,7 +296,7 @@ class BrowserView(object):
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, webview_ready):
+                  confirm_quit, background_color, debug, js_api, frameless, webview_ready):
     set_ie_mode()
     browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size, webview_ready)
     browser_view.show()

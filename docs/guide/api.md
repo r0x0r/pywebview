@@ -18,7 +18,8 @@ Create a new _pywebview_ window. Calling this function for the first time will s
 * `width` - Window width. Default is 800px.
 * `height` - Window height. Default is 600px.
 * `resizable` - Whether window can be resized. Default is True
-* `fullscreen` - Whether to start in fullscreen mode. Default is False
+* `fullscreen` - Start in fullscreen mode. Default is False
+* `frameless` - Create a frameless easy-draggable window. Default is False.
 * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
 * `strings` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
 * `confirm_quit` - Whether to display a quit confirmation dialog. Default is False

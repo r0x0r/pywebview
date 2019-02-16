@@ -77,6 +77,10 @@ class BrowserView(QMainWindow):
         def __init__(self, parent=None):
             super(BrowserView.WebView, self).__init__(parent)
 
+            if parent.frameless:
+                QApplication.instance().installEventFilter(self)
+                self.setMouseTracking(True)
+
         def contextMenuEvent(self, event):
             menu = self.page().createStandardContextMenu()
 
@@ -108,6 +112,25 @@ class BrowserView(QMainWindow):
                                         False, '#fff', False, None, True, self.parent().webview_ready)
                 inspector.show()
 
+        def mousePressEvent(self, event):
+            if event.button() == QtCore.Qt.LeftButton:
+                self.drag_pos = event.globalPos() - self.parent().frameGeometry().topLeft()
+
+            event.accept()
+
+        def mouseMoveEvent(self, event):
+            if self.parent().frameless and int(event.buttons()) == 1:  # left button is pressed
+                self.parent().move(event.globalPos() - self.drag_pos)
+
+        def eventFilter(self, object, event):
+            if object.parent() == self:
+                if event.type() == QtCore.QEvent.MouseMove:
+                    self.mouseMoveEvent(event)
+                elif event.type() == QtCore.QEvent.MouseButtonPress:
+                    self.mousePressEvent(event)
+
+            return False
+
     # New-window-requests handler for Qt 5.5+ only
     class NavigationHandler(QWebPage):
         def __init__(self, parent=None):
@@ -133,7 +156,7 @@ class BrowserView(QMainWindow):
             return self.nav_handler
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
-                 min_size, confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                 min_size, confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instances[uid] = self
         self.uid = uid
@@ -171,6 +194,10 @@ class BrowserView(QMainWindow):
             self.setFixedSize(width, height)
 
         self.setMinimumSize(min_size[0], min_size[1])
+
+        self.frameless = frameless
+        if frameless:
+            self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
 
         self.view = BrowserView.WebView(self)
 
@@ -305,7 +332,7 @@ class BrowserView(QMainWindow):
 
         if not self.text_select:
             script = disable_text_select.replace('\n', '')
-            
+
             try:  # QT < 5.6
                 self.view.page().mainFrame().evaluateJavaScript(script)
             except AttributeError:
@@ -420,14 +447,14 @@ class BrowserView(QMainWindow):
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
     global _app
     _app = QApplication.instance() or QApplication([])
 
     def _create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
                               min_size, confirm_quit, background_color, debug, js_api,
-                              text_select, webview_ready)
+                              text_select, frameless, webview_ready)
         browser.show()
 
     if uid == 'master':

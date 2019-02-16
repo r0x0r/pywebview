@@ -36,6 +36,17 @@ _objc_so = ctypes.cdll.LoadLibrary(_objc.__file__)
 _eval_js_metadata = { 'arguments': { 3: { 'callable': { 'retval': { 'type': b'v' },
                       'arguments': { 0: { 'type': b'^v' }, 1: { 'type': b'@' }, 2: { 'type': b'@' }}}}}}
 
+# Fallbacks, in case these constants are not wrapped by PyObjC
+try:
+    NSFullSizeContentViewWindowMask = AppKit.NSFullSizeContentViewWindowMask
+except AttributeError:
+    NSFullSizeContentViewWindowMask = 1 << 15
+
+try:
+    NSWindowTitleHidden = AppKit.NSWindowTitleHidden
+except AttributeError:
+    NSWindowTitleHidden = 1
+
 
 logger = logging.getLogger('pywebview')
 logger.debug('Using Cocoa')
@@ -193,13 +204,49 @@ class BrowserView:
             option = sender.indexOfSelectedItem()
             self.window().setAllowedFileTypes_(self.filter[option][1])
 
-
     class WebKitHost(WebKit.WKWebView):
         def mouseDown_(self, event):
+            i = BrowserView.get_instance('webkit', self)
+            window = self.window()
+
+            if i.frameless:
+                windowFrame = window.frame()
+                if windowFrame is None:
+                    raise RuntimeError('Failed to obtain screen')
+
+                self.initialLocation = window.convertBaseToScreen_(event.locationInWindow())
+                self.initialLocation.x -= windowFrame.origin.x
+                self.initialLocation.y -= windowFrame.origin.y
+
+            super(BrowserView.WebKitHost, self).mouseDown_(event)
+
+        def mouseDragged_(self, event):
+            i = BrowserView.get_instance('webkit', self)
+            window = self.window()
+
+            if i.frameless:
+                screenFrame = AppKit.NSScreen.mainScreen().frame()
+                if screenFrame is None:
+                    raise RuntimeError('Failed to obtain screen')
+
+                windowFrame = window.frame()
+                if windowFrame is None:
+                    raise RuntimeError('Failed to obtain frame')
+
+                currentLocation = window.convertBaseToScreen_(window.mouseLocationOutsideOfEventStream())
+                newOrigin = AppKit.NSMakePoint((currentLocation.x - self.initialLocation.x),
+                                        (currentLocation.y - self.initialLocation.y))
+                if (newOrigin.y + windowFrame.size.height) > \
+                    (screenFrame.origin.y + screenFrame.size.height):
+                    newOrigin.y = screenFrame.origin.y + \
+                                (screenFrame.size.height + windowFrame.size.height)
+                window.setFrameOrigin_(newOrigin)
+
             if event.modifierFlags() & getattr(AppKit, 'NSEventModifierFlagControl', 1 << 18):
                 i = BrowserView.get_instance('webkit', self)
                 if i and not i.debug:
                     return
+
             super(BrowserView.WebKitHost, self).mouseDown_(event)
 
         def rightMouseDown_(self, event):
@@ -244,8 +291,9 @@ class BrowserView:
 
                     return handled
 
+
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                 confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
 
@@ -277,8 +325,6 @@ class BrowserView:
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
         self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
-        # Set the titlebar color (so that it does not change with the window color)
-        self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
 
@@ -290,6 +336,29 @@ class BrowserView:
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
 
+        self.frameless = frameless
+
+        if frameless:
+            # Make content full size and titlebar transparent
+            window_mask = window_mask | NSFullSizeContentViewWindowMask | AppKit.NSTexturedBackgroundWindowMask
+            self.window.setStyleMask_(window_mask)
+            self.window.setTitlebarAppearsTransparent_(True)
+            self.window.setTitleVisibility_(NSWindowTitleHidden)
+
+            # Hide standard buttons
+            self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
+
+        else:
+            # Set the titlebar color (so that it does not change with the window color)
+            self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
+
+        if url:
+            self.url = url
+            self.load_url(url)
+        else:
+            self.loaded.set()
         try:
             self.webkit.evaluateJavaScript_completionHandler_('', lambda a, b: None)
         except TypeError:
@@ -645,10 +714,10 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, js_api, text_select, webview_ready)
+                              confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready)
         browser.show()
 
     if uid == 'master':

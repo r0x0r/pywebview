@@ -49,7 +49,7 @@ class BrowserView:
             return _js_bridge_call(self.parent_uid, self.api, func_name, param)
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                 confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
         BrowserView.instances[uid] = self
         self.uid = uid
 
@@ -102,6 +102,13 @@ class BrowserView:
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('notify::title', self.on_title_change)
         self.webview.connect('decide-policy', self.on_navigation)
+
+        if frameless:
+            self.window.set_decorated(False)
+            self.move_progress = False
+            self.webview.connect('button-release-event', self.on_mouse_release)
+            self.webview.connect('button-press-event', self.on_mouse_press)
+            self.window.connect('motion-notify-event', self.on_mouse_move)
 
         if debug:
             self.webview.get_settings().props.enable_developer_extras = True
@@ -201,6 +208,18 @@ class BrowserView:
             if decision.get_frame_name() == '_blank':
                 webbrowser.open(uri, 2, True)
                 decision.ignore()
+
+    def on_mouse_release(self, sender, event):
+        self.move_progress = False
+
+    def on_mouse_press(self, _, event):
+        self.point_diff = [x - y for x, y in zip(self.window.get_position(), [event.x_root, event.y_root])]
+        self.move_progress = True
+
+    def on_mouse_move(self, _, event):
+        if self.move_progress:
+            point = [x + y for x, y in zip((event.x_root, event.y_root), self.point_diff)]
+            self.window.move(point[0], point[1])
 
     def show(self):
         self.window.show_all()
@@ -335,10 +354,10 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, webview_ready):
+                  confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
     def create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, js_api, text_select, webview_ready)
+                              confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready)
         browser.show()
 
     if uid == 'master':
