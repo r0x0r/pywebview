@@ -3,6 +3,13 @@
 
 # Changelog
 
+## 2.4
+
+_Released 17/02/2019_
+
+- `New` [All] Support for frameless windows.
+- `Fix` [Windows] Fix broken installation of v2.3
+
 ## 2.3
 
 _Released 12/02/2019_
