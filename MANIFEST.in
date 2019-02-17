@@ -1,0 +1,2 @@
+include webview/lib/WebBrowserInterop.x64.dll
+include webview/lib/WebBrowserInterop.x86.dll
