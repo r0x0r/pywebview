@@ -164,6 +164,16 @@ def init(webview_ready, debug):
                 'enabled': debug
             }
         }
+
+        try: # set paths under Pyinstaller's one file mode
+            settings.update({
+                'resources_dir_path': sys._MEIPASS,
+                'locales_dir_path': os.path.join(sys._MEIPASS, 'locales'),
+                'browser_subprocess_path': os.path.joing(sys._MEIPASS, 'subprocess.exe'),
+            })
+        except Exception:
+            pass
+
         cef.Initialize(settings=settings)
         cef.DpiAware.EnableHighDpiSupport()
         _initialized = True
