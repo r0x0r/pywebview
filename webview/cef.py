@@ -169,7 +169,7 @@ def init(webview_ready, debug):
             settings.update({
                 'resources_dir_path': sys._MEIPASS,
                 'locales_dir_path': os.path.join(sys._MEIPASS, 'locales'),
-                'browser_subprocess_path': os.path.joing(sys._MEIPASS, 'subprocess.exe'),
+                'browser_subprocess_path': os.path.join(sys._MEIPASS, 'subprocess.exe'),
             })
         except Exception:
             pass
