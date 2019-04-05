@@ -179,7 +179,8 @@ def _api_call(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
         try:
-            _webview_ready.wait(5)
+            if not _webview_ready.wait(15):
+                raise Exception('Main window failed to start')
             return function(*args, **kwargs)
         except NameError:
             raise Exception('Create a web view window first, before invoking this function')
