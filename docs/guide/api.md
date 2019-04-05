@@ -8,14 +8,13 @@ create_window(title, url='', js_api=None, width=800, height=600, resizable=True,
               fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False, \
               background_color='#FFF', debug=False, text_select=False)
 ```
-  
+
 Create a new _pywebview_ window. Calling this function for the first time will start the application and block program execution. You have to execute your program logic in a separate thread. Subsequent calls to `create_window` will return a unique window `uid`, which can be used to refer to the specific window in the API functions. Single-window applications need not bother about the `uid` and can simply omit it from function calls.
 
 * `title` - Window title
 * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point.
-* `js_api` - Expose a `js_api` class object to the DOM of the current `pywebview` window. Callable functions of `js_api` can be executed using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a
- primitive type or an object. Object types are converted between Javascript and Python. Functions are executed in separate
-  threads and are not thread-safe.
+* `js_api` - Expose a `js_api` class object to the DOM of the current `pywebview` window. Callable functions of `js_api` can be executed using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a primitive type or an object. Object types are converted between Javascript and Python. Functions are executed in separate
+  threads and are not thread-safe. `window.pywebview` is not guaranteed to be available on `window.onload` and its access must be deferred.
 * `width` - Window width. Default is 800px.
 * `height` - Window height. Default is 600px.
 * `resizable` - Whether window can be resized. Default is True
@@ -114,7 +113,7 @@ Load HTML code into the specified window. Base URL for resolving relative URLs i
 load_url(url, uid='master')
 ```
 
-Load a new URL into the specified _pywebview_ window. 
+Load a new URL into the specified _pywebview_ window.
 
 [Example](/examples/change_url.html)
 
@@ -128,7 +127,7 @@ set_title(title, uid='master')
 Change the title of the window
 
 [Example](/examples/window_title_change.html)
-    
+
 ## toggle_fullscreen
 
 ``` python
@@ -150,7 +149,7 @@ Return True if a _pywebview_ window with the given uid is up and running, False 
 
 ## config
 
-``` 
+```
 config.gui = 'qt' | 'gtk'
 ```
 
