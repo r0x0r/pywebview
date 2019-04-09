@@ -33,7 +33,7 @@ setup(
     include_package_data=True,
     packages=['webview', 'webview.js'],
     package_dir={'webview': 'webview'},
-    package_data={'webview': ['sdfd', 'webview/lib/WebBrowserInterop.x64.dll', 'webview/lib/WebBrowserInterop.x86.dll']},
+    package_data={'webview': ['webview/lib/WebBrowserInterop.x64.dll', 'webview/lib/WebBrowserInterop.x86.dll']},
     license='New BSD license',
     classifiers=[
         'Intended Audience :: Developers',
