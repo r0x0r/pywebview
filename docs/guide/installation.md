@@ -35,12 +35,12 @@ pip install cefpython3
 
 [pyobjc](https://pythonhosted.org/pyobjc/)
 
-`PyObjC` comes presintalled with the Python bundled in macOS. For a stand-alone Python installation you have to install it separately. 
+`PyObjC` comes presintalled with the Python bundled in macOS. For a stand-alone Python installation you have to install it separately.
 You can also use QT5 in macOS
 
 ### Linux
 
-You have to install Linux dependencies manually. You can choose between GTK and QT.
+`pip install pywebview[qt]` should take of QT dependencies. If it does not work or you would like to use GTK, you may try these recipes.
 
 [PyGObject](https://pygobject.readthedocs.io/en/latest/) is used with GTK. To install dependencies on Ubuntu for both Python 3 and 2
 
@@ -57,11 +57,11 @@ For other distributions, consult the [PyGObject documentation](https://pygobject
 To install QtWebChannel on Debian-based systems.
 
 ``` bash
-sudo apt install python3-pyqt5 python3-pyqt5.qtwebengine python3-pyqt5.qtwebchannel python-pyqt5 python-pyqt5.qtwebengine python-pyqt5.qtwebchannel libqt5webkit5-dev 
+sudo apt install python3-pyqt5 python3-pyqt5.qtwebengine python3-pyqt5.qtwebchannel python-pyqt5 python-pyqt5.qtwebengine python-pyqt5.qtwebchannel libqt5webkit5-dev
 ```
 
 To install QtWebKit.
 
 ``` bash
-sudo apt install python3-pyqt5 python3-pyqt5.qtwebkit python-pyqt5 python-pyqt5.qtwebkit libqt5webkit5-dev 
+sudo apt install python3-pyqt5 python3-pyqt5.qtwebkit python-pyqt5 python-pyqt5.qtwebkit libqt5webkit5-dev
 ```
