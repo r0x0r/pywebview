@@ -3,7 +3,7 @@ import platform
 from setuptools import setup
 
 extras_require = {
-    'qt': ['PyQt5'],
+    'qt': ['PyQt5', 'pyqtwebengine'],
     'cef': ['cefpython3'],
 }
 
