@@ -338,11 +338,6 @@ class BrowserView:
             self.window.setTitlebarAppearsTransparent_(True)
             self.window.setTitleVisibility_(NSWindowTitleHidden)
 
-            # Hide standard buttons
-            self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
-            self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
-            self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
-
         else:
             # Set the titlebar color (so that it does not change with the window color)
             self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
