@@ -61,9 +61,10 @@ def parse_file_type(file_type):
 
 
 def parse_api_js(api_instance):
+    print(0)
     func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
     js_code = npo.src + api.src % func_list
-
+    print(api_instance)
     return js_code
 
 

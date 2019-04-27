@@ -1,18 +1,13 @@
 import webview
-import pytest
-
 from .util import run_test
 
 
 def test_load_html():
-    run_test(webview, main_func, load_html, destroy_delay=0)
+    window = webview.create_window('Load HTML test')
+    run_test(webview, window, load_html, destroy_delay=0)
 
 
-def main_func():
-    webview.create_window('Load HTML test')
-
-
-def load_html():
-    webview.load_html('<h1>This is dynamically loaded HTML</h1>')
+def load_html(window):
+    window = window.load_html('<h1>This is dynamically loaded HTML</h1>')
 
 

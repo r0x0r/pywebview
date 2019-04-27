@@ -1,7 +1,7 @@
 import webview
 
 """
-This example demonstrates evaluating JavaScript in a web page.
+This example demonstrates how to use multiprocessing instead of threading
 """
 
 
@@ -25,5 +25,5 @@ def evaluate_js(window):
 
 
 if __name__ == '__main__':
-    window = webview.create_window('Run custom JavaScript')
-    webview.start(evaluate_js, window)
+    window = webview.create_window('Multiprocessing example', 'http://example.org')
+    webview.start(evaluate_js, window, multiprocessing=True)

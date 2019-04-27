@@ -3,13 +3,10 @@ from .util import run_test
 
 
 def test_set_title():
-    run_test(webview, main_func, set_title)
+    window = webview.create_window('Set title test', 'https://www.example.org')
+    run_test(webview, window, set_title)
 
 
-def main_func():
-    webview.create_window('Set title test', 'https://www.example.org')
-
-
-def set_title():
-    webview.set_title('New title')
+def set_title(window):
+    window.set_title('New title')
 

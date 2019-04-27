@@ -1,44 +1,41 @@
+import pytest
 import webview
 from .util import run_test, assert_js
 
-
-def test_bg_color():
-    run_test(webview, main_func, bg_color)
-
-
-def test_load_html():
-    run_test(webview, main_func, load_html)
-
-
-def test_load_url():
-    run_test(webview, main_func, load_url)
-
-
-def test_evaluate_js():
-    run_test(webview, main_func, evaluate_js)
-
-
-def test_js_bridge():
-    run_test(webview, main_api_func, js_bridge)
-
-
-def main_func():
-    webview.create_window('Multi-window test', 'https://www.example.org')
-
-
-def main_api_func():
+@pytest.fixture
+def window():
     class Api1:
         def test1(self, params):
             return 1
 
-    webview.create_window('Multi-window js bridge test', 'https://www.example.org', js_api=Api1())
+    return webview.create_window('Multi-window js bridge test', 'https://www.example.org', js_api=Api1())
 
 
-def bg_color():
+def test_bg_color(window):
     child_window = webview.create_window('Window #2', background_color='#0000FF')
+
+    run_test(webview, window, bg_color)
+
+
+def test_load_html(window):
+    run_test(webview, window, load_html)
+
+
+def test_load_url(window):
+    run_test(webview, window, load_url)
+
+
+def test_evaluate_js(window):
+    run_test(webview, window, evaluate_js)
+
+
+def test_js_bridge(window):
+    run_test(webview, window, js_bridge)
+
+
+def bg_color(window):
     assert child_window != 'MainWindow'
-    webview.webview_ready()
-    webview.destroy_window(child_window)
+    window.destroy_window(child_window)
 
 
 def js_bridge():

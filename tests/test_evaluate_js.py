@@ -1,52 +1,59 @@
+import pytest
 import threading
 from .util import run_test, get_test_name
 import webview
 
 
-def test_mixed():
-    run_test(webview, main_func, mixed_test)
+@pytest.fixture
+def window():
+    return webview.create_window('Evaluate JS test')
 
 
-def test_array():
-    run_test(webview, main_func, array_test)
+def test_mixed(window):
+    run_test(webview, window, mixed_test)
 
 
-def test_object():
-    run_test(webview, main_func, object_test)
+def test_array(window):
+    run_test(webview, window, array_test)
+
+"""
+def test_object(create_window):
+    window = create_window()
+    run_test(webview, window, object_test)
 
 
-def test_string():
-    run_test(webview, main_func, string_test)
+def test_string(create_window):
+    window = create_window
+    run_test(webview, window, string_test)
 
 
-def test_int():
-    run_test(webview, main_func, int_test)
+def test_int(create_window):
+    window = create_window
+    run_test(webview, window, int_test)
 
 
-def test_float():
-    run_test(webview, main_func, float_test)
+def test_float(create_window):
+    window = create_window
+    run_test(webview, window, float_test)
 
 
-def test_undefined():
-    run_test(webview, main_func, undefined_test)
+def test_undefined(create_window):
+    window = create_window
+    run_test(webview, window, undefined_test)
 
 
-def test_null():
-    run_test(webview, main_func, null_test)
+def test_null(create_window):
+    window = create_window
+    run_test(webview, window, null_test)
 
 
-def test_nan():
-    import webview
+def test_nan(create_window):
+    window = create_window
+    run_test(webview, window, nan_test)
+"""
 
-    run_test(webview, main_func, nan_test)
-
-
-def main_func():
-    webview.create_window('Evaluate JS test')
-
-
-def mixed_test():
-    result = webview.evaluate_js("""
+def mixed_test(window):
+    result = window.evaluate_js("""
         document.body.style.backgroundColor = '#212121';
         // comment
         function test() {
@@ -57,8 +64,8 @@ def mixed_test():
     assert result == 4
 
 
-def array_test():
-    result = webview.evaluate_js("""
+def array_test(window):
+    result = window.evaluate_js("""
     function getValue() {
         return [undefined, 1, 'two', 3.00001, {four: true}]
     }
@@ -67,8 +74,8 @@ def array_test():
     assert result == [None, 1, 'two', 3.00001, {'four': True}]
 
 
-def object_test():
-    result = webview.evaluate_js("""
+def object_test(window):
+    result = window.evaluate_js("""
     function getValue() {
         return {1: 2, 'test': true, obj: {2: false, 3: 3.1}}
     }
@@ -78,8 +85,8 @@ def object_test():
     assert result == {'1': 2, 'test': True, 'obj': {'2': False, '3': 3.1}}
 
 
-def string_test():
-    result = webview.evaluate_js("""
+def string_test(window):
+    result = window.evaluate_js("""
     function getValue() {
         return "this is only a test"
     }
@@ -89,8 +96,8 @@ def string_test():
     assert result == u'this is only a test'
 
 
-def int_test():
-    result = webview.evaluate_js("""
+def int_test(window):
+    result = window.evaluate_js("""
     function getValue() {
         return 23
     }
@@ -100,8 +107,8 @@ def int_test():
     assert result == 23
 
 
-def float_test():
-    result = webview.evaluate_js("""
+def float_test(window):
+    result = window.evaluate_js("""
     function getValue() {
         return 23.23443
     }
@@ -111,8 +118,8 @@ def float_test():
     assert result == 23.23443
 
 
-def undefined_test():
-    result = webview.evaluate_js("""
+def undefined_test(window):
+    result = window.evaluate_js("""
     function getValue() {
         return undefined
     }
@@ -122,8 +129,8 @@ def undefined_test():
     assert result is None
 
 
-def null_test():
-    result = webview.evaluate_js("""
+def null_test(window):
+    result = window.evaluate_js("""
     function getValue() {
         return null
     }
@@ -133,8 +140,8 @@ def null_test():
     assert result is None
 
 
-def nan_test():
-    result = webview.evaluate_js("""
+def nan_test(window):
+    result = window.evaluate_js("""
     function getValue() {
         return NaN
     }

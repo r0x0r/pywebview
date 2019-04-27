@@ -51,6 +51,9 @@ except AttributeError:
 logger = logging.getLogger('pywebview')
 logger.debug('Using Cocoa')
 
+_debug = None
+
+
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
@@ -59,7 +62,7 @@ class BrowserView:
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
             i = list(BrowserView.instances.values())[0]
-            i.webview_ready.set()
+            i.shown_event.set()
 
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
@@ -83,18 +86,16 @@ class BrowserView:
                 BrowserView.app.stop_(self)
 
     class JSBridge(AppKit.NSObject):
-        def initWithObject_(self, api_instance):
+        def initWithObject_(self, window):
             super(BrowserView.JSBridge, self).init()
-            self.api = api_instance
+            self.window = window
             return self
 
         def userContentController_didReceiveScriptMessage_(self, controller, message):
             func_name, param = json.loads(message.body())
             if param is WebKit.WebUndefined.undefined():
                 param = None
-
-            i = BrowserView.get_instance('js_bridge', self)
-            _js_bridge_call(i.uid, self.api, func_name, param)
+            _js_bridge_call(self.window, func_name, param)
 
     class BrowserDelegate(AppKit.NSObject):
         # Display a JavaScript alert panel containing the specified message
@@ -172,7 +173,7 @@ class BrowserView:
                     i.window.makeFirstResponder_(webview)
 
                 if i.js_bridge:
-                    script = parse_api_js(i.js_bridge.api)
+                    script = parse_api_js(i.js_bridge.window.js_api)
                     i.webkit.evaluateJavaScript_completionHandler_(script, lambda a,b: None)
 
                 if not i.text_select:
@@ -181,7 +182,7 @@ class BrowserView:
                 print_hook = 'window.print = function() { window.webkit.messageHandlers.browserDelegate.postMessage("print") };'
                 i.webkit.evaluateJavaScript_completionHandler_(print_hook, lambda a,b: None)
 
-                i.loaded.set()
+                i.loaded_event.set()
 
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):
@@ -244,14 +245,14 @@ class BrowserView:
 
             if event.modifierFlags() & getattr(AppKit, 'NSEventModifierFlagControl', 1 << 18):
                 i = BrowserView.get_instance('webkit', self)
-                if i and not i.debug:
+                if not _debug:
                     return
 
             super(BrowserView.WebKitHost, self).mouseDown_(event)
 
         def rightMouseDown_(self, event):
             i = BrowserView.get_instance('webkit', self)
-            if i and i.debug:
+            if _debug:
                 super(BrowserView.WebKitHost, self).rightMouseDown_(event)
 
         def performKeyEquivalent_(self, theEvent):
@@ -292,37 +293,35 @@ class BrowserView:
                     return handled
 
 
-    def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
-        BrowserView.instances[uid] = self
-        self.uid = uid
+    def __init__(self, window):
+        BrowserView.instances[window.uid] = self
+        self.uid = window.uid
 
         self.js_bridge = None
         self._file_name = None
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
-        self.webview_ready = webview_ready
-        self.loaded = Event()
-        self.confirm_quit = confirm_quit
-        self.title = title
-        self.debug = debug
-        self.text_select = text_select
+        self.shown_event = window.shown_event
+        self.loaded_event = window.loaded_event
+        self.confirm_quit = window.confirm_quit
+        self.title = window.title
+        self.text_select = window.text_select
 
         self.is_fullscreen = False
 
-        rect = AppKit.NSMakeRect(0.0, 0.0, width, height)
+        rect = AppKit.NSMakeRect(0.0, 0.0, window.width, window.height)
         window_mask = AppKit.NSTitledWindowMask | AppKit.NSClosableWindowMask | AppKit.NSMiniaturizableWindowMask
 
-        if resizable:
+        if window.resizable:
             window_mask = window_mask | AppKit.NSResizableWindowMask
 
         # The allocated resources are retained because we would explicitly delete
         # this instance when its window is closed
         self.window = AppKit.NSWindow.alloc().\
             initWithContentRect_styleMask_backing_defer_(rect, window_mask, AppKit.NSBackingStoreBuffered, False).retain()
-        self.window.setTitle_(title)
-        self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(background_color))
-        self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
+        self.window.setTitle_(window.title)
+        self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color))
+        self.window.setMinSize_(AppKit.NSSize(window.min_size[0], window.min_size[1]))
         self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
 
@@ -336,9 +335,9 @@ class BrowserView:
         self.window.setDelegate_(self._windowDelegate)
         BrowserView.app.setDelegate_(self._appDelegate)
 
-        self.frameless = frameless
+        self.frameless = window.frameless
 
-        if frameless:
+        if window.frameless:
             # Make content full size and titlebar transparent
             window_mask = window_mask | NSFullSizeContentViewWindowMask | AppKit.NSTexturedBackgroundWindowMask
             self.window.setStyleMask_(window_mask)
@@ -354,11 +353,12 @@ class BrowserView:
             # Set the titlebar color (so that it does not change with the window color)
             self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
 
-        if url:
-            self.url = url
-            self.load_url(url)
+        if window.url:
+            self.url = window.url
+            self.load_url(window.url)
         else:
-            self.loaded.set()
+            self.loaded_event.set()
+
         try:
             self.webkit.evaluateJavaScript_completionHandler_('', lambda a, b: None)
         except TypeError:
@@ -372,24 +372,23 @@ class BrowserView:
         except:
             pass
 
-        if self.debug:
+        if _debug:
             config.preferences().setValue_forKey_(Foundation.YES, 'developerExtrasEnabled')
 
-        if js_api:
-            self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(js_api)
+        if window.js_api:
+            self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
             config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
-        if url:
-            self.load_url(url)
+        if window.url:
+            self.load_url(window.url)
         else:
             self.load_html(default_html, '')
 
-        if fullscreen:
+        if window.fullscreen:
             self.toggle_fullscreen()
 
     def show(self):
         self.window.makeKeyAndOrderFront_(self.window)
-
         if not BrowserView.app.isRunning():
             # Add the default Cocoa application menu
             self._add_app_menu()
@@ -398,7 +397,7 @@ class BrowserView:
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             BrowserView.app.run()
         else:
-            self.webview_ready.set()
+            self.shown_event.set()
 
     def destroy(self):
         AppHelper.callAfter(self.window.close)
@@ -439,13 +438,13 @@ class BrowserView:
 
     def get_current_url(self):
         def get():
-            self._current_url = self.webkit.URL()
+            self._current_url = str(self.webkit.URL())
             self._current_url_semaphore.release()
 
         AppHelper.callAfter(get)
 
         self._current_url_semaphore.acquire()
-        return self._current_url
+        return None if self._current_url == 'about:blank' else self._current_url
 
     def load_url(self, url):
         def load(url):
@@ -453,7 +452,7 @@ class BrowserView:
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
             self.webkit.loadRequest_(req)
 
-        self.loaded.clear()
+        self.loaded_event.clear()
         self.url = url
         AppHelper.callAfter(load, url)
 
@@ -462,7 +461,7 @@ class BrowserView:
             url = Foundation.NSURL.URLWithString_(BrowserView.quote(url))
             self.webkit.loadHTMLString_baseURL_(content, url)
 
-        self.loaded.clear()
+        self.loaded_event.clear()
         AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
@@ -477,7 +476,7 @@ class BrowserView:
             result = None
             result_semaphore = Semaphore(0)
 
-        self.loaded.wait()
+        self.loaded_event.wait()
         AppHelper.callAfter(eval)
 
         JSResult.result_semaphore.acquire()
@@ -491,7 +490,7 @@ class BrowserView:
                 save_filename = args[2]
 
                 save_dlg = AppKit.NSSavePanel.savePanel()
-                save_dlg.setTitle_(localization["global.saveFile"])
+                save_dlg.setTitle_(localization['global.saveFile'])
 
                 if directory:  # set initial directory
                     save_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
@@ -713,14 +712,17 @@ class BrowserView:
         return string.replace(' ', '%20')
 
 
-def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
+def create_window(window, debug):
+    global _debug
+
     def create():
-        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready)
+        browser = BrowserView(window)
         browser.show()
 
-    if uid == 'master':
+    if _debug is None:
+        _debug = debug
+
+    if window.uid == 'master':
         create()
     else:
         AppHelper.callAfter(create)
@@ -730,7 +732,7 @@ def set_title(title, uid):
     BrowserView.instances[uid].set_title(title)
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
     file_filter = []
 
     # Parse file_types to obtain allowed file extensions
@@ -739,7 +741,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         file_extensions = [i.lstrip('*.') for i in extensions.split(';') if i != '*.*']
         file_filter.append([description, file_extensions or None])
 
-    i = list(BrowserView.instances.values())[0]     # arbitary instance
+    i = BrowserView.instances[uid]
     return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
