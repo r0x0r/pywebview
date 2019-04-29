@@ -8,19 +8,15 @@ import webview
 import threading
 
 
-def create_new_window():
-    # Create new window and store its uid
-    child_window = webview.create_window('Window #2', width=800, height=400)
-
-    # Load content into both windows
-    webview.load_html('<h1>Master Window</h1>')
-    webview.load_html('<h1>Child Window</h1>', uid=child_window)
+def third_window():
+    # Create a new window after the loop started
+    third_window = webview.create_window('Window #3', html='<h1>Third Window</h1>')
 
 
 if __name__ == '__main__':
-    t = threading.Thread(target=create_new_window)
-    t.start()
-
     # Master window
-    webview.create_window('Window #1', width=800, height=600)
+    master_window = webview.create_window('Window #1', html='<h1>First window</h1>')
+    child_window = webview.create_window('Window #2', html='<h1>Second window</h1>')
+    webview.start(third_window)
+
 ```

@@ -1,18 +1,19 @@
 
 # API
 
-## create_window
+## webview.create_window
 
 ``` python
-create_window(title, url='', js_api=None, width=800, height=600, resizable=True,\
-              fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False, \
-              background_color='#FFF', debug=False, text_select=False)
+create_window(title, url='', html='', js_api=None, width=800, height=600, resizable=True,\
+              fullscreen=False, min_size=(200, 100), confirm_quit=False, \
+              background_color='#FFF', text_select=False)
 ```
 
-Create a new _pywebview_ window. Calling this function for the first time will start the application and block program execution. You have to execute your program logic in a separate thread. Subsequent calls to `create_window` will return a unique window `uid`, which can be used to refer to the specific window in the API functions. Single-window applications need not bother about the `uid` and can simply omit it from function calls.
+Create a new _pywebview_ window and returns its instance. Window is not shown until the GUI loop is started. If the function is invoked during the GUI loop, the window is displayed immediately.
 
 * `title` - Window title
 * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point.
+* `html` - HTML code to load. If both URL and HTML are specified, HTML takes precedence.
 * `js_api` - Expose a `js_api` class object to the DOM of the current `pywebview` window. Callable functions of `js_api` can be executed using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a primitive type or an object. Object types are converted between Javascript and Python. Functions are executed in separate
   threads and are not thread-safe. `window.pywebview` is not guaranteed to be available on `window.onload` and its access must be deferred.
 * `width` - Window width. Default is 800px.
@@ -21,19 +22,33 @@ Create a new _pywebview_ window. Calling this function for the first time will s
 * `fullscreen` - Start in fullscreen mode. Default is False
 * `frameless` - Create a frameless easy-draggable window. Default is False.
 * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
-* `strings` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
 * `confirm_quit` - Whether to display a quit confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
-* `debug` - Enabled debug mode. See [debugging](/guide/debugging.html) for details
 * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) CSS property.
 
-The functions below must be invoked after a _pywebview_ window is created, otherwise an exception is thrown.
-In all cases, `uid` is the uid of the target window returned by `create_window()`; if no window exists with the given `uid`, an exception is thrown. Default is `'master'`, which is the special uid given to the first window.
+## webview.start
 
+``` python
+start(func=None, args=None, localization={}, multiprocessing=False, gui=None, debug=False)
+```
+
+Start a GUI loop and display previously created windows. This function must be called from a main thread.
+
+* `func` - function to invoke upon starting the GUI loop.
+* `args` - function arguments. Can be either a single value or a tuple of values.
+* `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
+* `multiprocessing` - use multiprocessing instead of threading, if set to `True`
+* `gui` - Force a specific GUI. Allowed values are `cef`, `qt` or `gtk` depending on a platform. See [Renderer](/guide/renderer.md) for details.
+* `debug` - Enable debug mode. See [Debugging](/guide/debugging.md) for details.
 
 ### Examples
 * [Simple window](/examples/open_url.html)
 * [Multi-window](/examples/multiple_windows.html)
+
+
+# Window object
+
+These functions are part of the `window` object returned by `create_window`
 
 ## create_file_dialog
 
@@ -60,61 +75,60 @@ If the argument is not specified, then the `"All files (*.*)"` mask is used by d
 ## destroy_window
 
 ``` python
-destroy_window(uid='master')
+destroy()
 ```
 
-Destroy the specified WebView window.
+Destroy the window.
 
 [Example](/examples/destroy_window.html)
 
 ## evaluate_js
 
 ``` python
-evaluate_js(script, uid='master')
+evaluate_js(script)
 ```
 
-Execute Javascript code in the specified window. The last evaluated expression is returned. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
+Execute Javascript code. The last evaluated expression is returned. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
 You must escape \n and \r among other escape sequences if they present in Javascript code. Otherwise they get parsed by Python. r'strings' is a recommended way to load Javascript.
 
 ## get_current_url
 
 ``` python
-get_current_url(uid='master')
+get_current_url()
 ```
 
-Return the current URL in the specified window. None if no url is loaded.
+Return the current URL. None if no url is loaded.
 
 [Example](/examples/get_current_url.html)
 
 ## load_css
 
 ``` python
-load_css(css, uid='master')
+load_css(css)
 ```
 
-Load CSS as string into the specified window.
+Load CSS as a string.
 
 [Example](/examples/css_load.html)
-
 
 
 ## load_html
 
 ``` python
-load_html(content, base_uri=base_uri(), uid='master')
+load_html(content, base_uri=base_uri())
 ```
 
-Load HTML code into the specified window. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way.
+Load HTML code. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way.
 
 [Example](/examples/html_load.html)
 
 ## load_url
 
 ``` python
-load_url(url, uid='master')
+load_url(url)
 ```
 
-Load a new URL into the specified _pywebview_ window.
+Load a new URL.
 
 [Example](/examples/change_url.html)
 
@@ -122,40 +136,22 @@ Load a new URL into the specified _pywebview_ window.
 ## set_title
 
 ``` python
-set_title(title, uid='master')
+set_title(title)
 ```
 
-Change the title of the window
+Change the title of the window.
 
 [Example](/examples/window_title_change.html)
 
 ## toggle_fullscreen
 
 ``` python
-togle_fullscree(uid='master')
+togle_fullscreen()
 ```
 
-Toggle fullscreen mode of a window on the active monitor.
+Toggle fullscreen mode on the active monitor.
 
 [Example](/examples/toggle_fullscreen.html)
-
-## window_exists
-
-``` python
-window_exists(uid='master')
-```
-
-Return True if a _pywebview_ window with the given uid is up and running, False otherwise.
-
-
-## config
-
-```
-config.gui = 'qt' | 'gtk'
-```
-
-Force GUI library to either GTK or QT. The same setting can be controlled via `PYWEBVIEW_GUI` environmental variable
-
 
 
 

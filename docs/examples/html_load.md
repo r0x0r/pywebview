@@ -6,13 +6,13 @@ Display content by loading HTML on the fly.
 import webview
 import threading
 
-def load_html():
-    webview.load_html('<h1>This is dynamically loaded HTML</h1>')
+
+def load_html(window):
+    time.sleep(5)
+    window.load_html('<h1>This is dynamically loaded HTML</h1>')
 
 
 if __name__ == '__main__':
-    t = threading.Thread(target=load_html)
-    t.start()
-
-    webview.create_window('Load HTML Example')
+    window = webview.create_window('Load HTML Example', '<h1>This is initial HTML</h1>')
+    webview.start(load_html, window)
 ```

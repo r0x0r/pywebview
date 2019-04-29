@@ -2,9 +2,9 @@ import webview
 import threading
 import time
 
-'''
+"""
 This example demonstrates how to change a window title.
-'''
+"""
 
 
 def change_title(window):

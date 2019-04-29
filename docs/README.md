@@ -20,12 +20,13 @@ _On Linux you need additional libraries. Refer to the [installation](/guide/inst
 ### Hello world:
 ``` python
 import webview
-webview.create_window('https://pywebview.flowrl.com/')
+webview.create_window('Hello world', 'https://pywebview.flowrl.com/')
+webview.start()
 ```
 
 
 
-# Support the project 
+# Support the project
 
 If you find _pywebview_ useful, please support it.
 

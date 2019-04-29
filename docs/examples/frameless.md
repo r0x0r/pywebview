@@ -8,6 +8,7 @@ import webview
 
 if __name__ == '__main__':
     webview.create_window('Frameless window',
-                          'https://pywebview.flowrl.com/hello',
+                          'http://pywebview.flowrl.com/hello',
                           frameless=True)
+    webview.start()
 ```

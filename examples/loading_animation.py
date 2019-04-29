@@ -6,8 +6,7 @@ This example demonstrates a simple loading animation workflow
 """
 
 
-def load_html(window):
-    window.load_html("""
+html = """
     <style>
         body {
             background-color: #333;
@@ -118,10 +117,9 @@ def load_html(window):
           }, 5000)
       </script>
     </body>
-
-    """)
+"""
 
 
 if __name__ == '__main__':
-    window = webview.create_window('Loading Animation', background_color='#333333')
-    webview.start(load_html, window)
+    window = webview.create_window('Loading Animation', html=html, background_color='#333333')
+    webview.start()

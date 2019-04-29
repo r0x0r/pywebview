@@ -24,7 +24,7 @@ or
 
 ``` python
 import webview
-webview.config.gui = 'cef'
+webview.start(gui='cef')
 ```
 
 To force QT on Linux systems
@@ -37,5 +37,5 @@ or
 
 ``` python
 import webview
-webview.config.gui = 'qt'
+webview.start(gui='qt')
 ```

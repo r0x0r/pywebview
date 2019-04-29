@@ -11,7 +11,7 @@ def destroy(window):
     # show the window for a few seconds before destroying it:
     time.sleep(5)
     print('Destroying window..')
-    window.destroy_window()
+    window.destroy()
     print('Destroyed!')
 
 

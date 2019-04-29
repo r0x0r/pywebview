@@ -7,5 +7,8 @@ import webview
 
 
 if __name__ == '__main__':
-    webview.create_window('Full-screen browser', 'https://pywebview.flowrl.com/hello', frameless=True)
+    webview.create_window('Full-screen window',
+                          'https://pywebview.flowrl.com/hello',
+                          fullscreen=True)
+    webview.start()
 ```

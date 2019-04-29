@@ -138,11 +138,6 @@ class Api:
         return response
 
 
-def create_app(window):
-    window.load_html(html)
-
-
 if __name__ == '__main__':
     api = Api()
-    window = webview.create_window('API example', js_api=api)
-    webview.start(create_app, window)
+    window = webview.create_window('API example', html=html, js_api=api)
