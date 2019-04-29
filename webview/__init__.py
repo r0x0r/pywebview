@@ -229,7 +229,7 @@ class Window:
         return guilib.get_current_url(self.uid)
 
     @_api_call
-    def destroy_window(self):
+    def destroy(self):
         """
         Destroy a web view window
         """
