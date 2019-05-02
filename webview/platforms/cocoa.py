@@ -19,9 +19,9 @@ from PyObjCTools import AppHelper
 from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
+from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
 from webview.util import convert_string, parse_api_js, default_html
-from .js.css import disable_text_select
+from webview.js.css import disable_text_select
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -51,8 +51,6 @@ except AttributeError:
 logger = logging.getLogger('pywebview')
 logger.debug('Using Cocoa')
 
-_debug = None
-
 
 class BrowserView:
     instances = {}
@@ -62,7 +60,7 @@ class BrowserView:
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
             i = list(BrowserView.instances.values())[0]
-            i.shown_event.set()
+            i.shown.set()
 
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
@@ -182,7 +180,7 @@ class BrowserView:
                 print_hook = 'window.print = function() { window.webkit.messageHandlers.browserDelegate.postMessage("print") };'
                 i.webkit.evaluateJavaScript_completionHandler_(print_hook, lambda a,b: None)
 
-                i.loaded_event.set()
+                i.loaded.set()
 
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):
@@ -301,8 +299,8 @@ class BrowserView:
         self._file_name = None
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
-        self.shown_event = window.shown_event
-        self.loaded_event = window.loaded_event
+        self.shown = window.shown
+        self.loaded = window.loaded
         self.confirm_quit = window.confirm_quit
         self.title = window.title
         self.text_select = window.text_select
@@ -353,12 +351,6 @@ class BrowserView:
             # Set the titlebar color (so that it does not change with the window color)
             self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
 
-        if window.url:
-            self.url = window.url
-            self.load_url(window.url)
-        else:
-            self.loaded_event.set()
-
         try:
             self.webkit.evaluateJavaScript_completionHandler_('', lambda a, b: None)
         except TypeError:
@@ -380,7 +372,10 @@ class BrowserView:
             config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
         if window.url:
+            self.url = window.url
             self.load_url(window.url)
+        elif window.html:
+            self.load_html(window.html, '')
         else:
             self.load_html(default_html, '')
 
@@ -397,7 +392,7 @@ class BrowserView:
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             BrowserView.app.run()
         else:
-            self.shown_event.set()
+            self.shown.set()
 
     def destroy(self):
         AppHelper.callAfter(self.window.close)
@@ -452,7 +447,7 @@ class BrowserView:
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
             self.webkit.loadRequest_(req)
 
-        self.loaded_event.clear()
+        self.loaded.clear()
         self.url = url
         AppHelper.callAfter(load, url)
 
@@ -461,7 +456,7 @@ class BrowserView:
             url = Foundation.NSURL.URLWithString_(BrowserView.quote(url))
             self.webkit.loadHTMLString_baseURL_(content, url)
 
-        self.loaded_event.clear()
+        self.loaded.clear()
         AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
@@ -476,7 +471,7 @@ class BrowserView:
             result = None
             result_semaphore = Semaphore(0)
 
-        self.loaded_event.wait()
+        self.loaded.wait()
         AppHelper.callAfter(eval)
 
         JSResult.result_semaphore.acquire()
@@ -712,15 +707,12 @@ class BrowserView:
         return string.replace(' ', '%20')
 
 
-def create_window(window, debug):
+def create_window(window):
     global _debug
 
     def create():
         browser = BrowserView(window)
         browser.show()
-
-    if _debug is None:
-        _debug = debug
 
     if window.uid == 'master':
         create()

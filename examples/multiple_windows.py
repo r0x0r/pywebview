@@ -14,5 +14,5 @@ def third_window():
 if __name__ == '__main__':
     # Master window
     master_window = webview.create_window('Window #1', html='<h1>First window</h1>')
-    child_window = webview.create_window('Window #2', html='<h1>Second window</h1>')
+    second_window = webview.create_window('Window #2', html='<h1>Second window</h1>')
     webview.start(third_window)

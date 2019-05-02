@@ -28,16 +28,15 @@ from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _js_bridge_call, config
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html
 
-from .js import alert
-from .js.css import disable_text_select
+from webview.js import alert
+from webview.js.css import disable_text_select
+from webview.logger import logger
 
 from webview.localization import localization
 from webview.win32_shared import set_ie_mode
 
 clr.AddReference(interop_dll_path())
 from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
-
-logger = logging.getLogger('pywebview')
 
 is_cef = config.gui == 'cef'
 

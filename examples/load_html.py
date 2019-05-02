@@ -1,5 +1,4 @@
 import webview
-import time
 
 
 """
@@ -8,7 +7,6 @@ This example demonstrates how to load HTML in a web view window
 
 
 def load_html(window):
-    time.sleep(5)
     window.load_html('<h1>This is dynamically loaded HTML</h1>')
 
 
