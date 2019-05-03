@@ -11,11 +11,13 @@ class Event:
             func(*args, **kwargs)
 
         self._event.set()
+        print('set')
 
     def wait(self, timeout=0):
         return self._event.wait(timeout)
 
     def clear(self):
+        print('clear')
         return self._event.clear()
 
     def __add__(self, item):

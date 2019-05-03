@@ -16,10 +16,9 @@ except ImportError:
 from uuid import uuid1
 from threading import Event, Semaphore
 from webview.localization import localization
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
+from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
 from webview.util import parse_api_js
 from webview.js.css import disable_text_select
-
 
 logger = logging.getLogger('pywebview')
 
@@ -38,43 +37,41 @@ class BrowserView:
     instances = {}
 
     class JSBridge:
-        def __init__(self, api_instance, parent_uid):
-            self.api = api_instance
+        def __init__(self, window):
+            self.window = window
             self.uid = uuid1().hex[:8]
-            self.parent_uid = parent_uid
 
         def call(self, func_name, param):
             if param == 'undefined':
                 param = None
-            return _js_bridge_call(self.parent_uid, self.api, func_name, param)
+            return _js_bridge_call(self.window, func_name, param)
 
-    def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                 confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
-        BrowserView.instances[uid] = self
-        self.uid = uid
+    def __init__(self, window):
+        BrowserView.instances[window.uid] = self
+        self.uid = window.uid
 
-        self.webview_ready = webview_ready
         self.is_fullscreen = False
         self.js_results = {}
-        self.load_event = Event()
-        self.load_event.clear()
 
         glib.threads_init()
-        self.window = gtk.Window(title=title)
+        self.window = gtk.Window(title=window.title)
 
-        if resizable:
-            self.window.set_size_request(min_size[0], min_size[1])
-            self.window.resize(width, height)
+        self.shown = window.shown
+        self.loaded = window.loaded
+
+        if window.resizable:
+            self.window.set_size_request(window.min_size[0], window.min_size[1])
+            self.window.resize(window.width, window.height)
         else:
-            self.window.set_size_request(width, height)
+            self.window.set_size_request(window.width, window.height)
 
-        self.window.set_resizable(resizable)
+        self.window.set_resizable(window.resizable)
         self.window.set_position(gtk.WindowPosition.CENTER)
 
         # Set window background color
         style_provider = gtk.CssProvider()
         style_provider.load_from_data(
-            'GtkWindow {{ background-color: {}; }}'.format(background_color).encode()
+            'GtkWindow {{ background-color: {}; }}'.format(window.background_color).encode()
         )
         gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(),
@@ -85,17 +82,17 @@ class BrowserView:
         scrolled_window = gtk.ScrolledWindow()
         self.window.add(scrolled_window)
 
-        if confirm_quit:
+        if window.confirm_quit:
             self.window.connect('delete-event', self.on_destroy)
         else:
             self.window.connect('delete-event', self.close_window)
 
-        if js_api:
-            self.js_bridge = BrowserView.JSBridge(js_api, self.uid)
+        if window.js_api:
+            self.js_bridge = BrowserView.JSBridge(window)
         else:
             self.js_bridge = None
 
-        self.text_select = text_select
+        self.text_select = window.text_select
 
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
@@ -103,14 +100,14 @@ class BrowserView:
         self.webview.connect('notify::title', self.on_title_change)
         self.webview.connect('decide-policy', self.on_navigation)
 
-        if frameless:
+        if window.frameless:
             self.window.set_decorated(False)
             self.move_progress = False
             self.webview.connect('button-release-event', self.on_mouse_release)
             self.webview.connect('button-press-event', self.on_mouse_press)
             self.window.connect('motion-notify-event', self.on_mouse_move)
 
-        if debug:
+        if _debug:
             self.webview.get_settings().props.enable_developer_extras = True
         else:
             self.webview.connect('context-menu', lambda a,b,c,d: True) # Disable context menu
@@ -118,12 +115,14 @@ class BrowserView:
         self.webview.set_opacity(0.0)
         scrolled_window.add(self.webview)
 
-        if url is not None:
-            self.webview.load_uri(url)
-        elif js_api is None:
-            self.load_event.set()
+        if window.url is not None:
+            self.webview.load_uri(window.url)
+        elif window.html:
+            self.webview.load_html(window.html, '')
+        elif window.js_api is None:
+            self.loaded.set()
 
-        if fullscreen:
+        if window.fullscreen:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
@@ -153,8 +152,9 @@ class BrowserView:
     def on_webview_ready(self, arg1, arg2):
         # in webkit2 notify:visible fires after the window was closed and BrowserView object destroyed.
         # for a lack of better solution we check that BrowserView has 'webview_ready' attribute
-        if 'webview_ready' in dir(self):
-            self.webview_ready.set()
+        if 'shown' in dir(self):
+            self.shown.set()
+
 
     def on_load_finish(self, webview, status):
         # Show the webview if it's not already visible
@@ -168,7 +168,7 @@ class BrowserView:
             if self.js_bridge:
                 self._set_js_api()
             else:
-                self.load_event.set()
+                self.loaded.set()
 
     def on_title_change(self, webview, title):
         title = webview.get_title()
@@ -295,16 +295,16 @@ class BrowserView:
             dialog.add_filter(f)
 
     def get_current_url(self):
-        self.load_event.wait()
+        self.loaded.wait()
         uri = self.webview.get_uri()
         return uri
 
     def load_url(self, url):
-        self.load_event.clear()
+        self.loaded.clear()
         self.webview.load_uri(url)
 
     def load_html(self, content, base_uri):
-        self.load_event.clear()
+        self.loaded.clear()
         self.webview.load_html(content, base_uri)
 
     def evaluate_js(self, script):
@@ -317,7 +317,7 @@ class BrowserView:
 
         code = 'document.title = JSON.stringify({{"type": "eval", "uid": "{0}", "result": {1}}})'.format(unique_id, script)
 
-        self.load_event.wait()
+        self.loaded.wait()
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
 
@@ -346,21 +346,19 @@ class BrowserView:
             }};""".format(self.js_bridge.uid)
 
             # Create the `pywebview` JS api object
-            self.webview.run_javascript(parse_api_js(self.js_bridge.api))
+            self.webview.run_javascript(parse_api_js(self.js_bridge.window.js_api))
             self.webview.run_javascript(code)
-            self.load_event.set()
+            self.loaded.set()
 
         glib.idle_add(create_bridge)
 
 
-def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
+def create_window(window):
     def create():
-        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen, min_size,
-                              confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready)
+        browser = BrowserView(window)
         browser.show()
 
-    if uid == 'master':
+    if window.uid == 'master':
         create()
     else:
         glib.idle_add(create)
@@ -369,7 +367,7 @@ def create_window(uid, title, url, width, height, resizable, fullscreen, min_siz
 def set_title(title, uid):
     def _set_title():
         BrowserView.instances[uid].set_title(title)
-    glib.idle_add(_set_title)    
+    glib.idle_add(_set_title)
 
 
 def destroy_window(uid):
@@ -406,8 +404,8 @@ def load_html(content, base_uri, uid):
     glib.idle_add(_load_html)
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
-    i = list(BrowserView.instances.values())[0]     # arbitary instance
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
+    i = BrowserView.instances[uid]
     file_name_semaphore = Semaphore(0)
     file_names = []
 

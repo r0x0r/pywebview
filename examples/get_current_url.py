@@ -11,4 +11,4 @@ def get_current_url(window):
 
 if __name__ == '__main__':
     window = webview.create_window('Get current URL', 'https://pywebview.flowrl.com/hello')
-    webview.start(get_current_url)
+    webview.start(get_current_url, window)
