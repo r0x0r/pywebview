@@ -60,7 +60,7 @@ class BrowserView:
 
     class BrowserForm(WinForms.Form):
         def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                     confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
+                     confirm_close, background_color, debug, js_api, text_select, frameless, webview_ready):
             self.uid = uid
             self.Text = title
             self.ClientSize = Size(width, height)
@@ -108,7 +108,7 @@ class BrowserView:
             if is_cef:
                 self.Resize += self.on_resize
 
-            if confirm_quit:
+            if confirm_close:
                 self.FormClosing += self.on_closing
 
         def _create_mshtml_browser(self, url, js_api, debug):
@@ -274,10 +274,10 @@ class BrowserView:
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
+                  confirm_close, background_color, debug, js_api, text_select, frameless, webview_ready):
     def create():
         window = BrowserView.BrowserForm(uid, title, url, width, height, resizable, fullscreen,
-                                         min_size, confirm_quit, background_color, debug, js_api,
+                                         min_size, confirm_close, background_color, debug, js_api,
                                          text_select, frameless, webview_ready)
         BrowserView.instances[uid] = window
         window.Show()

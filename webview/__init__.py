@@ -92,7 +92,7 @@ def start(func=None, args=None, localization={}, multiprocessing=False, gui=None
 
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600,
-                  resizable=True, fullscreen=False, min_size=(200, 100), confirm_quit=False,
+                  resizable=True, fullscreen=False, min_size=(200, 100), confirm_close=False,
                   background_color='#FFFFFF', text_select=False, frameless=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
@@ -104,7 +104,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param resizable True if window can be resized, False otherwise. Default is True
     :param fullscreen: True if start in fullscreen mode. Default is False
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
-    :param confirm_quit: Display a quit confirmation dialog. Default is False
+    :param confirm_close: Display a window close confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
     :param frameless: Whether the window should have a frame.
@@ -118,7 +118,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
     window = Window(uid, make_unicode(title), transform_url(url), html,
-                    width, height, resizable, fullscreen, min_size, confirm_quit,
+                    width, height, resizable, fullscreen, min_size, confirm_close,
                     background_color, js_api, text_select, frameless)
     windows.append(window)
 

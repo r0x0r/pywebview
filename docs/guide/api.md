@@ -5,7 +5,7 @@
 
 ``` python
 create_window(title, url='', html='', js_api=None, width=800, height=600, resizable=True,\
-              fullscreen=False, min_size=(200, 100), confirm_quit=False, \
+              fullscreen=False, min_size=(200, 100), confirm_close=False, \
               background_color='#FFF', text_select=False)
 ```
 
@@ -22,7 +22,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `fullscreen` - Start in fullscreen mode. Default is False
 * `frameless` - Create a frameless easy-draggable window. Default is False.
 * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
-* `confirm_quit` - Whether to display a quit confirmation dialog. Default is False
+* `confirm_close` - Whether to display a window close confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
 * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) CSS property.
 
@@ -153,7 +153,17 @@ Toggle fullscreen mode on the active monitor.
 
 [Example](/examples/toggle_fullscreen.html)
 
+# Events
+
+Window object has these lifecycle events. To subscribe to an event, use the `+=` syntax, e.g. `window.loaded += func`. The func will be invoked, when event is fired. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe `window.loaded -= func`.
+
+## shown
+Event that is fired when pywebview window is shown.
+
+[Example](/examples/events.html)
 
 
+## loaded
+Event that is fired when DOM is ready.
 
-
+[Example](/examples/events.html)

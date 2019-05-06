@@ -156,7 +156,7 @@ class BrowserView(QMainWindow):
             return self.nav_handler
 
     def __init__(self, uid, title, url, width, height, resizable, fullscreen,
-                 min_size, confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
+                 min_size, confirm_close, background_color, debug, js_api, text_select, frameless, webview_ready):
         super(BrowserView, self).__init__()
         BrowserView.instances[uid] = self
         self.uid = uid
@@ -166,7 +166,7 @@ class BrowserView(QMainWindow):
         self.js_bridge.parent_uid = self.uid
 
         self.is_fullscreen = False
-        self.confirm_quit = confirm_quit
+        self.confirm_close = confirm_close
         self.text_select = text_select
 
         self._file_name_semaphore = Semaphore(0)
@@ -274,7 +274,7 @@ class BrowserView(QMainWindow):
         self.view.setHtml(content, QtCore.QUrl(base_uri))
 
     def closeEvent(self, event):
-        if self.confirm_quit:
+        if self.confirm_close:
             reply = QMessageBox.question(self, self.title, localization['global.quitConfirmation'],
                                          QMessageBox.Yes, QMessageBox.No)
 
@@ -447,13 +447,13 @@ class BrowserView(QMainWindow):
 
 
 def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_quit, background_color, debug, js_api, text_select, frameless, webview_ready):
+                  confirm_close, background_color, debug, js_api, text_select, frameless, webview_ready):
     global _app
     _app = QApplication.instance() or QApplication([])
 
     def _create():
         browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
-                              min_size, confirm_quit, background_color, debug, js_api,
+                              min_size, confirm_close, background_color, debug, js_api,
                               text_select, frameless, webview_ready)
         browser.show()
 

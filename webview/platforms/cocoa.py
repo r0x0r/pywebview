@@ -70,7 +70,7 @@ class BrowserView:
             cancel = localization['global.cancel']
             msg = localization['global.quitConfirmation']
 
-            if not i.confirm_quit or BrowserView.display_confirmation_dialog(quit, cancel, msg):
+            if not i.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
                 return Foundation.YES
             else:
                 return Foundation.NO
@@ -301,7 +301,7 @@ class BrowserView:
         self._current_url_semaphore = Semaphore(0)
         self.shown = window.shown
         self.loaded = window.loaded
-        self.confirm_quit = window.confirm_quit
+        self.confirm_close = window.confirm_close
         self.title = window.title
         self.text_select = window.text_select
 
