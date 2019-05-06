@@ -1,5 +1,5 @@
 """
-(C) 2014-2018 Roman Sirokov and contributors
+(C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -82,7 +82,7 @@ class BrowserView:
         scrolled_window = gtk.ScrolledWindow()
         self.window.add(scrolled_window)
 
-        if window.confirm_quit:
+        if window.confirm_close:
             self.window.connect('delete-event', self.on_destroy)
         else:
             self.window.connect('delete-event', self.close_window)

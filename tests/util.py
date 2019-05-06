@@ -10,13 +10,13 @@ from multiprocessing import Process, Queue
 logger = logging.getLogger('pywebview')
 
 
-def run_test(webview, window, thread_func=None, param=None, no_destroy=False, destroy_delay=0):
+def run_test(webview, window, thread_func=None, param=None, start_args={}, no_destroy=False, destroy_delay=0):
     __tracebackhide__ = True
     queue = Queue()
 
     try:
         time.sleep(2)
-        _create_window(webview, window, thread_func, queue, param, no_destroy, destroy_delay)
+        _create_window(webview, window, thread_func, queue, param, start_args, no_destroy, destroy_delay)
     except Exception as e:
         pytest.fail(e)
 
@@ -41,9 +41,9 @@ def assert_js(window, func_name, expected_result):
     assert expected_result == result
 
 
-def _create_window(webview, window, thread_func, queue, param, no_destroy, destroy_delay):
+def _create_window(webview, window, thread_func, queue, thread_param, start_args, no_destroy, destroy_delay):
 
-    def thread(destroy_event, param):
+    def thread():
         try:
             if thread_func:
                 thread_func(window)
@@ -55,12 +55,12 @@ def _create_window(webview, window, thread_func, queue, param, no_destroy, destr
             destroy_event.set()
 
     if not no_destroy:
-        args = (param,) if param else ()
+        args = (thread_param,) if thread_param else ()
         destroy_event = _destroy_window(webview, window, destroy_delay)
 
-        t = threading.Thread(target=thread, args=(destroy_event, args))
+        t = threading.Thread(target=thread)
         t.start()
-    webview.start()
+    webview.start(**start_args)
 
 
 def get_test_name():
@@ -71,7 +71,7 @@ def _destroy_window(webview, window, delay):
     def stop():
         event.wait()
         time.sleep(delay)
-        window.destroy_window()
+        window.destroy()
 
         if sys.platform == 'darwin':
             from .util_cocoa import mouseMoveRelative

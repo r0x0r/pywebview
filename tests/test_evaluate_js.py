@@ -16,41 +16,34 @@ def test_mixed(window):
 def test_array(window):
     run_test(webview, window, array_test)
 
-"""
-def test_object(create_window):
-    window = create_window()
+
+def test_object(window):
     run_test(webview, window, object_test)
 
 
-def test_string(create_window):
-    window = create_window
+def test_string(window):
     run_test(webview, window, string_test)
 
 
-def test_int(create_window):
-    window = create_window
+def test_int(window):
     run_test(webview, window, int_test)
 
 
-def test_float(create_window):
-    window = create_window
+def test_float(window):
     run_test(webview, window, float_test)
 
 
-def test_undefined(create_window):
-    window = create_window
+def test_undefined(window):
     run_test(webview, window, undefined_test)
 
 
-def test_null(create_window):
-    window = create_window
+def test_null(window):
     run_test(webview, window, null_test)
 
 
-def test_nan(create_window):
-    window = create_window
+def test_nan(window):
     run_test(webview, window, nan_test)
-"""
+
 
 def mixed_test(window):
     result = window.evaluate_js("""
