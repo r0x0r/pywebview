@@ -1,5 +1,5 @@
 '''
-(C) 2014-2018 Roman Sirokov and contributors
+(C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -15,10 +15,10 @@ from copy import deepcopy
 from threading import Semaphore, Event
 from socket import socket
 
+from webview import escape_string, _js_bridge_call, _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.localization import localization
-from webview import escape_string, _js_bridge_call
-from webview.util import convert_string, parse_api_js
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview.window import Window
+from webview.util import convert_string, default_html, parse_api_js
 from webview.js.css import disable_text_select
 
 
@@ -59,8 +59,6 @@ class BrowserView(QMainWindow):
     evaluate_js_trigger = QtCore.pyqtSignal(str, str)
 
     class JSBridge(QtCore.QObject):
-        api = None
-        parent_uid = None
         qtype = QtCore.QJsonValue if is_webengine else str
 
         def __init__(self):
@@ -71,7 +69,7 @@ class BrowserView(QMainWindow):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
 
-            return _js_bridge_call(self.parent_uid, self.api, func_name, param)
+            return _js_bridge_call(self.window, func_name, param)
 
     class WebView(QWebView):
         def __init__(self, parent=None):
@@ -108,8 +106,10 @@ class BrowserView(QMainWindow):
             except KeyError:
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
-                inspector = BrowserView(uid, title, url, 700, 500, True, False, (300, 200),
-                                        False, '#fff', False, None, True, self.parent().webview_ready)
+                window = Window('web_inspector', title, url, '', 700, 500, True,
+                                False, (300, 200), False, '#fff', None, False, False)
+
+                inspector = BrowserView(window)
                 inspector.show()
 
         def mousePressEvent(self, event):
@@ -155,53 +155,51 @@ class BrowserView(QMainWindow):
         def createWindow(self, type):
             return self.nav_handler
 
-    def __init__(self, uid, title, url, width, height, resizable, fullscreen,
-                 min_size, confirm_close, background_color, debug, js_api, text_select, frameless, webview_ready):
+    def __init__(self, window):
         super(BrowserView, self).__init__()
-        BrowserView.instances[uid] = self
-        self.uid = uid
+        BrowserView.instances[window.uid] = self
+        self.uid = window.uid
 
         self.js_bridge = BrowserView.JSBridge()
-        self.js_bridge.api = js_api
-        self.js_bridge.parent_uid = self.uid
+        self.js_bridge.window = window
 
         self.is_fullscreen = False
-        self.confirm_close = confirm_close
-        self.text_select = text_select
+        self.confirm_close = window.confirm_close
+        self.text_select = window.text_select
 
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
 
-        self.load_event = Event()
-        self.webview_ready = webview_ready
+        self.loaded = window.loaded
+        self.shown = window.shown
 
         self._js_results = {}
         self._current_url = None
         self._file_name = None
 
-        self.resize(width, height)
-        self.title = title
-        self.setWindowTitle(title)
+        self.resize(window.width, window.height)
+        self.title = window.title
+        self.setWindowTitle(window.title)
 
         # Set window background color
         self.background_color = QColor()
-        self.background_color.setNamedColor(background_color)
+        self.background_color.setNamedColor(window.background_color)
         palette = self.palette()
         palette.setColor(self.backgroundRole(), self.background_color)
         self.setPalette(palette)
 
-        if not resizable:
-            self.setFixedSize(width, height)
+        if not window.resizable:
+            self.setFixedSize(window.width, window.height)
 
-        self.setMinimumSize(min_size[0], min_size[1])
+        self.setMinimumSize(window.min_size[0], window.min_size[1])
 
-        self.frameless = frameless
-        if frameless:
+        self.frameless = window.frameless
+        if self.frameless:
             self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
 
         self.view = BrowserView.WebView(self)
 
-        if debug and is_webengine:
+        if _debug and is_webengine:
             # Initialise Remote debugging (need to be done only once)
             if not BrowserView.inspector_port:
                 BrowserView.inspector_port = BrowserView._get_free_port()
@@ -210,11 +208,14 @@ class BrowserView(QMainWindow):
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
         self.view.setPage(BrowserView.WebPage(self.view))
+        self.view.page().loadFinished.connect(self.on_load_finished)
 
-        if url is not None:
-            self.view.setUrl(QtCore.QUrl(url))
+        if window.url is not None:
+            self.view.setUrl(QtCore.QUrl(window.url))
+        elif window.html:
+            self.view.setHtml(window.html, QtCore.QUrl(''))
         else:
-            self.load_event.set()
+            self.view.setHtml(default_html, QtCore.QUrl(''))
 
         self.setCentralWidget(self.view)
 
@@ -233,15 +234,13 @@ class BrowserView(QMainWindow):
             self.channel = QWebChannel(self.view.page())
             self.view.page().setWebChannel(self.channel)
 
-        self.view.page().loadFinished.connect(self.on_load_finished)
-
-        if fullscreen:
+        if window.fullscreen:
             self.toggle_fullscreen()
 
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
         self.raise_()
-        webview_ready.set()
+        self.shown.set()
 
     def on_set_title(self, title):
         self.setWindowTitle(title)
@@ -325,10 +324,10 @@ class BrowserView(QMainWindow):
 
 
     def on_load_finished(self):
-        if self.js_bridge.api:
+        if self.js_bridge.window.js_api:
             self._set_js_api()
         else:
-            self.load_event.set()
+            self.loaded.set()
 
         if not self.text_select:
             script = disable_text_select.replace('\n', '')
@@ -342,18 +341,18 @@ class BrowserView(QMainWindow):
         self.set_title_trigger.emit(title)
 
     def get_current_url(self):
-        self.load_event.wait()
+        self.loaded.wait()
         self.current_url_trigger.emit()
         self._current_url_semaphore.acquire()
 
-        return self._current_url
+        return None if self._current_url.startswith('data:text/html') else self._current_url
 
     def load_url(self, url):
-        self.load_event.clear()
+        self.loaded.clear()
         self.load_url_trigger.emit(url)
 
     def load_html(self, content, base_uri):
-        self.load_event.clear()
+        self.loaded.clear()
         self.html_trigger.emit(content, base_uri)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
@@ -383,7 +382,7 @@ class BrowserView(QMainWindow):
         self.window_size_trigger.emit(width, height)
 
     def evaluate_js(self, script):
-        self.load_event.wait()
+        self.loaded.wait()
         result_semaphore = Semaphore(0)
         unique_id = uuid1().hex
         self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': ''}
@@ -400,7 +399,7 @@ class BrowserView(QMainWindow):
         def _register_window_object():
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
-        script = parse_api_js(self.js_bridge.api)
+        script = parse_api_js(self.js_bridge.window.js_api)
 
         if is_webengine:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
@@ -417,7 +416,8 @@ class BrowserView(QMainWindow):
             self.view.page().mainFrame().evaluateJavaScript(script)
         except AttributeError:
             self.view.page().runJavaScript(script)
-        self.load_event.set()
+
+        self.loaded.set()
 
     @staticmethod
     def _convert_string(result):
@@ -446,18 +446,15 @@ class BrowserView(QMainWindow):
         func()
 
 
-def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_close, background_color, debug, js_api, text_select, frameless, webview_ready):
+def create_window(window):
     global _app
     _app = QApplication.instance() or QApplication([])
 
     def _create():
-        browser = BrowserView(uid, title, url, width, height, resizable, fullscreen,
-                              min_size, confirm_close, background_color, debug, js_api,
-                              text_select, frameless, webview_ready)
+        browser = BrowserView(window)
         browser.show()
 
-    if uid == 'master':
+    if window.uid == 'master':
         _create()
         _app.exec_()
     else:
@@ -488,15 +485,17 @@ def destroy_window(uid):
 def toggle_fullscreen(uid):
     BrowserView.instances[uid].toggle_fullscreen()
 
+
 def set_window_size(width, height, uid):
     BrowserView.instances[uid].set_window_size(width, height)
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
+
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
     # Create a file filter by parsing allowed file types
     file_types = [s.replace(';', ' ') for s in file_types]
     file_filter = ';;'.join(file_types)
 
-    i = list(BrowserView.instances.values())[0]
+    i = BrowserView.instances[uid]
     return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
