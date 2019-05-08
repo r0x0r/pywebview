@@ -29,7 +29,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 ## webview.start
 
 ``` python
-start(func=None, args=None, localization={}, multiprocessing=False, gui=None, debug=False)
+start(func=None, args=None, localization={}, gui=None, debug=False)
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
@@ -37,7 +37,6 @@ Start a GUI loop and display previously created windows. This function must be c
 * `func` - function to invoke upon starting the GUI loop.
 * `args` - function arguments. Can be either a single value or a tuple of values.
 * `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
-* `multiprocessing` - use multiprocessing instead of threading, if set to `True`
 * `gui` - Force a specific GUI. Allowed values are `cef`, `qt` or `gtk` depending on a platform. See [Renderer](/guide/renderer.md) for details.
 * `debug` - Enable debug mode. See [Debugging](/guide/debugging.md) for details.
 

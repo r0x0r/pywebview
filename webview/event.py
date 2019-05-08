@@ -1,3 +1,4 @@
+import multiprocessing
 import threading
 
 
@@ -5,6 +6,10 @@ class Event:
     def __init__(self):
         self._items = []
         self._event = threading.Event()
+
+    def _initialize(self, is_multiprocessing):
+        if is_multiprocessing:
+            self._event = multiprocessing.Event()
 
     def set(self, *args, **kwargs):
         for func in self._items:

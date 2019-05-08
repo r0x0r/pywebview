@@ -59,8 +59,10 @@ class Window:
         self.shown = Event()
         self.gui = None
 
-    def _set_gui(self, gui):
+    def _initialize(self, gui, multiprocessing):
         self.gui = gui
+        self.loaded._initialize(multiprocessing)
+        self.shown._initialize(multiprocessing)
 
     @_shown_call
     def load_url(self, url):

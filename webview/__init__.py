@@ -42,11 +42,13 @@ SAVE_DIALOG = 30
 
 guilib = None
 _debug = False
+_multiprocessing = False
+
 windows = []
 
 
-def start(func=None, args=None, localization={}, multiprocessing=False, gui=None, debug=False):
-    global guilib, _debug
+def start(func=None, args=None, localization={}, gui=None, debug=False):
+    global guilib, _debug, _multiprocessing
 
     def _create_children(other_windows):
         if not windows[0].shown.wait(10):
@@ -56,6 +58,8 @@ def start(func=None, args=None, localization={}, multiprocessing=False, gui=None
             guilib.create_window(window)
 
     _debug = debug
+    #_multiprocessing = multiprocessing
+    multiprocessing = False # TODO
 
     if multiprocessing:
         from multiprocessing import Process as Thread
@@ -73,7 +77,7 @@ def start(func=None, args=None, localization={}, multiprocessing=False, gui=None
     guilib = initialize(gui)
 
     for window in windows:
-        window._set_gui(guilib)
+        window._initialize(guilib, multiprocessing)
 
     if len(windows) > 1:
         t = Thread(target=_create_children, args=(windows[1:],))
@@ -123,7 +127,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     windows.append(window)
 
     if threading.current_thread().name != 'MainThread' and guilib:
-        window._set_gui(guilib)
+        window._initialize(guilib, _multiprocessing)
         guilib.create_window(window)
 
     return window
