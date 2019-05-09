@@ -50,8 +50,15 @@ def initialize(forced_gui=None):
 
         try:
             import webview.platforms.winforms as guilib
-            logger.debug('Using .NET')
+            
+            if forced_gui == 'cef':
+                guilib.use_cef()
+                logger.debug('Using .NET / CEF')
+            else:
+                logger.debug('Using .NET')
 
+
+            
             return True
         except ImportError as e:
             logger.exception('pythonnet cannot be loaded')
@@ -94,7 +101,7 @@ def initialize(forced_gui=None):
         guis = [import_winforms]
 
         if not try_import(guis):
-            raise WebViewException('You must have either pythonnet or pywin32 installed in order to use pywebview.')
+            raise WebViewException('You must have either pythonnet installed in order to use pywebview.')
     else:
         raise WebViewException('Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.')
 
