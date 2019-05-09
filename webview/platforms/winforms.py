@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-(C) 2014-2018 Roman Sirokov and contributors
+(C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -25,7 +25,7 @@ from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _js_bridge_call, config
+from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _js_bridge_call, config, _debug
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html
 
 from webview.js import alert
@@ -49,28 +49,26 @@ class BrowserView:
 
     class JSBridge(IWebBrowserInterop):
         __namespace__ = 'BrowserView.JSBridge'
-        api = None
-        parent_uid = None
+        window = None
 
         def call(self, func_name, param):
-            return _js_bridge_call(self.parent_uid, self.api, func_name, param)
+            return _js_bridge_call(self.window, func_name, param)
 
         def alert(self, message):
             BrowserView.alert(message)
 
     class BrowserForm(WinForms.Form):
-        def __init__(self, uid, title, url, width, height, resizable, fullscreen, min_size,
-                     confirm_close, background_color, debug, js_api, text_select, frameless, webview_ready):
-            self.uid = uid
-            self.Text = title
-            self.ClientSize = Size(width, height)
-            self.MinimumSize = Size(min_size[0], min_size[1])
-            self.BackColor = ColorTranslator.FromHtml(background_color)
+        def __init__(self, window):
+            self.uid = window.uid
+            self.Text = window.title
+            self.ClientSize = Size(window.width, window.height)
+            self.MinimumSize = Size(window.min_size[0], window.min_size[1])
+            self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
             self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
-            if not resizable:
+            if not window.resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
                 self.MaximizeBox = False
 
@@ -83,51 +81,48 @@ class BrowserView:
 
             windll.user32.DestroyIcon(icon_handle)
 
-            self.webview_ready = webview_ready
-            self.load_event = Event()
-            self.background_color = background_color
-            self.url = url
+            self.shown = window.shown
+            self.loaded = window.loaded
+            self.background_color = window.background_color
+            self.url = window.url
 
             self.is_fullscreen = False
-            if fullscreen:
+            if window.fullscreen:
                 self.toggle_fullscreen()
 
-            if frameless:
-                self.frameless = frameless
+            if window.frameless:
+                self.frameless = window.frameless
                 self.FormBorderStyle = 0
 
             if is_cef:
-                CEF.create_browser(self.uid, self.Handle.ToInt32(), BrowserView.alert, url, js_api)
+                CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             else:
-                self._create_mshtml_browser(url, js_api, debug)
+                self._create_mshtml_browser(window)
 
-            self.text_select = text_select
+            self.text_select = window.text_select
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
 
             if is_cef:
                 self.Resize += self.on_resize
 
-            if confirm_close:
+            if window.confirm_close:
                 self.FormClosing += self.on_closing
 
-        def _create_mshtml_browser(self, url, js_api, debug):
+        def _create_mshtml_browser(self, window):
             self.web_browser = WebBrowserEx()
             self.web_browser.Dock = WinForms.DockStyle.Fill
-            self.web_browser.ScriptErrorsSuppressed = not debug
-            self.web_browser.IsWebBrowserContextMenuEnabled = debug
+            self.web_browser.ScriptErrorsSuppressed = not _debug
+            self.web_browser.IsWebBrowserContextMenuEnabled = _debug
             self.web_browser.WebBrowserShortcutsEnabled = False
             self.web_browser.DpiAware = True
 
-            self.web_browser.ScriptErrorsSuppressed = not debug
-            self.web_browser.IsWebBrowserContextMenuEnabled = debug
+            self.web_browser.ScriptErrorsSuppressed = not _debug
+            self.web_browser.IsWebBrowserContextMenuEnabled = _debug
 
             self.js_result_semaphore = Semaphore(0)
             self.js_bridge = BrowserView.JSBridge()
-
-            if js_api:
-                self.js_bridge.api = js_api
-                self.js_bridge.parent_uid = self.uid
+            self.js_bridge.window = window
 
             self.web_browser.ObjectForScripting = self.js_bridge
 
@@ -147,8 +142,8 @@ class BrowserView:
             self.web_browser.DownloadComplete += self.on_download_complete
             self.web_browser.DocumentCompleted += self.on_document_completed
 
-            if url:
-                self.web_browser.Navigate(url)
+            if window.url:
+                self.web_browser.Navigate(window.url)
             else:
                 self.web_browser.DocumentText = default_html
 
@@ -159,7 +154,7 @@ class BrowserView:
 
         def on_shown(self, sender, args):
             if not is_cef:
-                self.webview_ready.set()
+                self.shown.set()
 
         def on_close(self, sender, args):
             def _shutdown():
@@ -208,8 +203,8 @@ class BrowserView:
         def on_download_complete(self, sender, args):
             document = self.web_browser.Document
 
-            if self.js_bridge.api:
-                document.InvokeScript('eval', (parse_api_js(self.js_bridge.api),))
+            if self.js_bridge.window.api:
+                document.InvokeScript('eval', (parse_api_js(self.js_bridge.window.api),))
 
             if not self.text_select:
                 document.InvokeScript('eval', (disable_text_select,))
@@ -226,8 +221,7 @@ class BrowserView:
                 self.web_browser.Visible = True
                 self.first_load = False
 
-            self.load_event.set()
-
+            self.loaded.set()
 
             if self.frameless:
                 self.web_browser.Document.MouseMove += self.on_mouse_move
@@ -273,28 +267,25 @@ class BrowserView:
         WinForms.MessageBox.Show(message)
 
 
-def create_window(uid, title, url, width, height, resizable, fullscreen, min_size,
-                  confirm_close, background_color, debug, js_api, text_select, frameless, webview_ready):
+def create_window(window):
     def create():
-        window = BrowserView.BrowserForm(uid, title, url, width, height, resizable, fullscreen,
-                                         min_size, confirm_close, background_color, debug, js_api,
-                                         text_select, frameless, webview_ready)
-        BrowserView.instances[uid] = window
-        window.Show()
+        browser = BrowserView.BrowserForm(window)
+        BrowserView.instances[window.uid] = browser
+        browser.Show()
 
-        if uid == 'master':
+        if window.uid == 'master':
             app.Run()
 
-    webview_ready.clear()
+    # webview_ready.clear() TODO
     app = WinForms.Application
 
-    if uid == 'master':
+    if window.uid == 'master':
         set_ie_mode()
         if sys.getwindowsversion().major >= 6:
             windll.user32.SetProcessDPIAware()
 
         if is_cef:
-            CEF.init(webview_ready, debug)
+            CEF.init(window)
 
         app.EnableVisualStyles()
         app.SetCompatibleTextRenderingDefault(False)
@@ -320,8 +311,8 @@ def set_title(title, uid):
         _set_title()
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types):
-    window = list(BrowserView.instances.values())[0]     # arbitrary instance
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
+    window = BrowserView.instances[uid]
 
     if not directory:
         directory = os.environ['HOMEPATH']
@@ -382,7 +373,7 @@ def get_current_url(uid):
         if window.url is None:
             return None
         else:
-            window.load_event.wait()
+            window.loaded.wait()
             return window.web_browser.Url.AbsoluteUri
 
 
@@ -392,7 +383,7 @@ def load_url(url, uid):
         window.web_browser.Navigate(url)
 
     window = BrowserView.instances[uid]
-    window.load_event.clear()
+    window.loaded.clear()
 
     if is_cef:
         CEF.load_url(url, uid)
@@ -411,7 +402,7 @@ def load_html(content, base_uri, uid):
         return
 
     window = BrowserView.instances[uid]
-    window.load_event.clear()
+    window.loaded.clear()
 
     if window.InvokeRequired:
         window.Invoke(Func[Type](_load_html))
@@ -449,7 +440,7 @@ def evaluate_js(script, uid):
         return CEF.evaluate_js(script, uid)
     else:
         window = BrowserView.instances[uid]
-        window.load_event.wait()
+        window.loaded.wait()
         window.Invoke(Func[Type](_evaluate_js))
         window.js_result_semaphore.acquire()
 

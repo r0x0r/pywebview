@@ -12,7 +12,7 @@ from cefpython3 import cefpython as cef
 from copy import copy
 
 from .js.css import disable_text_select
-from webview import _js_bridge_call
+from webview import _js_bridge_call, _debug
 from webview.util import parse_api_js, default_html
 
 
@@ -23,32 +23,32 @@ logger = logging.getLogger(__name__)
 
 
 class JSBridge:
-    def __init__(self, eval_events, api, uid):
+    def __init__(self, window, eval_events):
         self.results = {}
+        self.window = window
         self.eval_events = eval_events
-        self.api = api
-        self.uid = uid
 
     def return_result(self, result, uid):
         self.results[uid] = json.loads(result) if result else None
         self.eval_events[uid].set()
 
     def call(self, func_name, param):
-        _js_bridge_call(self.uid, self.api, func_name, param)
+        _js_bridge_call(self.window, func_name, param)
 
 
 class Browser:
-    def __init__(self, handle, browser, api, text_select, uid):
+    def __init__(self, window, handle, browser):
         self.handle = handle
         self.browser = browser
-        self.api = api
-        self.text_select = text_select
-        self.uid = uid
+        self.js_api = window.js_api
+        self.text_select = window.text_select
+        self.uid = window.uid
+        self.loaded = window.loaded
+        self.shown = window.shown
 
         self.eval_events = {}
-        self.js_bridge = JSBridge(self.eval_events, api, uid)
+        self.js_bridge = JSBridge(window, self.eval_events)
         self.initialized = False
-        self.loaded = Event()
 
     def initialize(self):
         if self.initialized:
@@ -56,8 +56,8 @@ class Browser:
 
         self.browser.GetJavascriptBindings().Rebind()
 
-        if self.api:
-            self.browser.ExecuteJavascript(parse_api_js(self.api))
+        if self.js_api:
+            self.browser.ExecuteJavascript(parse_api_js(self.js_api))
 
         if not self.text_select:
             self.browser.ExecuteJavascript(disable_text_select)
@@ -150,20 +150,21 @@ def _cef_call(func):
     return wrapper
 
 
-_webview_ready = None
 
 
-def init(webview_ready, debug):
-    global _initialized, _webview_ready
-    _webview_ready = webview_ready
+def init(window):
+    global _initialized
 
     if not _initialized:
         settings = {
             'multi_threaded_message_loop': True,
             'context_menu': {
-                'enabled': debug
+                'enabled': _debug
             }
         }
+
+        if _debug:
+            settings['remote_debugging_port'] = -1
 
         try: # set paths under Pyinstaller's one file mode
             settings.update({
@@ -179,11 +180,11 @@ def init(webview_ready, debug):
         _initialized = True
 
 
-def create_browser(uid, handle, alert_func, url=None, js_api=None, text_select=False):
+def create_browser(window, handle, alert_func):
     def _create():
-        real_url = url or 'data:text/html,{0}'.format(default_html)
+        real_url = window.url or 'data:text/html,{0}'.format(default_html)
         cef_browser = cef.CreateBrowserSync(window_info=window_info, url=real_url)
-        browser = Browser(handle, cef_browser, js_api, text_select, uid)
+        browser = Browser(window, handle, cef_browser)
 
         bindings = cef.JavascriptBindings()
         bindings.SetObject('external', browser.js_bridge)
@@ -192,8 +193,8 @@ def create_browser(uid, handle, alert_func, url=None, js_api=None, text_select=F
         cef_browser.SetJavascriptBindings(bindings)
         cef_browser.SetClientHandler(LoadHandler())
 
-        instances[uid] = browser
-        _webview_ready.set()
+        instances[window.uid] = browser
+        window.shown.set()
 
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)
