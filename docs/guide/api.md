@@ -4,9 +4,9 @@
 ## webview.create_window
 
 ``` python
-create_window(title, url='', html='', js_api=None, width=800, height=600, resizable=True,\
-              fullscreen=False, min_size=(200, 100), confirm_close=False, \
-              background_color='#FFF', text_select=False)
+webview.create_window(title, url='', html='', js_api=None, width=800, height=600, resizable=True,\
+                      fullscreen=False, min_size=(200, 100), confirm_close=False, \
+                      background_color='#FFF', text_select=False)
 ```
 
 Create a new _pywebview_ window and returns its instance. Window is not shown until the GUI loop is started. If the function is invoked during the GUI loop, the window is displayed immediately.
@@ -29,7 +29,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 ## webview.start
 
 ``` python
-start(func=None, args=None, localization={}, gui=None, debug=False)
+webview.start(func=None, args=None, localization={}, gui=None, debug=False)
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
@@ -44,10 +44,19 @@ Start a GUI loop and display previously created windows. This function must be c
 * [Simple window](/examples/open_url.html)
 * [Multi-window](/examples/multiple_windows.html)
 
+## webview.token
+
+``` python
+webview.token
+```
+
+A CSRF token property unique to the session. The same token is exposed as `window.pywebview.token`. See [Security](/guide/security.md) for usage details.
+
 
 # Window object
 
 These functions are part of the `window` object returned by `create_window`
+
 
 ## create_file_dialog
 
@@ -71,7 +80,7 @@ If the argument is not specified, then the `"All files (*.*)"` mask is used by d
 * [Save-file dialog](/examples/save_file_dialog.html)
 
 
-## destroy_window
+## destroy
 
 ``` python
 destroy()
@@ -99,6 +108,16 @@ get_current_url()
 Return the current URL. None if no url is loaded.
 
 [Example](/examples/get_current_url.html)
+
+## get_element
+
+``` python
+get_element(selector)
+```
+
+Return the serialized DOM element by its selector. None if no element matches.
+
+[Example](/examples/get_element.html)
 
 ## load_css
 

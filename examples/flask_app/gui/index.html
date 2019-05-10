@@ -32,8 +32,9 @@
 </div>
 
 <script>
+    window.token = '{{ token }}';
     // Perform background initialization
-    doAjax("/init", "GET");
+    doAjax("/init", "POST");
 
     function getMethods(obj) {
       var result = [];
@@ -65,15 +66,15 @@
     }
 
     function openFolder() {
-        doAjax("/choose/path", "GET", openFolderHandler);
+        doAjax("/choose/path", "POST", openFolderHandler);
     }
 
     function doStuff() {
-        doAjax("/do/stuff", "GET", doStuffHandler);
+        doAjax("/do/stuff", "POST", doStuffHandler);
     }
 
     function toggleFullscreen() {
-        doAjax("/fullscreen", "GET", doStuffHandler);
+        doAjax("/fullscreen", "POST", doStuffHandler);
     }
 
     function openLink(e) {
@@ -81,20 +82,20 @@
         var request = {url: e.currentTarget.href}
         doAjax("/open-url", "POST", false, JSON.stringify(request))
     }
-    
+
     // From https://gist.github.com/dharmavir/936328
     function getHttpRequestObject()
     {
         // Define and initialize as false
         var xmlHttpRequst = false;
-        
+
         // Mozilla/Safari/Non-IE
-        if (window.XMLHttpRequest) 
+        if (window.XMLHttpRequest)
         {
             xmlHttpRequst = new XMLHttpRequest();
         }
         // IE
-        else if (window.ActiveXObject) 
+        else if (window.ActiveXObject)
         {
             xmlHttpRequst = new ActiveXObject("Microsoft.XMLHTTP");
         }
@@ -108,14 +109,15 @@
         url = url || "";
         method = method || "GET";
         async = true;
-        data = data || null;
-        
+        data = data || {};
+        data.token = window.token;
+
         if(url == "") {
             alert("URL can not be null/blank");
             return false;
         }
         var xmlHttpRequest = getHttpRequestObject();
-        
+
         // If AJAX supported
         if(xmlHttpRequest != false) {
             xmlHttpRequest.open(method, url, async);

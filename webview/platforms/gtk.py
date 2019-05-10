@@ -165,10 +165,7 @@ class BrowserView:
             if not self.text_select:
                 webview.run_javascript(disable_text_select)
 
-            if self.js_bridge:
-                self._set_js_api()
-            else:
-                self.loaded.set()
+            self._set_js_api()
 
     def on_title_change(self, webview, title):
         title = webview.get_title()

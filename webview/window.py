@@ -16,9 +16,10 @@ def _api_call(function, event_type):
         event = args[0].loaded if event_type == 'loaded' else args[0].shown
 
         try:
+            print('wait')
             if not event.wait(15):
                 raise WebViewException('Main window failed to start')
-
+            print('done')
             if args[0].gui is None:
                 raise WebViewException('GUI is not initialized')
 
@@ -63,6 +64,15 @@ class Window:
         self.gui = gui
         self.loaded._initialize(multiprocessing)
         self.shown._initialize(multiprocessing)
+
+    @_loaded_call
+    def get_element(self, selector):
+        print('get')
+        code = """
+            var element = document.getElementById('%s');
+            element ? pywebview.domJSON.toJSON(element) : null;
+        """ % selector
+        return self.gui.evaluate_js(code, self.uid)
 
     @_shown_call
     def load_url(self, url):

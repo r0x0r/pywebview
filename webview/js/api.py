@@ -1,5 +1,6 @@
 src = """
 window.pywebview = {
+    token: '%s',
     _createApi: function(funcList) {
         for (var i = 0; i < funcList.length; i++) {
             window.pywebview.api[funcList[i]] = (function (funcName) {
@@ -51,5 +52,6 @@ window.pywebview = {
     api: {},
     _returnValues: {}
 }
+
 window.pywebview._createApi(%s);
 """
