@@ -33,7 +33,7 @@ if __name__ == '__main__':
     logger.debug('Checking server')
 
     while not url_ok('127.0.0.1', 23948):
-        sleep(0.1)
+        sleep(1)
 
     logger.debug('Server started')
     window = webview.create_window('My first pywebview application', 'http://127.0.0.1:23948')

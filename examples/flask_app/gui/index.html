@@ -80,7 +80,7 @@
     function openLink(e) {
         e.preventDefault()
         var request = {url: e.currentTarget.href}
-        doAjax("/open-url", "POST", false, JSON.stringify(request))
+        doAjax("/open-url", "POST", false, request)
     }
 
     // From https://gist.github.com/dharmavir/936328
@@ -128,7 +128,7 @@
             // Assign (or define) response-handler/callback when ReadyState is changed.
             xmlHttpRequest.onreadystatechange = responseHandler;
             // Send data
-            xmlHttpRequest.send(data);
+            xmlHttpRequest.send(JSON.stringify(data));
         }
         else
         {
