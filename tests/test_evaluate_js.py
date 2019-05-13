@@ -64,7 +64,6 @@ def array_test(window):
     }
     getValue()
     """)
-    print(result)
     assert result == [None, 1, 'two', 3.00001, {'four': True}]
 
 
@@ -76,7 +75,6 @@ def object_test(window):
 
     getValue()
     """)
-    print(type(result))
     assert result == {'1': 2, 'test': True, 'obj': {'2': False, '3': 3.1}}
 
 
@@ -99,7 +97,6 @@ def int_test(window):
 
     getValue()
     """)
-    print(result)
     assert result == 23
 
 

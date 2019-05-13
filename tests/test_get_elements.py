@@ -34,14 +34,14 @@ def test_none(window):
 def single_test(window):
     elements = window.get_elements('#heading')
     assert len(elements) == 1
-    assert elements[0].innerHTML == 'Heading'
+    assert elements[0]['innerHTML'] == 'Heading'
 
 
 def multiple_test(window):
     elements = window.get_elements('.content')
     assert len(elements) == 2
-    assert elements[0].innerHTML == 'Content 1'
-    assert elements[1].innerHTML == 'Content 2'
+    assert elements[0]['innerHTML'] == 'Content 1'
+    assert elements[1]['innerHTML'] == 'Content 2'
 
 
 def none_test(window):

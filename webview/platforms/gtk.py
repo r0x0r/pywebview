@@ -33,6 +33,12 @@ from gi.repository import GLib as glib
 from gi.repository import WebKit2 as webkit
 
 
+# version of WebKit2 older than 2.2 does not support returning a result of javascript, so we 
+# have to resort fetching a result via window title
+webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
+old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
+
+
 class BrowserView:
     instances = {}
 
@@ -172,7 +178,7 @@ class BrowserView:
             if 'type' not in js_data:
                 return
 
-            elif js_data['type'] == 'eval':  # return result of evaluate_js
+            elif js_data['type'] == 'eval' and old_webkit:  # return result of evaluate_js
                 unique_id = js_data['uid']
                 result = js_data['result'] if 'result' in js_data else None
 
@@ -302,17 +308,23 @@ class BrowserView:
 
     def evaluate_js(self, script):
         def _evaluate_js():
-            self.webview.run_javascript(code, None, _callback, None)
+            self.webview.run_javascript(script, None, _callback, None)
 
         def _callback(webview, task, data):
-            result = webview.run_javascript_finish(task)
-            pass
+            value = webview.run_javascript_finish(task)
+            if value:
+                self.js_results[unique_id]['result'] = value.get_js_value().to_string()
+            else:
+                self.js_results[unique_id]['result'] = None
+            
+            result_semaphore.release()
 
         unique_id = uuid1().hex
         result_semaphore = Semaphore(0)
         self.js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
 
-        code = 'document.title = JSON.stringify({{"type": "eval", "uid": "{0}", "result": {1}}})'.format(unique_id, script)
+        if old_webkit:
+            script = 'document.title = JSON.stringify({{"type": "eval", "uid": "{0}", "result": {1}}})'.format(unique_id, script)
 
         self.loaded.wait()
         glib.idle_add(_evaluate_js)
@@ -323,7 +335,6 @@ class BrowserView:
             return None
 
         result = self.js_results[unique_id]['result']
-
         result = None if result == 'undefined' or result == 'null' or result is None else result if result == '' else json.loads(result)
 
         del self.js_results[unique_id]
