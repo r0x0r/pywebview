@@ -97,7 +97,7 @@ evaluate_js(script)
 ```
 
 Execute Javascript code. The last evaluated expression is returned. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
-You must escape \n and \r among other escape sequences if they present in Javascript code. Otherwise they get parsed by Python. r'strings' is a recommended way to load Javascript.
+You must escape \n and \r among other escape sequences if they present in Javascript code. Otherwise they get parsed by Python. r'strings' is a recommended way to load Javascript. For GTK WebKit2 versions older than 2.22, there is a limit of about ~900 characters for a value returned by `evaluate_js`.
 
 ## get_current_url
 
@@ -109,13 +109,13 @@ Return the current URL. None if no url is loaded.
 
 [Example](/examples/get_current_url.html)
 
-## get_element
+## get_elements
 
 ``` python
-get_element(selector)
+get_elements(selector)
 ```
 
-Return the serialized DOM element by its selector. None if no element matches.
+Return the serialized DOM element by its selector. None if no element matches. For GTK you must have WebKit2 2.22 or greater to use this function.
 
 [Example](/examples/get_element.html)
 
