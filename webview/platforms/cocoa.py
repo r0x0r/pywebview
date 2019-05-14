@@ -170,9 +170,8 @@ class BrowserView:
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                if i.js_bridge:
-                    script = parse_api_js(i.js_bridge.window.js_api)
-                    i.webkit.evaluateJavaScript_completionHandler_(script, lambda a,b: None)
+                script = parse_api_js(i.js_bridge.window.js_api)
+                i.webkit.evaluateJavaScript_completionHandler_(script, lambda a,b: None)
 
                 if not i.text_select:
                     i.webkit.evaluateJavaScript_completionHandler_(disable_text_select, lambda a,b: None)
@@ -367,9 +366,8 @@ class BrowserView:
         if _debug:
             config.preferences().setValue_forKey_(Foundation.YES, 'developerExtrasEnabled')
 
-        if window.js_api:
-            self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
-            config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
+        self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
+        config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
         if window.url:
             self.url = window.url

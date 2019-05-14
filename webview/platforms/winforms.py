@@ -209,9 +209,7 @@ class BrowserView:
 
         def on_download_complete(self, sender, args):
             document = self.web_browser.Document
-
-            if self.js_bridge.window.js_api:
-                document.InvokeScript('eval', (parse_api_js(self.js_bridge.window.js_api),))
+            document.InvokeScript('eval', (parse_api_js(self.js_bridge.window.api),))
 
             if not self.text_select:
                 document.InvokeScript('eval', (disable_text_select,))

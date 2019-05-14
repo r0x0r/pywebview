@@ -324,10 +324,7 @@ class BrowserView(QMainWindow):
 
 
     def on_load_finished(self):
-        if self.js_bridge.window.js_api:
-            self._set_js_api()
-        else:
-            self.loaded.set()
+        self._set_js_api()
 
         if not self.text_select:
             script = disable_text_select.replace('\n', '')

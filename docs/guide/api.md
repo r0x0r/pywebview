@@ -4,9 +4,9 @@
 ## webview.create_window
 
 ``` python
-create_window(title, url='', html='', js_api=None, width=800, height=600, resizable=True,\
-              fullscreen=False, min_size=(200, 100), confirm_close=False, \
-              background_color='#FFF', text_select=False)
+webview.create_window(title, url='', html='', js_api=None, width=800, height=600, resizable=True,\
+                      fullscreen=False, min_size=(200, 100), confirm_close=False, \
+                      background_color='#FFF', text_select=False)
 ```
 
 Create a new _pywebview_ window and returns its instance. Window is not shown until the GUI loop is started. If the function is invoked during the GUI loop, the window is displayed immediately.
@@ -29,7 +29,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 ## webview.start
 
 ``` python
-start(func=None, args=None, localization={}, gui=None, debug=False)
+webview.start(func=None, args=None, localization={}, gui=None, debug=False)
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
@@ -44,10 +44,19 @@ Start a GUI loop and display previously created windows. This function must be c
 * [Simple window](/examples/open_url.html)
 * [Multi-window](/examples/multiple_windows.html)
 
+## webview.token
+
+``` python
+webview.token
+```
+
+A CSRF token property unique to the session. The same token is exposed as `window.pywebview.token`. See [Security](/guide/security.md) for usage details.
+
 
 # Window object
 
 These functions are part of the `window` object returned by `create_window`
+
 
 ## create_file_dialog
 
@@ -71,7 +80,7 @@ If the argument is not specified, then the `"All files (*.*)"` mask is used by d
 * [Save-file dialog](/examples/save_file_dialog.html)
 
 
-## destroy_window
+## destroy
 
 ``` python
 destroy()
@@ -88,7 +97,7 @@ evaluate_js(script)
 ```
 
 Execute Javascript code. The last evaluated expression is returned. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
-You must escape \n and \r among other escape sequences if they present in Javascript code. Otherwise they get parsed by Python. r'strings' is a recommended way to load Javascript.
+You must escape \n and \r among other escape sequences if they present in Javascript code. Otherwise they get parsed by Python. r'strings' is a recommended way to load Javascript. For GTK WebKit2 versions older than 2.22, there is a limit of about ~900 characters for a value returned by `evaluate_js`.
 
 ## get_current_url
 
@@ -99,6 +108,16 @@ get_current_url()
 Return the current URL. None if no url is loaded.
 
 [Example](/examples/get_current_url.html)
+
+## get_elements
+
+``` python
+get_elements(selector)
+```
+
+Return the serialized DOM element by its selector. None if no element matches. For GTK you must have WebKit2 2.22 or greater to use this function.
+
+[Example](/examples/get_element.html)
 
 ## load_css
 

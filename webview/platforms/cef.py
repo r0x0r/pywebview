@@ -12,6 +12,7 @@ from cefpython3 import cefpython as cef
 from copy import copy
 
 from webview.js.css import disable_text_select
+from webview.js import dom
 from webview import _js_bridge_call, _debug
 from webview.util import parse_api_js, default_html
 
@@ -55,12 +56,12 @@ class Browser:
             return
 
         self.browser.GetJavascriptBindings().Rebind()
-
-        if self.js_api:
-            self.browser.ExecuteJavascript(parse_api_js(self.js_api))
+        self.browser.ExecuteJavascript(parse_api_js(self.js_api))
 
         if not self.text_select:
             self.browser.ExecuteJavascript(disable_text_select)
+
+        self.browser.ExecuteJavascript(dom.src)
 
         self.initialized = True
         self.loaded.set()

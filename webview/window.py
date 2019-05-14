@@ -64,6 +64,29 @@ class Window:
         self.loaded._initialize(multiprocessing)
         self.shown._initialize(multiprocessing)
 
+    @_loaded_call
+    def get_elements(self, selector):
+        # check for GTK's WebKit2 version 
+        if hasattr(self.gui, 'old_webkit') and self.gui.old_webkit:
+            raise NotImplementedError('get_elements requires WebKit2 2.2 or greater')
+
+        code = """
+            var elements = document.querySelectorAll('%s');
+            var serializedElements = [];
+
+            for (var i = 0; i < elements.length; i++) {
+                var node = pywebview.domJSON.toJSON(elements[i], {
+                    metadata: false,
+                    serialProperties: true
+                });
+                serializedElements.push(node);
+            }
+
+            serializedElements;
+        """ % selector
+
+        return self.evaluate_js(code)
+
     @_shown_call
     def load_url(self, url):
         """
@@ -94,7 +117,7 @@ class Window:
     @_shown_call
     def set_title(self, title):
         """
-        Sets a new title of the window
+        Set a new title of the window
         """
         self.gui.set_title(title, self.uid)
 

@@ -33,6 +33,12 @@ from gi.repository import GLib as glib
 from gi.repository import WebKit2 as webkit
 
 
+# version of WebKit2 older than 2.2 does not support returning a result of javascript, so we 
+# have to resort fetching a result via window title
+webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
+old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
+
+
 class BrowserView:
     instances = {}
 
@@ -87,11 +93,7 @@ class BrowserView:
         else:
             self.window.connect('delete-event', self.close_window)
 
-        if window.js_api:
-            self.js_bridge = BrowserView.JSBridge(window)
-        else:
-            self.js_bridge = None
-
+        self.js_bridge = BrowserView.JSBridge(window)
         self.text_select = window.text_select
 
         self.webview = webkit.WebView()
@@ -165,10 +167,7 @@ class BrowserView:
             if not self.text_select:
                 webview.run_javascript(disable_text_select)
 
-            if self.js_bridge:
-                self._set_js_api()
-            else:
-                self.loaded.set()
+            self._set_js_api()
 
     def on_title_change(self, webview, title):
         title = webview.get_title()
@@ -179,7 +178,7 @@ class BrowserView:
             if 'type' not in js_data:
                 return
 
-            elif js_data['type'] == 'eval':  # return result of evaluate_js
+            elif js_data['type'] == 'eval' and old_webkit:  # return result of evaluate_js
                 unique_id = js_data['uid']
                 result = js_data['result'] if 'result' in js_data else None
 
@@ -197,9 +196,9 @@ class BrowserView:
                 webview.run_javascript(code)
 
         except ValueError: # Python 2
-            pass
+            logger.debug('GTK: JSON decode failed:\n %s' % title)
         except json.JSONDecodeError: # Python 3
-            pass
+            logger.debug('GTK: JSON decode failed:\n %s' % title)
 
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) == webkit.NavigationPolicyDecision:
@@ -309,13 +308,23 @@ class BrowserView:
 
     def evaluate_js(self, script):
         def _evaluate_js():
-            self.webview.run_javascript(code, None, None, None)
+            self.webview.run_javascript(script, None, _callback, None)
+
+        def _callback(webview, task, data):
+            value = webview.run_javascript_finish(task)
+            if value:
+                self.js_results[unique_id]['result'] = value.get_js_value().to_string()
+            else:
+                self.js_results[unique_id]['result'] = None
+            
+            result_semaphore.release()
 
         unique_id = uuid1().hex
         result_semaphore = Semaphore(0)
         self.js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
 
-        code = 'document.title = JSON.stringify({{"type": "eval", "uid": "{0}", "result": {1}}})'.format(unique_id, script)
+        if old_webkit:
+            script = 'document.title = JSON.stringify({{"type": "eval", "uid": "{0}", "result": {1}}})'.format(unique_id, script)
 
         self.loaded.wait()
         glib.idle_add(_evaluate_js)
@@ -326,7 +335,6 @@ class BrowserView:
             return None
 
         result = self.js_results[unique_id]['result']
-
         result = None if result == 'undefined' or result == 'null' or result is None else result if result == '' else json.loads(result)
 
         del self.js_results[unique_id]
@@ -335,19 +343,20 @@ class BrowserView:
 
     def _set_js_api(self):
         def create_bridge():
-            # Make the `call` method write the function name and param to the
-            # `status` attribute of the JS window, delimited by a unique token.
-            # The return value will be passed back to the `return_val` attribute
-            # of the bridge by the on_status_change handler.
-            code = """
-            window.pywebview._bridge.call = function(funcName, param) {{
-                document.title = JSON.stringify({{"type": "invoke", "uid": "{0}", "function": funcName, "param": param}})
-                return this.return_val;
-            }};""".format(self.js_bridge.uid)
-
-            # Create the `pywebview` JS api object
             self.webview.run_javascript(parse_api_js(self.js_bridge.window.js_api))
-            self.webview.run_javascript(code)
+
+            if self.js_bridge.window.js_api:
+                # Make the `call` method write the function name and param to the
+                # windoe title.
+                # The return value will be passed back to the `return_val` attribute
+                # of the bridge by the on_title_change handler.
+                code = """
+                window.pywebview._bridge.call = function(funcName, param) {{
+                    document.title = JSON.stringify({{"type": "invoke", "uid": "{0}", "function": funcName, "param": param}})
+                    return this.return_val;
+                }};""".format(self.js_bridge.uid)
+                self.webview.run_javascript(code)
+
             self.loaded.set()
 
         glib.idle_add(create_bridge)

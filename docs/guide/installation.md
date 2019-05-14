@@ -50,6 +50,9 @@ sudo apt install python-gi python-gi-cairo python3-gi python3-gi-cairo gir1.2-gt
 
 For other distributions, consult the [PyGObject documentation](https://pygobject.readthedocs.io/en/latest/getting_started.html)
 
+
+Note that WebKit2 version 2.22 or greater is required for certain features to work correctly. If your distribution ships with an older version, you may need to install it manually from as a backport.
+
 <br/><br/>
 
 [PyQt5](http://pyqt.sourceforge.net/Docs/PyQt5/index.html) is used with QT. `pywebview` supports both QtWebChannel (newer and preferred) and QtWebKit implementations. Use QtWebChannel, unless it is not available on your system.

@@ -11,8 +11,11 @@ import os
 import re
 import sys
 import platform
+from uuid import uuid4
 
-from .js import api, npo
+from .js import api, npo, dom
+
+_token = uuid4().hex
 
 default_html = '<!doctype html><html><head></head><body></body></html>'
 
@@ -65,8 +68,14 @@ def parse_file_type(file_type):
 
 
 def parse_api_js(api_instance):
-    func_list = [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
-    js_code = npo.src + api.src % func_list
+    def generate_func():
+        if api_instance:
+            return [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
+        else:
+            return []
+
+    func_list = generate_func()
+    js_code = npo.src + api.src % (_token, func_list) + dom.src
     return js_code
 
 
