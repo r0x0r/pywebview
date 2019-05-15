@@ -208,12 +208,7 @@ class BrowserView:
             webbrowser.open(args.Url)
 
         def on_download_complete(self, sender, args):
-            document = self.web_browser.Document
-            document.InvokeScript('eval', (parse_api_js(self.js_bridge.window.api),))
-
-            if not self.text_select:
-                document.InvokeScript('eval', (disable_text_select,))
-
+            pass
         def on_navigating(self, sender, args):
             if self.cancel_back:
                 args.Cancel = True
@@ -227,10 +222,17 @@ class BrowserView:
                 self.first_load = False
 
             self.real_url = args.Url.AbsoluteUri
+
+            document = self.web_browser.Document
+            document.InvokeScript('eval', (parse_api_js(self.js_bridge.window.js_api),))
+
+            if not self.text_select:
+                document.InvokeScript('eval', (disable_text_select,))
+            
             self.loaded.set()
 
             if self.frameless:
-                self.web_browser.Document.MouseMove += self.on_mouse_move
+                document.MouseMove += self.on_mouse_move
 
         def on_mouse_move(self, sender, e):
             if e.MouseButtonsPressed == WinForms.MouseButtons.Left:
