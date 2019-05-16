@@ -57,11 +57,6 @@ class BrowserView:
     app = AppKit.NSApplication.sharedApplication()
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
 
-    class AppDelegate(AppKit.NSObject):
-        def applicationDidFinishLaunching_(self, notification):
-            i = list(BrowserView.instances.values())[0]
-            i.shown.set()
-
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
@@ -326,11 +321,9 @@ class BrowserView:
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
-        self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
         self.webkit.setUIDelegate_(self._browserDelegate)
         self.webkit.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
-        BrowserView.app.setDelegate_(self._appDelegate)
 
         self.frameless = window.frameless
 
@@ -380,8 +373,11 @@ class BrowserView:
         if window.fullscreen:
             self.toggle_fullscreen()
 
+        self.shown.set()
+
     def show(self):
         self.window.makeKeyAndOrderFront_(self.window)
+
         if not BrowserView.app.isRunning():
             # Add the default Cocoa application menu
             self._add_app_menu()
@@ -389,8 +385,6 @@ class BrowserView:
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             BrowserView.app.run()
-        else:
-            self.shown.set()
 
     def destroy(self):
         AppHelper.callAfter(self.window.close)
