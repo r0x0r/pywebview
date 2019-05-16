@@ -40,7 +40,7 @@ def single_test(window):
         pass
 
 
-def multiple_test(window):]
+def multiple_test(window):
     try:
         elements = window.get_elements('.content')
         assert len(elements) == 2
