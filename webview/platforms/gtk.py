@@ -33,11 +33,11 @@ from gi.repository import GLib as glib
 from gi.repository import WebKit2 as webkit
 
 
-# version of WebKit2 older than 2.2 does not support returning a result of javascript, so we 
+# version of WebKit2 older than 2.2 does not support returning a result of javascript, so we
 # have to resort fetching a result via window title
 webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
 old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
-
+print(webkit_ver)
 
 class BrowserView:
     instances = {}
@@ -316,7 +316,7 @@ class BrowserView:
                 self.js_results[unique_id]['result'] = value.get_js_value().to_string()
             else:
                 self.js_results[unique_id]['result'] = None
-            
+
             result_semaphore.release()
 
         unique_id = uuid1().hex
