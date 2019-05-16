@@ -17,7 +17,7 @@ from uuid import uuid1
 from threading import Event, Semaphore
 from webview.localization import localization
 from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
-from webview.util import parse_api_js
+from webview.util import parse_api_js, default_html
 from webview.js.css import disable_text_select
 
 logger = logging.getLogger('pywebview')
@@ -120,8 +120,8 @@ class BrowserView:
             self.webview.load_uri(window.url)
         elif window.html:
             self.webview.load_html(window.html, '')
-        elif window.js_api is None:
-            self.loaded.set()
+        else:
+            self.webview.load_html(default_html, '')
 
         if window.fullscreen:
             self.toggle_fullscreen()
@@ -165,7 +165,6 @@ class BrowserView:
         if status == webkit.LoadEvent.FINISHED:
             if not self.text_select:
                 webview.run_javascript(disable_text_select)
-
             self._set_js_api()
 
     def on_title_change(self, webview, title):
@@ -295,7 +294,7 @@ class BrowserView:
     def get_current_url(self):
         self.loaded.wait()
         uri = self.webview.get_uri()
-        return uri
+        return uri if uri != 'about:blank' else None
 
     def load_url(self, url):
         self.loaded.clear()
