@@ -37,7 +37,6 @@ from gi.repository import WebKit2 as webkit
 # have to resort fetching a result via window title
 webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
 old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
-print(webkit_ver)
 
 class BrowserView:
     instances = {}
@@ -308,7 +307,8 @@ class BrowserView:
 
     def evaluate_js(self, script):
         def _evaluate_js():
-            self.webview.run_javascript(script, None, _callback, None)
+            callback = None if old_webkit else _callback
+            self.webview.run_javascript(script, None, callback, None)
 
         def _callback(webview, task, data):
             value = webview.run_javascript_finish(task)
