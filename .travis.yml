@@ -44,8 +44,8 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "2" ]]; then sudo pip2 install pyobjc pytest six; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -q; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install --no-install-recommends -y $(echo $PACKAGES); fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$PYTHON_VERSION" == "3" ]]; then pip3 install $PIP_PACKAGES; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$PYTHON_VERSION" == "2" ]]; then pip install $PIP_PACKAGES; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$PYTHON_VERSION" == "3" ]]; then pip3 install pyqt5 pyqtwebengine; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$PYTHON_VERSION" == "2" ]]; then pip install pyqt5 pyqtwebengine; fi
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export DISPLAY=:99.0; fi
