@@ -56,7 +56,7 @@ before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sleep 3; fi
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then if [[ "$PYTHON_VERSION" == "3" ]]; then python3 -m pytest tests; else python2 -m pytest tests; fi; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then if [[ "$PYTHON_VERSION" == "3" ]]; then python3 -m pytest tests -s; else python2 -m pytest tests -s; fi; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then python -m pytest tests -s; fi
 
 after_script:
