@@ -38,7 +38,6 @@ matrix:
       python: "2.7_with_system_site_packages"
       env: 
           - PACKAGES="xvfb python-pyqt5 python-pyqt5.qtwebkit libqt5webkit5-dev pep8 pyflakes python-pytest" PYTHON="python"
-          - PACKAGES="xvfb pep8 pyflakes python-pytest" PYTHON="python"
           - PIP_PACKAGES="pyqt5 pyqtwebengine"
           - PYTHON_VERSION="2"
           - PYWEBVIEW_GUI=qt
