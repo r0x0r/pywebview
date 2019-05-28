@@ -14,27 +14,25 @@ import json
 import webbrowser
 from threading import Event, Semaphore
 from ctypes import windll
+from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html
 
 import clr
 
 clr.AddReference('System.Windows.Forms')
+clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import IntPtr, Int32, Func, Type, Environment
+from System import IntPtr, Int32, Func, Type, Environment, Uri
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _js_bridge_call, _debug
-from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html
 
 from webview.js import alert
 from webview.js.css import disable_text_select
 
 from webview.localization import localization
-
-clr.AddReference(interop_dll_path())
-from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 
 logger = logging.getLogger('pywebview')
 
@@ -46,20 +44,253 @@ def use_cef():
     global CEF, is_cef
     from . import cef as CEF
     is_cef = True
+    logger.debug('Using WinForms / CEF')
+
+
+def _is_edge():
+    windows_version = Environment.OSVersion.Version.Major, Environment.OSVersion.Version.Minor, Environment.OSVersion.Version.Build
+
+    try:
+        import _winreg as winreg  # Python 2
+    except ImportError:
+        import winreg  # Python 3
+
+    try:
+        net_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full')
+        version, _ = winreg.QueryValueEx(net_key, 'Release')
+
+        return version >= 394802 and windows_version >= (10, 0, 17134) # .NET 4.6.2 + Windows 10 1803 
+    except:
+        return False
+    finally:
+        winreg.CloseKey(net_key)
+
+is_edge = _is_edge()
+
+
+if is_edge:
+    clr.AddReference(interop_dll_path('Microsoft.Toolkit.Forms.UI.Controls.WebView.dll'))
+    from Microsoft.Toolkit.Forms.UI.Controls import WebView
+    from System.ComponentModel import ISupportInitialize
+    from Windows.Web import IUriToStreamResolver
+    logger.debug('Using WinForms / EdgeHTML')
+else:
+    clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
+    from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
+    logger.debug('Using WinForms / MSHTML')
+
 
 
 class BrowserView:
     instances = {}
 
-    class JSBridge(IWebBrowserInterop):
-        __namespace__ = 'BrowserView.JSBridge'
-        window = None
+    class MSHTML:
+        def __init__(self, form, window):
+            class JSBridge(IWebBrowserInterop):
+                __namespace__ = 'BrowserView.MSHTML.JSBridge'
+                window = None
 
-        def call(self, func_name, param):
-            return _js_bridge_call(self.window, func_name, param)
+                def call(self, func_name, param):
+                    return _js_bridge_call(self.window, func_name, param)
 
-        def alert(self, message):
-            BrowserView.alert(message)
+                def alert(self, message):
+                    BrowserView.alert(message)
+
+            self.window = window
+            self.web_browser = WebBrowserEx()
+            self.web_browser.Dock = WinForms.DockStyle.Fill
+            self.web_browser.ScriptErrorsSuppressed = not _debug
+            self.web_browser.IsWebBrowserContextMenuEnabled = _debug
+            self.web_browser.WebBrowserShortcutsEnabled = False
+            self.web_browser.DpiAware = True
+
+            self.web_browser.ScriptErrorsSuppressed = not _debug
+            self.web_browser.IsWebBrowserContextMenuEnabled = _debug
+
+            self.js_result_semaphore = Semaphore(0)
+            self.js_bridge = JSBridge()
+            self.js_bridge.window = window
+
+            self.web_browser.ObjectForScripting = self.js_bridge
+
+            # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
+            # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
+            # for the default background color.
+            if window.background_color != '#FFFFFF':
+                self.web_browser.Visible = False
+                self.first_load = True
+            else:
+                self.first_load = False
+
+            self.cancel_back = False
+            self.web_browser.PreviewKeyDown += self.on_preview_keydown
+            self.web_browser.Navigating += self.on_navigating
+            self.web_browser.NewWindow3 += self.on_new_window
+            self.web_browser.DownloadComplete += self.on_download_complete
+            self.web_browser.DocumentCompleted += self.on_document_completed
+
+            if window.url:
+                self.web_browser.Navigate(window.url)
+            elif window.html:
+                self.web_browser.DocumentText = window.html
+            else:
+                self.web_browser.DocumentText = default_html
+
+            form.Controls.Add(self.web_browser)
+
+        def evaluate_js(self, script):
+            result = self.web_browser.Document.InvokeScript('eval', (script,))
+            self.js_result = None if result is None or result is 'null' else json.loads(result)
+            self.js_result_semaphore.release()
+
+        def load_html(self, content, base_uri):
+            self.web_browser.DocumentText = inject_base_uri(content, base_uri)
+            self.window.loaded.clear()
+
+        def load_url(self, url):
+            self.web_browser.Navigate(url)
+
+        def on_preview_keydown(self, sender, args):
+            if args.KeyCode == WinForms.Keys.Back:
+                self.cancel_back = True
+            elif args.KeyCode == WinForms.Keys.Delete:
+                self.web_browser.Document.ExecCommand('Delete', False, None)
+            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.C:
+                self.web_browser.Document.ExecCommand('Copy', False, None)
+            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.X:
+                self.web_browser.Document.ExecCommand('Cut', False, None)
+            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.V:
+                self.web_browser.Document.ExecCommand('Paste', False, None)
+            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.Z:
+                self.web_browser.Document.ExecCommand('Undo', False, None)
+            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.A:
+                self.web_browser.Document.ExecCommand('selectAll', False, None)
+
+        def on_new_window(self, sender, args):
+            args.Cancel = True
+            webbrowser.open(args.Url)
+
+        def on_download_complete(self, sender, args):
+            pass
+
+        def on_navigating(self, sender, args):
+            if self.cancel_back:
+                args.Cancel = True
+                self.cancel_back = False
+
+        def on_document_completed(self, sender, args):
+            self.web_browser.Document.InvokeScript('eval', (alert.src,))
+
+            if self.first_load:
+                self.web_browser.Visible = True
+                self.first_load = False
+
+            self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)
+
+            document = self.web_browser.Document
+            document.InvokeScript('eval', (parse_api_js(self.js_bridge.window.js_api),))
+
+            if not self.window.text_select:
+                document.InvokeScript('eval', (disable_text_select,))
+            
+            self.window.loaded.set()
+
+            if self.frameless:
+                document.MouseMove += self.on_mouse_move
+
+        def on_mouse_move(self, sender, e):
+            if e.MouseButtonsPressed == WinForms.MouseButtons.Left:
+                WebBrowserEx.ReleaseCapture()
+                WebBrowserEx.SendMessage(self.Handle, WebBrowserEx.WM_NCLBUTTONDOWN, WebBrowserEx.HT_CAPTION, 0)
+
+    class EdgeHTML:
+        class StreamUriWinRTResolver(IUriToStreamResolver):
+            __namespace__ = 'StreamUriWinRTResolver'
+            def UriToStreamAsync(self, uri):
+                return ''
+
+        def __init__(self, form, window):
+            self.window = window
+            self.web_view = WebView()
+            life = ISupportInitialize(self.web_view)
+            life.BeginInit()
+            form.Controls.Add(self.web_view)
+
+            self.js_result_semaphore = Semaphore(0)
+            self.web_view.Dock = WinForms.DockStyle.Fill
+            self.web_view.DpiAware = True
+            self.web_view.IsIndexedDBEnabled = True
+            self.web_view.IsJavaScriptEnabled = True
+            self.web_view.IsScriptNotifyAllowed = True
+            self.web_view.DefaultBackgroundColor = form.BackColor
+
+            self.web_view.ScriptNotify += self.on_script_notify
+            self.web_view.NewWindowRequested += self.on_new_window_request
+            self.web_view.NavigationStarting += self.on_navigation_started
+            self.web_view.NavigationCompleted += self.on_navigation_completed
+            self.web_view.UnviewableContentIdentified += self.on_unviewable_content_identified
+
+            # This must be before loading URL. Otherwise the webview will remain empty
+            life.EndInit()
+            """
+            #dummy_uri = self.web_view.BuildLocalStreamUri('MyContent', '/my.html')
+            resolver = BrowserView.EdgeHTML.StreamUriWinRTResolver()
+            self.web_view.NavigateToLocalStreamUri(Uri('file://dummy.html'), resolver)
+            """
+            if window.url:
+                self.web_view.Navigate(window.url)
+            elif window.html:
+                self.web_view.NavigateToString(window.html)
+            else:
+                self.web_view.NavigateToString(default_html)
+
+        def evaluate_js(self, script):
+            def get_result(res):
+                self.js_result = res
+                self.js_result_semaphore.release()
+
+            operation = self.web_view.InvokeScript('eval', (script,))
+            print(operation)
+            #operation.Completed += get_result
+
+        def get_current_url():
+            return self.url
+
+        def load_html(self, html, base_uri):
+            self.web_view.NavigateToString(html)
+
+        def load_url(self, url):
+            self.web_view.Navigate(url)
+
+        def on_script_notify(self, _, args):
+            func_name, func_param = json.loads(args.get_Value())
+            print(func_name)
+
+            if func_name == 'alert':
+                WinForms.MessageBox.Show(func_param)
+            else:
+                _js_bridge_call(self.window, func_name, func_param)
+
+        def on_new_window_request(self, _, args):
+            webbrowser.open(str(args.get_Uri()))
+            args.set_Handled(True)
+
+        def on_navigation_started(self, _, args):
+            # FIXME: This alert shim is non-blocking
+            self.web_view.AddInitializeScript("window.alert = (msg) => window.external.notify(JSON.stringify(['alert', msg+'']))")
+            
+            if self.window.js_api:
+                self.web_view.AddInitializeScript(parse_api_js(self.window.js_api))
+
+            if not self.window.text_select:
+                self.web_view.AddInitializeScript(disable_text_select)
+
+        def on_navigation_completed(self, _, args):
+            self.window.loaded.set()
+
+        def on_unviewable_content_identified(self, _, args):
+            # TODO: Use this to implement download
+            print(args.get_MediaType(), args.get_Uri())
 
     class BrowserForm(WinForms.Form):
         def __init__(self, window):
@@ -88,8 +319,8 @@ class BrowserView:
 
             self.shown = window.shown
             self.loaded = window.loaded
-            self.background_color = window.background_color
             self.url = window.url
+            self.text_select = window.text_select
 
             self.is_fullscreen = False
             if window.fullscreen:
@@ -101,10 +332,11 @@ class BrowserView:
 
             if is_cef:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
+            elif is_edge:
+                self.browser = BrowserView.EdgeHTML(self, window)
             else:
-                self._create_mshtml_browser(window)
+                self.browser = BrowserView.MSHTML(self, window)
 
-            self.text_select = window.text_select
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
 
@@ -113,51 +345,6 @@ class BrowserView:
 
             if window.confirm_close:
                 self.FormClosing += self.on_closing
-
-        def _create_mshtml_browser(self, window):
-            self.web_browser = WebBrowserEx()
-            self.web_browser.Dock = WinForms.DockStyle.Fill
-            self.web_browser.ScriptErrorsSuppressed = not _debug
-            self.web_browser.IsWebBrowserContextMenuEnabled = _debug
-            self.web_browser.WebBrowserShortcutsEnabled = False
-            self.web_browser.DpiAware = True
-
-            self.web_browser.ScriptErrorsSuppressed = not _debug
-            self.web_browser.IsWebBrowserContextMenuEnabled = _debug
-
-            self.js_result_semaphore = Semaphore(0)
-            self.js_bridge = BrowserView.JSBridge()
-            self.js_bridge.window = window
-
-            self.web_browser.ObjectForScripting = self.js_bridge
-
-            # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
-            # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
-            # for the default background color.
-            if self.background_color != '#FFFFFF':
-                self.web_browser.Visible = False
-                self.first_load = True
-            else:
-                self.first_load = False
-
-            self.cancel_back = False
-            self.web_browser.PreviewKeyDown += self.on_preview_keydown
-            self.web_browser.Navigating += self.on_navigating
-            self.web_browser.NewWindow3 += self.on_new_window
-            self.web_browser.DownloadComplete += self.on_download_complete
-            self.web_browser.DocumentCompleted += self.on_document_completed
-
-            if window.url:
-                self.web_browser.Navigate(window.url)
-            elif window.html:
-                self.web_browser.DocumentText = window.html
-            else:
-                self.web_browser.DocumentText = default_html
-
-            self.Controls.Add(self.web_browser)
-
-        def _initialize_js(self):
-            self.web_browser.Document.InvokeScript('eval', (alert.src,))
 
         def on_shown(self, sender, args):
             if not is_cef:
@@ -187,57 +374,31 @@ class BrowserView:
         def on_resize(self, sender, args):
             CEF.resize(self.Width, self.Height, self.uid)
 
-        def on_preview_keydown(self, sender, args):
-            if args.KeyCode == WinForms.Keys.Back:
-                self.cancel_back = True
-            elif args.KeyCode == WinForms.Keys.Delete:
-                self.web_browser.Document.ExecCommand('Delete', False, None)
-            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.C:
-                self.web_browser.Document.ExecCommand('Copy', False, None)
-            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.X:
-                self.web_browser.Document.ExecCommand('Cut', False, None)
-            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.V:
-                self.web_browser.Document.ExecCommand('Paste', False, None)
-            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.Z:
-                self.web_browser.Document.ExecCommand('Undo', False, None)
-            elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.A:
-                self.web_browser.Document.ExecCommand('selectAll', False, None)
+        def evaluate_js(self, script):
+            def _evaluate_js():
+                self.browser.evaluate_js(script)
 
-        def on_new_window(self, sender, args):
-            args.Cancel = True
-            webbrowser.open(args.Url)
+            self.loaded.wait()
+            #self.Invoke(Func[Type](_evaluate_js))
+            self.browser.evaluate_js(script)
+            self.browser.js_result_semaphore.acquire()
 
-        def on_download_complete(self, sender, args):
-            pass
-        def on_navigating(self, sender, args):
-            if self.cancel_back:
-                args.Cancel = True
-                self.cancel_back = False
+            return self.browser.js_result
 
-        def on_document_completed(self, sender, args):
-            self._initialize_js()
+        def load_html(self, content, base_uri):
+            def _load_html():
+                 self.browser.load_html(content, base_uri)
 
-            if self.first_load:
-                self.web_browser.Visible = True
-                self.first_load = False
+            self.Invoke(Func[Type](_load_html))
 
-            self.real_url = args.Url.AbsoluteUri
+        def load_url(self, url):
+            def _load_url():
+                self.browser.load_url(url)
 
-            document = self.web_browser.Document
-            document.InvokeScript('eval', (parse_api_js(self.js_bridge.window.js_api),))
+            self.Invoke(Func[Type](_load_url))
 
-            if not self.text_select:
-                document.InvokeScript('eval', (disable_text_select,))
-            
-            self.loaded.set()
-
-            if self.frameless:
-                document.MouseMove += self.on_mouse_move
-
-        def on_mouse_move(self, sender, e):
-            if e.MouseButtonsPressed == WinForms.MouseButtons.Left:
-                WebBrowserEx.ReleaseCapture()
-                WebBrowserEx.SendMessage(self.Handle, WebBrowserEx.WM_NCLBUTTONDOWN, WebBrowserEx.HT_CAPTION, 0)
+        def get_current_url(self):
+            return self.browser.get_current_url
 
         def toggle_fullscreen(self):
             def _toggle():
@@ -339,8 +500,10 @@ def _set_ie_mode():
     winreg.SetValueEx(dpi_support, executable_name, 0, winreg.REG_DWORD, 1)
     winreg.CloseKey(dpi_support)
 
+
 _main_window_created = Event()
 _main_window_created.clear()
+
 
 def create_window(window):
     def create():
@@ -356,7 +519,9 @@ def create_window(window):
     app = WinForms.Application
 
     if window.uid == 'master':
-        _set_ie_mode()
+        if not is_edge and not is_cef:
+            _set_ie_mode()
+
         if sys.getwindowsversion().major >= 6:
             windll.user32.SetProcessDPIAware()
 
@@ -441,50 +606,30 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 
 def get_current_url(uid):
-    from time import sleep
     if is_cef:
         return CEF.get_current_url(uid)
     else:
         window = BrowserView.instances[uid]
-
-        if window.url is None:
-            return None
-        else:
-            window.loaded.wait()
-            return window.real_url
+        window.loaded.wait()
+        return window.browser.url
 
 
 def load_url(url, uid):
-    def _load_url():
-        window.url = url
-        window.web_browser.Navigate(url)
-
     window = BrowserView.instances[uid]
     window.loaded.clear()
 
     if is_cef:
         CEF.load_url(url, uid)
-    elif window.web_browser.InvokeRequired:
-        window.web_browser.Invoke(Func[Type](_load_url))
     else:
-        _load_url()
+        window.load_url(url)
 
 
 def load_html(content, base_uri, uid):
-    def _load_html():
-        window.web_browser.DocumentText = inject_base_uri(content, base_uri)
-
     if is_cef:
         CEF.load_html(inject_base_uri(content, base_uri), uid)
         return
-
-    window = BrowserView.instances[uid]
-    window.loaded.clear()
-
-    if window.InvokeRequired:
-        window.Invoke(Func[Type](_load_html))
     else:
-        _load_html()
+        BrowserView.instances[uid].load_html(content, base_uri)
 
 
 def toggle_fullscreen(uid):
@@ -502,23 +647,12 @@ def destroy_window(uid):
     window.Close()
 
     if not is_cef:
-        window.js_result_semaphore.release()
+        window.browser.js_result_semaphore.release()
 
 
 def evaluate_js(script, uid):
-    def _evaluate_js():
-        document = window.web_browser.Document
-
-        result = document.InvokeScript('eval', (script,))
-        window.js_result = None if result is None or result is 'null' else json.loads(result)
-        window.js_result_semaphore.release()
-
     if is_cef:
         return CEF.evaluate_js(script, uid)
     else:
-        window = BrowserView.instances[uid]
-        window.loaded.wait()
-        window.Invoke(Func[Type](_evaluate_js))
-        window.js_result_semaphore.acquire()
+        return BrowserView.instances[uid].evaluate_js(script)
 
-        return window.js_result

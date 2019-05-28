@@ -27,7 +27,12 @@ window.pywebview = {
                   channel.objects.external.call(func_name, params);
                 });
             } else if (window.external) {
-                return window.external.call(func_name, params);
+                if (window.external.call) {
+                  return window.external.call(func_name, params);
+                }
+                if (window.external.notify) {
+                  window.external.notify(JSON.stringify([func_name, params]);
+                }
             } else if (window.webkit) {
                 return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([func_name, params]));
             }
