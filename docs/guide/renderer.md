@@ -7,8 +7,9 @@ The following renderers are used on each platform
 |----------|----------|---------------------------------------------------|-----------------------|
 | GTK      | WebKit   | WebKit2                                           |                       |
 | macOS    | WebKit   | WebKit.WKWebView (bundled with OS)                |                       |
-| QT       | WebKit   | QtWebKit                                          |                       |
-| Windows  | Trident  | MSHTML via .NET / System.Windows.Forms.WebBrowser | IE11 (Windows 10/8/7) |
+| QT       | WebKit   | QtWebEngine / QtWebKit                            |                       |
+| Windows  | MSHTML   | MSHTML via .NET / System.Windows.Forms.WebBrowser | IE11 (Windows 10/8/7) |
+| Windows  | EdgeHTML | > .NET Framework 4.6.2 and Windows 10 build 17110 |                       |
 | Windows  | CEF      | CEF Python                                        | Chrome 66             |
 
 
