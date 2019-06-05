@@ -32,8 +32,7 @@ def base_uri(relative_path=''):
     except Exception:
         if 'pytest' in sys.modules:
             for arg in reversed(sys.argv):
-                path = os.path.realpath(arg)
-
+                path = os.path.realpath(arg.split('::')[0])
                 if os.path.exists(path):
                     base_path = path if os.path.isdir(path) else os.path.dirname(path)
                     break

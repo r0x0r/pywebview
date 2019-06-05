@@ -8,12 +8,15 @@ http://github.com/r0x0r/pywebview/
 """
 
 import os
-import sys
+import sys 
 import logging
 import json
 import webbrowser
 from threading import Event, Semaphore
 from ctypes import windll
+from uuid import uuid4
+
+from webview import WebViewException
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html
 
 import clr
@@ -128,7 +131,7 @@ class BrowserView:
             self.web_browser.NewWindow3 += self.on_new_window
             self.web_browser.DownloadComplete += self.on_download_complete
             self.web_browser.DocumentCompleted += self.on_document_completed
-
+            
             if window.url:
                 self.web_browser.Navigate(window.url)
             elif window.html:
@@ -204,11 +207,6 @@ class BrowserView:
                 WebBrowserEx.SendMessage(self.Handle, WebBrowserEx.WM_NCLBUTTONDOWN, WebBrowserEx.HT_CAPTION, 0)
 
     class EdgeHTML:
-        class StreamUriWinRTResolver(IUriToStreamResolver):
-            __namespace__ = 'StreamUriWinRTResolver'
-            def UriToStreamAsync(self, uri):
-                return ''
-
         def __init__(self, form, window):
             self.window = window
             self.web_view = WebView()
@@ -232,42 +230,58 @@ class BrowserView:
 
             # This must be before loading URL. Otherwise the webview will remain empty
             life.EndInit()
-            """
-            #dummy_uri = self.web_view.BuildLocalStreamUri('MyContent', '/my.html')
-            resolver = BrowserView.EdgeHTML.StreamUriWinRTResolver()
-            self.web_view.NavigateToLocalStreamUri(Uri('file://dummy.html'), resolver)
-            """
+
+            self.temp_html = None
+
             if window.url:
-                self.web_view.Navigate(window.url)
+                self.load_url(window.url)
             elif window.html:
-                self.web_view.NavigateToString(window.html)
+                self.load_html(window.html, '')
             else:
-                self.web_view.NavigateToString(default_html)
+                self.load_html(default_html, '')
 
         def evaluate_js(self, script):
-            def get_result(res):
-                self.js_result = res
-                self.js_result_semaphore.release()
-
-            operation = self.web_view.InvokeScript('eval', (script,))
-            print(operation)
-            #operation.Completed += get_result
+            result = self.web_view.InvokeScript('eval', (script,))
+            print(result)
+            self.js_result = None if result is None or result == '' else json.loads(result)
+            self.js_result_semaphore.release()
 
         def get_current_url():
             return self.url
 
         def load_html(self, html, base_uri):
-            self.web_view.NavigateToString(html)
+            file_name = '%s.html' % uuid4().hex
+            self.temp_html = os.path.join(WinForms.Application.StartupPath, file_name)
+
+            with open(self.temp_html, 'w') as f:
+                f.write(inject_base_uri(html, base_uri))
+            
+            self.web_view.NavigateToLocal(file_name)
 
         def load_url(self, url):
-            self.web_view.Navigate(url)
+            self.temp_html = None
+
+            # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
+            if url.startswith('file://'):
+                path = url.replace('file://', '')
+
+                if not os.path.exists(path):
+                    raise WebViewException('File %s does not exist' % path)
+
+                with open(path) as f:
+                    html = f.read()
+                    self.load_html(html, 'file://' + os.path.dirname(path) + '\\')
+                
+            else:
+                self.web_view.Navigate(url)
 
         def on_script_notify(self, _, args):
-            func_name, func_param = json.loads(args.get_Value())
-            print(func_name)
+            func_name, func_param = json.loads(args.Value)
 
             if func_name == 'alert':
                 WinForms.MessageBox.Show(func_param)
+            elif func_name == 'console':
+                print(func_param)
             else:
                 _js_bridge_call(self.window, func_name, func_param)
 
@@ -277,8 +291,9 @@ class BrowserView:
 
         def on_navigation_started(self, _, args):
             # FIXME: This alert shim is non-blocking
-            self.web_view.AddInitializeScript("window.alert = (msg) => window.external.notify(JSON.stringify(['alert', msg+'']))")
-            
+            #self.web_view.AddInitializeScript("window.alert = (msg) => window.external.notify(JSON.stringify(['alert', msg+'']))")
+            #self.web_view.AddInitializeScript("window.console = { log: (msg) => window.external.notify(JSON.stringify(['console', msg+''])) }")
+            #self.web_view.AddInitializeScript("document.body.style.backgroundColor = '#d00'")
             if self.window.js_api:
                 self.web_view.AddInitializeScript(parse_api_js(self.window.js_api))
 
@@ -286,6 +301,24 @@ class BrowserView:
                 self.web_view.AddInitializeScript(disable_text_select)
 
         def on_navigation_completed(self, _, args):
+            try:
+                if self.temp_html and os.path.exists(self.temp_html):
+                    #os.remove(self.temp_html)
+                    self.temp_html = None
+            except Exception as e:
+                logger.exception('Failed deleting %s' % self.temp_html)
+
+            self.web_view.InvokeScriptAsync('eval', ('window.alert = (msg) => window.external.notify(JSON.stringify(["alert", msg+""]))',))
+
+            if _debug:
+                self.web_view.InvokeScriptAsync('eval', ('window.console = { log: (msg) => window.external.notify(JSON.stringify(["console", msg+""]))}',))
+            
+            if self.window.js_api:
+                self.web_view.InvokeScriptAsync('eval', (parse_api_js(self.window.js_api),))
+
+            if not self.window.text_select:
+                self.web_view.InvokeScriptAsync('eval', (disable_text_select,))
+
             self.window.loaded.set()
 
         def on_unviewable_content_identified(self, _, args):

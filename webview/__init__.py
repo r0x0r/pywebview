@@ -23,7 +23,7 @@ from copy import deepcopy
 
 from webview.event import Event
 from webview.guilib import initialize
-from webview.util import _token, base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, inject_base_uri, WebViewException
+from webview.util import _token, base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, WebViewException
 from webview.window import Window
 from .localization import localization as original_localization
 
