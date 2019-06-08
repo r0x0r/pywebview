@@ -252,7 +252,7 @@ def shutdown():
             shutil.rmtree('webrtc_event_logs')
 
         if os.path.exists('error.log'):
-            shutil.rmtree('error.log')
+            os.remove('error.log')
 
     except Exception as e:
         logger.debug(e, exc_info=True)
