@@ -68,8 +68,13 @@ def _is_edge():
     finally:
         winreg.CloseKey(net_key)
 
-is_edge = _is_edge()
+force_mshtml = os.environ['PYWEBVIEW_GUI'] and os.environ['PYWEBVIEW_GUI'].lower() == 'mshtml'
+is_edge = _is_edge() and not force_mshtml
 
+
+# TODO: Move this out of Edge initialization code
+clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
+from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 
 if is_edge:
     clr.AddReference(interop_dll_path('Microsoft.Toolkit.Forms.UI.Controls.WebView.dll'))
@@ -78,8 +83,6 @@ if is_edge:
     from Windows.Web import IUriToStreamResolver
     logger.debug('Using WinForms / EdgeHTML')
 else:
-    clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
-    from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
     logger.debug('Using WinForms / MSHTML')
 
 
@@ -88,17 +91,17 @@ class BrowserView:
     instances = {}
 
     class MSHTML:
+        class JSBridge(IWebBrowserInterop):
+            __namespace__ = 'BrowserView.MSHTML.JSBridge'
+            window = None
+
+            def call(self, func_name, param):
+                return _js_bridge_call(self.window, func_name, param)
+
+            def alert(self, message):
+                BrowserView.alert(message)
+
         def __init__(self, form, window):
-            class JSBridge(IWebBrowserInterop):
-                __namespace__ = 'BrowserView.MSHTML.JSBridge'
-                window = None
-
-                def call(self, func_name, param):
-                    return _js_bridge_call(self.window, func_name, param)
-
-                def alert(self, message):
-                    BrowserView.alert(message)
-
             self.window = window
             self.web_browser = WebBrowserEx()
             self.web_browser.Dock = WinForms.DockStyle.Fill
@@ -111,7 +114,7 @@ class BrowserView:
             self.web_browser.IsWebBrowserContextMenuEnabled = _debug
 
             self.js_result_semaphore = Semaphore(0)
-            self.js_bridge = JSBridge()
+            self.js_bridge = BrowserView.MSHTML.JSBridge()
             self.js_bridge.window = window
 
             self.web_browser.ObjectForScripting = self.js_bridge
@@ -208,8 +211,10 @@ class BrowserView:
 
     class EdgeHTML:
         def __init__(self, form, window):
+            print('edge htmll')
             self.window = window
             self.web_view = WebView()
+            
             life = ISupportInitialize(self.web_view)
             life.BeginInit()
             form.Controls.Add(self.web_view)
@@ -242,7 +247,6 @@ class BrowserView:
 
         def evaluate_js(self, script):
             result = self.web_view.InvokeScript('eval', (script,))
-            print(result)
             self.js_result = None if result is None or result == '' else json.loads(result)
             self.js_result_semaphore.release()
 
@@ -290,10 +294,6 @@ class BrowserView:
             args.set_Handled(True)
 
         def on_navigation_started(self, _, args):
-            # FIXME: This alert shim is non-blocking
-            #self.web_view.AddInitializeScript("window.alert = (msg) => window.external.notify(JSON.stringify(['alert', msg+'']))")
-            #self.web_view.AddInitializeScript("window.console = { log: (msg) => window.external.notify(JSON.stringify(['console', msg+''])) }")
-            #self.web_view.AddInitializeScript("document.body.style.backgroundColor = '#d00'")
             if self.window.js_api:
                 self.web_view.AddInitializeScript(parse_api_js(self.window.js_api))
 
@@ -303,7 +303,7 @@ class BrowserView:
         def on_navigation_completed(self, _, args):
             try:
                 if self.temp_html and os.path.exists(self.temp_html):
-                    #os.remove(self.temp_html)
+                    os.remove(self.temp_html)
                     self.temp_html = None
             except Exception as e:
                 logger.exception('Failed deleting %s' % self.temp_html)
@@ -369,6 +369,7 @@ class BrowserView:
                 self.browser = BrowserView.EdgeHTML(self, window)
             else:
                 self.browser = BrowserView.MSHTML(self, window)
+  
 
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
@@ -411,9 +412,7 @@ class BrowserView:
             def _evaluate_js():
                 self.browser.evaluate_js(script)
 
-            self.loaded.wait()
-            #self.Invoke(Func[Type](_evaluate_js))
-            self.browser.evaluate_js(script)
+            self.Invoke(Func[Type](_evaluate_js))
             self.browser.js_result_semaphore.acquire()
 
             return self.browser.js_result
@@ -676,8 +675,11 @@ def set_window_size(width, height, uid):
 
 
 def destroy_window(uid):
+    def _close():
+        window.Close()
+
     window = BrowserView.instances[uid]
-    window.Close()
+    window.Invoke(Func[Type](_close))
 
     if not is_cef:
         window.browser.js_result_semaphore.release()
