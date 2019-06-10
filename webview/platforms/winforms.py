@@ -8,7 +8,7 @@ http://github.com/r0x0r/pywebview/
 """
 
 import os
-import sys 
+import sys
 import logging
 import json
 import webbrowser
@@ -62,7 +62,7 @@ def _is_edge():
         net_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full')
         version, _ = winreg.QueryValueEx(net_key, 'Release')
 
-        return version >= 394802 and windows_version >= (10, 0, 17134) # .NET 4.6.2 + Windows 10 1803 
+        return version >= 394802 and windows_version >= (10, 0, 17134) # .NET 4.6.2 + Windows 10 1803
     except:
         return False
     finally:
@@ -80,7 +80,6 @@ if is_edge:
     clr.AddReference(interop_dll_path('Microsoft.Toolkit.Forms.UI.Controls.WebView.dll'))
     from Microsoft.Toolkit.Forms.UI.Controls import WebView
     from System.ComponentModel import ISupportInitialize
-    from Windows.Web import IUriToStreamResolver
     logger.debug('Using WinForms / EdgeHTML')
 else:
     logger.debug('Using WinForms / MSHTML')
@@ -134,7 +133,7 @@ class BrowserView:
             self.web_browser.NewWindow3 += self.on_new_window
             self.web_browser.DownloadComplete += self.on_download_complete
             self.web_browser.DocumentCompleted += self.on_document_completed
-            
+
             if window.url:
                 self.web_browser.Navigate(window.url)
             elif window.html:
@@ -198,7 +197,7 @@ class BrowserView:
 
             if not self.window.text_select:
                 document.InvokeScript('eval', (disable_text_select,))
-            
+
             self.window.loaded.set()
 
             if self.frameless:
@@ -259,7 +258,7 @@ class BrowserView:
 
             with open(self.temp_html, 'w') as f:
                 f.write(inject_base_uri(html, base_uri))
-            
+
             self.web_view.NavigateToLocal(file_name)
 
         def load_url(self, url):
@@ -275,7 +274,7 @@ class BrowserView:
                 with open(path) as f:
                     html = f.read()
                     self.load_html(html, 'file://' + os.path.dirname(path) + '\\')
-                
+
             else:
                 self.web_view.Navigate(url)
 
@@ -312,7 +311,7 @@ class BrowserView:
 
             if _debug:
                 self.web_view.InvokeScriptAsync('eval', ('window.console = { log: (msg) => window.external.notify(JSON.stringify(["console", msg+""]))}',))
-            
+
             if self.window.js_api:
                 self.web_view.InvokeScriptAsync('eval', (parse_api_js(self.window.js_api),))
 
