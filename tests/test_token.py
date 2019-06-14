@@ -12,7 +12,7 @@ def test_persistance():
 
 
 def token_test(window):
-    token = window.evaluate_js('pywebview.token')
+    token = window.evaluate_js('window.pywebview.token')
     assert token is not None
     assert len(token) > 0
 
