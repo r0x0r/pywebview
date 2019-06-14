@@ -223,14 +223,13 @@ class BrowserView:
 
             self.web_view.ScriptNotify += self.on_script_notify
             self.web_view.NewWindowRequested += self.on_new_window_request
-            self.web_view.NavigationStarting += self.on_navigation_started
             self.web_view.NavigationCompleted += self.on_navigation_completed
-            self.web_view.UnviewableContentIdentified += self.on_unviewable_content_identified
 
             # This must be before loading URL. Otherwise the webview will remain empty
             life.EndInit()
 
             self.temp_html = None
+            self.url = None
 
             if window.url:
                 self.load_url(window.url)
@@ -240,12 +239,16 @@ class BrowserView:
                 self.load_html(default_html, '')
 
         def evaluate_js(self, script):
-            result = self.web_view.InvokeScript('eval', (script,))
-            print(result)
+            try:
+                result = self.web_view.InvokeScript('eval', (script,))
+            except Exception as e:
+                logger.exception('Error occurred in script')
+                result = None
+
             self.js_result = None if result is None or result == '' else json.loads(result)
             self.js_result_semaphore.release()
 
-        def get_current_url():
+        def get_current_url(self):
             return self.url
 
         def load_html(self, html, base_uri):
@@ -288,41 +291,27 @@ class BrowserView:
             webbrowser.open(str(args.get_Uri()))
             args.set_Handled(True)
 
-        def on_navigation_started(self, _, args):
-            # FIXME: This alert shim is non-blocking
-            #self.web_view.AddInitializeScript("window.alert = (msg) => window.external.notify(JSON.stringify(['alert', msg+'']))")
-            #self.web_view.AddInitializeScript("window.console = { log: (msg) => window.external.notify(JSON.stringify(['console', msg+''])) }")
-            #self.web_view.AddInitializeScript("document.body.style.backgroundColor = '#d00'")
-            if self.window.js_api:
-                self.web_view.AddInitializeScript(parse_api_js(self.window.js_api))
-
-            if not self.window.text_select:
-                self.web_view.AddInitializeScript(disable_text_select)
-
         def on_navigation_completed(self, _, args):
             try:
                 if self.temp_html and os.path.exists(self.temp_html):
-                    #os.remove(self.temp_html)
+                    os.remove(self.temp_html)
                     self.temp_html = None
             except Exception as e:
                 logger.exception('Failed deleting %s' % self.temp_html)
 
-            self.web_view.InvokeScriptAsync('eval', ('window.alert = (msg) => window.external.notify(JSON.stringify(["alert", msg+""]))',))
+            url = str(args.Uri)
+            self.url = None if url.startswith('ms-local-stream:') else url
+            self.web_view.InvokeScript('eval', ('window.alert = (msg) => window.external.notify(JSON.stringify(["alert", msg+""]))',))
 
             if _debug:
-                self.web_view.InvokeScriptAsync('eval', ('window.console = { log: (msg) => window.external.notify(JSON.stringify(["console", msg+""]))}',))
+                self.web_view.InvokeScript('eval', ('window.console = { log: (msg) => window.external.notify(JSON.stringify(["console", msg+""]))}',))
 
-            if self.window.js_api:
-                self.web_view.InvokeScriptAsync('eval', (parse_api_js(self.window.js_api),))
+            self.web_view.InvokeScript('eval', (parse_api_js(self.window.js_api),))
 
             if not self.window.text_select:
-                self.web_view.InvokeScriptAsync('eval', (disable_text_select,))
+                self.web_view.InvokeScript('eval', (disable_text_select,))
 
             self.window.loaded.set()
-
-        def on_unviewable_content_identified(self, _, args):
-            # TODO: Use this to implement download
-            print(args.get_MediaType(), args.get_Uri())
 
     class BrowserForm(WinForms.Form):
         def __init__(self, window):
@@ -411,8 +400,7 @@ class BrowserView:
                 self.browser.evaluate_js(script)
 
             self.loaded.wait()
-            #self.Invoke(Func[Type](_evaluate_js))
-            self.browser.evaluate_js(script)
+            self.Invoke(Func[Type](_evaluate_js))
             self.browser.js_result_semaphore.acquire()
 
             return self.browser.js_result
