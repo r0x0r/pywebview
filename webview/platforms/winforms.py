@@ -16,7 +16,7 @@ from threading import Event, Semaphore
 from ctypes import windll
 from uuid import uuid4
 
-from webview import WebViewException
+from webview import WebViewException, windows
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html
 
 import clr
@@ -210,7 +210,6 @@ class BrowserView:
 
     class EdgeHTML:
         def __init__(self, form, window):
-            print('edge htmll')
             self.window = window
             self.web_view = WebView()
             
@@ -327,6 +326,7 @@ class BrowserView:
     class BrowserForm(WinForms.Form):
         def __init__(self, window):
             self.uid = window.uid
+            self.window = window
             self.real_url = None
             self.Text = window.title
             self.ClientSize = Size(window.width, window.height)
@@ -393,6 +393,8 @@ class BrowserView:
                 CEF.close_window(self.uid)
 
             del BrowserView.instances[self.uid]
+            windows.remove(self.window)
+
 
             if len(BrowserView.instances) == 0:
                 self.Invoke(Func[Type](_shutdown))
