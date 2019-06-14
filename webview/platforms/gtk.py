@@ -16,7 +16,7 @@ except ImportError:
 from uuid import uuid1
 from threading import Event, Semaphore
 from webview.localization import localization
-from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
+from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call, windows
 from webview.util import parse_api_js
 from webview.js.css import disable_text_select
 
@@ -55,6 +55,7 @@ class BrowserView:
     def __init__(self, window):
         BrowserView.instances[window.uid] = self
         self.uid = window.uid
+        self.pywebview_window = window
 
         self.is_fullscreen = False
         self.js_results = {}
@@ -136,6 +137,7 @@ class BrowserView:
 
         self.window.destroy()
         del BrowserView.instances[self.uid]
+        windows.remove(self.pywebview_window)
 
         if BrowserView.instances == {}:
             gtk.main_quit()

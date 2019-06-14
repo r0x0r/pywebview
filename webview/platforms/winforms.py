@@ -68,7 +68,7 @@ def _is_edge():
     finally:
         winreg.CloseKey(net_key)
 
-force_mshtml = os.environ['PYWEBVIEW_GUI'] and os.environ['PYWEBVIEW_GUI'].lower() == 'mshtml'
+force_mshtml = os.environ.get('PYWEBVIEW_GUI') and os.environ['PYWEBVIEW_GUI'].lower() == 'mshtml'
 is_edge = _is_edge() and not force_mshtml
 
 
@@ -95,13 +95,13 @@ class BrowserView:
             window = None
 
             def call(self, func_name, param):
-                return _js_bridge_call(self.window, func_name, param)
+                return _js_bridge_call(self.pywebview_window, func_name, param)
 
             def alert(self, message):
                 BrowserView.alert(message)
 
         def __init__(self, form, window):
-            self.window = window
+            self.pywebview_window = window
             self.web_browser = WebBrowserEx()
             self.web_browser.Dock = WinForms.DockStyle.Fill
             self.web_browser.ScriptErrorsSuppressed = not _debug
@@ -150,7 +150,7 @@ class BrowserView:
 
         def load_html(self, content, base_uri):
             self.web_browser.DocumentText = inject_base_uri(content, base_uri)
-            self.window.loaded.clear()
+            self.pywebview_window.loaded.clear()
 
         def load_url(self, url):
             self.web_browser.Navigate(url)
@@ -195,10 +195,10 @@ class BrowserView:
             document = self.web_browser.Document
             document.InvokeScript('eval', (parse_api_js(self.js_bridge.window.js_api),))
 
-            if not self.window.text_select:
+            if not self.pywebview_window.text_select:
                 document.InvokeScript('eval', (disable_text_select,))
 
-            self.window.loaded.set()
+            self.pywebview_window.loaded.set()
 
             if self.frameless:
                 document.MouseMove += self.on_mouse_move
@@ -210,7 +210,7 @@ class BrowserView:
 
     class EdgeHTML:
         def __init__(self, form, window):
-            self.window = window
+            self.pywebview_window = window
             self.web_view = WebView()
             
             life = ISupportInitialize(self.web_view)
@@ -289,7 +289,7 @@ class BrowserView:
             elif func_name == 'console':
                 print(func_param)
             else:
-                _js_bridge_call(self.window, func_name, func_param)
+                _js_bridge_call(self.pywebview_window, func_name, func_param)
 
         def on_new_window_request(self, _, args):
             webbrowser.open(str(args.get_Uri()))
@@ -310,17 +310,17 @@ class BrowserView:
             if _debug:
                 self.web_view.InvokeScript('eval', ('window.console = { log: (msg) => window.external.notify(JSON.stringify(["console", msg+""]))}',))
 
-            self.web_view.InvokeScript('eval', (parse_api_js(self.window.js_api),))
+            self.web_view.InvokeScript('eval', (parse_api_js(self.pywebview_window.js_api),))
 
-            if not self.window.text_select:
+            if not self.pywebview_window.text_select:
                 self.web_view.InvokeScript('eval', (disable_text_select,))
 
-            self.window.loaded.set()
+            self.pywebview_window.loaded.set()
 
     class BrowserForm(WinForms.Form):
         def __init__(self, window):
             self.uid = window.uid
-            self.window = window
+            self.pywebview_window = window
             self.real_url = None
             self.Text = window.title
             self.ClientSize = Size(window.width, window.height)
@@ -387,7 +387,7 @@ class BrowserView:
                 CEF.close_window(self.uid)
 
             del BrowserView.instances[self.uid]
-            windows.remove(self.window)
+            windows.remove(self.pywebview_window)
 
 
             if len(BrowserView.instances) == 0:

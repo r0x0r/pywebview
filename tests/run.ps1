@@ -1,6 +1,5 @@
 $RootPath = Split-Path $PSScriptRoot
-
-${env:PYWEBVIEW_GUI='$RootPath'}
+${env:PYTHONPATH='$RootPath'}
 ${env:PYWEBVIEW_LOG='debug'}
 
 pytest test_bg_color.py::test_bg_color -s
@@ -45,3 +44,5 @@ pytest test_token.py::test_token -s
 pytest test_token.py::test_persistance -s
 
 pytest test_url_load.py -s
+
+pytest test_window.py -s

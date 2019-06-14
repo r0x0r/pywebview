@@ -15,7 +15,7 @@ from copy import deepcopy
 from threading import Semaphore, Event
 from socket import socket
 
-from webview import escape_string, _js_bridge_call, _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import escape_string, _js_bridge_call, _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.localization import localization
 from webview.window import Window
 from webview.util import convert_string, default_html, parse_api_js
@@ -159,6 +159,7 @@ class BrowserView(QMainWindow):
         super(BrowserView, self).__init__()
         BrowserView.instances[window.uid] = self
         self.uid = window.uid
+        self.pywebview_window = window
 
         self.js_bridge = BrowserView.JSBridge()
         self.js_bridge.window = window
@@ -283,6 +284,7 @@ class BrowserView(QMainWindow):
 
         event.accept()
         del BrowserView.instances[self.uid]
+        windows.remove(self.pywebview_window)
 
         try:    # Close inspector if open
             BrowserView.instances[self.uid + '-inspector'].close()

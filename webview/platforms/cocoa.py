@@ -19,7 +19,7 @@ from PyObjCTools import AppHelper
 from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
-from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call
+from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call, windows
 from webview.util import convert_string, parse_api_js, default_html
 from webview.js.css import disable_text_select
 
@@ -79,6 +79,7 @@ class BrowserView:
             # Delete the closed instance from the dict
             i = BrowserView.get_instance('window', notification.object())
             del BrowserView.instances[i.uid]
+            windows.remove(i.pywebview_window)
 
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
@@ -293,6 +294,7 @@ class BrowserView:
     def __init__(self, window):
         BrowserView.instances[window.uid] = self
         self.uid = window.uid
+        self.pywebview_window = window
 
         self.js_bridge = None
         self._file_name = None

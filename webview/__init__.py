@@ -77,7 +77,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False):
     guilib = initialize(gui)
 
     for window in windows:
-        window._initialize(guilib, windows, multiprocessing)
+        window._initialize(guilib, multiprocessing)
 
     if len(windows) > 1:
         t = Thread(target=_create_children, args=(windows[1:],))
