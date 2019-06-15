@@ -53,12 +53,7 @@ def initialize(forced_gui=None):
             
             if forced_gui == 'cef':
                 guilib.use_cef()
-                logger.debug('Using .NET / CEF')
-            else:
-                logger.debug('Using .NET')
 
-
-            
             return True
         except ImportError as e:
             logger.exception('pythonnet cannot be loaded')

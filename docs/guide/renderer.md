@@ -40,3 +40,22 @@ or
 import webview
 webview.start(gui='qt')
 ```
+
+
+# Known issues and limitations
+
+## GTK WebKit2
+
+* Versions of WebKit2 older than 2.2 has a limitation of 1000 characters of the Javascript result returned by `evaluate_js`. `get_elements` is not supported for this reason.
+
+## QtWebKit
+
+* Debugging is not supported
+
+
+## EdgeHTML
+
+* `file://` URLs are not fully supported. While such URLs can be loaded (via a workaround), associated resources such as images or stylesheets cannot.
+* Destroying a window via `window.close()` and starting a new instance will crash the program.
+
+

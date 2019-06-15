@@ -32,8 +32,7 @@ def base_uri(relative_path=''):
     except Exception:
         if 'pytest' in sys.modules:
             for arg in reversed(sys.argv):
-                path = os.path.realpath(arg)
-
+                path = os.path.realpath(arg.split('::')[0])
                 if os.path.exists(path):
                     base_path = path if os.path.isdir(path) else os.path.dirname(path)
                     break
@@ -138,8 +137,9 @@ def inject_base_uri(content, base_uri):
     return base_tag + content
 
 
-def interop_dll_path():
-    dll_name = 'WebBrowserInterop.x64.dll' if platform.architecture()[0] == '64bit' else 'WebBrowserInterop.x86.dll'
+def interop_dll_path(dll_name):
+    if dll_name == 'WebBrowserInterop.dll':
+        dll_name = 'WebBrowserInterop.x64.dll' if platform.architecture()[0] == '64bit' else 'WebBrowserInterop.x86.dll'
 
     # Unfrozen path
     dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', dll_name)
@@ -159,4 +159,5 @@ def interop_dll_path():
     except Exception:
         pass
 
-    raise Exception('Cannot find WebBrowserInterop.dll')
+    raise Exception('Cannot find %s' % dll_name)
+
