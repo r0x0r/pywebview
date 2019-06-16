@@ -16,8 +16,8 @@ except ImportError:
 from uuid import uuid1
 from threading import Event, Semaphore
 from webview.localization import localization
-from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call, windows
-from webview.util import parse_api_js, default_html
+from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
+from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 
 logger = logging.getLogger('pywebview')
@@ -49,7 +49,7 @@ class BrowserView:
         def call(self, func_name, param):
             if param == 'undefined':
                 param = None
-            return _js_bridge_call(self.window, func_name, param)
+            return js_bridge_call(self.window, func_name, param)
 
     def __init__(self, window):
         BrowserView.instances[window.uid] = self
@@ -136,7 +136,9 @@ class BrowserView:
 
         self.window.destroy()
         del BrowserView.instances[self.uid]
-        windows.remove(self.pywebview_window)
+
+        if self.pywebview_window in windows:
+            windows.remove(self.pywebview_window)
 
         if BrowserView.instances == {}:
             gtk.main_quit()
@@ -344,7 +346,7 @@ class BrowserView:
 
     def _set_js_api(self):
         def create_bridge():
-            self.webview.run_javascript(parse_api_js(self.js_bridge.window.js_api))
+            self.webview.run_javascript(parse_api_js(self.js_bridge.window.js_api, 'gtk'))
 
             if self.js_bridge.window.js_api:
                 # Make the `call` method write the function name and param to the

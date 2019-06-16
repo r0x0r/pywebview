@@ -19,8 +19,8 @@ from PyObjCTools import AppHelper
 from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
-from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, _js_bridge_call, windows
-from webview.util import convert_string, parse_api_js, default_html
+from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
+from webview.util import convert_string, parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
@@ -74,7 +74,9 @@ class BrowserView:
             # Delete the closed instance from the dict
             i = BrowserView.get_instance('window', notification.object())
             del BrowserView.instances[i.uid]
-            windows.remove(i.pywebview_window)
+
+            if i.pywebview_window in windows:
+                windows.remove(i.pywebview_window)
 
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
@@ -89,7 +91,7 @@ class BrowserView:
             func_name, param = json.loads(message.body())
             if param is WebKit.WebUndefined.undefined():
                 param = None
-            _js_bridge_call(self.window, func_name, param)
+            js_bridge_call(self.window, func_name, param)
 
     class BrowserDelegate(AppKit.NSObject):
         # Display a JavaScript alert panel containing the specified message
@@ -166,7 +168,7 @@ class BrowserView:
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                script = parse_api_js(i.js_bridge.window.js_api)
+                script = parse_api_js(i.js_bridge.window.js_api, 'cocoa')
                 i.webkit.evaluateJavaScript_completionHandler_(script, lambda a,b: None)
 
                 if not i.text_select:

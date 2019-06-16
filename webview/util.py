@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 
 """
-(C) 2014-2018 Roman Sirokov and contributors
+(C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
 
+import json
+import logging
 import os
 import re
 import sys
-import platform
+from platform import architecture
+from threading import Thread
 from uuid import uuid4
 
 from .js import api, npo, dom
@@ -18,6 +21,8 @@ from .js import api, npo, dom
 _token = uuid4().hex
 
 default_html = '<!doctype html><html><head></head><body></body></html>'
+
+logger = logging.getLogger('pywebview')
 
 
 class WebViewException(Exception):
@@ -66,7 +71,7 @@ def parse_file_type(file_type):
         raise ValueError('{0} is not a valid file filter'.format(file_type))
 
 
-def parse_api_js(api_instance):
+def parse_api_js(api_instance, platform):
     def generate_func():
         if api_instance:
             return [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
@@ -74,8 +79,27 @@ def parse_api_js(api_instance):
             return []
 
     func_list = generate_func()
-    js_code = npo.src + api.src % (_token, func_list) + dom.src
+    js_code = npo.src + api.src % (_token, platform, func_list) + dom.src
     return js_code
+
+
+def js_bridge_call(window, func_name, param):
+    def _call():
+        result = json.dumps(func(func_params))
+        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, escape_line_breaks(result))
+        window.evaluate_js(code)
+
+    func = getattr(window.js_api, func_name, None)
+
+    if func is not None:
+        try:
+            func_params = param if not param else json.loads(param)
+            t = Thread(target=_call)
+            t.start()
+        except Exception:
+            logger.exception('Error occurred while evaluating function {0}'.format(func_name))
+    else:
+        logger.error('Function {}() does not exist'.format(func_name))
 
 
 def escape_string(string):
@@ -139,7 +163,7 @@ def inject_base_uri(content, base_uri):
 
 def interop_dll_path(dll_name):
     if dll_name == 'WebBrowserInterop.dll':
-        dll_name = 'WebBrowserInterop.x64.dll' if platform.architecture()[0] == '64bit' else 'WebBrowserInterop.x86.dll'
+        dll_name = 'WebBrowserInterop.x64.dll' if architecture()[0] == '64bit' else 'WebBrowserInterop.x86.dll'
 
     # Unfrozen path
     dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', dll_name)

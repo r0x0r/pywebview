@@ -134,20 +134,3 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
 
 
-def _js_bridge_call(window, func_name, param):
-    def _call():
-        result = json.dumps(func(func_params))
-        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, escape_line_breaks(result))
-        window.evaluate_js(code)
-
-    func = getattr(window.js_api, func_name, None)
-
-    if func is not None:
-        try:
-            func_params = param if not param else json.loads(param)
-            t = threading.Thread(target=_call)
-            t.start()
-        except Exception:
-            logger.exception('Error occurred while evaluating function {0}'.format(func_name))
-    else:
-        logger.error('Function {}() does not exist'.format(func_name))

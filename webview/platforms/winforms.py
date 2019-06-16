@@ -16,8 +16,11 @@ from threading import Event, Semaphore
 from ctypes import windll
 from uuid import uuid4
 
-from webview import WebViewException, windows
-from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html
+from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug
+from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
+from webview.js import alert
+from webview.js.css import disable_text_select
+from webview.localization import localization
 
 import clr
 
@@ -30,12 +33,6 @@ from System import IntPtr, Int32, Func, Type, Environment, Uri
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
-from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _js_bridge_call, _debug
-
-from webview.js import alert
-from webview.js.css import disable_text_select
-
-from webview.localization import localization
 
 logger = logging.getLogger('pywebview')
 
@@ -95,7 +92,7 @@ class BrowserView:
             window = None
 
             def call(self, func_name, param):
-                return _js_bridge_call(self.pywebview_window, func_name, param)
+                return js_bridge_call(self.window, func_name, param)
 
             def alert(self, message):
                 BrowserView.alert(message)
@@ -186,6 +183,9 @@ class BrowserView:
         def on_document_completed(self, sender, args):
             self.web_browser.Document.InvokeScript('eval', (alert.src,))
 
+            #if _debug:
+            #    self.web_browser.Document.InvokeScript('eval', ('window.console = { log: function(msg) { window.external.console(JSON.stringify(msg)) }}'))
+
             if self.first_load:
                 self.web_browser.Visible = True
                 self.first_load = False
@@ -193,7 +193,7 @@ class BrowserView:
             self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)
 
             document = self.web_browser.Document
-            document.InvokeScript('eval', (parse_api_js(self.js_bridge.window.js_api),))
+            document.InvokeScript('eval', (parse_api_js(self.pywebview_window.js_api, 'mshtml'),))
 
             if not self.pywebview_window.text_select:
                 document.InvokeScript('eval', (disable_text_select,))
@@ -289,7 +289,7 @@ class BrowserView:
             elif func_name == 'console':
                 print(func_param)
             else:
-                _js_bridge_call(self.pywebview_window, func_name, func_param)
+                js_bridge_call(self.pywebview_window, func_name, func_param)
 
         def on_new_window_request(self, _, args):
             webbrowser.open(str(args.get_Uri()))
@@ -310,7 +310,7 @@ class BrowserView:
             if _debug:
                 self.web_view.InvokeScript('eval', ('window.console = { log: (msg) => window.external.notify(JSON.stringify(["console", msg+""]))}',))
 
-            self.web_view.InvokeScript('eval', (parse_api_js(self.pywebview_window.js_api),))
+            self.web_view.InvokeScript('eval', (parse_api_js(self.pywebview_window.js_api, 'edgehtml'),))
 
             if not self.pywebview_window.text_select:
                 self.web_view.InvokeScript('eval', (disable_text_select,))
@@ -387,8 +387,10 @@ class BrowserView:
                 CEF.close_window(self.uid)
 
             del BrowserView.instances[self.uid]
-            windows.remove(self.pywebview_window)
 
+            # during tests windows is empty for some reason. no idea why.
+            if self.pywebview_window in windows:
+                windows.remove(self.pywebview_window)
 
             if len(BrowserView.instances) == 0:
                 self.Invoke(Func[Type](_shutdown))

@@ -9,7 +9,7 @@ window.pywebview = {
                         window.pywebview._checkValue(funcName, resolve);
                     });
                     window.pywebview._bridge.call(funcName, JSON.stringify(params));
-
+                    console.log(funcName);
                     return promise;
                 }
             })(funcList[i])
@@ -21,21 +21,20 @@ window.pywebview = {
         }
     },
     _bridge: {
-        call: function (func_name, params) {
+        call: function (funcName, params) {
             if (window.qt) {
                 new QWebChannel(qt.webChannelTransport, function(channel) {
-                  channel.objects.external.call(func_name, params);
+                  channel.objects.external.call(funcName, params);
                 });
             } else if (window.external) {
-                if (window.external.call) {
-                  return window.external.call(func_name, params);
+                if (window.pywebview.platform === 'mshtml') {
+                  return window.external.call(funcName, params);
                 }
-
-                if (window.external.hasOwnProperty('notify')) {
-                  return window.external.notify(JSON.stringify([func_name, params]));
+                if (window.pywebview.platform === 'edgehtml') {
+                  return window.external.notify(JSON.stringify([funcName, params]));
                 }
             } else if (window.webkit) {
-                return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([func_name, params]));
+                return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params]));
             }
         }
     },
@@ -55,6 +54,7 @@ window.pywebview = {
             }
          }, 100)
     },
+    platform: '%s',
     api: {},
     _returnValues: {}
 }

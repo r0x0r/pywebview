@@ -15,10 +15,10 @@ from copy import deepcopy
 from threading import Semaphore, Event
 from socket import socket
 
-from webview import escape_string, _js_bridge_call, _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
+from webview import escape_string, _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.localization import localization
 from webview.window import Window
-from webview.util import convert_string, default_html, parse_api_js
+from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
 from webview.js.css import disable_text_select
 
 
@@ -69,7 +69,7 @@ class BrowserView(QMainWindow):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
 
-            return _js_bridge_call(self.window, func_name, param)
+            return js_bridge_call(self.window, func_name, param)
 
     class WebView(QWebView):
         def __init__(self, parent=None):
@@ -284,7 +284,9 @@ class BrowserView(QMainWindow):
 
         event.accept()
         del BrowserView.instances[self.uid]
-        windows.remove(self.pywebview_window)
+        
+        if self.pywebview_window in windows:
+            windows.remove(self.pywebview_window)
 
         try:    # Close inspector if open
             BrowserView.instances[self.uid + '-inspector'].close()
@@ -398,7 +400,7 @@ class BrowserView(QMainWindow):
         def _register_window_object():
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
-        script = parse_api_js(self.js_bridge.window.js_api)
+        script = parse_api_js(self.js_bridge.window.js_api, 'qt')
 
         if is_webengine:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')

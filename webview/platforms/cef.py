@@ -13,8 +13,8 @@ from copy import copy
 
 from webview.js.css import disable_text_select
 from webview.js import dom
-from webview import _js_bridge_call, _debug
-from webview.util import parse_api_js, default_html
+from webview import _debug
+from webview.util import parse_api_js, default_html, js_bridge_call
 
 
 sys.excepthook = cef.ExceptHook
@@ -34,7 +34,7 @@ class JSBridge:
         self.eval_events[uid].set()
 
     def call(self, func_name, param):
-        _js_bridge_call(self.window, func_name, param)
+        js_bridge_call(self.window, func_name, param)
 
 
 class Browser:
@@ -56,7 +56,7 @@ class Browser:
             return
 
         self.browser.GetJavascriptBindings().Rebind()
-        self.browser.ExecuteJavascript(parse_api_js(self.js_api))
+        self.browser.ExecuteJavascript(parse_api_js(self.js_api, 'cef'))
 
         if not self.text_select:
             self.browser.ExecuteJavascript(disable_text_select)
