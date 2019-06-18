@@ -212,7 +212,7 @@ class BrowserView:
         def __init__(self, form, window):
             self.pywebview_window = window
             self.web_view = WebView()
-            
+
             life = ISupportInitialize(self.web_view)
             life.BeginInit()
             form.Controls.Add(self.web_view)
@@ -362,7 +362,7 @@ class BrowserView:
                 self.browser = BrowserView.EdgeHTML(self, window)
             else:
                 self.browser = BrowserView.MSHTML(self, window)
-  
+
 
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
@@ -433,6 +433,7 @@ class BrowserView:
         def toggle_fullscreen(self):
             def _toggle():
                 screen = WinForms.Screen.FromControl(self)
+
                 if not self.is_fullscreen:
                     self.old_size = self.Size
                     self.old_state = self.WindowState
@@ -455,6 +456,8 @@ class BrowserView:
 
             if self.InvokeRequired:
                 self.Invoke(Func[Type](_toggle))
+            else:
+                _toggle()
 
         def set_window_size(self, width, height):
             windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
