@@ -22,19 +22,19 @@ window.pywebview = {
     },
     _bridge: {
         call: function (funcName, params) {
-            if (window.qt) {
-                new QWebChannel(qt.webChannelTransport, function(channel) {
-                  channel.objects.external.call(funcName, params);
-                });
-            } else if (window.external) {
-                if (window.pywebview.platform === 'mshtml') {
-                  return window.external.call(funcName, params);
-                }
-                if (window.pywebview.platform === 'edgehtml') {
-                  return window.external.notify(JSON.stringify([funcName, params]));
-                }
-            } else if (window.webkit) {
-                return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params]));
+            switch(window.pywebview.platform) {
+                case 'mshtml':
+                case 'cef':
+                    return window.external.call(funcName, params);
+                case 'edgehtml':
+                    return window.external.notify(JSON.stringify([funcName, params]));
+                case 'cocoa':
+                    return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params]));
+                case 'qt':
+                    new QWebChannel(qt.webChannelTransport, function(channel) {
+                        channel.objects.external.call(funcName, params);
+                    });
+                    break;
             }
         }
     },
