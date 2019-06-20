@@ -2,6 +2,7 @@ import os
 from functools import wraps
 
 from webview.event import Event
+from webview.http_server import start_server
 from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, WebViewException
 from .js import css
 
@@ -59,14 +60,17 @@ class Window:
         self.shown = Event()
         self.gui = None
 
-    def _initialize(self, gui, multiprocessing):
+    def _initialize(self, gui, multiprocessing, http_server):
         self.gui = gui
         self.loaded._initialize(multiprocessing)
         self.shown._initialize(multiprocessing)
 
+        if http_server and self.url.startswith('file://'):
+            self.url = start_server(self.url)
+
     @_loaded_call
     def get_elements(self, selector):
-        # check for GTK's WebKit2 version 
+        # check for GTK's WebKit2 version
         if hasattr(self.gui, 'old_webkit') and self.gui.old_webkit:
             raise NotImplementedError('get_elements requires WebKit2 2.2 or greater')
 

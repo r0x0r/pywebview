@@ -47,7 +47,7 @@ _multiprocessing = False
 token = _token
 windows = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False):
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False):
     global guilib, _debug, _multiprocessing
 
     def _create_children(other_windows):
@@ -77,7 +77,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False):
     guilib = initialize(gui)
 
     for window in windows:
-        window._initialize(guilib, multiprocessing)
+        window._initialize(guilib, multiprocessing, http_server)
 
     if len(windows) > 1:
         t = Thread(target=_create_children, args=(windows[1:],))

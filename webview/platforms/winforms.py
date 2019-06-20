@@ -65,7 +65,7 @@ def _is_edge():
     finally:
         winreg.CloseKey(net_key)
 
-force_mshtml = os.environ.get('PYWEBVIEW_GUI') and os.environ['PYWEBVIEW_GUI'].lower() == 'mshtml'
+force_mshtml = str(os.environ.get('PYWEBVIEW_GUI')).lower() == 'mshtml'
 is_edge = _is_edge() and not force_mshtml
 
 

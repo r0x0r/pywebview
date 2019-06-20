@@ -111,7 +111,7 @@ def escape_string(string):
 
 
 def transform_url(url):
-    if url and ':' not in url:
+    if url and '://' not in url:
         return base_uri(url)
     else:
         return url
