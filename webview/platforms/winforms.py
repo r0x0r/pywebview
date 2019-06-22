@@ -223,6 +223,7 @@ class BrowserView:
             self.web_view.IsIndexedDBEnabled = True
             self.web_view.IsJavaScriptEnabled = True
             self.web_view.IsScriptNotifyAllowed = True
+            self.web_view.IsPrivateNetworkClientServerCapabilityEnabled = True
             self.web_view.DefaultBackgroundColor = form.BackColor
 
             self.web_view.ScriptNotify += self.on_script_notify
@@ -234,6 +235,8 @@ class BrowserView:
 
             self.temp_html = None
             self.url = None
+
+            _allow_localhost()
 
             if window.url:
                 self.load_url(window.url)
@@ -532,6 +535,21 @@ def _set_ie_mode():
 
     winreg.SetValueEx(dpi_support, executable_name, 0, winreg.REG_DWORD, 1)
     winreg.CloseKey(dpi_support)
+
+
+def _allow_localhost():
+    #os.system(r'Powershell -Command "& { Start-Process \"checknetisolation.exe\" -Verb RunAs }"')
+
+    from subprocess import Popen, PIPE, check_output
+    import subprocess as sp
+
+    output = check_output('checknetisolation -s')
+
+    print(output)
+
+    prog = Popen(['Powershell', '-Command "& { Start-Process \"checknetisolation.exe\" -Verb RunAs }"'], stdout=PIPE)
+
+    prog.communicate()
 
 
 _main_window_created = Event()

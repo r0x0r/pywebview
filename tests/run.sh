@@ -29,6 +29,8 @@ pytest test_get_elements.py::test_single ${PYTEST_OPTIONS}
 pytest test_get_elements.py::test_multiple ${PYTEST_OPTIONS}
 pytest test_get_elements.py::test_none ${PYTEST_OPTIONS}
 
+pytest test_http_server.py ${PYTEST_OPTIONS}
+
 pytest test_js_api.py ${PYTEST_OPTIONS}
 pytest test_load_html.py ${PYTEST_OPTIONS}
 pytest test_localization.py ${PYTEST_OPTIONS}

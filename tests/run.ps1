@@ -2,6 +2,8 @@ $RootPath = Split-Path $PSScriptRoot
 ${env:PYTHONPATH='$RootPath'}
 ${env:PYWEBVIEW_LOG='debug'}
 
+rm -r __pycache__
+
 pytest test_bg_color.py::test_bg_color -s
 pytest test_bg_color.py::test_invalid_bg_color -s
 
@@ -22,6 +24,7 @@ pytest test_get_current_url.py::test_current_url -s
 pytest test_get_current_url.py::test_no_url -s
 
 pytest test_get_elements.py -s
+pytest test_http_server.py -s
 pytest test_js_api.py -s
 pytest test_load_html.py -s
 pytest test_localization.py -s
