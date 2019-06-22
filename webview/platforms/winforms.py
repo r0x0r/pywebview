@@ -538,17 +538,12 @@ def _set_ie_mode():
 
 
 def _allow_localhost():
-    #
-
-    from subprocess import Popen, PIPE, check_output
-    import subprocess as sp
+    from subprocess import check_output
 
     output = check_output('checknetisolation LoopbackExempt -s')
 
-    if 'Microsoft.Win32WebViewHost_cw5n1h2txyewy' not in str(output):
-        os.system(r'Powershell -Command "& { Start-Process \"checknetisolation.exe LoopbackExempt -a -n=\'Microsoft.Win32WebViewHost_cw5n1h2txyewy\'\" -Verb RunAs }"')
-        ##prog = Popen(['Powershell', '-Command "& { Start-Process \"checknetisolation.exe\" -Verb RunAs }"'], stdout=PIPE)
-        #prog.communicate()
+    if 'cw5n1h2txyewy' not in str(output):
+        windll.shell32.ShellExecuteW(None, 'runas', 'checknetisolation', 'LoopbackExempt -a -n=\"Microsoft.Win32WebViewHost_cw5n1h2txyewy\"', None, 1)
 
 
 _main_window_created = Event()

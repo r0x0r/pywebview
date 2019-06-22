@@ -57,5 +57,5 @@ webview.start(gui='qt')
 
 * `file://` URLs are not fully supported. While such URLs can be loaded (via a workaround), associated resources such as images or stylesheets cannot.
 * Destroying a window via `window.close()` and starting a new instance will crash the program.
-
+* Access to localhost URLs is restricted by default. To overcome this the LoopbackExempt settings are modified, which triggers a UAC prompt. This only happens once and only if LoopbackExempt setting is not set. You can manually set this setting beforehand to avoid UAC: `checknetisolation LoopbackExempt -a -n="Microsoft.Win32WebViewHost_cw5n1h2txyewy"` (must be run as an admin). 
 
