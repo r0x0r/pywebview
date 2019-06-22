@@ -25,12 +25,13 @@ window.pywebview = {
             switch(window.pywebview.platform) {
                 case 'mshtml':
                 case 'cef':
+                case 'qtwebkit':
                     return window.external.call(funcName, params);
                 case 'edgehtml':
                     return window.external.notify(JSON.stringify([funcName, params]));
                 case 'cocoa':
                     return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params]));
-                case 'qt':
+                case 'qtwebengine':
                     new QWebChannel(qt.webChannelTransport, function(channel) {
                         channel.objects.external.call(funcName, params);
                     });

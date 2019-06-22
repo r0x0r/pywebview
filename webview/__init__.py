@@ -43,12 +43,13 @@ SAVE_DIALOG = 30
 guilib = None
 _debug = False
 _multiprocessing = False
+_http_server = False
 
 token = _token
 windows = []
 
 def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False):
-    global guilib, _debug, _multiprocessing
+    global guilib, _debug, _multiprocessing, _http_server
 
     def _create_children(other_windows):
         if not windows[0].shown.wait(10):
@@ -60,6 +61,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     _debug = debug
     #_multiprocessing = multiprocessing
     multiprocessing = False # TODO
+    _http_server = http_server
 
     if multiprocessing:
         from multiprocessing import Process as Thread
@@ -127,7 +129,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     windows.append(window)
 
     if threading.current_thread().name != 'MainThread' and guilib:
-        window._initialize(guilib, _multiprocessing)
+        window._initialize(guilib, _multiprocessing, _http_server)
         guilib.create_window(window)
 
     return window

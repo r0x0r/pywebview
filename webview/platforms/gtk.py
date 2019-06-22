@@ -350,7 +350,7 @@ class BrowserView:
 
             if self.js_bridge.window.js_api:
                 # Make the `call` method write the function name and param to the
-                # windoe title.
+                # window title.
                 # The return value will be passed back to the `return_val` attribute
                 # of the bridge by the on_title_change handler.
                 code = """

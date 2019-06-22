@@ -211,13 +211,6 @@ class BrowserView(QMainWindow):
         self.view.setPage(BrowserView.WebPage(self.view))
         self.view.page().loadFinished.connect(self.on_load_finished)
 
-        if window.url is not None:
-            self.view.setUrl(QtCore.QUrl(window.url))
-        elif window.html:
-            self.view.setHtml(window.html, QtCore.QUrl(''))
-        else:
-            self.view.setHtml(default_html, QtCore.QUrl(''))
-
         self.setCentralWidget(self.view)
 
         self.create_window_trigger.connect(BrowserView.on_create_window)
@@ -237,6 +230,13 @@ class BrowserView(QMainWindow):
 
         if window.fullscreen:
             self.toggle_fullscreen()
+
+        if window.url is not None:
+            self.view.setUrl(QtCore.QUrl(window.url))
+        elif window.html:
+            self.view.setHtml(window.html, QtCore.QUrl(''))
+        else:
+            self.view.setHtml(default_html, QtCore.QUrl(''))
 
         self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
         self.activateWindow()
@@ -264,7 +264,7 @@ class BrowserView(QMainWindow):
 
     def on_current_url(self):
         url = BrowserView._convert_string(self.view.url().toString())
-        self._current_url = None if url == '' else url
+        self._current_url = None if url == '' or url.startswith('data:text/html') else url
         self._current_url_semaphore.release()
 
     def on_load_url(self, url):
@@ -325,6 +325,8 @@ class BrowserView(QMainWindow):
             return_result(result)
         except AttributeError:
             self.view.page().runJavaScript(script, return_result)
+        except  Exception as e:
+            print(e)
 
 
     def on_load_finished(self):
@@ -346,7 +348,7 @@ class BrowserView(QMainWindow):
         self.current_url_trigger.emit()
         self._current_url_semaphore.acquire()
 
-        return None if self._current_url.startswith('data:text/html') else self._current_url
+        return self._current_url
 
     def load_url(self, url):
         self.loaded.clear()
@@ -400,7 +402,8 @@ class BrowserView(QMainWindow):
         def _register_window_object():
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
-        script = parse_api_js(self.js_bridge.window.js_api, 'qt')
+        code = 'qtwebengine' if is_webengine else 'qtwebkit'
+        script = parse_api_js(self.js_bridge.window.js_api, code)
 
         if is_webengine:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
@@ -417,7 +420,7 @@ class BrowserView(QMainWindow):
             self.view.page().mainFrame().evaluateJavaScript(script)
         except AttributeError:
             self.view.page().runJavaScript(script)
-
+        
         self.loaded.set()
 
     @staticmethod
