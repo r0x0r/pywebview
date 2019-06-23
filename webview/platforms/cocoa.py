@@ -363,10 +363,10 @@ class BrowserView:
         if _debug:
             config.preferences().setValue_forKey_(Foundation.YES, 'developerExtrasEnabled')
 
-        config.preferences().setValue_forKey_(Foundation.YES, 'inlineMediaPlaybackRequiresPlaysInlineAttribute')
-        config.preferences().setValue_forKey_(Foundation.YES, 'allowsInlineMediaPlayback')
-        config.preferences().setValue_forKey_(Foundation.YES, 'mediaSourceEnabled')
-        config.preferences().setValue_forKey_(Foundation.NO, 'invisibleMediaAutoplayNotPermitted')
+        #config.preferences().setValue_forKey_(Foundation.YES, 'inlineMediaPlaybackRequiresPlaysInlineAttribute')
+        #config.preferences().setValue_forKey_(Foundation.YES, 'allowsInlineMediaPlayback')
+        #config.preferences().setValue_forKey_(Foundation.YES, 'mediaSourceEnabled')
+        #config.preferences().setValue_forKey_(Foundation.NO, 'invisibleMediaAutoplayNotPermitted')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
         config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
