@@ -46,6 +46,7 @@ matrix:
       python: "3.5_with_system_site_packages"
       env:
          - PACKAGES="xvfb python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
+         - QT_PLUGIN_PATH="/home/travis/.local/lib/python3.6/site-packages/PyQt5/Qt/plugins/"
          - PIP_PACKAGES="pyqt5 pyqtwebengine"
          - PYTHON_VERSION="3"
          - PYWEBVIEW_GUI=qt
