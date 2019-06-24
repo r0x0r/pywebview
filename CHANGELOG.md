@@ -18,10 +18,6 @@ _Released xx/xx/2019_
 - `Fix` [CEF] Support for PyInstaller in onefile mode
 
 
-
-
-
-
 ## 2.4
 
 _Released 17/02/2019_

@@ -347,6 +347,29 @@ class BrowserView:
             # Set the titlebar color (so that it does not change with the window color)
             self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
 
+        self.frameless = frameless
+
+        if frameless:
+            # Make content full size and titlebar transparent
+            window_mask = window_mask | NSFullSizeContentViewWindowMask | AppKit.NSTexturedBackgroundWindowMask
+            self.window.setStyleMask_(window_mask)
+            self.window.setTitlebarAppearsTransparent_(True)
+            self.window.setTitleVisibility_(NSWindowTitleHidden)
+
+            # Hide standard buttons
+            self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
+
+        else:
+            # Set the titlebar color (so that it does not change with the window color)
+            self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
+
+        if url:
+            self.url = url
+            self.load_url(url)
+        else:
+            self.loaded.set()
         try:
             self.webkit.evaluateJavaScript_completionHandler_('', lambda a, b: None)
         except TypeError:

@@ -198,6 +198,10 @@ class BrowserView(QMainWindow):
         if self.frameless:
             self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
 
+        self.frameless = frameless
+        if frameless:
+            self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
+
         self.view = BrowserView.WebView(self)
 
         if _debug and is_webengine:
@@ -284,7 +288,7 @@ class BrowserView(QMainWindow):
 
         event.accept()
         del BrowserView.instances[self.uid]
-        
+
         if self.pywebview_window in windows:
             windows.remove(self.pywebview_window)
 
@@ -420,7 +424,7 @@ class BrowserView(QMainWindow):
             self.view.page().mainFrame().evaluateJavaScript(script)
         except AttributeError:
             self.view.page().runJavaScript(script)
-        
+
         self.loaded.set()
 
     @staticmethod
