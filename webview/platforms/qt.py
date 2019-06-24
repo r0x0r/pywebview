@@ -198,10 +198,6 @@ class BrowserView(QMainWindow):
         if self.frameless:
             self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
 
-        self.frameless = frameless
-        if frameless:
-            self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
-
         self.view = BrowserView.WebView(self)
 
         if _debug and is_webengine:

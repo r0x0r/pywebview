@@ -1,5 +1,13 @@
 ### Specification
-- Platform:
-- Version:
+- pywebview version: 
+- platform / version: 
 
-### Description
+### Description  
+  
+  Describe your issue
+  
+### Practicalities
+
+- [ ] I am willing to work on this issue myself.
+
+- [ ] I am prepared to support this issue financially.
