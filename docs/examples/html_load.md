@@ -13,6 +13,6 @@ def load_html(window):
 
 
 if __name__ == '__main__':
-    window = webview.create_window('Load HTML Example', '<h1>This is initial HTML</h1>')
+    window = webview.create_window('Load HTML Example', html='<h1>This is initial HTML</h1>')
     webview.start(load_html, window)
 ```
