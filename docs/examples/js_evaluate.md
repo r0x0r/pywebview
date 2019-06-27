@@ -2,7 +2,8 @@
 
 Evaluate Javascript from Python code.
 
-``` import webview
+``` python
+import webview
 import threading
 
 
