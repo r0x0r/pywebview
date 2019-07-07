@@ -8,8 +8,9 @@ There are two ways to build your application using _pywebview_:
 
 ## Local web server
 
-Running a local web server is a traditional way to build your local application. This way everything is served from a local web server and _pywebview_ points to the URL provided by the server. In this model the server is responsible for both serving static contents and handling API calls.
-When building an application this way, you should protect your API calls against CSRF attacks. See [security](/guide/security.html) for more information.
+Running a local web server is a traditional way to build your local application. This way everything is served from a local web server and _pywebview_ points to the URL provided by the server. In this model the server is responsible for both serving static contents and handling API calls. _pywebview_ offers a simple built-in web server that is good enough for serving local files. To use a local web server, set url to a local file and start the application with `webview.start(http_server=True)`.
+
+When building an application using a web server, you should protect your API calls against CSRF attacks. See [security](/guide/security.html) for more information.
 
 [Flask-based application](https://github.com/r0x0r/pywebview/tree/master/examples/flask_app)
 
@@ -18,7 +19,7 @@ When building an application this way, you should protect your API calls against
 * Easier debugging with an external browser.
 
 **Cons**
-* Has to rely on a third party server software
+* Has to rely on a third party server software for client-server communication.
 * Security considerations must be taken into account
 
 
@@ -32,5 +33,6 @@ Another way to build an application is to use _pywebview_'s provided JS API and 
 
 **Cons**
 * Debugging has to be done inside the application using provided debugging tools
+* EdgeHTML cannot serve local files.
 
 [Serverless application](https://github.com/r0x0r/pywebview/tree/master/examples/todos)

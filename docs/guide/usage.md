@@ -34,7 +34,7 @@ window = webview.create_window('Woah dude!', html='<h1>Woah dude!<h1>')
 webview.start(custom_logic, window)
 ```
 
-There are two ways to structure an application. Either by running a local web server and pointing _pywebview_ to it, or by employing JS API and `evaluate_js`. See [Architecture](/guide/architecture.md) for more information.
+There are two ways to structure an application. Either by running a local web server and pointing _pywebview_ to it, or by employing JS API and `evaluate_js`. _pywebview_ also comes with a simple built-in web server that is good enough for serving local files. To use a local web server, set url to a local file and `webview.start(http_server=True)`.  See [Architecture](/guide/architecture.md) for more information.
 
 To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `cef` or `qt`). See [Renderer](/guide/renderer.md) for details.
 

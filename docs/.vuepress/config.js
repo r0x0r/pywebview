@@ -55,6 +55,7 @@ module.exports = {
         'js_evaluate',
         'js_api',
         'loading_animation',
+        'links',
         'localization',
         'min_size',
         'multiple_windows',
