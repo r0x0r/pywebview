@@ -7,13 +7,11 @@ import webview
 import threading
 
 
-def get_current_url():
-    print(webview.get_current_url())
+def get_current_url(window):
+    print(window.get_current_url())
 
 
 if __name__ == '__main__':
-    t = threading.Thread(target=get_current_url)
-    t.start()
-
-    webview.create_window("Get current URL", "https://pywebview.flowrl.com/hello")
+    window = webview.create_window('Get current URL', 'https://pywebview.flowrl.com/hello')
+    webview.start(get_current_url)
 ```

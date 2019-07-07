@@ -3,11 +3,9 @@
 Evaluate Javascript from Python code.
 
 ``` import webview
-import threading
 
-
-def evaluate_js():
-    result = webview.evaluate_js(
+def evaluate_js(window):
+    result = window.evaluate_js(
         r"""
         var h1 = document.createElement('h1')
         var text = document.createTextNode('Hello pywebview')
@@ -26,8 +24,6 @@ def evaluate_js():
 
 
 if __name__ == '__main__':
-    t = threading.Thread(target=evaluate_js)
-    t.start()
-
-    webview.create_window('Run custom JavaScript')
+    window = webview.create_window('Run custom JavaScript')
+    webview.start(evaluate_js, window)
 ```

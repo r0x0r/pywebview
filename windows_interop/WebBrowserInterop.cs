@@ -13,6 +13,8 @@ namespace WebBrowserInterop
         object call(string message, object param);
 
         void alert(string message);
+
+        void console(string message);
     }
 
     [ComImport, TypeLibType(TypeLibTypeFlags.FHidden),

@@ -1,22 +1,21 @@
 import webview
-import threading
 
 """
 This example demonstrates evaluating JavaScript in a web page.
 """
 
 
-def evaluate_js():
-    result = webview.evaluate_js(
+def evaluate_js(window):
+    result = window.evaluate_js(
         r"""
         var h1 = document.createElement('h1')
         var text = document.createTextNode('Hello pywebview')
         h1.appendChild(text)
         document.body.appendChild(h1)
-               
+
         document.body.style.backgroundColor = '#212121'
         document.body.style.color = '#f2f2f2'
-        
+
         // Return user agent
         'User agent:\n' + navigator.userAgent;
         """
@@ -26,7 +25,5 @@ def evaluate_js():
 
 
 if __name__ == '__main__':
-    t = threading.Thread(target=evaluate_js)
-    t.start()
-
-    webview.create_window('Run custom JavaScript')
+    window = webview.create_window('Run custom JavaScript', html='<html><body></body></html>')
+    webview.start(evaluate_js, window)

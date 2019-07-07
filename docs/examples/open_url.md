@@ -5,5 +5,7 @@
 import webview
 
 if __name__ == '__main__':
-    webview.create_window('Simple browser', 'https://pywebview.flowrl.com/hello')
+    # Create a standard webview window
+    window = webview.create_window('Simple browser', 'https://pywebview.flowrl.com/hello')
+    webview.start()
 ```

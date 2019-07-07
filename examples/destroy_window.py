@@ -1,5 +1,4 @@
 import webview
-import threading
 import time
 
 """
@@ -8,17 +7,15 @@ programmatically after 5 seconds.
 """
 
 
-def destroy():
+def destroy(window):
     # show the window for a few seconds before destroying it:
     time.sleep(5)
-
-    print("Destroying window..")
-    webview.destroy_window()
-    print("Destroyed!")
+    print('Destroying window..')
+    window.destroy()
+    print('Destroyed!')
 
 
 if __name__ == '__main__':
-    t = threading.Thread(target=destroy)
-    t.start()
-    webview.create_window("Destroy Window Example", "https://pywebview.flowrl.com/hello")
-    print("Window is destroyed")
+    window = webview.create_window('Destroy Window Example', 'https://pywebview.flowrl.com/hello')
+    webview.start(destroy, window)
+    print('Window is destroyed')

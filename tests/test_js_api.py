@@ -3,7 +3,9 @@ from .util import run_test, assert_js
 
 
 def test_js_bridge():
-    run_test(webview, main_func, js_bridge)
+    api = Api()
+    window = webview.create_window('JSBridge test', js_api=api)
+    run_test(webview, window, js_bridge)
 
 
 class Api:
@@ -17,14 +19,9 @@ class Api:
         return 'test'
 
 
-def main_func():
-    api = Api()
-    webview.create_window('JSBridge test', js_api=api)
-
-
-def js_bridge():
-    webview.load_html('<html><body>TEST</body></html>')
-    assert_js(webview, 'get_int', 5)
-    assert_js(webview, 'get_float', 3.141)
-    assert_js(webview, 'get_string', 'test')
+def js_bridge(window):
+    window.load_html('<html><body>TEST</body></html>')
+    assert_js(window, 'get_int', 5)
+    assert_js(window, 'get_float', 3.141)
+    assert_js(window, 'get_string', 'test')
 

@@ -1,0 +1,66 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Welcome to pywebview</title>
+  <meta name="description" content="pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window.">
+  <meta name="author" content="Roman Sirokov">
+
+  <link rel="stylesheet" href="/hello/tachyon.css">
+</head>
+
+<body class="bg-white near-black tc avenir fw1">
+  <div class="fl w-100 center">
+    <div class="center">
+      <img src="/logo.png" alt="pywebview" class="pv3" style="width: 200px"/>
+
+      <div class="mb5">
+        <a href="https://pywebview.flowrl.com/" class="green dim f4 link" target="_blank">Documentation</a>
+        <span class="ph2 near-white">•</span>
+        <a href="https://github.com/r0x0r/pywebview/" class="green dim f4 link" target="_blank">GitHub</a>
+        <span class="ph2 near-white">•</span>
+        <a href="https://github.com/r0x0r/pywebview/issues" class="green dim f4 link" target="_blank">Report a bug</a>
+      </div>
+
+      <h1 class="fw4">Hello there!</h1>
+    </div>
+
+    <p class="f3">
+        You are running a <em>pywebview</em> application. Your user-agent is: <br/>
+        <div class="bg-near-white pa3 mw7 fw3 center gray">
+            <span id="user-agent"></span>
+        </div>
+    </p>
+
+    <div class="center f4 mt5">
+      If you find <strong>pywebview</strong> useful, please show your support.
+
+      <div class="mv3">
+        <a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button" target="_blank">
+            <img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/>
+        </a>
+      </div>
+    </div>
+    
+    <div class="center mt4">
+        <a href="https://mbsy.co/gHVfC" target="_blank" style="outline:none;border:none;"><img src="https://ambassador-api.s3.amazonaws.com/uploads/marketing/11948/2016_11_29_21_55_59.png" alt="DreamHost" border="0" /></a>
+    </div>
+  </div>
+
+  <script>
+    document.querySelector('#user-agent').innerText = navigator.userAgent;
+  </script>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-12494025-17"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-12494025-17');
+  </script>
+
+</body>
+</html>

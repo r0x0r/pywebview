@@ -26,23 +26,37 @@ matrix:
       dist: xenial
       language: python
       python: "3.5_with_system_site_packages"
-      env: 
+      env:
          - PACKAGES="xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
+         - PYTHON_VERSION="3"
          - PYWEBVIEW_GUI=qt
     - os: linux
       sudo: required
       dist: xenial
       language: python
       python: "2.7_with_system_site_packages"
-      env: 
+      env:
           - PACKAGES="xvfb python-pyqt5 python-pyqt5.qtwebkit libqt5webkit5-dev pep8 pyflakes python-pytest" PYTHON="python"
+          - PYTHON_VERSION="2"
           - PYWEBVIEW_GUI=qt
+    # - os: linux
+    #   sudo: required
+    #   dist: xenial
+    #   language: python
+    #   python: "3.5_with_system_site_packages"
+    #   env:
+    #      - PACKAGES="xvfb python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
+    #      - QT_PLUGIN_PATH="/home/travis/.local/lib/python3.6/site-packages/PyQt5/Qt/plugins/"
+    #      - PIP_PACKAGES="pyqt5 pyqtwebengine"
+    #      - PYTHON_VERSION="3"
+    #      - PYWEBVIEW_GUI=qt
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "3" ]]; then pip3 install pyobjc pytest six; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "2" ]]; then sudo pip2 install pyobjc pytest six; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -q; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install --no-install-recommends -y $(echo $PACKAGES); fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$PYTHON_VERSION" == "3" ]] && [[ "$PIP_PACKAGES" == "pyqt5 pyqtwebengine" ]]; then pip3 install $(echo $PIP_PACKAGES); fi
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export DISPLAY=:99.0; fi
@@ -50,8 +64,8 @@ before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sleep 3; fi
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then if [[ "$PYTHON_VERSION" == "3" ]]; then python3 -m pytest tests; else python2 -m pytest tests; fi; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then python -m pytest tests -s; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then if [[ "$PYTHON_VERSION" == "3" ]]; then python3 -m pytest tests -s; else python2 -m pytest tests -s; fi; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cd tests; python -m site; ./run.sh; fi
 
 after_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then killall Xvfb; fi

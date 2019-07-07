@@ -1,6 +1,7 @@
 module.exports = {
   title: 'pywebview',
   description: 'Build GUI for your Python program with JavaScript, HTML, and CSS',
+  ga: 'UA-12494025-18',
   themeConfig: {
     repo: 'r0x0r/pywebview',
     docsDir: 'docs',
@@ -27,8 +28,9 @@ module.exports = {
         {
           title: 'Development',
           collapsable: false,
-          children: [ 
+          children: [
             '/guide/api',
+            '/guide/architecture',
             '/guide/debugging',
             '/guide/freezing',
             '/guide/security',
@@ -38,11 +40,16 @@ module.exports = {
         }
       ],
       '/examples/': [
+        'cef',
         'change_url',
         'css_load',
+        'close_confirm',
         'debug',
         'destroy_window',
+        'events',
+        'frameless',
         'fullscreen',
+        'get_elements',
         'get_current_url',
         'html_load',
         'js_evaluate',
@@ -53,7 +60,6 @@ module.exports = {
         'multiple_windows',
         'open_file_dialog',
         'open_url',
-        'quit_confirm',
         'save_file_dialog',
         'toggle_fullscreen',
         'window_title_change'

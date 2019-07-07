@@ -1,8 +1,9 @@
-import webview
 import threading
 import time
 import sys
 import random
+import webview
+
 
 """
 This example demonstrates how to create a pywebview api without using a web
@@ -28,7 +29,7 @@ html = """
         margin-left: 0.3rem;
         margin-right: 0.3rem;
     }
-     
+
     button {
         font-size: 100%;
         padding: 0.5rem;
@@ -137,13 +138,7 @@ class Api:
         return response
 
 
-def create_app():
-    webview.load_html(html)
-
-
 if __name__ == '__main__':
-    t = threading.Thread(target=create_app)
-    t.start()
-
     api = Api()
-    webview.create_window('API example', js_api=api)
+    window = webview.create_window('API example', html=html, js_api=api)
+    webview.start()

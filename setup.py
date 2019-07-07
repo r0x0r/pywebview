@@ -25,15 +25,22 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/r0x0r/pywebview',
-    download_url='https://github.com/r0x0r/pywebview/archive/2.4.tar.gz',
+    download_url='https://github.com/r0x0r/pywebview/archive/3.0.tar.gz',
     keywords=['gui', 'webkit', 'html', 'web'],
     install_requires=install_requires,
     extras_require=extras_require,
-    version='2.4',
+    version='3.0',
     include_package_data=True,
-    packages=['webview', 'webview.js'],
+    packages=['webview', 'webview.js', 'webview.platforms'],
     package_dir={'webview': 'webview'},
-    package_data={'webview': ['webview/lib/WebBrowserInterop.x64.dll', 'webview/lib/WebBrowserInterop.x86.dll']},
+    package_data={
+        'webview': [
+            'webview/lib/WebBrowserInterop.x64.dll',
+            'webview/lib/WebBrowserInterop.x86.dll',
+            'webview/lib/Microsoft.Toolkit.Forms.UI.Controls.WebView.dll'
+            'webview/lib/Microsoft.Toolkit.Forms.UI.Controls.WebView.LICENSE.md'
+            ]
+        },
     license='New BSD license',
     classifiers=[
         'Intended Audience :: Developers',

@@ -8,17 +8,15 @@ import threading
 import time
 
 
-def change_url():
+def change_url(window):
     # wait a few seconds before changing url:
     time.sleep(10)
 
     # change url:
-    webview.load_url("https://pywebview.flowrl.com/hello")
+    window.load_url('https://pywebview.flowrl.com/hello')
 
 
 if __name__ == '__main__':
-    t = threading.Thread(target=change_url)
-    t.start()
-
-    webview.create_window("URL Change Example", "http://www.google.com")
+    window = webview.create_window('URL Change Example', 'http://www.google.com')
+    webview.start(change_url, window)
 ```

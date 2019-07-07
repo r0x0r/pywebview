@@ -1,5 +1,6 @@
 src = """
 window.pywebview = {
+    token: '%s',
     _createApi: function(funcList) {
         for (var i = 0; i < funcList.length; i++) {
             window.pywebview.api[funcList[i]] = (function (funcName) {
@@ -8,7 +9,7 @@ window.pywebview = {
                         window.pywebview._checkValue(funcName, resolve);
                     });
                     window.pywebview._bridge.call(funcName, JSON.stringify(params));
-
+                    console.log(funcName);
                     return promise;
                 }
             })(funcList[i])
@@ -20,15 +21,21 @@ window.pywebview = {
         }
     },
     _bridge: {
-        call: function (func_name, params) {
-            if (window.qt) {
-                new QWebChannel(qt.webChannelTransport, function(channel) {
-                  channel.objects.external.call(func_name, params);
-                });
-            } else if (window.external) {
-                return window.external.call(func_name, params);
-            } else if (window.webkit) {
-                return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([func_name, params]));
+        call: function (funcName, params) {
+            switch(window.pywebview.platform) {
+                case 'mshtml':
+                case 'cef':
+                case 'qtwebkit':
+                    return window.external.call(funcName, params);
+                case 'edgehtml':
+                    return window.external.notify(JSON.stringify([funcName, params]));
+                case 'cocoa':
+                    return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params]));
+                case 'qtwebengine':
+                    new QWebChannel(qt.webChannelTransport, function(channel) {
+                        channel.objects.external.call(funcName, params);
+                    });
+                    break;
             }
         }
     },
@@ -48,8 +55,10 @@ window.pywebview = {
             }
          }, 100)
     },
+    platform: '%s',
     api: {},
     _returnValues: {}
 }
+
 window.pywebview._createApi(%s);
 """

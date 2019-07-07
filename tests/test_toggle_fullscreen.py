@@ -3,15 +3,12 @@ from .util import run_test
 
 
 def test_toggle_fullscreen():
-    run_test(webview, main_func, toggle_fullscreen)
+    window = webview.create_window('Toggle fullscreen test', 'https://www.example.org')
+    run_test(webview, window, toggle_fullscreen)
 
 
-def main_func():
-    webview.create_window('Toggle fullscreen test', 'https://www.example.org')
-
-
-def toggle_fullscreen():
-    webview.toggle_fullscreen()
+def toggle_fullscreen(window):
+    window.toggle_fullscreen()
 
 
 

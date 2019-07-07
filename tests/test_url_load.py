@@ -3,15 +3,12 @@ from .util import run_test
 
 
 def test_url_load():
-    run_test(webview, main_func, url_load)
+    window = webview.create_window('URL change test', 'https://www.example.org')
+    run_test(webview, window, url_load)
 
 
-def main_func():
-    webview.create_window('URL change test', 'https://www.example.org')
-
-
-def url_load():
-    webview.load_url('https://www.google.org')
+def url_load(window):
+    window.load_url('https://www.google.org')
 
 
 

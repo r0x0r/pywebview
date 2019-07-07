@@ -1,26 +1,40 @@
 # Usage
 
-The bare minimum to get pywebview started is
+The bare minimum to get _pywebview_ up and running is
 
 ``` python
 import webview
-webview.create_window("It works, Jim!", "https://pywebview.flowrl.com")
+
+window = webview.create_window('Woah dude!', 'https://pywebview.flowrl.com')
+webview.start()
 ```
 
-The second argument `url` can point to either to a remote a local url, a local path or be left empty. If empty, you can load HTML using a `load_html` function. E.g.
+The `create_window` function returns a window instance that provides a number of functions. All the opened windows are stored as a list in `webview.windows`. The windows are stored in a creation order.
+
+The `create_window` second argument `url` can point to a remote or a local path. Alternatively, you can load HTML by setting the `html` parameter.
 
 ``` python
-def load_html():
-    webview.load_html('<h1>This is dynamically loaded HTML</h1>')
+import webview
 
-
-if __name__ == '__main__':
-    t = threading.Thread(target=load_html)
-    t.start()
-
-    webview.create_window('Load HTML example')
+webview.create_window('Woah dude!', html='<h1>Woah dude!<h1>')
+webview.start()
 ```
 
-To change a web renderer, set `webview.gui` to the desired value (e.g `cef`). See [Renderer](/guide/renderer.md) for details.
+Note that if both `url` and `html` are set, `html` takes precedence.
 
-Note that `webview.create_window` blocks the main thread execution, so other code has to be run on a separate thread.
+`webview.start` starts a GUI loop and itself is a blocking function. After starting the GUI loop, you must executed your logic in a separate thread. You can execute your code by passing your function as the first parameter `func` to `start`. The second parameter sets the function's arguments.
+
+``` python
+import webview
+
+def custom_logic(window):
+    window.evaluate_js('alert("Nice one brother")')
+
+window = webview.create_window('Woah dude!', html='<h1>Woah dude!<h1>')
+webview.start(custom_logic, window)
+```
+
+There are two ways to structure an application. Either by running a local web server and pointing _pywebview_ to it, or by employing JS API and `evaluate_js`. See [Architecture](/guide/architecture.md) for more information.
+
+To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `cef` or `qt`). See [Renderer](/guide/renderer.md) for details.
+
