@@ -1,4 +1,4 @@
-# Use CEF
+# CEF support
 
 To use Chrome Embedded Framework on Windows.
 

@@ -1,10 +1,16 @@
 ---
 home: true
 heroImage: logo.png
+heroText:
 actionText: Get Started →
 actionLink: /guide/
 footer: BSD Licensed | Copyright © 2014-present Roman Sirokov
 ---
+
+::: tip
+For documention to version 2.4, refer to [here](/2.4)
+:::
+<br/>
 
 # Getting Started
 
@@ -24,11 +30,7 @@ webview.create_window('Hello world', 'https://pywebview.flowrl.com/')
 webview.start()
 ```
 
-
-::: tip
-For documention to version 2.4, refer to [here](/2.4)
-:::
-
+<br/>
 
 # Support the project
 

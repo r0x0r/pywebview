@@ -11,7 +11,19 @@ Recurring pledges come perks, like getting email support or featuring your name 
 	</a>
 </div>
 
+<div class="center spc-l spc-vertical">
+	<a href="https://opencollective.com/pywebview/donate" target="_blank">
+		<img src="https://opencollective.com/pywebview/donate/button@2x.png?color=blue" width=300 />
+	</a>
+</div>
+
 
 ## One-time donations
 
-[![Paypal](/paypal.png)](http://bit.ly/2eg2Z5P)
+We accept donations via Paypal
+
+<div class="center spc-l spc-vertical">
+	<a href="http://bit.ly/2eg2Z5P" target="_blank">
+		<img src="/paypal.png"/>
+	</a>
+</div>

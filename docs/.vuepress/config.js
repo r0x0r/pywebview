@@ -13,6 +13,7 @@ module.exports = {
       { text: 'Guide', link: '/guide/' },
       { text: 'Examples', link: '/examples/' },
       { text: 'Contributing', link: '/contributing/' },
+      { text: 'Blog', link: '/blog/' },
       { text: 'Changelog', link: 'https://github.com/r0x0r/pywebview/blob/master/CHANGELOG.md' },
     ],
     sidebar: {
