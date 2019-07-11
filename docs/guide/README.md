@@ -13,6 +13,12 @@ _pywebview_ is a BSD licensed open source project. It is an independent project 
 	</a>
 </div>
 
+<div class="center spc-l spc-vertical">
+	<a href="https://opencollective.com/pywebview/donate" target="_blank">
+		<img src="https://opencollective.com/pywebview/donate/button@2x.png?color=blue" width=300 />
+	</a>
+</div>
+
 
 
 _pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/). Maintained by Roman and [Shiva Prasad](https://github.com/shivaprsdv).
