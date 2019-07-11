@@ -20,7 +20,7 @@ Version 3.0 is the first version that is not compatible with previous versions. 
 
 
 ### webview.start()
-The biggest change is introduction of window objects and `webview.start()` function that starts a GUI loop. Previously GUI loop was started by the first call of `webview.create_window()`. Hence `create_window` had in fact two functions: creating a window and starting a GUI loop. To make things more confusing the first call to `create_window` was blocking, while subsequent calls from subthreads were not. To make things more straightforward, `create_window` now creates a window and returns a window object, no matter how many times you call it. The function is always non-blocking too. Bear in mind that until GUI loop is started, no windows are displayed. Usinh new API, hello world in _pywebview_ looks like this:
+The biggest change is introduction of window objects and `webview.start()` function that starts a GUI loop. Previously GUI loop was started by the first call of `webview.create_window()`. Hence `create_window` had in fact two functions: creating a window and starting a GUI loop. To make things more confusing the first call to `create_window` was blocking, while subsequent calls from subthreads were not. To make things more straightforward, `create_window` now creates a window and returns a window object, no matter how many times you call it. The function is always non-blocking too. Bear in mind that until GUI loop is started, no windows are displayed. Using new API, hello world in _pywebview_ looks like this:
 
 ``` python
 import webview
@@ -29,7 +29,7 @@ window = webview.create_window('Hello world', 'https://pywebview.flowrl.com/hell
 webview.start()
 ```
 
-`webview.start` also provides a convinient way to execute thread specific code after GUI loop is started, so no more threading boilerplate.
+`webview.start` also provides a convenient way to execute thread specific code after GUI loop is started, so no more threading boilerplate.
 
 ``` python
 import webview
@@ -58,7 +58,7 @@ webview.start(load_html, window)
 
 
 ### Built-in HTTP server
-_pywebview_ now provides its own HTTP server for serving static local files. For obduscation purposes server is started on a random port.
+_pywebview_ now provides its own HTTP server for serving static local files. For obfuscation purposes server is started on a random port.
 
 ``` python
 import webview
