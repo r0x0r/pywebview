@@ -165,7 +165,7 @@ Change the title of the window.
 ## toggle_fullscreen
 
 ``` python
-togle_fullscreen()
+toggle_fullscreen()
 ```
 
 Toggle fullscreen mode on the active monitor.
