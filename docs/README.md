@@ -41,3 +41,9 @@ If you find _pywebview_ useful, please support it.
         <img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/>
     </a>
 </div>
+
+<div class="center spc-l spc-vertical">
+	<a href="https://opencollective.com/pywebview/donate" target="_blank">
+		<img src="https://opencollective.com/pywebview/donate/button@2x.png?color=blue" width=300 />
+	</a>
+</div>

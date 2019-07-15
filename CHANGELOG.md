@@ -5,7 +5,7 @@
 
 ## 3.0
 
-_Released xx/xx/2019_
+_Released 11/03/2019_
 
 - `New` [All] New API. The API is not compatible with older versions of _pywebview_. See https://pywebview.flowrl.com for usage details. #272
 - `New` [All] Built-in HTTP server. #260

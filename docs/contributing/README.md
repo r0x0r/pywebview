@@ -12,4 +12,12 @@ To support pywebview financially, consider becoming a patron of the project. Pyw
 	</a>
 </div>
 
+<div class="center spc-l spc-vertical">
+	<a href="https://opencollective.com/pywebview/donate" target="_blank">
+		<img src="https://opencollective.com/pywebview/donate/button@2x.png?color=blue" width=300 />
+	</a>
+</div>
+
+
+
 For other ways to donate refer to the [donation](/contributing/donating.html) page.
