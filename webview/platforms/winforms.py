@@ -48,8 +48,6 @@ def use_cef():
 
 
 def _is_edge():
-    windows_version = Environment.OSVersion.Version.Major, Environment.OSVersion.Version.Minor, Environment.OSVersion.Version.Build
-
     try:
         import _winreg as winreg  # Python 2
     except ImportError:
@@ -59,8 +57,13 @@ def _is_edge():
         net_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full')
         version, _ = winreg.QueryValueEx(net_key, 'Release')
 
-        return version >= 394802 and windows_version >= (10, 0, 17134) # .NET 4.6.2 + Windows 10 1803
-    except:
+        windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows NT\CurrentVersion')
+        build, _ = winreg.QueryValueEx(windows_key, 'CurrentBuild')
+        build = int(build)
+
+        return version >= 394802 and build >= 17134 # .NET 4.6.2 + Windows 10 1803
+    except Exception as e:
+        logger.exception(e)
         return False
     finally:
         winreg.CloseKey(net_key)
