@@ -606,6 +606,9 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         if dialog_type == FOLDER_DIALOG:
             dialog = WinForms.FolderBrowserDialog()
             dialog.RestoreDirectory = True
+            
+            if directory:
+                dialog.SelectedPath = directory
 
             result = dialog.ShowDialog(window)
             if result == WinForms.DialogResult.OK:
