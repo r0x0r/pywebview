@@ -135,7 +135,7 @@ def escape_line_breaks(string):
 
 
 def inject_base_uri(content, base_uri):
-    pattern = '<%s(?:[\s]+[^>]*|)>'
+    pattern = r'<%s(?:[\s]+[^>]*|)>'
     base_tag = '<base href="%s">' % base_uri
 
     match = re.search(pattern % 'base', content)
