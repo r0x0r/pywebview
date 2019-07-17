@@ -295,6 +295,7 @@ class BrowserView(QMainWindow):
             pass
 
         if len(BrowserView.instances) == 0:
+            self.hide()
             _app.exit()
 
     def on_destroy_window(self):
