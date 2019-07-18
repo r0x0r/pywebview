@@ -46,7 +46,7 @@ window.pywebview = {
             if (returnObj.isSet) {
                 returnObj.isSet = false;
                 try {
-                    resolve(JSON.parse(returnObj.value.replace(/\\n/, '\\\\n')));
+                    resolve(JSON.parse(returnObj.value));
                 } catch(e) {
                     resolve(returnObj.value);
                 }
