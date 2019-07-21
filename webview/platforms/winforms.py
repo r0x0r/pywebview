@@ -541,10 +541,8 @@ def _set_ie_mode():
 
 
 def _allow_localhost():
-    from subprocess import check_output
-
-    output = check_output('checknetisolation LoopbackExempt -s')
-
+    output = os.popen('checknetisolation LoopbackExempt -s').read()
+    
     if 'cw5n1h2txyewy' not in str(output):
         windll.shell32.ShellExecuteW(None, 'runas', 'checknetisolation', 'LoopbackExempt -a -n=\"Microsoft.Win32WebViewHost_cw5n1h2txyewy\"', None, 1)
 
