@@ -541,8 +541,31 @@ def _set_ie_mode():
 
 
 def _allow_localhost():
-    output = os.popen('checknetisolation LoopbackExempt -s').read()
-    
+    import subprocess
+
+    # lifted from https://github.com/pyinstaller/pyinstaller/wiki/Recipe-subprocess
+    def subprocess_args(include_stdout=True):
+        if hasattr(subprocess, 'STARTUPINFO'):
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            env = os.environ
+        else:
+            si = None
+            env = None
+
+        if include_stdout:
+            ret = {'stdout': subprocess.PIPE}
+        else:
+            ret = {}
+
+        ret.update({'stdin': subprocess.PIPE,
+                    'stderr': subprocess.PIPE,
+                    'startupinfo': si,
+                    'env': env })
+        return ret
+
+    output = subprocess.check_output('checknetisolation LoopbackExempt -s', **subprocess_args(False))
+
     if 'cw5n1h2txyewy' not in str(output):
         windll.shell32.ShellExecuteW(None, 'runas', 'checknetisolation', 'LoopbackExempt -a -n=\"Microsoft.Win32WebViewHost_cw5n1h2txyewy\"', None, 1)
 

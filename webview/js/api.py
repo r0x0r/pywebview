@@ -9,7 +9,6 @@ window.pywebview = {
                         window.pywebview._checkValue(funcName, resolve);
                     });
                     window.pywebview._bridge.call(funcName, JSON.stringify(params));
-                    console.log(funcName);
                     return promise;
                 }
             })(funcList[i])
