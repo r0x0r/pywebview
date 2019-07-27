@@ -85,8 +85,8 @@ def parse_api_js(api_instance, platform):
 
 def js_bridge_call(window, func_name, param):
     def _call():
-        result = json.dumps(func(func_params))
-        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: {1}}}'.format(func_name, result)
+        result = json.dumps(func(func_params)).replace('\\', '\\\\')
+        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: \'{1}\'}}'.format(func_name, result)
         window.evaluate_js(code)
 
     func = getattr(window.js_api, func_name, None)

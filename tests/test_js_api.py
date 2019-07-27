@@ -10,7 +10,7 @@ def test_js_bridge():
 
 class Api:
     def get_int(self, params):
-        return 5
+        return 420
 
     def get_float(self, params):
         return 3.141
@@ -18,10 +18,17 @@ class Api:
     def get_string(self, params):
         return 'test'
 
+    def get_object(self, params):
+        return {'key1': 'value', 'key2': 420}
+
+    def get_objectlike_string(self, params):
+        return '{"key1": "value", "key2": 420}'
 
 def js_bridge(window):
     window.load_html('<html><body>TEST</body></html>')
-    assert_js(window, 'get_int', 5)
+    assert_js(window, 'get_int', 420)
     assert_js(window, 'get_float', 3.141)
     assert_js(window, 'get_string', 'test')
+    assert_js(window, 'get_object', {'key1': 'value', 'key2': 420})
+    assert_js(window, 'get_objectlike_string', '{"key1": "value", "key2": 420}')
 

@@ -1,5 +1,6 @@
 import threading
 import time
+import json
 import os
 import sys
 import logging
@@ -38,7 +39,7 @@ def assert_js(window, func_name, expected_result):
             time.sleep(0.1)
             result = window.evaluate_js(check_func)
 
-    assert expected_result == result
+    assert expected_result == json.loads(result)
 
 
 def _create_window(webview, window, thread_func, queue, thread_param, start_args, no_destroy, destroy_delay):
