@@ -24,6 +24,7 @@ class Api:
     def get_objectlike_string(self, params):
         return '{"key1": "value", "key2": 420}'
 
+
 def js_bridge(window):
     window.load_html('<html><body>TEST</body></html>')
     assert_js(window, 'get_int', 420)

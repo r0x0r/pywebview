@@ -18,6 +18,11 @@ def run_test(webview, window, thread_func=None, param=None, start_args={}, no_de
 
         time.sleep(2)
         _create_window(webview, window, thread_func, queue, param, start_args, no_destroy, destroy_delay)
+
+        if not queue.empty():
+            e = queue.get()
+            pytest.fail(e)
+
     except Exception as e:
         pytest.fail(e)
 
@@ -61,6 +66,7 @@ def _create_window(webview, window, thread_func, queue, thread_param, start_args
 
         t = threading.Thread(target=thread)
         t.start()
+
     webview.start(**start_args)
 
 
