@@ -263,7 +263,7 @@ class BrowserView:
 
         def load_html(self, html, base_uri):
             file_name = '%s.html' % uuid4().hex
-            self.temp_html = os.path.join(WinForms.Application.StartupPath, file_name)
+            self.temp_html = os.path.join(WinForms.Application.UserAppDataPath, file_name)
 
             with open(self.temp_html, 'w') as f:
                 f.write(inject_base_uri(html, base_uri))
