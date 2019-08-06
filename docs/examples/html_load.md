@@ -5,6 +5,7 @@ Display content by loading HTML on the fly.
 ``` python
 import webview
 import threading
+import time
 
 
 def load_html(window):
