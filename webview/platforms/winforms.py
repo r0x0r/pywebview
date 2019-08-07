@@ -471,6 +471,13 @@ class BrowserView:
             windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
                 width, height, 64)
 
+        def move(self, x, y):
+            SWP_NOSIZE = 0x0001  # Retains the current size
+            SWP_NOZORDER = 0x0004  # Retains the current Z order 
+            SWP_SHOWWINDOW = 0x0040  # Displays the window
+            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, x, y, None, None,
+                                       SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
+
     @staticmethod
     def alert(message):
         WinForms.MessageBox.Show(message)
@@ -713,6 +720,11 @@ def toggle_fullscreen(uid):
 def set_window_size(width, height, uid):
     window = BrowserView.instances[uid]
     window.set_window_size(width, height)
+
+
+def move(x, y, uid):
+    window = BrowserView.instances[uid]
+    window.move(x, y)
 
 
 def destroy_window(uid):
