@@ -57,6 +57,7 @@ class BrowserView(QMainWindow):
     destroy_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
     window_size_trigger = QtCore.pyqtSignal(int, int)
+    window_move_trigger = QtCore.pyqtSignal(int, int)
     current_url_trigger = QtCore.pyqtSignal()
     evaluate_js_trigger = QtCore.pyqtSignal(str, str)
 
@@ -222,6 +223,7 @@ class BrowserView(QMainWindow):
         self.destroy_trigger.connect(self.on_destroy_window)
         self.fullscreen_trigger.connect(self.on_fullscreen)
         self.window_size_trigger.connect(self.on_window_size)
+        self.window_move_trigger.connect(self.on_window_move)
         self.current_url_trigger.connect(self.on_current_url)
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
@@ -314,6 +316,9 @@ class BrowserView(QMainWindow):
     def on_window_size(self, width, height):
         self.setFixedSize(width, height)
 
+    def on_window_move(self, x, y):
+        self.move(x, y)
+
     def on_evaluate_js(self, script, uuid):
         def return_result(result):
             result = BrowserView._convert_string(result)
@@ -386,6 +391,9 @@ class BrowserView(QMainWindow):
 
     def set_window_size(self, width, height):
         self.window_size_trigger.emit(width, height)
+
+    def move(self, x, y):
+        self.window_move_trigger.emit(x, y)
 
     def evaluate_js(self, script):
         self.loaded.wait()
@@ -495,6 +503,10 @@ def toggle_fullscreen(uid):
 
 def set_window_size(width, height, uid):
     BrowserView.instances[uid].set_window_size(width, height)
+
+
+def move(x, y, uid):
+    BrowserView.instances[uid].move(x, y)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
