@@ -170,6 +170,15 @@ class Window:
         """
         self.gui.set_window_size(width, height, self.uid)
 
+    @_shown_call
+    def move(self, x, y):
+        """
+        Move Window
+        :param x: desired x coordinate of target window
+        :param y: desired y coordinate of target window
+        """
+        self.gui.move(x, y, self.uid)
+
     @_loaded_call
     def evaluate_js(self, script):
         """
