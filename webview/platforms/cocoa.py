@@ -428,6 +428,21 @@ class BrowserView:
 
         AppHelper.callAfter(_set_window_size)
 
+    def move(self, x, y):
+        def _move():
+            frame = self.window.frame()
+
+            screenFrame = AppKit.NSScreen.mainScreen().frame()
+            if screenFrame is None:
+                raise RuntimeError('Failed to obtain screen')
+
+            frame.origin.x = x
+            frame.origin.y = screenFrame.size.height - frame.size.height - y
+
+            self.window.setFrame_display_(frame, True)
+
+        AppHelper.callAfter(_move)
+
     def get_current_url(self):
         def get():
             self._current_url = str(self.webkit.URL())
@@ -752,6 +767,10 @@ def toggle_fullscreen(uid):
 
 def set_window_size(width, height, uid):
     BrowserView.instances[uid].set_window_size(width, height)
+
+
+def move(x, y, uid):
+    BrowserView.instances[uid].move(x, y)
 
 
 def get_current_url(uid):
