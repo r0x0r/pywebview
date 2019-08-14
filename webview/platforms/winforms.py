@@ -81,9 +81,10 @@ if is_edge:
     from Microsoft.Toolkit.Forms.UI.Controls import WebView
     from System.ComponentModel import ISupportInitialize
     logger.debug('Using WinForms / EdgeHTML')
+    renderer = 'edgehtml'
 else:
     logger.debug('Using WinForms / MSHTML')
-
+    renderer = 'mshtml'
 
 
 class BrowserView:
@@ -369,7 +370,6 @@ class BrowserView:
             else:
                 self.browser = BrowserView.MSHTML(self, window)
 
-
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
 
@@ -630,7 +630,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         if dialog_type == FOLDER_DIALOG:
             dialog = WinForms.FolderBrowserDialog()
             dialog.RestoreDirectory = True
-            
+
             if directory:
                 dialog.SelectedPath = directory
 

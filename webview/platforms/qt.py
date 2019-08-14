@@ -36,11 +36,13 @@ from PyQt5.QtGui import QColor
 try:
     from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
     from PyQt5.QtWebChannel import QWebChannel
+    renderer = 'qtwebengine'
     is_webengine = True
 except ImportError:
     from PyQt5 import QtWebKitWidgets
     from PyQt5.QtWebKitWidgets import QWebView, QWebPage
     is_webengine = False
+    renderer = 'qtwebkit'
 
 
 class BrowserView(QMainWindow):

@@ -65,7 +65,7 @@ class Window:
         self.loaded._initialize(multiprocessing)
         self.shown._initialize(multiprocessing)
 
-        if http_server and self.url.startswith('file://'):
+        if (http_server or self.gui.renderer == 'edgehtml') and self.url.startswith('file://'):
             self.url = start_server(self.url)
 
     @_loaded_call
