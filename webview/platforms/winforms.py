@@ -17,6 +17,7 @@ from ctypes import windll
 from uuid import uuid4
 
 from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug
+from webview.http_server import start_server
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
 from webview.js import alert
 from webview.js.css import disable_text_select
@@ -272,21 +273,12 @@ class BrowserView:
             self.web_view.NavigateToLocal(file_name)
 
         def load_url(self, url):
-            self.temp_html = None
-
+            self.url = url
             # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
             if url.startswith('file://'):
-                path = url.replace('file://', '')
+                url = start_server(self.url)
 
-                if not os.path.exists(path):
-                    raise WebViewException('File %s does not exist' % path)
-
-                with open(path) as f:
-                    html = f.read()
-                    self.load_html(html, 'file://' + os.path.dirname(path) + '\\')
-
-            else:
-                self.web_view.Navigate(url)
+            self.web_view.Navigate(url)
 
         def on_script_notify(self, _, args):
             func_name, func_param = json.loads(args.Value)
