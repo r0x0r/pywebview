@@ -11,6 +11,8 @@ import os
 import sys
 import logging
 import json
+import shutil
+import tempfile
 import webbrowser
 from threading import Event, Semaphore
 from ctypes import windll
@@ -238,6 +240,7 @@ class BrowserView:
             # This must be before loading URL. Otherwise the webview will remain empty
             life.EndInit()
 
+            self.httpd = None # HTTP server for load_html
             self.temp_html = None
             self.url = None
 
@@ -264,20 +267,21 @@ class BrowserView:
             return self.url
 
         def load_html(self, html, base_uri):
-            file_name = '%s.html' % uuid4().hex
-            self.temp_html = os.path.join(WinForms.Application.StartupPath, file_name)
+            self.tmpdir = tempfile.mkdtemp()
+            self.temp_html = os.path.join(self.tmpdir, 'index.html')
 
             with open(self.temp_html, 'w') as f:
                 f.write(inject_base_uri(html, base_uri))
 
-            self.web_view.NavigateToLocal(file_name)
+            if self.httpd:
+                self.httpd.shutdown()
+                
+            url, self.httpd = start_server('file://' + self.temp_html)
+            self.web_view.Navigate(url)
 
         def load_url(self, url):
             self.url = url
-            # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
-            if url.startswith('file://'):
-                url = start_server(self.url)
-
+            print(url)
             self.web_view.Navigate(url)
 
         def on_script_notify(self, _, args):
@@ -296,11 +300,11 @@ class BrowserView:
 
         def on_navigation_completed(self, _, args):
             try:
-                if self.temp_html and os.path.exists(self.temp_html):
-                    os.remove(self.temp_html)
-                    self.temp_html = None
+                if self.tmpdir and os.path.exists(self.tmpdir):
+                    shutil.rmtree(self.tmpdir)
+                    self.tmpdir = None
             except Exception as e:
-                logger.exception('Failed deleting %s' % self.temp_html)
+                logger.exception('Failed deleting %s' % self.tmpdir)
 
             url = str(args.Uri)
             self.url = None if url.startswith('ms-local-stream:') else url
