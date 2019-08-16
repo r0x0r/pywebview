@@ -241,7 +241,7 @@ class BrowserView:
             life.EndInit()
 
             self.httpd = None # HTTP server for load_html
-            self.temp_html = None
+            self.tmpdir = None
             self.url = None
             self.ishtml = False
 
