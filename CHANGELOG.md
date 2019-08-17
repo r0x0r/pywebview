@@ -3,6 +3,15 @@
 
 # Changelog
 
+## 3.0.2
+
+_Released 17/08/2019_
+
+- `Fix` [All] Prevent JSON like strings being converted to JSON objects when returning JS API calls. #352
+- `Fix` [Windows] HTTP server is now used by default for local URLs and HTML for EdgeHTML. This fixes a PermissionDenied error, when the directory the executable is in is not writable.
+- `Fix` [Tests] Tests now fail on an exception occuring in a thread.
+
+
 ## 3.0.1
 
 _Released 25/07/2019_
