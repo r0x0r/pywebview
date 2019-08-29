@@ -24,6 +24,12 @@ class Api:
     def get_objectlike_string(self, params):
         return '{"key1": "value", "key2": 420}'
 
+    def get_single_quote(self, params):
+        return "te'st"
+
+    def get_double_quote(self, params):
+        return 'te"st'
+
 
 def js_bridge(window):
     window.load_html('<html><body>TEST</body></html>')
@@ -32,4 +38,5 @@ def js_bridge(window):
     assert_js(window, 'get_string', 'test')
     assert_js(window, 'get_object', {'key1': 'value', 'key2': 420})
     assert_js(window, 'get_objectlike_string', '{"key1": "value", "key2": 420}')
-
+    assert_js(window, 'get_single_quote', 'te\'st')
+    assert_js(window, 'get_double_quote', 'te"st')
