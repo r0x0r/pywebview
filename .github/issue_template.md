@@ -8,6 +8,6 @@
   
 ### Practicalities
 
-- [ ] I am willing to work on this issue myself.
+- YES/NO I am willing to work on this issue myself.
 
-- [ ] I am prepared to support this issue financially.
+- YES/NO I am prepared to support this issue financially.
