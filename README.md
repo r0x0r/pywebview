@@ -1,6 +1,6 @@
 <p align='center'><img src='logo/logo.png' width=480 alt='pywebview logo'/></p>
 
-<p align='center'><a href="https://badge.fury.io/py/pywebview"><img src="https://badge.fury.io/py/pywebview.svg" alt="PyPI version" /></a> <a href="https://travis-ci.org/r0x0r/pywebview"><img src="https://travis-ci.org/r0x0r/pywebview.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/r0x0r/pywebview"><img src="https://ci.appveyor.com/api/projects/status/nu6mbhvbq03wudxd?svg=true" alt="Build status" /></a>
+<p align='center'><a href="https://badge.fury.io/py/pywebview"><a href="https://opencollective.com/pywebview" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/pywebview/all/badge.svg?label=financial+contributors" /></a> <img src="https://badge.fury.io/py/pywebview.svg" alt="PyPI version" /></a> <a href="https://travis-ci.org/r0x0r/pywebview"><img src="https://travis-ci.org/r0x0r/pywebview.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/r0x0r/pywebview"><img src="https://ci.appveyor.com/api/projects/status/nu6mbhvbq03wudxd?svg=true" alt="Build status" /></a>
 
 https://pywebview.flowrl.com
 </p>
@@ -40,3 +40,33 @@ _pywebview_ is a BSD licensed open source project. It is an independent project 
 <a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button"><img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/></a>
 
 
+
+## Contributors
+
+### Code Contributors
+
+This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
+<a href="https://github.com/r0x0r/pywebview/graphs/contributors"><img src="https://opencollective.com/pywebview/contributors.svg?width=890&button=false" /></a>
+
+### Financial Contributors
+
+Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/pywebview/contribute)]
+
+#### Individuals
+
+<a href="https://opencollective.com/pywebview"><img src="https://opencollective.com/pywebview/individuals.svg?width=890"></a>
+
+#### Organizations
+
+Support this project with your organization. Your logo will show up here with a link to your website. [[Contribute](https://opencollective.com/pywebview/contribute)]
+
+<a href="https://opencollective.com/pywebview/organization/0/website"><img src="https://opencollective.com/pywebview/organization/0/avatar.svg"></a>
+<a href="https://opencollective.com/pywebview/organization/1/website"><img src="https://opencollective.com/pywebview/organization/1/avatar.svg"></a>
+<a href="https://opencollective.com/pywebview/organization/2/website"><img src="https://opencollective.com/pywebview/organization/2/avatar.svg"></a>
+<a href="https://opencollective.com/pywebview/organization/3/website"><img src="https://opencollective.com/pywebview/organization/3/avatar.svg"></a>
+<a href="https://opencollective.com/pywebview/organization/4/website"><img src="https://opencollective.com/pywebview/organization/4/avatar.svg"></a>
+<a href="https://opencollective.com/pywebview/organization/5/website"><img src="https://opencollective.com/pywebview/organization/5/avatar.svg"></a>
+<a href="https://opencollective.com/pywebview/organization/6/website"><img src="https://opencollective.com/pywebview/organization/6/avatar.svg"></a>
+<a href="https://opencollective.com/pywebview/organization/7/website"><img src="https://opencollective.com/pywebview/organization/7/avatar.svg"></a>
+<a href="https://opencollective.com/pywebview/organization/8/website"><img src="https://opencollective.com/pywebview/organization/8/avatar.svg"></a>
+<a href="https://opencollective.com/pywebview/organization/9/website"><img src="https://opencollective.com/pywebview/organization/9/avatar.svg"></a>
