@@ -1,7 +1,8 @@
 {
   "scripts": {
     "docs:dev": "vuepress dev docs",
-    "docs:build": "NODE_ENV=production vuepress build docs"
+    "docs:build": "NODE_ENV=production vuepress build docs",
+    "postinstall": "opencollective-postinstall || true"
   },
   "devDependencies": {
     "vuepress": "1.1.0"
