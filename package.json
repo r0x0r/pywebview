@@ -1,9 +1,17 @@
 {
   "scripts": {
     "docs:dev": "vuepress dev docs",
-    "docs:build": "NODE_ENV=production vuepress build docs"
+    "docs:build": "NODE_ENV=production vuepress build docs",
+    "postinstall": "opencollective-postinstall || true"
   },
   "devDependencies": {
     "vuepress": "1.0.2"
+  },
+  "dependencies": {
+    "opencollective-postinstall": "^2.0.2"
+  },
+  "collective": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/pywebview"
   }
 }
