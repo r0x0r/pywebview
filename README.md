@@ -32,14 +32,6 @@ webview.create_window('Hello world', 'https://pywebview.flowrl.com/hello')
 Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.com/guide), [examples](https://pywebview.flowrl.com/examples) or [contributing](https://pywebview.flowrl.com/contributing) .
 
 
-# Supporting pywebview
-
-
-_pywebview_ is a BSD licensed open source project. It is an independent project with no corporate backing. If you find _pywebview_ useful, consider supporting it. More donation options are outlined on the [Donating](https://pywebview.flowrl.com/contributing/donating.html) page.
-
-<a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button"><img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/></a>
-
-
 
 ## Contributors
 
@@ -50,11 +42,15 @@ This project exists thanks to all the people who contribute. [[Contribute](CONTR
 
 ### Financial Contributors
 
-Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/pywebview/contribute)]
+Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/pywebview/contribute)].  More donation options are outlined on the [Donating](https://pywebview.flowrl.com/contributing/donating.html) page.
+
 
 #### Individuals
 
 <a href="https://opencollective.com/pywebview"><img src="https://opencollective.com/pywebview/individuals.svg?width=890"></a>
+
+<a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button"><img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/></a>
+
 
 #### Organizations
 
@@ -70,3 +66,7 @@ Support this project with your organization. Your logo will show up here with a 
 <a href="https://opencollective.com/pywebview/organization/7/website"><img src="https://opencollective.com/pywebview/organization/7/avatar.svg"></a>
 <a href="https://opencollective.com/pywebview/organization/8/website"><img src="https://opencollective.com/pywebview/organization/8/avatar.svg"></a>
 <a href="https://opencollective.com/pywebview/organization/9/website"><img src="https://opencollective.com/pywebview/organization/9/avatar.svg"></a>
+
+
+<a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button"><img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/></a>
+
