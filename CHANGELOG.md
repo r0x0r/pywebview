@@ -3,9 +3,30 @@
 
 # Changelog
 
+## 3.0.2
+
+_Released 17/08/2019_
+
+- `Fix` [All] Prevent JSON like strings being converted to JSON objects when returning JS API calls. #352
+- `Fix` [Windows] HTTP server is now used by default for local URLs and HTML for EdgeHTML. This fixes a PermissionDenied error, when the directory the executable is in is not writable.
+- `Fix` [Tests] Tests now fail on an exception occuring in a thread.
+
+
+## 3.0.1
+
+_Released 25/07/2019_
+
+- `Fix` [All] Don't escape line breaks in result of js_bridge_call. Thanks @kvasserman.
+- `Fix` [Windows] Support for Pyinstaller noconsole mode
+- `Fix` [Windows] Fix Windows version detection with frozen executables.
+- `Fix` [Windows] Open folder dialog now supports `directory` argument.
+- `Fix` [QT] Workaround for segmentation fault on closing the main window. Thanks @kvasserman.
+- `Fix` [Pytest] Fix for pytest warning about invalid escape sequence
+
+
 ## 3.0
 
-_Released 11/03/2019_
+_Released 11/07/2019_
 
 - `New` [All] New API. The API is not compatible with older versions of _pywebview_. See https://pywebview.flowrl.com for usage details. #272
 - `New` [All] Built-in HTTP server. #260

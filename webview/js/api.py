@@ -9,7 +9,6 @@ window.pywebview = {
                         window.pywebview._checkValue(funcName, resolve);
                     });
                     window.pywebview._bridge.call(funcName, JSON.stringify(params));
-                    console.log(funcName);
                     return promise;
                 }
             })(funcList[i])
@@ -46,7 +45,7 @@ window.pywebview = {
             if (returnObj.isSet) {
                 returnObj.isSet = false;
                 try {
-                    resolve(JSON.parse(returnObj.value.replace(/\\n/, '\\\\n')));
+                    resolve(JSON.parse(returnObj.value));
                 } catch(e) {
                     resolve(returnObj.value);
                 }

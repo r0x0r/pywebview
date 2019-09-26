@@ -1,6 +1,9 @@
-from threading import Thread, Lock
 import logging
 import webview
+
+from contextlib import redirect_stdout
+from io import StringIO
+from threading import Thread, Lock
 from time import sleep
 from server import run_server
 
@@ -26,15 +29,18 @@ def url_ok(url, port):
         return False
 
 if __name__ == '__main__':
-    logger.debug('Starting server')
-    t = Thread(target=run_server)
-    t.daemon = True
-    t.start()
-    logger.debug('Checking server')
 
-    while not url_ok('127.0.0.1', 23948):
-        sleep(1)
+    stream = StringIO()
+    with redirect_stdout(stream):
+        logger.debug('Starting server')
+        t = Thread(target=run_server)
+        t.daemon = True
+        t.start()
+        logger.debug('Checking server')
 
-    logger.debug('Server started')
-    window = webview.create_window('My first pywebview application', 'http://127.0.0.1:23948')
-    webview.start(debug=True)
+        while not url_ok('127.0.0.1', 23948):
+            sleep(1)
+
+        logger.debug('Server started')
+        window = webview.create_window('My first pywebview application', 'http://127.0.0.1:23948')
+        webview.start(debug=True)

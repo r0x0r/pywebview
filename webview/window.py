@@ -60,13 +60,15 @@ class Window:
         self.shown = Event()
         self.gui = None
 
+        self._httpd = None
+
     def _initialize(self, gui, multiprocessing, http_server):
         self.gui = gui
         self.loaded._initialize(multiprocessing)
         self.shown._initialize(multiprocessing)
 
-        if http_server and self.url.startswith('file://'):
-            self.url = start_server(self.url)
+        if http_server and self.url and self.url.startswith('file://'):
+            self.url, self._httpd = start_server(self.url)
 
     @_loaded_call
     def get_elements(self, selector):
@@ -99,6 +101,15 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
+        if self._httpd:
+            self._httpd.shutdown()
+            self._httpd = None
+
+        url = transform_url(url)
+
+        if (self._httpd or self.gui.renderer == 'edgehtml') and url.startswith('file://'):
+            url, self._httpd = start_server(url)
+
         self.gui.load_url(url, self.uid)
 
     @_shown_call
@@ -110,6 +121,10 @@ class Window:
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         :param uid: uid of the target instance
         """
+
+        if self._httpd:
+            self._httpd.shutdown()
+
         content = make_unicode(content)
         self.gui.load_html(content, base_uri, self.uid)
 

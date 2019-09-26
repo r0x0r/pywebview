@@ -36,6 +36,7 @@ class JSBridge:
     def call(self, func_name, param):
         js_bridge_call(self.window, func_name, param)
 
+renderer = 'cef'
 
 class Browser:
     def __init__(self, window, handle, browser):

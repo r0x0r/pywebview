@@ -38,6 +38,8 @@ from gi.repository import WebKit2 as webkit
 webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
 old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
 
+renderer = 'gtkwebkit2'
+
 class BrowserView:
     instances = {}
 

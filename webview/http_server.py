@@ -50,12 +50,8 @@ class HTTPHandler(SimpleHTTPRequestHandler):
 
 
 def start_server(url):
-    def _start():
-        server_address = ('localhost', port)
-
+    def _start(httpd):
         try:
-            httpd = HTTPServer(server_address, HTTPHandler)
-            httpd.base_path = base_path
             httpd.serve_forever()
         except Exception as e:
             logger.exception(e)
@@ -63,12 +59,18 @@ def start_server(url):
     base_path = os.path.dirname(url.replace('file://', ''))
     if not os.path.exists(base_path):
         raise IOError('Directory %s is not found' % base_path)
-    port = _get_random_port()
 
-    t = threading.Thread(target=_start)
+    port = _get_random_port()
+    server_address = ('localhost', port)
+
+    httpd = HTTPServer(server_address, HTTPHandler)
+    httpd.base_path = base_path
+
+    t = threading.Thread(target=_start, args=(httpd,))
     t.daemon = True
     t.start()
 
     new_url = 'http://localhost:{0}/{1}'.format(port, os.path.basename(url))
     logger.debug('HTTP server started on http://localhost:{0}'.format(port))
-    return new_url
+    
+    return new_url, httpd

@@ -11,12 +11,15 @@ import os
 import sys
 import logging
 import json
+import shutil
+import tempfile
 import webbrowser
 from threading import Event, Semaphore
 from ctypes import windll
 from uuid import uuid4
 
 from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug
+from webview.http_server import start_server
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
 from webview.js import alert
 from webview.js.css import disable_text_select
@@ -48,8 +51,6 @@ def use_cef():
 
 
 def _is_edge():
-    windows_version = Environment.OSVersion.Version.Major, Environment.OSVersion.Version.Minor, Environment.OSVersion.Version.Build
-
     try:
         import _winreg as winreg  # Python 2
     except ImportError:
@@ -59,8 +60,13 @@ def _is_edge():
         net_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full')
         version, _ = winreg.QueryValueEx(net_key, 'Release')
 
-        return version >= 394802 and windows_version >= (10, 0, 17134) # .NET 4.6.2 + Windows 10 1803
-    except:
+        windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows NT\CurrentVersion')
+        build, _ = winreg.QueryValueEx(windows_key, 'CurrentBuild')
+        build = int(build)
+
+        return version >= 394802 and build >= 17134 # .NET 4.6.2 + Windows 10 1803
+    except Exception as e:
+        logger.exception(e)
         return False
     finally:
         winreg.CloseKey(net_key)
@@ -78,9 +84,10 @@ if is_edge:
     from Microsoft.Toolkit.Forms.UI.Controls import WebView
     from System.ComponentModel import ISupportInitialize
     logger.debug('Using WinForms / EdgeHTML')
+    renderer = 'edgehtml'
 else:
     logger.debug('Using WinForms / MSHTML')
-
+    renderer = 'mshtml'
 
 
 class BrowserView:
@@ -233,8 +240,10 @@ class BrowserView:
             # This must be before loading URL. Otherwise the webview will remain empty
             life.EndInit()
 
-            self.temp_html = None
+            self.httpd = None # HTTP server for load_html
+            self.tmpdir = None
             self.url = None
+            self.ishtml = False
 
             _allow_localhost()
 
@@ -259,30 +268,27 @@ class BrowserView:
             return self.url
 
         def load_html(self, html, base_uri):
-            file_name = '%s.html' % uuid4().hex
-            self.temp_html = os.path.join(WinForms.Application.StartupPath, file_name)
+            self.tmpdir = tempfile.mkdtemp()
+            self.temp_html = os.path.join(self.tmpdir, 'index.html')
 
             with open(self.temp_html, 'w') as f:
                 f.write(inject_base_uri(html, base_uri))
 
-            self.web_view.NavigateToLocal(file_name)
+            if self.httpd:
+                self.httpd.shutdown()
+
+            url, httpd = start_server('file://' + self.temp_html)
+            self.ishtml = True
+            self.web_view.Navigate(url)
 
         def load_url(self, url):
-            self.temp_html = None
+            self.ishtml = False
 
             # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
             if url.startswith('file://'):
-                path = url.replace('file://', '')
+                url = start_server(self.url)
 
-                if not os.path.exists(path):
-                    raise WebViewException('File %s does not exist' % path)
-
-                with open(path) as f:
-                    html = f.read()
-                    self.load_html(html, 'file://' + os.path.dirname(path) + '\\')
-
-            else:
-                self.web_view.Navigate(url)
+            self.web_view.Navigate(url)
 
         def on_script_notify(self, _, args):
             func_name, func_param = json.loads(args.Value)
@@ -300,14 +306,14 @@ class BrowserView:
 
         def on_navigation_completed(self, _, args):
             try:
-                if self.temp_html and os.path.exists(self.temp_html):
-                    os.remove(self.temp_html)
-                    self.temp_html = None
+                if self.tmpdir and os.path.exists(self.tmpdir):
+                    shutil.rmtree(self.tmpdir)
+                    self.tmpdir = None
             except Exception as e:
-                logger.exception('Failed deleting %s' % self.temp_html)
+                logger.exception('Failed deleting %s' % self.tmpdir)
 
             url = str(args.Uri)
-            self.url = None if url.startswith('ms-local-stream:') else url
+            self.url = None if self.ishtml else url
             self.web_view.InvokeScript('eval', ('window.alert = (msg) => window.external.notify(JSON.stringify(["alert", msg+""]))',))
 
             if _debug:
@@ -365,7 +371,6 @@ class BrowserView:
                 self.browser = BrowserView.EdgeHTML(self, window)
             else:
                 self.browser = BrowserView.MSHTML(self, window)
-
 
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
@@ -538,9 +543,30 @@ def _set_ie_mode():
 
 
 def _allow_localhost():
-    from subprocess import check_output
+    import subprocess
 
-    output = check_output('checknetisolation LoopbackExempt -s')
+    # lifted from https://github.com/pyinstaller/pyinstaller/wiki/Recipe-subprocess
+    def subprocess_args(include_stdout=True):
+        if hasattr(subprocess, 'STARTUPINFO'):
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            env = os.environ
+        else:
+            si = None
+            env = None
+
+        if include_stdout:
+            ret = {'stdout': subprocess.PIPE}
+        else:
+            ret = {}
+
+        ret.update({'stdin': subprocess.PIPE,
+                    'stderr': subprocess.PIPE,
+                    'startupinfo': si,
+                    'env': env })
+        return ret
+
+    output = subprocess.check_output('checknetisolation LoopbackExempt -s', **subprocess_args(False))
 
     if 'cw5n1h2txyewy' not in str(output):
         windll.shell32.ShellExecuteW(None, 'runas', 'checknetisolation', 'LoopbackExempt -a -n=\"Microsoft.Win32WebViewHost_cw5n1h2txyewy\"', None, 1)
@@ -606,6 +632,9 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         if dialog_type == FOLDER_DIALOG:
             dialog = WinForms.FolderBrowserDialog()
             dialog.RestoreDirectory = True
+
+            if directory:
+                dialog.SelectedPath = directory
 
             result = dialog.ShowDialog(window)
             if result == WinForms.DialogResult.OK:

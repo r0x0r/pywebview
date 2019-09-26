@@ -51,6 +51,7 @@ except AttributeError:
 logger = logging.getLogger('pywebview')
 logger.debug('Using Cocoa')
 
+renderer = 'wkwebview'
 
 class BrowserView:
     instances = {}

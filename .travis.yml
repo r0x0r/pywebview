@@ -1,11 +1,6 @@
 matrix:
   include:
     - os: osx
-      osx_image: xcode8
-      language: generic
-      sudo: required
-      env: PYTHON_VERSION="2"
-    - os: osx
       language: generic
       sudo: required
       env: PYTHON_VERSION="3"
