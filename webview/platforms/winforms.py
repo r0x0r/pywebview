@@ -336,6 +336,11 @@ class BrowserView:
             self.MinimumSize = Size(window.min_size[0], window.min_size[1])
             self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
+            if window.x is not None and window.y is not None:
+                self.move(window.x, window.y)
+            else:
+                pass # TODO center window
+
             self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
@@ -473,7 +478,7 @@ class BrowserView:
 
         def move(self, x, y):
             SWP_NOSIZE = 0x0001  # Retains the current size
-            SWP_NOZORDER = 0x0004  # Retains the current Z order 
+            SWP_NOZORDER = 0x0004  # Retains the current Z order
             SWP_SHOWWINDOW = 0x0040  # Displays the window
             windll.user32.SetWindowPos(self.Handle.ToInt32(), None, x, y, None, None,
                                        SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)

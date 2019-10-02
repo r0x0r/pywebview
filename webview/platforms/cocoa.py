@@ -303,7 +303,6 @@ class BrowserView:
         self.confirm_close = window.confirm_close
         self.title = window.title
         self.text_select = window.text_select
-
         self.is_fullscreen = False
 
         rect = AppKit.NSMakeRect(0.0, 0.0, window.width, window.height)
@@ -321,8 +320,12 @@ class BrowserView:
         self.window.setMinSize_(AppKit.NSSize(window.min_size[0], window.min_size[1]))
         self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
-
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
+
+        if window.x is not None and window.y is not None:
+            self._move(window.x, window.y)
+        else:
+            self.window.center()
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
@@ -429,19 +432,22 @@ class BrowserView:
         AppHelper.callAfter(_set_window_size)
 
     def move(self, x, y):
-        def _move():
-            frame = self.window.frame()
+        self._move(x, y)
+        AppHelper.callAfter(self._move, x, y)
 
-            screenFrame = AppKit.NSScreen.mainScreen().frame()
-            if screenFrame is None:
-                raise RuntimeError('Failed to obtain screen')
+    def _move(self, x, y):
+        frame = self.window.frame()
 
-            frame.origin.x = x
-            frame.origin.y = screenFrame.size.height - frame.size.height - y
+        # TODO this will calculate incorrect coordinates during coordinate transfor,
+        # if window is moved to another screen
+        screenFrame = AppKit.NSScreen.mainScreen().frame()
+        if screenFrame is None:
+            raise RuntimeError('Failed to obtain screen')
 
-            self.window.setFrame_display_(frame, True)
+        frame.origin.x = x
+        frame.origin.y = screenFrame.size.height - frame.size.height - y
 
-        AppHelper.callAfter(_move)
+        self.window.setFrame_display_(frame, True)
 
     def get_current_url(self):
         def get():

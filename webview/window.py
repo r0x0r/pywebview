@@ -39,7 +39,7 @@ def _loaded_call(function):
 
 
 class Window:
-    def __init__(self, uid, title, url, html, width, height, resizable, fullscreen,
+    def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, confirm_close, background_color, js_api, text_select, frameless):
         self.uid = uid
         self.title = make_unicode(title)
@@ -47,6 +47,8 @@ class Window:
         self.html = html
         self.width = width
         self.height = height
+        self.x = x
+        self.y = y
         self.resizable = resizable
         self.fullscreen = fullscreen
         self.min_size = min_size
@@ -177,6 +179,8 @@ class Window:
         :param x: desired x coordinate of target window
         :param y: desired y coordinate of target window
         """
+        self.x = x
+        self.y = y
         self.gui.move(x, y, self.uid)
 
     @_loaded_call

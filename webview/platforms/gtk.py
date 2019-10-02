@@ -73,6 +73,11 @@ class BrowserView:
         else:
             self.window.set_size_request(window.width, window.height)
 
+        if window.x is not None and window.y is not None:
+            self.move(window.x, window.y)
+        else:
+            pass # TODO center window
+
         self.window.set_resizable(window.resizable)
         self.window.set_position(gtk.WindowPosition.CENTER)
 
@@ -406,9 +411,9 @@ def set_window_size(width, height, uid):
 
 
 def move(x, y, uid):
-    def _set_window_position():
-        BrowserView.instances[uid].set_window_position(x, y)
-    glib.idle_add(_set_window_position)
+    def _move():
+        BrowserView.instances[uid].move(x, y)
+    glib.idle_add(_move)
 
 
 def get_current_url(uid):

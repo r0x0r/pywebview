@@ -242,7 +242,12 @@ class BrowserView(QMainWindow):
         else:
             self.view.setHtml(default_html, QtCore.QUrl(''))
 
-        self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
+        if window.x is not None and window.y is not None:
+            self.move(window.x, window.y)
+        else:
+            center = QApplication.desktop().availableGeometry().center() - self.rect().center()
+            self.move(center.x(), center.y())
+
         self.activateWindow()
         self.raise_()
         self.shown.set()
@@ -392,7 +397,7 @@ class BrowserView(QMainWindow):
     def set_window_size(self, width, height):
         self.window_size_trigger.emit(width, height)
 
-    def move(self, x, y):
+    def move_window(self, x, y):
         self.window_move_trigger.emit(x, y)
 
     def evaluate_js(self, script):
@@ -506,7 +511,7 @@ def set_window_size(width, height, uid):
 
 
 def move(x, y, uid):
-    BrowserView.instances[uid].move(x, y)
+    BrowserView.instances[uid].move_window(x, y)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):

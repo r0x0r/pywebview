@@ -101,7 +101,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     guilib.create_window(windows[0])
 
 
-def create_window(title, url=None, html=None, js_api=None, width=800, height=600,
+def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
                   resizable=True, fullscreen=False, min_size=(200, 100), confirm_close=False,
                   background_color='#FFFFFF', text_select=False, frameless=False):
     """
@@ -128,7 +128,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
     window = Window(uid, make_unicode(title), transform_url(url), html,
-                    width, height, resizable, fullscreen, min_size, confirm_close,
+                    width, height, x, y, resizable, fullscreen, min_size, confirm_close,
                     background_color, js_api, text_select, frameless)
     windows.append(window)
 
