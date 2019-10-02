@@ -76,10 +76,9 @@ class BrowserView:
         if window.x is not None and window.y is not None:
             self.move(window.x, window.y)
         else:
-            pass # TODO center window
+            self.window.set_position(gtk.WindowPosition.CENTER)
 
         self.window.set_resizable(window.resizable)
-        self.window.set_position(gtk.WindowPosition.CENTER)
 
         # Set window background color
         style_provider = gtk.CssProvider()
