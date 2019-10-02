@@ -339,7 +339,7 @@ class BrowserView:
             if window.x is not None and window.y is not None:
                 self.move(window.x, window.y)
             else:
-                pass # TODO center window
+                self.StartPosition = WinForms.FormStartPosition.CenterScreen
 
             self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
