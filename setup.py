@@ -11,6 +11,7 @@ install_requires = [
     'pythonnet ; sys_platform == "win32"',
     'pyobjc ; sys_platform == "darwin"',
     'PyQt5 ; sys_platform == "openbsd6"',
+    'futures; python_version < "3.2"',
 ]
 
 
