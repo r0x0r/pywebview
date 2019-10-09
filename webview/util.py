@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import sys
+from concurrent.futures.thread import ThreadPoolExecutor
 from platform import architecture
 from threading import Thread
 from uuid import uuid4
@@ -23,6 +24,8 @@ _token = uuid4().hex
 default_html = '<!doctype html><html><head></head><body></body></html>'
 
 logger = logging.getLogger('pywebview')
+
+executor = ThreadPoolExecutor()
 
 
 class WebViewException(Exception):
@@ -84,23 +87,20 @@ def parse_api_js(api_instance, platform):
 
 
 def js_bridge_call(window, func_name, param):
-    def _call():
-        result = json.dumps(func(func_params)).replace('\\', '\\\\').replace('\'', '\\\'')
-        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: \'{1}\'}}'.format(func_name, result)
-        window.evaluate_js(code)
-
     func = getattr(window.js_api, func_name, None)
+    if func is None:
+        logger.error('Function {}() does not exist'.format(func_name))
+        return
 
-    if func is not None:
+    def done_callback(future):
         try:
-            func_params = param if not param else json.loads(param)
-            t = Thread(target=_call)
-            t.start()
+            result = json.dumps(future.result()).replace('\\', '\\\\').replace('\'', '\\\'')
+            code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: \'{1}\'}}'.format(func_name, result)
+            window.evaluate_js(code)
         except Exception:
             logger.exception('Error occurred while evaluating function {0}'.format(func_name))
-    else:
-        logger.error('Function {}() does not exist'.format(func_name))
 
+    executor.submit(func, param and json.loads(param)).add_done_callback(done_callback)
 
 def escape_string(string):
     return string\
