@@ -35,7 +35,11 @@ def initialize(gui=None):
     errors = []
     for a_gui in guis:
         try:
-            guilib = importlib.import_module('webview.platforms.' + a_gui)
+            if a_gui == 'cef' and platform.system == 'Windows':
+                import webview.platforms.winforms as guilib
+                guilib.use_cef()
+            else:
+                guilib = importlib.import_module('webview.platforms.' + a_gui)
         except Exception as e:
             errors.append(str(e))
         if guilib is not None:
