@@ -77,6 +77,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         raise WebViewException('You must create a window first before calling this function.')
 
     guilib = initialize(gui)
+    logging.info('using gui '+guilib.renderer)
 
     # thanks to the buggy EdgeHTML, http server must be used for local urls
     if guilib.renderer == 'edgehtml':

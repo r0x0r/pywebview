@@ -5,99 +5,48 @@ import platform
 from webview.util import WebViewException
 
 logger = logging.getLogger('pywebview')
-guilib = None
+import importlib
 
 
-def initialize(forced_gui=None):
-    def import_gtk():
-        global guilib
-
-        try:
-            import webview.platforms.gtk as guilib
-            logger.debug('Using GTK')
-
-            return True
-        except (ImportError, ValueError) as e:
-            logger.exception('GTK cannot be loaded')
-
-            return False
-
-    def import_qt():
-        global guilib
-
-        try:
-            import webview.platforms.qt as guilib
-
-            return True
-        except ImportError as e:
-            logger.exception('QT cannot be loaded')
-            return False
-
-    def import_cocoa():
-        global guilib
-
-        try:
-            import webview.platforms.cocoa as guilib
-
-            return True
-        except ImportError:
-            logger.exception('PyObjC cannot be loaded')
-
-            return False
-
-    def import_winforms():
-        global guilib
-
-        try:
-            import webview.platforms.winforms as guilib
-            
-            if forced_gui == 'cef':
-                guilib.use_cef()
-
-            return True
-        except ImportError as e:
-            logger.exception('pythonnet cannot be loaded')
-            return False
-
-    def try_import(guis):
-        while guis:
-            import_func = guis.pop(0)
-
-            if import_func():
-                return True
-
-        return False
-
-    if not forced_gui:
-        forced_gui = 'qt' if 'KDE_FULL_SESSION' in os.environ else None
-        forced_gui = os.environ['PYWEBVIEW_GUI'].lower() \
-            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in ['qt', 'gtk', 'cef'] \
-            else None
-
-    if platform.system() == 'Darwin':
-        if forced_gui == 'qt':
-            guis = [import_qt, import_cocoa]
+def initialize(gui=None):
+    """
+    Load an implementation for webview
+    :param gui: One of the following types:
+        None = use the default implementation for the current platform
+        str = a single gui implementation to use
+        list[str] = the implementations to use, in the order to try them
+    :return: a python module.
+    """
+    if gui is not None:
+        if isinstance(gui, str):
+            guis = [gui]
         else:
-            guis = [import_cocoa, import_qt]
-
-        if not try_import(guis):
-            raise WebViewException('You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use pywebview.')
-
-    elif platform.system() == 'Linux' or platform.system() == 'OpenBSD':
-        if forced_gui == 'qt':
-            guis = [import_qt, import_gtk]
-        else:
-            guis = [import_gtk, import_qt]
-
-        if not try_import(guis):
-            raise WebViewException('You must have either QT or GTK with Python extensions installed in order to use pywebview.')
-
+            guis = list(gui)
+    elif 'PYWEBVIEW_GUI' in os.environ:
+        guis = [os.environ['PYWEBVIEW_GUI'].lower()]
+    elif platform.system() == 'Darwin':
+        guis = ['cocoa', 'qt']
     elif platform.system() == 'Windows':
-        guis = [import_winforms]
-
-        if not try_import(guis):
-            raise WebViewException('You must have either pythonnet installed in order to use pywebview.')
+        guis = ['winforms']
     else:
-        raise WebViewException('Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.')
+        guis = ['gtk', 'qt']
+
+    guilib = None
+    errors = []
+    for a_gui in guis:
+        try:
+            guilib = importlib.import_module('webview.platforms.' + a_gui)
+        except Exception as e:
+            errors.append(str(e))
+        if guilib is not None:
+            break
+
+    if guilib is None:
+        raise WebViewException(
+            'Could not load any implementations.\nTried {}\nErrors:\n{}'.format(
+                ', '.join(guis),
+                '\n'.join(errors)
+            )
+        )
 
     return guilib
