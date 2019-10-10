@@ -28,6 +28,8 @@ def initialize(gui=None):
         guis = ['cocoa', 'qt']
     elif platform.system() == 'Windows':
         guis = ['winforms']
+    elif 'KDE_FULL_SESSION' in os.environ:
+        guis = ['qt', 'gtk']
     else:
         guis = ['gtk', 'qt']
 
