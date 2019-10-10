@@ -48,6 +48,8 @@ html = """
 <button onClick="getRandomNumber()">Get a random number</button><br/>
 <label for="name_input">Say hello to:</label><input id="name_input" placeholder="put a name here">
 <button onClick="greet()">Greet</button><br/>
+<button onClick="catchException()">Catch Exception</button><br/>
+
 
 <div id="response-container"></div>
 <script>
@@ -87,6 +89,10 @@ function getRandomNumber() {
 function greet() {
     var name_input = document.getElementById('name_input').value;
     pywebview.api.sayHelloTo(name_input).then(showResponse)
+}
+
+function catchException() {
+    pywebview.api.error().catch(showResponse)
 }
 
 </script>
@@ -136,6 +142,10 @@ class Api:
             'message': 'Hello {0}!'.format(params)
         }
         return response
+
+    def error(self, params):
+        raise Exception('This is a Python exception')
+
 
 
 if __name__ == '__main__':

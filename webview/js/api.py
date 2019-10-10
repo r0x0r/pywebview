@@ -6,7 +6,7 @@ window.pywebview = {
             window.pywebview.api[funcList[i]] = (function (funcName) {
                 return function(params) {
                     var promise = new Promise(function(resolve, reject) {
-                        window.pywebview._checkValue(funcName, resolve);
+                        window.pywebview._checkValue(funcName, resolve, reject);
                     });
                     window.pywebview._bridge.call(funcName, JSON.stringify(params));
                     return promise;
@@ -39,15 +39,21 @@ window.pywebview = {
         }
     },
 
-    _checkValue: function(funcName, resolve) {
+    _checkValue: function(funcName, resolve, reject) {
          var check = setInterval(function () {
             var returnObj = window.pywebview._returnValues[funcName];
             if (returnObj.isSet) {
                 returnObj.isSet = false;
-                try {
-                    resolve(JSON.parse(returnObj.value));
-                } catch(e) {
-                    resolve(returnObj.value);
+
+                if (returnObj.isError) {
+                    returnObj.isError = false;
+                    reject(new Error(returnObj.value));
+                } else {
+                    try {
+                        resolve(JSON.parse(returnObj.value));
+                    } catch(e) {
+                        resolve(returnObj.value);
+                    }
                 }
 
                 clearInterval(check);
