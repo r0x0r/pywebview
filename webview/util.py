@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import sys
+import traceback
 from platform import architecture
 from threading import Thread
 from uuid import uuid4
@@ -85,8 +86,14 @@ def parse_api_js(api_instance, platform):
 
 def js_bridge_call(window, func_name, param):
     def _call():
-        result = json.dumps(func(func_params)).replace('\\', '\\\\').replace('\'', '\\\'')
-        code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: \'{1}\'}}'.format(func_name, result)
+        try:
+            result = func(func_params)
+            result = json.dumps(result).replace('\\', '\\\\').replace('\'', '\\\'')
+            code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, value: \'{1}\'}}'.format(func_name, result)
+        except Exception:
+            result = json.dumps(traceback.format_exc()).replace('\\', '\\\\').replace('\'', '\\\'')
+            code = 'window.pywebview._returnValues["{0}"] = {{ isSet: true, isError: true, value: \'{1}\'}}'.format(func_name, result)
+
         window.evaluate_js(code)
 
     func = getattr(window.js_api, func_name, None)
