@@ -98,8 +98,8 @@ class BrowserView:
             __namespace__ = 'BrowserView.MSHTML.JSBridge'
             window = None
 
-            def call(self, func_name, param):
-                return js_bridge_call(self.window, func_name, param)
+            def call(self, func_name, param, value_id):
+                return js_bridge_call(self.window, func_name, param, value_id)
 
             def alert(self, message):
                 BrowserView.alert(message)
@@ -291,14 +291,14 @@ class BrowserView:
             self.web_view.Navigate(url)
 
         def on_script_notify(self, _, args):
-            func_name, func_param = json.loads(args.Value)
+            func_name, func_param, value_id = json.loads(args.Value)
 
             if func_name == 'alert':
                 WinForms.MessageBox.Show(func_param)
             elif func_name == 'console':
                 print(func_param)
             else:
-                js_bridge_call(self.pywebview_window, func_name, func_param)
+                js_bridge_call(self.pywebview_window, func_name, func_param, value_id)
 
         def on_new_window_request(self, _, args):
             webbrowser.open(str(args.get_Uri()))

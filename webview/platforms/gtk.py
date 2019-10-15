@@ -48,10 +48,10 @@ class BrowserView:
             self.window = window
             self.uid = uuid1().hex[:8]
 
-        def call(self, func_name, param):
+        def call(self, func_name, param, value_id):
             if param == 'undefined':
                 param = None
-            return js_bridge_call(self.window, func_name, param)
+            return js_bridge_call(self.window, func_name, param, value_id)
 
     def __init__(self, window):
         BrowserView.instances[window.uid] = self

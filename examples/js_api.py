@@ -61,7 +61,13 @@ function showResponse(response) {
 }
 
 function initialize() {
-    pywebview.api.init().then(showResponse)
+    //pywebview.api.init().then(showResponse)
+    for (let i = 0; i < 10; i++) {
+        console.log('request ' + i);
+        pywebview.api.echo(i).then((j) => {
+            console.log('response ' + j)
+        })
+    }
 }
 
 function doHeavyStuff() {
@@ -104,6 +110,10 @@ function catchException() {
 class Api:
     def __init__(self):
         self.cancel_heavy_stuff_flag = False
+
+    def echo(self, value):
+        print(value)
+        return value
 
     def init(self, params):
         response = {
@@ -151,4 +161,4 @@ class Api:
 if __name__ == '__main__':
     api = Api()
     window = webview.create_window('API example', html=html, js_api=api)
-    webview.start()
+    webview.start(debug=True)
