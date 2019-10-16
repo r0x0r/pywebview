@@ -5,7 +5,6 @@ Get DOM elements using a selector.
 
 ``` python
 import webview
-from time import sleep
 
 """
 This example demonstrates how to retrieve a DOM element
