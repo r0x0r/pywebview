@@ -7,6 +7,11 @@ def test_js_bridge():
     window = webview.create_window('JSBridge test', js_api=api)
     run_test(webview, window, js_bridge)
 
+def test_exception():
+    api = Api()
+    window = webview.create_window('JSBridge test', js_api=api)
+    run_test(webview, window, exception)
+
 
 class Api:
     def get_int(self, params):
@@ -30,6 +35,9 @@ class Api:
     def get_double_quote(self, params):
         return 'te"st'
 
+    def raise_exception(self, params):
+        raise Exception()
+
 
 def js_bridge(window):
     window.load_html('<html><body>TEST</body></html>')
@@ -40,3 +48,7 @@ def js_bridge(window):
     assert_js(window, 'get_objectlike_string', '{"key1": "value", "key2": 420}')
     assert_js(window, 'get_single_quote', 'te\'st')
     assert_js(window, 'get_double_quote', 'te"st')
+
+
+def exception(window):
+    assert_js(window, 'raise_exception', 'error')
