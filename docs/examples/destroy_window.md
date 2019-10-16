@@ -4,7 +4,6 @@ Programmatically destroy created window after five seconds.
 
 ``` python
 import webview
-import threading
 import time
 
 
