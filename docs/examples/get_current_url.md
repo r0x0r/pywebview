@@ -4,7 +4,6 @@ Print current URL after page is loaded.
 
 ``` python
 import webview
-import threading
 
 
 def get_current_url(window):
