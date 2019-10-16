@@ -5,7 +5,6 @@ Create multiple windows.
 
 ``` python
 import webview
-import threading
 
 
 def third_window():
