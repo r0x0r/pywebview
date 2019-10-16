@@ -5,7 +5,6 @@ Subscribe and unsubscribe to pywebview events.
 
 ``` python
 import webview
-import time
 
 
 def on_shown():
