@@ -5,7 +5,6 @@ Create an open file dialog after page content is loaded.
 
 ``` python
 import webview
-import threading
 
 
 def open_file_dialog(window):
