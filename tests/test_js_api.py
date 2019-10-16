@@ -1,3 +1,4 @@
+from concurrent.futures.thread import ThreadPoolExecutor
 import webview
 from .util import run_test, assert_js
 
@@ -7,10 +8,17 @@ def test_js_bridge():
     window = webview.create_window('JSBridge test', js_api=api)
     run_test(webview, window, js_bridge)
 
+
 def test_exception():
     api = Api()
     window = webview.create_window('JSBridge test', js_api=api)
     run_test(webview, window, exception)
+
+
+def test_concurrent():
+    api = Api()
+    window = webview.create_window('JSBridge test', js_api=api)
+    run_test(webview, window, concurrent)
 
 
 class Api:
@@ -38,6 +46,10 @@ class Api:
     def raise_exception(self, params):
         raise Exception()
 
+    def echo(self, param):
+        return param
+
+
 
 def js_bridge(window):
     window.load_html('<html><body>TEST</body></html>')
@@ -52,3 +64,14 @@ def js_bridge(window):
 
 def exception(window):
     assert_js(window, 'raise_exception', 'error')
+
+
+def concurrent(window):
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = []
+        for i in range(5):
+            future = executor.submit(assert_js, window, 'echo', i, i)
+            futures.append(future)
+
+    for e in filter(lambda r: r, [f.exception() for f in futures]):
+        raise e
