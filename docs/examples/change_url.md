@@ -4,7 +4,6 @@ Change URL ten seconds after the first URL is loaded.
 
 ``` python
 import webview
-import threading
 import time
 
 
