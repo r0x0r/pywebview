@@ -24,7 +24,7 @@ _On Linux you need additional libraries. Refer to the [installation](https://pyw
 
 
 ### Hello world
-```
+``` python
 import webview
 webview.create_window('Hello world', 'https://pywebview.flowrl.com/hello')
 ```
