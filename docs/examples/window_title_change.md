@@ -4,7 +4,6 @@ Change window title every three seconds.
 
 ``` python
 import webview
-import threading
 import time
 
 
