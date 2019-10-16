@@ -5,11 +5,10 @@ Create a save file dialog after page content is loaded.
 
 ``` python
 import webview
-import threading
+import time
 
 
 def save_file_dialog(window):
-    import time
     time.sleep(5)
     result = window.create_file_dialog(webview.SAVE_DIALOG, directory='/', save_filename='test.file')
     print(result)
