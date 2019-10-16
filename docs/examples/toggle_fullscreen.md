@@ -4,7 +4,6 @@ Switch application window to a full-screen mode after five seconds.
 
 ``` python
 import webview
-import threading
 import time
 
 def toggle_fullscreen(window):
