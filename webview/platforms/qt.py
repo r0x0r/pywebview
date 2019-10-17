@@ -55,6 +55,8 @@ class BrowserView(QMainWindow):
     html_trigger = QtCore.pyqtSignal(str, str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str, str)
     destroy_trigger = QtCore.pyqtSignal()
+    hide_trigger = QtCore.pyqtSignal()
+    show_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
     window_size_trigger = QtCore.pyqtSignal(int, int)
     window_move_trigger = QtCore.pyqtSignal(int, int)
@@ -221,6 +223,8 @@ class BrowserView(QMainWindow):
         self.html_trigger.connect(self.on_load_html)
         self.dialog_trigger.connect(self.on_file_dialog)
         self.destroy_trigger.connect(self.on_destroy_window)
+        self.show_trigger.connect(self.on_show_window)
+        self.hide_trigger.connect(self.on_hide_window)
         self.fullscreen_trigger.connect(self.on_fullscreen)
         self.window_size_trigger.connect(self.on_window_size)
         self.window_move_trigger.connect(self.on_window_move)
@@ -307,6 +311,12 @@ class BrowserView(QMainWindow):
             self.hide()
             _app.exit()
 
+    def on_show_window(self):
+        self.show()
+
+    def on_hide_window(self):
+        self.hide()
+
     def on_destroy_window(self):
         self.close()
 
@@ -338,9 +348,8 @@ class BrowserView(QMainWindow):
             return_result(result)
         except AttributeError:
             self.view.page().runJavaScript(script, return_result)
-        except  Exception as e:
-            print(e)
-
+        except Exception as e:
+            logger.exception(e)
 
     def on_load_finished(self):
         self._set_js_api()
@@ -387,6 +396,12 @@ class BrowserView(QMainWindow):
             return None
         else:
             return file_names
+
+    def hide_(self):
+        self.hide_trigger.emit()
+
+    def show_(self):
+        self.show_trigger.emit()
 
     def destroy_(self):
         self.destroy_trigger.emit()
@@ -472,7 +487,9 @@ def create_window(window):
 
     def _create():
         browser = BrowserView(window)
-        browser.show()
+
+        if not window.hidden:
+            browser.show()
 
     if window.uid == 'master':
         _create()
@@ -500,6 +517,14 @@ def load_html(content, base_uri, uid):
 
 def destroy_window(uid):
     BrowserView.instances[uid].destroy_()
+
+
+def hide(uid):
+    BrowserView.instances[uid].hide_()
+
+
+def show(uid):
+    BrowserView.instances[uid].show_()
 
 
 def toggle_fullscreen(uid):

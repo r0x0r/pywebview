@@ -443,6 +443,12 @@ class BrowserView:
         def get_current_url(self):
             return self.browser.get_current_url
 
+        def hide(self):
+            self.Invoke(Func[Type](self.Hide))
+
+        def show(self):
+            self.Invoke(Func[Type](self.Show))
+
         def toggle_fullscreen(self):
             def _toggle():
                 screen = WinForms.Screen.FromControl(self)
@@ -591,7 +597,9 @@ def create_window(window):
     def create():
         browser = BrowserView.BrowserForm(window)
         BrowserView.instances[window.uid] = browser
-        browser.Show()
+
+        if not window.hidden:
+            browser.Show()
 
         _main_window_created.set()
 
@@ -715,6 +723,16 @@ def load_html(content, base_uri, uid):
         return
     else:
         BrowserView.instances[uid].load_html(content, base_uri)
+
+
+def show(uid):
+    window = BrowserView.instances[uid]
+    window.show()
+
+
+def hide(uid):
+    window = BrowserView.instances[uid]
+    window.hide()
 
 
 def toggle_fullscreen(uid):

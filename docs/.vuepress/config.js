@@ -52,6 +52,7 @@ module.exports = {
         'fullscreen',
         'get_elements',
         'get_current_url',
+        'hide_window',
         'html_load',
         'js_evaluate',
         'js_api',

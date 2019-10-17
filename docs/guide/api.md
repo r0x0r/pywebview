@@ -5,8 +5,8 @@
 
 ``` python
 webview.create_window(title, url='', html='', js_api=None, width=800, height=600, x=None, y=None, \
-                      resizable=True, fullscreen=False, min_size=(200, 100), confirm_close=False, \
-                      background_color='#FFF', text_select=False)
+                      resizable=True, fullscreen=False, min_size=(200, 100), hidden=False, frameless=False, \
+                      confirm_close=False, background_color='#FFF', text_select=False)
 ```
 
 Create a new _pywebview_ window and returns its instance. Window is not shown until the GUI loop is started. If the function is invoked during the GUI loop, the window is displayed immediately.
@@ -22,8 +22,9 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `y` - Window y coordinate. Default is centered.
 * `resizable` - Whether window can be resized. Default is True
 * `fullscreen` - Start in fullscreen mode. Default is False
-* `frameless` - Create a frameless easy-draggable window. Default is False.
 * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
+* `hidden` - Create a window hidden by default. Default is False
+* `frameless` - Create a frameless easy-draggable window. Default is False.
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
 * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) CSS property.
@@ -122,6 +123,17 @@ Return the serialized DOM element by its selector. None if no element matches. F
 
 [Example](/examples/get_element.html)
 
+## hide
+
+``` python
+hide()
+```
+
+Hide the window.
+
+[Example](/examples/show_hide.html)
+
+
 ## load_css
 
 ``` python
@@ -173,6 +185,16 @@ set_title(title)
 Change the title of the window.
 
 [Example](/examples/window_title_change.html)
+
+## show
+
+``` python
+show()
+```
+
+Show the window if it is hidden. Has no effect otherwise
+
+[Example](/examples/show_hide.html)
 
 ## toggle_fullscreen
 
