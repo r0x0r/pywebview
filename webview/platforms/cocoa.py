@@ -303,7 +303,6 @@ class BrowserView:
         self.confirm_close = window.confirm_close
         self.title = window.title
         self.text_select = window.text_select
-
         self.is_fullscreen = False
 
         rect = AppKit.NSMakeRect(0.0, 0.0, window.width, window.height)
@@ -321,8 +320,12 @@ class BrowserView:
         self.window.setMinSize_(AppKit.NSSize(window.min_size[0], window.min_size[1]))
         self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
-
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
+
+        if window.x is not None and window.y is not None:
+            self._move(window.x, window.y)
+        else:
+            self.window.center()
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
@@ -427,6 +430,24 @@ class BrowserView:
             self.window.setFrame_display_(frame, True)
 
         AppHelper.callAfter(_set_window_size)
+
+    def move(self, x, y):
+        self._move(x, y)
+        AppHelper.callAfter(self._move, x, y)
+
+    def _move(self, x, y):
+        frame = self.window.frame()
+
+        # TODO this will calculate incorrect coordinates during coordinate transfor,
+        # if window is moved to another screen
+        screenFrame = AppKit.NSScreen.mainScreen().frame()
+        if screenFrame is None:
+            raise RuntimeError('Failed to obtain screen')
+
+        frame.origin.x = x
+        frame.origin.y = screenFrame.size.height - frame.size.height - y
+
+        self.window.setFrame_display_(frame, True)
 
     def get_current_url(self):
         def get():
@@ -752,6 +773,10 @@ def toggle_fullscreen(uid):
 
 def set_window_size(width, height, uid):
     BrowserView.instances[uid].set_window_size(width, height)
+
+
+def move(x, y, uid):
+    BrowserView.instances[uid].move(x, y)
 
 
 def get_current_url(uid):

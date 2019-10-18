@@ -59,6 +59,7 @@ module.exports = {
         'links',
         'localization',
         'min_size',
+        'move_window',
         'multiple_windows',
         'open_file_dialog',
         'open_url',

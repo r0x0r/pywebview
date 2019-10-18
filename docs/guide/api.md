@@ -4,8 +4,8 @@
 ## webview.create_window
 
 ``` python
-webview.create_window(title, url='', html='', js_api=None, width=800, height=600, resizable=True,\
-                      fullscreen=False, min_size=(200, 100), confirm_close=False, \
+webview.create_window(title, url='', html='', js_api=None, width=800, height=600, x=None, y=None, \
+                      resizable=True, fullscreen=False, min_size=(200, 100), confirm_close=False, \
                       background_color='#FFF', text_select=False)
 ```
 
@@ -18,6 +18,8 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
   threads and are not thread-safe. `window.pywebview` is not guaranteed to be available on `window.onload` and its access must be deferred.
 * `width` - Window width. Default is 800px.
 * `height` - Window height. Default is 600px.
+* `x` - Window x coordinate. Default is centered.
+* `y` - Window y coordinate. Default is centered.
 * `resizable` - Whether window can be resized. Default is True
 * `fullscreen` - Start in fullscreen mode. Default is False
 * `frameless` - Create a frameless easy-draggable window. Default is False.
@@ -150,6 +152,16 @@ load_url(url)
 Load a new URL.
 
 [Example](/examples/change_url.html)
+
+## move
+
+``` python
+move(x, y)
+```
+
+Move window to a new position.
+
+[Example](/examples/move_window.html)
 
 
 ## set_title
