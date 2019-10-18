@@ -73,8 +73,12 @@ class BrowserView:
         else:
             self.window.set_size_request(window.width, window.height)
 
+        if window.x is not None and window.y is not None:
+            self.move(window.x, window.y)
+        else:
+            self.window.set_position(gtk.WindowPosition.CENTER)
+
         self.window.set_resizable(window.resizable)
-        self.window.set_position(gtk.WindowPosition.CENTER)
 
         # Set window background color
         style_provider = gtk.CssProvider()
@@ -247,6 +251,9 @@ class BrowserView:
     def set_window_size(self, width, height):
         self.window.resize(width, height)
 
+    def move(self, x, y):
+        self.window.move(x, y)
+
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if dialog_type == FOLDER_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
@@ -400,6 +407,12 @@ def set_window_size(width, height, uid):
     def _set_window_size():
         BrowserView.instances[uid].set_window_size(width,height)
     glib.idle_add(_set_window_size)
+
+
+def move(x, y, uid):
+    def _move():
+        BrowserView.instances[uid].move(x, y)
+    glib.idle_add(_move)
 
 
 def get_current_url(uid):
