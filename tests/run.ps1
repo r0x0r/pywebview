@@ -25,7 +25,10 @@ pytest test_get_current_url.py::test_no_url -s
 
 pytest test_get_elements.py -s
 pytest test_http_server.py -s
-pytest test_js_api.py -s
+
+pytest test_js_api.py::test_js_api -s
+pytest test_js_api.py::test_concurrent -s
+
 pytest test_load_html.py -s
 pytest test_localization.py -s
 pytest test_min_size.py -s
