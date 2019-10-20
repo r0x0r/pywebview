@@ -61,5 +61,6 @@ install:
 
 
 test_script:
-  - powershell -File ./tests/run.ps1
+  - cd tests
+  - powershell -File ./run.ps1
 
