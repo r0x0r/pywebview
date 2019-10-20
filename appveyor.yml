@@ -61,5 +61,5 @@ install:
 
 
 test_script:
-  - ps: ./tests/run.ps1
+  - "powershell -File ./tests/run.ps1"
 
