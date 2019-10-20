@@ -61,5 +61,5 @@ install:
 
 
 test_script:
-  - "%CMD_IN_ENV% tests/run.ps1
+  - "%CMD_IN_ENV% tests/run.ps1"
 
