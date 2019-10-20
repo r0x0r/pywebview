@@ -26,7 +26,7 @@ pytest test_get_current_url.py::test_no_url -s
 pytest test_get_elements.py -s
 pytest test_http_server.py -s
 
-pytest test_js_api.py::test_js_api -s
+pytest test_js_api.py::test_js_bridge -s
 pytest test_js_api.py::test_concurrent -s
 
 pytest test_load_html.py -s
@@ -52,3 +52,5 @@ pytest test_token.py::test_persistance -s
 pytest test_url_load.py -s
 
 pytest test_window.py -s
+
+exit $LASTEXITCODE
