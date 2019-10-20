@@ -1,5 +1,5 @@
 environment:
-  matrix:
+  matrix:c
 
     #- PYTHON: "C:\\Python27"
     #  PYTHON_VERSION: "2.7.x"
@@ -61,5 +61,5 @@ install:
 
 
 test_script:
-  - "%CMD_IN_ENV% ./tests/run.ps1"
+  - ps: ./tests/run.ps1
 
