@@ -14,7 +14,7 @@ def test_exception():
     window = webview.create_window('JSBridge test', js_api=api)
     run_test(webview, window, exception)
 
-
+# This test randomly fails on Windows
 def test_concurrent():
     api = Api()
     window = webview.create_window('JSBridge test', js_api=api)

@@ -34,9 +34,9 @@ def assert_js(window, func_name, expected_result, func_param=None):
 
     execute_func = """
     window.pywebview.api.{0}({1}).then(function(value) {{
-        window.{2} = JSON.stringify(value)
+        window.{2} = value
     }}).catch(function() {{
-        window.{2} = JSON.stringify('error')
+        window.{2} = 'error'
     }})
     """.format(func_name, func_param, value_id)
     check_func = 'window.{0}'.format(value_id)
@@ -54,7 +54,7 @@ def assert_js(window, func_name, expected_result, func_param=None):
             time.sleep(0.1)
             result = window.evaluate_js(check_func)
 
-    assert expected_result == json.loads(result)
+    assert expected_result == result
 
 
 def _create_window(webview, window, thread_func, queue, thread_param, start_args, no_destroy, destroy_delay):

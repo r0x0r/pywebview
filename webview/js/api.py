@@ -9,6 +9,7 @@ window.pywebview = {
                     var promise = new Promise(function(resolve, reject) {
                         window.pywebview._checkValue(funcName, resolve, reject, id);
                     });
+
                     window.pywebview._bridge.call(funcName, JSON.stringify(params), id);
                     return promise;
                 }
@@ -43,19 +44,15 @@ window.pywebview = {
             if (returnObj) {
                 var value = returnObj.value;
                 var isError = returnObj.isError;
+
                 delete window.pywebview._returnValues[funcName][id];
                 clearInterval(check);
 
                 if (isError) {
                     reject(new Error(value));
                 } else {
-                    try {
-                        resolve(JSON.parse(value));
-                    } catch(e) {
-                        resolve(value);
-                    }
+                    resolve(JSON.parse(value));
                 }
-
             }
          }, 100)
     },
