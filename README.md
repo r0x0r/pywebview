@@ -33,7 +33,7 @@ Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.
 
 
 
-## Contributors
+# Contributors
 
 ### Code Contributors
 
@@ -66,7 +66,4 @@ Support this project with your organization. Your logo will show up here with a 
 <a href="https://opencollective.com/pywebview/organization/7/website"><img src="https://opencollective.com/pywebview/organization/7/avatar.svg"></a>
 <a href="https://opencollective.com/pywebview/organization/8/website"><img src="https://opencollective.com/pywebview/organization/8/avatar.svg"></a>
 <a href="https://opencollective.com/pywebview/organization/9/website"><img src="https://opencollective.com/pywebview/organization/9/avatar.svg"></a>
-
-
-<a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button"><img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/></a>
 
