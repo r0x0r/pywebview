@@ -61,22 +61,6 @@ install:
 
 
 test_script:
-  # Run the project tests
-  #- "%CMD_IN_ENV% python -m pytest tests -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_bg_color.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_evaluate_js.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_fullscreen.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_get_current_url.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_js_api.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_load_html.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_localization.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_min_size.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_multi_window.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_noresize.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_set_title.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_set_window_size.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_simple_browser.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_start.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_toggle_fullscreen.py -s"
-  - "%CMD_IN_ENV% python -m pytest tests/test_url_load.py -s"
+  - cd tests
+  - powershell -File ./run.ps1
 

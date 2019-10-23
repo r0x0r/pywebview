@@ -5,58 +5,54 @@ window.pywebview = {
         for (var i = 0; i < funcList.length; i++) {
             window.pywebview.api[funcList[i]] = (function (funcName) {
                 return function(params) {
+                    var id = (Math.random() + '').substring(2)
                     var promise = new Promise(function(resolve, reject) {
-                        window.pywebview._checkValue(funcName, resolve, reject);
+                        window.pywebview._checkValue(funcName, resolve, reject, id);
                     });
-                    window.pywebview._bridge.call(funcName, JSON.stringify(params));
+
+                    window.pywebview._bridge.call(funcName, JSON.stringify(params), id);
                     return promise;
                 }
             })(funcList[i])
 
-            window.pywebview._returnValues[funcList[i]] = {
-                isSet: false,
-                value: undefined,
-            }
+            window.pywebview._returnValues[funcList[i]] = {}
         }
     },
     _bridge: {
-        call: function (funcName, params) {
+        call: function (funcName, params, id) {
             switch(window.pywebview.platform) {
                 case 'mshtml':
                 case 'cef':
                 case 'qtwebkit':
-                    return window.external.call(funcName, params);
+                    return window.external.call(funcName, params, id);
                 case 'edgehtml':
-                    return window.external.notify(JSON.stringify([funcName, params]));
+                    return window.external.notify(JSON.stringify([funcName, params, id]));
                 case 'cocoa':
-                    return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params]));
+                    return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params, id]));
                 case 'qtwebengine':
                     new QWebChannel(qt.webChannelTransport, function(channel) {
-                        channel.objects.external.call(funcName, params);
+                        channel.objects.external.call(funcName, params, id);
                     });
                     break;
             }
         }
     },
 
-    _checkValue: function(funcName, resolve, reject) {
+    _checkValue: function(funcName, resolve, reject, id) {
          var check = setInterval(function () {
-            var returnObj = window.pywebview._returnValues[funcName];
-            if (returnObj.isSet) {
-                returnObj.isSet = false;
+            var returnObj = window.pywebview._returnValues[funcName][id];
+            if (returnObj) {
+                var value = returnObj.value;
+                var isError = returnObj.isError;
 
-                if (returnObj.isError) {
-                    returnObj.isError = false;
-                    reject(new Error(returnObj.value));
-                } else {
-                    try {
-                        resolve(JSON.parse(returnObj.value));
-                    } catch(e) {
-                        resolve(returnObj.value);
-                    }
-                }
-
+                delete window.pywebview._returnValues[funcName][id];
                 clearInterval(check);
+
+                if (isError) {
+                    reject(new Error(value));
+                } else {
+                    resolve(JSON.parse(value));
+                }
             }
          }, 100)
     },

@@ -10,7 +10,7 @@ namespace WebBrowserInterop
 {
     public interface IWebBrowserInterop
     {
-        object call(string message, object param);
+        object call(string message, object param, string valueId);
 
         void alert(string message);
 
@@ -23,7 +23,7 @@ namespace WebBrowserInterop
     public interface DWebBrowserEvents2
     {
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="ppDisp">
         /// An interface pointer that, optionally, receives the IDispatch interface
@@ -74,7 +74,7 @@ namespace WebBrowserInterop
         public static extern bool ReleaseCapture();
 
         /// <summary>
-        /// Associates the underlying ActiveX control with a client that can 
+        /// Associates the underlying ActiveX control with a client that can
         /// handle control events including NewWindow3 event.
         /// </summary>
         [PermissionSetAttribute(SecurityAction.LinkDemand, Name = "FullTrust")]
