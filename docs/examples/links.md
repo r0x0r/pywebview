@@ -6,7 +6,6 @@ Demonstrate a difference between different link types
 
 ``` python
 import webview
-import threading
 
 
 html = """

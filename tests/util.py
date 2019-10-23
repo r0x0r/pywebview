@@ -6,6 +6,7 @@ import sys
 import logging
 import traceback
 import pytest
+from uuid import uuid4
 from multiprocessing import Process, Queue
 
 logger = logging.getLogger('pywebview')
@@ -27,9 +28,18 @@ def run_test(webview, window, thread_func=None, param=None, start_args={}, no_de
         pytest.fail(e)
 
 
-def assert_js(window, func_name, expected_result):
-    execute_func = 'window.pywebview.api.{0}()'.format(func_name)
-    check_func = 'window.pywebview._returnValues["{0}"].value'.format(func_name)
+def assert_js(window, func_name, expected_result, func_param=None):
+    value_id = 'v' + uuid4().hex[:8]
+    func_param = json.dumps(func_param)
+
+    execute_func = """
+    window.pywebview.api.{0}({1}).then(function(value) {{
+        window.{2} = value
+    }}).catch(function() {{
+        window.{2} = 'error'
+    }})
+    """.format(func_name, func_param, value_id)
+    check_func = 'window.{0}'.format(value_id)
 
     window.evaluate_js(execute_func)
 
@@ -44,7 +54,7 @@ def assert_js(window, func_name, expected_result):
             time.sleep(0.1)
             result = window.evaluate_js(check_func)
 
-    assert expected_result == json.loads(result)
+    assert expected_result == result
 
 
 def _create_window(webview, window, thread_func, queue, thread_param, start_args, no_destroy, destroy_delay):

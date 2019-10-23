@@ -5,7 +5,6 @@ Create a loading animation that is displayed before application is loaded.
 
 ``` python
 import webview
-import threading
 
 
 html = """
