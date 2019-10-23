@@ -8,6 +8,6 @@ def test_load_html():
 
 
 def load_html(window):
-    window = window.load_html('<h1>This is dynamically loaded HTML</h1>')
+    window.load_html('<h1>This is dynamically loaded HTML</h1>')
 
 
