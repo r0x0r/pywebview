@@ -33,8 +33,8 @@ class JSBridge:
         self.results[uid] = json.loads(result) if result else None
         self.eval_events[uid].set()
 
-    def call(self, func_name, param):
-        js_bridge_call(self.window, func_name, param)
+    def call(self, func_name, param, value_id):
+        js_bridge_call(self.window, func_name, param, value_id)
 
 renderer = 'cef'
 

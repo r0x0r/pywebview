@@ -48,10 +48,10 @@ class BrowserView:
             self.window = window
             self.uid = uuid1().hex[:8]
 
-        def call(self, func_name, param):
+        def call(self, func_name, param, value_id):
             if param == 'undefined':
                 param = None
-            return js_bridge_call(self.window, func_name, param)
+            return js_bridge_call(self.window, func_name, param, value_id)
 
     def __init__(self, window):
         BrowserView.instances[window.uid] = self
@@ -196,8 +196,9 @@ class BrowserView:
 
             elif js_data['type'] == 'invoke':  # invoke js api's function
                 func_name = js_data['function']
+                value_id = js_data['id']
                 param = js_data['param'] if 'param' in js_data else None
-                return_val = self.js_bridge.call(func_name, param)
+                return_val = self.js_bridge.call(func_name, param, value_id)
 
                 # Give back the return value to JS as a string
                 code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
@@ -363,8 +364,8 @@ class BrowserView:
                 # The return value will be passed back to the `return_val` attribute
                 # of the bridge by the on_title_change handler.
                 code = """
-                window.pywebview._bridge.call = function(funcName, param) {{
-                    document.title = JSON.stringify({{"type": "invoke", "uid": "{0}", "function": funcName, "param": param}})
+                window.pywebview._bridge.call = function(funcName, param, id) {{
+                    document.title = JSON.stringify({{"type": "invoke", "uid": "{0}", "function": funcName, "param": param, "id": id}})
                     return this.return_val;
                 }};""".format(self.js_bridge.uid)
                 self.webview.run_javascript(code)
