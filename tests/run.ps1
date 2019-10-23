@@ -25,6 +25,8 @@ $tests=@(
   "test_load_html.py",
   "test_localization.py",
   "test_min_size.py",
+  "test_move_window.py::test_xy",
+  "test_move_window.py::test_move_window",
   "test_multi_window.py::test_bg_color",
   "test_multi_window.py::test_load_html",
   "test_multi_window.py::test_load_url",
