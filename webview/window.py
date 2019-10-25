@@ -181,6 +181,13 @@ class Window:
         self.gui.set_window_size(width, height, self.uid)
 
     @_shown_call
+    def toggle_fullscreen(self):
+        """
+        Toggle fullscreen mode
+        """
+        self.gui.toggle_fullscreen(self.uid)
+
+    @_shown_call
     def move(self, x, y):
         """
         Move Window
