@@ -172,13 +172,30 @@ class Window:
         self.gui.hide(self.uid)
 
     @_shown_call
-    def set_window_size(self, width, height):
+    def resize(self, width, height):
         """
         Set Window Size
         :param width: desired width of target window
         :param height: desired height of target window
         """
-        self.gui.set_window_size(width, height, self.uid)
+        logger.warning('This function is deprecated and will be removed in future releases. Use resize() instead')
+        self.gui.resize(width, height, self.uid)
+
+    @_shown_call
+    def resize(self, width, height):
+        """
+        Resize window
+        :param width: desired width of target window
+        :param height: desired height of target window
+        """
+        self.gui.resize(width, height, self.uid)
+
+    @_shown_call
+    def minimize(self):
+        """
+        Hide a web view window.
+        """
+        self.gui.minimize(self.uid)
 
     @_shown_call
     def toggle_fullscreen(self):

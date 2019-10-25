@@ -256,7 +256,7 @@ class BrowserView:
 
         self.is_fullscreen = not self.is_fullscreen
 
-    def set_window_size(self, width, height):
+    def resize(self, width, height):
         self.window.resize(width, height)
 
     def move(self, x, y):
@@ -411,10 +411,10 @@ def toggle_fullscreen(uid):
     glib.idle_add(_toggle_fullscreen)
 
 
-def set_window_size(width, height, uid):
-    def _set_window_size():
-        BrowserView.instances[uid].set_window_size(width,height)
-    glib.idle_add(_set_window_size)
+def resize(width, height, uid):
+    def _resize():
+        BrowserView.instances[uid].resize(width,height)
+    glib.idle_add(_resize)
 
 
 def move(x, y, uid):

@@ -478,7 +478,7 @@ class BrowserView:
             else:
                 _toggle()
 
-        def set_window_size(self, width, height):
+        def resize(self, width, height):
             windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
                 width, height, 64)
 
@@ -740,9 +740,9 @@ def toggle_fullscreen(uid):
     window.toggle_fullscreen()
 
 
-def set_window_size(width, height, uid):
+def resize(width, height, uid):
     window = BrowserView.instances[uid]
-    window.set_window_size(width, height)
+    window.resize(width, height)
 
 
 def move(x, y, uid):

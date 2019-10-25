@@ -409,7 +409,7 @@ class BrowserView(QMainWindow):
     def toggle_fullscreen(self):
         self.fullscreen_trigger.emit()
 
-    def set_window_size(self, width, height):
+    def resize_(self, width, height):
         self.window_size_trigger.emit(width, height)
 
     def move_window(self, x, y):
@@ -531,8 +531,8 @@ def toggle_fullscreen(uid):
     BrowserView.instances[uid].toggle_fullscreen()
 
 
-def set_window_size(width, height, uid):
-    BrowserView.instances[uid].set_window_size(width, height)
+def resize(width, height, uid):
+    BrowserView.instances[uid].resize_(width, height)
 
 
 def move(x, y, uid):

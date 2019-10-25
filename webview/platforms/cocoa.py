@@ -324,7 +324,7 @@ class BrowserView:
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
 
         if window.x is not None and window.y is not None:
-            self._move(window.x, window.y)
+            self.move(window.x, window.y)
         else:
             self.window.center()
 
@@ -426,8 +426,8 @@ class BrowserView:
         AppHelper.callAfter(toggle)
         self.is_fullscreen = not self.is_fullscreen
 
-    def set_window_size(self, width, height):
-        def _set_window_size():
+    def resize(self, width, height):
+        def _resize):
             frame = self.window.frame()
 
             # Keep the top left of the window in the same place
@@ -439,13 +439,9 @@ class BrowserView:
 
             self.window.setFrame_display_(frame, True)
 
-        AppHelper.callAfter(_set_window_size)
+        AppHelper.callAfter(_resize)
 
     def move(self, x, y):
-        self._move(x, y)
-        AppHelper.callAfter(self._move, x, y)
-
-    def _move(self, x, y):
         frame = self.window.frame()
 
         # TODO this will calculate incorrect coordinates during coordinate transfor,
@@ -789,12 +785,16 @@ def toggle_fullscreen(uid):
     BrowserView.instances[uid].toggle_fullscreen()
 
 
-def set_window_size(width, height, uid):
-    BrowserView.instances[uid].set_window_size(width, height)
+def resize(width, height, uid):
+    BrowserView.instances[uid].resize(width, height)
+
+
+def minimize(uid):
+    BrowserView.instances[uid].minimize()
 
 
 def move(x, y, uid):
-    BrowserView.instances[uid].move(x, y)
+    AppHelper.callAfter(BrowserView.instances[uid].move, x, y)
 
 
 def get_current_url(uid):
