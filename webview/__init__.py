@@ -102,8 +102,8 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
-                  resizable=True, fullscreen=False, min_size=(200, 100), confirm_close=False,
-                  background_color='#FFFFFF', text_select=False, frameless=False):
+                  resizable=True, fullscreen=False, min_size=(200, 100), hidden=False, frameless=False,
+                  confirm_close=False, background_color='#FFFFFF', text_select=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -114,11 +114,12 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param resizable True if window can be resized, False otherwise. Default is True
     :param fullscreen: True if start in fullscreen mode. Default is False
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
+    :param hidden: Whether the window should be hidden.
+    :param frameless: Whether the window should have a frame.
     :param confirm_close: Display a window close confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
-    :param frameless: Whether the window should have a frame.
-    :return: The uid of the created window.
+    :return: window object.
     """
 
     valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
@@ -128,8 +129,8 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
     window = Window(uid, make_unicode(title), transform_url(url), html,
-                    width, height, x, y, resizable, fullscreen, min_size, confirm_close,
-                    background_color, js_api, text_select, frameless)
+                    width, height, x, y, resizable, fullscreen, min_size, hidden, frameless,
+                    confirm_close, background_color, js_api, text_select)
     windows.append(window)
 
     if threading.current_thread().name != 'MainThread' and guilib:

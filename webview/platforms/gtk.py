@@ -233,7 +233,14 @@ class BrowserView:
         self.window.show_all()
 
         if gtk.main_level() == 0:
+            if self.pywebview_window.hidden:
+                self.window.hide()
             gtk.main()
+        else:
+            glib.idle_add(self.window.show_all)
+
+    def hide(self):
+        glib.idle_add(self.window.hide)
 
     def destroy(self):
         self.window.emit('delete-event', Gdk.Event())
@@ -414,6 +421,14 @@ def move(x, y, uid):
     def _move():
         BrowserView.instances[uid].move(x, y)
     glib.idle_add(_move)
+
+
+def hide(uid):
+    BrowserView.instances[uid].hide()
+
+
+def show(uid):
+    BrowserView.instances[uid].show()
 
 
 def get_current_url(uid):
