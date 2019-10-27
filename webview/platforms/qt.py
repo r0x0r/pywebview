@@ -60,6 +60,8 @@ class BrowserView(QMainWindow):
     fullscreen_trigger = QtCore.pyqtSignal()
     window_size_trigger = QtCore.pyqtSignal(int, int)
     window_move_trigger = QtCore.pyqtSignal(int, int)
+    window_minimize_trigger = QtCore.pyqtSignal()
+    window_restore_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
     evaluate_js_trigger = QtCore.pyqtSignal(str, str)
 
@@ -111,8 +113,8 @@ class BrowserView(QMainWindow):
             except KeyError:
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
-                window = Window('web_inspector', title, url, '', 700, 500, True,
-                                False, (300, 200), False, '#fff', None, False, False)
+                window = Window('web_inspector', title, url, '', 700, 500, None, None, True, False,
+                                (300, 200), False, False, False, False, '#fff', None, False)
 
                 inspector = BrowserView(window)
                 inspector.show()
@@ -228,6 +230,8 @@ class BrowserView(QMainWindow):
         self.fullscreen_trigger.connect(self.on_fullscreen)
         self.window_size_trigger.connect(self.on_window_size)
         self.window_move_trigger.connect(self.on_window_move)
+        self.window_minimize_trigger.connect(self.on_window_minimize)
+        self.window_restore_trigger.connect(self.on_window_restore)
         self.current_url_trigger.connect(self.on_current_url)
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
@@ -252,9 +256,13 @@ class BrowserView(QMainWindow):
             center = QApplication.desktop().availableGeometry().center() - self.rect().center()
             self.move(center.x(), center.y())
 
-        self.activateWindow()
-        self.raise_()
+        if not window.minimized:
+            self.activateWindow()
+            self.raise_()
+
         self.shown.set()
+
+
 
     def on_set_title(self, title):
         self.setWindowTitle(title)
@@ -333,6 +341,14 @@ class BrowserView(QMainWindow):
 
     def on_window_move(self, x, y):
         self.move(x, y)
+
+    def on_window_minimize(self):
+        self.setWindowState(QtCore.Qt.WindowMinimized)
+
+    def on_window_restore(self):
+        self.setWindowState(QtCore.Qt.WindowNoState)
+        self.raise_()
+        self.activateWindow()
 
     def on_evaluate_js(self, script, uuid):
         def return_result(result):
@@ -415,6 +431,12 @@ class BrowserView(QMainWindow):
     def move_window(self, x, y):
         self.window_move_trigger.emit(x, y)
 
+    def minimize(self):
+        self.window_minimize_trigger.emit()
+
+    def restore(self):
+        self.window_restore_trigger.emit()
+
     def evaluate_js(self, script):
         self.loaded.wait()
         result_semaphore = Semaphore(0)
@@ -488,7 +510,12 @@ def create_window(window):
     def _create():
         browser = BrowserView(window)
 
-        if not window.hidden:
+        if window.minimized:
+            # showMinimized does not work on start without showNormal first
+            # looks like a bug in QT
+            browser.showNormal()
+            browser.showMinimized()
+        elif not window.hidden:
             browser.show()
 
     if window.uid == 'master':
@@ -525,6 +552,14 @@ def hide(uid):
 
 def show(uid):
     BrowserView.instances[uid].show_()
+
+
+def minimize(uid):
+    BrowserView.instances[uid].minimize()
+
+
+def restore(uid):
+    BrowserView.instances[uid].restore()
 
 
 def toggle_fullscreen(uid):

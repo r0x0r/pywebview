@@ -40,7 +40,8 @@ def _loaded_call(function):
 
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
-                 min_size, hidden, frameless, confirm_close, background_color, js_api, text_select):
+                 min_size, hidden, frameless, minimized, confirm_close, background_color,
+                 js_api, text_select):
         self.uid = uid
         self.title = make_unicode(title)
         self.url = None if html else transform_url(url)
@@ -58,6 +59,7 @@ class Window:
         self.text_select = text_select
         self.frameless = frameless
         self.hidden = hidden
+        self.minimized = minimized
 
         self.loaded = Event()
         self.shown = Event()
@@ -174,7 +176,7 @@ class Window:
     @_shown_call
     def resize(self, width, height):
         """
-        Set Window Size
+        Resize window
         :param width: desired width of target window
         :param height: desired height of target window
         """
@@ -193,9 +195,16 @@ class Window:
     @_shown_call
     def minimize(self):
         """
-        Hide a web view window.
+        Minimize window.
         """
         self.gui.minimize(self.uid)
+
+    @_shown_call
+    def restore(self):
+        """
+        Restore minimized window.
+        """
+        self.gui.restore(self.uid)
 
     @_shown_call
     def toggle_fullscreen(self):

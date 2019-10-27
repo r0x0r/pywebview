@@ -305,6 +305,7 @@ class BrowserView:
         self.text_select = window.text_select
         self.is_fullscreen = False
         self.hidden = window.hidden
+        self.minimized = window.minimized
 
         rect = AppKit.NSMakeRect(0.0, 0.0, window.width, window.height)
         window_mask = AppKit.NSTitledWindowMask | AppKit.NSClosableWindowMask | AppKit.NSMiniaturizableWindowMask
@@ -390,6 +391,9 @@ class BrowserView:
         else:
             self.hidden = False
 
+        if self.minimized:
+            self.minimize()
+
         if not BrowserView.app.isRunning():
             # Add the default Cocoa application menu
             self._add_app_menu()
@@ -427,7 +431,7 @@ class BrowserView:
         self.is_fullscreen = not self.is_fullscreen
 
     def resize(self, width, height):
-        def _resize):
+        def _resize():
             frame = self.window.frame()
 
             # Keep the top left of the window in the same place
@@ -440,6 +444,12 @@ class BrowserView:
             self.window.setFrame_display_(frame, True)
 
         AppHelper.callAfter(_resize)
+
+    def minimize(self):
+        self.window.miniaturize_(self)
+
+    def restore(self):
+        self.window.deminiaturize_(self)
 
     def move(self, x, y):
         frame = self.window.frame()
@@ -791,6 +801,10 @@ def resize(width, height, uid):
 
 def minimize(uid):
     BrowserView.instances[uid].minimize()
+
+
+def restore(uid):
+    BrowserView.instances[uid].restore()
 
 
 def move(x, y, uid):

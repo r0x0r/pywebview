@@ -348,6 +348,9 @@ class BrowserView:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
                 self.MaximizeBox = False
 
+            if window.minimized:
+                self.WindowState = WinForms.FormWindowState.Minimized
+
             # Application icon
             handle = windll.kernel32.GetModuleHandleW(None)
             icon_handle = windll.shell32.ExtractIconW(handle, sys.executable, 0)
@@ -488,6 +491,20 @@ class BrowserView:
             SWP_SHOWWINDOW = 0x0040  # Displays the window
             windll.user32.SetWindowPos(self.Handle.ToInt32(), None, x, y, None, None,
                                        SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
+
+        def minimize(self):
+            def _minimize():
+                self.WindowState = WinForms.FormWindowState.Minimized
+
+            self.Invoke(Func[Type](_minimize))
+
+        def restore(self):
+            def _restore():
+                self.WindowState = WinForms.FormWindowState.Normal
+
+            self.Invoke(Func[Type](_restore))
+
+
 
     @staticmethod
     def alert(message):
@@ -748,6 +765,16 @@ def resize(width, height, uid):
 def move(x, y, uid):
     window = BrowserView.instances[uid]
     window.move(x, y)
+
+
+def minimize(uid):
+    window = BrowserView.instances[uid]
+    window.minimize()
+
+
+def restore(uid):
+    window = BrowserView.instances[uid]
+    window.restore()
 
 
 def destroy_window(uid):

@@ -6,7 +6,7 @@
 ``` python
 webview.create_window(title, url='', html='', js_api=None, width=800, height=600, x=None, y=None, \
                       resizable=True, fullscreen=False, min_size=(200, 100), hidden=False, frameless=False, \
-                      confirm_close=False, background_color='#FFF', text_select=False)
+                      minimized=False, confirm_close=False, background_color='#FFF', text_select=False)
 ```
 
 Create a new _pywebview_ window and returns its instance. Window is not shown until the GUI loop is started. If the function is invoked during the GUI loop, the window is displayed immediately.
@@ -25,6 +25,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
 * `hidden` - Create a window hidden by default. Default is False
 * `frameless` - Create a frameless easy-draggable window. Default is False.
+* `minimized` - Start in minimized mode
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
 * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) CSS property.
@@ -65,7 +66,7 @@ These functions are part of the `window` object returned by `create_window`
 ## create_file_dialog
 
 ``` python
-create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=())`
+window.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=())`
 ```
 
 Create an open file (`webview.OPEN_DIALOG`), open folder (`webview.FOLDER_DIALOG`) or save file (`webview.SAVE_DIALOG`) dialog.
@@ -87,7 +88,7 @@ If the argument is not specified, then the `"All files (*.*)"` mask is used by d
 ## destroy
 
 ``` python
-destroy()
+window.destroy()
 ```
 
 Destroy the window.
@@ -97,7 +98,7 @@ Destroy the window.
 ## evaluate_js
 
 ``` python
-evaluate_js(script)
+window.evaluate_js(script)
 ```
 
 Execute Javascript code. The last evaluated expression is returned. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
@@ -106,7 +107,7 @@ You must escape \n and \r among other escape sequences if they present in Javasc
 ## get_current_url
 
 ``` python
-get_current_url()
+window.get_current_url()
 ```
 
 Return the current URL. None if no url is loaded.
@@ -116,7 +117,7 @@ Return the current URL. None if no url is loaded.
 ## get_elements
 
 ``` python
-get_elements(selector)
+window.get_elements(selector)
 ```
 
 Return the serialized DOM element by its selector. None if no element matches. For GTK you must have WebKit2 2.22 or greater to use this function.
@@ -126,7 +127,7 @@ Return the serialized DOM element by its selector. None if no element matches. F
 ## hide
 
 ``` python
-hide()
+window.hide()
 ```
 
 Hide the window.
@@ -137,7 +138,7 @@ Hide the window.
 ## load_css
 
 ``` python
-load_css(css)
+window.load_css(css)
 ```
 
 Load CSS as a string.
@@ -148,7 +149,7 @@ Load CSS as a string.
 ## load_html
 
 ``` python
-load_html(content, base_uri=base_uri())
+window.load_html(content, base_uri=base_uri())
 ```
 
 Load HTML code. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way.
@@ -158,17 +159,27 @@ Load HTML code. Base URL for resolving relative URLs is set to the directory the
 ## load_url
 
 ``` python
-load_url(url)
+window.load_url(url)
 ```
 
 Load a new URL.
 
 [Example](/examples/change_url.html)
 
+## minimize
+
+``` python
+window.minimize()
+```
+
+Minimize window.
+
+[Example](/examples/minimize.html)
+
 ## move
 
 ``` python
-move(x, y)
+window.move(x, y)
 ```
 
 Move window to a new position.
@@ -176,10 +187,21 @@ Move window to a new position.
 [Example](/examples/move_window.html)
 
 
+## restore
+
+``` python
+window.restore()
+```
+
+Restore minimized window.
+
+[Example](/examples/minimize.html)
+
+
 ## set_title
 
 ``` python
-set_title(title)
+window.set_title(title)
 ```
 
 Change the title of the window.
@@ -189,7 +211,7 @@ Change the title of the window.
 ## show
 
 ``` python
-show()
+window.show()
 ```
 
 Show the window if it is hidden. Has no effect otherwise
@@ -199,7 +221,7 @@ Show the window if it is hidden. Has no effect otherwise
 ## toggle_fullscreen
 
 ``` python
-toggle_fullscreen()
+window.toggle_fullscreen()
 ```
 
 Toggle fullscreen mode on the active monitor.
