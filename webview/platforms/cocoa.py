@@ -304,6 +304,7 @@ class BrowserView:
         self.title = window.title
         self.text_select = window.text_select
         self.is_fullscreen = False
+        self.hidden = window.hidden
 
         rect = AppKit.NSMakeRect(0.0, 0.0, window.width, window.height)
         window_mask = AppKit.NSTitledWindowMask | AppKit.NSClosableWindowMask | AppKit.NSMiniaturizableWindowMask
@@ -384,7 +385,10 @@ class BrowserView:
         self.shown.set()
 
     def show(self):
-        self.window.makeKeyAndOrderFront_(self.window)
+        if not self.hidden:
+            self.window.makeKeyAndOrderFront_(self.window)
+        else:
+            self.hidden = False
 
         if not BrowserView.app.isRunning():
             # Add the default Cocoa application menu
@@ -393,6 +397,12 @@ class BrowserView:
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             BrowserView.app.run()
+
+    def hide(self):
+        def _hide():
+            self.window.orderOut_(self.window)
+
+        AppHelper.callAfter(_hide)
 
     def destroy(self):
         AppHelper.callAfter(self.window.close)
@@ -765,6 +775,14 @@ def load_html(content, base_uri, uid):
 
 def destroy_window(uid):
     BrowserView.instances[uid].destroy()
+
+
+def hide(uid):
+    BrowserView.instances[uid].hide()
+
+
+def show(uid):
+    BrowserView.instances[uid].show()
 
 
 def toggle_fullscreen(uid):
