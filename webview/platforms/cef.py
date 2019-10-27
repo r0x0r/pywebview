@@ -65,7 +65,7 @@ class Browser:
 
         self.browser.ExecuteJavascript(dom.src)
 
-        sleep(100) # wait for window.pywebview to load
+        sleep(0.1) # wait for window.pywebview to load
         self.initialized = True
         self.loaded.set()
 
