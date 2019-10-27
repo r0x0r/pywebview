@@ -149,10 +149,13 @@ class BrowserView:
         if self.pywebview_window in windows:
             windows.remove(self.pywebview_window)
 
+        self.pywebview_window.closed.set()
+
         if BrowserView.instances == {}:
             gtk.main_quit()
 
     def on_destroy(self, widget=None, *data):
+        self.pywebview_window.closing.set()
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
                                           type=gtk.MessageType.QUESTION, buttons=gtk.ButtonsType.OK_CANCEL,
                                           message_format=localization['global.quitConfirmation'])

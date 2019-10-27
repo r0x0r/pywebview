@@ -61,6 +61,7 @@ class BrowserView:
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
+            i.closing.set()
 
             quit = localization['global.quit']
             cancel = localization['global.cancel']
@@ -78,6 +79,8 @@ class BrowserView:
 
             if i.pywebview_window in windows:
                 windows.remove(i.pywebview_window)
+
+            i.closed.set()
 
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
@@ -298,6 +301,8 @@ class BrowserView:
         self._file_name = None
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
+        self.closed = window.closed
+        self.closing = window.closing
         self.shown = window.shown
         self.loaded = window.loaded
         self.confirm_close = window.confirm_close

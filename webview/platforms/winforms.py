@@ -359,6 +359,8 @@ class BrowserView:
 
             windll.user32.DestroyIcon(icon_handle)
 
+            self.closed = window.closed
+            self.closing = window.closing
             self.shown = window.shown
             self.loaded = window.loaded
             self.url = window.url
@@ -381,12 +383,11 @@ class BrowserView:
 
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
+            self.FormClosing += self.on_closing
 
             if is_cef:
                 self.Resize += self.on_resize
 
-            if window.confirm_close:
-                self.FormClosing += self.on_closing
 
         def on_shown(self, sender, args):
             if not is_cef:
@@ -407,10 +408,13 @@ class BrowserView:
             if self.pywebview_window in windows:
                 windows.remove(self.pywebview_window)
 
+            self.closed.set()
+
             if len(BrowserView.instances) == 0:
                 self.Invoke(Func[Type](_shutdown))
 
         def on_closing(self, sender, args):
+            self.closing.set()
             result = WinForms.MessageBox.Show(localization['global.quitConfirmation'], self.Text,
                                               WinForms.MessageBoxButtons.OKCancel, WinForms.MessageBoxIcon.Asterisk)
 
