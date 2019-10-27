@@ -1,6 +1,8 @@
 src = """
 window.pywebview = {
     token: '%s',
+    platform: '%s',
+    api: {},
     _createApi: function(funcList) {
         for (var i = 0; i < funcList.length; i++) {
             window.pywebview.api[funcList[i]] = (function (funcName) {
@@ -56,10 +58,11 @@ window.pywebview = {
             }
          }, 100)
     },
-    platform: '%s',
-    api: {},
-    _returnValues: {}
+    _returnValues: {},
+    _events: {
+        pywebviewready: new Event('pywebviewready')
+    }
 }
-
 window.pywebview._createApi(%s);
+document.dispatchEvent(pywebview._events.pywebviewready);
 """

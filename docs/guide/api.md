@@ -230,7 +230,7 @@ Toggle fullscreen mode on the active monitor.
 
 # Events
 
-Window object has these lifecycle events. To subscribe to an event, use the `+=` syntax, e.g. `window.loaded += func`. The func will be invoked, when event is fired. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe `window.loaded -= func`.
+Window object has a number of lifecycle events. To subscribe to an event, use the `+=` syntax, e.g. `window.loaded += func`. The func will be invoked, when event is fired. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe `window.loaded -= func`.
 
 ## shown
 Event that is fired when pywebview window is shown.
@@ -242,3 +242,10 @@ Event that is fired when pywebview window is shown.
 Event that is fired when DOM is ready.
 
 [Example](/examples/events.html)
+
+# DOM events
+
+Additionally _pywebview_ exposes a `pywebviewready` DOM event that is fired when `window.pywebview` is created.
+
+[Example](/examples/js_api.html)
+

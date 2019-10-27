@@ -43,6 +43,8 @@ html = """
 
 
 <h1>JS API Example</h1>
+<p id='pywebview-status'><i>pywebview</i> is not ready</p>
+
 <button onClick="initialize()">Hello Python</button><br/>
 <button id="heavy-stuff-btn" onClick="doHeavyStuff()">Perform a heavy operation</button><br/>
 <button onClick="getRandomNumber()">Get a random number</button><br/>
@@ -53,47 +55,52 @@ html = """
 
 <div id="response-container"></div>
 <script>
-function showResponse(response) {
-    var container = document.getElementById('response-container')
-
-    container.innerText = response.message
-    container.style.display = 'block'
-}
-
-function initialize() {
-    pywebview.api.init().then(showResponse)
-}
-
-function doHeavyStuff() {
-    var btn = document.getElementById('heavy-stuff-btn')
-
-    pywebview.api.doHeavyStuff().then(function(response) {
-        showResponse(response)
-        btn.onclick = doHeavyStuff
-        btn.innerText = 'Perform a heavy operation'
+    document.addEventListener('pywebviewready', function() {
+        var container = document.getElementById('pywebview-status')
+        container.innerHTML = '<i>pywebview</i> is ready'
     })
 
-    showResponse({message: 'Working...'})
-    btn.innerText = 'Cancel the heavy operation'
-    btn.onclick = cancelHeavyStuff
-}
+    function showResponse(response) {
+        var container = document.getElementById('response-container')
 
-function cancelHeavyStuff() {
-    pywebview.api.cancelHeavyStuff()
-}
+        container.innerText = response.message
+        container.style.display = 'block'
+    }
 
-function getRandomNumber() {
-    pywebview.api.getRandomNumber().then(showResponse)
-}
+    function initialize() {
+        pywebview.api.init().then(showResponse)
+    }
 
-function greet() {
-    var name_input = document.getElementById('name_input').value;
-    pywebview.api.sayHelloTo(name_input).then(showResponse)
-}
+    function doHeavyStuff() {
+        var btn = document.getElementById('heavy-stuff-btn')
 
-function catchException() {
-    pywebview.api.error().catch(showResponse)
-}
+        pywebview.api.doHeavyStuff().then(function(response) {
+            showResponse(response)
+            btn.onclick = doHeavyStuff
+            btn.innerText = 'Perform a heavy operation'
+        })
+
+        showResponse({message: 'Working...'})
+        btn.innerText = 'Cancel the heavy operation'
+        btn.onclick = cancelHeavyStuff
+    }
+
+    function cancelHeavyStuff() {
+        pywebview.api.cancelHeavyStuff()
+    }
+
+    function getRandomNumber() {
+        pywebview.api.getRandomNumber().then(showResponse)
+    }
+
+    function greet() {
+        var name_input = document.getElementById('name_input').value;
+        pywebview.api.sayHelloTo(name_input).then(showResponse)
+    }
+
+    function catchException() {
+        pywebview.api.error().catch(showResponse)
+    }
 
 </script>
 </body>
@@ -151,4 +158,4 @@ class Api:
 if __name__ == '__main__':
     api = Api()
     window = webview.create_window('API example', html=html, js_api=api)
-    webview.start()
+    webview.start(debug=True)
