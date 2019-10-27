@@ -10,6 +10,7 @@ from uuid import uuid1
 from threading import Event
 from cefpython3 import cefpython as cef
 from copy import copy
+from time import sleep
 
 from webview.js.css import disable_text_select
 from webview.js import dom
@@ -64,6 +65,7 @@ class Browser:
 
         self.browser.ExecuteJavascript(dom.src)
 
+        sleep(100) # wait for window.pywebview to load
         self.initialized = True
         self.loaded.set()
 
