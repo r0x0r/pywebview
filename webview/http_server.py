@@ -48,6 +48,10 @@ class HTTPHandler(SimpleHTTPRequestHandler):
         fullpath = os.path.join(self.server.base_path, relpath)
         return fullpath
 
+    def log_message(self, format, *args):
+        if os.environ.get('PYWEBVIEW_LOG') == 'debug':
+            super(HTTPHandler, self).log_message(format, *args)
+
 
 def start_server(url):
     def _start(httpd):
@@ -72,5 +76,5 @@ def start_server(url):
 
     new_url = 'http://localhost:{0}/{1}'.format(port, os.path.basename(url))
     logger.debug('HTTP server started on http://localhost:{0}'.format(port))
-    
+
     return new_url, httpd
