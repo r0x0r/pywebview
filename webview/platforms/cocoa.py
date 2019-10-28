@@ -385,7 +385,9 @@ class BrowserView:
 
         self.shown.set()
 
-    def show(self):
+
+
+    def first_show(self):
         if not self.hidden:
             self.window.makeKeyAndOrderFront_(self.window)
         else:
@@ -401,6 +403,12 @@ class BrowserView:
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             BrowserView.app.run()
+
+    def show(self):
+        def _show():
+            self.window.makeKeyAndOrderFront_(self.window)
+
+        AppHelper.callAfter(_show)
 
     def hide(self):
         def _hide():
@@ -746,7 +754,7 @@ def create_window(window):
 
     def create():
         browser = BrowserView(window)
-        browser.show()
+        browser.first_show()
 
     if window.uid == 'master':
         create()
