@@ -2,7 +2,7 @@ import webview
 from time import sleep
 
 """
-This example demonstrates how to load HTML in a web view window
+This example demonstrates how to move window programmatically
 """
 
 

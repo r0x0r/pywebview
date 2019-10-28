@@ -73,6 +73,9 @@ class BrowserView:
         else:
             self.window.set_size_request(window.width, window.height)
 
+        if window.minimized:
+            self.window.iconify()
+
         if window.x is not None and window.y is not None:
             self.move(window.x, window.y)
         else:
@@ -256,11 +259,21 @@ class BrowserView:
 
         self.is_fullscreen = not self.is_fullscreen
 
-    def set_window_size(self, width, height):
+    def resize(self, width, height):
         self.window.resize(width, height)
 
     def move(self, x, y):
         self.window.move(x, y)
+
+    def minimize(self):
+        glib.idle_add(self.window.iconify)
+
+    def restore(self):
+        def _restore():
+            self.window.deiconify()
+            self.window.present()
+
+        glib.idle_add(_restore)
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if dialog_type == FOLDER_DIALOG:
@@ -411,10 +424,10 @@ def toggle_fullscreen(uid):
     glib.idle_add(_toggle_fullscreen)
 
 
-def set_window_size(width, height, uid):
-    def _set_window_size():
-        BrowserView.instances[uid].set_window_size(width,height)
-    glib.idle_add(_set_window_size)
+def resize(width, height, uid):
+    def _resize():
+        BrowserView.instances[uid].resize(width,height)
+    glib.idle_add(_resize)
 
 
 def move(x, y, uid):
@@ -429,6 +442,14 @@ def hide(uid):
 
 def show(uid):
     BrowserView.instances[uid].show()
+
+
+def minimize(uid):
+    BrowserView.instances[uid].minimize()
+
+
+def restore(uid):
+    BrowserView.instances[uid].restore()
 
 
 def get_current_url(uid):

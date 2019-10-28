@@ -60,6 +60,7 @@ module.exports = {
         'links',
         'localization',
         'min_size',
+        'minimize_window',
         'move_window',
         'multiple_windows',
         'open_file_dialog',

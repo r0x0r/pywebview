@@ -33,7 +33,7 @@ $tests=@(
   "test_multi_window.py::test_js_bridge",
   "test_noresize.py",
   "test_set_title.py",
-  "test_set_window_size.py",
+  "test_resize.py",
   "test_simple_browser.py",
   "test_start.py",
   "test_toggle_fullscreen.py",
@@ -42,6 +42,11 @@ $tests=@(
   "test_url_load.py",
   "test_window.py"
 )
+
+# This test fails with CEF on AppVeyor. Skip it for now
+if ($env:PYWEBVIEW_GUI -ne 'cef') {
+  $tests += "test_http_server.py"
+}
 
 rm -r __pycache__
 
