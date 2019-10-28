@@ -55,7 +55,7 @@ html = """
 
 <div id="response-container"></div>
 <script>
-    document.addEventListener('pywebviewready', function() {
+    window.addEventListener('pywebviewready', function() {
         var container = document.getElementById('pywebview-status')
         container.innerHTML = '<i>pywebview</i> is ready'
     })

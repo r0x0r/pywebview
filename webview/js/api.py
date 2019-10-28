@@ -58,11 +58,8 @@ window.pywebview = {
             }
          }, 100)
     },
-    _returnValues: {},
-    _events: {
-        pywebviewready: new Event('pywebviewready')
-    }
+    _returnValues: {}
 }
 window.pywebview._createApi(%s);
-document.dispatchEvent(pywebview._events.pywebviewready);
+window.dispatchEvent(new Event('pywebviewready'));
 """
