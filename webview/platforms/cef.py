@@ -24,6 +24,38 @@ instances = {}
 logger = logging.getLogger(__name__)
 
 
+
+def _set_dpi_mode(enabled):
+    """
+    """
+    try:
+        import _winreg as winreg  # Python 2
+    except ImportError:
+        import winreg  # Python 3
+
+    try:
+        dpi_support = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                    r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
+                                    0, winreg.KEY_ALL_ACCESS)
+    except WindowsError:
+        dpi_support = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER,
+                                         r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
+                                         0, winreg.KEY_ALL_ACCESS)
+
+    try:
+        subprocess_path = os.path.join(sys._MEIPASS, 'subprocess.exe')
+    except:
+        subprocess_path = os.path.join(os.path.dirname(cef.__file__), 'subprocess.exe')
+
+    if enabled:
+        winreg.SetValueEx(dpi_support, subprocess_path, 0, winreg.REG_SZ, '~HIGHDPIAWARE')
+    else:
+        winreg.DeleteValue(dpi_support, subprocess_path)
+
+    winreg.CloseKey(dpi_support)
+
+
+
 class JSBridge:
     def __init__(self, window, eval_events):
         self.results = {}
@@ -159,6 +191,9 @@ def init(window):
     global _initialized
 
     if not _initialized:
+        if sys.platform == 'win32':
+            _set_dpi_mode(True)
+
         settings = {
             'multi_threaded_message_loop': True,
             'context_menu': {
@@ -180,6 +215,7 @@ def init(window):
 
         cef.Initialize(settings=settings)
         cef.DpiAware.EnableHighDpiSupport()
+
         _initialized = True
 
 
@@ -257,6 +293,9 @@ def shutdown():
 
         if os.path.exists('error.log'):
             os.remove('error.log')
+
+        if sys.platform == 'win32':
+            _set_dpi_mode(False)
 
     except Exception as e:
         logger.debug(e, exc_info=True)
