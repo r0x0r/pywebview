@@ -61,5 +61,5 @@ window.pywebview = {
     _returnValues: {}
 }
 window.pywebview._createApi(%s);
-window.dispatchEvent(new Event('pywebviewready'));
+window.dispatchEvent(new CustomEvent('pywebviewready'));
 """
