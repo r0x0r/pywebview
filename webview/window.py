@@ -61,10 +61,12 @@ class Window:
         self.hidden = hidden
         self.minimized = minimized
 
+        self.closed = Event()
+        self.closing = Event()
         self.loaded = Event()
         self.shown = Event()
-        self.gui = None
 
+        self.gui = None
         self._httpd = None
 
     def _initialize(self, gui, multiprocessing, http_server):
