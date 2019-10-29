@@ -295,6 +295,7 @@ class BrowserView(QMainWindow):
         self.view.setHtml(content, QtCore.QUrl(base_uri))
 
     def closeEvent(self, event):
+        self.pywebview_window.closing.set()
         if self.confirm_close:
             reply = QMessageBox.question(self, self.title, localization['global.quitConfirmation'],
                                          QMessageBox.Yes, QMessageBox.No)
@@ -314,6 +315,8 @@ class BrowserView(QMainWindow):
             del BrowserView.instances[self.uid + '-inspector']
         except KeyError:
             pass
+
+        self.pywebview_window.closed.set()
 
         if len(BrowserView.instances) == 0:
             self.hide()
