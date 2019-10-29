@@ -72,22 +72,22 @@ def _is_edge():
         winreg.CloseKey(net_key)
 
 force_mshtml = str(os.environ.get('PYWEBVIEW_GUI')).lower() == 'mshtml'
-is_edge = _is_edge() and not force_mshtml
+is_edge = False #_is_edge() and not force_mshtml
 
-
-# TODO: Move this out of Edge initialization code
-clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
-from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 
 if is_edge:
     clr.AddReference(interop_dll_path('Microsoft.Toolkit.Forms.UI.Controls.WebView.dll'))
     from Microsoft.Toolkit.Forms.UI.Controls import WebView
     from System.ComponentModel import ISupportInitialize
+    IWebBrowserInterop = object
     logger.debug('Using WinForms / EdgeHTML')
     renderer = 'edgehtml'
 else:
+    clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
+    from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
     logger.debug('Using WinForms / MSHTML')
     renderer = 'mshtml'
+
 
 
 class BrowserView:
@@ -188,23 +188,22 @@ class BrowserView:
                 self.cancel_back = False
 
         def on_document_completed(self, sender, args):
-            self.web_browser.Document.InvokeScript('eval', (alert.src,))
+            document = self.web_browser.Document
+            document.InvokeScript('eval', (alert.src,))
 
-            #if _debug:
-            #    self.web_browser.Document.InvokeScript('eval', ('window.console = { log: function(msg) { window.external.console(JSON.stringify(msg)) }}'))
-
+            if _debug:
+                document.InvokeScript('eval', ('window.console = { log: function(msg) { window.external.console(JSON.stringify(msg)) }}',))
+     
             if self.first_load:
                 self.web_browser.Visible = True
                 self.first_load = False
 
             self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)
 
-            document = self.web_browser.Document
             document.InvokeScript('eval', (parse_api_js(self.pywebview_window.js_api, 'mshtml'),))
 
             if not self.pywebview_window.text_select:
                 document.InvokeScript('eval', (disable_text_select,))
-
             self.pywebview_window.loaded.set()
 
             if self.frameless:
