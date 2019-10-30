@@ -19,6 +19,7 @@ from ctypes import windll
 from uuid import uuid4
 
 from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug
+from webview.guilib import forced_gui_
 from webview.http_server import start_server
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
 from webview.js import alert
@@ -40,14 +41,7 @@ from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 logger = logging.getLogger('pywebview')
 
 
-is_cef = False
-CEF = None
 
-def use_cef():
-    global CEF, is_cef
-    from . import cef as CEF
-    is_cef = True
-    logger.debug('Using WinForms / CEF')
 
 
 def _is_edge():
@@ -71,23 +65,31 @@ def _is_edge():
     finally:
         winreg.CloseKey(net_key)
 
-force_mshtml = str(os.environ.get('PYWEBVIEW_GUI')).lower() == 'mshtml'
-is_edge = False #_is_edge() and not force_mshtml
+
+is_cef = forced_gui_ == 'cef'
+is_edge = _is_edge() and forced_gui_ != 'mshtml'
 
 
-if is_edge:
+if is_cef:
+    from . import cef as CEF
+    IWebBrowserInterop = object
+
+    logger.debug('Using WinForms / CEF')
+    renderer = 'cef'
+elif is_edge:
     clr.AddReference(interop_dll_path('Microsoft.Toolkit.Forms.UI.Controls.WebView.dll'))
     from Microsoft.Toolkit.Forms.UI.Controls import WebView
     from System.ComponentModel import ISupportInitialize
     IWebBrowserInterop = object
+
     logger.debug('Using WinForms / EdgeHTML')
     renderer = 'edgehtml'
 else:
     clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
     from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
+
     logger.debug('Using WinForms / MSHTML')
     renderer = 'mshtml'
-
 
 
 class BrowserView:
@@ -103,6 +105,9 @@ class BrowserView:
 
             def alert(self, message):
                 BrowserView.alert(message)
+
+            def console(self, message):
+                print(message)
 
         def __init__(self, form, window):
             self.pywebview_window = window
@@ -193,7 +198,7 @@ class BrowserView:
 
             if _debug:
                 document.InvokeScript('eval', ('window.console = { log: function(msg) { window.external.console(JSON.stringify(msg)) }}',))
-     
+
             if self.first_load:
                 self.web_browser.Visible = True
                 self.first_load = False
