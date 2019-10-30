@@ -6,7 +6,7 @@ from webview.util import WebViewException
 
 logger = logging.getLogger('pywebview')
 guilib = None
-
+forced_gui_ = None
 
 def initialize(forced_gui=None):
     def import_gtk():
@@ -50,10 +50,6 @@ def initialize(forced_gui=None):
 
         try:
             import webview.platforms.winforms as guilib
-            
-            if forced_gui == 'cef':
-                guilib.use_cef()
-
             return True
         except ImportError as e:
             logger.exception('pythonnet cannot be loaded')
@@ -68,11 +64,15 @@ def initialize(forced_gui=None):
 
         return False
 
+    global forced_gui_
+
     if not forced_gui:
         forced_gui = 'qt' if 'KDE_FULL_SESSION' in os.environ else None
         forced_gui = os.environ['PYWEBVIEW_GUI'].lower() \
-            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in ['qt', 'gtk', 'cef'] \
+            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in ['qt', 'gtk', 'cef', 'mshtml'] \
             else None
+
+    forced_gui_ = forced_gui
 
     if platform.system() == 'Darwin':
         if forced_gui == 'qt':
