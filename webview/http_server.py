@@ -6,16 +6,18 @@ import threading
 import logging
 
 from random import random
-from webview.util import base_uri
 
 try:
     from BaseHTTPServer import HTTPServer
     from SimpleHTTPServer import SimpleHTTPRequestHandler
+    from SocketServer import ThreadingMixIn
 except ImportError:
     from http.server import SimpleHTTPRequestHandler, HTTPServer
+    from socketserver import ThreadingMixIn
+
+from webview.util import base_uri
 
 logger = logging.getLogger('pywebview')
-
 
 
 def _get_random_port():
@@ -53,6 +55,10 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             super(HTTPHandler, self).log_message(format, *args)
 
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
+
+
 def start_server(url):
     def _start(httpd):
         try:
@@ -67,7 +73,7 @@ def start_server(url):
     port = _get_random_port()
     server_address = ('localhost', port)
 
-    httpd = HTTPServer(server_address, HTTPHandler)
+    httpd = ThreadedHTTPServer(server_address, HTTPHandler)
     httpd.base_path = base_path
 
     t = threading.Thread(target=_start, args=(httpd,))

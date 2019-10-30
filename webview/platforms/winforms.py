@@ -41,9 +41,6 @@ from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 logger = logging.getLogger('pywebview')
 
 
-
-
-
 def _is_edge():
     try:
         import _winreg as winreg  # Python 2
