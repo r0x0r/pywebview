@@ -19,7 +19,7 @@ $tests=@(
   "test_get_current_url.py::test_current_url",
   "test_get_current_url.py::test_no_url",
   "test_get_elements.py",
-  "test_http_server.py"
+  "test_http_server.py",
   "test_js_api.py::test_js_bridge",
   "test_js_api.py::test_exception",
   "test_load_html.py",
