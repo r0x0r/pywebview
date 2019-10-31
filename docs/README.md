@@ -6,11 +6,14 @@ actionText: Get Started →
 actionLink: /guide/
 footer: BSD Licensed | Copyright © 2014-present Roman Sirokov
 ---
+<div class='center version'>
+Current version: <strong>3.1</strong><br/>
+<a href='/changelog'>What's new</a>
+</div>
 
-::: tip
-For documention to version 2.4, refer to [here](/2.4)
-:::
 <br/>
+
+
 
 # Getting Started
 

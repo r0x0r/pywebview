@@ -8,13 +8,14 @@ module.exports = {
     docsBranch: 'docs',
     editLinks: true,
     editLinkText: 'Help us improve this page!',
-    //sidebarDepth: 3,
+    logo: '/logo-no-text.png',
     nav: [
       { text: 'Guide', link: '/guide/' },
       { text: 'Examples', link: '/examples/' },
       { text: 'Contributing', link: '/contributing/' },
       { text: 'Blog', link: '/blog/' },
-      { text: 'Changelog', link: 'https://github.com/r0x0r/pywebview/blob/master/CHANGELOG.md' },
+      { text: 'Changelog', link: '/CHANGELOG.md' },
+      { text: '2.x', link: 'https://pywebview.flowrl.com/2.4' },
     ],
     sidebar: {
       '/guide/': [
