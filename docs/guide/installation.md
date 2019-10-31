@@ -40,6 +40,7 @@ You can also use QT5 in macOS
 
 ### Linux
 
+
 `pip install pywebview[qt]` should take of QT dependencies. If it does not work or you would like to use GTK, you may try these recipes.
 
 [PyGObject](https://pygobject.readthedocs.io/en/latest/) is used with GTK. To install dependencies on Ubuntu for both Python 3 and 2
@@ -68,3 +69,9 @@ To install QtWebKit.
 ``` bash
 sudo apt install python3-pyqt5 python3-pyqt5.qtwebkit python-pyqt5 python-pyqt5.qtwebkit libqt5webkit5-dev
 ```
+
+<br/>
+
+::: warning
+Starting from Ubuntu Disco Dingo _pywebview_ can be installed via `apt` on Debian based system as `python-pywebview`. This package features an old version of _pywebview_ that is API incompatible with the current version. If you choose to install it, you can find documentation [here](/2.4)
+:::

@@ -1,7 +1,28 @@
-
-
-
 # Changelog
+
+## 3.1: Windows Edition
+
+_Released 30/10/2019_
+
+- `New` [All] Window minimize/restore functionality. Ability to show window minimized on startup.
+- `New` [All] Window hide/show functionality. Ability to show window hidden on startup.
+- `New` [All] Window move functionality. Ability to set window coordinates on startup. Thanks @adbenitez.
+- `New` [All] New `window.pywebviewready`DOM event that is thrown when `window.pywebview` is available.
+- `New` [All] Links opened via `window.open` are opened in a new browser window.
+- `Fix` [All] Fix concurrent invocations of JS API functions.
+- `Fix` [All] Fix unescaped single quote in JS API calls.
+- `Fix` [All] Built-in HTTP server is now multi-threaded. This fixes stalling HTTP requests in some cases.
+- `Improvement` [All] `window.set_window_size` is deprecated in favour to `window.resize`.
+- `Improvement` [All] Exceptions are now handled in JS API functions and rerouted to the function promise catch method.
+- `Improvement` [All] Suppress built-in HTTP server logging. Logging is active only in the debug mode.
+- `Fix` [CEF] Fix deadlock occuring when trying to access `window.pywebview` object right after the
+- `Fix` [CEF] High DPI fix resulting in a small window appearing inside the main window
+- `Fix` [MSHTML] `get_elements` failing
+- `Fix` [MSHTML] `console.log` not writing to Python console in debug mode
+- `Fix` [MSHTML] Forcing MSHTML via `gui=mshtml` is now possible. ¯\\\_(ツ)\_/¯
+
+<img src='/windows31.png' alt='Windows 3.1'/>
+
 
 ## 3.0.2
 
