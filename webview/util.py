@@ -13,6 +13,7 @@ import os
 import re
 import sys
 import traceback
+import webbrowser
 from platform import architecture
 from threading import Thread
 from uuid import uuid4
@@ -80,7 +81,7 @@ def parse_api_js(api_instance, platform):
             return []
 
     func_list = generate_func()
-    js_code = npo.src + event.src + api.src % (_token, platform, func_list) + dom.src
+    js_code = event.src + api.src % (_token, platform, func_list) + dom.src
     return js_code
 
 
@@ -98,7 +99,9 @@ def js_bridge_call(window, func_name, param, value_id):
 
     func = getattr(window.js_api, func_name, None)
 
-    if func is not None:
+    if func_name == '_window_open':
+        webbrowser.open(json.loads(param), 2, True)
+    elif func is not None:
         try:
             func_params = param if not param else json.loads(param)
             t = Thread(target=_call)

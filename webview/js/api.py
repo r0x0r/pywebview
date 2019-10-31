@@ -1,8 +1,18 @@
 src = """
+window.open = function(url) {
+    if (window.pywebview) {
+        pywebview.api._window_open(url);
+    };
+};
+
 window.pywebview = {
     token: '%s',
     platform: '%s',
-    api: {},
+    api: {
+        '_window_open': function(url) {
+            window.pywebview._bridge.call('_window_open', JSON.stringify(url), null);
+        }
+    },
     _createApi: function(funcList) {
         for (var i = 0; i < funcList.length; i++) {
             window.pywebview.api[funcList[i]] = (function (funcName) {
@@ -60,6 +70,7 @@ window.pywebview = {
     },
     _returnValues: {}
 }
+
 window.pywebview._createApi(%s);
 window.dispatchEvent(new CustomEvent('pywebviewready'));
 """

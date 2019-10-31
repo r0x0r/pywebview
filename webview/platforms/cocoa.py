@@ -167,21 +167,22 @@ class BrowserView:
             # Add the webview to the window if it's not yet the contentView
             i = BrowserView.get_instance('webkit', webview)
 
+            def handler(result, error):
+                i.loaded.set()
+
             if i:
                 if not webview.window():
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                script = parse_api_js(i.js_bridge.window.js_api, 'cocoa')
-                i.webkit.evaluateJavaScript_completionHandler_(script, lambda a,b: None)
+                print_hook = 'window.print = function() { window.webkit.messageHandlers.browserDelegate.postMessage("print") };'
+                i.webkit.evaluateJavaScript_completionHandler_(print_hook, lambda a,b: None)
 
                 if not i.text_select:
                     i.webkit.evaluateJavaScript_completionHandler_(disable_text_select, lambda a,b: None)
 
-                print_hook = 'window.print = function() { window.webkit.messageHandlers.browserDelegate.postMessage("print") };'
-                i.webkit.evaluateJavaScript_completionHandler_(print_hook, lambda a,b: None)
-
-                i.loaded.set()
+                script = parse_api_js(i.js_bridge.window.js_api, 'cocoa')
+                i.webkit.evaluateJavaScript_completionHandler_(script, handler)
 
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):
