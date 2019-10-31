@@ -46,6 +46,9 @@ window.pywebview = {
                         channel.objects.external.call(funcName, params, id);
                     });
                     break;
+                case 'gtk':
+                    document.title = JSON.stringify({"type": "invoke", "function": funcName, "param": params, "id": id});
+                    break;
             }
         }
     },
