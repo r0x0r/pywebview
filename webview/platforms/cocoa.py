@@ -318,6 +318,9 @@ class BrowserView:
         if window.resizable:
             window_mask = window_mask | AppKit.NSResizableWindowMask
 
+        if window.frameless:
+            window_mask = window_mask | NSFullSizeContentViewWindowMask | AppKit.NSTexturedBackgroundWindowMask
+
         # The allocated resources are retained because we would explicitly delete
         # this instance when its window is closed
         self.window = AppKit.NSWindow.alloc().\
@@ -344,8 +347,6 @@ class BrowserView:
 
         if window.frameless:
             # Make content full size and titlebar transparent
-            window_mask = window_mask | NSFullSizeContentViewWindowMask | AppKit.NSTexturedBackgroundWindowMask
-            self.window.setStyleMask_(window_mask)
             self.window.setTitlebarAppearsTransparent_(True)
             self.window.setTitleVisibility_(NSWindowTitleHidden)
 
