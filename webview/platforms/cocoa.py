@@ -834,8 +834,14 @@ def evaluate_js(script, uid):
 
 
 def get_position(uid):
-    origin = BrowserView.instances[uid].window.frame().origin
-    return origin.x, origin.y
+    screenFrame = AppKit.NSScreen.mainScreen().frame()
+    if screenFrame is None:
+        raise RuntimeError('Failed to obtain screen')
+
+    frame = BrowserView.instances[uid].window.frame()
+
+    y = screenFrame.size.height - frame.size.height - frame.origin.y
+    return frame.origin.x, y
 
 
 def get_size(uid):
