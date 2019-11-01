@@ -289,3 +289,11 @@ class Window:
 
         if self.loaded.is_set():
             self.evaluate_js('window.pywebview._createApi(%s)' % func_list)
+
+    @_shown_call
+    def get_position(self):
+        return self.gui.get_position(self.uid)
+
+    @_shown_call
+    def get_size(self):
+        return self.gui.get_size(self.uid)
