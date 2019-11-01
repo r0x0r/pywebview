@@ -831,3 +831,13 @@ def get_current_url(uid):
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
+
+
+def get_position(uid):
+    origin = BrowserView.instances[uid].window.frame().origin
+    return origin.x, origin.y
+
+
+def get_size(uid):
+    size = BrowserView.instances[uid].window.frame().size
+    return size.width, size.height
