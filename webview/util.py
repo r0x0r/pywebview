@@ -18,7 +18,7 @@ from platform import architecture
 from threading import Thread
 from uuid import uuid4
 
-from .js import api, npo, dom, event
+from .js import api, polyfills, dom
 
 _token = uuid4().hex
 
@@ -81,7 +81,7 @@ def parse_api_js(api_instance, platform):
             return []
 
     func_list = generate_func()
-    js_code = event.src + api.src % (_token, platform, func_list) + dom.src
+    js_code = polyfills.src + api.src % (_token, platform, func_list) + dom.src
     return js_code
 
 

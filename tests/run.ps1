@@ -43,7 +43,7 @@ $tests=@(
   "test_window.py"
 )
 
-This test fails with CEF on AppVeyor. Skip it for now
+# This test fails with CEF on AppVeyor. Skip it for now
 if ($env:PYWEBVIEW_GUI -ne 'cef') {
  $tests += "test_http_server.py"
 }
