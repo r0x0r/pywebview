@@ -393,12 +393,14 @@ class BrowserView:
                 self.Resize += self.on_resize
 
         def on_loaded(self, sender, args):
-            if self.pywebview_window.hidden:
+            # CEF fails to receive hwnd when window is started hidden. Disable it for now.
+            if self.pywebview_window.hidden and not is_cef:
                 self.Visible = False
                 self.ShowInTaskbar = False
 
         def on_shown(self, sender, args):
-            self.shown.set()
+            if not is_cef:
+                self.shown.set()
 
         def on_close(self, sender, args):
             def _shutdown():
