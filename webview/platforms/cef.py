@@ -233,7 +233,6 @@ def create_browser(window, handle, alert_func):
         cef_browser.SetClientHandler(LoadHandler())
 
         instances[window.uid] = browser
-        window.shown.set()
 
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)

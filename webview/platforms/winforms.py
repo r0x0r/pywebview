@@ -365,6 +365,7 @@ class BrowserView:
             self.closing = window.closing
             self.shown = window.shown
             self.loaded = window.loaded
+
             self.url = window.url
             self.text_select = window.text_select
 
@@ -386,14 +387,18 @@ class BrowserView:
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
             self.FormClosing += self.on_closing
+            self.Load += self.on_loaded
 
             if is_cef:
                 self.Resize += self.on_resize
 
+        def on_loaded(self, sender, args):
+            if self.pywebview_window.hidden:
+                self.Visible = False
+                self.ShowInTaskbar = False
 
         def on_shown(self, sender, args):
-            if not is_cef:
-                self.shown.set()
+            self.shown.set()
 
         def on_close(self, sender, args):
             def _shutdown():
@@ -413,7 +418,9 @@ class BrowserView:
             self.closed.set()
 
             if len(BrowserView.instances) == 0:
-                self.Invoke(Func[Type](_shutdown))
+                if is_cef:
+                    CEF.shutdown()
+                WinForms.Application.Exit()
 
         def on_closing(self, sender, args):
             self.closing.set()
@@ -457,7 +464,17 @@ class BrowserView:
             self.Invoke(Func[Type](self.Hide))
 
         def show(self):
-            self.Invoke(Func[Type](self.Show))
+            def _show():
+                self.Show()
+                self.ShowInTaskbar = True
+
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](_show))
+            else:
+                self.Show()
+
+            self.shown.set()
+
 
         def toggle_fullscreen(self):
             def _toggle():
@@ -608,6 +625,7 @@ def _allow_localhost():
                     'env': env })
         return ret
 
+    # Allow EdgeHTML to access localhost
     output = subprocess.check_output('checknetisolation LoopbackExempt -s', **subprocess_args(False))
 
     if 'cw5n1h2txyewy' not in str(output):
@@ -622,8 +640,7 @@ def create_window(window):
         browser = BrowserView.BrowserForm(window)
         BrowserView.instances[window.uid] = browser
 
-        if not window.hidden:
-            browser.Show()
+        browser.Show()
 
         _main_window_created.set()
 
