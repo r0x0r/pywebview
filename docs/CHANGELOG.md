@@ -2,7 +2,7 @@
 
 ## 3.1: Windows Edition
 
-_Released 30/10/2019_
+_Released xx/11/2019_
 
 - `New` [All] Window minimize/restore functionality. Ability to show window minimized on startup.
 - `New` [All] Window hide/show functionality. Ability to show window hidden on startup.
@@ -17,6 +17,7 @@ _Released 30/10/2019_
 - `Improvement` [All] Suppress built-in HTTP server logging. Logging is active only in the debug mode.
 - `Fix` [CEF] Fix deadlock occuring when trying to access `window.pywebview` object right after the
 - `Fix` [CEF] High DPI fix resulting in a small window appearing inside the main window
+- `Fix` [EdgeHTML] Unicode error when loading HTML
 - `Fix` [MSHTML] `get_elements` failing
 - `Fix` [MSHTML] `console.log` not writing to Python console in debug mode
 - `Fix` [MSHTML] Forcing MSHTML via `gui=mshtml` is now possible. ¯\\\_(ツ)\_/¯
