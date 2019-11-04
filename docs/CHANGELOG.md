@@ -2,7 +2,7 @@
 
 ## 3.1: Windows Edition
 
-_Released xx/11/2019_
+_Released 04/11/2019_
 
 - `New` [All] Window minimize/restore functionality. Ability to show window minimized on startup.
 - `New` [All] Window hide/show functionality. Ability to show window hidden on startup.
