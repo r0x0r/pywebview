@@ -272,7 +272,7 @@ class BrowserView:
             self.tmpdir = tempfile.mkdtemp()
             self.temp_html = os.path.join(self.tmpdir, 'index.html')
 
-            with open(self.temp_html, 'w') as f:
+            with open(self.temp_html, 'w', encoding='utf-8') as f:
                 f.write(inject_base_uri(html, base_uri))
 
             if self.httpd:
