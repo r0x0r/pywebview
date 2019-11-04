@@ -15,11 +15,11 @@ _Released 04/11/2019_
 - `Improvement` [All] `window.set_window_size` is deprecated in favour to `window.resize`.
 - `Improvement` [All] Exceptions are now handled in JS API functions and rerouted to the function promise catch method.
 - `Improvement` [All] Suppress built-in HTTP server logging. Logging is active only in the debug mode.
-- `Fix` [CEF] Fix deadlock occuring when trying to access `window.pywebview` object right after the
-- `Fix` [CEF] High DPI fix resulting in a small window appearing inside the main window
-- `Fix` [EdgeHTML] Unicode error when loading HTML
-- `Fix` [MSHTML] `get_elements` failing
-- `Fix` [MSHTML] `console.log` not writing to Python console in debug mode
+- `Fix` [CEF] Fix deadlock occuring when trying to access `window.pywebview` object right after the window is created.
+- `Fix` [CEF] High DPI fix resulting in a small window appearing inside the main window,
+- `Fix` [EdgeHTML] Unicode error when loading HTML.
+- `Fix` [MSHTML] `get_elements` failing.
+- `Fix` [MSHTML] `console.log` not writing to Python console in debug mode.
 - `Fix` [MSHTML] Forcing MSHTML via `gui=mshtml` is now possible. ¯\\\_(ツ)\_/¯
 
 <img src='/windows31.png' alt='Windows 3.1'/>
