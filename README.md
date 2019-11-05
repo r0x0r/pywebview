@@ -42,7 +42,7 @@ This project exists thanks to all the people who contribute. [[Contribute](CONTR
 
 ### Financial Contributors
 
-Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/pywebview/contribute)].  More donation options are outlined on the [Donating](https://pywebview.flowrl.com/contributing/donating.html) page.
+Become a financial contributor and help us sustain our community. More donation options are outlined on the [Donating](https://pywebview.flowrl.com/contributing/donating.html) page.
 
 
 #### Individuals
