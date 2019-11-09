@@ -150,9 +150,20 @@ class BrowserView(QMainWindow):
     class WebPage(QWebPage):
         def __init__(self, parent=None):
             super(BrowserView.WebPage, self).__init__(parent)
+            self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
             self.nav_handler = BrowserView.NavigationHandler(self) if is_webengine else None
 
-        if not is_webengine:
+        if is_webengine:
+            def onFeaturePermissionRequested(self, url, feature):
+                if feature in (
+                    QWebPage.MediaAudioCapture,
+                    QWebPage.MediaVideoCapture,
+                    QWebPage.MediaAudioVideoCapture,
+                ):
+                    self.setFeaturePermission(url, feature, QWebPage.PermissionGrantedByUser)
+                else:
+                    self.setFeaturePermission(url, feature, QWebPage.PermissionDeniedByUser)
+        else:
             def acceptNavigationRequest(self, frame, request, type):
                 if frame is None:
                     webbrowser.open(request.url().toString(), 2, True)
@@ -206,6 +217,10 @@ class BrowserView(QMainWindow):
             self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
 
         self.view = BrowserView.WebView(self)
+
+        if is_webengine:
+            os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = (
+                '--use-fake-ui-for-media-stream --enable-features=AutoplayIgnoreWebAudio')
 
         if _debug and is_webengine:
             # Initialise Remote debugging (need to be done only once)
