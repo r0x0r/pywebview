@@ -150,8 +150,11 @@ class BrowserView(QMainWindow):
     class WebPage(QWebPage):
         def __init__(self, parent=None):
             super(BrowserView.WebPage, self).__init__(parent)
-            self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
-            self.nav_handler = BrowserView.NavigationHandler(self) if is_webengine else None
+            if is_webengine:
+                self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
+                self.nav_handler = BrowserView.NavigationHandler(self)
+            else:
+                self.nav_handler = None
 
         if is_webengine:
             def onFeaturePermissionRequested(self, url, feature):
