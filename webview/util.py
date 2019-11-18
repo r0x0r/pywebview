@@ -7,6 +7,7 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 
+import inspect
 import json
 import logging
 import os
@@ -73,13 +74,22 @@ def parse_file_type(file_type):
 
 
 def parse_api_js(api_instance, platform):
-    def generate_func():
-        if api_instance:
-            return [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
-        else:
-            return []
+    def get_args(f):
+        return list(inspect.getfullargspec(getattr(api_instance, f)).args[1:])
 
-    func_list = generate_func()
+    def generate_func():
+        functions = []
+
+        if api_instance:
+            functions = [{'func': str(f), 'params': get_args(f)} for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
+
+        return functions
+
+    try:
+        func_list = generate_func()
+    except Exception as e:
+        logger.exception(e)
+
     js_code = npo.src + event.src + api.src % (_token, platform, func_list) + dom.src
     return js_code
 
@@ -87,10 +97,10 @@ def parse_api_js(api_instance, platform):
 def js_bridge_call(window, func_name, param, value_id):
     def _call():
         try:
-            result = func(func_params)
+            result = func(*func_params.values())
             result = json.dumps(result).replace('\\', '\\\\').replace('\'', '\\\'')
             code = 'window.pywebview._returnValues["{0}"]["{1}"] = {{value: \'{2}\'}}'.format(func_name, value_id, result)
-        except Exception:
+        except Exception as e:
             result = json.dumps(traceback.format_exc()).replace('\\', '\\\\').replace('\'', '\\\'')
             code = 'window.pywebview._returnValues["{0}"]["{1}"] = {{isError: true, value: \'{2}\'}}'.format(func_name, value_id, result)
 

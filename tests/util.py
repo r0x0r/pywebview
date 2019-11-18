@@ -28,17 +28,17 @@ def run_test(webview, window, thread_func=None, param=None, start_args={}, no_de
         pytest.fail(e)
 
 
-def assert_js(window, func_name, expected_result, func_param=None):
+def assert_js(window, func_name, expected_result, *func_args):
     value_id = 'v' + uuid4().hex[:8]
-    func_param = json.dumps(func_param)
+    func_args = str(func_args)
 
     execute_func = """
-    window.pywebview.api.{0}({1}).then(function(value) {{
+    window.pywebview.api.{0}{1}.then(function(value) {{
         window.{2} = value
     }}).catch(function() {{
         window.{2} = 'error'
     }})
-    """.format(func_name, func_param, value_id)
+    """.format(func_name, func_args, value_id)
     check_func = 'window.{0}'.format(value_id)
 
     window.evaluate_js(execute_func)

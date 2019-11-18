@@ -5,19 +5,19 @@ window.pywebview = {
     api: {},
     _createApi: function(funcList) {
         for (var i = 0; i < funcList.length; i++) {
-            window.pywebview.api[funcList[i]] = (function (funcName) {
-                return function(params) {
-                    var id = (Math.random() + '').substring(2)
-                    var promise = new Promise(function(resolve, reject) {
-                        window.pywebview._checkValue(funcName, resolve, reject, id);
-                    });
+            var funcName = funcList[i].func;
+            var params = funcList[i].params;
 
-                    window.pywebview._bridge.call(funcName, JSON.stringify(params), id);
-                    return promise;
-                }
-            })(funcList[i])
+            var funcBody =
+                "var id = (Math.random() + '').substring(2); " +
+                "var promise = new Promise(function(resolve, reject) { " +
+                    "window.pywebview._checkValue('" + funcName + "', resolve, reject, id); " +
+                "}); " +
+                "window.pywebview._bridge.call('" + funcName + "', JSON.stringify(arguments), id); " +
+                "return promise;"
 
-            window.pywebview._returnValues[funcList[i]] = {}
+            window.pywebview.api[funcName] = new Function(params, funcBody)
+            window.pywebview._returnValues[funcName] = {}
         }
     },
     _bridge: {

@@ -22,33 +22,35 @@ def test_concurrent():
 
 
 class Api:
-    def get_int(self, params):
+    def get_int(self):
         return 420
 
-    def get_float(self, params):
+    def get_float(self):
         return 3.141
 
-    def get_string(self, params):
+    def get_string(self):
         return 'test'
 
-    def get_object(self, params):
+    def get_object(self):
         return {'key1': 'value', 'key2': 420}
 
-    def get_objectlike_string(self, params):
+    def get_objectlike_string(self):
         return '{"key1": "value", "key2": 420}'
 
-    def get_single_quote(self, params):
+    def get_single_quote(self):
         return "te'st"
 
-    def get_double_quote(self, params):
+    def get_double_quote(self):
         return 'te"st'
 
-    def raise_exception(self, params):
+    def raise_exception(self):
         raise Exception()
 
     def echo(self, param):
         return param
 
+    def multiple(self, param1, param2, param3):
+        return param1, param2, param3
 
 
 def js_bridge(window):
@@ -60,7 +62,8 @@ def js_bridge(window):
     assert_js(window, 'get_objectlike_string', '{"key1": "value", "key2": 420}')
     assert_js(window, 'get_single_quote', 'te\'st')
     assert_js(window, 'get_double_quote', 'te"st')
-
+    assert_js(window, 'echo', 'test', 'test')
+    assert_js(window, 'multiple', [1, 2, 3], 1, 2, 3)
 
 def exception(window):
     assert_js(window, 'raise_exception', 'error')
