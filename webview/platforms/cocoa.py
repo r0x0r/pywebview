@@ -172,7 +172,7 @@ class BrowserView:
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                script = parse_api_js(i.js_bridge.window.js_api, 'cocoa')
+                script = parse_api_js(i.js_bridge.window, 'cocoa')
                 i.webkit.evaluateJavaScript_completionHandler_(script, lambda a,b: None)
 
                 if not i.text_select:

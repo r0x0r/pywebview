@@ -379,9 +379,9 @@ class BrowserView:
 
     def _set_js_api(self):
         def create_bridge():
-            self.webview.run_javascript(parse_api_js(self.js_bridge.window.js_api, 'gtk'))
+            self.webview.run_javascript(parse_api_js(self.js_bridge.window, 'gtk'))
 
-            if self.js_bridge.window.js_api:
+            if self.js_bridge.window._js_api:
                 # Make the `call` method write the function name and param to the
                 # window title.
                 # The return value will be passed back to the `return_val` attribute

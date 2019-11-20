@@ -477,7 +477,7 @@ class BrowserView(QMainWindow):
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
         code = 'qtwebengine' if is_webengine else 'qtwebkit'
-        script = parse_api_js(self.js_bridge.window.js_api, code)
+        script = parse_api_js(self.js_bridge.window, code)
 
         if is_webengine:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
