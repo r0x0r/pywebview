@@ -73,17 +73,25 @@ def parse_file_type(file_type):
         raise ValueError('{0} is not a valid file filter'.format(file_type))
 
 
-def parse_api_js(api_instance, platform):
+def parse_api_js(window, platform):
     def get_args(f):
-        return list(inspect.getfullargspec(getattr(api_instance, f)).args[1:])
+        return list(inspect.getfullargspec(f).args)
 
     def generate_func():
-        functions = []
+        if window._js_api:
+            functions = { name: get_args(getattr(window._js_api, name))[1:] for name in dir(window._js_api) if callable(getattr(window._js_api, name)) and not name.startswith('_')}
+        else:
+            functions = {}
 
-        if api_instance:
-            functions = [{'func': str(f), 'params': get_args(f)} for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
+        if len(window._functions) > 0:
+            expose_functions = { name: get_args(f) for name, f in window._functions.items()}
+        else:
+            expose_functions = {}
 
-        return functions
+        functions.update(expose_functions)
+        functions = functions.items()
+
+        return [ {'func': name, 'params': params} for name, params in functions ]
 
     try:
         func_list = generate_func()
@@ -111,7 +119,7 @@ def js_bridge_call(window, func_name, param, value_id):
 
         window.evaluate_js(code)
 
-    func = getattr(window.js_api, func_name, None)
+    func = window._functions.get(func_name) or getattr(window._js_api, func_name, None)
 
     if func is not None:
         try:

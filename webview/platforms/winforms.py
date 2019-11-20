@@ -202,7 +202,7 @@ class BrowserView:
 
             self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)
 
-            document.InvokeScript('eval', (parse_api_js(self.pywebview_window.js_api, 'mshtml'),))
+            document.InvokeScript('eval', (parse_api_js(self.pywebview_window, 'mshtml'),))
 
             if not self.pywebview_window.text_select:
                 document.InvokeScript('eval', (disable_text_select,))
@@ -323,7 +323,7 @@ class BrowserView:
             if _debug:
                 self.web_view.InvokeScript('eval', ('window.console = { log: (msg) => window.external.notify(JSON.stringify(["console", msg+"", ""]))}',))
 
-            self.web_view.InvokeScript('eval', (parse_api_js(self.pywebview_window.js_api, 'edgehtml'),))
+            self.web_view.InvokeScript('eval', (parse_api_js(self.pywebview_window, 'edgehtml'),))
 
             if not self.pywebview_window.text_select:
                 self.web_view.InvokeScript('eval', (disable_text_select,))

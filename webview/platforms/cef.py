@@ -73,9 +73,9 @@ renderer = 'cef'
 
 class Browser:
     def __init__(self, window, handle, browser):
+        self.window = window
         self.handle = handle
         self.browser = browser
-        self.js_api = window.js_api
         self.text_select = window.text_select
         self.uid = window.uid
         self.loaded = window.loaded
@@ -90,7 +90,7 @@ class Browser:
             return
 
         self.browser.GetJavascriptBindings().Rebind()
-        self.browser.ExecuteJavascript(parse_api_js(self.js_api, 'cef'))
+        self.browser.ExecuteJavascript(parse_api_js(self.window, 'cef'))
 
         if not self.text_select:
             self.browser.ExecuteJavascript(disable_text_select)

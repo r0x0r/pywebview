@@ -3,6 +3,7 @@ window.pywebview = {
     token: '%s',
     platform: '%s',
     api: {},
+
     _createApi: function(funcList) {
         for (var i = 0; i < funcList.length; i++) {
             var funcName = funcList[i].func;
@@ -20,6 +21,7 @@ window.pywebview = {
             window.pywebview._returnValues[funcName] = {}
         }
     },
+
     _bridge: {
         call: function (funcName, params, id) {
             switch(window.pywebview.platform) {
@@ -63,6 +65,7 @@ window.pywebview = {
             }
          }, 100)
     },
+
     _returnValues: {}
 }
 window.pywebview._createApi(%s);
