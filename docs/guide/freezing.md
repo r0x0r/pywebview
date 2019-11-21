@@ -1,16 +1,19 @@
 # Freezing
 
-## on MacOS
+## macOS
 
-To freeze your application use [py2app](https://py2app.readthedocs.io/en/latest/) on macOS. For a reference setup.py for py2app, look [here](https://github.com/r0x0r/pywebview/blob/master/examples/py2app_setup.py)
+Use [py2app](https://py2app.readthedocs.io/en/latest/). For a reference setup.py for py2app, look [here](https://github.com/r0x0r/pywebview/blob/master/examples/py2app_setup.py).
 
-## on Windows
+## Windows
 
-For Windows, use [pyinstaller](https://www.pyinstaller.org/).
+Use [pyinstaller](https://www.pyinstaller.org/).
 
-For Pyinstaller you need to include either [WebBrowserInterop.x86.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x86.dll) or [WebBrowserInterop.x64.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x64.dll) depending on whether you build against 32-bit or 64-bit Python. The DLLs bundled with _pywebview_ and are located in the `site-packages/webview/lib` directory. There is currently an effort to provide a hook for pyinstaller that would bundle this DLL automatically, but for now you have to resort to this step.
+You need to include following DLLs in your bundle:
+- either [WebBrowserInterop.x86.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x86.dll) or [WebBrowserInterop.x64.dll](https://github.com/r0x0r/pywebview/blob/master/webview/lib/WebBrowserInterop.x64.dll) depending on whether you build against 32-bit or 64-bit Python. 
+- `Microsoft.Toolkit.Forms.UI.Controls.WebView.dll` and `Microsoft.Toolkit.Forms.UI.Controls.WebView.LICENSE.md`
 
-## on Linux
+There is currently an effort to provide a hook for pyinstaller that would bundle these DLLs automatically, but for now you have to resort to this step.
 
-`Pyinstaller` works like a charm (@melvinkcx tried on both Debian-based OSes and Manjaro). However, depending on the distro, you may get a prompt when launching the executable:
-![screenshot](https://i.stack.imgur.com/0Kl5V.png) 
+## Linux
+
+Use [pyinstaller](https://www.pyinstaller.org/).
