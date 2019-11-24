@@ -292,14 +292,17 @@ class BrowserView:
             self.web_view.Navigate(url)
 
         def on_script_notify(self, _, args):
-            func_name, func_param, value_id = json.loads(args.Value)
+            try:
+                func_name, func_param, value_id, test = json.loads(args.Value)
 
-            if func_name == 'alert':
-                WinForms.MessageBox.Show(func_param)
-            elif func_name == 'console':
-                print(func_param)
-            else:
-                js_bridge_call(self.pywebview_window, func_name, func_param, value_id)
+                if func_name == 'alert':
+                    WinForms.MessageBox.Show(func_param)
+                elif func_name == 'console':
+                    print(func_param)
+                else:
+                    js_bridge_call(self.pywebview_window, func_name, func_param, value_id)
+            except Exception as e:
+                logger.exception('Exception occured during on_script_notify')
 
         def on_new_window_request(self, _, args):
             webbrowser.open(str(args.get_Uri()))
@@ -315,10 +318,10 @@ class BrowserView:
 
             url = str(args.Uri)
             self.url = None if self.ishtml else url
-            self.web_view.InvokeScript('eval', ('window.alert = (msg) => window.external.notify(JSON.stringify(["alert", msg+""]))',))
+            self.web_view.InvokeScript('eval', ('window.alert = (msg) => window.external.notify(JSON.stringify(["alert", msg+"", ""]))',))
 
             if _debug:
-                self.web_view.InvokeScript('eval', ('window.console = { log: (msg) => window.external.notify(JSON.stringify(["console", msg+""]))}',))
+                self.web_view.InvokeScript('eval', ('window.console = { log: (msg) => window.external.notify(JSON.stringify(["console", msg+"", ""]))}',))
 
             self.web_view.InvokeScript('eval', (parse_api_js(self.pywebview_window.js_api, 'edgehtml'),))
 
