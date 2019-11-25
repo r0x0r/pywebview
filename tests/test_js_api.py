@@ -65,6 +65,7 @@ def js_bridge(window):
     assert_js(window, 'echo', 'test', 'test')
     assert_js(window, 'multiple', [1, 2, 3], 1, 2, 3)
 
+
 def exception(window):
     assert_js(window, 'raise_exception', 'error')
 

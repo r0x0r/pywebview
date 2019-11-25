@@ -293,7 +293,7 @@ class BrowserView:
 
         def on_script_notify(self, _, args):
             try:
-                func_name, func_param, value_id, test = json.loads(args.Value)
+                func_name, func_param, value_id = json.loads(args.Value)
 
                 if func_name == 'alert':
                     WinForms.MessageBox.Show(func_param)

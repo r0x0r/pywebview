@@ -30,7 +30,7 @@ def run_test(webview, window, thread_func=None, param=None, start_args={}, no_de
 
 def assert_js(window, func_name, expected_result, *func_args):
     value_id = 'v' + uuid4().hex[:8]
-    func_args = str(func_args)
+    func_args = str(func_args).replace(',)', ')')
 
     execute_func = """
     window.pywebview.api.{0}{1}.then(function(value) {{
