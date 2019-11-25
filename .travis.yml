@@ -8,12 +8,6 @@ matrix:
       sudo: required
       dist: xenial
       language: python
-      python: "2.7_with_system_site_packages"
-      env: PACKAGES="xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python-gi python-gi-cairo pep8 pyflakes python-pytest python-six" PYTHON="python"
-    - os: linux
-      sudo: required
-      dist: xenial
-      language: python
       env: PACKAGES="xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
       python: "3.5_with_system_site_packages"
     - os: linux
@@ -25,26 +19,6 @@ matrix:
          - PACKAGES="xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
          - PYTHON_VERSION="3"
          - PYWEBVIEW_GUI=qt
-    - os: linux
-      sudo: required
-      dist: xenial
-      language: python
-      python: "2.7_with_system_site_packages"
-      env:
-          - PACKAGES="xvfb python-pyqt5 python-pyqt5.qtwebkit libqt5webkit5-dev pep8 pyflakes python-pytest" PYTHON="python"
-          - PYTHON_VERSION="2"
-          - PYWEBVIEW_GUI=qt
-    # - os: linux
-    #   sudo: required
-    #   dist: xenial
-    #   language: python
-    #   python: "3.5_with_system_site_packages"
-    #   env:
-    #      - PACKAGES="xvfb python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
-    #      - QT_PLUGIN_PATH="/home/travis/.local/lib/python3.6/site-packages/PyQt5/Qt/plugins/"
-    #      - PIP_PACKAGES="pyqt5 pyqtwebengine"
-    #      - PYTHON_VERSION="3"
-    #      - PYWEBVIEW_GUI=qt
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$PYTHON_VERSION" == "3" ]]; then pip3 install pyobjc pytest six; fi
