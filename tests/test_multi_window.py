@@ -26,7 +26,7 @@ def test_evaluate_js(window):
 
 def test_js_bridge():
     class Api1:
-        def test1(self, params):
+        def test1(self):
             return 1
 
     window = webview.create_window('Multi-window js bridge test', html='<html><body><h1>Master window</h1></body></html>', js_api=Api1())
@@ -42,7 +42,7 @@ def bg_color(window):
 
 def js_bridge(window):
     class Api2:
-        def test2(self, params):
+        def test2(self):
             return 2
 
     api2 = Api2()
