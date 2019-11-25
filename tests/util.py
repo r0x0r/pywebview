@@ -74,7 +74,7 @@ def _create_window(webview, window, thread_func, queue, thread_param, start_args
         args = (thread_param,) if thread_param else ()
         destroy_event = _destroy_window(webview, window, destroy_delay)
 
-        t = threading.Thread(target=thread)
+        t = threading.Thread(target=thread, args=args)
         t.start()
 
     webview.start(**start_args)
