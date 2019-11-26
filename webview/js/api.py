@@ -51,7 +51,12 @@ window.pywebview = {
                 clearInterval(check);
 
                 if (isError) {
-                    reject(new Error(value));
+                    var pyError = JSON.parse(value);
+                    var error = new Error(pyError.message);
+                    error.name = pyError.name;
+                    error.stack = pyError.stack;
+
+                    reject(error);
                 } else {
                     resolve(JSON.parse(value));
                 }
