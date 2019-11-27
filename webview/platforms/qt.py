@@ -510,8 +510,12 @@ class BrowserView(QMainWindow):
         return convert_string(result)
 
     @staticmethod
-    # A simple function to obtain an unused localhost port from the os return it
     def _get_debug_port():
+        """
+        Check if default debug port 8228 is available,
+        increment it by 1 until a port is available.
+        :return: port: str
+        """
         port_available = False
         port = 8228
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
