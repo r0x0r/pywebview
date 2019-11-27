@@ -10,12 +10,12 @@ import platform
 import json
 import logging
 import webbrowser
+import socket
 from uuid import uuid1
 from copy import deepcopy
-from threading import Semaphore, Event
-from socket import socket
+from threading import Semaphore
 
-from webview import escape_string, _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
+from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.localization import localization
 from webview.window import Window
 from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
@@ -228,7 +228,7 @@ class BrowserView(QMainWindow):
         if _debug and is_webengine:
             # Initialise Remote debugging (need to be done only once)
             if not BrowserView.inspector_port:
-                BrowserView.inspector_port = BrowserView._get_free_port()
+                BrowserView.inspector_port = BrowserView._get_debug_port()
                 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = BrowserView.inspector_port
         else:
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
@@ -511,12 +511,23 @@ class BrowserView(QMainWindow):
 
     @staticmethod
     # A simple function to obtain an unused localhost port from the os return it
-    def _get_free_port():
-        s = socket()
-        s.bind(('localhost', 0))
-        port = str(s.getsockname()[1])
-        s.close()
-        return port
+    def _get_debug_port():
+        port_available = False
+        port = 8228
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        while not port_available:
+            try:
+                sock.bind(('localhost', port))
+                port_available = True
+            except:
+                port_available = False
+                logger.warning('Port %s is in use' % port)
+                port += 1
+            finally:
+                sock.close()
+
+        return str(port)
 
     @staticmethod
     # Receive func from subthread and execute it on the main thread
