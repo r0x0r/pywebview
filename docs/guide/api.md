@@ -4,9 +4,11 @@
 ## webview.create_window
 
 ``` python
-webview.create_window(title, url='', html='', js_api=None, width=800, height=600, x=None, y=None, \
-                      resizable=True, fullscreen=False, min_size=(200, 100), hidden=False, frameless=False, \
-                      minimized=False, confirm_close=False, background_color='#FFF', text_select=False)
+webview.create_window(title, url='', html='', js_api=None, width=800, height=600,
+                      x=None, y=None, resizable=True, fullscreen=False, \
+                      min_size=(200, 100), hidden=False, frameless=False, \
+                      minimized=False, confirm_close=False, background_color='#FFF', \
+                      text_select=False)
 ```
 
 Create a new _pywebview_ window and returns its instance. Window is not shown until the GUI loop is started. If the function is invoked during the GUI loop, the window is displayed immediately.
@@ -14,8 +16,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `title` - Window title
 * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point.
 * `html` - HTML code to load. If both URL and HTML are specified, HTML takes precedence.
-* `js_api` - Expose a `js_api` class object to the DOM of the current `pywebview` window. Callable functions of `js_api` can be executed using Javascript page via `window.pywebview.api` object. Custom functions accept a single parameter, either a primitive type or an object. Object types are converted between Javascript and Python. Functions are executed in separate
-  threads and are not thread-safe. `window.pywebview` is not guaranteed to be available on `window.onload` and its access must be deferred.
+* `js_api` - Expose a `js_api` class object to the DOM of the current `pywebview` window. Callable functions of `js_api` can be executed using Javascript page via `window.pywebview.api` object.
 * `width` - Window width. Default is 800px.
 * `height` - Window height. Default is 600px.
 * `x` - Window x coordinate. Default is centered.
@@ -255,7 +256,7 @@ Event that is fired when DOM is ready.
 
 # DOM events
 
-Additionally _pywebview_ exposes a `pywebviewready` DOM event that is fired when `window.pywebview` is created.
+Additionally _pywebview_ exposes a `window.pywebviewready` DOM event that is fired when `window.pywebview` is created.
 
 [Example](/examples/js_api.html)
 

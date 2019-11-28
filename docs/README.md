@@ -33,6 +33,8 @@ webview.create_window('Hello world', 'https://pywebview.flowrl.com/')
 webview.start()
 ```
 
+Explore [documentation](/guide) or [examples](/examples).
+
 <br/>
 
 # Support the project
