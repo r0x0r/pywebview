@@ -27,6 +27,7 @@ _On Linux you need additional libraries. Refer to the [installation](https://pyw
 ``` python
 import webview
 webview.create_window('Hello world', 'https://pywebview.flowrl.com/hello')
+webview.start()
 ```
 
 Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.com/guide), [examples](https://pywebview.flowrl.com/examples) or [contributing](https://pywebview.flowrl.com/contributing) .
