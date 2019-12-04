@@ -1,5 +1,9 @@
 import multiprocessing
 import threading
+import logging
+
+
+logger = logging.getLogger('pywebview')
 
 
 class Event:
@@ -13,7 +17,10 @@ class Event:
 
     def set(self, *args, **kwargs):
         for func in self._items:
-            func(*args, **kwargs)
+            try:
+                func(*args, **kwargs)
+            except Exception as e:
+                logger.exception(e)
 
         self._event.set()
 
