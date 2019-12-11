@@ -75,11 +75,13 @@ class Window:
 
         self.gui = None
         self._httpd = None
+        self._is_http_server = False
 
     def _initialize(self, gui, multiprocessing, http_server):
         self.gui = gui
         self.loaded._initialize(multiprocessing)
         self.shown._initialize(multiprocessing)
+        self._is_http_server = http_server
 
         if http_server and self.url and self.url.startswith('file://'):
             self.url, self._httpd = start_server(self.url)
@@ -115,13 +117,15 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
+        print(self.url)
+        print(url)
         if self._httpd:
             self._httpd.shutdown()
             self._httpd = None
 
         url = transform_url(url)
 
-        if (self._httpd or self.gui.renderer == 'edgehtml') and url.startswith('file://'):
+        if (self._is_http_server or self.gui.renderer == 'edgehtml') and url.startswith('file://'):
             url, self._httpd = start_server(url)
 
         self.gui.load_url(url, self.uid)
