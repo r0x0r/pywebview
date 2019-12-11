@@ -19,6 +19,7 @@ from webview.util import base_uri
 
 logger = logging.getLogger('pywebview')
 
+port = None
 
 def _get_random_port():
     def random_port():
@@ -65,6 +66,8 @@ def start_server(url):
             httpd.serve_forever()
         except Exception as e:
             logger.exception(e)
+
+    global port
 
     base_path = os.path.dirname(url.replace('file://', ''))
     if not os.path.exists(base_path):
