@@ -51,10 +51,10 @@ class Window:
         self.title = make_unicode(title)
         self.url = None if html else transform_url(url)
         self.html = html
-        self.width = width
-        self.height = height
-        self.x = x
-        self.y = y
+        self.initial_width = width
+        self.initial_height = height
+        self.initial_x = x
+        self.initial_y = y
         self.resizable = resizable
         self.fullscreen = fullscreen
         self.min_size = min_size
@@ -85,6 +85,34 @@ class Window:
 
         if http_server and self.url and self.url.startswith('file://'):
             self.url, self._httpd = start_server(self.url)
+
+    @property
+    def width(self):
+        if self.gui is None:
+            return self.initial_width
+        width, _ = self.gui.get_size(self.uid)
+        return width
+
+    @property
+    def height(self):
+        if self.gui is None:
+            return self.initial_height
+        _, height = self.gui.get_size(self.uid)
+        return height
+
+    @property
+    def x(self):
+        if self.gui is None:
+            return self.initial_x
+        x, _ = self.gui.get_position(self.uid)
+        return x
+
+    @property
+    def y(self):
+        if self.gui is None:
+            return self.initial_y
+        _, y = self.gui.get_position(self.uid)
+        return y
 
     @_loaded_call
     def get_elements(self, selector):
@@ -289,11 +317,3 @@ class Window:
 
         if self.loaded.is_set():
             self.evaluate_js('window.pywebview._createApi(%s)' % func_list)
-
-    @_shown_call
-    def get_position(self):
-        return self.gui.get_position(self.uid)
-
-    @_shown_call
-    def get_size(self):
-        return self.gui.get_size(self.uid)
