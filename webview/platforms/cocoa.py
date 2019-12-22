@@ -468,7 +468,7 @@ class BrowserView:
     def move(self, x, y):
         frame = self.window.frame()
 
-        # TODO this will calculate incorrect coordinates during coordinate transfor,
+        # TODO this will calculate incorrect coordinates during coordinate transfer,
         # if window is moved to another screen
         screenFrame = AppKit.NSScreen.mainScreen().frame()
         if screenFrame is None:
