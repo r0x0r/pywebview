@@ -28,6 +28,9 @@ import webview
 webview.start(gui='cef')
 ```
 
+If you wish to pass custom settings to CEF, refer to [this example](/examples/cef.html)
+
+
 To force QT on Linux systems
 
 ``` bash
