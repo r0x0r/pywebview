@@ -195,7 +195,7 @@ def init(window):
         if sys.platform == 'win32':
             _set_dpi_mode(True)
 
-        default_settings = {
+        all_settings = {
             'multi_threaded_message_loop': True,
             'context_menu': {
                 'enabled': _debug
@@ -203,10 +203,10 @@ def init(window):
         }
 
         if not _debug:
-            default_settings['remote_debugging_port'] = -1
+            all_settings['remote_debugging_port'] = -1
 
         try: # set paths under Pyinstaller's one file mode
-            default_settings.update({
+            all_settings.update({
                 'resources_dir_path': sys._MEIPASS,
                 'locales_dir_path': os.path.join(sys._MEIPASS, 'locales'),
                 'browser_subprocess_path': os.path.join(sys._MEIPASS, 'subprocess.exe'),
@@ -214,7 +214,7 @@ def init(window):
         except Exception:
             pass
 
-        all_settings = default_settings.update(settings)
+        all_settings.update(settings)
 
         cef.Initialize(settings=all_settings)
         cef.DpiAware.EnableHighDpiSupport()
