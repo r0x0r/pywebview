@@ -215,7 +215,7 @@ def init(window):
             pass
 
         all_settings = dict(default_settings, **settings)
-         cef.Initialize(settings=all_settings)
+        cef.Initialize(settings=all_settings)
         cef.DpiAware.EnableHighDpiSupport()
 
         _initialized = True
