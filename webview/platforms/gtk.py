@@ -481,3 +481,11 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
+
+
+def get_position(uid):
+    return BrowserView.instances[uid].window.get_position()
+
+
+def get_size(uid):
+    return BrowserView.instances[uid].window.get_size()
