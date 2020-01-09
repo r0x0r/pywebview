@@ -621,3 +621,13 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
+
+
+def get_position(uid):
+    position = BrowserView.instances[uid].pos()
+    return position.x(), position.y()
+
+
+def get_size(uid):
+    window = BrowserView.instances[uid]
+    return window.width(), window.height()
