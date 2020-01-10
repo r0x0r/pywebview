@@ -7,21 +7,21 @@ https://pywebview.flowrl.com
 
 [English](README.md) | [简体中文](README_zh.md)
 
-_pywebview_ is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. You can use pywebview either with a lightweight web framework like [Flask](http://flask.pocoo.org/) or [Bottle](http://bottlepy.org/docs/dev/index.html) or on its own with a two way bridge between Python and DOM.
+_pywebview_ 是一个轻量级、跨平台的组件库，允许你在原生 GUI 窗口中展示 HTML 内容。它基于一个隐藏的浏览器环境，给你在桌面应用中提供使用 web 技术的能力。 你可以在使用 pywebview 的同时使用其他的轻量级框架比如： [Flask](http://flask.pocoo.org/) 或者 [Bottle](http://bottlepy.org/docs/dev/index.html) 或者其他网页框架。
 
-_pywebview_ uses native GUI for creating a web component window: WinForms on Windows, Cocoa on macOS and QT or GTK on Linux. If you choose to freeze your application, pywebview does not bundle a heavy GUI toolkit or web renderer with it keeping the executable size small. _pywebview_ is compatible with both Python 2 and 3.
+_pywebview_ 使用原生 GUI 创建包含网页内容的窗口: 在  Windows 平台上是 WinForms ,在 macOS 使用 Cocoa ，在Linux使用 QT 或者 GTK . 如果你打包你的应用, pywebview 不会受到沉重的 GUI 工具和网页渲染器的约束，因此它可以保证你最终生成的可执行文件体积小. _pywebview_ 兼容 Python 2 和 Python 3.
 
-_pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/). Maintained by Roman and [Shiva Prasad](https://github.com/shivaprsdv).
+_pywebview_ 由 [Roman Sirokov](https://github.com/r0x0r/)开发. 由 Roman 和 [Shiva Prasad](https://github.com/shivaprsdv)维护.
 
 
-# Getting started
+# 开始使用
 
-### Install
+### 安装
 
 ``` bash
 pip install pywebview
 ```
-_On Linux you need additional libraries. Refer to the [installation](https://pywebview.flowrl.com/guide/installation.html) page for details._
+_在 Linux平台上，你可能需要安装额外的库. 在 [installation](https://pywebview.flowrl.com/guide/installation.html) 获取更多细节._
 
 
 ### Hello world
@@ -31,30 +31,30 @@ webview.create_window('Hello world', 'https://pywebview.flowrl.com/hello')
 webview.start()
 ```
 
-Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.com/guide), [examples](https://pywebview.flowrl.com/examples) or [contributing](https://pywebview.flowrl.com/contributing) .
+你可以通过阅读 [文档](https://pywebview.flowrl.com/guide), [案例](https://pywebview.flowrl.com/examples) 来了解更多，你也可以参与到我们的项目中，[贡献](https://pywebview.flowrl.com/contributing) 你的力量.
 
 
 
-# Contributors
+# Contributors 贡献者
 
-### Code Contributors
+### Code Contributors 代码贡献者
 
-This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
+这个项目离不开这些 [贡献者们](CONTRIBUTING.md).
 <a href="https://github.com/r0x0r/pywebview/graphs/contributors"><img src="https://opencollective.com/pywebview/contributors.svg?width=890&button=false" /></a>
 
-### Financial Contributors
+### Financial Contributors 
 
 Become a financial contributor and help us sustain our community. More donation options are outlined on the [Donating](https://pywebview.flowrl.com/contributing/donating.html) page.
 
 
-#### Individuals
+#### Individuals 
 
 <a href="https://opencollective.com/pywebview"><img src="https://opencollective.com/pywebview/individuals.svg?width=890"></a>
 
 <a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button"><img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/></a>
 
 
-#### Organizations
+#### Organizations 
 
 Support this project with your organization. Your logo will show up here with a link to your website. [[Contribute](https://opencollective.com/pywebview/contribute)]
 
