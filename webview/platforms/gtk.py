@@ -379,20 +379,7 @@ class BrowserView:
 
     def _set_js_api(self):
         def create_bridge():
-            self.webview.run_javascript(parse_api_js(self.js_bridge.window, 'gtk'))
-
-            if self.js_bridge.window._js_api:
-                # Make the `call` method write the function name and param to the
-                # window title.
-                # The return value will be passed back to the `return_val` attribute
-                # of the bridge by the on_title_change handler.
-                code = """
-                window.pywebview._bridge.call = function(funcName, param, id) {{
-                    document.title = JSON.stringify({{"type": "invoke", "uid": "{0}", "function": funcName, "param": param, "id": id}})
-                    return this.return_val;
-                }};""".format(self.js_bridge.uid)
-                self.webview.run_javascript(code)
-
+            self.webview.run_javascript(parse_api_js(self.js_bridge.window, 'gtk', uid=self.js_bridge.uid))
             self.loaded.set()
 
         glib.idle_add(create_bridge)
