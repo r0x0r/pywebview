@@ -73,7 +73,7 @@ def parse_file_type(file_type):
         raise ValueError('{0} is not a valid file filter'.format(file_type))
 
 
-def parse_api_js(window, platform):
+def parse_api_js(window, platform, uid=''):
     def get_args(f):
         return list(inspect.getfullargspec(f).args)
 
@@ -98,7 +98,7 @@ def parse_api_js(window, platform):
     except Exception as e:
         logger.exception(e)
 
-    js_code = npo.src + event.src + api.src % (_token, platform, func_list) + dom.src
+    js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src
     return js_code
 
 
