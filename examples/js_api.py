@@ -150,7 +150,7 @@ class Api:
         }
         return response
 
-    def error(self, params):
+    def error(self):
         raise Exception('This is a Python exception')
 
 
