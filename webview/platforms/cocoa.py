@@ -189,7 +189,6 @@ class BrowserView:
                 i = BrowserView.get_instance('_browserDelegate', self)
                 BrowserView.print_webview(i.webkit)
 
-
     class FileFilterChooser(AppKit.NSPopUpButton):
         def initWithFilter_(self, file_filter):
             super(BrowserView.FileFilterChooser, self).init()
@@ -312,7 +311,7 @@ class BrowserView:
         self.hidden = window.hidden
         self.minimized = window.minimized
 
-        rect = AppKit.NSMakeRect(0.0, 0.0, window.width, window.height)
+        rect = AppKit.NSMakeRect(0.0, 0.0, window.initial_width, window.initial_height)
         window_mask = AppKit.NSTitledWindowMask | AppKit.NSClosableWindowMask | AppKit.NSMiniaturizableWindowMask
 
         if window.resizable:
@@ -332,8 +331,8 @@ class BrowserView:
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
 
-        if window.x is not None and window.y is not None:
-            self.move(window.x, window.y)
+        if window.initial_x is not None and window.initial_x is not None:
+            self.move(window.initial_x, window.initial_x)
         else:
             self.window.center()
 
