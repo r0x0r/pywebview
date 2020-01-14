@@ -7,8 +7,11 @@ This example demonstrates how to move window programmatically
 
 
 def move(window):
+    print('Window coordinates are ({0}, {1})'.format(window.x, window.y))
     sleep(2)
     window.move(0, 0)
+    print('Window coordinates are ({0}, {1})'.format(window.x, window.y))
+
 
 
 if __name__ == '__main__':
