@@ -90,6 +90,8 @@ class Window:
     def width(self):
         if self.gui is None:
             return self.initial_width
+
+        self.shown.wait(15)
         width, _ = self.gui.get_size(self.uid)
         return width
 
@@ -97,6 +99,8 @@ class Window:
     def height(self):
         if self.gui is None:
             return self.initial_height
+
+        self.shown.wait(15)
         _, height = self.gui.get_size(self.uid)
         return height
 
@@ -104,6 +108,8 @@ class Window:
     def x(self):
         if self.gui is None:
             return self.initial_x
+
+        self.shown.wait(15)
         x, _ = self.gui.get_position(self.uid)
         return x
 
@@ -111,6 +117,8 @@ class Window:
     def y(self):
         if self.gui is None:
             return self.initial_y
+
+        self.shown.wait(15)
         _, y = self.gui.get_position(self.uid)
         return y
 
@@ -261,8 +269,6 @@ class Window:
         :param x: desired x coordinate of target window
         :param y: desired y coordinate of target window
         """
-        self.x = x
-        self.y = y
         self.gui.move(x, y, self.uid)
 
     @_loaded_call
