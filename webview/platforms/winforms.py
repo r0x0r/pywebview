@@ -336,7 +336,7 @@ class BrowserView:
             self.pywebview_window = window
             self.real_url = None
             self.Text = window.title
-            self.ClientSize = Size(window.initial_width, window.initial_height)
+            self.Size = Size(window.initial_width, window.initial_height)
             self.MinimumSize = Size(window.min_size[0], window.min_size[1])
             self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
