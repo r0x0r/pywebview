@@ -199,7 +199,7 @@ class BrowserView(QMainWindow):
         self._current_url = None
         self._file_name = None
 
-        self.resize(window.width, window.height)
+        self.resize(window.initial_width, window.initial_height)
         self.title = window.title
         self.setWindowTitle(window.title)
 
@@ -211,7 +211,7 @@ class BrowserView(QMainWindow):
         self.setPalette(palette)
 
         if not window.resizable:
-            self.setFixedSize(window.width, window.height)
+            self.setFixedSize(window.initial_width, window.initial_height)
 
         self.setMinimumSize(window.min_size[0], window.min_size[1])
 
@@ -268,8 +268,8 @@ class BrowserView(QMainWindow):
         else:
             self.view.setHtml(default_html, QtCore.QUrl(''))
 
-        if window.x is not None and window.y is not None:
-            self.move(window.x, window.y)
+        if window.initial_x is not None and window.initial_y is not None:
+            self.move(window.initial_x, window.initial_y)
         else:
             center = QApplication.desktop().availableGeometry().center() - self.rect().center()
             self.move(center.x(), center.y())

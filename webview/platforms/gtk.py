@@ -69,15 +69,15 @@ class BrowserView:
 
         if window.resizable:
             self.window.set_size_request(window.min_size[0], window.min_size[1])
-            self.window.resize(window.width, window.height)
+            self.window.resize(window.initial_width, window.initial_height)
         else:
-            self.window.set_size_request(window.width, window.height)
+            self.window.set_size_request(window.initial_width, window.initial_height)
 
         if window.minimized:
             self.window.iconify()
 
-        if window.x is not None and window.y is not None:
-            self.move(window.x, window.y)
+        if window.initial_x is not None and window.initial_y is not None:
+            self.move(window.initial_x, window.initial_y)
         else:
             self.window.set_position(gtk.WindowPosition.CENTER)
 
