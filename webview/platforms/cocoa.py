@@ -329,6 +329,12 @@ class BrowserView:
         self.window.setMinSize_(AppKit.NSSize(window.min_size[0], window.min_size[1]))
         self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
+
+        frame = self.window.frame()
+        frame.size.width = window.initial_width
+        frame.size.height = window.initial_height
+        self.window.setFrame_display_(frame, True)
+
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
 
         if window.initial_x is not None and window.initial_x is not None:
@@ -369,11 +375,6 @@ class BrowserView:
         if _debug:
             config.preferences().setValue_forKey_(Foundation.YES, 'developerExtrasEnabled')
 
-        #config.preferences().setValue_forKey_(Foundation.YES, 'inlineMediaPlaybackRequiresPlaysInlineAttribute')
-        #config.preferences().setValue_forKey_(Foundation.YES, 'allowsInlineMediaPlayback')
-        #config.preferences().setValue_forKey_(Foundation.YES, 'mediaSourceEnabled')
-        #config.preferences().setValue_forKey_(Foundation.NO, 'invisibleMediaAutoplayNotPermitted')
-
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
         config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
@@ -389,7 +390,6 @@ class BrowserView:
             self.toggle_fullscreen()
 
         self.shown.set()
-
 
 
     def first_show(self):
@@ -840,6 +840,8 @@ def get_position(uid):
     frame = BrowserView.instances[uid].window.frame()
 
     y = screenFrame.size.height - frame.size.height - frame.origin.y
+
+
     return frame.origin.x, y
 
 

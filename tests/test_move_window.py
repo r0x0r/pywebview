@@ -1,6 +1,6 @@
 import webview
 from .util import run_test
-
+from time import sleep
 
 def test_xy():
     window = webview.create_window('xy test', x=0, y=0)
@@ -19,6 +19,9 @@ def xy(window):
 
 def move_window(window):
     window.move(100, 100)
+    # On Cocoa resize is done asynchronously, so we have to delay until retrieve new coordinatesß
+    sleep(0.5)
+
     assert window.x == 100
     assert window.y == 100
 

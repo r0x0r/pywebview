@@ -1,5 +1,6 @@
 import webview
 from .util import run_test
+from time import sleep
 
 
 def test_resize():
@@ -12,6 +13,9 @@ def resize(window):
     assert window.height == 600
 
     window.resize(500, 500)
+
+    # On Cocoa resize is done asynchronously, so we have to delay until retrieve new dimensions
+    sleep(0.5)
 
     assert window.width == 500
     assert window.height == 500
