@@ -68,13 +68,13 @@ These properties and functions are part of the `window` object returned by `crea
 ``` python
 window.x
 ```
-X coordinate of the window
+Get X coordinate of the top-left corrner of the window
 
 ## y
 ``` python
 window.y
 ```
-Y coordinate of the window
+Get Y coordinate of the top-left corrner of the window
 
 ## width
 
@@ -82,7 +82,7 @@ Y coordinate of the window
 window.width
 ```
 
-Width of the window
+Get width of the window
 
 ## height
 
@@ -90,7 +90,7 @@ Width of the window
 window.height
 ```
 
-Height of the window
+Get height of the window
 
 ## create_file_dialog
 
