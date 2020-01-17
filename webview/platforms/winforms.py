@@ -336,12 +336,12 @@ class BrowserView:
             self.pywebview_window = window
             self.real_url = None
             self.Text = window.title
-            self.ClientSize = Size(window.width, window.height)
+            self.Size = Size(window.initial_width, window.initial_height)
             self.MinimumSize = Size(window.min_size[0], window.min_size[1])
             self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
-            if window.x is not None and window.y is not None:
-                self.move(window.x, window.y)
+            if window.initial_x is not None and window.initial_y is not None:
+                self.move(window.initial_x, window.initial_y)
             else:
                 self.StartPosition = WinForms.FormStartPosition.CenterScreen
 
@@ -804,3 +804,11 @@ def evaluate_js(script, uid):
     else:
         return BrowserView.instances[uid].evaluate_js(script)
 
+
+def get_position(uid):
+    return BrowserView.instances[uid].Top, BrowserView.instances[uid].Left
+
+
+def get_size(uid):
+    size = BrowserView.instances[uid].Size
+    return size.Width, size.Height

@@ -88,36 +88,24 @@ class Window:
 
     @property
     def width(self):
-        if self.gui is None:
-            return self.initial_width
-
         self.shown.wait(15)
         width, _ = self.gui.get_size(self.uid)
         return width
 
     @property
     def height(self):
-        if self.gui is None:
-            return self.initial_height
-
         self.shown.wait(15)
         _, height = self.gui.get_size(self.uid)
         return height
 
     @property
     def x(self):
-        if self.gui is None:
-            return self.initial_x
-
         self.shown.wait(15)
         x, _ = self.gui.get_position(self.uid)
         return x
 
     @property
     def y(self):
-        if self.gui is None:
-            return self.initial_y
-
         self.shown.wait(15)
         _, y = self.gui.get_position(self.uid)
         return y
@@ -153,8 +141,6 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        print(self.url)
-        print(url)
         if self._httpd:
             self._httpd.shutdown()
             self._httpd = None

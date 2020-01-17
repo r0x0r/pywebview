@@ -61,8 +61,36 @@ A CSRF token property unique to the session. The same token is exposed as `windo
 
 # Window object
 
-These functions are part of the `window` object returned by `create_window`
+These properties and functions are part of the `window` object returned by `create_window`
 
+
+## x
+``` python
+window.x
+```
+Get X coordinate of the top-left corrner of the window
+
+## y
+``` python
+window.y
+```
+Get Y coordinate of the top-left corrner of the window
+
+## width
+
+``` python
+window.width
+```
+
+Get width of the window
+
+## height
+
+``` python
+window.height
+```
+
+Get height of the window
 
 ## create_file_dialog
 
