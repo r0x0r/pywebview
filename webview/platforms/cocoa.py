@@ -47,7 +47,6 @@ try:
 except AttributeError:
     NSWindowTitleHidden = 1
 
-
 logger = logging.getLogger('pywebview')
 logger.debug('Using Cocoa')
 
@@ -337,8 +336,8 @@ class BrowserView:
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
 
-        if window.initial_x is not None and window.initial_x is not None:
-            self.move(window.initial_x, window.initial_x)
+        if window.initial_x is not None and window.initial_y is not None:
+            self.move(window.initial_x, window.initial_y)
         else:
             self.window.center()
 
@@ -465,18 +464,12 @@ class BrowserView:
         self.window.deminiaturize_(self)
 
     def move(self, x, y):
-        frame = self.window.frame()
-
-        # TODO this will calculate incorrect coordinates during coordinate transfer,
-        # if window is moved to another screen
-        screenFrame = AppKit.NSScreen.mainScreen().frame()
-        if screenFrame is None:
+        screen_frame = AppKit.NSScreen.mainScreen().frame()
+        if screen_frame is None:
             raise RuntimeError('Failed to obtain screen')
 
-        frame.origin.x = x
-        frame.origin.y = screenFrame.size.height - frame.size.height - y
-
-        self.window.setFrame_display_(frame, True)
+        flipped_y = screen_frame.size.height - y
+        self.window.setFrameTopLeftPoint_(AppKit.NSPoint(x, flipped_y))
 
     def get_current_url(self):
         def get():
@@ -833,18 +826,38 @@ def evaluate_js(script, uid):
 
 
 def get_position(uid):
-    screenFrame = AppKit.NSScreen.mainScreen().frame()
-    if screenFrame is None:
-        raise RuntimeError('Failed to obtain screen')
+    def _position(coordinates):
+        screen_frame = AppKit.NSScreen.mainScreen().frame()
 
-    frame = BrowserView.instances[uid].window.frame()
+        if screen_frame is None:
+            raise RuntimeError('Failed to obtain screen')
 
-    y = screenFrame.size.height - frame.size.height - frame.origin.y
+        window = BrowserView.instances[uid].window
+        frame = window.frame()
+        coordinates[0] = int(frame.origin.x)
+        coordinates[1] = int(screen_frame.size.height - frame.origin.y - frame.size.height)
+        semaphore.release()
 
+    coordinates = [None, None]
+    semaphore = Semaphore(0)
 
-    return frame.origin.x, y
+    AppHelper.callAfter(_position, coordinates)
+    semaphore.acquire()
+
+    return coordinates
 
 
 def get_size(uid):
-    size = BrowserView.instances[uid].window.frame().size
-    return size.width, size.height
+    def _size(dimensions):
+        size = BrowserView.instances[uid].window.frame().size
+        dimensions[0] = size.width
+        dimensions[1] = size.height
+        semaphore.release()
+
+    dimensions = [None, None]
+    semaphore = Semaphore(0)
+
+    AppHelper.callAfter(_size, dimensions)
+    semaphore.acquire()
+
+    return dimensions
