@@ -75,6 +75,7 @@ module.exports = {
         'multiple_windows',
         'open_file_dialog',
         'open_url',
+        'resize_window',
         'save_file_dialog',
         'toggle_fullscreen',
         'window_title_change'

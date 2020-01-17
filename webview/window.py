@@ -51,10 +51,10 @@ class Window:
         self.title = make_unicode(title)
         self.url = None if html else transform_url(url)
         self.html = html
-        self.width = width
-        self.height = height
-        self.x = x
-        self.y = y
+        self.initial_width = width
+        self.initial_height = height
+        self.initial_x = x
+        self.initial_y = y
         self.resizable = resizable
         self.fullscreen = fullscreen
         self.min_size = min_size
@@ -85,6 +85,30 @@ class Window:
 
         if http_server and self.url and self.url.startswith('file://'):
             self.url, self._httpd = start_server(self.url)
+
+    @property
+    def width(self):
+        self.shown.wait(15)
+        width, _ = self.gui.get_size(self.uid)
+        return width
+
+    @property
+    def height(self):
+        self.shown.wait(15)
+        _, height = self.gui.get_size(self.uid)
+        return height
+
+    @property
+    def x(self):
+        self.shown.wait(15)
+        x, _ = self.gui.get_position(self.uid)
+        return x
+
+    @property
+    def y(self):
+        self.shown.wait(15)
+        _, y = self.gui.get_position(self.uid)
+        return y
 
     @_loaded_call
     def get_elements(self, selector):
@@ -117,8 +141,6 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        print(self.url)
-        print(url)
         if self._httpd:
             self._httpd.shutdown()
             self._httpd = None
@@ -233,8 +255,6 @@ class Window:
         :param x: desired x coordinate of target window
         :param y: desired y coordinate of target window
         """
-        self.x = x
-        self.y = y
         self.gui.move(x, y, self.uid)
 
     @_loaded_call
