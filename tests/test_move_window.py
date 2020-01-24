@@ -8,7 +8,7 @@ def test_xy():
 
 
 def test_move_window():
-    window = webview.create_window('Move window test', x=200, y=200, , width=100, height=100)
+    window = webview.create_window('Move window test', x=200, y=200, width=100, height=100)
     run_test(webview, window, move_window)
 
 
