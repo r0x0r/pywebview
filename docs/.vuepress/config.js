@@ -2,6 +2,14 @@ module.exports = {
   title: 'pywebview',
   description: 'Build GUI for your Python program with JavaScript, HTML, and CSS',
   ga: 'UA-12494025-18',
+  plugins: {
+    '@vuepress/medium-zoom': {
+      selector: 'img.zoom',
+      options: {
+        margin: 16
+      }
+    }
+  },
   themeConfig: {
     repo: 'r0x0r/pywebview',
     docsDir: 'docs',
@@ -34,6 +42,7 @@ module.exports = {
             '/guide/api',
             '/guide/architecture',
             '/guide/debugging',
+            '/guide/interdomain',
             '/guide/freezing',
             '/guide/security',
             '/guide/virtualenv',
@@ -66,6 +75,7 @@ module.exports = {
         'multiple_windows',
         'open_file_dialog',
         'open_url',
+        'resize_window',
         'save_file_dialog',
         'toggle_fullscreen',
         'window_title_change'

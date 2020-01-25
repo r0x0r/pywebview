@@ -69,15 +69,15 @@ class BrowserView:
 
         if window.resizable:
             self.window.set_size_request(window.min_size[0], window.min_size[1])
-            self.window.resize(window.width, window.height)
+            self.window.resize(window.initial_width, window.initial_height)
         else:
-            self.window.set_size_request(window.width, window.height)
+            self.window.set_size_request(window.initial_width, window.initial_height)
 
         if window.minimized:
             self.window.iconify()
 
-        if window.x is not None and window.y is not None:
-            self.move(window.x, window.y)
+        if window.initial_x is not None and window.initial_y is not None:
+            self.move(window.initial_x, window.initial_y)
         else:
             self.window.set_position(gtk.WindowPosition.CENTER)
 
@@ -379,20 +379,7 @@ class BrowserView:
 
     def _set_js_api(self):
         def create_bridge():
-            self.webview.run_javascript(parse_api_js(self.js_bridge.window.js_api, 'gtk'))
-
-            if self.js_bridge.window.js_api:
-                # Make the `call` method write the function name and param to the
-                # window title.
-                # The return value will be passed back to the `return_val` attribute
-                # of the bridge by the on_title_change handler.
-                code = """
-                window.pywebview._bridge.call = function(funcName, param, id) {{
-                    document.title = JSON.stringify({{"type": "invoke", "uid": "{0}", "function": funcName, "param": param, "id": id}})
-                    return this.return_val;
-                }};""".format(self.js_bridge.uid)
-                self.webview.run_javascript(code)
-
+            self.webview.run_javascript(parse_api_js(self.js_bridge.window, 'gtk', uid=self.js_bridge.uid))
             self.loaded.set()
 
         glib.idle_add(create_bridge)
@@ -494,3 +481,11 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
+
+
+def get_position(uid):
+    return BrowserView.instances[uid].window.get_position()
+
+
+def get_size(uid):
+    return BrowserView.instances[uid].window.get_size()

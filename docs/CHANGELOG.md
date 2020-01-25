@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.2: Humate Edition
+
+_Released 24/01/2020_
+
+- `New` [All] Window x, y, width and height properties to retrieve coordinates and dimensions of the window. Thanks [@Fizzadar](https://github.com/Fizzadar)
+- `New` [All] `window.expose(func)` an ability to expose an arbitrary function to the JS realm, also during the runtime.
+- `Improvement` [All] JS API methods can now accept an arbitrary number of arguments
+- `Improvement` [All] Exceptions thrown in a JS API method is now raised in Javascript via its promise.
+- `Improvement` [All] Exceptions thrown in window event handlers are now caught and logged.
+- `Improvement` [All] Random port assigned by the built-in HTTP server can be retrieved via `webview.http_server.port`
+- `Improvement` [QT] Microphone/webcam are enabled by default. Thanks [@dtcooper](https://github.com/dtcooper)
+- `Improvement` [QT] Default debugger port is changed to 8228. Thanks [@melvinkcx](https://github.com/melvinkcx)
+- `Improvement` [CEF] Ability to pass custom CEF settings via ` webview.platforms.cef.settings`. See [example](/examples/cef.md) for details.
+- `Fix` [All] Built-in HTTP server is properly restarted when using `window.load_url`
+- `Fix` [Cocoa] New window position is correctly calculated when using `window.move`
+- `Fix` [EdgeHTML] `window.alert` fix
+
+
 ## 3.1: Windows Edition
 
 _Released 04/11/2019_
@@ -15,11 +33,11 @@ _Released 04/11/2019_
 - `Improvement` [All] `window.set_window_size` is deprecated in favour to `window.resize`.
 - `Improvement` [All] Exceptions are now handled in JS API functions and rerouted to the function promise catch method.
 - `Improvement` [All] Suppress built-in HTTP server logging. Logging is active only in the debug mode.
-- `Fix` [CEF] Fix deadlock occuring when trying to access `window.pywebview` object right after the
-- `Fix` [CEF] High DPI fix resulting in a small window appearing inside the main window
-- `Fix` [EdgeHTML] Unicode error when loading HTML
-- `Fix` [MSHTML] `get_elements` failing
-- `Fix` [MSHTML] `console.log` not writing to Python console in debug mode
+- `Fix` [CEF] Fix deadlock occuring when trying to access `window.pywebview` object right after the window is created.
+- `Fix` [CEF] High DPI fix resulting in a small window appearing inside the main window,
+- `Fix` [EdgeHTML] Unicode error when loading HTML.
+- `Fix` [MSHTML] `get_elements` failing.
+- `Fix` [MSHTML] `console.log` not writing to Python console in debug mode.
 - `Fix` [MSHTML] Forcing MSHTML via `gui=mshtml` is now possible. ¯\\\_(ツ)\_/¯
 
 <img src='/windows31.png' alt='Windows 3.1'/>

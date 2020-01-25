@@ -4,7 +4,7 @@ from .util import run_test, assert_js
 import webview
 
 class Api:
-    def test(self, params):
+    def test(self):
         return 'JS Api is working too'
 
 

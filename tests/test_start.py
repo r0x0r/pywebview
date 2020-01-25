@@ -5,7 +5,7 @@ import webview
 
 
 class Api:
-    def test(self, params):
+    def test(self):
         return 'JS Api is working too'
 
 

@@ -1,5 +1,8 @@
 # Usage
 
+
+## Basics
+
 The bare minimum to get _pywebview_ up and running is
 
 ``` python
@@ -9,7 +12,7 @@ window = webview.create_window('Woah dude!', 'https://pywebview.flowrl.com')
 webview.start()
 ```
 
-The `create_window` function returns a window instance that provides a number of functions. All the opened windows are stored as a list in `webview.windows`. The windows are stored in a creation order.
+The `create_window` function returns a window instance that provides a number of both window manipulation and DOM related functions. You may create as many windows as you wish. Windows created after the GUI loop is started are shown immediately. All the opened windows are stored as a list in `webview.windows`. The windows are stored in a creation order.
 
 The `create_window` second argument `url` can point to a remote or a local path. Alternatively, you can load HTML by setting the `html` parameter.
 
@@ -22,19 +25,30 @@ webview.start()
 
 Note that if both `url` and `html` are set, `html` takes precedence.
 
-`webview.start` starts a GUI loop and itself is a blocking function. After starting the GUI loop, you must executed your logic in a separate thread. You can execute your code by passing your function as the first parameter `func` to `start`. The second parameter sets the function's arguments.
+_pywebview_ gives a choice of several web renderers. To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `cef` or `qt`). See [Renderer](/guide/renderer.md) for details.
+
+## Threading model
+
+`webview.start` starts a GUI loop and is a blocking function. With the GUI loop being blocking, you must executed your backend logic in a separate thread or a process. You may launch a thread or a process manually. Alternatively you can execute your code by passing your function as the first parameter `func` to `start`. The second parameter sets the function's arguments. This approach starts a thread behind the scenes and is identical to starting a thread manually.
 
 ``` python
 import webview
 
 def custom_logic(window):
+    window.toggle_fullscreen()
     window.evaluate_js('alert("Nice one brother")')
 
 window = webview.create_window('Woah dude!', html='<h1>Woah dude!<h1>')
 webview.start(custom_logic, window)
+# anything below this line will be executed after program is finished executing
+pass
 ```
 
-There are two ways to structure an application. Either by running a local web server and pointing _pywebview_ to it, or by employing JS API and `evaluate_js`. _pywebview_ also comes with a simple built-in web server that is good enough for serving local files. To use a local web server, set url to a local file and `webview.start(http_server=True)`.  See [Architecture](/guide/architecture.md) for more information.
+# Make Python and Javascript talk with each other
 
-To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `cef` or `qt`). See [Renderer](/guide/renderer.md) for details.
+You can think of custom logic as a backend that communicates with frontend code in the HTML/JS realm. Now how would you make two to communicate with each other? _pywebview_ offers a two way JS-Python bridge that lets you both execute Javascript from Python (via `evaluate_js`) and Python code from Javascript (via `js_api` and `expose`). See [interdomain commmunication](/guide/interdomain.md) for details. Another way is to run a Python web server (like Flask or Bottle) in custom logic and make frontend code make API calls to it. That would be identical to a typical web application. This approach is suitable, for example, for porting an existing web application to a desktop application. See [Architecture](/guide/architecture.md) for more information on both approaches.
+
+
+
+
 

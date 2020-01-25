@@ -3,23 +3,25 @@ window.pywebview = {
     token: '%s',
     platform: '%s',
     api: {},
+
     _createApi: function(funcList) {
         for (var i = 0; i < funcList.length; i++) {
-            window.pywebview.api[funcList[i]] = (function (funcName) {
-                return function(params) {
-                    var id = (Math.random() + '').substring(2)
-                    var promise = new Promise(function(resolve, reject) {
-                        window.pywebview._checkValue(funcName, resolve, reject, id);
-                    });
+            var funcName = funcList[i].func;
+            var params = funcList[i].params;
 
-                    window.pywebview._bridge.call(funcName, JSON.stringify(params), id);
-                    return promise;
-                }
-            })(funcList[i])
+            var funcBody =
+                "var id = (Math.random() + '').substring(2); " +
+                "var promise = new Promise(function(resolve, reject) { " +
+                    "window.pywebview._checkValue('" + funcName + "', resolve, reject, id); " +
+                "}); " +
+                "window.pywebview._bridge.call('" + funcName + "', JSON.stringify(arguments), id); " +
+                "return promise;"
 
-            window.pywebview._returnValues[funcList[i]] = {}
+            window.pywebview.api[funcName] = new Function(params, funcBody)
+            window.pywebview._returnValues[funcName] = {}
         }
     },
+
     _bridge: {
         call: function (funcName, params, id) {
             switch(window.pywebview.platform) {
@@ -36,6 +38,9 @@ window.pywebview = {
                         channel.objects.external.call(funcName, params, id);
                     });
                     break;
+                case 'gtk':
+                    document.title = JSON.stringify({"type": "invoke", "uid": "%s", "function": funcName, "param": params, "id": id});
+                    break;
             }
         }
     },
@@ -51,13 +56,19 @@ window.pywebview = {
                 clearInterval(check);
 
                 if (isError) {
-                    reject(new Error(value));
+                    var pyError = JSON.parse(value);
+                    var error = new Error(pyError.message);
+                    error.name = pyError.name;
+                    error.stack = pyError.stack;
+
+                    reject(error);
                 } else {
                     resolve(JSON.parse(value));
                 }
             }
          }, 100)
     },
+
     _returnValues: {}
 }
 window.pywebview._createApi(%s);

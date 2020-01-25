@@ -7,7 +7,7 @@ actionLink: /guide/
 footer: BSD Licensed | Copyright © 2014-present Roman Sirokov
 ---
 <div class='center version'>
-Current version: <strong>3.1</strong><br/>
+Current version: <strong>3.2</strong><br/>
 <a href='/changelog'>What's new</a>
 </div>
 
@@ -32,6 +32,8 @@ import webview
 webview.create_window('Hello world', 'https://pywebview.flowrl.com/')
 webview.start()
 ```
+
+Explore [documentation](/guide) or [examples](/examples).
 
 <br/>
 

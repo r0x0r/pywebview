@@ -7,6 +7,7 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 
+import inspect
 import json
 import logging
 import os
@@ -72,31 +73,53 @@ def parse_file_type(file_type):
         raise ValueError('{0} is not a valid file filter'.format(file_type))
 
 
-def parse_api_js(api_instance, platform):
-    def generate_func():
-        if api_instance:
-            return [str(f) for f in dir(api_instance) if callable(getattr(api_instance, f)) and str(f)[0] != '_']
-        else:
-            return []
+def parse_api_js(window, platform, uid=''):
+    def get_args(f):
+        return list(inspect.getfullargspec(f).args)
 
-    func_list = generate_func()
-    js_code = npo.src + event.src + api.src % (_token, platform, func_list) + dom.src
+    def generate_func():
+        if window._js_api:
+            functions = { name: get_args(getattr(window._js_api, name))[1:] for name in dir(window._js_api) if callable(getattr(window._js_api, name)) and not name.startswith('_')}
+        else:
+            functions = {}
+
+        if len(window._functions) > 0:
+            expose_functions = { name: get_args(f) for name, f in window._functions.items()}
+        else:
+            expose_functions = {}
+
+        functions.update(expose_functions)
+        functions = functions.items()
+
+        return [ {'func': name, 'params': params} for name, params in functions ]
+
+    try:
+        func_list = generate_func()
+    except Exception as e:
+        logger.exception(e)
+
+    js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src
     return js_code
 
 
 def js_bridge_call(window, func_name, param, value_id):
     def _call():
         try:
-            result = func(func_params)
+            result = func(*func_params.values())
             result = json.dumps(result).replace('\\', '\\\\').replace('\'', '\\\'')
             code = 'window.pywebview._returnValues["{0}"]["{1}"] = {{value: \'{2}\'}}'.format(func_name, value_id, result)
-        except Exception:
-            result = json.dumps(traceback.format_exc()).replace('\\', '\\\\').replace('\'', '\\\'')
+        except Exception as e:
+            error = {
+                'message': str(e),
+                'name': type(e).__name__,
+                'stack': traceback.format_exc()
+            }
+            result = json.dumps(error).replace('\\', '\\\\').replace('\'', '\\\'')
             code = 'window.pywebview._returnValues["{0}"]["{1}"] = {{isError: true, value: \'{2}\'}}'.format(func_name, value_id, result)
 
         window.evaluate_js(code)
 
-    func = getattr(window.js_api, func_name, None)
+    func = window._functions.get(func_name) or getattr(window._js_api, func_name, None)
 
     if func is not None:
         try:

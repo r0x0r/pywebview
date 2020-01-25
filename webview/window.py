@@ -1,3 +1,5 @@
+import inspect
+import logging
 import os
 from functools import wraps
 
@@ -5,6 +7,9 @@ from webview.event import Event
 from webview.http_server import start_server
 from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, WebViewException
 from .js import css
+
+
+logger = logging.getLogger('pywebview')
 
 
 def _api_call(function, event_type):
@@ -46,20 +51,22 @@ class Window:
         self.title = make_unicode(title)
         self.url = None if html else transform_url(url)
         self.html = html
-        self.width = width
-        self.height = height
-        self.x = x
-        self.y = y
+        self.initial_width = width
+        self.initial_height = height
+        self.initial_x = x
+        self.initial_y = y
         self.resizable = resizable
         self.fullscreen = fullscreen
         self.min_size = min_size
         self.confirm_close = confirm_close
         self.background_color = background_color
-        self.js_api = js_api
         self.text_select = text_select
         self.frameless = frameless
         self.hidden = hidden
         self.minimized = minimized
+
+        self._js_api = js_api
+        self._functions = {}
 
         self.closed = Event()
         self.closing = Event()
@@ -68,14 +75,40 @@ class Window:
 
         self.gui = None
         self._httpd = None
+        self._is_http_server = False
 
     def _initialize(self, gui, multiprocessing, http_server):
         self.gui = gui
         self.loaded._initialize(multiprocessing)
         self.shown._initialize(multiprocessing)
+        self._is_http_server = http_server
 
         if http_server and self.url and self.url.startswith('file://'):
             self.url, self._httpd = start_server(self.url)
+
+    @property
+    def width(self):
+        self.shown.wait(15)
+        width, _ = self.gui.get_size(self.uid)
+        return width
+
+    @property
+    def height(self):
+        self.shown.wait(15)
+        _, height = self.gui.get_size(self.uid)
+        return height
+
+    @property
+    def x(self):
+        self.shown.wait(15)
+        x, _ = self.gui.get_position(self.uid)
+        return x
+
+    @property
+    def y(self):
+        self.shown.wait(15)
+        _, y = self.gui.get_position(self.uid)
+        return y
 
     @_loaded_call
     def get_elements(self, selector):
@@ -114,7 +147,7 @@ class Window:
 
         url = transform_url(url)
 
-        if (self._httpd or self.gui.renderer == 'edgehtml') and url.startswith('file://'):
+        if (self._is_http_server or self.gui.renderer == 'edgehtml') and url.startswith('file://'):
             url, self._httpd = start_server(url)
 
         self.gui.load_url(url, self.uid)
@@ -176,7 +209,7 @@ class Window:
         self.gui.hide(self.uid)
 
     @_shown_call
-    def resize(self, width, height):
+    def set_window_size(self, width, height):
         """
         Resize window
         :param width: desired width of target window
@@ -222,8 +255,6 @@ class Window:
         :param x: desired x coordinate of target window
         :param y: desired y coordinate of target window
         """
-        self.x = x
-        self.y = y
         self.gui.move(x, y, self.uid)
 
     @_loaded_call
@@ -258,3 +289,23 @@ class Window:
             directory = ''
 
         return self.gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, self.uid)
+
+    def expose(self, *functions):
+        if not all(map(callable, functions)):
+            raise TypeError('Parameter must be a function')
+
+        func_list = []
+
+        for func in functions:
+            name = func.__name__
+            self._functions[name] = func
+
+            params = list(inspect.getfullargspec(func).args)
+
+            func_list.append({
+                'func': name,
+                'params': params
+            })
+
+        if self.loaded.is_set():
+            self.evaluate_js('window.pywebview._createApi(%s)' % func_list)

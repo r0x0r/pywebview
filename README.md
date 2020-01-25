@@ -8,7 +8,7 @@ https://pywebview.flowrl.com
 
 _pywebview_ is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. You can use pywebview either with a lightweight web framework like [Flask](http://flask.pocoo.org/) or [Bottle](http://bottlepy.org/docs/dev/index.html) or on its own with a two way bridge between Python and DOM.
 
-_pywebview_ uses native GUI for creating a web component window: WinForms on Windows, Cocoa on macOS and QT or GTK on Linux. If you choose to freeze your application, pywebview does not bundle a heavy GUI toolkit or web renderer with it keeping the executable size small. _pywebview_ is compatible with both Python 2 and 3.
+_pywebview_ uses native GUI for creating a web component window: WinForms on Windows, Cocoa on macOS and QT or GTK on Linux. If you choose to freeze your application, pywebview does not bundle a heavy GUI toolkit or web renderer with it keeping the executable size small. _pywebview_ is compatible with Python 3.
 
 _pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/). Maintained by Roman and [Shiva Prasad](https://github.com/shivaprsdv).
 
@@ -27,6 +27,7 @@ _On Linux you need additional libraries. Refer to the [installation](https://pyw
 ``` python
 import webview
 webview.create_window('Hello world', 'https://pywebview.flowrl.com/hello')
+webview.start()
 ```
 
 Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.com/guide), [examples](https://pywebview.flowrl.com/examples) or [contributing](https://pywebview.flowrl.com/contributing) .
@@ -42,7 +43,7 @@ This project exists thanks to all the people who contribute. [[Contribute](CONTR
 
 ### Financial Contributors
 
-Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/pywebview/contribute)].  More donation options are outlined on the [Donating](https://pywebview.flowrl.com/contributing/donating.html) page.
+Become a financial contributor and help us sustain our community. More donation options are outlined on the [Donating](https://pywebview.flowrl.com/contributing/donating.html) page.
 
 
 #### Individuals

@@ -10,12 +10,12 @@ import platform
 import json
 import logging
 import webbrowser
+import socket
 from uuid import uuid1
 from copy import deepcopy
-from threading import Semaphore, Event
-from socket import socket
+from threading import Semaphore
 
-from webview import escape_string, _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
+from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.localization import localization
 from webview.window import Window
 from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
@@ -150,9 +150,23 @@ class BrowserView(QMainWindow):
     class WebPage(QWebPage):
         def __init__(self, parent=None):
             super(BrowserView.WebPage, self).__init__(parent)
-            self.nav_handler = BrowserView.NavigationHandler(self) if is_webengine else None
+            if is_webengine:
+                self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
+                self.nav_handler = BrowserView.NavigationHandler(self)
+            else:
+                self.nav_handler = None
 
-        if not is_webengine:
+        if is_webengine:
+            def onFeaturePermissionRequested(self, url, feature):
+                if feature in (
+                    QWebPage.MediaAudioCapture,
+                    QWebPage.MediaVideoCapture,
+                    QWebPage.MediaAudioVideoCapture,
+                ):
+                    self.setFeaturePermission(url, feature, QWebPage.PermissionGrantedByUser)
+                else:
+                    self.setFeaturePermission(url, feature, QWebPage.PermissionDeniedByUser)
+        else:
             def acceptNavigationRequest(self, frame, request, type):
                 if frame is None:
                     webbrowser.open(request.url().toString(), 2, True)
@@ -185,7 +199,7 @@ class BrowserView(QMainWindow):
         self._current_url = None
         self._file_name = None
 
-        self.resize(window.width, window.height)
+        self.resize(window.initial_width, window.initial_height)
         self.title = window.title
         self.setWindowTitle(window.title)
 
@@ -197,7 +211,7 @@ class BrowserView(QMainWindow):
         self.setPalette(palette)
 
         if not window.resizable:
-            self.setFixedSize(window.width, window.height)
+            self.setFixedSize(window.initial_width, window.initial_height)
 
         self.setMinimumSize(window.min_size[0], window.min_size[1])
 
@@ -207,10 +221,14 @@ class BrowserView(QMainWindow):
 
         self.view = BrowserView.WebView(self)
 
+        if is_webengine:
+            os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = (
+                '--use-fake-ui-for-media-stream --enable-features=AutoplayIgnoreWebAudio')
+
         if _debug and is_webengine:
             # Initialise Remote debugging (need to be done only once)
             if not BrowserView.inspector_port:
-                BrowserView.inspector_port = BrowserView._get_free_port()
+                BrowserView.inspector_port = BrowserView._get_debug_port()
                 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = BrowserView.inspector_port
         else:
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
@@ -250,8 +268,8 @@ class BrowserView(QMainWindow):
         else:
             self.view.setHtml(default_html, QtCore.QUrl(''))
 
-        if window.x is not None and window.y is not None:
-            self.move(window.x, window.y)
+        if window.initial_x is not None and window.initial_y is not None:
+            self.move(window.initial_x, window.initial_y)
         else:
             center = QApplication.desktop().availableGeometry().center() - self.rect().center()
             self.move(center.x(), center.y())
@@ -459,7 +477,7 @@ class BrowserView(QMainWindow):
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
         code = 'qtwebengine' if is_webengine else 'qtwebkit'
-        script = parse_api_js(self.js_bridge.window.js_api, code)
+        script = parse_api_js(self.js_bridge.window, code)
 
         if is_webengine:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
@@ -492,13 +510,28 @@ class BrowserView(QMainWindow):
         return convert_string(result)
 
     @staticmethod
-    # A simple function to obtain an unused localhost port from the os return it
-    def _get_free_port():
-        s = socket()
-        s.bind(('localhost', 0))
-        port = str(s.getsockname()[1])
-        s.close()
-        return port
+    def _get_debug_port():
+        """
+        Check if default debug port 8228 is available,
+        increment it by 1 until a port is available.
+        :return: port: str
+        """
+        port_available = False
+        port = 8228
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        while not port_available:
+            try:
+                sock.bind(('localhost', port))
+                port_available = True
+            except:
+                port_available = False
+                logger.warning('Port %s is in use' % port)
+                port += 1
+            finally:
+                sock.close()
+
+        return str(port)
 
     @staticmethod
     # Receive func from subthread and execute it on the main thread
@@ -588,3 +621,13 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
+
+
+def get_position(uid):
+    position = BrowserView.instances[uid].pos()
+    return position.x(), position.y()
+
+
+def get_size(uid):
+    window = BrowserView.instances[uid]
+    return window.width(), window.height()
