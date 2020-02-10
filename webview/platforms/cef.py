@@ -221,7 +221,7 @@ def init(window):
 
         all_settings = dict(default_settings, **settings)
         all_command_line_switches = dict(default_command_line_switches, **command_line_switches)
-        cef.Initialize(settings=all_settings, commandLineSwitches={"enable-media-stream": ""})
+        cef.Initialize(settings=all_settings, commandLineSwitches=all_command_line_switches)
         cef.DpiAware.EnableHighDpiSupport()
 
         _initialized = True
