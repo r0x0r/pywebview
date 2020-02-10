@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 settings = {}
 
+command_line_switches = {}
 
 def _set_dpi_mode(enabled):
     """
@@ -202,6 +203,10 @@ def init(window):
             }
         }
 
+        default_command_line_switches = {
+            "enable-media-stream": ""
+        }
+
         if not _debug:
             default_settings['remote_debugging_port'] = -1
 
@@ -215,7 +220,8 @@ def init(window):
             pass
 
         all_settings = dict(default_settings, **settings)
-        cef.Initialize(settings=all_settings)
+        all_command_line_switches = dict(default_command_line_switches, **command_line_switches)
+        cef.Initialize(settings=all_settings, commandLineSwitches={"enable-media-stream": ""})
         cef.DpiAware.EnableHighDpiSupport()
 
         _initialized = True
