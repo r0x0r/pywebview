@@ -300,7 +300,7 @@ class Window:
             name = func.__name__
             self._functions[name] = func
 
-            params = list(inspect.getfullargspec(func).args)
+            params = list(inspect.getargspec(func).args)
 
             func_list.append({
                 'func': name,
