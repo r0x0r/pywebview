@@ -75,7 +75,7 @@ def parse_file_type(file_type):
 
 def parse_api_js(window, platform, uid=''):
     def get_args(f):
-        return list(inspect.getfullargspec(f).args)
+        return list(inspect.getargspec(f).args)
 
     def generate_func():
         if window._js_api:
