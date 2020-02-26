@@ -45,8 +45,8 @@ def _loaded_call(function):
 
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
-                 min_size, hidden, frameless, minimized, confirm_close, background_color,
-                 js_api, text_select):
+                 min_size, hidden, frameless, minimized, topmost, confirm_close,
+                 background_color, js_api, text_select):
         self.uid = uid
         self.title = make_unicode(title)
         self.url = None if html else transform_url(url)
@@ -64,6 +64,7 @@ class Window:
         self.frameless = frameless
         self.hidden = hidden
         self.minimized = minimized
+        self.topmost = topmost
 
         self._js_api = js_api
         self._functions = {}
@@ -247,6 +248,13 @@ class Window:
         Toggle fullscreen mode
         """
         self.gui.toggle_fullscreen(self.uid)
+
+    @_shown_call
+    def toggle_topmost(self):
+        """
+        Toggle topmost mode
+        """
+        self.gui.toggle_topmost(self.uid)
 
     @_shown_call
     def move(self, x, y):
