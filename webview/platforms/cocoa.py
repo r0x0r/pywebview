@@ -801,6 +801,10 @@ def toggle_fullscreen(uid):
     BrowserView.instances[uid].toggle_fullscreen()
 
 
+def toggle_topmost(uid):
+    raise NotImplementedError('toggle_topmost is not yet implemented for cocoa.')
+
+
 def resize(width, height, uid):
     BrowserView.instances[uid].resize(width, height)
 
