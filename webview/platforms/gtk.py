@@ -414,6 +414,12 @@ def toggle_fullscreen(uid):
     glib.idle_add(_toggle_fullscreen)
 
 
+def toggle_topmost(uid):
+    def _toggle_topmost():
+        raise NotImplementedError('toggle_topmost is not yet implemented for gtk.')
+    glib.idle_add(_toggle_topmost)
+
+
 def resize(width, height, uid):
     def _resize():
         BrowserView.instances[uid].resize(width,height)

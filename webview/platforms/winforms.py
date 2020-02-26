@@ -379,6 +379,10 @@ class BrowserView:
                 self.frameless = window.frameless
                 self.FormBorderStyle = 0
 
+            self.is_topmost = False
+            if window.topmost:
+                self.toggle_topmost()
+
             if is_cef:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             elif is_edge:
@@ -485,6 +489,18 @@ class BrowserView:
                     self.FormBorderStyle = self.old_style
                     self.Location = self.old_location
                     self.is_fullscreen = False
+
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](_toggle))
+            else:
+                _toggle()
+
+        def toggle_topmost(self):
+            def _toggle():
+                if not self.is_topmost:
+                    self.TopMost = True
+                else:
+                    self.TopMost = False
 
             if self.InvokeRequired:
                 self.Invoke(Func[Type](_toggle))
@@ -765,6 +781,11 @@ def hide(uid):
 def toggle_fullscreen(uid):
     window = BrowserView.instances[uid]
     window.toggle_fullscreen()
+
+
+def toggle_topmost(uid):
+    window = BrowserView.instances[uid]
+    window.toggle_topmost()
 
 
 def resize(width, height, uid):
