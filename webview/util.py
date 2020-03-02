@@ -22,7 +22,15 @@ from .js import api, npo, dom, event
 
 _token = uuid4().hex
 
-default_html = '<!doctype html><html><head></head><body></body></html>'
+default_html = """
+    <!doctype html>
+    <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=0">
+        </head>
+        <body></body>
+    </html>
+"""
 
 logger = logging.getLogger('pywebview')
 
