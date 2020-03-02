@@ -806,7 +806,7 @@ def evaluate_js(script, uid):
 
 
 def get_position(uid):
-    return BrowserView.instances[uid].Top, BrowserView.instances[uid].Left
+    return BrowserView.instances[uid].Left, BrowserView.instances[uid].Top
 
 
 def get_size(uid):
