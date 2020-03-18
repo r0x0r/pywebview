@@ -103,7 +103,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False, frameless=False,
-                  minimized=False, confirm_close=False, background_color='#FFFFFF', text_select=False):
+                  minimized=False, confirm_close=False, background_color='#FFFFFF', text_select=False, transparent=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -120,6 +120,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param confirm_close: Display a window close confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
+    :param transparent: Don't draw window background.
     :return: window object.
     """
 
@@ -131,7 +132,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     window = Window(uid, make_unicode(title), transform_url(url), html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden, frameless,
-                    minimized, confirm_close, background_color, js_api, text_select)
+                    minimized, confirm_close, background_color, js_api, text_select, transparent)
     windows.append(window)
 
     if threading.current_thread().name != 'MainThread' and guilib:

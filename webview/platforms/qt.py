@@ -86,6 +86,12 @@ class BrowserView(QMainWindow):
                 QApplication.instance().installEventFilter(self)
                 self.setMouseTracking(True)
 
+            self.transparent = parent.transparent
+            if parent.transparent:
+                self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+                self.setAttribute(QtCore.Qt.WA_OpaquePaintEvent, False)
+                self.setStyleSheet("background: transparent;")
+
         def contextMenuEvent(self, event):
             menu = self.page().createStandardContextMenu()
 
@@ -114,7 +120,7 @@ class BrowserView(QMainWindow):
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
                 window = Window('web_inspector', title, url, '', 700, 500, None, None, True, False,
-                                (300, 200), False, False, False, False, '#fff', None, False)
+                                (300, 200), False, False, False, False, '#fff', None, False, False)
 
                 inspector = BrowserView(window)
                 inspector.show()
@@ -155,6 +161,9 @@ class BrowserView(QMainWindow):
                 self.nav_handler = BrowserView.NavigationHandler(self)
             else:
                 self.nav_handler = None
+
+            if parent.transparent:
+                self.setBackgroundColor(QtCore.Qt.transparent)
 
         if is_webengine:
             def onFeaturePermissionRequested(self, url, feature):
@@ -218,6 +227,16 @@ class BrowserView(QMainWindow):
         self.frameless = window.frameless
         if self.frameless:
             self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
+
+        self.transparent = window.transparent
+        if self.transparent:
+            # Override the background color
+            self.background_color = QColor('transparent')
+            palette = self.palette()
+            palette.setColor(self.backgroundRole(), self.background_color)
+            self.setPalette(palette)
+            # Enable the transparency hint
+            self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
         self.view = BrowserView.WebView(self)
 
