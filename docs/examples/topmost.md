@@ -9,6 +9,6 @@ import webview
 if __name__ == '__main__':
     webview.create_window('Topmost window',
                           'https://pywebview.flowrl.com/hello',
-                          topmost=True)
+                          on_top=True)
     webview.start()
 ```

@@ -414,10 +414,10 @@ def toggle_fullscreen(uid):
     glib.idle_add(_toggle_fullscreen)
 
 
-def toggle_topmost(uid):
-    def _toggle_topmost():
-        raise NotImplementedError('toggle_topmost is not yet implemented for gtk.')
-    glib.idle_add(_toggle_topmost)
+def on_top(uid):
+    def _on_top():
+        raise NotImplementedError('on_top is not yet implemented for gtk.')
+    glib.idle_add(_on_top)
 
 
 def resize(width, height, uid):

@@ -6,11 +6,14 @@ Switch application window to topmost mode after five seconds (window stays on to
 import webview
 import time
 
-def toggle_topmost(window):
+def on_top(window):
     # wait a few seconds before toggling topmost:
     time.sleep(5)
 
-    window.toggle_topmost()
+    window.toggle_on_top()
+    #wait a bit, then deactivate
+    time.sleep(5)
+    window.toggle_on_top()
 
 
 if __name__ == '__main__':
