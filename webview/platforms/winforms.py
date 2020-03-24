@@ -379,9 +379,9 @@ class BrowserView:
                 self.frameless = window.frameless
                 self.FormBorderStyle = 0
 
-            self.is_topmost = False
-            if window.topmost:
-                self.toggle_topmost()
+            self.OnTop = False
+            if window.on_top:
+                self.toggle_on_top()
 
             if is_cef:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
@@ -475,7 +475,6 @@ class BrowserView:
                     self.old_state = self.WindowState
                     self.old_style = self.FormBorderStyle
                     self.old_location = self.Location
-                    self.TopMost = True
                     self.FormBorderStyle = 0  # FormBorderStyle.None
                     self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
                     self.WindowState = WinForms.FormWindowState.Maximized
@@ -483,7 +482,6 @@ class BrowserView:
                     windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y,
                                             screen.Bounds.Width, screen.Bounds.Height, 64)
                 else:
-                    self.TopMost = False
                     self.Size = self.old_size
                     self.WindowState = self.old_state
                     self.FormBorderStyle = self.old_style
@@ -495,13 +493,12 @@ class BrowserView:
             else:
                 _toggle()
 
-        def toggle_topmost(self):
+        def toggle_on_top(self):
             def _toggle():
-                if not self.is_topmost:
-                    self.TopMost = True
-                else:
-                    self.TopMost = False
-
+                self.OnTop = not self.OnTop
+                z_order = -1 if self.OnTop is True else -2
+                SWP_NOSIZE = 0x0001  # Retains the current size
+                windll.user32.SetWindowPos(self.Handle.ToInt32(), z_order, self.Location.X, self.Location.Y, None, None, SWP_NOSIZE)
             if self.InvokeRequired:
                 self.Invoke(Func[Type](_toggle))
             else:
@@ -783,9 +780,9 @@ def toggle_fullscreen(uid):
     window.toggle_fullscreen()
 
 
-def toggle_topmost(uid):
+def toggle_on_top(uid):
     window = BrowserView.instances[uid]
-    window.toggle_topmost()
+    window.toggle_on_top()
 
 
 def resize(width, height, uid):
