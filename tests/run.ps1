@@ -32,6 +32,7 @@ $tests=@(
   "test_multi_window.py::test_evaluate_js",
   "test_multi_window.py::test_js_bridge",
   "test_noresize.py",
+  "test_on_top.py",
   "test_set_title.py",
   "test_resize.py",
   "test_simple_browser.py",
