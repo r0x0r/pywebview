@@ -63,8 +63,8 @@ class Window:
         self.text_select = text_select
         self.frameless = frameless
         self.hidden = hidden
-        self.minimized = minimized
         self.on_top = on_top
+        self.minimized = minimized
 
         self._js_api = js_api
         self._functions = {}
@@ -110,6 +110,16 @@ class Window:
         self.shown.wait(15)
         _, y = self.gui.get_position(self.uid)
         return y
+
+    @property
+    def on_top(self):
+        return self.__on_top
+
+    @on_top.setter
+    def on_top(self, on_top):
+        self.__on_top = on_top
+        if hasattr(self, 'gui') and self.gui != None:
+            self.gui.set_on_top(self.uid, on_top)
 
     @_loaded_call
     def get_elements(self, selector):
@@ -248,13 +258,6 @@ class Window:
         Toggle fullscreen mode
         """
         self.gui.toggle_fullscreen(self.uid)
-
-    @_shown_call
-    def toggle_on_top(self):
-        """
-        Toggle topmost mode
-        """
-        self.gui.toggle_on_top(self.uid)
 
     @_shown_call
     def move(self, x, y):

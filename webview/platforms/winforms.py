@@ -370,6 +370,7 @@ class BrowserView:
             self.loaded = window.loaded
             self.url = window.url
             self.text_select = window.text_select
+            self.on_top = window.on_top
 
             self.is_fullscreen = False
             if window.fullscreen:
@@ -378,11 +379,6 @@ class BrowserView:
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = 0
-
-            self.OnTop = False
-            if window.on_top:
-                self.toggle_on_top()
-
             if is_cef:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             elif is_edge:
@@ -396,7 +392,6 @@ class BrowserView:
 
             if is_cef:
                 self.Resize += self.on_resize
-
 
         def on_shown(self, sender, args):
             if not is_cef:
@@ -493,16 +488,21 @@ class BrowserView:
             else:
                 _toggle()
 
-        def toggle_on_top(self):
-            def _toggle():
-                self.OnTop = not self.OnTop
-                z_order = -1 if self.OnTop is True else -2
+        @property
+        def on_top(self):
+            return self.on_top
+
+        @on_top.setter
+        def on_top(self, on_top):
+            def _set():
+                z_order = -1 if on_top is True else -2
                 SWP_NOSIZE = 0x0001  # Retains the current size
                 windll.user32.SetWindowPos(self.Handle.ToInt32(), z_order, self.Location.X, self.Location.Y, None, None, SWP_NOSIZE)
+            print (self.InvokeRequired)
             if self.InvokeRequired:
-                self.Invoke(Func[Type](_toggle))
+                self.Invoke(Func[Type](_set))
             else:
-                _toggle()
+                _set()
 
         def resize(self, width, height):
             windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
@@ -779,10 +779,13 @@ def toggle_fullscreen(uid):
     window = BrowserView.instances[uid]
     window.toggle_fullscreen()
 
-
-def toggle_on_top(uid):
+def get_on_top(uid):
     window = BrowserView.instances[uid]
-    window.toggle_on_top()
+    return window.on_top
+
+def set_on_top(uid, on_top):
+    window = BrowserView.instances[uid]
+    window.on_top = on_top
 
 
 def resize(width, height, uid):
