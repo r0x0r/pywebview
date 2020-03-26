@@ -1,9 +1,10 @@
-import webview
-import time
+# Topmost window
 
-"""
-This example demonstrates how to create a topmost webview window.
-"""
+Create a window that stays on top of, or in front of, other windows.
+
+``` python
+import pywebview
+import time
 
 def deactivate(window):
     #window starts on top and is changed later
@@ -17,3 +18,4 @@ if __name__ == '__main__':
                           'https://pywebview.flowrl.com/hello',
                           on_top=True)
     webview.start(deactivate, window)
+```
