@@ -498,7 +498,6 @@ class BrowserView:
                 z_order = -1 if on_top is True else -2
                 SWP_NOSIZE = 0x0001  # Retains the current size
                 windll.user32.SetWindowPos(self.Handle.ToInt32(), z_order, self.Location.X, self.Location.Y, None, None, SWP_NOSIZE)
-            print (self.InvokeRequired)
             if self.InvokeRequired:
                 self.Invoke(Func[Type](_set))
             else:
