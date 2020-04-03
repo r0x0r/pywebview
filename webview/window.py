@@ -310,12 +310,12 @@ class Window:
         for func in functions:
             name = func.__name__
             self._functions[name] = func
-            
+
             try:
                 params = list(inspect.getfullargspec(func).args) # Python 3
             except AttributeError:
                 params = list(inspect.getargspec(func).args)  # Python 2
-            
+
 
             func_list.append({
                 'func': name,
