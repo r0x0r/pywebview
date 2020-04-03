@@ -316,7 +316,7 @@ class BrowserView:
         if window.resizable:
             window_mask = window_mask | AppKit.NSResizableWindowMask
 
-        if window.frameless:
+        if window.frameless or window.transparent:
             window_mask = window_mask | NSFullSizeContentViewWindowMask | AppKit.NSTexturedBackgroundWindowMask
 
         # The allocated resources are retained because we would explicitly delete
@@ -324,7 +324,6 @@ class BrowserView:
         self.window = AppKit.NSWindow.alloc().\
             initWithContentRect_styleMask_backing_defer_(rect, window_mask, AppKit.NSBackingStoreBuffered, False).retain()
         self.window.setTitle_(window.title)
-        self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color))
         self.window.setMinSize_(AppKit.NSSize(window.min_size[0], window.min_size[1]))
         self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
@@ -341,6 +340,18 @@ class BrowserView:
         else:
             self.window.center()
 
+        if window.transparent:
+            self.window.setOpaque_(False)
+            self.window.setHasShadow_(False)
+            self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color, 0))
+            self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
+            self.webkit.setOpaque_(False)
+            self.webkit.setValue_forKey_(True, 'drawsTransparentBackground')
+        else:
+            self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color))
+
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
         self.webkit.setUIDelegate_(self._browserDelegate)
@@ -349,11 +360,10 @@ class BrowserView:
 
         self.frameless = window.frameless
 
-        if window.frameless:
+        if window.frameless or window.transparent:
             # Make content full size and titlebar transparent
             self.window.setTitlebarAppearsTransparent_(True)
             self.window.setTitleVisibility_(NSWindowTitleHidden)
-
         else:
             # Set the titlebar color (so that it does not change with the window color)
             self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
@@ -652,7 +662,7 @@ class BrowserView:
         return val
 
     @staticmethod
-    def nscolor_from_hex(hex_string):
+    def nscolor_from_hex(hex_string, alpha=1.0):
         """
         Convert given hex color to NSColor.
 
@@ -671,7 +681,7 @@ class BrowserView:
         )
         rgb = [i / 255.0 for i in rgb]      # Normalize to range(0.0, 1.0)
 
-        return AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(rgb[0], rgb[1], rgb[2], 1.0)
+        return AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(rgb[0], rgb[1], rgb[2], alpha)
 
     @staticmethod
     def get_instance(attr, value):
