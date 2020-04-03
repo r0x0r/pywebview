@@ -353,10 +353,12 @@ class BrowserView:
             # Make content full size and titlebar transparent
             self.window.setTitlebarAppearsTransparent_(True)
             self.window.setTitleVisibility_(NSWindowTitleHidden)
-
         else:
             # Set the titlebar color (so that it does not change with the window color)
             self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
+
+        if window.on_top:
+            self.window.setLevel_(AppKit.NSStatusWindowLevel)
 
         try:
             self.webkit.evaluateJavaScript_completionHandler_('', lambda a, b: None)
@@ -865,3 +867,12 @@ def get_size(uid):
     semaphore.acquire()
 
     return dimensions
+
+
+def set_on_top(uid, top):
+    def _set_on_top():
+        level = AppKit.NSStatusWindowLevel if top else AppKit.NSNormalWindowLevel
+        BrowserView.instances[uid].window.setLevel_(level)
+
+    AppHelper.callAfter(_set_on_top)
+
