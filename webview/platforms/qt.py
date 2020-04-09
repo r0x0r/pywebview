@@ -64,6 +64,7 @@ class BrowserView(QMainWindow):
     window_restore_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
     evaluate_js_trigger = QtCore.pyqtSignal(str, str)
+    on_top_trigger = QtCore.pyqtSignal(bool)
 
     class JSBridge(QtCore.QObject):
         qtype = QtCore.QJsonValue if is_webengine else str
@@ -216,8 +217,14 @@ class BrowserView(QMainWindow):
         self.setMinimumSize(window.min_size[0], window.min_size[1])
 
         self.frameless = window.frameless
+        flags = self.windowFlags()
         if self.frameless:
-            self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
+            flags = flags | QtCore.Qt.FramelessWindowHint
+
+        if window.on_top:
+            flags = flags | QtCore.Qt.WindowStaysOnTopHint
+
+        self.setWindowFlags(flags)
 
         self.view = BrowserView.WebView(self)
 
@@ -253,6 +260,7 @@ class BrowserView(QMainWindow):
         self.current_url_trigger.connect(self.on_current_url)
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
+        self.on_top_trigger.connect(self.on_set_on_top)
 
         if is_webengine and platform.system() != 'OpenBSD':
             self.channel = QWebChannel(self.view.page())
@@ -279,8 +287,6 @@ class BrowserView(QMainWindow):
             self.raise_()
 
         self.shown.set()
-
-
 
     def on_set_title(self, title):
         self.setWindowTitle(title)
@@ -311,6 +317,15 @@ class BrowserView(QMainWindow):
 
     def on_load_html(self, content, base_uri):
         self.view.setHtml(content, QtCore.QUrl(base_uri))
+
+    def on_set_on_top(self, top):
+        flags = self.windowFlags()
+        if top:
+            self.setWindowFlags(flags | QtCore.Qt.WindowStaysOnTopHint)
+        else:
+            self.setWindowFlags(flags & ~QtCore.Qt.WindowStaysOnTopHint)
+
+        self.show()
 
     def closeEvent(self, event):
         self.pywebview_window.closing.set()
@@ -457,6 +472,9 @@ class BrowserView(QMainWindow):
 
     def restore(self):
         self.window_restore_trigger.emit()
+
+    def set_on_top(self, top):
+        self.on_top_trigger.emit(top)
 
     def evaluate_js(self, script):
         self.loaded.wait()
@@ -635,3 +653,7 @@ def get_position(uid):
 def get_size(uid):
     window = BrowserView.instances[uid]
     return window.width(), window.height()
+
+
+def set_on_top(uid, top):
+    BrowserView.instances[uid].set_on_top(top)
