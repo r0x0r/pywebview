@@ -118,6 +118,9 @@ class BrowserView:
             self.webview.connect('button-press-event', self.on_mouse_press)
             self.window.connect('motion-notify-event', self.on_mouse_move)
 
+        if window.on_top:
+            self.window.set_keep_above(True)
+
         if _debug:
             self.webview.get_settings().props.enable_developer_extras = True
         else:
@@ -495,3 +498,11 @@ def get_position(uid):
 
 def get_size(uid):
     return BrowserView.instances[uid].window.get_size()
+
+def set_on_top(uid, top):
+    def _set_on_top():
+        BrowserView.instances[uid].window.set_keep_above(top)
+
+    glib.idle_add(_set_on_top)
+
+
