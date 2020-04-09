@@ -417,10 +417,11 @@ def toggle_fullscreen(uid):
     glib.idle_add(_toggle_fullscreen)
 
 
-def on_top(uid):
-    def _on_top():
-        raise NotImplementedError('on_top is not yet implemented for gtk.')
-    glib.idle_add(_on_top)
+def set_on_top(uid, top):
+    def _set_on_top():
+        BrowserView.instances[uid].window.set_keep_above(top)
+
+    glib.idle_add(_set_on_top)
 
 
 def resize(width, height, uid):
@@ -499,10 +500,5 @@ def get_position(uid):
 def get_size(uid):
     return BrowserView.instances[uid].window.get_size()
 
-def set_on_top(uid, top):
-    def _set_on_top():
-        BrowserView.instances[uid].window.set_keep_above(top)
-
-    glib.idle_add(_set_on_top)
 
 

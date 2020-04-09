@@ -778,9 +778,6 @@ def toggle_fullscreen(uid):
     window = BrowserView.instances[uid]
     window.toggle_fullscreen()
 
-def get_on_top(uid):
-    window = BrowserView.instances[uid]
-    return window.on_top
 
 def set_on_top(uid, on_top):
     window = BrowserView.instances[uid]

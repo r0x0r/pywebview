@@ -620,8 +620,8 @@ def toggle_fullscreen(uid):
     BrowserView.instances[uid].toggle_fullscreen()
 
 
-def on_top(uid):
-    raise NotImplementedError('on_top is not yet implemented for qt.')
+def set_on_top(uid, top):
+    BrowserView.instances[uid].set_on_top(top)
 
 
 def resize(width, height, uid):
@@ -653,7 +653,3 @@ def get_position(uid):
 def get_size(uid):
     window = BrowserView.instances[uid]
     return window.width(), window.height()
-
-
-def set_on_top(uid, top):
-    BrowserView.instances[uid].set_on_top(top)
