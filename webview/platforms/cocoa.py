@@ -803,8 +803,12 @@ def toggle_fullscreen(uid):
     BrowserView.instances[uid].toggle_fullscreen()
 
 
-def on_top(uid):
-    raise NotImplementedError('on_top is not yet implemented for cocoa.')
+def set_on_top(uid, top):
+    def _set_on_top():
+        level = AppKit.NSStatusWindowLevel if top else AppKit.NSNormalWindowLevel
+        BrowserView.instances[uid].window.setLevel_(level)
+
+    AppHelper.callAfter(_set_on_top)
 
 
 def resize(width, height, uid):
@@ -869,10 +873,5 @@ def get_size(uid):
     return dimensions
 
 
-def set_on_top(uid, top):
-    def _set_on_top():
-        level = AppKit.NSStatusWindowLevel if top else AppKit.NSNormalWindowLevel
-        BrowserView.instances[uid].window.setLevel_(level)
 
-    AppHelper.callAfter(_set_on_top)
 
