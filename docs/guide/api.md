@@ -7,8 +7,8 @@
 webview.create_window(title, url='', html='', js_api=None, width=800, height=600,
                       x=None, y=None, resizable=True, fullscreen=False, \
                       min_size=(200, 100), hidden=False, frameless=False, \
-                      minimized=False, confirm_close=False, background_color='#FFF', \
-                      text_select=False)
+                      minimized=False, on_top=False, confirm_close=False, \
+                      background_color='#FFF', text_select=False)
 ```
 
 Create a new _pywebview_ window and returns its instance. Window is not shown until the GUI loop is started. If the function is invoked during the GUI loop, the window is displayed immediately.
@@ -27,6 +27,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `hidden` - Create a window hidden by default. Default is False
 * `frameless` - Create a frameless easy-draggable window. Default is False.
 * `minimized` - Start in minimized mode
+* `on_top` - Set window to be always on top. Default is False.
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
 * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) CSS property.
@@ -63,6 +64,13 @@ A CSRF token property unique to the session. The same token is exposed as `windo
 
 These properties and functions are part of the `window` object returned by `create_window`
 
+## on_top
+
+``` python
+window.on_top
+```
+
+Get or set whether the window is always on top
 
 ## x
 ``` python
