@@ -46,7 +46,7 @@ def _loaded_call(function):
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, minimized, confirm_close, background_color,
-                 js_api, text_select):
+                 js_api, text_select, user_agent):
         self.uid = uid
         self.title = make_unicode(title)
         self.url = None if html else transform_url(url)
@@ -64,6 +64,7 @@ class Window:
         self.frameless = frameless
         self.hidden = hidden
         self.minimized = minimized
+        self.user_agent = user_agent
 
         self._js_api = js_api
         self._functions = {}
@@ -299,12 +300,12 @@ class Window:
         for func in functions:
             name = func.__name__
             self._functions[name] = func
-            
+
             try:
                 params = list(inspect.getfullargspec(func).args) # Python 3
             except AttributeError:
                 params = list(inspect.getargspec(func).args)  # Python 2
-            
+
 
             func_list.append({
                 'func': name,
