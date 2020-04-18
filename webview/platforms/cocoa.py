@@ -338,6 +338,9 @@ class BrowserView:
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
 
+        if 'user_agent' in settings and settings['user_agent']:
+            self.webkit.setCustomUserAgent_(settings['user_agent'])
+
         if window.initial_x is not None and window.initial_y is not None:
             self.move(window.initial_x, window.initial_y)
         else:
