@@ -115,6 +115,8 @@ class BrowserView:
             self.web_browser.IsWebBrowserContextMenuEnabled = _debug
             self.web_browser.WebBrowserShortcutsEnabled = False
             self.web_browser.DpiAware = True
+            if 'user_agent' in settings and settings['user_agent']:
+                self.web_browser.ChangeUserAgent(settings['user_agent'])
 
             self.web_browser.ScriptErrorsSuppressed = not _debug
             self.web_browser.IsWebBrowserContextMenuEnabled = _debug
