@@ -40,6 +40,8 @@ old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
 
 renderer = 'gtkwebkit2'
 
+settings = {}
+
 class BrowserView:
     instances = {}
 
@@ -110,9 +112,9 @@ class BrowserView:
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('notify::title', self.on_title_change)
         self.webview.connect('decide-policy', self.on_navigation)
-        
-        if window.user_agent:
-            self.webview.get_settings().props.user_agent = window.user_agent
+
+        if 'user_agent' in settings and settings['user_agent']:
+            self.webview.get_settings().props.user_agent = settings['user_agent']
 
         if window.frameless:
             self.window.set_decorated(False)
