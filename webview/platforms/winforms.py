@@ -40,6 +40,7 @@ from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
 logger = logging.getLogger('pywebview')
 
+settings = {}
 
 def _is_edge():
     try:

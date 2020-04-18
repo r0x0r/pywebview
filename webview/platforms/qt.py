@@ -24,6 +24,7 @@ from webview.js.css import disable_text_select
 
 logger = logging.getLogger('pywebview')
 
+settings = {}
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QT_VERSION_STR
