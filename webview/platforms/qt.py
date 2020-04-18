@@ -174,6 +174,12 @@ class BrowserView(QMainWindow):
                     return False
                 return True
 
+        def userAgentForUrl(self, url):
+            if 'user_agent' in settings and settings['user_agent']:
+                return settings['user_agent']
+            else:
+                return super().userAgentForUrl(url)
+
         def createWindow(self, type):
             return self.nav_handler
 
