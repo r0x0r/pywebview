@@ -5,8 +5,7 @@ import shutil
 import sys
 import webbrowser
 
-import win32gui
-import win32con
+from ctypes import windll
 from functools import wraps
 from uuid import uuid1
 from threading import Event
@@ -111,8 +110,8 @@ class Browser:
         self.browser.CloseBrowser(True)
 
     def resize(self, width, height):
-        win32gui.SetWindowPos(self.inner_hwnd, win32con.NULL, 0, 0, width - 16, height - 38,
-                              win32con.SWP_NOZORDER | win32con.SWP_NOMOVE | win32con.SWP_NOACTIVATE)
+        windll.user32.SetWindowPos(self.inner_hwnd, 0, 0, 0, width - 16, height - 38,
+                                   0x0002 | 0x0004 | 0x0010)
         self.browser.NotifyMoveOrResizeStarted()
 
     def evaluate_js(self, code):
