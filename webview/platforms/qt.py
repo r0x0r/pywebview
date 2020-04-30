@@ -15,7 +15,7 @@ from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore
 
-from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.localization import localization
 from webview.window import Window
 from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
@@ -175,8 +175,9 @@ class BrowserView(QMainWindow):
                 return True
 
         def userAgentForUrl(self, url):
-            if 'user_agent' in settings and settings['user_agent']:
-                return settings['user_agent']
+            user_agent = settings.get('user_agent') or _user_agent
+            if user_agent:
+                return user_agent
             else:
                 return super().userAgentForUrl(url)
 

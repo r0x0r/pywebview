@@ -48,7 +48,7 @@ _http_server = False
 token = _token
 windows = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False):
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
     global guilib, _debug, _multiprocessing, _http_server
 
     def _create_children(other_windows):
@@ -59,6 +59,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
             guilib.create_window(window)
 
     _debug = debug
+    _user_agent = user_agent
     #_multiprocessing = multiprocessing
     multiprocessing = False # TODO
     _http_server = http_server

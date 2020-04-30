@@ -18,7 +18,7 @@ from threading import Event, Semaphore
 from ctypes import windll
 from uuid import uuid4
 
-from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug
+from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent
 from webview.guilib import forced_gui_
 from webview.http_server import start_server
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
@@ -115,8 +115,10 @@ class BrowserView:
             self.web_browser.IsWebBrowserContextMenuEnabled = _debug
             self.web_browser.WebBrowserShortcutsEnabled = False
             self.web_browser.DpiAware = True
-            if 'user_agent' in settings and settings['user_agent']:
-                self.web_browser.ChangeUserAgent(settings['user_agent'])
+
+            user_agent = _user_agent or settings.get('user_agent')
+            if user_agent:
+                self.web_browser.ChangeUserAgent(user_agent])
 
             self.web_browser.ScriptErrorsSuppressed = not _debug
             self.web_browser.IsWebBrowserContextMenuEnabled = _debug
