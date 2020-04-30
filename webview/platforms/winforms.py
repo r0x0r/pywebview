@@ -118,7 +118,7 @@ class BrowserView:
 
             user_agent = _user_agent or settings.get('user_agent')
             if user_agent:
-                self.web_browser.ChangeUserAgent(user_agent])
+                self.web_browser.ChangeUserAgent(user_agent)
 
             self.web_browser.ScriptErrorsSuppressed = not _debug
             self.web_browser.IsWebBrowserContextMenuEnabled = _debug

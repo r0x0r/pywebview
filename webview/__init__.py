@@ -42,6 +42,7 @@ SAVE_DIALOG = 30
 
 guilib = None
 _debug = False
+_user_agent = None
 _multiprocessing = False
 _http_server = False
 
@@ -49,7 +50,7 @@ token = _token
 windows = []
 
 def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
-    global guilib, _debug, _multiprocessing, _http_server
+    global guilib, _debug, _multiprocessing, _http_server, _user_agent
 
     def _create_children(other_windows):
         if not windows[0].shown.wait(10):
