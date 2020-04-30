@@ -45,7 +45,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `http_server` - enable built-in HTTP server. If enabled, local files will be served using a local HTTP server on a random port. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `gui` - force a specific GUI. Allowed values are `cef`, `qt` or `gtk` depending on a platform. See [Renderer](/guide/renderer.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
-* `user_agent` - change user agent string.
+* `user_agent` - change user agent string. Not supported in EdgeHTML.
 
 ### Examples
 * [Simple window](/examples/open_url.html)
