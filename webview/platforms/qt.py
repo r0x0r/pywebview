@@ -15,7 +15,7 @@ from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore
 
-from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.localization import localization
 from webview.window import Window
 from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
@@ -24,6 +24,7 @@ from webview.js.css import disable_text_select
 
 logger = logging.getLogger('pywebview')
 
+settings = {}
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QT_VERSION_STR
@@ -173,6 +174,13 @@ class BrowserView(QMainWindow):
                     webbrowser.open(request.url().toString(), 2, True)
                     return False
                 return True
+
+        def userAgentForUrl(self, url):
+            user_agent = settings.get('user_agent') or _user_agent
+            if user_agent:
+                return user_agent
+            else:
+                return super().userAgentForUrl(url)
 
         def createWindow(self, type):
             return self.nav_handler

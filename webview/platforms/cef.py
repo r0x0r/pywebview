@@ -14,7 +14,7 @@ from time import sleep
 
 from webview.js.css import disable_text_select
 from webview.js import dom
-from webview import _debug
+from webview import _debug, _user_agent
 from webview.util import parse_api_js, default_html, js_bridge_call
 
 
@@ -209,6 +209,9 @@ def init(window):
 
         if not _debug:
             default_settings['remote_debugging_port'] = -1
+
+        if _user_agent:
+            default_settings['user_agent'] = _user_agent
 
         try: # set paths under Pyinstaller's one file mode
             default_settings.update({

@@ -19,9 +19,11 @@ from PyObjCTools import AppHelper
 from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
-from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import convert_string, parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
+
+settings = {}
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -335,6 +337,10 @@ class BrowserView:
         self.window.setFrame_display_(frame, True)
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
+
+        user_agent = settings.get('user_agent') or _user_agent
+        if user_agent:
+            self.webkit.setCustomUserAgent_(user_agent)
 
         if window.initial_x is not None and window.initial_y is not None:
             self.move(window.initial_x, window.initial_y)

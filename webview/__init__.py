@@ -42,14 +42,15 @@ SAVE_DIALOG = 30
 
 guilib = None
 _debug = False
+_user_agent = None
 _multiprocessing = False
 _http_server = False
 
 token = _token
 windows = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False):
-    global guilib, _debug, _multiprocessing, _http_server
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
+    global guilib, _debug, _multiprocessing, _http_server, _user_agent
 
     def _create_children(other_windows):
         if not windows[0].shown.wait(10):
@@ -59,6 +60,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
             guilib.create_window(window)
 
     _debug = debug
+    _user_agent = user_agent
     #_multiprocessing = multiprocessing
     multiprocessing = False # TODO
     _http_server = http_server
@@ -142,6 +144,3 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
         guilib.create_window(window)
 
     return window
-
-
-

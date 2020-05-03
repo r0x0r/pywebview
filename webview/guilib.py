@@ -96,7 +96,7 @@ def initialize(forced_gui=None):
         guis = [import_winforms]
 
         if not try_import(guis):
-            raise WebViewException('You must have either pythonnet installed in order to use pywebview.')
+            raise WebViewException('You must have pythonnet installed in order to use pywebview.')
     else:
         raise WebViewException('Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.')
 
