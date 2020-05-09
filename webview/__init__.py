@@ -23,7 +23,7 @@ from copy import deepcopy
 
 from webview.event import Event
 from webview.guilib import initialize
-from webview.util import _token, base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, WebViewException
+from webview.util import _token, base_uri, parse_file_type, escape_string, make_unicode, escape_line_breaks, WebViewException
 from webview.window import Window
 from .localization import localization as original_localization
 
@@ -133,7 +133,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
-    window = Window(uid, make_unicode(title), transform_url(url), html,
+    window = Window(uid, make_unicode(title), url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden, frameless,
                     minimized, on_top, confirm_close, background_color, js_api,
                     text_select)

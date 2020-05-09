@@ -39,21 +39,26 @@ class WebViewException(Exception):
     pass
 
 
-def base_uri(relative_path=''):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
+def get_app_root():
+    """
+    Gets the file root of the application.
+    """
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
+        return sys._MEIPASS
+    except AttributeError:
         if 'pytest' in sys.modules:
             for arg in reversed(sys.argv):
                 path = os.path.realpath(arg.split('::')[0])
                 if os.path.exists(path):
-                    base_path = path if os.path.isdir(path) else os.path.dirname(path)
-                    break
+                    return path if os.path.isdir(path) else os.path.dirname(path)
         else:
-            base_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+            return os.path.dirname(os.path.realpath(sys.argv[0]))
 
+
+def base_uri(relative_path=''):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = get_app_root()
     if not os.path.exists(base_path):
         raise ValueError('Path %s does not exist' % base_path)
 
@@ -150,13 +155,6 @@ def escape_string(string):
         .replace('"', r'\"') \
         .replace('\n', r'\n')\
         .replace('\r', r'\r')
-
-
-def transform_url(url):
-    if url and '://' not in url:
-        return base_uri(url)
-    else:
-        return url
 
 
 def make_unicode(string):

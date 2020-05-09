@@ -4,8 +4,8 @@ import os
 from functools import wraps
 
 from webview.event import Event
-from webview.http_server import start_server
-from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, WebViewException
+from webview.http_server import resolve_url
+from webview.util import base_uri, parse_file_type, escape_string, make_unicode, WebViewException
 from .js import css
 
 
@@ -49,7 +49,7 @@ class Window:
                  background_color, js_api, text_select):
         self.uid = uid
         self.title = make_unicode(title)
-        self.url = None if html else transform_url(url)
+        self.url = None if html else url
         self.html = html
         self.initial_width = width
         self.initial_height = height
@@ -82,9 +82,8 @@ class Window:
         self.loaded._initialize(multiprocessing)
         self.shown._initialize(multiprocessing)
         self._is_http_server = http_server
-        
-        if http_server and self.url and self.url.startswith('file://'):
-            self.url = start_server(self.url)
+
+        self.url = resolve_url(self.url, self._is_http_server or self.gui.renderer == 'edgehtml')
 
     @property
     def width(self):
@@ -151,10 +150,7 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        url = transform_url(url)
-
-        if (self._is_http_server or self.gui.renderer == 'edgehtml') and url.startswith('file://'):
-            url = start_server(url)
+        url = resolve_url(url, self._is_http_server or self.gui.renderer == 'edgehtml')
 
         self.gui.load_url(url, self.uid)
 
