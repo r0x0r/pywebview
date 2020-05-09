@@ -75,7 +75,6 @@ class Window:
         self.shown = Event()
 
         self.gui = None
-        self._httpd = None
         self._is_http_server = False
 
     def _initialize(self, gui, multiprocessing, http_server):
@@ -83,9 +82,9 @@ class Window:
         self.loaded._initialize(multiprocessing)
         self.shown._initialize(multiprocessing)
         self._is_http_server = http_server
-
+        
         if http_server and self.url and self.url.startswith('file://'):
-            self.url, self._httpd = start_server(self.url)
+            self.url = start_server(self.url)
 
     @property
     def width(self):
@@ -152,14 +151,10 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if self._httpd:
-            self._httpd.shutdown()
-            self._httpd = None
-
         url = transform_url(url)
 
         if (self._is_http_server or self.gui.renderer == 'edgehtml') and url.startswith('file://'):
-            url, self._httpd = start_server(url)
+            url = start_server(url)
 
         self.gui.load_url(url, self.uid)
 
@@ -172,9 +167,6 @@ class Window:
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         :param uid: uid of the target instance
         """
-
-        if self._httpd:
-            self._httpd.shutdown()
 
         content = make_unicode(content)
         self.gui.load_html(content, base_uri, self.uid)
