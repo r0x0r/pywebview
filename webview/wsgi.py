@@ -115,8 +115,10 @@ def wsgi_catch_errors(func):
             return func(*p)
         except BaseException:
             start_response = p[-1]
-            start_response("500 Server Error", [])
-            return [traceback.format_exc()]
+            start_response("500 Server Error", [
+                ('Content-Type', 'text/plain'),
+            ])
+            return [traceback.format_exc().encode('utf-8')]
 
     return handler
 
