@@ -14,6 +14,8 @@ __all__ = ('resolve_url',)
 
 logger = logging.getLogger('pywebview')
 
+_path_apps = {}
+
 
 def _get_random_port():
     def random_port():
@@ -35,18 +37,22 @@ def _get_random_port():
             return port
 
 
-def start_server(url):
+def get_wsgi_server(app):
+    if hasattr(app, '__webview_url'):
+        # It's already been spun up and is running
+        return app.__webview_url
+
     port = _get_random_port()
-    server = wsgiref.simple_server.make_server('localhost', port, wsgiref.simple_server.demo_app)
+    server = wsgiref.simple_server.make_server('localhost', port, app)
 
     t = threading.Thread(target=server.serve_forever)
     t.daemon = True
     t.start()
 
-    new_url = 'http://localhost:{0}/{1}'.format(port, os.path.basename(url))
-    logger.debug('HTTP server started on http://localhost:{0}'.format(port))
+    app.__webview_url = 'http://localhost:{0}/'.format(port)
+    logger.debug('HTTP server for {!r} started on {}'.format(app, app.__webview_url))
 
-    return new_url
+    return app.__webview_url
 
 
 def resolve_url(url, should_serve):
@@ -83,11 +89,13 @@ def resolve_url(url, should_serve):
 
         # If we have not been asked to serve local paths, bail
         if not should_serve:
+            # using pathlib for this because it turns out file URLs are full of dragons
             return pathlib.Path(path).as_uri()
 
         # Get/Build a WSGI app to serve the path and spin it up
-        app = wsgiref.simple_server.demo_app  # TODO
-        return get_wsgi_server(app)
+        if path not in _path_apps:
+            _path_apps[path] = wsgiref.simple_server.demo_app  # TODO
+        return get_wsgi_server(_path_apps[path])
     elif callable(url):
         # A wsgi application
         return get_wsgi_server(url)
