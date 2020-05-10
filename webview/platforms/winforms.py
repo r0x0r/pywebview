@@ -20,7 +20,7 @@ from uuid import uuid4
 
 from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent
 from webview.guilib import forced_gui_
-from webview.http_server import start_server
+from webview.serving import resolve_url
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
 from webview.js import alert
 from webview.js.css import disable_text_select
@@ -284,7 +284,7 @@ class BrowserView:
             if self.httpd:
                 self.httpd.shutdown()
 
-            url = start_server('file://' + self.temp_html)
+            url = resolve_url('file://' + self.temp_html)
             self.ishtml = True
             self.web_view.Navigate(url)
 
@@ -293,7 +293,7 @@ class BrowserView:
 
             # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
             if url.startswith('file://'):
-                url = start_server(self.url)
+                url = resolve_url(self.url)
 
             self.web_view.Navigate(url)
 
