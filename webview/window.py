@@ -83,7 +83,8 @@ class Window:
         self.shown._initialize(multiprocessing)
         self._is_http_server = http_server
 
-        self.url = resolve_url(self.url, self._is_http_server or self.gui.renderer == 'edgehtml')
+        self.real_url = resolve_url(self.url, self._is_http_server or self.gui.renderer == 'edgehtml')
+        print(f"_initialize {self.url=} {self.real_url=}")
 
     @property
     def width(self):
@@ -150,9 +151,10 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        url = resolve_url(url, self._is_http_server or self.gui.renderer == 'edgehtml')
+        self.url = url
+        self.real_url = resolve_url(url, self._is_http_server or self.gui.renderer == 'edgehtml')
 
-        self.gui.load_url(url, self.uid)
+        self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
     def load_html(self, content, base_uri=base_uri()):
