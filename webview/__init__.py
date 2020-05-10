@@ -27,6 +27,9 @@ from webview.util import _token, base_uri, parse_file_type, escape_string, make_
 from webview.window import Window
 from .localization import localization as original_localization
 
+# For export
+from .http_server import Routing, StaticFiles, StaticResources  # noqa
+
 logger = logging.getLogger('pywebview')
 handler = logging.StreamHandler()
 formatter = logging.Formatter('[pywebview] %(message)s')
