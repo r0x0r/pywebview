@@ -1,3 +1,4 @@
+import email.utils  # For datetime formatting
 from http import HTTPStatus
 import logging
 import mimetypes
@@ -28,6 +29,13 @@ logger = logging.getLogger(__name__)
 
 
 CHUNK_SIZE = 4 * 1024  # 4k
+
+
+# Follow Django in treating URLs as UTF-8 encoded (which requires undoing the
+# implicit ISO-8859-1 decoding applied in Python 3). Strictly speaking, URLs
+# should only be ASCII anyway, but UTF-8 can be found in the wild.
+def decode_path_info(path_info):
+    return path_info.encode("iso-8859-1", "replace").decode("utf-8", "replace")
 
 
 def send_simple_text(environ, start_response, status, body):
@@ -172,8 +180,6 @@ class StaticContentsApp:
     def __call__(self, environ, start_response):
         path = posixpath.normpath(environ['PATH_INFO'] or '/')
 
-        # TODO: Handle OPTIONS
-
         if environ['REQUEST_METHOD'] not in ('GET', 'HEAD'):
             return self.method_not_allowed(environ, start_response)
 
@@ -220,19 +226,33 @@ class StaticContentsApp:
 
         # TODO: Type negotiation
 
-        # TODO: Range
+        if 'HTTP_RANGE' in environ:
+            return self._serve_partial_file(environ, start_response, file, filename, mime)
+        else:
+            return self._serve_whole_file(environ, start_response, file, filename, mime)
 
-        return self._serve_whole_file(environ, start_response, file, filename, mime)
+    def _default_headers(self, mime, file):
+        rv = wsgiref.headers.Headers([
+            ('Content-Type', mime),
+            ('Accept-Ranges', 'bytes'),
+            # TODO: Cache control
+        ])
+
+        if hasattr(file, 'fileno'):
+            try:
+                stat = os.fstat(file.fileno())
+            except OSError:
+                pass
+            else:
+                rv['Content-Length'] = str(stat.st_size)
+                # rv['Last-Modified'] = email.utils.formatdate(stat.st_mtime, usegmt=True)
+
+        return rv
 
     def _serve_whole_file(self, environ, start_response, file, filename, mime):
-        status = '200 OK'
+        response_headers = self._default_headers(mime, file)
 
-        response_headers = [
-            ('Content-Type', mime),
-            # TODO: Cache control
-        ]
-
-        start_response(status, response_headers)
+        start_response('200 OK', response_headers._headers)
 
         if environ['REQUEST_METHOD'] == 'HEAD':
             file.close()
@@ -240,6 +260,77 @@ class StaticContentsApp:
         else:
             wrapper = environ.get('wsgi.file_wrapper', wsgiref.util.FileWrapper)
             return wrapper(file, CHUNK_SIZE)
+
+    def _parse_range(self, header, length):
+        unit, _, ranges = header.partition('=')
+        if unit != 'bytes':
+            raise ValueError("Range not satisfiable: {}".format(header))
+
+        ranges = [bit.strip().split('-') for bit in ranges.split(',')]
+        start, end = ranges[0]
+        start = int(start) if start else 0
+        end = int(end) if end else None
+
+        if length is not None:
+            if end is not None:
+                end = min(end, length)
+            else:
+                end = length
+        return start, end
+
+    def _compose_content_range(self, start, end, total):
+        rv = 'bytes '
+        if start is not None:
+            rv += str(start)
+        rv += '-'
+        if end is not None:
+            rv += str(end)
+        rv += '/'
+        if total is not None:
+            rv += str(total)
+        else:
+            rv += '*'
+        return rv
+
+    def _serve_partial_file(self, environ, start_response, file, filename, mime):
+        response_headers = self._default_headers(mime, file)
+        length = response_headers['Content-Length']
+        if length:
+            length = int(length)
+        else:
+            length = None
+        start, end = self._parse_range(environ['HTTP_RANGE'], length)
+
+        # TODO: Handle unsatisfiable ranges
+
+        response_headers['Content-Range'] = self._compose_content_range(start, end, length)
+        if end is None:
+            del response_headers['Content-Length']
+        else:
+            response_headers['Content-Length'] = str(end - start)
+
+        start_response('206 Partial Content', response_headers._headers)
+
+        if environ['REQUEST_METHOD'] == 'HEAD':
+            file.close()
+            return []
+        else:
+            return self._partial_file_wrapper(file, start, end)
+
+    def _partial_file_wrapper(self, file, start, end):
+        if start:
+            file.seek(start)
+
+        total = 0
+        if end is not None:
+            expected = end - (start or 0)
+        else:
+            expected = None
+
+        while (expected is None) or (total < expected):
+            data = file.read(min(CHUNK_SIZE, expected - total))
+            total += len(data)
+            yield data
 
 
 class StaticFiles(StaticContentsApp):
@@ -321,7 +412,7 @@ def resolve_url(url, should_serve):
         # To create an empty version of the struct
         bits = urllib.parse.urlparse("")
 
-    if bits.scheme != 'file':
+    if bits.scheme and bits.scheme != 'file':
         # an http, https, etc URL
         return url
     elif hasattr(url, '__fspath__') or isinstance(url, str):
