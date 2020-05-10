@@ -280,6 +280,7 @@ class StaticContentsApp:
             return wrapper(file, CHUNK_SIZE)
 
     def _parse_range(self, header, length):
+        logger.debug("Got range header %r (length=%s)", header, length)
         unit, _, ranges = header.partition('=')
         if unit != 'bytes':
             raise ValueError("Range not satisfiable: {}".format(header))
@@ -290,10 +291,8 @@ class StaticContentsApp:
         end = int(end) if end else None
 
         if length is not None:
-            if end is not None:
-                end = min(end, length)
-            else:
-                end = length
+            if end is None:
+                end = length - 1
         return start, end
 
     def _compose_content_range(self, start, end, total):
@@ -319,7 +318,19 @@ class StaticContentsApp:
             length = None
         start, end = self._parse_range(environ['HTTP_RANGE'], length)
 
-        # TODO: Handle unsatisfiable ranges
+        if length is not None:
+            # Check ranges
+            maxindex = length - 1
+            if start > maxindex or end > maxindex:
+                start_response('416 Range Not Satisfiable', [
+                    ('Content-Range', 'bytes */{}'.format(length))
+                ])
+                return []
+
+        assert start <= end
+        assert length is None or end < length
+
+        logger.debug("Serving %s (%s to %s of %s)", filename, start, end, length)
 
         response_headers['Content-Range'] = self._compose_content_range(start, end, length)
         if end is None:
@@ -336,19 +347,23 @@ class StaticContentsApp:
             return self._partial_file_wrapper(file, start, end)
 
     def _partial_file_wrapper(self, file, start, end):
-        if start:
-            file.seek(start)
-
         total = 0
         if end is not None:
-            expected = end - (start or 0)
+            expected = end - start
         else:
             expected = None
 
-        while (expected is None) or (total < expected):
+        if start:
+            file.seek(start)
+
+        while (expected is None) or (total <= expected):
             data = file.read(min(CHUNK_SIZE, expected - total))
+            if not data:
+                break
             total += len(data)
             yield data
+
+        logging.debug("Served %s of %s", total, expected)
 
 
 class StaticFiles(StaticContentsApp):
@@ -381,4 +396,7 @@ class StaticResources(StaticContentsApp):
             packagename = "{}.{}".format(self.root, slashed.replace('/', '.'))
         else:
             packagename = self.root
-        return importlib_resources.open_binary(packagename, basename)
+        try:
+            return importlib_resources.open_binary(packagename, basename)
+        except ModuleNotFoundError:
+            raise FileNotFoundError
