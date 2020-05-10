@@ -186,23 +186,18 @@ class StaticContentsApp:
 
         responder = None
         for option in path_options:
-            print(f"{option=}")
             try:
                 file = self.open(option)
             except FileNotFoundError:
-                print("\tfile not found")
                 if responder is not None:
                     responder = self.file_not_found
             except IsADirectoryError:
-                print("\tis a directory")
                 if responder is not None:
                     responder = self.is_a_directory
             except PermissionError:
-                print("\tpermission")
                 if responder is not None:
                     responder = self.no_permissions
             except NotADirectoryError:
-                print("\tnot a directory")
                 # This can happen if we get a file with a trailing slash
                 # This should only happen with the first option, and should be
                 # covered by the next option
@@ -256,7 +251,6 @@ class StaticFiles(StaticContentsApp):
 
     def open(self, file):
         path = os.path.join(self.root, file.lstrip('/'))
-        print(f"{file} -> {path}")
         return open(path, 'rb')
 
 
@@ -269,7 +263,11 @@ class StaticResources(StaticContentsApp):
 
     def open(self, file):
         slashed, basename = posixpath.split(file)
-        packagename = "{}.{}".format(self.root, slashed.replace('/', '.'))
+        slashed = slashed.rstrip('/')
+        if slashed:
+            packagename = "{}.{}".format(self.root, slashed.replace('/', '.'))
+        else:
+            packagename = self.root
         return importlib_resources.open_binary(packagename, basename)
 
 
@@ -320,9 +318,10 @@ def resolve_url(url, should_serve):
     if isinstance(url, str):
         bits = urllib.parse.urlparse(url)
     else:
+        # To create an empty version of the struct
         bits = urllib.parse.urlparse("")
 
-    if bits.scheme not in 'file':
+    if bits.scheme != 'file':
         # an http, https, etc URL
         return url
     elif hasattr(url, '__fspath__') or isinstance(url, str):
