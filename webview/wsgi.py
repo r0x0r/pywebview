@@ -198,15 +198,19 @@ class StaticContentsApp:
             try:
                 file = self.open(option)
             except FileNotFoundError:
+                logger.debug("file not found: %s", option)
                 if responder is not None:
                     responder = self.file_not_found
             except IsADirectoryError:
+                logger.debug("is a directory: %s", option)
                 if responder is not None:
                     responder = self.is_a_directory
             except PermissionError:
+                logger.debug("permission error: %s", option)
                 if responder is not None:
                     responder = self.no_permissions
             except NotADirectoryError:
+                logger.debug("not a directory: %s", option)
                 # This can happen if we get a file with a trailing slash
                 # This should only happen with the first option, and should be
                 # covered by the next option
@@ -344,7 +348,11 @@ class StaticFiles(StaticContentsApp):
         self.root = abspath(root)
 
     def open(self, file):
-        path = os.path.join(self.root, file.lstrip('/'))
+        if file:
+            path = os.path.join(self.root, file.lstrip('/'))
+        else:
+            path = self.root
+        logger.debug("Resolved %s to %s", file, path)
         return open(path, 'rb')
 
 
@@ -363,5 +371,3 @@ class StaticResources(StaticContentsApp):
         else:
             packagename = self.root
         return importlib_resources.open_binary(packagename, basename)
-
-
