@@ -145,8 +145,8 @@ class BrowserView:
             self.web_browser.DownloadComplete += self.on_download_complete
             self.web_browser.DocumentCompleted += self.on_document_completed
 
-            if window.url:
-                self.web_browser.Navigate(window.url)
+            if window.real_url:
+                self.web_browser.Navigate(window.real_url)
             elif window.html:
                 self.web_browser.DocumentText = window.html
             else:
@@ -254,8 +254,8 @@ class BrowserView:
 
             _allow_localhost()
 
-            if window.url:
-                self.load_url(window.url)
+            if window.real_url:
+                self.load_url(window.real_url)
             elif window.html:
                 self.load_html(window.html, '')
             else:
@@ -374,7 +374,7 @@ class BrowserView:
             self.closing = window.closing
             self.shown = window.shown
             self.loaded = window.loaded
-            self.url = window.url
+            self.url = window.real_url
             self.text_select = window.text_select
             self.on_top = window.on_top
 

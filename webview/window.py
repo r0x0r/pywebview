@@ -50,6 +50,7 @@ class Window:
         self.uid = uid
         self.title = make_unicode(title)
         self.url = None if html else url
+        self.real_url = None
         self.html = html
         self.initial_width = width
         self.initial_height = height
