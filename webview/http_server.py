@@ -161,7 +161,7 @@ class StaticContentsApp:
         raise NotImplementedError
 
     def __call__(self, environ, start_response):
-        path = posixpath.normpath(environ['PATH_INFO'])
+        path = posixpath.normpath(environ['PATH_INFO'] or '/')
 
         # TODO: Handle OPTIONS
 
@@ -180,6 +180,7 @@ class StaticContentsApp:
         except NotADirectoryError:
             # This can happen if we get a file with a trailing slash
             # TODO: Redirect to the non-slash version
+            logging.info("TODO: Redirect %s", path)
             return self.file_not_found(environ, start_response)
 
         if hasattr(file, 'name'):
