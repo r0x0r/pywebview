@@ -7,11 +7,13 @@ The bundled WSGI apps.
 """
 
 import email.utils  # For datetime formatting
+import functools
 from http import HTTPStatus
 import logging
 import mimetypes
 import os
 import posixpath
+import traceback
 import wsgiref.simple_server
 import wsgiref.util
 
@@ -106,6 +108,19 @@ def do_options(environ, start_response):
     return []
 
 
+def wsgi_catch_errors(func):
+    @functools.wraps(func)
+    def handler(*p):
+        try:
+            return func(*p)
+        except BaseException:
+            start_response = p[-1]
+            start_response("500 Server Error", [])
+            return [traceback.format_exc()]
+
+    return handler
+
+
 class Routing(dict):
     """
     Implements a basic URL routing system.
@@ -125,6 +140,7 @@ class Routing(dict):
         """
         return do_404(environ, start_response)
 
+    @wsgi_catch_errors
     def __call__(self, environ, start_response):
         # SCRIPT_NAME + PATH_INFO = full url
         urlpath = environ['SCRIPT_NAME'] + environ['PATH_INFO']
@@ -136,11 +152,14 @@ class Routing(dict):
             for prefix in self.keys()
             if posixpath.commonpath([prefix, urlpath]) == prefix
         ]
+        logger.debug("For %r found %r routes", urlpath, potentials)
         try:
             match = max(potentials, key=len)
         except ValueError:
             # max() got an empty list, aka no matches found
             return self.no_route_found(environ, start_response)
+
+        logger.debug("Selected %r", match)
 
         app = self[match]
         environ['SCRIPT_NAME'] = urlpath[:len(match)]
@@ -190,6 +209,7 @@ class StaticContentsApp:
         """
         raise NotImplementedError
 
+    @wsgi_catch_errors
     def __call__(self, environ, start_response):
         if environ['REQUEST_METHOD'] == 'OPTIONS':
             return do_options(environ, start_response)
@@ -210,15 +230,15 @@ class StaticContentsApp:
                 file = self.open(option)
             except FileNotFoundError:
                 logger.debug("file not found: %s", option)
-                if responder is not None:
+                if responder is None:
                     responder = self.file_not_found
             except IsADirectoryError:
                 logger.debug("is a directory: %s", option)
-                if responder is not None:
+                if responder is None:
                     responder = self.is_a_directory
             except PermissionError:
                 logger.debug("permission error: %s", option)
-                if responder is not None:
+                if responder is None:
                     responder = self.no_permissions
             except NotADirectoryError:
                 logger.debug("not a directory: %s", option)
@@ -336,7 +356,7 @@ class StaticContentsApp:
         if end is None:
             del response_headers['Content-Length']
         else:
-            response_headers['Content-Length'] = str(end - start)
+            response_headers['Content-Length'] = str(end - start + 1)
 
         start_response('206 Partial Content', response_headers._headers)
 
@@ -349,7 +369,7 @@ class StaticContentsApp:
     def _partial_file_wrapper(self, file, start, end):
         total = 0
         if end is not None:
-            expected = end - start
+            expected = end - start + 1
         else:
             expected = None
 
