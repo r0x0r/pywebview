@@ -4,7 +4,7 @@ import os
 from functools import wraps
 
 from webview.event import Event
-from webview.http_server import resolve_url
+from webview.serving import resolve_url
 from webview.util import base_uri, parse_file_type, escape_string, make_unicode, WebViewException
 from .js import css
 

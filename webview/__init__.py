@@ -12,23 +12,19 @@ http://github.com/r0x0r/pywebview/
 """
 
 
-import json
 import logging
 import os
 import re
-import sys
 import threading
 from uuid import uuid4
-from copy import deepcopy
 
 from webview.event import Event
 from webview.guilib import initialize
 from webview.util import _token, base_uri, parse_file_type, escape_string, make_unicode, escape_line_breaks, WebViewException
 from webview.window import Window
 from .localization import localization as original_localization
+from .wsgi import Routing, StaticFiles, StaticResources
 
-# For export
-from .http_server import Routing, StaticFiles, StaticResources  # noqa
 
 logger = logging.getLogger('pywebview')
 handler = logging.StreamHandler()
