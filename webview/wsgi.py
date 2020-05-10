@@ -154,14 +154,13 @@ class Routing(dict):
             for prefix in self.keys()
             if posixpath.commonpath([prefix, urlpath]) == prefix
         ]
-        logger.debug("For %r found %r routes", urlpath, potentials)
         try:
             match = max(potentials, key=len)
         except ValueError:
             # max() got an empty list, aka no matches found
             return self.no_route_found(environ, start_response)
 
-        logger.debug("Selected %r", match)
+        logger.debug("For %r found %r routes, selected %r", urlpath, potentials, match)
 
         app = self[match]
         environ['SCRIPT_NAME'] = urlpath[:len(match)]
@@ -174,6 +173,8 @@ class StaticContentsApp:
     """
     Base class for static serving implementatins
     """
+    max_age = 60  # 1min, takes the edge off any frequent responses while staying fresh
+
     def method_not_allowed(self, environ, start_response):
         """
         Handle if we got something besides GET or HEAD
@@ -356,9 +357,11 @@ class StaticContentsApp:
 
         response_headers['Content-Range'] = self._compose_content_range(start, end, length)
         if end is None:
+            amount = None
             del response_headers['Content-Length']
         else:
-            response_headers['Content-Length'] = str(end - start + 1)
+            amount = end - start + 1
+            response_headers['Content-Length'] = str(amount)
 
         start_response('206 Partial Content', response_headers._headers)
 
@@ -366,26 +369,22 @@ class StaticContentsApp:
             file.close()
             return []
         else:
-            return self._partial_file_wrapper(file, start, end)
+            return self._partial_file_wrapper(file, start, amount)
 
-    def _partial_file_wrapper(self, file, start, end):
-        total = 0
-        if end is not None:
-            expected = end - start + 1
-        else:
-            expected = None
+    def _partial_file_wrapper(self, file, skip, amount):
+        served = 0
 
-        if start:
-            file.seek(start)
+        if skip:
+            file.seek(skip)
 
-        while (expected is None) or (total <= expected):
-            data = file.read(min(CHUNK_SIZE, expected - total))
+        while (amount is None) or (served <= amount):
+            data = file.read(min(CHUNK_SIZE, amount - served))
             if not data:
                 break
-            total += len(data)
+            served += len(data)
             yield data
 
-        logging.debug("Served %s of %s", total, expected)
+        logging.debug("Served %s of %s", served, amount)
 
 
 class StaticFiles(StaticContentsApp):
