@@ -10,6 +10,15 @@ import threading
 import urllib.parse
 import wsgiref.simple_server
 import wsgiref.util
+
+try:
+    # Python 3.7+
+    import importlib.resources as importlib_resources
+except ImportError:
+    # Python 3.6
+    import importlib_resources
+
+
 from .util import abspath
 
 
@@ -218,12 +227,28 @@ class StaticContentsApp:
 
 
 class StaticFiles(StaticContentsApp):
+    """
+    Serves static files from a directory on the file system.
+    """
     def __init__(self, root):
         self.root = abspath(root)
 
     def open(self, file):
         path = os.path.join(self.root, file.lstrip('/'))
         return open(path, 'rb')
+
+
+class StaticResources(StaticContentsApp):
+    """
+    Serves static files from resources in python packages
+    """
+    def __init__(self, root):
+        self.root = root
+
+    def open(self, file):
+        slashed, basename = posixpath.split(file)
+        packagename = "{}.{}".format(self.root, slashed.replace('/', '.'))
+        return importlib_resources.open_binary(packagename, basename)
 
 
 def _get_random_port():
