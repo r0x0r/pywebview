@@ -4,7 +4,7 @@ import mimetypes
 import os
 import pathlib
 import posixpath
-from random import random
+import random
 import socket
 import threading
 import urllib.parse
@@ -227,23 +227,17 @@ class StaticFiles(StaticContentsApp):
 
 
 def _get_random_port():
-    def random_port():
-        port = int(random() * 64512 + 1023)
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    while True:
+        port = random.randint(1023, 65535)
 
-        try:
-            sock.bind(('localhost', port))
-        except OSError:
-            logger.warning('Port %s is in use' % port)
-            return None
-        else:
-            return port
-        finally:
-            sock.close()
-
-    for port in iter(random_port, ...):
-        if port is not None:
-            return port
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind(('localhost', port))
+            except OSError:
+                logger.warning('Port %s is in use' % port)
+                continue
+            else:
+                return port
 
 
 def get_wsgi_server(app):
