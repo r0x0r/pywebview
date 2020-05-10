@@ -1,5 +1,7 @@
-import os
+from http import HTTPStatus
 import logging
+import mimetypes
+import os
 import pathlib
 import posixpath
 from random import random
@@ -7,13 +9,71 @@ import socket
 import threading
 import urllib.parse
 import wsgiref.simple_server
-
-from .util import get_app_root
+import wsgiref.util
+from .util import abspath
 
 
 __all__ = ('resolve_url', 'StaticFiles', 'StaticResources', 'Routing')
 
 logger = logging.getLogger(__name__)
+
+
+CHUNK_SIZE = 4 * 1024  # 4k
+
+
+def send_simple_text(environ, start_response, status, body):
+    """
+    Send a simple message as plain text
+    """
+    if isinstance(status, int):
+        status = "{} {}".format(int(status), status.phrase)
+
+    if isinstance(body, str):
+        body = body.encode('utf-8')
+
+    response_headers = [
+        ('Content-Type', 'text/plain'),
+        ('Content-Length', str(len(body)))
+    ]
+
+    start_response(status, response_headers)
+    return [body]
+
+
+def do_403(environ, start_response):
+    """
+    Generic app to produce a 403
+    """
+    urlpath = environ['SCRIPT_NAME'] + environ['PATH_INFO']
+
+    return send_simple_text(
+        environ, start_response, HTTPStatus.FORBIDDEN, "Path {} is not allowed.".format(urlpath),
+    )
+
+
+def do_404(environ, start_response):
+    """
+    Generic app to produce a 404
+    """
+    urlpath = environ['SCRIPT_NAME'] + environ['PATH_INFO']
+
+    return send_simple_text(
+        environ, start_response, HTTPStatus.NOT_FOUND, "Path {} was not found".format(urlpath),
+    )
+
+
+def do_405(environ, start_response):
+    """
+    Generic app to produce a 405
+    """
+    urlpath = environ['SCRIPT_NAME'] + environ['PATH_INFO']
+
+    return send_simple_text(
+        environ, start_response, HTTPStatus.METHOD_NOT_ALLOWED,
+        "Method {} is not allowed on {}".format(
+            environ['REQUEST_METHOD'], urlpath,
+        ),
+    )
 
 
 class Routing(dict):
@@ -29,22 +89,11 @@ class Routing(dict):
         })
     """
 
-    def no_route_app(self, environ, start_response):
+    def no_route_found(self, environ, start_response):
         """
-        Filler app to handle if routing fails
+        Handle if there was no matching route
         """
-        urlpath = environ['SCRIPT_NAME'] + environ['PATH_INFO']
-
-        status = '404 Not Found'
-        response_body = "Path {} was not found".format(urlpath)
-
-        response_headers = [
-            ('Content-Type', 'text/plain'),
-            ('Content-Length', str(len(response_body)))
-        ]
-
-        start_response(status, response_headers)
-        return [response_body]
+        return do_404(environ, start_response)
 
     def __call__(self, environ, start_response):
         # SCRIPT_NAME + PATH_INFO = full url
@@ -61,13 +110,119 @@ class Routing(dict):
             match = max(potentials, key=len)
         except ValueError:
             # max() got an empty list, aka no matches found
-            return self.no_route_app(environ, start_response)
+            return self.no_route_found(environ, start_response)
 
         app = self[match]
         environ['SCRIPT_NAME'] = urlpath[:len(match)]
         environ['PATH_INFO'] = urlpath[len(match):]
 
         return app(environ, start_response)
+
+
+class StaticContentsApp:
+    """
+    Base class for static serving implementatins
+    """
+    def method_not_allowed(self, environ, start_response):
+        """
+        Handle if we got something besides GET or HEAD
+        """
+        return do_405(environ, start_response)
+
+    def file_not_found(self, environ, start_response):
+        """
+        Handle if the file cannot be found
+        """
+        return do_404(environ, start_response)
+
+    def is_a_directory(self, environ, start_response):
+        """
+        Handle if we were given a directory
+        """
+        return do_404(environ, start_response)
+
+    def no_permissions(self, environ, start_response):
+        """
+        Handle if we can't open the file
+        """
+        return do_403(environ, start_response)
+
+    def open(path):
+        """
+        Return a file-like object in 'rb' mode.
+
+        The path given is normalized.
+
+        Add a .name attribute to the file if applicable
+
+        Raise a FileNotFoundError, IsADirectoryError, or a PermissionError in
+        case of error.
+        """
+        raise NotImplementedError
+
+    def __call__(self, environ, start_response):
+        path = posixpath.normpath(environ['PATH_INFO'])
+
+        # TODO: Handle OPTIONS
+
+        if environ['REQUEST_METHOD'] not in ('GET', 'HEAD'):
+            return self.method_not_allowed(environ, start_response)
+
+        try:
+            file = self.open(path)
+        except FileNotFoundError:
+            return self.file_not_found(environ, start_response)
+        except IsADirectoryError:
+            # TODO: Handle index.html
+            return self.is_a_directory(environ, start_response)
+        except PermissionError:
+            return self.no_permissions(environ, start_response)
+        except NotADirectoryError:
+            # This can happen if we get a file with a trailing slash
+            # TODO: Redirect to the non-slash version
+            return self.file_not_found(environ, start_response)
+
+        if hasattr(file, 'name'):
+            filename = file.name
+        else:
+            filename = path
+
+        mime, _ = mimetypes.guess_type(filename, strict=False) or 'application/octect-stream'
+
+        # NOTE: We're not doing cache control checking, because we don't
+        # consistently have stat() available.
+
+        # TODO: Type negotiation
+
+        # TODO: Range
+
+        return self._serve_whole_file(environ, start_response, file, filename, mime)
+
+    def _serve_whole_file(self, environ, start_response, file, filename, mime):
+        status = '200 OK'
+
+        response_headers = [
+            ('Content-Type', mime),
+            # TODO: Cache control
+        ]
+
+        start_response(status, response_headers)
+
+        if environ['REQUEST_METHOD'] == 'HEAD':
+            file.close()
+            return []
+        else:
+            wrapper = environ.get('wsgi.file_wrapper', wsgiref.util.FileWrapper)
+            return wrapper(file, CHUNK_SIZE)
+
+
+class StaticFiles(StaticContentsApp):
+    def __init__(self, root):
+        self.root = abspath(root)
+
+    def open(self, file):
+        path = os.path.join(self.root, file.lstrip('/'))
+        return open(path, 'rb')
 
 
 def _get_random_port():
@@ -140,8 +295,7 @@ def resolve_url(url, should_serve):
             path = url
 
         # If it's a relative path, resolve it relative to the app root
-        if not os.path.isabs(path):
-            path = os.path.join(get_app_root())
+        path = abspath(path)
 
         # If we have not been asked to serve local paths, bail
         if not should_serve:
@@ -150,7 +304,7 @@ def resolve_url(url, should_serve):
 
         # Get/Build a WSGI app to serve the path and spin it up
         if path not in _path_apps:
-            _path_apps[path] = wsgiref.simple_server.demo_app  # TODO
+            _path_apps[path] = StaticFiles(path)
         return get_wsgi_server(_path_apps[path])
     elif callable(url):
         # A wsgi application

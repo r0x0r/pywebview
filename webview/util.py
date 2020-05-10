@@ -56,6 +56,16 @@ def get_app_root():
             return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
+def abspath(path):
+    """
+    Make path absolute, using the application root
+    """
+    path = os.fspath(path)
+    if not os.path.isabs(path):
+        path = os.path.join(get_app_root(), path)
+    return os.path.normpath(path)
+
+
 def base_uri(relative_path=''):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     base_path = get_app_root()
