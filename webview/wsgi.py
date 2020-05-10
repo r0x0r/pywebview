@@ -276,7 +276,7 @@ class StaticContentsApp:
         rv = wsgiref.headers.Headers([
             ('Content-Type', mime),
             ('Accept-Ranges', 'bytes'),
-            # TODO: Cache control
+            ('Cache-Control', 'max-age={}'.format(self.max_age))
         ])
 
         if hasattr(file, 'fileno'):
