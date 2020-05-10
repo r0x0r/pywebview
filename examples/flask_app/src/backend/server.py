@@ -3,7 +3,7 @@ import os
 import webbrowser
 from functools import wraps
 
-from flask import Flask, url_for, render_template, jsonify, request, make_response
+from flask import Flask, render_template, jsonify, request
 import webview
 import app
 
@@ -111,11 +111,3 @@ def do_stuff():
         response = {'status': 'error'}
 
     return jsonify(response)
-
-
-def run_server():
-    server.run(host='127.0.0.1', port=23948, threaded=True)
-
-
-if __name__ == '__main__':
-    run_server()
