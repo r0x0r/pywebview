@@ -67,7 +67,9 @@ def resolve_url(url, should_serve):
         # To create an empty version of the struct
         bits = urllib.parse.urlparse("")
 
-    if bits.scheme and bits.scheme != 'file':
+    if url is None:
+        return None
+    elif bits.scheme and bits.scheme != 'file':
         # an http, https, etc URL
         return url
     elif hasattr(url, '__fspath__') or isinstance(url, str):
