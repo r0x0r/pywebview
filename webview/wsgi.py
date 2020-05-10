@@ -96,6 +96,16 @@ def do_405(environ, start_response):
     )
 
 
+def do_options(environ, start_response):
+    """
+    Generic app to produce a response to OPTIONS
+    """
+    start_response("204 No Content", [
+        ('Allow', 'OPTIONS, GET, HEAD'),
+    ])
+    return []
+
+
 class Routing(dict):
     """
     Implements a basic URL routing system.
@@ -181,11 +191,12 @@ class StaticContentsApp:
         raise NotImplementedError
 
     def __call__(self, environ, start_response):
-        path = posixpath.normpath(environ['PATH_INFO'] or '/')
-
-        if environ['REQUEST_METHOD'] not in ('GET', 'HEAD'):
+        if environ['REQUEST_METHOD'] == 'OPTIONS':
+            return do_options(environ, start_response)
+        elif environ['REQUEST_METHOD'] not in ('GET', 'HEAD'):
             return self.method_not_allowed(environ, start_response)
 
+        path = posixpath.normpath(environ['PATH_INFO'] or '/')
         path_options = [path]
 
         if path.endswith('/'):
