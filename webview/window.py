@@ -85,7 +85,6 @@ class Window:
         self._is_http_server = http_server
 
         self.real_url = resolve_url(self.url, self._is_http_server or self.gui.renderer == 'edgehtml')
-        print(f"_initialize {self.url=} {self.real_url=}")
 
     @property
     def width(self):
