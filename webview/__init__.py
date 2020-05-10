@@ -28,7 +28,7 @@ from .wsgi import Routing, StaticFiles, StaticResources
 
 __all__ = (
     # Stuff that's here
-    'start', 'create_window',
+    'start', 'create_window', 'token',
     # From wsgi
     'Routing', 'StaticFiles', 'StaticResources',
     # From event
