@@ -37,8 +37,13 @@ class WSGIRequestHandler11(wsgiref.simple_server.WSGIRequestHandler):
     protocol_version = "HTTP/1.1"
 
 
-class ThreadingWSGIServer(http.server.ThreadingHTTPServer, wsgiref.simple_server.WSGIServer):
-    pass
+if hasattr(http.server, 'ThreadingHTTPServer'):
+    # Python 3.7+
+    class ThreadingWSGIServer(http.server.ThreadingHTTPServer, wsgiref.simple_server.WSGIServer):
+        pass
+else:
+    # Python 3.6 and earlier
+    ThreadingWSGIServer = wsgiref.simple_server.WSGIServer
 
 
 def get_wsgi_server(app):
