@@ -1,6 +1,7 @@
 import os
 import logging
 import pathlib
+import posixpath
 from random import random
 import socket
 import threading
@@ -10,11 +11,63 @@ import wsgiref.simple_server
 from .util import get_app_root
 
 
-__all__ = ('resolve_url',)
+__all__ = ('resolve_url', 'StaticFiles', 'StaticResources', 'Routing')
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger(__name__)
 
-_path_apps = {}
+
+class Routing(dict):
+    """
+    Implements a basic URL routing system.
+
+    Path prefixes are compared to the request path. The longest prefix wins.
+
+    Example:
+        Routing({
+            '/': app,
+            '/static': Static('mystatic'),
+        })
+    """
+
+    def no_route_app(self, environ, start_response):
+        """
+        Filler app to handle if routing fails
+        """
+        urlpath = environ['SCRIPT_NAME'] + environ['PATH_INFO']
+
+        status = '404 Not Found'
+        response_body = "Path {} was not found".format(urlpath)
+
+        response_headers = [
+            ('Content-Type', 'text/plain'),
+            ('Content-Length', str(len(response_body)))
+        ]
+
+        start_response(status, response_headers)
+        return [response_body]
+
+    def __call__(self, environ, start_response):
+        # SCRIPT_NAME + PATH_INFO = full url
+        urlpath = environ['SCRIPT_NAME'] + environ['PATH_INFO']
+        if not urlpath:
+            urlpath = '/'
+
+        potentials = [
+            prefix
+            for prefix in self.keys()
+            if posixpath.commonpath([prefix, urlpath]) == prefix
+        ]
+        try:
+            match = max(potentials, key=len)
+        except ValueError:
+            # max() got an empty list, aka no matches found
+            return self.no_route_app(environ, start_response)
+
+        app = self[match]
+        environ['SCRIPT_NAME'] = urlpath[:len(match)]
+        environ['PATH_INFO'] = urlpath[len(match):]
+
+        return app(environ, start_response)
 
 
 def _get_random_port():
@@ -53,6 +106,9 @@ def get_wsgi_server(app):
     logger.debug('HTTP server for {!r} started on {}'.format(app, app.__webview_url))
 
     return app.__webview_url
+
+
+_path_apps = {}
 
 
 def resolve_url(url, should_serve):
