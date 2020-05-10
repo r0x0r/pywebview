@@ -31,13 +31,19 @@ def _get_random_port():
                 return port
 
 
+class WSGIRequestHandler11(wsgiref.simple_server.WSGIRequestHandler):
+    protocol_version = "HTTP/1.1"
+
+
 def get_wsgi_server(app):
     if hasattr(app, '__webview_url'):
         # It's already been spun up and is running
         return app.__webview_url
 
     port = _get_random_port()
-    server = wsgiref.simple_server.make_server('localhost', port, app)
+    server = wsgiref.simple_server.make_server(
+        'localhost', port, app, handler_class=WSGIRequestHandler11,
+    )
 
     t = threading.Thread(target=server.serve_forever)
     t.daemon = True
