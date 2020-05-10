@@ -1,8 +1,10 @@
+import http.server
 import logging
 import os
 import pathlib
 import random
 import socket
+import sys
 import threading
 import urllib.parse
 import wsgiref.simple_server
@@ -35,6 +37,10 @@ class WSGIRequestHandler11(wsgiref.simple_server.WSGIRequestHandler):
     protocol_version = "HTTP/1.1"
 
 
+class ThreadingWSGIServer(http.server.ThreadingHTTPServer, wsgiref.simple_server.WSGIServer):
+    pass
+
+
 def get_wsgi_server(app):
     if hasattr(app, '__webview_url'):
         # It's already been spun up and is running
@@ -42,7 +48,8 @@ def get_wsgi_server(app):
 
     port = _get_random_port()
     server = wsgiref.simple_server.make_server(
-        'localhost', port, app, handler_class=WSGIRequestHandler11,
+        'localhost', port, app, server_class=ThreadingWSGIServer,
+        handler_class=WSGIRequestHandler11,
     )
 
     t = threading.Thread(target=server.serve_forever)
