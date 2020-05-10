@@ -177,20 +177,41 @@ class StaticContentsApp:
         if environ['REQUEST_METHOD'] not in ('GET', 'HEAD'):
             return self.method_not_allowed(environ, start_response)
 
-        try:
-            file = self.open(path)
-        except FileNotFoundError:
-            return self.file_not_found(environ, start_response)
-        except IsADirectoryError:
-            # TODO: Handle index.html
-            return self.is_a_directory(environ, start_response)
-        except PermissionError:
-            return self.no_permissions(environ, start_response)
-        except NotADirectoryError:
-            # This can happen if we get a file with a trailing slash
-            # TODO: Redirect to the non-slash version
-            logging.info("TODO: Redirect %s", path)
-            return self.file_not_found(environ, start_response)
+        path_options = [path]
+
+        if path.endswith('/'):
+            path_options.append(path[:-1])
+
+        path_options.append(posixpath.join(path, 'index.html'))
+
+        responder = None
+        for option in path_options:
+            print(f"{option=}")
+            try:
+                file = self.open(option)
+            except FileNotFoundError:
+                print("\tfile not found")
+                if responder is not None:
+                    responder = self.file_not_found
+            except IsADirectoryError:
+                print("\tis a directory")
+                if responder is not None:
+                    responder = self.is_a_directory
+            except PermissionError:
+                print("\tpermission")
+                if responder is not None:
+                    responder = self.no_permissions
+            except NotADirectoryError:
+                print("\tnot a directory")
+                # This can happen if we get a file with a trailing slash
+                # This should only happen with the first option, and should be
+                # covered by the next option
+                pass
+            else:
+                break
+        else:
+            assert responder
+            return responder(environ, start_response)
 
         if hasattr(file, 'name'):
             filename = file.name
@@ -235,6 +256,7 @@ class StaticFiles(StaticContentsApp):
 
     def open(self, file):
         path = os.path.join(self.root, file.lstrip('/'))
+        print(f"{file} -> {path}")
         return open(path, 'rb')
 
 
