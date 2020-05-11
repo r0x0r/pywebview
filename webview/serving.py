@@ -87,9 +87,11 @@ def resolve_url(url, should_serve):
 
     if url is None:
         return None
+
     elif bits.scheme and bits.scheme != 'file':
         # an http, https, etc URL
         return url
+
     elif hasattr(url, '__fspath__') or isinstance(url, str):
         # A local path
 
@@ -109,12 +111,24 @@ def resolve_url(url, should_serve):
             # using pathlib for this because it turns out file URLs are full of dragons
             return pathlib.Path(path).as_uri()
 
+        if os.path.isdir(path):
+            rootdir = path
+            homepage = None
+        else:
+            rootdir, homepage = os.path.split(path)
         # Get/Build a WSGI app to serve the path and spin it up
         if path not in _path_apps:
-            _path_apps[path] = StaticFiles(path)
-        return get_wsgi_server(_path_apps[path])
+            _path_apps[path] = StaticFiles(rootdir)
+        url = get_wsgi_server(_path_apps[path])
+
+        if homepage is not None:
+            url = urllib.parse.urljoin(url, homepage)
+
+        return url
+
     elif callable(url):
         # A wsgi application
         return get_wsgi_server(url)
+
     else:
         raise TypeError("Cannot resolve {!r} into a URL".format(url))
