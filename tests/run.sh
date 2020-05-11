@@ -56,3 +56,5 @@ pytest test_token.py::test_persistance ${PYTEST_OPTIONS}
 pytest test_url_load.py ${PYTEST_OPTIONS}
 
 pytest test_window.py ${PYTEST_OPTIONS}
+
+pytest test_wsgi.py ${PYTEST_OPTIONS}

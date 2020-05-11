@@ -260,7 +260,7 @@ class StaticContentsApp:
         else:
             filename = path
 
-        mime, _ = mimetypes.guess_type(filename, strict=False) or 'application/octect-stream'
+        mime, _ = mimetypes.guess_type(filename, strict=False)
 
         # NOTE: We're not doing cache control checking, because we don't
         # consistently have stat() available.
@@ -274,7 +274,7 @@ class StaticContentsApp:
 
     def _default_headers(self, mime, file):
         rv = wsgiref.headers.Headers([
-            ('Content-Type', mime),
+            ('Content-Type', mime or 'application/octect-stream'),
             ('Accept-Ranges', 'bytes'),
             ('Cache-Control', 'max-age={}'.format(self.max_age))
         ])
