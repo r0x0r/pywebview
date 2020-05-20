@@ -16,7 +16,7 @@ except ImportError:
 from uuid import uuid1
 from threading import Event, Semaphore
 from webview.localization import localization
-from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 
@@ -39,6 +39,8 @@ webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_
 old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
 
 renderer = 'gtkwebkit2'
+
+settings = {}
 
 class BrowserView:
     instances = {}
@@ -111,12 +113,19 @@ class BrowserView:
         self.webview.connect('notify::title', self.on_title_change)
         self.webview.connect('decide-policy', self.on_navigation)
 
+        user_agent = settings.get('user_agent') or _user_agent
+        if user_agent:
+            self.webview.get_settings().props.user_agent = user_agent
+
         if window.frameless:
             self.window.set_decorated(False)
             self.move_progress = False
             self.webview.connect('button-release-event', self.on_mouse_release)
             self.webview.connect('button-press-event', self.on_mouse_press)
             self.window.connect('motion-notify-event', self.on_mouse_move)
+
+        if window.on_top:
+            self.window.set_keep_above(True)
 
         if _debug:
             self.webview.get_settings().props.enable_developer_extras = True
@@ -414,6 +423,13 @@ def toggle_fullscreen(uid):
     glib.idle_add(_toggle_fullscreen)
 
 
+def set_on_top(uid, top):
+    def _set_on_top():
+        BrowserView.instances[uid].window.set_keep_above(top)
+
+    glib.idle_add(_set_on_top)
+
+
 def resize(width, height, uid):
     def _resize():
         BrowserView.instances[uid].resize(width,height)
@@ -489,3 +505,6 @@ def get_position(uid):
 
 def get_size(uid):
     return BrowserView.instances[uid].window.get_size()
+
+
+

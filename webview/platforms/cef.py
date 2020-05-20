@@ -14,7 +14,7 @@ from time import sleep
 
 from webview.js.css import disable_text_select
 from webview.js import dom
-from webview import _debug
+from webview import _debug, _user_agent
 from webview.util import parse_api_js, default_html, js_bridge_call
 
 
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 settings = {}
 
+command_line_switches = {}
 
 def _set_dpi_mode(enabled):
     """
@@ -202,8 +203,15 @@ def init(window):
             }
         }
 
+        default_command_line_switches = {
+            "enable-media-stream": ""
+        }
+
         if not _debug:
             default_settings['remote_debugging_port'] = -1
+
+        if _user_agent:
+            default_settings['user_agent'] = _user_agent
 
         try: # set paths under Pyinstaller's one file mode
             default_settings.update({
@@ -215,7 +223,8 @@ def init(window):
             pass
 
         all_settings = dict(default_settings, **settings)
-        cef.Initialize(settings=all_settings)
+        all_command_line_switches = dict(default_command_line_switches, **command_line_switches)
+        cef.Initialize(settings=all_settings, commandLineSwitches=all_command_line_switches)
         cef.DpiAware.EnableHighDpiSupport()
 
         _initialized = True

@@ -1,6 +1,6 @@
 <p align='center'><img src='logo/logo.png' width=480 alt='pywebview logo'/></p>
 
-<p align='center'><a href="https://opencollective.com/pywebview" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/pywebview/all/badge.svg?label=financial+contributors" /></a> <img src="https://badge.fury.io/py/pywebview.svg" alt="PyPI version" /> <a href="https://travis-ci.org/r0x0r/pywebview"><img src="https://travis-ci.org/r0x0r/pywebview.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/r0x0r/pywebview"><img src="https://ci.appveyor.com/api/projects/status/nu6mbhvbq03wudxd/branch/master?svg=true" alt="Build status" /></a>
+<p align='center'><a href="https://opencollective.com/pywebview" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/pywebview/all/badge.svg?label=financial+contributors" /></a> <img src="https://badge.fury.io/py/pywebview.svg" alt="PyPI version" /> <img src="https://img.shields.io/pypi/dm/pywebview" alt="PyPI downloads" /> <a href="https://travis-ci.org/r0x0r/pywebview"><img src="https://travis-ci.org/r0x0r/pywebview.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/r0x0r/pywebview"><img src="https://ci.appveyor.com/api/projects/status/nu6mbhvbq03wudxd/branch/master?svg=true" alt="Build status" /></a>
 
 https://pywebview.flowrl.com
 </p>
@@ -30,7 +30,7 @@ webview.create_window('Hello world', 'https://pywebview.flowrl.com/hello')
 webview.start()
 ```
 
-Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.com/guide), [examples](https://pywebview.flowrl.com/examples) or [contributing](https://pywebview.flowrl.com/contributing) .
+Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.com/guide), [examples](https://pywebview.flowrl.com/examples) or [contributing](https://pywebview.flowrl.com/contributing). If React is your thing, get started right away with [React boilerplate](https://github.com/r0x0r/pywebview-react-boilerplate).
 
 
 
@@ -47,6 +47,7 @@ Become a financial contributor and help us sustain our community. More donation 
 
 
 #### Individuals
+[atcbackdoor](https://github.com/atcbackdoor)
 
 <a href="https://opencollective.com/pywebview"><img src="https://opencollective.com/pywebview/individuals.svg?width=890"></a>
 

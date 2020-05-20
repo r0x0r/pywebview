@@ -19,7 +19,7 @@ class Api():
     def toggleItem(self, item):
         print('Toggled item %s' % item)
 
-    def toggleFullscreen(self, param):
+    def toggleFullscreen(self):
         webview.windows[0].toggle_fullscreen()
 
 

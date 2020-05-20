@@ -73,6 +73,15 @@ namespace WebBrowserInterop
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
 
+        [DllImport("urlmon.dll", CharSet = CharSet.Ansi)]
+        private static extern int UrlMkSetSessionOption(int dwOption, string pBuffer, int dwBufferLength, int dwReserved);
+        const int URLMON_OPTION_USERAGENT = 0x10000001;
+
+        public void ChangeUserAgent(string Agent)
+        {
+            UrlMkSetSessionOption(URLMON_OPTION_USERAGENT, Agent, Agent.Length, 0);
+        }
+
         /// <summary>
         /// Associates the underlying ActiveX control with a client that can
         /// handle control events including NewWindow3 event.
@@ -157,4 +166,3 @@ namespace WebBrowserInterop
         }
     }
 }
-

@@ -45,8 +45,8 @@ def _loaded_call(function):
 
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
-                 min_size, hidden, frameless, minimized, confirm_close, background_color,
-                 js_api, text_select):
+                 min_size, hidden, frameless, minimized, on_top, confirm_close,
+                 background_color, js_api, text_select):
         self.uid = uid
         self.title = make_unicode(title)
         self.url = None if html else transform_url(url)
@@ -63,6 +63,7 @@ class Window:
         self.text_select = text_select
         self.frameless = frameless
         self.hidden = hidden
+        self.on_top = on_top
         self.minimized = minimized
 
         self._js_api = js_api
@@ -109,6 +110,16 @@ class Window:
         self.shown.wait(15)
         _, y = self.gui.get_position(self.uid)
         return y
+
+    @property
+    def on_top(self):
+        return self.__on_top
+
+    @on_top.setter
+    def on_top(self, on_top):
+        self.__on_top = on_top
+        if hasattr(self, 'gui') and self.gui != None:
+            self.gui.set_on_top(self.uid, on_top)
 
     @_loaded_call
     def get_elements(self, selector):
@@ -300,7 +311,11 @@ class Window:
             name = func.__name__
             self._functions[name] = func
 
-            params = list(inspect.getfullargspec(func).args)
+            try:
+                params = list(inspect.getfullargspec(func).args) # Python 3
+            except AttributeError:
+                params = list(inspect.getargspec(func).args)  # Python 2
+
 
             func_list.append({
                 'func': name,

@@ -10,11 +10,11 @@ window.pywebview = {
             var params = funcList[i].params;
 
             var funcBody =
-                "var id = (Math.random() + '').substring(2); " +
+                "var __id = (Math.random() + '').substring(2); " +
                 "var promise = new Promise(function(resolve, reject) { " +
-                    "window.pywebview._checkValue('" + funcName + "', resolve, reject, id); " +
+                    "window.pywebview._checkValue('" + funcName + "', resolve, reject, __id); " +
                 "}); " +
-                "window.pywebview._bridge.call('" + funcName + "', JSON.stringify(arguments), id); " +
+                "window.pywebview._bridge.call('" + funcName + "', JSON.stringify(arguments), __id); " +
                 "return promise;"
 
             window.pywebview.api[funcName] = new Function(params, funcBody)
