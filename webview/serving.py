@@ -4,7 +4,6 @@ import os
 import pathlib
 import random
 import socket
-import sys
 import threading
 import urllib.parse
 import wsgiref.simple_server
@@ -34,7 +33,7 @@ def _get_random_port():
 
 
 class WSGIRequestHandler11(wsgiref.simple_server.WSGIRequestHandler):
-    protocol_version = "HTTP/1.1"
+    protocol_version = 'HTTP/1.1'
 
 
 if hasattr(http.server, 'ThreadingHTTPServer'):
