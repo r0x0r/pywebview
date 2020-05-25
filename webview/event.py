@@ -16,13 +16,19 @@ class Event:
             self._event = multiprocessing.Event()
 
     def set(self, *args, **kwargs):
-        for func in self._items:
-            try:
-                func(*args, **kwargs)
-            except Exception as e:
-                logger.exception(e)
+        def execute():
+            for func in self._items:
+                try:
+                    func(*args, **kwargs)
+                except Exception as e:
+                    logger.exception(e)
 
         self._event.set()
+
+        if len(self._items):
+            t = threading.Thread(target=execute)
+            t.start()
+
 
     def is_set(self):
         return self._event.is_set()
