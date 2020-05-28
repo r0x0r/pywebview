@@ -116,7 +116,7 @@ class BrowserView(QMainWindow):
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
                 window = Window('web_inspector', title, url, '', 700, 500, None, None, True, False,
-                                (300, 200), False, False, False, False, '#fff', None, False)
+                                (300, 200), False, False, False, False, False, '#fff', None, False)
 
                 inspector = BrowserView(window)
                 inspector.show()
@@ -544,13 +544,13 @@ class BrowserView(QMainWindow):
         """
         port_available = False
         port = 8228
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         while not port_available:
             try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.bind(('localhost', port))
                 port_available = True
-            except:
+            except Exception as e:
                 port_available = False
                 logger.warning('Port %s is in use' % port)
                 port += 1
