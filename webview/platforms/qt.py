@@ -13,7 +13,7 @@ import webbrowser
 import socket
 from uuid import uuid1
 from copy import deepcopy
-from threading import Semaphore
+from threading import Semaphore, Event
 
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.localization import localization
@@ -44,6 +44,9 @@ except ImportError:
     from PyQt5.QtWebKitWidgets import QWebView, QWebPage
     is_webengine = False
     renderer = 'qtwebkit'
+
+_main_window_created = Event()
+_main_window_created.clear()
 
 
 class BrowserView(QMainWindow):
@@ -346,16 +349,11 @@ class BrowserView(QMainWindow):
                 return
 
         event.accept()
+        BrowserView.instances[self.uid].close()
         del BrowserView.instances[self.uid]
 
         if self.pywebview_window in windows:
             windows.remove(self.pywebview_window)
-
-        try:    # Close inspector if open
-            BrowserView.instances[self.uid + '-inspector'].close()
-            del BrowserView.instances[self.uid + '-inspector']
-        except KeyError:
-            pass
 
         self.pywebview_window.closed.set()
 
@@ -550,7 +548,7 @@ class BrowserView(QMainWindow):
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.bind(('localhost', port))
                 port_available = True
-            except Exception as e:
+            except:
                 port_available = False
                 logger.warning('Port %s is in use' % port)
                 port += 1
@@ -566,11 +564,10 @@ class BrowserView(QMainWindow):
 
 
 def create_window(window):
-    global _app
-    _app = QApplication.instance() or QApplication([])
-
     def _create():
         browser = BrowserView(window)
+
+        _main_window_created.set()
 
         if window.minimized:
             # showMinimized does not work on start without showNormal first
@@ -581,9 +578,13 @@ def create_window(window):
             browser.show()
 
     if window.uid == 'master':
+        global _app
+        _app = QApplication.instance() or QApplication([])
+
         _create()
         _app.exec_()
     else:
+        _main_window_created.wait()
         i = list(BrowserView.instances.values())[0] # arbitrary instance
         i.create_window_trigger.emit(_create)
 
