@@ -40,6 +40,8 @@ OPEN_DIALOG = 10
 FOLDER_DIALOG = 20
 SAVE_DIALOG = 30
 
+DRAG_REGION_CLASS_NAME = 'pywebview-drag-region'
+
 guilib = None
 _debug = False
 _user_agent = None
