@@ -115,7 +115,7 @@ def parse_api_js(window, platform, uid=''):
     js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src
 
     if window.frameless and not window.easy_drag:
-        js_code += drag.src % webview.DRAG_REGION_CLASS_NAME
+        js_code += drag.src % webview.DRAG_REGION_SELECTOR
     return js_code
 
 
