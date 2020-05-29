@@ -14,7 +14,7 @@ except ImportError:
     from urllib import unquote
 
 from uuid import uuid1
-from threading import Event, Semaphore
+from threading import Event, Semaphore, Lock
 from webview.localization import localization
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
@@ -443,19 +443,19 @@ def move(x, y, uid):
 
 
 def hide(uid):
-    BrowserView.instances[uid].hide()
+    glib.idle_add(BrowserView.instances[uid].hide)
 
 
 def show(uid):
-    BrowserView.instances[uid].show()
+    glib.idle_add(BrowserView.instances[uid].show)
 
 
 def minimize(uid):
-    BrowserView.instances[uid].minimize()
+    glib.idle_add(BrowserView.instances[uid].minimize)
 
 
 def restore(uid):
-    BrowserView.instances[uid].restore()
+    glib.idle_add(BrowserView.instances[uid].restore)
 
 
 def get_current_url(uid):
@@ -500,11 +500,27 @@ def evaluate_js(script, uid):
 
 
 def get_position(uid):
-    return BrowserView.instances[uid].window.get_position()
+    def _get_position():
+        result['position'] = BrowserView.instances[uid].window.get_position()
+        semaphore.release()
+
+    result = {}
+    semaphore = Semaphore(0)
+    glib.idle_add(_get_position)
+    semaphore.acquire()
+
+    return result['position']
 
 
 def get_size(uid):
-    return BrowserView.instances[uid].window.get_size()
+    def _get_size():
+        result['size'] = BrowserView.instances[uid].window.get_size()
+        semaphore.release()
 
+    result = {}
+    semaphore = Semaphore(0)
+    glib.idle_add(_get_size)
+    semaphore.acquire()
 
+    return result['size']
 
