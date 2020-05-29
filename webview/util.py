@@ -112,10 +112,7 @@ def parse_api_js(window, platform, uid=''):
     except Exception as e:
         logger.exception(e)
 
-    js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src
-
-    if window.frameless and not window.easy_drag:
-        js_code += drag.src % webview.DRAG_REGION_SELECTOR
+    js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src + drag.src % webview.DRAG_REGION_SELECTOR
     return js_code
 
 
@@ -136,7 +133,7 @@ def js_bridge_call(window, func_name, param, value_id):
 
         window.evaluate_js(code)
 
-    if window.frameless and not window.easy_drag and func_name == 'moveWindow':
+    if func_name == 'moveWindow':
         window.move(*param)
         return
 
