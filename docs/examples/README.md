@@ -4,6 +4,10 @@ You can find examples demonstrating features of _pywebview_ in the sidebar.
 
 Below there are a couple of non-trivial examples that demonstrate an application architecture.
 
+## React Boilerplate
+
+[React boilerplate](https://github.com/r0x0r/pywebview-react-boilerplate). A complete React-based boilerplate with installation, usage and building taken care of out of the box.
+
 
 ## Serverless application
 
@@ -31,3 +35,5 @@ A simple todo application that uses serverless architecture. Communication betwe
 [Flask-based application](https://github.com/r0x0r/pywebview/tree/master/examples/flask_app)
 
 In this example communication between frontend and backend is facilitated by a Flask server.
+
+
