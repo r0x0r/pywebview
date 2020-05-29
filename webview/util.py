@@ -136,6 +136,10 @@ def js_bridge_call(window, func_name, param, value_id):
 
         window.evaluate_js(code)
 
+    if window.frameless and not window.easy_drag and func_name == 'moveWindow':
+        window.move(*param)
+        return
+
     func = window._functions.get(func_name) or getattr(window._js_api, func_name, None)
 
     if func is not None:
