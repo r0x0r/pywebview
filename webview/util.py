@@ -18,7 +18,9 @@ from platform import architecture
 from threading import Thread
 from uuid import uuid4
 
-from .js import api, npo, dom, event
+import webview
+
+from .js import api, npo, dom, event, drag
 
 _token = uuid4().hex
 
@@ -111,6 +113,9 @@ def parse_api_js(window, platform, uid=''):
         logger.exception(e)
 
     js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src
+
+    if window.frameless and not window.easy_drag:
+        js_code += drag.src % webview.DRAG_REGION_CLASS_NAME
     return js_code
 
 
