@@ -214,7 +214,7 @@ class BrowserView:
                 document.InvokeScript('eval', (disable_text_select,))
             self.pywebview_window.loaded.set()
 
-            if self.pywebview_window.frameless:
+            if self.pywebview_window.easy_drag:
                 document.MouseMove += self.on_mouse_move
 
         def on_mouse_move(self, sender, e):

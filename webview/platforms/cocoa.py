@@ -209,7 +209,7 @@ class BrowserView:
             i = BrowserView.get_instance('webkit', self)
             window = self.window()
 
-            if i.frameless:
+            if i.frameless and i.easy_drag:
                 windowFrame = window.frame()
                 if windowFrame is None:
                     raise RuntimeError('Failed to obtain screen')
@@ -224,7 +224,7 @@ class BrowserView:
             i = BrowserView.get_instance('webkit', self)
             window = self.window()
 
-            if i.frameless:
+            if i.frameless and i.easy_drag:
                 screenFrame = AppKit.NSScreen.mainScreen().frame()
                 if screenFrame is None:
                     raise RuntimeError('Failed to obtain screen')
@@ -354,6 +354,7 @@ class BrowserView:
         self.window.setDelegate_(self._windowDelegate)
 
         self.frameless = window.frameless
+        self.easy_drag = window.easy_drag
 
         if window.frameless:
             # Make content full size and titlebar transparent
