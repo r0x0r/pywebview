@@ -18,7 +18,7 @@ from threading import Event, Semaphore
 from ctypes import windll
 from uuid import uuid4
 
-from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug
+from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent
 from webview.guilib import forced_gui_
 from webview.http_server import start_server
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
@@ -40,6 +40,7 @@ from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
 logger = logging.getLogger('pywebview')
 
+settings = {}
 
 def _is_edge():
     try:
@@ -115,6 +116,10 @@ class BrowserView:
             self.web_browser.WebBrowserShortcutsEnabled = False
             self.web_browser.DpiAware = True
 
+            user_agent = _user_agent or settings.get('user_agent')
+            if user_agent:
+                self.web_browser.ChangeUserAgent(user_agent)
+
             self.web_browser.ScriptErrorsSuppressed = not _debug
             self.web_browser.IsWebBrowserContextMenuEnabled = _debug
 
@@ -147,6 +152,7 @@ class BrowserView:
             else:
                 self.web_browser.DocumentText = default_html
 
+            self.form = form
             form.Controls.Add(self.web_browser)
 
         def evaluate_js(self, script):
@@ -208,13 +214,13 @@ class BrowserView:
                 document.InvokeScript('eval', (disable_text_select,))
             self.pywebview_window.loaded.set()
 
-            if self.frameless:
+            if self.pywebview_window.frameless:
                 document.MouseMove += self.on_mouse_move
 
         def on_mouse_move(self, sender, e):
             if e.MouseButtonsPressed == WinForms.MouseButtons.Left:
                 WebBrowserEx.ReleaseCapture()
-                WebBrowserEx.SendMessage(self.Handle, WebBrowserEx.WM_NCLBUTTONDOWN, WebBrowserEx.HT_CAPTION, 0)
+                windll.user32.SendMessageW(self.form.Handle.ToInt32(), WebBrowserEx.WM_NCLBUTTONDOWN, WebBrowserEx.HT_CAPTION, 6)
 
     class EdgeHTML:
         def __init__(self, form, window):
@@ -278,7 +284,7 @@ class BrowserView:
             if self.httpd:
                 self.httpd.shutdown()
 
-            url, httpd = start_server('file://' + self.temp_html)
+            url, _ = start_server('file://' + self.temp_html)
             self.ishtml = True
             self.web_view.Navigate(url)
 
