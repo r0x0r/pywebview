@@ -31,11 +31,6 @@ pip install pywebview[cef]
 pip install cefpython3
 ```
 
-pywin32
-
-``` bash
-pip install pypiwin32
-```
 
 ### macOS
 
