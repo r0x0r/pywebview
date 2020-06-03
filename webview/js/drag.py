@@ -21,8 +21,8 @@ src = """
     }
 
     var dragBlocks = document.querySelectorAll('%s');
-    dragBlocks.forEach(function(dragBlock) {
-        dragBlock.addEventListener('mousedown', onMouseDown);
-    });
+    for(var i=0; i < dragBlocks.length; i++) {
+        dragBlocks[i].addEventListener('mousedown', onMouseDown);
+    }
 })();
 """
