@@ -4,7 +4,6 @@ Programmatically hide and show window
 
 ``` python
 import webview
-import threading
 import time
 
 

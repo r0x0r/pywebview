@@ -59,6 +59,11 @@ Note that WebKit2 version 2.22 or greater is required for certain features to wo
 
 [PyQt5](http://pyqt.sourceforge.net/Docs/PyQt5/index.html) is used with QT. `pywebview` supports both QtWebChannel (newer and preferred) and QtWebKit implementations. Use QtWebChannel, unless it is not available on your system.
 
+To install QT via pip
+``` bash
+pip install pyqt5 pyqtwebengine
+```
+
 To install QtWebChannel on Debian-based systems.
 
 ``` bash

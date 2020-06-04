@@ -15,5 +15,5 @@ def toggle_fullscreen(window):
 
 if __name__ == '__main__':
     window = webview.create_window('Full-screen window', 'https://pywebview.flowrl.com/hello')
-    webview.start(window)
+    webview.start(toggle_fullscreen, window)
 ```
