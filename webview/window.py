@@ -49,7 +49,7 @@ class Window:
                  background_color, js_api, text_select):
         self.uid = uid
         self.title = make_unicode(title)
-        self.url = None if html else url
+        self.original_url = None if html else url
         self.real_url = None
         self.html = html
         self.initial_width = width
@@ -84,7 +84,7 @@ class Window:
         self.shown._initialize(multiprocessing)
         self._is_http_server = http_server
 
-        self.real_url = resolve_url(self.url, self._is_http_server or self.gui.renderer == 'edgehtml')
+        self.real_url = resolve_url(self.original_url, self._is_http_server or self.gui.renderer == 'edgehtml')
 
     @property
     def width(self):
