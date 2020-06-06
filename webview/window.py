@@ -49,8 +49,8 @@ class Window:
                  background_color, js_api, text_select):
         self.uid = uid
         self.title = make_unicode(title)
-        self.original_url = None if html else url
-        self.real_url = None
+        self.original_url = None if html else url  # original URL provided by user
+        self.real_url = None  # transformed URL for internal HTTP server
         self.html = html
         self.initial_width = width
         self.initial_height = height
