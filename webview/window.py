@@ -45,7 +45,7 @@ def _loaded_call(function):
 
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
-                 min_size, hidden, frameless, minimized, on_top, confirm_close,
+                 min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
                  background_color, js_api, text_select):
         self.uid = uid
         self.title = make_unicode(title)
@@ -62,6 +62,7 @@ class Window:
         self.background_color = background_color
         self.text_select = text_select
         self.frameless = frameless
+        self.easy_drag = easy_drag
         self.hidden = hidden
         self.on_top = on_top
         self.minimized = minimized

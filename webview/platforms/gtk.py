@@ -119,10 +119,11 @@ class BrowserView:
 
         if window.frameless:
             self.window.set_decorated(False)
-            self.move_progress = False
-            self.webview.connect('button-release-event', self.on_mouse_release)
-            self.webview.connect('button-press-event', self.on_mouse_press)
-            self.window.connect('motion-notify-event', self.on_mouse_move)
+            if window.easy_drag:
+                self.move_progress = False
+                self.webview.connect('button-release-event', self.on_mouse_release)
+                self.webview.connect('button-press-event', self.on_mouse_press)
+                self.window.connect('motion-notify-event', self.on_mouse_move)
 
         if window.on_top:
             self.window.set_keep_above(True)

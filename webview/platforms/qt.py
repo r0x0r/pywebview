@@ -87,7 +87,7 @@ class BrowserView(QMainWindow):
         def __init__(self, parent=None):
             super(BrowserView.WebView, self).__init__(parent)
 
-            if parent.frameless:
+            if parent.frameless and parent.easy_drag:
                 QApplication.instance().installEventFilter(self)
                 self.setMouseTracking(True)
 
@@ -131,8 +131,9 @@ class BrowserView(QMainWindow):
             event.accept()
 
         def mouseMoveEvent(self, event):
-            if self.parent().frameless and int(event.buttons()) == 1:  # left button is pressed
-                self.parent().move(event.globalPos() - self.drag_pos)
+            parent = self.parent()
+            if parent.frameless and parent.easy_drag and int(event.buttons()) == 1:  # left button is pressed
+                parent.move(event.globalPos() - self.drag_pos)
 
         def eventFilter(self, object, event):
             if object.parent() == self:
@@ -228,6 +229,7 @@ class BrowserView(QMainWindow):
         self.setMinimumSize(window.min_size[0], window.min_size[1])
 
         self.frameless = window.frameless
+        self.easy_drag = window.easy_drag
         flags = self.windowFlags()
         if self.frameless:
             flags = flags | QtCore.Qt.FramelessWindowHint

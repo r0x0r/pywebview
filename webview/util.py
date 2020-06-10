@@ -18,7 +18,9 @@ from platform import architecture
 from threading import Thread
 from uuid import uuid4
 
-from .js import api, npo, dom, event
+import webview
+
+from .js import api, npo, dom, event, drag
 
 _token = uuid4().hex
 
@@ -110,7 +112,7 @@ def parse_api_js(window, platform, uid=''):
     except Exception as e:
         logger.exception(e)
 
-    js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src
+    js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src + drag.src % webview.DRAG_REGION_SELECTOR
     return js_code
 
 
@@ -130,6 +132,10 @@ def js_bridge_call(window, func_name, param, value_id):
             code = 'window.pywebview._returnValues["{0}"]["{1}"] = {{isError: true, value: \'{2}\'}}'.format(func_name, value_id, result)
 
         window.evaluate_js(code)
+
+    if func_name == 'moveWindow':
+        window.move(*param)
+        return
 
     func = window._functions.get(func_name) or getattr(window._js_api, func_name, None)
 
