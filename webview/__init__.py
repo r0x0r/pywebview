@@ -12,20 +12,33 @@ http://github.com/r0x0r/pywebview/
 """
 
 
-import json
 import logging
 import os
 import re
-import sys
 import threading
 from uuid import uuid4
-from copy import deepcopy
 
 from webview.event import Event
 from webview.guilib import initialize
-from webview.util import _token, base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, WebViewException
+from webview.util import _token, base_uri, parse_file_type, escape_string, make_unicode, escape_line_breaks, WebViewException
 from webview.window import Window
 from .localization import localization as original_localization
+from .wsgi import Routing, StaticFiles, StaticResources
+
+
+__all__ = (
+    # Stuff that's here
+    'start', 'create_window', 'token',
+    # From wsgi
+    'Routing', 'StaticFiles', 'StaticResources',
+    # From event
+    'Event',
+    # from util
+    '_token', 'base_uri', 'parse_file_type', 'escape_string', 'make_unicode',
+    'escape_line_breaks', 'WebViewException',
+    # from window
+    'Window',
+)
 
 logger = logging.getLogger('pywebview')
 handler = logging.StreamHandler()
@@ -136,11 +149,10 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
-    window = Window(uid, make_unicode(title), transform_url(url), html,
+    window = Window(uid, make_unicode(title), url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
-                    frameless, easy_drag,
-                    minimized, on_top, confirm_close, background_color, js_api,
-                    text_select)
+                    frameless, easy_drag, minimized, on_top, confirm_close, background_color, 
+                    js_api, text_select)
     windows.append(window)
 
     if threading.current_thread().name != 'MainThread' and guilib:

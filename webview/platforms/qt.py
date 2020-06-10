@@ -282,8 +282,8 @@ class BrowserView(QMainWindow):
         if window.fullscreen:
             self.toggle_fullscreen()
 
-        if window.url is not None:
-            self.view.setUrl(QtCore.QUrl(window.url))
+        if window.real_url is not None:
+            self.view.setUrl(QtCore.QUrl(window.real_url))
         elif window.html:
             self.view.setHtml(window.html, QtCore.QUrl(''))
         else:

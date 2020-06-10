@@ -386,9 +386,9 @@ class BrowserView:
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
         config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
-        if window.url:
-            self.url = window.url
-            self.load_url(window.url)
+        if window.real_url:
+            self.url = window.real_url
+            self.load_url(window.real_url)
         elif window.html:
             self.load_html(window.html, '')
         else:
