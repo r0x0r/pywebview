@@ -16,7 +16,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `title` - Window title
 * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point.
 * `html` - HTML code to load. If both URL and HTML are specified, HTML takes precedence.
-* `js_api` - Expose a `js_api` class object to the DOM of the current `pywebview` window. Callable functions of `js_api` can be executed using Javascript page via `window.pywebview.api` object.
+* `js_api` - Expose a python object to the DOM of the current `pywebview` window. Methods of  the `js_api` object can be executed from Javascript by calling `window.pywebview.api.<methodname>(<parameters>)`. Please note that the calling Javascript function receives a promise that will contain the return value of the python function. Only basic Python objects (like int, str, dict, ...) can be returned to Javascript.
 * `width` - Window width. Default is 800px.
 * `height` - Window height. Default is 600px.
 * `x` - Window x coordinate. Default is centered.
@@ -293,7 +293,7 @@ Event that is fired when DOM is ready.
 
 # DOM events
 
-Additionally _pywebview_ exposes a `window.pywebviewready` DOM event that is fired when `window.pywebview` is created.
+_pywebview_ exposes a `window.pywebviewready` DOM event that is fired when `window.pywebview` is created.
 
 [Example](/examples/js_api.html)
 

@@ -33,7 +33,7 @@ webview.create_window('Hello world', 'https://pywebview.flowrl.com/')
 webview.start()
 ```
 
-Explore [documentation](/guide) or [examples](/examples).
+Explore [documentation](/guide) or [examples](/examples). If React is your thing, get started right away with [React boilerplate](https://github.com/r0x0r/pywebview-react-boilerplate).
 
 <br/>
 
