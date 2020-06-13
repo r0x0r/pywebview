@@ -11,7 +11,7 @@ Below there are a couple of non-trivial examples that demonstrate an application
 
 ## Serverless application
 
-[Serverless application](https://github.com/r0x0r/pywebview/tree/master/examples/todos)
+[Serverless application](https://github.com/r0x0r/pywebview/tree/docs/examples/todos)
 
 A simple todo application that uses serverless architecture. Communication between frontend and backend is provided by built-in API.
 
@@ -32,7 +32,7 @@ A simple todo application that uses serverless architecture. Communication betwe
 
 ## HTTP server application
 
-[Flask-based application](https://github.com/r0x0r/pywebview/tree/master/examples/flask_app)
+[Flask-based application](https://github.com/r0x0r/pywebview/tree/docs/examples/flask_app)
 
 In this example communication between frontend and backend is facilitated by a Flask server.
 
