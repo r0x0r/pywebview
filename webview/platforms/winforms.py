@@ -393,7 +393,6 @@ class BrowserView:
             if is_cef:
                 self.Resize += self.on_resize
 
-
         def on_shown(self, sender, args):
             if not is_cef:
                 self.shown.set()

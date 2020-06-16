@@ -316,7 +316,7 @@ class BrowserView:
         if window.resizable:
             window_mask = window_mask | AppKit.NSResizableWindowMask
 
-        if window.frameless or window.transparent:
+        if window.frameless:
             window_mask = window_mask | NSFullSizeContentViewWindowMask | AppKit.NSTexturedBackgroundWindowMask
 
         # The allocated resources are retained because we would explicitly delete
@@ -344,10 +344,6 @@ class BrowserView:
             self.window.setOpaque_(False)
             self.window.setHasShadow_(False)
             self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color, 0))
-            self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
-            self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
-            self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
-            self.webkit.setOpaque_(False)
             self.webkit.setValue_forKey_(True, 'drawsTransparentBackground')
         else:
             self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color))
@@ -360,10 +356,13 @@ class BrowserView:
 
         self.frameless = window.frameless
 
-        if window.frameless or window.transparent:
+        if window.frameless:
             # Make content full size and titlebar transparent
             self.window.setTitlebarAppearsTransparent_(True)
             self.window.setTitleVisibility_(NSWindowTitleHidden)
+            self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
         else:
             # Set the titlebar color (so that it does not change with the window color)
             self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
@@ -399,7 +398,6 @@ class BrowserView:
             self.toggle_fullscreen()
 
         self.shown.set()
-
 
     def first_show(self):
         if not self.hidden:

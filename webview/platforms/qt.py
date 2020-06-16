@@ -299,8 +299,6 @@ class BrowserView(QMainWindow):
 
         self.shown.set()
 
-
-
     def on_set_title(self, title):
         self.setWindowTitle(title)
 
