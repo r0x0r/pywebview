@@ -252,7 +252,8 @@ class BrowserView:
             self.url = None
             self.ishtml = False
 
-            _allow_localhost()
+            if window.html or 'localhost' in window.real_url or '127.0.0.1' in window.real_url:
+                _allow_localhost()
 
             if window.real_url:
                 self.load_url(window.real_url)
