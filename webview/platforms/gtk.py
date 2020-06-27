@@ -14,9 +14,9 @@ except ImportError:
     from urllib import unquote
 
 from uuid import uuid1
-from threading import Event, Semaphore
+from threading import Event, Semaphore, Lock
 from webview.localization import localization
-from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 
@@ -39,6 +39,8 @@ webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_
 old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
 
 renderer = 'gtkwebkit2'
+
+settings = {}
 
 class BrowserView:
     instances = {}
@@ -111,12 +113,20 @@ class BrowserView:
         self.webview.connect('notify::title', self.on_title_change)
         self.webview.connect('decide-policy', self.on_navigation)
 
+        user_agent = settings.get('user_agent') or _user_agent
+        if user_agent:
+            self.webview.get_settings().props.user_agent = user_agent
+
         if window.frameless:
             self.window.set_decorated(False)
-            self.move_progress = False
-            self.webview.connect('button-release-event', self.on_mouse_release)
-            self.webview.connect('button-press-event', self.on_mouse_press)
-            self.window.connect('motion-notify-event', self.on_mouse_move)
+            if window.easy_drag:
+                self.move_progress = False
+                self.webview.connect('button-release-event', self.on_mouse_release)
+                self.webview.connect('button-press-event', self.on_mouse_press)
+                self.window.connect('motion-notify-event', self.on_mouse_move)
+
+        if window.on_top:
+            self.window.set_keep_above(True)
 
         self.transparent = window.transparent
         if window.transparent:
@@ -134,8 +144,8 @@ class BrowserView:
         self.webview.set_opacity(0.0)
         scrolled_window.add(self.webview)
 
-        if window.url is not None:
-            self.webview.load_uri(window.url)
+        if window.real_url is not None:
+            self.webview.load_uri(window.real_url)
         elif window.html:
             self.webview.load_html(window.html, '')
         else:
@@ -422,6 +432,13 @@ def toggle_fullscreen(uid):
     glib.idle_add(_toggle_fullscreen)
 
 
+def set_on_top(uid, top):
+    def _set_on_top():
+        BrowserView.instances[uid].window.set_keep_above(top)
+
+    glib.idle_add(_set_on_top)
+
+
 def resize(width, height, uid):
     def _resize():
         BrowserView.instances[uid].resize(width,height)
@@ -435,19 +452,19 @@ def move(x, y, uid):
 
 
 def hide(uid):
-    BrowserView.instances[uid].hide()
+    glib.idle_add(BrowserView.instances[uid].hide)
 
 
 def show(uid):
-    BrowserView.instances[uid].show()
+    glib.idle_add(BrowserView.instances[uid].show)
 
 
 def minimize(uid):
-    BrowserView.instances[uid].minimize()
+    glib.idle_add(BrowserView.instances[uid].minimize)
 
 
 def restore(uid):
-    BrowserView.instances[uid].restore()
+    glib.idle_add(BrowserView.instances[uid].restore)
 
 
 def get_current_url(uid):
@@ -492,12 +509,31 @@ def evaluate_js(script, uid):
 
 
 def get_position(uid):
-    return BrowserView.instances[uid].window.get_position()
+    def _get_position():
+        result['position'] = BrowserView.instances[uid].window.get_position()
+        semaphore.release()
+
+    result = {}
+    semaphore = Semaphore(0)
+    glib.idle_add(_get_position)
+    semaphore.acquire()
+
+    return result['position']
 
 
 def get_size(uid):
-    return BrowserView.instances[uid].window.get_size()
+    def _get_size():
+        result['size'] = BrowserView.instances[uid].window.get_size()
+        semaphore.release()
 
+    result = {}
+    semaphore = Semaphore(0)
+    glib.idle_add(_get_size)
+    semaphore.acquire()
+
+    return result['size']
+
+  
 def configure_transparency(c):
     c.set_visual(c.get_screen().get_rgba_visual())
     c.override_background_color(gtk.StateFlags.ACTIVE, Gdk.RGBA(0, 0, 0, 0))

@@ -7,8 +7,8 @@
 webview.create_window(title, url='', html='', js_api=None, width=800, height=600,
                       x=None, y=None, resizable=True, fullscreen=False, \
                       min_size=(200, 100), hidden=False, frameless=False, \
-                      minimized=False, confirm_close=False, background_color='#FFF', \
-                      text_select=False)
+                      minimized=False, on_top=False, confirm_close=False, \
+                      background_color='#FFF', text_select=False)
 ```
 
 Create a new _pywebview_ window and returns its instance. Window is not shown until the GUI loop is started. If the function is invoked during the GUI loop, the window is displayed immediately.
@@ -16,7 +16,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `title` - Window title
 * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point.
 * `html` - HTML code to load. If both URL and HTML are specified, HTML takes precedence.
-* `js_api` - Expose a `js_api` class object to the DOM of the current `pywebview` window. Callable functions of `js_api` can be executed using Javascript page via `window.pywebview.api` object.
+* `js_api` - Expose a python object to the DOM of the current `pywebview` window. Methods of  the `js_api` object can be executed from Javascript by calling `window.pywebview.api.<methodname>(<parameters>)`. Please note that the calling Javascript function receives a promise that will contain the return value of the python function. Only basic Python objects (like int, str, dict, ...) can be returned to Javascript.
 * `width` - Window width. Default is 800px.
 * `height` - Window height. Default is 600px.
 * `x` - Window x coordinate. Default is centered.
@@ -27,6 +27,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `hidden` - Create a window hidden by default. Default is False
 * `frameless` - Create a frameless easy-draggable window. Default is False.
 * `minimized` - Start in minimized mode
+* `on_top` - Set window to be always on top. Default is False.
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
 * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) CSS property.
@@ -34,7 +35,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 ## webview.start
 
 ``` python
-webview.start(func=None, args=None, localization={}, http_server=False, gui=None, debug=False)
+webview.start(func=None, args=None, localization={}, http_server=False, gui=None, debug=False, user_agent=None)
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
@@ -45,6 +46,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `http_server` - enable built-in HTTP server. If enabled, local files will be served using a local HTTP server on a random port. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `gui` - force a specific GUI. Allowed values are `cef`, `qt` or `gtk` depending on a platform. See [Renderer](/guide/renderer.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
+* `user_agent` - change user agent string. Not supported in EdgeHTML.
 
 ### Examples
 * [Simple window](/examples/open_url.html)
@@ -63,6 +65,13 @@ A CSRF token property unique to the session. The same token is exposed as `windo
 
 These properties and functions are part of the `window` object returned by `create_window`
 
+## on_top
+
+``` python
+window.on_top
+```
+
+Get or set whether the window is always on top
 
 ## x
 ``` python
@@ -284,7 +293,7 @@ Event that is fired when DOM is ready.
 
 # DOM events
 
-Additionally _pywebview_ exposes a `window.pywebviewready` DOM event that is fired when `window.pywebview` is created.
+_pywebview_ exposes a `window.pywebviewready` DOM event that is fired when `window.pywebview` is created.
 
 [Example](/examples/js_api.html)
 

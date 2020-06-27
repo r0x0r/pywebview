@@ -47,6 +47,7 @@ Become a financial contributor and help us sustain our community. More donation 
 
 
 #### Individuals
+[atcbackdoor](https://github.com/atcbackdoor)
 
 <a href="https://opencollective.com/pywebview"><img src="https://opencollective.com/pywebview/individuals.svg?width=890"></a>
 

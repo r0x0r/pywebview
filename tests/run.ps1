@@ -32,6 +32,7 @@ $tests=@(
   "test_multi_window.py::test_evaluate_js",
   "test_multi_window.py::test_js_bridge",
   "test_noresize.py",
+  "test_on_top.py",
   "test_set_title.py",
   "test_resize.py",
   "test_simple_browser.py",
@@ -40,7 +41,8 @@ $tests=@(
   "test_token.py::test_token",
   "test_token.py::test_persistance",
   "test_url_load.py",
-  "test_window.py"
+  "test_window.py",
+  "test_wsgi.py"
 )
 
 This test fails with CEF on AppVeyor. Skip it for now

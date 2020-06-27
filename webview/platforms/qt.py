@@ -13,9 +13,9 @@ import webbrowser
 import socket
 from uuid import uuid1
 from copy import deepcopy
-from threading import Semaphore
+from threading import Semaphore, Event
 
-from webview import _debug, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.localization import localization
 from webview.window import Window
 from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
@@ -24,6 +24,7 @@ from webview.js.css import disable_text_select
 
 logger = logging.getLogger('pywebview')
 
+settings = {}
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QT_VERSION_STR
@@ -43,6 +44,9 @@ except ImportError:
     from PyQt5.QtWebKitWidgets import QWebView, QWebPage
     is_webengine = False
     renderer = 'qtwebkit'
+
+_main_window_created = Event()
+_main_window_created.clear()
 
 
 class BrowserView(QMainWindow):
@@ -64,6 +68,7 @@ class BrowserView(QMainWindow):
     window_restore_trigger = QtCore.pyqtSignal()
     current_url_trigger = QtCore.pyqtSignal()
     evaluate_js_trigger = QtCore.pyqtSignal(str, str)
+    on_top_trigger = QtCore.pyqtSignal(bool)
 
     class JSBridge(QtCore.QObject):
         qtype = QtCore.QJsonValue if is_webengine else str
@@ -76,13 +81,13 @@ class BrowserView(QMainWindow):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
 
-            return js_bridge_call(self.window, func_name, param, value_id)
+            return js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
     class WebView(QWebView):
         def __init__(self, parent=None):
             super(BrowserView.WebView, self).__init__(parent)
 
-            if parent.frameless:
+            if parent.frameless and parent.easy_drag:
                 QApplication.instance().installEventFilter(self)
                 self.setMouseTracking(True)
 
@@ -120,7 +125,7 @@ class BrowserView(QMainWindow):
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
                 window = Window('web_inspector', title, url, '', 700, 500, None, None, True, False,
-                                (300, 200), False, False, False, False, '#fff', None, False, False)
+                                (300, 200), False, False, False, False, False, '#fff', None, False, False)
 
                 inspector = BrowserView(window)
                 inspector.show()
@@ -132,8 +137,9 @@ class BrowserView(QMainWindow):
             event.accept()
 
         def mouseMoveEvent(self, event):
-            if self.parent().frameless and int(event.buttons()) == 1:  # left button is pressed
-                self.parent().move(event.globalPos() - self.drag_pos)
+            parent = self.parent()
+            if parent.frameless and parent.easy_drag and int(event.buttons()) == 1:  # left button is pressed
+                parent.move(event.globalPos() - self.drag_pos)
 
         def eventFilter(self, object, event):
             if object.parent() == self:
@@ -182,6 +188,13 @@ class BrowserView(QMainWindow):
                     return False
                 return True
 
+        def userAgentForUrl(self, url):
+            user_agent = settings.get('user_agent') or _user_agent
+            if user_agent:
+                return user_agent
+            else:
+                return super().userAgentForUrl(url)
+
         def createWindow(self, type):
             return self.nav_handler
 
@@ -225,8 +238,15 @@ class BrowserView(QMainWindow):
         self.setMinimumSize(window.min_size[0], window.min_size[1])
 
         self.frameless = window.frameless
+        self.easy_drag = window.easy_drag
+        flags = self.windowFlags()
         if self.frameless:
-            self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
+            flags = flags | QtCore.Qt.FramelessWindowHint
+
+        if window.on_top:
+            flags = flags | QtCore.Qt.WindowStaysOnTopHint
+
+        self.setWindowFlags(flags)
 
         self.transparent = window.transparent
         if self.transparent:
@@ -272,6 +292,7 @@ class BrowserView(QMainWindow):
         self.current_url_trigger.connect(self.on_current_url)
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
+        self.on_top_trigger.connect(self.on_set_on_top)
 
         if is_webengine and platform.system() != 'OpenBSD':
             self.channel = QWebChannel(self.view.page())
@@ -280,8 +301,8 @@ class BrowserView(QMainWindow):
         if window.fullscreen:
             self.toggle_fullscreen()
 
-        if window.url is not None:
-            self.view.setUrl(QtCore.QUrl(window.url))
+        if window.real_url is not None:
+            self.view.setUrl(QtCore.QUrl(window.real_url))
         elif window.html:
             self.view.setHtml(window.html, QtCore.QUrl(''))
         else:
@@ -329,6 +350,15 @@ class BrowserView(QMainWindow):
     def on_load_html(self, content, base_uri):
         self.view.setHtml(content, QtCore.QUrl(base_uri))
 
+    def on_set_on_top(self, top):
+        flags = self.windowFlags()
+        if top:
+            self.setWindowFlags(flags | QtCore.Qt.WindowStaysOnTopHint)
+        else:
+            self.setWindowFlags(flags & ~QtCore.Qt.WindowStaysOnTopHint)
+
+        self.show()
+
     def closeEvent(self, event):
         self.pywebview_window.closing.set()
         if self.confirm_close:
@@ -340,16 +370,11 @@ class BrowserView(QMainWindow):
                 return
 
         event.accept()
+        BrowserView.instances[self.uid].close()
         del BrowserView.instances[self.uid]
 
         if self.pywebview_window in windows:
             windows.remove(self.pywebview_window)
-
-        try:    # Close inspector if open
-            BrowserView.instances[self.uid + '-inspector'].close()
-            del BrowserView.instances[self.uid + '-inspector']
-        except KeyError:
-            pass
 
         self.pywebview_window.closed.set()
 
@@ -398,10 +423,10 @@ class BrowserView(QMainWindow):
             js_result['semaphore'].release()
 
         try:    # < Qt5.6
+            self.view.page().runJavaScript(script, return_result)
+        except AttributeError:
             result = self.view.page().mainFrame().evaluateJavaScript(script)
             return_result(result)
-        except AttributeError:
-            self.view.page().runJavaScript(script, return_result)
         except Exception as e:
             logger.exception(e)
 
@@ -411,10 +436,11 @@ class BrowserView(QMainWindow):
         if not self.text_select:
             script = disable_text_select.replace('\n', '')
 
-            try:  # QT < 5.6
-                self.view.page().mainFrame().evaluateJavaScript(script)
-            except AttributeError:
+            try:  
                 self.view.page().runJavaScript(script)
+            except: # QT < 5.6
+                self.view.page().mainFrame().evaluateJavaScript(script)
+                
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)
@@ -475,6 +501,9 @@ class BrowserView(QMainWindow):
     def restore(self):
         self.window_restore_trigger.emit()
 
+    def set_on_top(self, top):
+        self.on_top_trigger.emit(top)
+
     def evaluate_js(self, script):
         self.loaded.wait()
         result_semaphore = Semaphore(0)
@@ -507,10 +536,10 @@ class BrowserView(QMainWindow):
             frame = self.view.page().mainFrame()
             _register_window_object()
 
-        try:    # < QT 5.6
-            self.view.page().mainFrame().evaluateJavaScript(script)
-        except AttributeError:
+        try:
             self.view.page().runJavaScript(script)
+        except AttributeError:  # < QT 5.6
+            self.view.page().mainFrame().evaluateJavaScript(script)
 
         self.loaded.set()
 
@@ -535,10 +564,10 @@ class BrowserView(QMainWindow):
         """
         port_available = False
         port = 8228
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         while not port_available:
             try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.bind(('localhost', port))
                 port_available = True
             except:
@@ -557,11 +586,10 @@ class BrowserView(QMainWindow):
 
 
 def create_window(window):
-    global _app
-    _app = QApplication.instance() or QApplication([])
-
     def _create():
         browser = BrowserView(window)
+
+        _main_window_created.set()
 
         if window.minimized:
             # showMinimized does not work on start without showNormal first
@@ -572,9 +600,13 @@ def create_window(window):
             browser.show()
 
     if window.uid == 'master':
+        global _app
+        _app = QApplication.instance() or QApplication([])
+
         _create()
         _app.exec_()
     else:
+        _main_window_created.wait()
         i = list(BrowserView.instances.values())[0] # arbitrary instance
         i.create_window_trigger.emit(_create)
 
@@ -617,6 +649,10 @@ def restore(uid):
 
 def toggle_fullscreen(uid):
     BrowserView.instances[uid].toggle_fullscreen()
+
+
+def set_on_top(uid, top):
+    BrowserView.instances[uid].set_on_top(top)
 
 
 def resize(width, height, uid):

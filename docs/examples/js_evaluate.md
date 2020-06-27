@@ -2,7 +2,8 @@
 
 Evaluate Javascript from Python code.
 
-``` import webview
+```python
+import webview
 
 def evaluate_js(window):
     result = window.evaluate_js(

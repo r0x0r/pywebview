@@ -35,7 +35,7 @@ window.pywebview = {
                     return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params, id]));
                 case 'qtwebengine':
                     new QWebChannel(qt.webChannelTransport, function(channel) {
-                        channel.objects.external.call(funcName, params, id);
+                        channel.objects.external.call(funcName, JSON.stringify(params), id);
                     });
                     break;
                 case 'gtk':

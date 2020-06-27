@@ -29,7 +29,7 @@ _pywebview_ gives a choice of several web renderers. To change a web renderer, s
 
 ## Threading model
 
-`webview.start` starts a GUI loop and is a blocking function. With the GUI loop being blocking, you must executed your backend logic in a separate thread or a process. You may launch a thread or a process manually. Alternatively you can execute your code by passing your function as the first parameter `func` to `start`. The second parameter sets the function's arguments. This approach starts a thread behind the scenes and is identical to starting a thread manually.
+`webview.start` starts a GUI loop and is a blocking function. With the GUI loop being blocking, you must execute your backend logic in a separate thread or a process. You may launch a thread or a process manually. Alternatively you can execute your code by passing your function as the first parameter `func` to `start`. The second parameter sets the function's arguments. This approach starts a thread behind the scenes and is identical to starting a thread manually.
 
 ``` python
 import webview
