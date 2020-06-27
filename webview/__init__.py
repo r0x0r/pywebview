@@ -103,7 +103,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False, frameless=False,
-                  minimized=False, confirm_close=False, background_color='#FFFFFF', text_select=False, transparent=False):
+                  minimized=False, confirm_close=False, background_color='#FFFFFF', transparent=False, text_select=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
