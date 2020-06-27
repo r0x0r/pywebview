@@ -128,6 +128,14 @@ class BrowserView:
         if window.on_top:
             self.window.set_keep_above(True)
 
+        self.transparent = window.transparent
+        if window.transparent:
+            configure_transparency(self.window)
+            configure_transparency(self.webview)
+            wvbg = self.webview.get_background_color()
+            wvbg.alpha = 0.0
+            self.webview.set_background_color(wvbg)
+
         if _debug:
             self.webview.get_settings().props.enable_developer_extras = True
         else:
@@ -525,3 +533,23 @@ def get_size(uid):
 
     return result['size']
 
+  
+def configure_transparency(c):
+    c.set_visual(c.get_screen().get_rgba_visual())
+    c.override_background_color(gtk.StateFlags.ACTIVE, Gdk.RGBA(0, 0, 0, 0))
+    c.override_background_color(gtk.StateFlags.BACKDROP, Gdk.RGBA(0, 0, 0, 0))
+    c.override_background_color(gtk.StateFlags.DIR_LTR, Gdk.RGBA(0, 0, 0, 0))
+    c.override_background_color(gtk.StateFlags.DIR_RTL, Gdk.RGBA(0, 0, 0, 0))
+    c.override_background_color(gtk.StateFlags.FOCUSED, Gdk.RGBA(0, 0, 0, 0))
+    c.override_background_color(gtk.StateFlags.INCONSISTENT, Gdk.RGBA(0, 0, 0, 0))
+    c.override_background_color(gtk.StateFlags.INSENSITIVE, Gdk.RGBA(0, 0, 0, 0))
+    c.override_background_color(gtk.StateFlags.NORMAL, Gdk.RGBA(0, 0, 0, 0))
+    c.override_background_color(gtk.StateFlags.PRELIGHT, Gdk.RGBA(0, 0, 0, 0))
+    c.override_background_color(gtk.StateFlags.SELECTED, Gdk.RGBA(0, 0, 0, 0))
+    transparentWindowStyleProvider = gtk.CssProvider()
+    transparentWindowStyleProvider.load_from_data(b"""
+        GtkWindow {
+            background-color:rgba(0,0,0,0);
+            background-image:none;
+        }""")
+    c.get_style_context().add_provider(transparentWindowStyleProvider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
