@@ -338,7 +338,13 @@ class BrowserView:
             self.Text = window.title
             self.Size = Size(window.initial_width, window.initial_height)
             self.MinimumSize = Size(window.min_size[0], window.min_size[1])
-            self.BackColor = ColorTranslator.FromHtml(window.background_color)
+
+            if window.transparent: # window transparency is not supported, as webviews are not transparent.
+                self.BackColor = Color.LimeGreen
+                self.TransparencyKey = Color.LimeGreen
+                self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
+            else:
+                self.BackColor = window.background_color
 
             if window.initial_x is not None and window.initial_y is not None:
                 self.move(window.initial_x, window.initial_y)
