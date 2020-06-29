@@ -135,6 +135,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
     :param hidden: Whether the window should be hidden.
     :param frameless: Whether the window should have a frame.
+    :param easy_drag: Easy window drag mode when window is frameless.
     :param minimized: Display window minimized
     :param on_top: Keep window above other windows (required OS: Windows)
     :param confirm_close: Display a window close confirmation dialog. Default is False
@@ -152,9 +153,9 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     window = Window(uid, make_unicode(title), url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
-                    frameless, easy_drag, minimized, on_top, confirm_close, background_color, 
+                    frameless, easy_drag, minimized, on_top, confirm_close, background_color,
                     js_api, text_select, transparent)
-    
+
     windows.append(window)
 
     if threading.current_thread().name != 'MainThread' and guilib:
