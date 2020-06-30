@@ -304,6 +304,8 @@ class BrowserView(QMainWindow):
 
         if window.real_url is not None:
             self.view.setUrl(QtCore.QUrl(window.real_url))
+        elif window.uid == 'web_inspector':
+            self.view.setUrl(QtCore.QUrl(window.original_url))
         elif window.html:
             self.view.setHtml(window.html, QtCore.QUrl(''))
         else:
@@ -432,6 +434,9 @@ class BrowserView(QMainWindow):
             logger.exception(e)
 
     def on_load_finished(self):
+        if self.uid == 'web_inspector':
+            return
+
         self._set_js_api()
 
         if not self.text_select:
