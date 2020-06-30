@@ -20,7 +20,7 @@ import wsgiref.util
 try:
     # Python 3.7+
     import importlib.resources as importlib_resources
-except ImportError:
+except (ImportError, ModuleNotFoundError) as e :
     # Python 3.6
     import importlib_resources
 

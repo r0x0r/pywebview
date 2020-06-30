@@ -124,8 +124,9 @@ class BrowserView(QMainWindow):
             except KeyError:
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
+                print(url)
                 window = Window('web_inspector', title, url, '', 700, 500, None, None, True, False,
-                                (300, 200), False, False, False, False, False, '#fff', None, False, False)
+                                (300, 200), False, False, False, False, False, False, '#fff', None, False, False)
 
                 inspector = BrowserView(window)
                 inspector.show()
