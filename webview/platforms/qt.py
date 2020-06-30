@@ -81,15 +81,21 @@ class BrowserView(QMainWindow):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
 
-            return js_bridge_call(self.window, func_name, param, value_id)
+            return js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
     class WebView(QWebView):
         def __init__(self, parent=None):
             super(BrowserView.WebView, self).__init__(parent)
 
-            if parent.frameless:
+            if parent.frameless and parent.easy_drag:
                 QApplication.instance().installEventFilter(self)
                 self.setMouseTracking(True)
+
+            self.transparent = parent.transparent
+            if parent.transparent:
+                self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+                self.setAttribute(QtCore.Qt.WA_OpaquePaintEvent, False)
+                self.setStyleSheet("background: transparent;")
 
         def contextMenuEvent(self, event):
             menu = self.page().createStandardContextMenu()
@@ -119,7 +125,7 @@ class BrowserView(QMainWindow):
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
                 window = Window('web_inspector', title, url, '', 700, 500, None, None, True, False,
-                                (300, 200), False, False, False, False, False, '#fff', None, False)
+                                (300, 200), False, False, False, False, False, '#fff', None, False, False)
 
                 inspector = BrowserView(window)
                 inspector.show()
@@ -131,8 +137,9 @@ class BrowserView(QMainWindow):
             event.accept()
 
         def mouseMoveEvent(self, event):
-            if self.parent().frameless and int(event.buttons()) == 1:  # left button is pressed
-                self.parent().move(event.globalPos() - self.drag_pos)
+            parent = self.parent()
+            if parent.frameless and parent.easy_drag and int(event.buttons()) == 1:  # left button is pressed
+                parent.move(event.globalPos() - self.drag_pos)
 
         def eventFilter(self, object, event):
             if object.parent() == self:
@@ -160,6 +167,9 @@ class BrowserView(QMainWindow):
                 self.nav_handler = BrowserView.NavigationHandler(self)
             else:
                 self.nav_handler = None
+
+            if parent.transparent:
+                self.setBackgroundColor(QtCore.Qt.transparent)
 
         if is_webengine:
             def onFeaturePermissionRequested(self, url, feature):
@@ -228,6 +238,7 @@ class BrowserView(QMainWindow):
         self.setMinimumSize(window.min_size[0], window.min_size[1])
 
         self.frameless = window.frameless
+        self.easy_drag = window.easy_drag
         flags = self.windowFlags()
         if self.frameless:
             flags = flags | QtCore.Qt.FramelessWindowHint
@@ -236,6 +247,16 @@ class BrowserView(QMainWindow):
             flags = flags | QtCore.Qt.WindowStaysOnTopHint
 
         self.setWindowFlags(flags)
+
+        self.transparent = window.transparent
+        if self.transparent:
+            # Override the background color
+            self.background_color = QColor('transparent')
+            palette = self.palette()
+            palette.setColor(self.backgroundRole(), self.background_color)
+            self.setPalette(palette)
+            # Enable the transparency hint
+            self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
         self.view = BrowserView.WebView(self)
 
@@ -280,8 +301,8 @@ class BrowserView(QMainWindow):
         if window.fullscreen:
             self.toggle_fullscreen()
 
-        if window.url is not None:
-            self.view.setUrl(QtCore.QUrl(window.url))
+        if window.real_url is not None:
+            self.view.setUrl(QtCore.QUrl(window.real_url))
         elif window.html:
             self.view.setHtml(window.html, QtCore.QUrl(''))
         else:
@@ -402,10 +423,10 @@ class BrowserView(QMainWindow):
             js_result['semaphore'].release()
 
         try:    # < Qt5.6
+            self.view.page().runJavaScript(script, return_result)
+        except AttributeError:
             result = self.view.page().mainFrame().evaluateJavaScript(script)
             return_result(result)
-        except AttributeError:
-            self.view.page().runJavaScript(script, return_result)
         except Exception as e:
             logger.exception(e)
 
@@ -415,10 +436,11 @@ class BrowserView(QMainWindow):
         if not self.text_select:
             script = disable_text_select.replace('\n', '')
 
-            try:  # QT < 5.6
-                self.view.page().mainFrame().evaluateJavaScript(script)
-            except AttributeError:
+            try:  
                 self.view.page().runJavaScript(script)
+            except: # QT < 5.6
+                self.view.page().mainFrame().evaluateJavaScript(script)
+                
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)
@@ -514,10 +536,10 @@ class BrowserView(QMainWindow):
             frame = self.view.page().mainFrame()
             _register_window_object()
 
-        try:    # < QT 5.6
-            self.view.page().mainFrame().evaluateJavaScript(script)
-        except AttributeError:
+        try:
             self.view.page().runJavaScript(script)
+        except AttributeError:  # < QT 5.6
+            self.view.page().mainFrame().evaluateJavaScript(script)
 
         self.loaded.set()
 

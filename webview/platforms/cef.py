@@ -5,6 +5,7 @@ import shutil
 import sys
 import webbrowser
 
+from ctypes import windll
 from functools import wraps
 from uuid import uuid1
 from threading import Event
@@ -27,6 +28,7 @@ settings = {}
 
 command_line_switches = {}
 
+
 def _set_dpi_mode(enabled):
     """
     """
@@ -37,8 +39,8 @@ def _set_dpi_mode(enabled):
 
     try:
         dpi_support = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                                    r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
-                                    0, winreg.KEY_ALL_ACCESS)
+                                     r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
+                                     0, winreg.KEY_ALL_ACCESS)
     except WindowsError:
         dpi_support = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER,
                                          r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
@@ -57,7 +59,6 @@ def _set_dpi_mode(enabled):
     winreg.CloseKey(dpi_support)
 
 
-
 class JSBridge:
     def __init__(self, window, eval_events):
         self.results = {}
@@ -71,7 +72,9 @@ class JSBridge:
     def call(self, func_name, param, value_id):
         js_bridge_call(self.window, func_name, param, value_id)
 
+
 renderer = 'cef'
+
 
 class Browser:
     def __init__(self, window, handle, browser):
@@ -82,7 +85,7 @@ class Browser:
         self.uid = window.uid
         self.loaded = window.loaded
         self.shown = window.shown
-
+        self.inner_hwnd = self.browser.GetWindowHandle()
         self.eval_events = {}
         self.js_bridge = JSBridge(window, self.eval_events)
         self.initialized = False
@@ -99,12 +102,17 @@ class Browser:
 
         self.browser.ExecuteJavascript(dom.src)
 
-        sleep(0.1) # wait for window.pywebview to load
+        sleep(0.1)  # wait for window.pywebview to load
         self.initialized = True
         self.loaded.set()
 
     def close(self):
         self.browser.CloseBrowser(True)
+
+    def resize(self, width, height):
+        windll.user32.SetWindowPos(self.inner_hwnd, 0, 0, 0, width - 16, height - 38,
+                                   0x0002 | 0x0004 | 0x0010)
+        self.browser.NotifyMoveOrResizeStarted()
 
     def evaluate_js(self, code):
         self.loaded.wait()
@@ -187,8 +195,6 @@ def _cef_call(func):
     return wrapper
 
 
-
-
 def init(window):
     global _initialized
 
@@ -213,7 +219,7 @@ def init(window):
         if _user_agent:
             default_settings['user_agent'] = _user_agent
 
-        try: # set paths under Pyinstaller's one file mode
+        try:  # set paths under Pyinstaller's one file mode
             default_settings.update({
                 'resources_dir_path': sys._MEIPASS,
                 'locales_dir_path': os.path.join(sys._MEIPASS, 'locales'),
@@ -232,7 +238,7 @@ def init(window):
 
 def create_browser(window, handle, alert_func):
     def _create():
-        real_url = 'data:text/html,{0}'.format(window.html) if window.html else window.url or 'data:text/html,{0}'.format(default_html)
+        real_url = 'data:text/html,{0}'.format(window.html) if window.html else window.real_url or 'data:text/html,{0}'.format(default_html)
         cef_browser = cef.CreateBrowserSync(window_info=window_info, url=real_url)
         browser = Browser(window, handle, cef_browser)
 
@@ -282,9 +288,8 @@ def get_current_url(uid):
 
 @_cef_call
 def resize(width, height, uid):
-    hwnd = instances[uid].handle
-    lparam = width << 16 & height
-    cef.WindowUtils.OnSize(hwnd, 5, 0, lparam)
+    instance = instances[uid]
+    instance.resize(width, height)
 
 
 @_cef_call

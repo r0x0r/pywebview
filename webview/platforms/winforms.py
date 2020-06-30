@@ -20,7 +20,7 @@ from uuid import uuid4
 
 from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent
 from webview.guilib import forced_gui_
-from webview.http_server import start_server
+from webview.serving import resolve_url
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
 from webview.js import alert
 from webview.js.css import disable_text_select
@@ -145,8 +145,8 @@ class BrowserView:
             self.web_browser.DownloadComplete += self.on_download_complete
             self.web_browser.DocumentCompleted += self.on_document_completed
 
-            if window.url:
-                self.web_browser.Navigate(window.url)
+            if window.real_url:
+                self.web_browser.Navigate(window.real_url)
             elif window.html:
                 self.web_browser.DocumentText = window.html
             else:
@@ -214,7 +214,7 @@ class BrowserView:
                 document.InvokeScript('eval', (disable_text_select,))
             self.pywebview_window.loaded.set()
 
-            if self.pywebview_window.frameless:
+            if self.pywebview_window.easy_drag:
                 document.MouseMove += self.on_mouse_move
 
         def on_mouse_move(self, sender, e):
@@ -252,10 +252,11 @@ class BrowserView:
             self.url = None
             self.ishtml = False
 
-            _allow_localhost()
+            if window.html or 'localhost' in window.real_url or '127.0.0.1' in window.real_url:
+                _allow_localhost()
 
-            if window.url:
-                self.load_url(window.url)
+            if window.real_url:
+                self.load_url(window.real_url)
             elif window.html:
                 self.load_html(window.html, '')
             else:
@@ -284,7 +285,7 @@ class BrowserView:
             if self.httpd:
                 self.httpd.shutdown()
 
-            url, _ = start_server('file://' + self.temp_html)
+            url = resolve_url('file://' + self.temp_html)
             self.ishtml = True
             self.web_view.Navigate(url)
 
@@ -293,7 +294,7 @@ class BrowserView:
 
             # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
             if url.startswith('file://'):
-                url = start_server(self.url)
+                url = resolve_url(self.url)
 
             self.web_view.Navigate(url)
 
@@ -344,7 +345,13 @@ class BrowserView:
             self.Text = window.title
             self.Size = Size(window.initial_width, window.initial_height)
             self.MinimumSize = Size(window.min_size[0], window.min_size[1])
-            self.BackColor = ColorTranslator.FromHtml(window.background_color)
+
+            if window.transparent: # window transparency is not supported, as webviews are not transparent.
+                self.BackColor = Color.LimeGreen
+                self.TransparencyKey = Color.LimeGreen
+                self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
+            else:
+                self.BackColor = window.background_color
 
             if window.initial_x is not None and window.initial_y is not None:
                 self.move(window.initial_x, window.initial_y)
@@ -374,7 +381,7 @@ class BrowserView:
             self.closing = window.closing
             self.shown = window.shown
             self.loaded = window.loaded
-            self.url = window.url
+            self.url = window.real_url
             self.text_select = window.text_select
             self.on_top = window.on_top
 

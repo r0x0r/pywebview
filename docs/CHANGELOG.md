@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.3: Detroit Edition
+
+_Released 29/06/2020_
+
+- `New` [All] Brand-new WSGI based internal HTTP server. Thanks [@astronouth7303](https://github.com/astronouth7303).
+- `New` [All] Transparent window. Not available on Windows.
+- `New` [All] Allow _pywebview_ window to be on top of other windows.
+- `New` [All] Custom window drag region using CSS classes. Thanks [@Fizzadar](https://github.com/Fizzadar).
+- `New` [All] Custom user-agent support. Thanks [@tognee](https://github.com/tognee).
+- `Fix` [All] Python function not triggered using JS [#458](https://github.com/r0x0r/pywebview/issues/458).
+- `Fix` [All] window methods do not work in `loaded` event [#528](https://github.com/r0x0r/pywebview/issues/528).
+- `Fix` [Cocoa] Caption bar and window control buttons are now hidden in frameless mode.
+- `Fix` [CEF] CEF window resize hang [#484](https://github.com/r0x0r/pywebview/issues/484).
+- `Fix` [MSHTML] Fix easy drag in frameless mode.
+- `Fix` [EdgeHTML] Do not show admin prompt for non-local URLs.
+- `Fix` [GTK] Fix threading issues with recentish versions of PyGObject
+- `Fix` [QT] Fix opening web inspecting in debug mode
+
 ## 3.2: Humate Edition
 
 _Released 24/01/2020_

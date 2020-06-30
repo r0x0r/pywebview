@@ -12,20 +12,33 @@ http://github.com/r0x0r/pywebview/
 """
 
 
-import json
 import logging
 import os
 import re
-import sys
 import threading
 from uuid import uuid4
-from copy import deepcopy
 
 from webview.event import Event
 from webview.guilib import initialize
-from webview.util import _token, base_uri, parse_file_type, escape_string, transform_url, make_unicode, escape_line_breaks, WebViewException
+from webview.util import _token, base_uri, parse_file_type, escape_string, make_unicode, escape_line_breaks, WebViewException
 from webview.window import Window
 from .localization import localization as original_localization
+from .wsgi import Routing, StaticFiles, StaticResources
+
+
+__all__ = (
+    # Stuff that's here
+    'start', 'create_window', 'token',
+    # From wsgi
+    'Routing', 'StaticFiles', 'StaticResources',
+    # From event
+    'Event',
+    # from util
+    '_token', 'base_uri', 'parse_file_type', 'escape_string', 'make_unicode',
+    'escape_line_breaks', 'WebViewException',
+    # from window
+    'Window',
+)
 
 logger = logging.getLogger('pywebview')
 handler = logging.StreamHandler()
@@ -39,6 +52,8 @@ logger.setLevel(log_level)
 OPEN_DIALOG = 10
 FOLDER_DIALOG = 20
 SAVE_DIALOG = 30
+
+DRAG_REGION_SELECTOR = '.pywebview-drag-region'
 
 guilib = None
 _debug = False
@@ -104,9 +119,10 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
-                  resizable=True, fullscreen=False, min_size=(200, 100), hidden=False, frameless=False,
+                  resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
+                  frameless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
-                  text_select=False):
+                  transparent=False, text_select=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -119,11 +135,13 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
     :param hidden: Whether the window should be hidden.
     :param frameless: Whether the window should have a frame.
+    :param easy_drag: Easy window drag mode when window is frameless.
     :param minimized: Display window minimized
     :param on_top: Keep window above other windows (required OS: Windows)
     :param confirm_close: Display a window close confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
+    :param transparent: Don't draw window background.
     :return: window object.
     """
 
@@ -133,10 +151,11 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
-    window = Window(uid, make_unicode(title), transform_url(url), html,
-                    width, height, x, y, resizable, fullscreen, min_size, hidden, frameless,
-                    minimized, on_top, confirm_close, background_color, js_api,
-                    text_select)
+    window = Window(uid, make_unicode(title), url, html,
+                    width, height, x, y, resizable, fullscreen, min_size, hidden,
+                    frameless, easy_drag, minimized, on_top, confirm_close, background_color,
+                    js_api, text_select, transparent)
+
     windows.append(window)
 
     if threading.current_thread().name != 'MainThread' and guilib:

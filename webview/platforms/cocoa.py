@@ -209,7 +209,7 @@ class BrowserView:
             i = BrowserView.get_instance('webkit', self)
             window = self.window()
 
-            if i.frameless:
+            if i.frameless and i.easy_drag:
                 windowFrame = window.frame()
                 if windowFrame is None:
                     raise RuntimeError('Failed to obtain screen')
@@ -224,7 +224,7 @@ class BrowserView:
             i = BrowserView.get_instance('webkit', self)
             window = self.window()
 
-            if i.frameless:
+            if i.frameless and i.easy_drag:
                 screenFrame = AppKit.NSScreen.mainScreen().frame()
                 if screenFrame is None:
                     raise RuntimeError('Failed to obtain screen')
@@ -326,7 +326,6 @@ class BrowserView:
         self.window = AppKit.NSWindow.alloc().\
             initWithContentRect_styleMask_backing_defer_(rect, window_mask, AppKit.NSBackingStoreBuffered, False).retain()
         self.window.setTitle_(window.title)
-        self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color))
         self.window.setMinSize_(AppKit.NSSize(window.min_size[0], window.min_size[1]))
         self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
@@ -347,6 +346,14 @@ class BrowserView:
         else:
             self.window.center()
 
+        if window.transparent:
+            self.window.setOpaque_(False)
+            self.window.setHasShadow_(False)
+            self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color, 0))
+            self.webkit.setValue_forKey_(True, 'drawsTransparentBackground')
+        else:
+            self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color))
+
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
         self.webkit.setUIDelegate_(self._browserDelegate)
@@ -354,11 +361,15 @@ class BrowserView:
         self.window.setDelegate_(self._windowDelegate)
 
         self.frameless = window.frameless
+        self.easy_drag = window.easy_drag
 
         if window.frameless:
             # Make content full size and titlebar transparent
             self.window.setTitlebarAppearsTransparent_(True)
             self.window.setTitleVisibility_(NSWindowTitleHidden)
+            self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
         else:
             # Set the titlebar color (so that it does not change with the window color)
             self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
@@ -385,9 +396,9 @@ class BrowserView:
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
         config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
-        if window.url:
-            self.url = window.url
-            self.load_url(window.url)
+        if window.real_url:
+            self.url = window.real_url
+            self.load_url(window.real_url)
         elif window.html:
             self.load_html(window.html, '')
         else:
@@ -397,7 +408,6 @@ class BrowserView:
             self.toggle_fullscreen()
 
         self.shown.set()
-
 
     def first_show(self):
         if not self.hidden:
@@ -660,7 +670,7 @@ class BrowserView:
         return val
 
     @staticmethod
-    def nscolor_from_hex(hex_string):
+    def nscolor_from_hex(hex_string, alpha=1.0):
         """
         Convert given hex color to NSColor.
 
@@ -679,7 +689,7 @@ class BrowserView:
         )
         rgb = [i / 255.0 for i in rgb]      # Normalize to range(0.0, 1.0)
 
-        return AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(rgb[0], rgb[1], rgb[2], 1.0)
+        return AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(rgb[0], rgb[1], rgb[2], alpha)
 
     @staticmethod
     def get_instance(attr, value):

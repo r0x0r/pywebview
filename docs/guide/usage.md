@@ -27,6 +27,29 @@ Note that if both `url` and `html` are set, `html` takes precedence.
 
 _pywebview_ gives a choice of several web renderers. To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `cef` or `qt`). See [Renderer](/guide/renderer.md) for details.
 
+
+## HTTP server
+
+_pywebview_ provides a WSGI-compatible HTTP server. To start a HTTP server set the url to a local entry point (without a protocol schema) and set the `http_server` parameter of the `start` function to `True`
+
+``` python
+import webview
+
+webview.create_window('Woah dude!', 'index.html')
+webview.start(http_server=True)
+```
+
+If you wish to use an external WSGI compatible HTTP server with _pywebview_, you can pass a server object as an URL, ie. `http_server` parameter does not need to be set in this case.
+
+``` python
+from flask import Flask
+import webview
+
+server = Flask(__name__, static_folder='./assets', template_folder='./templates')
+webview.create_window('Flask example', server)
+webview.start()
+```
+
 ## Threading model
 
 `webview.start` starts a GUI loop and is a blocking function. With the GUI loop being blocking, you must execute your backend logic in a separate thread or a process. You may launch a thread or a process manually. Alternatively you can execute your code by passing your function as the first parameter `func` to `start`. The second parameter sets the function's arguments. This approach starts a thread behind the scenes and is identical to starting a thread manually.

@@ -4,8 +4,8 @@ import os
 from functools import wraps
 
 from webview.event import Event
-from webview.http_server import start_server
-from webview.util import base_uri, parse_file_type, escape_string, transform_url, make_unicode, WebViewException
+from webview.serving import resolve_url
+from webview.util import base_uri, parse_file_type, escape_string, make_unicode, WebViewException
 from .js import css
 
 
@@ -45,11 +45,12 @@ def _loaded_call(function):
 
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
-                 min_size, hidden, frameless, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select):
+                 min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
+                 background_color, js_api, text_select, transparent):
         self.uid = uid
         self.title = make_unicode(title)
-        self.url = None if html else transform_url(url)
+        self.original_url = None if html else url  # original URL provided by user
+        self.real_url = None  # transformed URL for internal HTTP server
         self.html = html
         self.initial_width = width
         self.initial_height = height
@@ -62,9 +63,11 @@ class Window:
         self.background_color = background_color
         self.text_select = text_select
         self.frameless = frameless
+        self.easy_drag = easy_drag
         self.hidden = hidden
         self.on_top = on_top
         self.minimized = minimized
+        self.transparent = transparent
 
         self._js_api = js_api
         self._functions = {}
@@ -75,7 +78,6 @@ class Window:
         self.shown = Event()
 
         self.gui = None
-        self._httpd = None
         self._is_http_server = False
 
     def _initialize(self, gui, multiprocessing, http_server):
@@ -84,8 +86,7 @@ class Window:
         self.shown._initialize(multiprocessing)
         self._is_http_server = http_server
 
-        if http_server and self.url and self.url.startswith('file://'):
-            self.url, self._httpd = start_server(self.url)
+        self.real_url = resolve_url(self.original_url, self._is_http_server or self.gui.renderer == 'edgehtml')
 
     @property
     def width(self):
@@ -152,16 +153,10 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if self._httpd:
-            self._httpd.shutdown()
-            self._httpd = None
+        self.url = url
+        self.real_url = resolve_url(url, self._is_http_server or self.gui.renderer == 'edgehtml')
 
-        url = transform_url(url)
-
-        if (self._is_http_server or self.gui.renderer == 'edgehtml') and url.startswith('file://'):
-            url, self._httpd = start_server(url)
-
-        self.gui.load_url(url, self.uid)
+        self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
     def load_html(self, content, base_uri=base_uri()):
@@ -172,9 +167,6 @@ class Window:
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         :param uid: uid of the target instance
         """
-
-        if self._httpd:
-            self._httpd.shutdown()
 
         content = make_unicode(content)
         self.gui.load_html(content, base_uri, self.uid)

@@ -12,6 +12,7 @@ install_requires = [
     'pythonnet ; sys_platform == "win32"',
     'pyobjc ; sys_platform == "darwin"',
     'PyQt5 ; sys_platform == "openbsd6"',
+    'importlib_resources; python_version < "3.7"',
 ]
 
 
@@ -26,11 +27,11 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/r0x0r/pywebview',
-    download_url='https://github.com/r0x0r/pywebview/archive/3.2.tar.gz',
+    download_url='https://github.com/r0x0r/pywebview/archive/3.3.tar.gz',
     keywords=['gui', 'webkit', 'html', 'web'],
     install_requires=install_requires,
     extras_require=extras_require,
-    version='3.2',
+    version='3.3',
     include_package_data=True,
     packages=['webview', 'webview.js', 'webview.platforms'],
     package_dir={'webview': 'webview'},
@@ -52,12 +53,11 @@ setup(
         'Environment :: X11 Applications :: GTK',
         'Environment :: X11 Applications :: Qt',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Software Development :: Libraries :: Application Frameworks',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Software Development :: User Interfaces'
