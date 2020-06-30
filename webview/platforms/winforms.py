@@ -351,7 +351,7 @@ class BrowserView:
                 self.TransparencyKey = Color.LimeGreen
                 self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
             else:
-                self.BackColor = window.background_color
+                self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
             if window.initial_x is not None and window.initial_y is not None:
                 self.move(window.initial_x, window.initial_y)
