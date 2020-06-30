@@ -45,7 +45,7 @@ pytest test_multi_window.py::test_js_bridge ${PYTEST_OPTIONS}
 pytest test_noresize.py ${PYTEST_OPTIONS}
 pytest test_on_top.py ${PYTEST_OPTIONS}
 pytest test_set_title.py ${PYTEST_OPTIONS}
-pytest test_set_window_size.py ${PYTEST_OPTIONS}
+pytest test_resize.py ${PYTEST_OPTIONS}
 pytest test_simple_browser.py ${PYTEST_OPTIONS}
 pytest test_start.py ${PYTEST_OPTIONS}
 pytest test_toggle_fullscreen.py ${PYTEST_OPTIONS}
