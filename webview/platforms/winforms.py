@@ -284,7 +284,7 @@ class BrowserView:
 
             if self.httpd:
                 self.httpd.shutdown()
-
+                
             url = resolve_url('file://' + self.temp_html, True)
             self.ishtml = True
             self.web_view.Navigate(url)

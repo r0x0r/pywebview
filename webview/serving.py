@@ -103,7 +103,7 @@ def resolve_url(url, should_serve):
             path = url
 
         # If it's a relative path, resolve it relative to the app root
-        path = abspath(path)
+        path = os.path.dirname(bits.netloc) if path == '' else abspath(path)
 
         # If we have not been asked to serve local paths, bail
         if not should_serve:
