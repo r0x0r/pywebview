@@ -73,7 +73,7 @@ class Window:
         self._functions = {}
 
         self.closed = Event()
-        self.closing = Event()
+        self.closing = Event(True)
         self.loaded = Event()
         self.shown = Event()
 

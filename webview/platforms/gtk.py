@@ -14,7 +14,7 @@ except ImportError:
     from urllib import unquote
 
 from uuid import uuid1
-from threading import Event, Semaphore, Lock
+from threading import Event, Semaphore
 from webview.localization import localization
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
@@ -533,7 +533,7 @@ def get_size(uid):
 
     return result['size']
 
-  
+
 def configure_transparency(c):
     c.set_visual(c.get_screen().get_rgba_visual())
     c.override_background_color(gtk.StateFlags.ACTIVE, Gdk.RGBA(0, 0, 0, 0))
