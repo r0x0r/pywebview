@@ -98,12 +98,12 @@ def resolve_url(url, should_serve):
         if hasattr(url, '__fspath__'):
             path = os.fspath(url)
         elif bits.scheme == 'file':
-            path = bits.path
+            path = os.path.dirname(bits.netloc)
         else:
             path = url
 
         # If it's a relative path, resolve it relative to the app root
-        path = os.path.dirname(bits.netloc) if path == '' else abspath(path)
+        path = abspath(path)
 
         # If we have not been asked to serve local paths, bail
         if not should_serve:
