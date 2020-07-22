@@ -163,7 +163,6 @@ class BrowserView:
         while gtk.events_pending():
             gtk.main_iteration()
 
-        self.pywebview_window.closing.wait()
         self.window.destroy()
         del BrowserView.instances[self.uid]
 

@@ -69,7 +69,6 @@ class BrowserView:
 
             if not i.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
                 i.closing.set()
-                i.closing.wait()
                 return Foundation.YES
             else:
                 return Foundation.NO
