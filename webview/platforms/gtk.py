@@ -155,12 +155,15 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
+        self.pywebview_window.closing.set()
+
         for res in self.js_results.values():
             res['semaphore'].release()
 
         while gtk.events_pending():
             gtk.main_iteration()
 
+        self.pywebview_window.closing.wait()
         self.window.destroy()
         del BrowserView.instances[self.uid]
 
@@ -173,7 +176,6 @@ class BrowserView:
             gtk.main_quit()
 
     def on_destroy(self, widget=None, *data):
-        self.pywebview_window.closing.set()
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
                                           type=gtk.MessageType.QUESTION, buttons=gtk.ButtonsType.OK_CANCEL,
                                           message_format=localization['global.quitConfirmation'])
@@ -515,8 +517,12 @@ def get_position(uid):
 
     result = {}
     semaphore = Semaphore(0)
-    glib.idle_add(_get_position)
-    semaphore.acquire()
+
+    try:
+        _get_position()
+    except:
+        glib.idle_add(_get_position)
+        semaphore.acquire()
 
     return result['position']
 
@@ -528,8 +534,12 @@ def get_size(uid):
 
     result = {}
     semaphore = Semaphore(0)
-    glib.idle_add(_get_size)
-    semaphore.acquire()
+
+    try:
+        _get_size()
+    except:
+        glib.idle_add(_get_size)
+        semaphore.acquire()
 
     return result['size']
 
