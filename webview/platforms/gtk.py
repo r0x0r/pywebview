@@ -327,7 +327,10 @@ class BrowserView:
         response = dialog.run()
 
         if response == gtk.ResponseType.OK:
-            file_name = dialog.get_filenames()
+            if dialog_type == SAVE_DIALOG:
+                file_name = dialog.get_filename()
+            else:
+                file_name = dialog.get_filenames()
         else:
             file_name = None
 
