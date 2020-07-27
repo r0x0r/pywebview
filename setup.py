@@ -31,7 +31,7 @@ setup(
     keywords=['gui', 'webkit', 'html', 'web'],
     install_requires=install_requires,
     extras_require=extras_require,
-    version='3.3.1',
+    version='3.3.2',
     include_package_data=True,
     packages=['webview', 'webview.js', 'webview.platforms'],
     package_dir={'webview': 'webview'},
