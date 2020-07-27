@@ -1,4 +1,5 @@
 import webview
+from time import sleep
 from .util import run_test
 
 
@@ -19,6 +20,7 @@ def xy(window):
 
 def move_window(window):
     window.move(100, 100)
+    sleep(1)
 
     assert window.x == 100
     assert window.y == 100

@@ -62,13 +62,13 @@ class BrowserView:
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
-            i.closing.set()
 
             quit = localization['global.quit']
             cancel = localization['global.cancel']
             msg = localization['global.quitConfirmation']
 
             if not i.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
+                i.closing.set()
                 return Foundation.YES
             else:
                 return Foundation.NO
@@ -867,8 +867,11 @@ def get_position(uid):
     coordinates = [None, None]
     semaphore = Semaphore(0)
 
-    AppHelper.callAfter(_position, coordinates)
-    semaphore.acquire()
+    try:
+        _position(coordinates)
+    except:
+        AppHelper.callAfter(_position, coordinates)
+        semaphore.acquire()
 
     return coordinates
 
@@ -883,8 +886,11 @@ def get_size(uid):
     dimensions = [None, None]
     semaphore = Semaphore(0)
 
-    AppHelper.callAfter(_size, dimensions)
-    semaphore.acquire()
+    try:
+        _size(dimensions)
+    except:
+        AppHelper.callAfter(_size, dimensions)
+        semaphore.acquire()
 
     return dimensions
 
