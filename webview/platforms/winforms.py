@@ -284,8 +284,8 @@ class BrowserView:
 
             if self.httpd:
                 self.httpd.shutdown()
-
-            url = resolve_url('file://' + self.temp_html)
+                
+            url = resolve_url('file://' + self.temp_html, True)
             self.ishtml = True
             self.web_view.Navigate(url)
 
@@ -294,7 +294,7 @@ class BrowserView:
 
             # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
             if url.startswith('file://'):
-                url = resolve_url(self.url)
+                url = resolve_url(self.url, True)
 
             self.web_view.Navigate(url)
 
@@ -351,7 +351,7 @@ class BrowserView:
                 self.TransparencyKey = Color.LimeGreen
                 self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
             else:
-                self.BackColor = window.background_color
+                self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
             if window.initial_x is not None and window.initial_y is not None:
                 self.move(window.initial_x, window.initial_y)
@@ -431,14 +431,15 @@ class BrowserView:
                 self.Invoke(Func[Type](_shutdown))
 
         def on_closing(self, sender, args):
-            self.closing.set()
-
             if self.pywebview_window.confirm_close:
                 result = WinForms.MessageBox.Show(localization['global.quitConfirmation'], self.Text,
                                                 WinForms.MessageBoxButtons.OKCancel, WinForms.MessageBoxIcon.Asterisk)
 
                 if result == WinForms.DialogResult.Cancel:
                     args.Cancel = True
+            
+            if not args.Cancel:
+                self.closing.set()
 
         def on_resize(self, sender, args):
             CEF.resize(self.Width, self.Height, self.uid)

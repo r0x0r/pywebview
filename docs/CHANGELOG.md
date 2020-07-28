@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.3.2
+
+_Released 28/07/2020_
+
+- `Fix` [All] Load html triggers error - resolve_url() missing 1 required positional argument: 'should_serve' [#562](https://github.com/r0x0r/pywebview/issues/562).
+- `Fix` [Cocoa/GTK] Access window size on closing [#573](https://github.com/r0x0r/pywebview/issues/573).
+- `Fix` [GTK] Save file dialog now returns a string instead of a tuple.
+
+## 3.3.1
+
+_Released 01/07/2020_
+
+- `Fix` [WinForms] TypeError : 'str' value cannot be converted to System.Drawing.Color [#560](https://github.com/r0x0r/pywebview/issues/560).
+
+
 ## 3.3: Detroit Edition
 
 _Released 29/06/2020_

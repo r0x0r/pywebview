@@ -73,7 +73,7 @@ class Window:
         self._functions = {}
 
         self.closed = Event()
-        self.closing = Event()
+        self.closing = Event(True)
         self.loaded = Event()
         self.shown = Event()
 
@@ -86,7 +86,7 @@ class Window:
         self.shown._initialize(multiprocessing)
         self._is_http_server = http_server
 
-        self.real_url = resolve_url(self.original_url, self._is_http_server or self.gui.renderer == 'edgehtml')
+        self.real_url = resolve_url(self.original_url, self._is_http_server)
 
     @property
     def width(self):

@@ -14,7 +14,7 @@ except ImportError:
     from urllib import unquote
 
 from uuid import uuid1
-from threading import Event, Semaphore, Lock
+from threading import Event, Semaphore
 from webview.localization import localization
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
@@ -155,6 +155,8 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
+        self.pywebview_window.closing.set()
+
         for res in self.js_results.values():
             res['semaphore'].release()
 
@@ -173,7 +175,6 @@ class BrowserView:
             gtk.main_quit()
 
     def on_destroy(self, widget=None, *data):
-        self.pywebview_window.closing.set()
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
                                           type=gtk.MessageType.QUESTION, buttons=gtk.ButtonsType.OK_CANCEL,
                                           message_format=localization['global.quitConfirmation'])
@@ -327,7 +328,10 @@ class BrowserView:
         response = dialog.run()
 
         if response == gtk.ResponseType.OK:
-            file_name = dialog.get_filenames()
+            if dialog_type == SAVE_DIALOG:
+                file_name = dialog.get_filename()
+            else:
+                file_name = dialog.get_filenames()
         else:
             file_name = None
 
@@ -515,8 +519,12 @@ def get_position(uid):
 
     result = {}
     semaphore = Semaphore(0)
-    glib.idle_add(_get_position)
-    semaphore.acquire()
+
+    try:
+        _get_position()
+    except:
+        glib.idle_add(_get_position)
+        semaphore.acquire()
 
     return result['position']
 
@@ -528,12 +536,16 @@ def get_size(uid):
 
     result = {}
     semaphore = Semaphore(0)
-    glib.idle_add(_get_size)
-    semaphore.acquire()
+
+    try:
+        _get_size()
+    except:
+        glib.idle_add(_get_size)
+        semaphore.acquire()
 
     return result['size']
 
-  
+
 def configure_transparency(c):
     c.set_visual(c.get_screen().get_rgba_visual())
     c.override_background_color(gtk.StateFlags.ACTIVE, Gdk.RGBA(0, 0, 0, 0))

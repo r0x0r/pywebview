@@ -14,5 +14,7 @@ def resize(window):
 
     window.resize(500, 500)
 
+    sleep(0.5)
+
     assert window.width == 500
     assert window.height == 500
