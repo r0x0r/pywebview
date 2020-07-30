@@ -552,8 +552,7 @@ class BrowserView:
                     save_dlg.setNameFieldStringValue_(save_filename)
 
                 if save_dlg.runModal() == AppKit.NSFileHandlingPanelOKButton:
-                    file = save_dlg.filenames()
-                    self._file_name = tuple(file)
+                    self._file_name = save_dlg.filename()
                 else:
                     self._file_name = None
             else:
