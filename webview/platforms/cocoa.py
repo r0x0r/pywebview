@@ -291,6 +291,8 @@ class BrowserView:
 
                     return handled
 
+            return True
+
 
     def __init__(self, window):
         BrowserView.instances[window.uid] = self
