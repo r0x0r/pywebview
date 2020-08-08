@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.3
+
+_Released 08/08/2020_
+
+- `Fix` [Cocoa] Save dialog not working [#578](https://github.com/r0x0r/pywebview/issues/578).
+- `Fix` [Cocoa] Error sound being played when pressing keys on macOS [#566](https://github.com/r0x0r/pywebview/issues/566).
+
 ## 3.3.2
 
 _Released 28/07/2020_
