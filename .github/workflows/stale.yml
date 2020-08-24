@@ -10,9 +10,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/stale@v1
+    - uses: actions/stale@v3.0.10
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
+        close-issue-message:
+          description: 'The message to post on the issue when closing it. If none provided, will not comment when closing an issue.'
+        close-pr-message:
+          description: 'The message to post on the pr when closing it. If none provided, will not comment when closing a pull requests.'
+        days-before-stale:
+          description: 'The number of days old an issue can be before marking it stale. Set to -1 to never mark issues or pull requests as stale automatically.'
+          default: 30
+        days-before-close:
+          description: 'The number of days to wait to close an issue or pull request after it being marked stale. Set to -1 to never close stale issues.'
+          default: 5
         stale-issue-message: 'This issue has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.'
         stale-pr-message: 'This PR has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.'
         stale-issue-label: 'stale'
