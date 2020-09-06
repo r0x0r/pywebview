@@ -4,7 +4,7 @@
 
 ### Description  
   
-  Describe your issue
+  Describe your issue in details. Please provide a stand-alone code example that would demonstrate the nature of the issue.
   
 ### Practicalities
 
