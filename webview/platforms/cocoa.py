@@ -261,6 +261,13 @@ class BrowserView:
             :return:
             """
 
+            # Fix arrow keys not responding in text inputs
+            keyCode_ = theEvent.keyCode()
+            UP, DOWN, LEFT, RIGHT = 126, 125, 123, 124
+
+            if keyCode_ in (UP, DOWN, LEFT, RIGHT):
+                return False
+            
             if theEvent.type() == AppKit.NSKeyDown and theEvent.modifierFlags() & AppKit.NSCommandKeyMask:
                 responder = self.window().firstResponder()
                 keyCode = theEvent.keyCode()
