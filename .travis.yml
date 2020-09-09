@@ -10,12 +10,10 @@ matrix:
       language: python
       env:
         - PACKAGES="xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
-      python: "3.6_with_system_site_packages"
     - os: linux
       sudo: required
       dist: xenial
       language: python
-      python: "3.6_with_system_site_packages"
       env:
          - PACKAGES="xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest python3-six" PYTHON="python3"
          - PYWEBVIEW_GUI=qt
