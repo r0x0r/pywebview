@@ -31,7 +31,7 @@ before_script:
 
 script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then python3 -m pytest tests -s; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cd tests; python -m site; ./run.sh; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cd tests; python3 -m site; ./run.sh; fi
 
 after_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then killall Xvfb; fi
