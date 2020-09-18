@@ -98,7 +98,7 @@ def resolve_url(url, should_serve):
         if hasattr(url, '__fspath__'):
             path = os.fspath(url)
         elif bits.scheme == 'file':
-            path = os.path.dirname(bits.netloc)
+            path = os.path.dirname(bits.netloc or bits.path)
         else:
             path = url
 

@@ -1,0 +1,24 @@
+name: Mark stale issues and pull requests
+
+on:
+  schedule:
+  - cron: "30 1 * * *"
+
+jobs:
+  stale:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/stale@v3.0.10
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        close-issue-message: 'The message to post on the issue when closing it. If none provided, will not comment when closing an issue.'
+        close-pr-message: 'The message to post on the pr when closing it. If none provided, will not comment when closing a pull requests.'
+        days-before-stale: 30
+        days-before-close: 5
+        stale-issue-message: 'This issue has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.'
+        stale-pr-message: 'This PR has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.'
+        stale-issue-label: 'stale'
+        stale-pr-label: 'stale'
+        exempt-issue-labels: 'future'
