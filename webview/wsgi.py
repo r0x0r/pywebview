@@ -24,15 +24,12 @@ except ImportError as e :
     # Python 3.6
     import importlib_resources
 
-
 from .util import abspath
 
 
 __all__ = ('StaticFiles', 'StaticResources', 'Routing')
 
 logger = logging.getLogger(__name__)
-
-
 CHUNK_SIZE = 4 * 1024  # 4k
 
 
@@ -235,7 +232,7 @@ class StaticContentsApp:
                 logger.debug("file not found: %s", option)
                 if responder is None:
                     responder = self.file_not_found
-            except IsADirectoryError:
+            except (IsADirectoryError, OSError): # OSError on Windows
                 logger.debug("is a directory: %s", option)
                 if responder is None:
                     responder = self.is_a_directory
@@ -399,7 +396,7 @@ class StaticFiles(StaticContentsApp):
             path = os.path.join(self.root, file.lstrip('/'))
         else:
             path = self.root
-        logger.debug("Resolved %s to %s", file, path)
+        logger.debug('Resolved %s to %s' % (file, path))
         return open(path, 'rb')
 
 

@@ -284,18 +284,13 @@ class BrowserView:
 
             if self.httpd:
                 self.httpd.shutdown()
-                
+
             url = resolve_url('file://' + self.temp_html, True)
             self.ishtml = True
             self.web_view.Navigate(url)
 
         def load_url(self, url):
             self.ishtml = False
-
-            # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
-            if url.startswith('file://'):
-                url = resolve_url(self.url, True)
-
             self.web_view.Navigate(url)
 
         def on_script_notify(self, _, args):
@@ -437,7 +432,7 @@ class BrowserView:
 
                 if result == WinForms.DialogResult.Cancel:
                     args.Cancel = True
-            
+
             if not args.Cancel:
                 self.closing.set()
 
