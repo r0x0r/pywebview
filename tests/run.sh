@@ -36,7 +36,10 @@ pywebviewtest test_get_elements.py::test_none ${PYTEST_OPTIONS}
 
 pywebviewtest test_http_server.py ${PYTEST_OPTIONS}
 
-pywebviewtest test_js_api.py ${PYTEST_OPTIONS}
+pywebviewtest test_js_api.py::test_js_bridge ${PYTEST_OPTIONS}
+pywebviewtest test_js_api.py::test_exception ${PYTEST_OPTIONS}
+pywebviewtest test_js_api.py::test_concurrent ${PYTEST_OPTIONS}
+
 pywebviewtest test_load_html.py ${PYTEST_OPTIONS}
 pywebviewtest test_localization.py ${PYTEST_OPTIONS}
 pywebviewtest test_min_size.py ${PYTEST_OPTIONS}
