@@ -2,7 +2,7 @@
 
 ## 3.3.4
 
-_Released 09/09/2020_
+_Released 18/09/2020_
 
 - `Fix` [EdgeHTML] Fix content not displaying with local URLs or local HTTP server
 - `Fix` [Cocoa] Fixes arrow keys not responding in text input fields. Thanks [awesomo4000](https://github.com/awesomo4000)
