@@ -48,6 +48,9 @@ except ImportError:
 _main_window_created = Event()
 _main_window_created.clear()
 
+# suppress invalid style override error message on some Linux distros
+os.environ['QT_STYLE_OVERRIDE'] = ''
+
 
 class BrowserView(QMainWindow):
     instances = {}
