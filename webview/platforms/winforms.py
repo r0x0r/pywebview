@@ -291,6 +291,11 @@ class BrowserView:
 
         def load_url(self, url):
             self.ishtml = False
+            
+            # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
+            if url.startswith('file://'):
+                url = resolve_url(url, True)
+
             self.web_view.Navigate(url)
 
         def on_script_notify(self, _, args):
