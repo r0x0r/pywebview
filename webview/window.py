@@ -87,7 +87,12 @@ class Window:
         self._is_http_server = http_server
 
         # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
-        if gui.renderer == "edgehtml" and self.original_url and (self.original_url.startswith('file://') or '://' not in self.original_url):
+        if (
+            gui.renderer == "edgehtml" and
+            self.original_url and
+            isinstance(self.original_url, str) and
+            (self.original_url.startswith('file://') or '://' not in self.original_url)
+        ):
             self._is_http_server = True
 
         self.real_url = resolve_url(self.original_url, self._is_http_server)
