@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.5
+
+_Released 26/09/2020_
+
+- `Fix` [EdgeHTML] Server middleware handling
+- `Fix` [EdgeHTML] file:// url handling
+
 ## 3.3.4
 
 _Released 18/09/2020_
