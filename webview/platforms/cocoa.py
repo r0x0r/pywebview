@@ -132,7 +132,7 @@ class BrowserView:
                 handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@@')
 
             if files:
-                urls = [Foundation.NSURL.URLWithString_(BrowserView.quote(i)) for i in files]
+                urls = [Foundation.NSURL.fileURLWithPath_(BrowserView.quote(i)) for i in files]
                 handler(urls)
             else:
                 handler(nil)
@@ -267,7 +267,7 @@ class BrowserView:
 
             if keyCode_ in (UP, DOWN, LEFT, RIGHT):
                 return False
-            
+
             if theEvent.type() == AppKit.NSKeyDown and theEvent.modifierFlags() & AppKit.NSCommandKeyMask:
                 responder = self.window().firstResponder()
                 keyCode = theEvent.keyCode()
