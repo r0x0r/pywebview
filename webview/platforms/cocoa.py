@@ -263,9 +263,9 @@ class BrowserView:
 
             # Fix arrow keys not responding in text inputs
             keyCode_ = theEvent.keyCode()
-            UP, DOWN, LEFT, RIGHT = 126, 125, 123, 124
+            UP, DOWN, LEFT, RIGHT, DELETE, PG_DWN, PG_UP = 126, 125, 123, 124, 117, 121, 116
 
-            if keyCode_ in (UP, DOWN, LEFT, RIGHT):
+            if keyCode_ in (UP, DOWN, LEFT, RIGHT, DELETE, PG_DWN, PG_UP):
                 return False
 
             if theEvent.type() == AppKit.NSKeyDown and theEvent.modifierFlags() & AppKit.NSCommandKeyMask:
