@@ -118,7 +118,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
                   frameless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
-                  transparent=False, text_select=False, auto_title=False):
+                  transparent=False, text_select=False, auto_title=False, auto_icon=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -139,6 +139,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
     :param auto_title: Automatically set title of webpage as window title
+    :param auto_icon: Automatically set icon of webpage as window icon
     :return: window object.
     """
 
