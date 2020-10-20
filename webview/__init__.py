@@ -152,7 +152,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     window = Window(uid, make_unicode(title), url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
-                    js_api, text_select, transparent,auto_title)
+                    js_api, text_select, transparent, auto_title, auto_icon)
 
     windows.append(window)
 
