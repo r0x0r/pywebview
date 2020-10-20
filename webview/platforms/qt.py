@@ -89,7 +89,7 @@ class BrowserView(QMainWindow):
     class WebView(QWebView):
         def __init__(self, parent=None):
             super(BrowserView.WebView, self).__init__(parent)
-
+                        
             if parent.frameless and parent.easy_drag:
                 QApplication.instance().installEventFilter(self)
                 self.setMouseTracking(True)
@@ -278,7 +278,10 @@ class BrowserView(QMainWindow):
 
         self.view.setPage(BrowserView.WebPage(self.view))
         self.view.page().loadFinished.connect(self.on_load_finished)
-
+        
+        if getattr(window, 'auto_title, False): # automatically set webpage title as window title
+            self.view.setWindowTitle.connect(self.set_title)
+        
         self.setCentralWidget(self.view)
 
         self.create_window_trigger.connect(BrowserView.on_create_window)
