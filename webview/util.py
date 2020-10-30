@@ -108,7 +108,7 @@ def parse_api_js(window, platform, uid=''):
 
     def generate_func():
         if window._js_api:
-            functions = { name: get_args(getattr(window._js_api, name))[1:] for name in dir(window._js_api) if callable(getattr(window._js_api, name)) and not name.startswith('_')}
+            functions = { name: get_args(getattr(window._js_api, name))[1:] for name in dir(window._js_api) if inspect.ismethod(getattr(window._js_api, name)) and not name.startswith('_')}
         else:
             functions = {}
 
