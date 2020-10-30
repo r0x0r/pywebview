@@ -126,6 +126,7 @@ def parse_api_js(window, platform, uid=''):
         func_list = generate_func()
     except Exception as e:
         logger.exception(e)
+        func_list = []
 
     js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src + drag.src % webview.DRAG_REGION_SELECTOR
     return js_code
