@@ -17,6 +17,7 @@ import os
 import re
 import threading
 from uuid import uuid4
+import multiprocessing as mp
 
 from webview.event import Event
 from webview.guilib import initialize
@@ -64,7 +65,7 @@ _http_server = False
 token = _token
 windows = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
+def real_start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None, block=True):
     global guilib, _debug, _multiprocessing, _http_server, _user_agent
 
     def _create_children(other_windows):
@@ -76,14 +77,8 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
     _debug = debug
     _user_agent = user_agent
-    #_multiprocessing = multiprocessing
-    multiprocessing = False # TODO
+    _multiprocessing = block
     _http_server = http_server
-
-    if multiprocessing:
-        from multiprocessing import Process as Thread
-    else:
-        from threading import Thread
 
     original_localization.update(localization)
 
@@ -96,29 +91,44 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     guilib = initialize(gui)
 
     for window in windows:
-        window._initialize(guilib, multiprocessing, http_server)
+        window._initialize(guilib, _multiprocessing, http_server)
 
     if len(windows) > 1:
-        t = Thread(target=_create_children, args=(windows[1:],))
+        t = threading.Thread(target=_create_children, args=(windows[1:],))
         t.start()
 
     if func:
         if args is not None:
             if not hasattr(args, '__iter__'):
                 args = (args,)
-            t = Thread(target=func, args=args)
+            t = threading.Thread(target=func, args=args)
         else:
-            t = Thread(target=func)
+            t = threading.Thread(target=func)
         t.start()
 
     guilib.create_window(windows[0])
+
+
+def start(*args,**kwargs):
+    block = kwargs.get('block', True)
+    daemon = kwargs.pop('daemon', True)
+    
+    if block:
+        real_start(*args, **kwargs)
+        
+    else:
+        mp.get_context('fork')
+        p=mp.Process(target=real_start, args=args, kwargs=kwargs)
+        p.daemon = daemon 
+        p.start()
+        return p.join
 
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
                   frameless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
-                  transparent=False, text_select=False, auto_title=False, auto_icon=False):
+                  transparent=False, text_select=False):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -138,8 +148,6 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
-    :param auto_title: Automatically set title of webpage as window title
-    :param auto_icon: Automatically set icon of webpage as window icon
     :return: window object.
     """
 
@@ -152,7 +160,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     window = Window(uid, make_unicode(title), url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
-                    js_api, text_select, transparent, auto_title, auto_icon)
+                    js_api, text_select, transparent)
 
     windows.append(window)
 
