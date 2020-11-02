@@ -65,7 +65,7 @@ _http_server = False
 token = _token
 windows = []
 
-def real_start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None, block=True):
+def _start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None, block=True):
     global guilib, _debug, _multiprocessing, _http_server, _user_agent
 
     def _create_children(other_windows):
@@ -114,11 +114,11 @@ def start(*args,**kwargs):
     daemon = kwargs.pop('daemon', True)
     
     if block:
-        real_start(*args, **kwargs)
+        _start(*args, **kwargs)
         
     else:
         mp.get_context('fork')
-        p=mp.Process(target=real_start, args=args, kwargs=kwargs)
+        p=mp.Process(target=_start, args=args, kwargs=kwargs)
         p.daemon = daemon 
         p.start()
         return p.join
