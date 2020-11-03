@@ -18,7 +18,7 @@ from threading import Event, Semaphore
 from ctypes import windll
 from uuid import uuid4
 
-from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent
+from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent, _multiprocessing
 from webview.guilib import forced_gui_
 from webview.serving import resolve_url
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
@@ -676,7 +676,8 @@ def create_window(window):
         thread = Thread(ThreadStart(create))
         thread.SetApartmentState(ApartmentState.STA)
         thread.Start()
-        thread.Join()
+        if not _multiprocessing:
+            thread.Join()
 
     else:
         _main_window_created.wait()
