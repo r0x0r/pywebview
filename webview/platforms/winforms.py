@@ -678,6 +678,9 @@ def create_window(window):
         thread.Start()
         if not _multiprocessing:
             thread.Join()
+        else:
+            thread.join = thread.Join
+            return thread
 
     else:
         _main_window_created.wait()
