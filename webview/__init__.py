@@ -17,7 +17,6 @@ import os
 import re
 import threading
 from uuid import uuid4
-import multiprocessing as mp
 
 from webview.event import Event
 from webview.guilib import initialize
@@ -65,7 +64,7 @@ _http_server = False
 token = _token
 windows = []
 
-def _start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None, block=True):
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
     global guilib, _debug, _multiprocessing, _http_server, _user_agent
 
     def _create_children(other_windows):
@@ -77,8 +76,14 @@ def _start(func=None, args=None, localization={}, gui=None, debug=False, http_se
 
     _debug = debug
     _user_agent = user_agent
-    _multiprocessing = block
+    #_multiprocessing = multiprocessing
+    multiprocessing = False # TODO
     _http_server = http_server
+
+    if multiprocessing:
+        from multiprocessing import Process as Thread
+    else:
+        from threading import Thread
 
     original_localization.update(localization)
 
@@ -91,37 +96,22 @@ def _start(func=None, args=None, localization={}, gui=None, debug=False, http_se
     guilib = initialize(gui)
 
     for window in windows:
-        window._initialize(guilib, _multiprocessing, http_server)
+        window._initialize(guilib, multiprocessing, http_server)
 
     if len(windows) > 1:
-        t = threading.Thread(target=_create_children, args=(windows[1:],))
+        t = Thread(target=_create_children, args=(windows[1:],))
         t.start()
 
     if func:
         if args is not None:
             if not hasattr(args, '__iter__'):
                 args = (args,)
-            t = threading.Thread(target=func, args=args)
+            t = Thread(target=func, args=args)
         else:
-            t = threading.Thread(target=func)
+            t = Thread(target=func)
         t.start()
 
     guilib.create_window(windows[0])
-
-
-def start(*args,**kwargs):
-    block = kwargs.get('block', True)
-    daemon = kwargs.pop('daemon', True)
-    
-    if block:
-        _start(*args, **kwargs)
-        
-    else:
-        mp.get_context('fork')
-        p=mp.Process(target=_start, args=args, kwargs=kwargs)
-        p.daemon = daemon 
-        p.start()
-        return p.join
 
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
