@@ -16,7 +16,7 @@ except ImportError:
 from uuid import uuid1
 from threading import Event, Semaphore
 from webview.localization import localization
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows, _multiprocessing
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 
@@ -260,7 +260,11 @@ class BrowserView:
         if gtk.main_level() == 0:
             if self.pywebview_window.hidden:
                 self.window.hide()
-            gtk.main()
+            if _multiprocessing:
+                from multiprocessing import Process
+                p = Process(target=gtk.main)
+                p.start()
+                return p
         else:
             glib.idle_add(self.window.show_all)
 
@@ -410,10 +414,10 @@ class BrowserView:
 def create_window(window):
     def create():
         browser = BrowserView(window)
-        browser.show()
+        return browser.show()
 
     if window.uid == 'master':
-        create()
+        return create()
     else:
         glib.idle_add(create)
 
