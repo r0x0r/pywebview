@@ -64,7 +64,7 @@ _http_server = False
 token = _token
 windows = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None, block=True):
     global guilib, _debug, _multiprocessing, _http_server, _user_agent
 
     def _create_children(other_windows):
@@ -76,14 +76,8 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
     _debug = debug
     _user_agent = user_agent
-    #_multiprocessing = multiprocessing
-    multiprocessing = False # TODO
+    _multiprocessing = not block
     _http_server = http_server
-
-    if multiprocessing:
-        from multiprocessing import Process as Thread
-    else:
-        from threading import Thread
 
     original_localization.update(localization)
 
@@ -96,19 +90,19 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     guilib = initialize(gui)
 
     for window in windows:
-        window._initialize(guilib, multiprocessing, http_server)
+        window._initialize(guilib, http_server)
 
     if len(windows) > 1:
-        t = Thread(target=_create_children, args=(windows[1:],))
+        t = threading.Thread(target=_create_children, args=(windows[1:],))
         t.start()
 
     if func:
         if args is not None:
             if not hasattr(args, '__iter__'):
                 args = (args,)
-            t = Thread(target=func, args=args)
+            t = threading.Thread(target=func, args=args)
         else:
-            t = Thread(target=func)
+            t = threading.Thread(target=func)
         t.start()
 
     guilib.create_window(windows[0])
@@ -155,7 +149,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     windows.append(window)
 
     if threading.current_thread().name != 'MainThread' and guilib:
-        window._initialize(guilib, _multiprocessing, _http_server)
+        window._initialize(guilib, _http_server)
         guilib.create_window(window)
 
     return window
