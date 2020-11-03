@@ -80,10 +80,10 @@ class Window:
         self.gui = None
         self._is_http_server = False
 
-    def _initialize(self, gui, multiprocessing, http_server):
+    def _initialize(self, gui, http_server):
         self.gui = gui
-        self.loaded._initialize(multiprocessing)
-        self.shown._initialize(multiprocessing)
+        self.loaded._initialize(False)
+        self.shown._initialize(False)
         self._is_http_server = http_server
 
         # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
