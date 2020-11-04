@@ -433,6 +433,8 @@ class BrowserView:
             self._add_view_menu()
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
+            if _multiprocessing:
+                raise RuntimeError('Can\'t stop freezing main thread on Macos/Cocoa')
             BrowserView.app.run()
 
     def show(self):
