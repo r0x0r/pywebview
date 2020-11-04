@@ -105,7 +105,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
             t = threading.Thread(target=func)
         t.start()
 
-    guilib.create_window(windows[0])
+    return guilib.create_window(windows[0])
 
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
@@ -148,7 +148,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     windows.append(window)
 
-    if threading.current_thread().name != 'MainThread' and guilib:
+    if (_multiprocessing or threading.current_thread().name != 'MainThread') and guilib:
         window._initialize(guilib, _http_server)
         guilib.create_window(window)
 
