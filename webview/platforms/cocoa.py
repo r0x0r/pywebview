@@ -19,7 +19,7 @@ from PyObjCTools import AppHelper
 from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows, _multiprocessing
 from webview.util import convert_string, parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 
