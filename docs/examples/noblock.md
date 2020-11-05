@@ -9,7 +9,7 @@ Stop Freezing Main Thread
 
 > **MacOS Cocoa(default) not supported**
 
-** set `block` option of `webview.start` to False**
+**set `block` option of `webview.start` to False**
 
 ``` python
 import webview
