@@ -13,6 +13,7 @@ def test_start():
     api = Api()
     window = webview.create_window('Relative URL test', 'assets/test.html', js_api=api)
     run_test(webview, window, assert_func, start_args={'block' : False})
+    print('noblock/multiprocessing test is working.')
 
 def assert_func(window):
     sleep(1)
