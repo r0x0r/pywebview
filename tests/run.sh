@@ -50,13 +50,13 @@ pywebviewtest test_multi_window.py::test_load_url ${PYTEST_OPTIONS}
 pywebviewtest test_multi_window.py::test_evaluate_js ${PYTEST_OPTIONS}
 pywebviewtest test_multi_window.py::test_js_bridge ${PYTEST_OPTIONS}
 
+pywebviewtest test_noblock.py ${PYTEST_OPTIONS}
 pywebviewtest test_noresize.py ${PYTEST_OPTIONS}
 pywebviewtest test_on_top.py ${PYTEST_OPTIONS}
 pywebviewtest test_set_title.py ${PYTEST_OPTIONS}
 pywebviewtest test_resize.py ${PYTEST_OPTIONS}
 pywebviewtest test_simple_browser.py ${PYTEST_OPTIONS}
 pywebviewtest test_start.py ${PYTEST_OPTIONS}
-pywebviewtest test_noblock.py ${PYTEST_OPTIONS}
 pywebviewtest test_toggle_fullscreen.py ${PYTEST_OPTIONS}
 
 pywebviewtest test_token.py::test_token ${PYTEST_OPTIONS}
