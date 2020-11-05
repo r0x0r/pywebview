@@ -56,6 +56,7 @@ pywebviewtest test_set_title.py ${PYTEST_OPTIONS}
 pywebviewtest test_resize.py ${PYTEST_OPTIONS}
 pywebviewtest test_simple_browser.py ${PYTEST_OPTIONS}
 pywebviewtest test_start.py ${PYTEST_OPTIONS}
+pywebviewtest test_noblock.py ${PYTEST_OPTIONS}
 pywebviewtest test_toggle_fullscreen.py ${PYTEST_OPTIONS}
 
 pywebviewtest test_token.py::test_token ${PYTEST_OPTIONS}
