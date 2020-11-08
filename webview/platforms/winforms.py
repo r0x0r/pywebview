@@ -664,7 +664,7 @@ class Process(object):
     def terminate(self):
         self.kill()
         
-    def terminate(self):
+    def close(self):
         self.kill()
 
 
@@ -705,6 +705,7 @@ def create_window(window):
             p.join = thread.Join
             p.is_alive = thread.IsAlive
             p.name = thread.Name
+            p.kill = thread.Abort
             return thread
 
     else:
