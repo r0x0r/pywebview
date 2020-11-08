@@ -623,7 +623,7 @@ class Process(object):
     def terminate(self):
         self.kill()
         
-    def terminate(self):
+    def close(self):
         self.kill()
 
 def create_window(window):
