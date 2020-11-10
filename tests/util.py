@@ -17,7 +17,8 @@ def run_test(webview, window, thread_func=None, param=None, start_args={}, no_de
     if 'block' not in start_args:
         try:
             start_args['block'] = not multiprocessing
-        except:pass
+        except:
+            pass
         
     __tracebackhide__ = True
     
