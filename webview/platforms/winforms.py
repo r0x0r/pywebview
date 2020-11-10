@@ -706,7 +706,7 @@ def create_window(window):
             p.is_alive = thread.IsAlive
             p.name = thread.Name
             p.kill = thread.Abort
-            return thread
+            return p
 
     else:
         _main_window_created.wait()
