@@ -19,9 +19,14 @@ if __name__ == '__main__':
     master_window = webview.create_window('Window #1', html='<h1>First window</h1>')
     child_window = webview.create_window('Window #2', html='<h1>Second window</h1>')
     
-    webview.start(block = False)
+    process = webview.start(block = False)
     
     # third window created after gui loop started
     third_window = webview.create_window('Window #3', html='<h1>Third Window</h1>')
+    process.join()
 
 ```
+
+`process` returned by `webview.start` is [multiprocessing.Process](https://docs.python.org/3/library/multiprocessing.html#multiprocessing.Process) like object
+all methods are working.
+but properties are experimental
