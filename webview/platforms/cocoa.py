@@ -11,6 +11,7 @@ import subprocess
 import webbrowser
 import ctypes
 from threading import Event, Semaphore
+from multiprocessing import Process
 
 import Foundation
 import AppKit
@@ -434,7 +435,10 @@ class BrowserView:
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             if _multiprocessing:
-                raise RuntimeError('Can\'t stop freezing main thread on Macos/Cocoa')
+                raise RuntimeError('Can\'t stop freezing main thread on Macos/Cocoa') # TODO: remove this line and stop freezing main thread using multiprocessing
+                # p = Process(target=BrowserView.app.run)
+                # p.start()
+                # return p
             BrowserView.app.run()
 
     def show(self):
@@ -780,7 +784,7 @@ def create_window(window):
 
     def create():
         browser = BrowserView(window)
-        browser.first_show()
+        return browser.first_show()
 
     if window.uid == 'master':
         create()
