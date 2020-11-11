@@ -20,7 +20,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip3 install pyobjc pytest importlib_resources six; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -q; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install --no-install-recommends -y $(echo $PACKAGES); fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then pip install importlib_resources; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then pip install importlib_resources pytest; fi
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export DISPLAY=:99.0; fi
