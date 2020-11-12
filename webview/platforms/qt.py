@@ -18,7 +18,7 @@ from threading import Semaphore, Event
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows, _multiprocessing
 from webview.localization import localization
 from webview.window import Window
-from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
+from webview.util import convert_string, default_html, parse_api_js, js_bridge_call, Process
 from webview.js.css import disable_text_select
 
 
@@ -593,38 +593,6 @@ class BrowserView(QMainWindow):
     def on_create_window(func):
         func()
 
-class Process(object):
-    exec_ = None
-    name = 'fake'
-    alive = True
-    daemon = False
-    pid = None
-    exitcode = None
-    authkey = b''
-    sentinel = None
-    
-    def join(self, timeout=None):
-        if timeout:
-            from time import sleep
-            sleep(timeout)
-            self.kill()
-        else:
-            self.exec_()
-            
-    def is_alive(self):
-        return self.alive
-    
-    def kill(self):
-        for i in BrowserView.instances[uid].values():
-            i.destroy_()
-        self.alive = False
-        self.exitcode = 0
-        
-    def terminate(self):
-        self.kill()
-        
-    def close(self):
-        self.kill()
 
 def create_window(window):
     def _create():
@@ -648,6 +616,7 @@ def create_window(window):
         if _multiprocessing:
             p = Process()
             p.exec_ = _app.exec_
+            p.windows = windows
             return p
             
         _app.exec_()
