@@ -242,3 +242,10 @@ def interop_dll_path(dll_name):
 
     raise Exception('Cannot find %s' % dll_name)
 
+class Process(object):
+    alive = True
+    join = None
+    close = None
+            
+    def is_alive(self):
+        return self.alive
