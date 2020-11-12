@@ -439,6 +439,7 @@ class BrowserView:
                 # p = Process(target=BrowserView.app.run)
                 # p.start()
                 # return p
+
             BrowserView.app.run()
 
     def show(self):

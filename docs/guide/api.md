@@ -50,17 +50,8 @@ Start a GUI loop and display previously created windows. This function must be c
 * `gui` - force a specific GUI. Allowed values are `cef`, `qt` or `gtk` depending on a platform. See [Renderer](/guide/renderer.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `user_agent` - change user agent string. Not supported in EdgeHTML.
-* `block` - If `False` stops freezing main thread and returns `Process` object. default is `True`
+* `block` - If `False` stops freezing main thread. default is `True`
 
-### `Process` object
-[multiprocessing.Process](https://docs.python.org/3/library/multiprocessing.html#multiprocessing.Process) like object, all methods are working. but properties are experimental
-- `join(timeout=None)`
-   join GUI event loop to main thread
-   > Warning: This will freeze main thread.
-   - timeout(optional) - timeout in seconds(int). default is None. if timeout, kills GUI event loop after timeout.
-
-- `close()`
-    close all windows and kill GUI event loop.
 
 ### Examples
 * [Simple window](/examples/open_url.html)

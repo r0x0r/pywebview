@@ -10,7 +10,7 @@ _pywebview_ is a lightweight cross-platform wrapper around a webview component t
 
 _pywebview_ uses native GUI for creating a web component window: WinForms on Windows, Cocoa on macOS and QT or GTK on Linux. If you choose to freeze your application, pywebview does not bundle a heavy GUI toolkit or web renderer with it keeping the executable size small. _pywebview_ is compatible with Python 3.
 
-_pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/). Maintained by Roman and [Shiva Prasad](https://github.com/shivaprsdv).
+_pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/).
 
 
 # Getting started
