@@ -27,15 +27,15 @@ if __name__ == '__main__':
 
 ```
 
-`process` returned by `webview.start` is [multiprocessing.Process](https://docs.python.org/3/library/multiprocessing.html#multiprocessing.Process) like object
-all methods are working.
-but properties are experimental
-
+`process` returned by `webview.start` is the process which runs GUI event loop.
 ## `Process` object
 ### `join(timeout=None)`
 join GUI event loop to main thread
 > Warning: This will freeze main thread.
 - timeout(optional) - timeout in seconds(int). default is None. if timeout, kills GUI event loop after timeout.
+
+### `is_alive()`
+returns True if GUI event loop is running, otherwise False (GUI event loop killed)
 
 ### `close()`
 close all windows and kill GUI event loop.
