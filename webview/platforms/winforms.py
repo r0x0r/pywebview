@@ -21,7 +21,7 @@ from uuid import uuid4
 from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent, _multiprocessing
 from webview.guilib import forced_gui_
 from webview.serving import resolve_url
-from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
+from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call, Process
 from webview.js import alert
 from webview.js.css import disable_text_select
 from webview.localization import localization
@@ -647,27 +647,6 @@ _main_window_created = Event()
 _main_window_created.clear()
 
 
-class Process(object):
-    name = Name
-    alive = None
-    daemon = False
-    pid = None
-    exitcode = None
-    authkey = b''
-    sentinel = None
-    kill = None
-    join = None
-    
-    def is_alive(self):
-        return self.alive
-    
-    def terminate(self):
-        self.kill()
-        
-    def close(self):
-        self.kill()
-
-
 def create_window(window):
     def create():
         browser = BrowserView.BrowserForm(window)
@@ -704,8 +683,7 @@ def create_window(window):
             p = Process()
             p.join = thread.Join
             p.is_alive = thread.IsAlive
-            p.name = thread.Name
-            p.kill = thread.Abort
+            p.close = thread.Abort
             return p
 
     else:
