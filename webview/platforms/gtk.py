@@ -260,11 +260,16 @@ class BrowserView:
         if gtk.main_level() == 0:
             if self.pywebview_window.hidden:
                 self.window.hide()
+            
             if _multiprocessing:
-                from multiprocessing import Process
+                from multiprocessing import Process, freeze_support
+                if getattr(sys, 'frozen', False):
+                    freeze_support()
+                    
                 p = Process(target=gtk.main)
                 p.start()
                 return p
+            
         else:
             glib.idle_add(self.window.show_all)
 
