@@ -11,7 +11,7 @@ import subprocess
 import webbrowser
 import ctypes
 from threading import Event, Semaphore
-from multiprocessing import Process
+from multiprocessing import Process, freeze_support
 
 import Foundation
 import AppKit
@@ -26,6 +26,9 @@ from webview.js.css import disable_text_select
 
 settings = {}
 
+if getattr(sys, 'frozen', False):
+    freeze_support()
+    
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
@@ -435,10 +438,10 @@ class BrowserView:
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             if _multiprocessing:
-                raise RuntimeError('Can\'t stop freezing main thread on Macos/Cocoa') # TODO: remove this line and stop freezing main thread using multiprocessing
-                # p = Process(target=BrowserView.app.run)
-                # p.start()
-                # return p
+                #raise RuntimeError('Can\'t stop freezing main thread on Macos/Cocoa') # TODO: remove this line and stop freezing main thread using multiprocessing
+                p = Process(target=lambda _globals:BrowserView.app.run(), args=(globals(), ))
+                p.start()
+                return p
 
             BrowserView.app.run()
 
