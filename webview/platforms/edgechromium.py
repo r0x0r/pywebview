@@ -84,6 +84,7 @@ class EdgeChrome:
                 self.js_result = None if result is None or result == '' else json.loads(result)
                 self.js_result_semaphore.release()
             else: 
+                # future js callback option to handle async js method
                 callback(result)
                 self.js_result = None
                 self.js_result_semaphore.release()
