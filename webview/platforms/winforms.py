@@ -23,6 +23,11 @@ from webview.util import parse_file_type, inject_base_uri
 from webview.js import alert
 from webview.localization import localization
 
+try:
+    import _winreg as winreg  # Python 2
+except ImportError:
+    import winreg  # Python 3
+
 import clr
 
 clr.AddReference('System.Windows.Forms')
@@ -41,11 +46,6 @@ settings = {}
 
 def _is_edge():
     try:
-        import _winreg as winreg  # Python 2
-    except ImportError:
-        import winreg  # Python 3
-
-    try:
         net_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full')
         version, _ = winreg.QueryValueEx(net_key, 'Release')
 
@@ -60,64 +60,53 @@ def _is_edge():
     finally:
         winreg.CloseKey(net_key)
 
+
 def _is_chromium():
-    try:
-        import _winreg as winreg  # Python 2
-    except ImportError:
-        import winreg  # Python 3
+    def edge_build(key):
+        try:
+            windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,  r'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\\' + key)
+            build, _ = winreg.QueryValueEx(windows_key, 'pv')
+            build = int(build.replace('.', '')[:6])
+
+            return build
+        except Exception as e:
+            logger.debug(e)
+        finally:
+            winreg.CloseKey(windows_key)
+
+        return 0
 
     try:
         net_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full')
         version, _ = winreg.QueryValueEx(net_key, 'Release')
-        try:
-            # runtime
-            windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
-                r'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}')
-            build, _ = winreg.QueryValueEx(windows_key, 'pv')
-            build = int(build.replace('.', '')[:6])
-            print(build)
-            return version >= 394802 and build >= 860622 # .NET 4.6.2 + Webview2 86.0.622.0
-        except:
-            build = 0
-        try:
-            # edge beta
-            windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
-                r'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}')
-            build, _ = winreg.QueryValueEx(windows_key, 'pv')
-            build = int(build.replace('.', '')[:6])
-            return version >= 394802 and build >= 860622 # .NET 4.6.2 + Webview2 86.0.622.0
-        except:
-            build = 0
-        try:
-            # edge dev
-            windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
-                r'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{0D50BFEC-CD6A-4F9A-964C-C7416E3ACB10}')
-            build, _ = winreg.QueryValueEx(windows_key, 'pv')
-            build = int(build.replace('.', '')[:6])
-            return version >= 394802 and build >= 860622 # .NET 4.6.2 + Webview2 86.0.622.0
-        except:
-            build = 0
-        try:
-            # edge canary
-            windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
-                r'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{65C35B14-6C1D-4122-AC46-7148CC9D6497}')
-            build, _ = winreg.QueryValueEx(windows_key, 'pv')
-            build = int(build.replace('.', '')[:6])
-            return version >= 394802 and build >= 860622 # .NET 4.6.2 + Webview2 86.0.622.0
-        except:
-            build = 0
+        
+        if version < 394802: # .NET 4.6.2
+            return False
 
-        return version >= 394802 and build >= 86062200 # .NET 4.6.2 + Webview2 86.0.622.0
+        build_versions = [
+            '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', # runtime
+            '{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}', # beta
+            '{0D50BFEC-CD6A-4F9A-964C-C7416E3ACB10}', # dev
+            '{65C35B14-6C1D-4122-AC46-7148CC9D6497}' # canary
+        ]
+
+        for key in build_versions:
+            build = edge_build(key)
+
+            if build >= 860622: # Webview2 86.0.622.0
+                return True
+
     except Exception as e:
-        logger.exception(e)
-        return False
+        logger.debug(e)
     finally:
         winreg.CloseKey(net_key)
 
-        
+    return False
+
+
 is_cef = forced_gui_ == 'cef'
-is_chromium = _is_chromium() and forced_gui_ == 'chromium'
-is_edge = _is_edge() and forced_gui_ not in ['mshtml', 'chromium']
+is_chromium = not is_cef and _is_chromium() and forced_gui_ not in ['mshtml', 'edgehtml']
+is_edge = not is_chromium and _is_edge()
 
 
 if is_cef:
@@ -126,21 +115,21 @@ if is_cef:
 
     logger.debug('Using WinForms / CEF')
     renderer = 'cef'
+elif is_chromium:
+    from . import edgechromium as Chromium
+    IWebBrowserInterop = object
+
+    logger.debug('Using WinForms / Chromium')
+    renderer = 'edgechromium'
 elif is_edge:
     from . import edgehtml as Edge
     IWebBrowserInterop = object
 
     logger.debug('Using WinForms / EdgeHTML')
     renderer = 'edgehtml'
-elif is_chromium:
-    from . import edgechromium as Chromium
-    IWebBrowserInterop = object
-    
-    logger.debug('Using WinForms / Chromium')
-    renderer = 'chromium'
 else:
     from . import mshtml as IE
-    
+
     logger.debug('Using WinForms / MSHTML')
     renderer = 'mshtml'
 
@@ -205,10 +194,10 @@ class BrowserView:
                 self.FormBorderStyle = 0
             if is_cef:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
-            elif is_edge:
-                self.browser = Edge.EdgeHTML(self, window)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window)
+            elif is_edge:
+                self.browser = Edge.EdgeHTML(self, window)
             else:
                 self.browser = IE.MSHTML(self, window)
 
