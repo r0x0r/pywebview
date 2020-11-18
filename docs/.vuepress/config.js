@@ -73,6 +73,7 @@ module.exports = {
         'minimize_window',
         'move_window',
         'multiple_windows',
+        'no_block',
         'open_file_dialog',
         'open_url',
         'resize_window',
