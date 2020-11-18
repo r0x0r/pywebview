@@ -16,6 +16,7 @@ import webbrowser
 from threading import Event, Semaphore
 from ctypes import windll
 from uuid import uuid4
+from platform import machine
 
 from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent
 from webview.guilib import forced_gui_
@@ -64,7 +65,11 @@ def _is_edge():
 def _is_chromium():
     def edge_build(key):
         try:
-            windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,  r'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\\' + key)
+            windows_key = None
+            if machine() == 'x86':
+                windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,  r'SOFTWARE\Microsoft\EdgeUpdate\Clients\\' + key)
+            else:
+                windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,  r'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\\' + key)
             build, _ = winreg.QueryValueEx(windows_key, 'pv')
             build = int(build.replace('.', '')[:6])
 
