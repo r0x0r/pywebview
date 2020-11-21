@@ -111,7 +111,7 @@ def _is_chromium():
 
 is_cef = forced_gui_ == 'cef'
 is_chromium = not is_cef and _is_chromium() and forced_gui_ not in ['mshtml', 'edgehtml']
-is_edge = not is_chromium and _is_edge()
+is_edge = not is_chromium and _is_edge() and forced_gui_ != 'mshtml'
 
 
 if is_cef:
@@ -419,37 +419,7 @@ def _set_ie_mode():
     winreg.SetValueEx(dpi_support, executable_name, 0, winreg.REG_DWORD, 1)
     winreg.CloseKey(dpi_support)
 
-
-def _allow_localhost():
-    import subprocess
-
-    # lifted from https://github.com/pyinstaller/pyinstaller/wiki/Recipe-subprocess
-    def subprocess_args(include_stdout=True):
-        if hasattr(subprocess, 'STARTUPINFO'):
-            si = subprocess.STARTUPINFO()
-            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            env = os.environ
-        else:
-            si = None
-            env = None
-
-        if include_stdout:
-            ret = {'stdout': subprocess.PIPE}
-        else:
-            ret = {}
-
-        ret.update({'stdin': subprocess.PIPE,
-                    'stderr': subprocess.PIPE,
-                    'startupinfo': si,
-                    'env': env })
-        return ret
-
-    output = subprocess.check_output('checknetisolation LoopbackExempt -s', **subprocess_args(False))
-
-    if 'cw5n1h2txyewy' not in str(output):
-        windll.shell32.ShellExecuteW(None, 'runas', 'checknetisolation', 'LoopbackExempt -a -n=\"Microsoft.Win32WebViewHost_cw5n1h2txyewy\"', None, 1)
-
-
+    
 _main_window_created = Event()
 _main_window_created.clear()
 
