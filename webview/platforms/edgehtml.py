@@ -179,4 +179,8 @@ def _allow_localhost():
         return ret
 
     output = subprocess.check_output('checknetisolation LoopbackExempt -s', **subprocess_args(False))
+    
+    if 'cw5n1h2txyewy' not in str(output):
+        windll.shell32.ShellExecuteW(None, 'runas', 'checknetisolation', 'LoopbackExempt -a -n=\"Microsoft.Win32WebViewHost_cw5n1h2txyewy\"', None, 1)
+
         
