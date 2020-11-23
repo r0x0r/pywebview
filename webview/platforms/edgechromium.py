@@ -71,10 +71,10 @@ class EdgeChrome:
             self.load_url(window.real_url)
         elif window.html:
             self.html = window.html
-            self.web_view.EnsureCoreWebView2Async(None)
+            self.load_html(window.html, '')
         else:
             self.html = default_html
-            self.web_view.EnsureCoreWebView2Async(None)
+            self.load_html(default_html, '')
 
     def evaluate_js(self, script, callback=None):
         def _callback(result):
@@ -102,9 +102,10 @@ class EdgeChrome:
     def get_current_url(self):
         return self.url
 
-    def load_html(self, sender, html):
+    def load_html(self, content, base_uri):
+        self.html = content
         self.ishtml = True
-        sender.CoreWebView2.NavigateToString(html)
+        self.web_view.EnsureCoreWebView2Async(None)
 
     def load_url(self, url):
         self.ishtml = False
@@ -138,7 +139,7 @@ class EdgeChrome:
         settings.IsWebMessageEnabled = True
         settings.IsStatusBarEnabled = _debug
         settings.IsZoomControlEnabled = True
-        if self.html: self.load_html(sender, self.html)
+        if self.html: sender.CoreWebView2.NavigateToString(self.html)
         
     def on_navigation_start(self, sender, args):
         pass
