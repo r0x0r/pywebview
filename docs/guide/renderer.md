@@ -3,17 +3,19 @@
 The following renderers are used on each platform
 
 
-| Platform | Code     | Renderer | Provider                                          | Browser compatibility |
-|----------|----------|----------|---------------------------------------------------|-----------------------|
-| GTK      | gtk      | WebKit   | WebKit2                                           |                       |
-| macOS    |          | WebKit   | WebKit.WKWebView (bundled with OS)                |                       |
-| QT       | qt       | WebKit   | QtWebEngine / QtWebKit                            |                       |
-| Windows  | mshtml   | MSHTML   | MSHTML via .NET / System.Windows.Forms.WebBrowser | IE11 (Windows 10/8/7) |
-| Windows  |          | EdgeHTML | > .NET Framework 4.6.2 and Windows 10 build 17110 |                       |
-| Windows  | cef      | CEF      | CEF Python                                        | Chrome 66             |
+| Platform | Code         | Renderer | Provider                                          | Browser compatibility |
+|----------|--------------|----------|---------------------------------------------------|-----------------------|
+| GTK      | gtk          | WebKit   | WebKit2                                           |                       |
+| macOS    |              | WebKit   | WebKit.WKWebView (bundled with OS)                |                       |
+| QT       | qt           | WebKit   | QtWebEngine / QtWebKit                            |                       |
+| Windows  | edgechromium | Chromium | > .NET Framework 4.6.2 and Edge Runtime installed | Ever-green Chromium   |
+| Windows  | edgehtml     | EdgeHTML | > .NET Framework 4.6.2 and Windows 10 build 17110 |                       |
+| Windows  | mshtml       | MSHTML   | MSHTML via .NET / System.Windows.Forms.WebBrowser | IE11 (Windows 10/8/7) |
+| Windows  | cef          | CEF      | CEF Python                                        | Chrome 66             |
 
+On Windows renderer is chosen in the following order: `edgechromium`, `edgehtml`, `mshtml`. `mshtml` is the only renderer that is guaranteed to be available on any system. Note that Edge Runtime must be installed in order to use Edge Chromium on Windows. You can download it from [here](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). Distribution guidelines are found [here](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution).
 
-To change a default renderer set either `PYWEBVIEW_GUI` environment variable or `webview.gui` value in the code. Check for available values in the Code column.
+To change a default renderer set either `PYWEBVIEW_GUI` environment variable or  pass the rendered value to `webview.start(gui=code)` function parameter. Check for available values in the Code column from the table above.
 
 For example to use CEF on Windows
 
