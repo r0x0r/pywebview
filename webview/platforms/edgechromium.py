@@ -55,6 +55,7 @@ class EdgeChrome:
         self.web_view.CreationProperties = props
         form.Controls.Add(self.web_view)
 
+        self.js_results = {}
         self.js_result_semaphore = Semaphore(0)
         self.web_view.Dock = WinForms.DockStyle.Fill
         #settings under on_webview_ready 
