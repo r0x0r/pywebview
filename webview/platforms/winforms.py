@@ -255,13 +255,13 @@ class BrowserView:
         def evaluate_js(self, script):
             id = uuid4().hex[:8]
             def _evaluate_js():
-                self.browser.evaluate_js(script, id) if is_chromium else self.browser.evaluate_js(script)
+                self.browser.evaluate_js(script, id) if is_chromium or is_edge else self.browser.evaluate_js(script)
 
             self.loaded.wait()
             self.Invoke(Func[Type](_evaluate_js))
             self.browser.js_result_semaphore.acquire()
 
-            if is_chromium:
+            if is_chromium or is_edge:
                 if self.browser.js_results.get(id, None) is None:
                     time.sleep(.1)
                 result = self.browser.js_results[id]
