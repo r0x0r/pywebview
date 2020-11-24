@@ -17,6 +17,7 @@ from threading import Event, Semaphore
 from ctypes import windll
 from uuid import uuid4
 from platform import machine
+import time
 
 from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent
 from webview.guilib import forced_gui_
@@ -252,13 +253,20 @@ class BrowserView:
             CEF.resize(self.Width, self.Height, self.uid)
 
         def evaluate_js(self, script):
+            id = uuid4().hex[:8]
             def _evaluate_js():
-                self.browser.evaluate_js(script)
+                self.browser.evaluate_js(script, id) if is_chromium else self.browser.evaluate_js(script)
 
             self.loaded.wait()
             self.Invoke(Func[Type](_evaluate_js))
             self.browser.js_result_semaphore.acquire()
 
+            if is_chromium:
+                if self.browser.js_results.get(id, None) is None:
+                    time.sleep(.1)
+                result = self.browser.js_results[id]
+                self.browser.js_results.pop(id)
+                return result
             return self.browser.js_result
 
         def load_html(self, content, base_uri):
