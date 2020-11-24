@@ -76,15 +76,15 @@ class EdgeChrome:
             self.html = default_html
             self.load_html(default_html, '')
 
-    def evaluate_js(self, script, callback=None):
+    def evaluate_js(self, script, id, callback=None):
         def _callback(result):
             if callback is None:
-                self.js_result = None if result is None or result == '' else json.loads(result)
+                self.js_results[id] = None if result is None or result == '' else json.loads(result)
                 self.js_result_semaphore.release()
             else: 
                 # future js callback option to handle async js method
                 callback(result)
-                self.js_result = None
+                self.js_results[id] = None
                 self.js_result_semaphore.release()
 
         self.syncContextTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext()
@@ -96,7 +96,7 @@ class EdgeChrome:
             self.syncContextTaskScheduler)
         except Exception as e:
             logger.exception('Error occurred in script')
-            self.js_result = None
+            self.js_results[id] = None
             self.js_result_semaphore.release()
 
     def get_current_url(self):
