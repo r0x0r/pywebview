@@ -295,6 +295,8 @@ class BrowserView:
                             handled = True
                     elif keyCode == 12:  # quit
                         BrowserView.app.stop_(self)
+                    elif keyCode == 13:  # w (close)
+                        self.window().close()
 
                     return handled
 
