@@ -10,7 +10,9 @@ extras_require = {
 
 install_requires = [
     'pythonnet ; sys_platform == "win32"',
-    'pyobjc ; sys_platform == "darwin"',
+    'pyobjc-core ; sys_platform == "darwin"',
+    'pyobjc-framework-Cocoa ; sys_platform == "darwin"',
+    'pyobjc-framework-WebKit ; sys_platform == "darwin"',
     'PyQt5 ; sys_platform == "openbsd6"',
     'importlib_resources; python_version < "3.7"',
 ]
