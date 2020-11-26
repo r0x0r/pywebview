@@ -48,6 +48,7 @@ class EdgeHTML:
         life.BeginInit()
         form.Controls.Add(self.web_view)
 
+        self.js_results = {}
         self.js_result_semaphore = Semaphore(0)
         self.web_view.Dock = WinForms.DockStyle.Fill
         self.web_view.DpiAware = True
