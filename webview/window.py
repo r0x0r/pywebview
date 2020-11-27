@@ -155,6 +155,10 @@ class Window:
         return self.evaluate_js(code)
 
     @_shown_call
+    def get_instance(self):
+        return self.gui.get_instance(self.uid)
+
+    @_shown_call
     def load_url(self, url):
         """
         Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is
@@ -191,6 +195,14 @@ class Window:
         Set a new title of the window
         """
         self.gui.set_title(title, self.uid)
+
+    @_shown_call
+    def set_icon(self, icon):
+        """
+        Set a new title of the window
+        """
+        self.gui.set_icon(icon, self.uid)
+
 
     @_loaded_call
     def get_current_url(self):
@@ -325,3 +337,4 @@ class Window:
 
         if self.loaded.is_set():
             self.evaluate_js('window.pywebview._createApi(%s)' % func_list)
+

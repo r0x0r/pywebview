@@ -33,7 +33,7 @@ from PyQt5.QtCore import QT_VERSION_STR
 logger.debug('Using Qt %s' % QT_VERSION_STR)
 
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox, QAction
-from PyQt5.QtGui import QColor, QScreen
+from PyQt5.QtGui import QColor, QScreen, QIcon
 
 try:
     from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
@@ -59,6 +59,7 @@ class BrowserView(QMainWindow):
 
     create_window_trigger = QtCore.pyqtSignal(object)
     set_title_trigger = QtCore.pyqtSignal(str)
+    set_icon_trigger = QtCore.pyqtSignal(str)
     load_url_trigger = QtCore.pyqtSignal(str)
     html_trigger = QtCore.pyqtSignal(str, str)
     dialog_trigger = QtCore.pyqtSignal(int, str, bool, str, str)
@@ -297,6 +298,7 @@ class BrowserView(QMainWindow):
         self.current_url_trigger.connect(self.on_current_url)
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
+        self.set_icon_trigger.connect(self.on_set_icon)
         self.on_top_trigger.connect(self.on_set_on_top)
 
         if is_webengine and platform.system() != 'OpenBSD':
@@ -329,6 +331,10 @@ class BrowserView(QMainWindow):
 
     def on_set_title(self, title):
         self.setWindowTitle(title)
+
+
+    def on_set_icon(self, icon):
+        self.setWindowIcon(QIcon(icon))
 
     def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         if dialog_type == FOLDER_DIALOG:
@@ -454,6 +460,9 @@ class BrowserView(QMainWindow):
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)
+
+    def set_icon(self, icon):
+        self.set_icon_trigger.emit(icon)
 
     def get_current_url(self):
         self.loaded.wait()
@@ -624,6 +633,10 @@ def create_window(window):
 def set_title(title, uid):
     BrowserView.instances[uid].set_title(title)
 
+def set_icon(icon, uid):
+    BrowserView.instances[uid].set_icon(icon)
+
+
 
 def get_current_url(uid):
     return BrowserView.instances[uid].get_current_url()
@@ -694,6 +707,9 @@ def get_position(uid):
 def get_size(uid):
     window = BrowserView.instances[uid]
     return window.width(), window.height()
+    
+def get_instance(uid):
+    return BrowserView.instances[uid]
 
 
 def get_screens():
