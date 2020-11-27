@@ -46,9 +46,10 @@ def _loaded_call(function):
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select, transparent):
+                 background_color, js_api, text_select, transparent, icon):
         self.uid = uid
         self.title = make_unicode(title)
+        self.icon = icon
         self.original_url = None if html else url  # original URL provided by user
         self.real_url = None  # transformed URL for internal HTTP server
         self.html = html
@@ -337,4 +338,3 @@ class Window:
 
         if self.loaded.is_set():
             self.evaluate_js('window.pywebview._createApi(%s)' % func_list)
-
