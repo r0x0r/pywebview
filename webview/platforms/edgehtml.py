@@ -48,6 +48,7 @@ class EdgeHTML:
         life.BeginInit()
         form.Controls.Add(self.web_view)
 
+        self.js_results = {}
         self.js_result_semaphore = Semaphore(0)
         self.web_view.Dock = WinForms.DockStyle.Fill
         self.web_view.DpiAware = True
@@ -79,14 +80,14 @@ class EdgeHTML:
         else:
             self.load_html(default_html, '')
 
-    def evaluate_js(self, script):
+    def evaluate_js(self, script, id):
         try:
             result = self.web_view.InvokeScript('eval', (script,))
         except Exception as e:
             logger.exception('Error occurred in script')
             result = None
 
-        self.js_result = None if result is None or result == '' else json.loads(result)
+        self.js_results[id] = None if result is None or result == '' else json.loads(result)
         self.js_result_semaphore.release()
 
     def get_current_url(self):
