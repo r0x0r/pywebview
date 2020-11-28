@@ -257,23 +257,24 @@ def create_browser(window, handle, alert_func):
 
         instances[window.uid] = browser
         window.shown.set()
-
-        icon = window.icon+".ico"
-        if os.path.isfile(icon):
-            bigx = win32api.GetSystemMetrics(win32con.SM_CXICON)
-            bigy = win32api.GetSystemMetrics(win32con.SM_CYICON)
-            big_icon = win32gui.LoadImage(0, icon, win32con.IMAGE_ICON,
-                                          bigx, bigy,
-                                          win32con.LR_LOADFROMFILE)
-            smallx = win32api.GetSystemMetrics(win32con.SM_CXSMICON)
-            smally = win32api.GetSystemMetrics(win32con.SM_CYSMICON)
-            small_icon = win32gui.LoadImage(0, icon, win32con.IMAGE_ICON,
-                                            smallx, smally,
-                                            win32con.LR_LOADFROMFILE)
-            win32api.SendMessage(handle, win32con.WM_SETICON,
-                                 win32con.ICON_BIG, big_icon)
-            win32api.SendMessage(handle, win32con.WM_SETICON,
-                                 win32con.ICON_SMALL, small_icon)
+        
+        if window.icon:
+            icon = window.icon+".ico"
+            if os.path.isfile(icon):
+                bigx = win32api.GetSystemMetrics(win32con.SM_CXICON)
+                bigy = win32api.GetSystemMetrics(win32con.SM_CYICON)
+                big_icon = win32gui.LoadImage(0, icon, win32con.IMAGE_ICON,
+                                              bigx, bigy,
+                                              win32con.LR_LOADFROMFILE)
+                smallx = win32api.GetSystemMetrics(win32con.SM_CXSMICON)
+                smally = win32api.GetSystemMetrics(win32con.SM_CYSMICON)
+                small_icon = win32gui.LoadImage(0, icon, win32con.IMAGE_ICON,
+                                                smallx, smally,
+                                                win32con.LR_LOADFROMFILE)
+                win32api.SendMessage(handle, win32con.WM_SETICON,
+                                     win32con.ICON_BIG, big_icon)
+                win32api.SendMessage(handle, win32con.WM_SETICON,
+                                     win32con.ICON_SMALL, small_icon)
 
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)
