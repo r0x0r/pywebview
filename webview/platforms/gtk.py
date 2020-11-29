@@ -14,13 +14,11 @@ except ImportError:
     from urllib import unquote
 
 from uuid import uuid1
-from threading import Event, Semaphore, Thread
-from multiprocessing import Process, Queue, Pipe
+from threading import Event, Semaphore
 from webview.localization import localization
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows, _multiprocessing, Window
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
-from webview.serving import resolve_url
 
 logger = logging.getLogger('pywebview')
 
@@ -262,7 +260,6 @@ class BrowserView:
         if gtk.main_level() == 0:
             if self.pywebview_window.hidden:
                 self.window.hide()
-
             gtk.main()
         else:
             glib.idle_add(self.window.show_all)
@@ -410,43 +407,7 @@ class BrowserView:
         glib.idle_add(create_bridge)
 
 
-def proc_func(window):
-    def childs():
-        while 1:
-            window = Window(*views.get())
-            window.loaded._initialize(False)
-            window.shown._initialize(False)
-            window.real_url = resolve_url(window.original_url, False)
-            _create_window(window)
-            window.closed += lambda: mp_events.put((window.uid, 'closed'))
-            window.closing += lambda: mp_events.put((window.uid, 'closing'))
-            window.shown += lambda: mp_events.put((window.uid, 'shown'))
-            window.loaded += lambda: mp_events.put((window.uid, 'loaded'))
-
-    def caller():
-        while 1:
-            data = mp_idle_add.get()
-            data[0](*data[1:])
-
-    t = Thread(target=childs)
-    t.daemon = True
-    t.start()
-    t2 = Thread(target=caller)
-    t2.daemon = True
-    t2.start()
-    _create_window(window)
-
-
-def mp_event_loop():
-    while 1:
-        uid, event_name = mp_events.get()
-        for window in windows:
-            if window.uid == uid:
-                getattr(window, event_name).set()
-                continue
-
-
-def _create_window(window):
+def create_window(window):
     def create():
         browser = BrowserView(window)
         browser.show()
@@ -457,88 +418,25 @@ def _create_window(window):
         glib.idle_add(create)
 
 
-def create_window(window):
-    def create():
-        browser = BrowserView(window)
-        browser.show()
-
-    if not _multiprocessing:
-        _create_window(window)
-    if window.uid == 'master':
-        global views
-        views = Queue()
-        global mp_events
-        mp_events = Queue()
-        global mp_idle_add
-        mp_idle_add = Queue()
-        p = Process(target=proc_func, args=(window, ))
-        p.start()
-        return p
-    else:
-        print(window.original_url, window.html)
-        views.put(
-            (window.uid, window.title, window.original_url, window.html,
-             window.initial_width, window.initial_height, window.initial_x,
-             window.initial_y, window.resizable, window.fullscreen,
-             window.min_size, window.hidden, window.frameless,
-             window.easy_drag, window.minimized, window.on_top,
-             window.confirm_close, window.background_color, window._js_api,
-             window.text_select, window.transparent))
-        t = Thread(target=mp_event_loop)
-        t.daemon = True
-        t.start()
-
-
 def set_title(title, uid):
-    if _multiprocessing:
-        mp_idle_add.put((_set_title, title, uid))
-    else:
-        _set_title(title, uid)
-
-
-def _set_title(title, uid):
     def _set_title():
         BrowserView.instances[uid].set_title(title)
-
     glib.idle_add(_set_title)
 
 
 def destroy_window(uid):
-    if _multiprocessing:
-        mp_idle_add.put((_destroy_window, uid))
-    else:
-        _destroy_window(uid)
-
-
-def _destroy_window(uid):
     def _destroy_window():
         BrowserView.instances[uid].close_window()
-
     glib.idle_add(_destroy_window)
 
 
 def toggle_fullscreen(uid):
-    if _multiprocessing:
-        mp_idle_add.put((_toggle_fullscreen, uid))
-    else:
-        _toggle_fullscreen(uid)
-
-
-def _toggle_fullscreen(uid):
     def _toggle_fullscreen():
         BrowserView.instances[uid].toggle_fullscreen()
-
     glib.idle_add(_toggle_fullscreen)
 
 
 def set_on_top(uid, top):
-    if _multiprocessing:
-        mp_idle_add.put((_set_on_top, uid, top))
-    else:
-        _set_on_top(uid, top)
-
-
-def _set_on_top(uid, top):
     def _set_on_top():
         BrowserView.instances[uid].window.set_keep_above(top)
 
@@ -546,74 +444,30 @@ def _set_on_top(uid, top):
 
 
 def resize(width, height, uid):
-    if _multiprocessing:
-        mp_idle_add.put((_resize, width, height, uid))
-    else:
-        _resize(width, height, uid)
-
-
-def _resize(width, height, uid):
     def _resize():
-        BrowserView.instances[uid].resize(width, height)
-
+        BrowserView.instances[uid].resize(width,height)
     glib.idle_add(_resize)
 
 
 def move(x, y, uid):
-    if _multiprocessing:
-        mp_idle_add.put((_move, x, y, uid))
-    else:
-        _move(title, uid)
-
-
-def _move(x, y, uid):
     def _move():
         BrowserView.instances[uid].move(x, y)
-
     glib.idle_add(_move)
 
 
 def hide(uid):
-    if _multiprocessing:
-        mp_idle_add.put((_hide, uid))
-    else:
-        _hide(uid)
-
-
-def _hide(uid):
     glib.idle_add(BrowserView.instances[uid].hide)
 
 
 def show(uid):
-    if _multiprocessing:
-        mp_idle_add.put((_show, uid))
-    else:
-        _show(uid)
-
-
-def _show(uid):
     glib.idle_add(BrowserView.instances[uid].show)
 
 
 def minimize(uid):
-    if _multiprocessing:
-        mp_idle_add.put((_minimize, uid))
-    else:
-        _minimize(uid)
-
-
-def _minimize(uid):
     glib.idle_add(BrowserView.instances[uid].minimize)
 
 
 def restore(uid):
-    if _multiprocessing:
-        mp_idle_add.put((_restore, uid))
-    else:
-        _restore(uid)
-
-
-def _restore(uid):
     glib.idle_add(BrowserView.instances[uid].restore)
 
 
@@ -622,101 +476,74 @@ def get_current_url(uid):
 
 
 def load_url(url, uid):
-    if _multiprocessing:
-        mp_idle_add.put((_load_url, url, uid))
-    else:
-        _load_url(url, uid)
-
-
-def _load_url(url, uid):
     def _load_url():
         BrowserView.instances[uid].load_url(url)
-
     glib.idle_add(_load_url)
 
 
 def load_html(content, base_uri, uid):
-    if _multiprocessing:
-        mp_idle_add.put((_load_html, content, base_uri, uid))
-    else:
-        _load_html(content, base_uri, uid)
-
-
-def _load_html(content, base_uri, uid):
     def _load_html():
         BrowserView.instances[uid].load_html(content, base_uri)
-
     glib.idle_add(_load_html)
 
 
-def _create_file_dialog(dialog_type, directory, allow_multiple, save_filename,
-                        file_types, uid, child_conn):
-    result = BrowserView.instances[uid].create_file_dialog(
-        dialog_type, directory, allow_multiple, save_filename, file_types)
-    if result is None:
-        child_conn.send(None)
-    else:
-        result = map(unicode, result) if sys.version < '3' else result
-        child_conn.send(tuple(result))
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
+    i = BrowserView.instances[uid]
+    file_name_semaphore = Semaphore(0)
+    file_names = []
 
+    def _create():
+        result = i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types)
+        if result is None:
+            file_names.append(None)
+        else:
+            result = map(unicode, result) if sys.version < '3' else result
+            file_names.append(tuple(result))
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename,
-                       file_types, uid):
+        file_name_semaphore.release()
 
-    parent_conn, child_conn = Pipe(False)
-    if _multiprocessing:
-        mp_idle_add.put(
-            (glib.idle_add, _create_file_dialog, dialog_type, directory,
-             allow_multiple, save_filename, file_types, uid, child_conn))
-    else:
-        glib.idle_add(_create_file_dialog, dialog_type, directory,
-                      allow_multiple, save_filename, file_types, uid,
-                      child_conn)
+    glib.idle_add(_create)
+    file_name_semaphore.acquire()
 
-    return parent_conn.recv()
+    return file_names[0]
 
 
 def evaluate_js(script, uid):
     return BrowserView.instances[uid].evaluate_js(script)
 
 
-def _get_position(uid, child_conn):
-    child_conn.send(BrowserView.instances[uid].window.get_position())
-
-
 def get_position(uid):
-    parent_conn, child_conn = Pipe(False)
-    if _multiprocessing:
-        try:
-            mp_idle_add.put((_get_position, uid, child_conn))
-        except:
-            mp_idle_add.put((glib.idle_add, _get_position, uid, child_conn))
-    else:
-        try:
-            _get_position(uid, child_conn)
-        except:
-            glib.idle_add(_get_position, uid, child_conn)
-    return parent_conn.recv()
+    def _get_position():
+        result['position'] = BrowserView.instances[uid].window.get_position()
+        semaphore.release()
 
+    result = {}
+    semaphore = Semaphore(0)
 
-def _get_size(uid, child_conn):
-    child_conn.send(BrowserView.instances[uid].window.get_size())
+    try:
+        _get_position()
+    except:
+        glib.idle_add(_get_position)
+        semaphore.acquire()
+
+    return result['position']
 
 
 def get_size(uid):
-    parent_conn, child_conn = Pipe(False)
-    if _multiprocessing:
-        try:
-            mp_idle_add.put((_get_size, uid, child_conn))
-        except:
-            mp_idle_add.put((glib.idle_add, _get_size, uid, child_conn))
-    else:
-        try:
-            _get_size(uid, child_conn)
-        except:
-            glib.idle_add(_get_size, uid, child_conn)
+    def _get_size():
+        result['size'] = BrowserView.instances[uid].window.get_size()
+        semaphore.release()
 
-    return parent_conn.recv()
+    result = {}
+    semaphore = Semaphore(0)
+
+    try:
+        _get_size()
+    except:
+        glib.idle_add(_get_size)
+        semaphore.acquire()
+
+    return result['size']
 
 
 def configure_transparency(c):
@@ -738,3 +565,4 @@ def configure_transparency(c):
             background-image:none;
         }""")
     c.get_style_context().add_provider(transparentWindowStyleProvider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    
