@@ -43,8 +43,6 @@ from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-kernel32.GetModuleHandleA.restype = ctypes.wintypes.HMODULE
-kernel32.GetModuleHandleA.argtypes = [ctypes.wintypes.LPCSTR]
 
 logger = logging.getLogger('pywebview')
 
