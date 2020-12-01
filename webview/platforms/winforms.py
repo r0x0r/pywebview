@@ -14,6 +14,7 @@ import shutil
 import tempfile
 import webbrowser
 from threading import Event, Semaphore
+import ctypes
 from ctypes import windll
 from uuid import uuid4
 from platform import machine
@@ -41,6 +42,7 @@ from System import IntPtr, Int32, Func, Type, Environment, Uri
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
+kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
 logger = logging.getLogger('pywebview')
 
@@ -175,7 +177,7 @@ class BrowserView:
                 self.WindowState = WinForms.FormWindowState.Minimized
 
             # Application icon
-            handle = windll.kernel32.GetModuleHandleW(None)
+            handle = kernel32.GetModuleHandleW(None)
             icon_handle = windll.shell32.ExtractIconW(handle, sys.executable, 0)
 
             if icon_handle != 0:
