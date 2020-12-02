@@ -52,7 +52,7 @@ webview.start()
 
 ## Threading model
 
-`webview.start` starts a GUI loop and is a blocking function. With the GUI loop being blocking, you must execute your backend logic in a separate thread or a process. You may launch a thread or a process manually. Alternatively you can execute your code by passing your function as the first parameter `func` to `start`. The second parameter sets the function's arguments. This approach starts a thread behind the scenes and is identical to starting a thread manually.
+`webview.start` starts a GUI loop and is a blocking function(for non-blocking see [Non-blocking mode](#non-blocking-mode)). With the GUI loop being blocking, you must execute your backend logic in a separate thread or a process. You may launch a thread or a process manually. Alternatively you can execute your code by passing your function as the first parameter `func` to `start`. The second parameter sets the function's arguments. This approach starts a thread behind the scenes and is identical to starting a thread manually.
 
 ``` python
 import webview
@@ -66,6 +66,31 @@ webview.start(custom_logic, window)
 # anything below this line will be executed after program is finished executing
 pass
 ```
+
+## Non blocking mode
+
+`webview.start(block=False)` starts a GUI loop and now it is a non-blocking function. Then you can do all other things normally. This is working like [Threading model](#threading-model) but main thread is free for other jobs and code is simple.(newly added by [@Ksengine](https://github.com/Ksengine))
+``` python
+import webview
+import webview
+
+# Master window
+master_window = webview.create_window('Window #1', html='<h1>First window</h1>')
+child_window = webview.create_window('Window #2', html='<h1>Second window</h1>')
+
+process = webview.start(block = False)
+
+# free main thread
+# third window created after gui loop started
+third_window = webview.create_window('Window #3', html='<h1>Third Window</h1>')
+
+master_window.toggle_fullscreen()
+master_window.evaluate_js('alert("Nice one brother")')
+
+process.join()
+# now blocked main thread. You can ommit above line to ever nonblocking main thread.
+```
+
 
 # Make Python and Javascript talk with each other
 
