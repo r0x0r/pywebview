@@ -80,6 +80,7 @@ def create_window(window):
          window.easy_drag, window.minimized, window.on_top,
          window.confirm_close, window.background_color, window._js_api,
          window.text_select, window.transparent))
+    return p
 
 
 def set_title(title, uid):
