@@ -11,7 +11,6 @@ import subprocess
 import webbrowser
 import ctypes
 from threading import Event, Semaphore
-from multiprocessing import Process, freeze_support
 
 import Foundation
 import AppKit
@@ -20,15 +19,12 @@ from PyObjCTools import AppHelper
 from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
 
 from webview.localization import localization
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows, _multiprocessing
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import convert_string, parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 
 settings = {}
 
-if getattr(sys, 'frozen', False):
-    freeze_support()
-    
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
@@ -439,12 +435,6 @@ class BrowserView:
             self._add_view_menu()
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
-            if _multiprocessing:
-                #raise RuntimeError('Can\'t stop freezing main thread on Macos/Cocoa') # TODO: remove this line and stop freezing main thread using multiprocessing
-                p = Process(target=lambda _globals:BrowserView.app.run(), args=(globals(), ))
-                p.start()
-                return p
-
             BrowserView.app.run()
 
     def show(self):
@@ -790,7 +780,7 @@ def create_window(window):
 
     def create():
         browser = BrowserView(window)
-        return browser.first_show()
+        browser.first_show()
 
     if window.uid == 'master':
         create()
@@ -913,7 +903,3 @@ def get_size(uid):
         semaphore.acquire()
 
     return dimensions
-
-
-
-
