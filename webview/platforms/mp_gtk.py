@@ -1,12 +1,13 @@
 import multiprocessing as mp
-from webview import Window
+
+from webview import Window, windows
 from webview.platforms import gtk as guilib
+
 from uuid import uuid4
 from threading import Thread
 
 queue = mp.Queue()
 event_queue = mp.Queue()
-windows = {}
 return_dict = {}
 
 logger = guilib.logger
@@ -67,6 +68,7 @@ def create_window(window):
          window.easy_drag, window.minimized, window.on_top,
          window.confirm_close, window.background_color, window._js_api,
          window.text_select, window.transparent))
+    return p
 
 
 def set_title(title, uid):
