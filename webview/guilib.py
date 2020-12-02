@@ -77,7 +77,7 @@ def initialize(forced_gui=None):
         forced_gui = 'qt' if 'KDE_FULL_SESSION' in os.environ else None
         forced_gui = os.environ['PYWEBVIEW_GUI'].lower() \
             if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in ['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'edgehtml'] \
-            else None
+            else forced_gui
 
     forced_gui_ = forced_gui
 
