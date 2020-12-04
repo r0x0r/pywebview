@@ -2,7 +2,6 @@ import logging
 import os
 import platform
 
-from webview import _multiprocessing
 from webview.util import WebViewException
 
 logger = logging.getLogger('pywebview')
@@ -12,7 +11,7 @@ forced_gui_ = None
 def initialize(forced_gui=None):
     def import_gtk():
         global guilib
-
+        from webview import _multiprocessing
         try:
             if _multiprocessing:
                 import webview.platforms.mp_gtk as guilib
@@ -39,7 +38,7 @@ def initialize(forced_gui=None):
 
     def import_cocoa():
         global guilib
-
+        from webview import _multiprocessing
         try:
             if _multiprocessing:
                 import webview.platforms.mp_cocoa as guilib
