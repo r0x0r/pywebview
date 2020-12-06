@@ -132,7 +132,7 @@ class BrowserView:
                 handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@@')
 
             if files:
-                urls = [Foundation.NSURL.URLWithString_(BrowserView.quote(i)) for i in files]
+                urls = [Foundation.NSURL.fileURLWithPath_(BrowserView.quote(i)) for i in files]
                 handler(urls)
             else:
                 handler(nil)
@@ -263,11 +263,11 @@ class BrowserView:
 
             # Fix arrow keys not responding in text inputs
             keyCode_ = theEvent.keyCode()
-            UP, DOWN, LEFT, RIGHT = 126, 125, 123, 124
+            UP, DOWN, LEFT, RIGHT, DELETE, PG_DWN, PG_UP = 126, 125, 123, 124, 117, 121, 116
 
-            if keyCode_ in (UP, DOWN, LEFT, RIGHT):
+            if keyCode_ in (UP, DOWN, LEFT, RIGHT, DELETE, PG_DWN, PG_UP):
                 return False
-            
+
             if theEvent.type() == AppKit.NSKeyDown and theEvent.modifierFlags() & AppKit.NSCommandKeyMask:
                 responder = self.window().firstResponder()
                 keyCode = theEvent.keyCode()
@@ -295,6 +295,8 @@ class BrowserView:
                             handled = True
                     elif keyCode == 12:  # quit
                         BrowserView.app.stop_(self)
+                    elif keyCode == 13:  # w (close)
+                        self.window().close()
 
                     return handled
 

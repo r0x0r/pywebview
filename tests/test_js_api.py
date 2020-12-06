@@ -22,6 +22,9 @@ def test_concurrent():
 
 
 class Api:
+    class ApiTestException(Exception):
+        pass
+
     def get_int(self):
         return 420
 
@@ -44,7 +47,7 @@ class Api:
         return 'te"st'
 
     def raise_exception(self):
-        raise Exception()
+        raise Api.ApiTestException()
 
     def echo(self, param):
         return param

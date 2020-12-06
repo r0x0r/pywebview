@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.4: Second wave
+
+_Released 04/12/2020_
+
+- `New` [Windows] WebView2 Chromium support. Thanks [sbbosco](https://github.com/sbbosco). [#521](https://github.com/r0x0r/pywebview/issues/521).
+- `Fix` [All] Exception with HTML checkboxes and `get_elements`. [#622](https://github.com/r0x0r/pywebview/issues/622).
+- `Fix` [All] pystray compatibility. Thanks [AlexCovizzi](https://github.com/AlexCovizzi). [#486](https://github.com/r0x0r/pywebview/issues/486).
+- `Fix` [All] expose methods instead of all callables for JS API objects. Thanks [jgentil](https://github.com/jgentil). [#629](https://github.com/r0x0r/pywebview/issues/629).
+- `Fix` [EdgeHTML] Make returning results of `evaluate_js` more robust. Thanks [sbbosco](https://github.com/sbbosco).
+- `Fix` [QT] KDE_FULL_SESSION not being used. Thanks [Maltzur](https://github.com/Maltzur).
+- `Fix` [Cocoa] Unicode filenames for input files.
+- `Improvement` [Cocoa] Only install the specific `pyobjc` packages required. Thanks [Fizzadar](https://github.com/fizzadar).
+- `Improvement` [Cocoa] Add support for default document navigation and window handling shortcut keys . Thanks [ikhmyz](https://github.com/ikhmyz) and [Fizzadar](https://github.com/fizzadar)
+
+## 3.3.5
+
+_Released 26/09/2020_
+
+- `Fix` [EdgeHTML] Server middleware handling
+- `Fix` [EdgeHTML] file:// url handling
+
 ## 3.3.4
 
 _Released 18/09/2020_

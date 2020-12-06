@@ -20,5 +20,4 @@ _pywebview_ is a BSD licensed open source project. It is an independent project 
 </div>
 
 
-
-_pywebview_ is created and maintained by [Roman Sirokov](https://github.com/r0x0r/).
+_pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/).
