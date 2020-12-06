@@ -65,6 +65,24 @@ token = _token
 windows = []
 
 def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
+    """
+    Start a GUI loop and display previously created windows. This function must
+    be called from a main thread.
+
+    :param func: Function to invoke upon starting the GUI loop.
+    :param args: Function arguments. Can be either a single value or a tuple of
+        values.
+    :param localization: A dictionary with localized strings. Default strings
+        and their keys are defined in localization.py.
+    :param gui: Force a specific GUI. Allowed values are ``cef``, ``qt``, or
+        ``gtk`` depending on a platform.
+    :param debug: Enable debug mode. Default is False.
+    :param http_server: Enable built-in HTTP server. If enabled, local files
+        will be served using a local HTTP server on a random port. For each
+        window, a separate HTTP server is spawned. This option is ignored for
+        non-local URLs.
+    :param user_agent: Change user agent string. Not supported in EdgeHTML.
+    """
     global guilib, _debug, _multiprocessing, _http_server, _user_agent
 
     def _create_children(other_windows):
