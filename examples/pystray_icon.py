@@ -1,16 +1,13 @@
 from PIL import Image
 from pystray import Icon, Menu, MenuItem
 import webview
-
 import sys
+
 if sys.platform == 'darwin':
-    # System tray icon needs to run in it's own process on Mac OS X
-    import multiprocessing
-    from multiprocessing import Process as Thread, Queue
-    multiprocessing.set_start_method('spawn')
-else:
-    from threading import Thread
-    from queue import Queue
+    raise NotImplementedError('This example does not work on macOS.')
+    
+from threading import Thread
+from queue import Queue
 
 
 """
@@ -32,9 +29,9 @@ def run_pystray(queue: Queue):
         icon.stop()
         queue.put('exit')
 
-    image = Image.open("logo/logo.png")
+    image = Image.open('logo/logo.png')
     menu = Menu(MenuItem('Open', on_open), MenuItem('Exit', on_exit))
-    icon = Icon("Pystray", image, "Pystray", menu)
+    icon = Icon('Pystray', image, "Pystray", menu)
     icon.run()
 
 
