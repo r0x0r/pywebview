@@ -2,12 +2,15 @@ from PIL import Image
 from pystray import Icon, Menu, MenuItem
 import webview
 import sys
+import multiprocessing
 
 if sys.platform == 'darwin':
-    raise NotImplementedError('This example does not work on macOS.')
-    
-from threading import Thread
-from queue import Queue
+    ctx = multiprocessing.get_context('spawn')
+    Process = ctx.Process
+    Queue = ctx.Queue
+else:
+    Process = multiprocessing.Process
+    Queue = multiprocessing.Queue
 
 
 """
@@ -15,39 +18,34 @@ This example demonstrates running pywebview alongside with pystray to display a 
 """
 
 
+webview_process = None
+
+
 def run_webview():
     window = webview.create_window('Webview', 'https://pywebview.flowrl.com/hello')
     webview.start()
 
 
-def run_pystray(queue: Queue):
+if __name__ == '__main__':
+
+    def start_webview_process():
+        global webview_process
+        webview_process = Process(target=run_webview)
+        webview_process.start()
 
     def on_open(icon, item):
-        queue.put('open')
+        global webview_process
+        if not webview_process.is_alive():
+            start_webview_process()
 
     def on_exit(icon, item):
         icon.stop()
-        queue.put('exit')
+
+    start_webview_process()
 
     image = Image.open('logo/logo.png')
     menu = Menu(MenuItem('Open', on_open), MenuItem('Exit', on_exit))
-    icon = Icon('Pystray', image, "Pystray", menu)
+    icon = Icon('Pystray', image, menu=menu)
     icon.run()
 
-
-if __name__ == '__main__':
-    queue = Queue()
- 
-    icon_thread = Thread(target=run_pystray, args=(queue,))
-    icon_thread.start()
-
-    run_webview()
-
-    while True:
-        event = queue.get()
-        if event == 'open':
-            run_webview()
-        if event == 'exit':
-            break
-
-    icon_thread.join()
+    webview_process.terminate()
