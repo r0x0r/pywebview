@@ -26,9 +26,14 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pytest six importlib_resources pyobjc-core pyobjc-framework-Cocoa pyobjc-framework-WebKit
+        python -m pip install six importlib_resources pyobjc-core pyobjc-framework-Cocoa pyobjc-framework-WebKit pyscreenshot pillow
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         python setup.py install
     - name: Test
       run: |
         python test.py
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.2.1
+      with:
+        name: "macos"
+        path: "*.png"
