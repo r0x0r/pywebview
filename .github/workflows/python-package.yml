@@ -29,6 +29,6 @@ jobs:
         python -m pip install pytest six importlib_resources pyobjc-core pyobjc-framework-Cocoa pyobjc-framework-WebKit
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         python setup.py install
-    - name: Test with pytest
+    - name: Test
       run: |
-        pytest
+        python test.py
