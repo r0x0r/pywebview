@@ -157,7 +157,7 @@ def js_bridge_call(window, func_name, param, value_id):
 
     if func is not None:
         try:
-            func_params = param if not param else json.loads(param)
+            func_params = param
             t = Thread(target=_call)
             t.start()
         except Exception:
@@ -241,4 +241,3 @@ def interop_dll_path(dll_name):
         pass
 
     raise Exception('Cannot find %s' % dll_name)
-
