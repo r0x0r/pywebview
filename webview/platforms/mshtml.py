@@ -40,7 +40,7 @@ from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 logger = logging.getLogger('pywebview')
 
 settings = {}
-    
+
 class MSHTML:
     alert = None
 
@@ -49,7 +49,7 @@ class MSHTML:
         window = None
 
         def call(self, func_name, param, value_id):
-            return js_bridge_call(self.window, func_name, param, value_id)
+            return js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
         def alert(self, message):
             MSHTML.alert(message)

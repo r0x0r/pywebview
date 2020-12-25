@@ -14,7 +14,7 @@ window.pywebview = {
                 "var promise = new Promise(function(resolve, reject) { " +
                     "window.pywebview._checkValue('" + funcName + "', resolve, reject, __id); " +
                 "}); " +
-                "window.pywebview._bridge.call('" + funcName + "', JSON.stringify(arguments), __id); " +
+                "window.pywebview._bridge.call('" + funcName + "', arguments, __id); " +
                 "return promise;"
 
             window.pywebview.api[funcName] = new Function(params, funcBody)
@@ -28,7 +28,7 @@ window.pywebview = {
                 case 'mshtml':
                 case 'cef':
                 case 'qtwebkit':
-                    return window.external.call(funcName, params, id);
+                    return window.external.call(funcName, JSON.stringify(params), id);
                 case 'edgehtml':
                     return window.external.notify(JSON.stringify([funcName, params, id]));
                 case 'chromium':
