@@ -35,7 +35,7 @@ from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFi
 from PyQt5.QtGui import QColor
 
 try:
-    from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
+    from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage, QWebEngineProfile
     from PyQt5.QtWebChannel import QWebChannel
     renderer = 'qtwebengine'
     is_webengine = True
@@ -165,7 +165,10 @@ class BrowserView(QMainWindow):
 
     class WebPage(QWebPage):
         def __init__(self, parent=None):
-            super(BrowserView.WebPage, self).__init__(parent)
+            if is_webengine:
+                super(BrowserView.WebPage, self).__init__(BrowserView.otr_profile, parent)
+            else:
+                super(BrowserView.WebPage, self).__init__(parent)
             if is_webengine:
                 self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
                 self.nav_handler = BrowserView.NavigationHandler(self)
@@ -445,11 +448,11 @@ class BrowserView(QMainWindow):
         if not self.text_select:
             script = disable_text_select.replace('\n', '')
 
-            try:  
+            try:
                 self.view.page().runJavaScript(script)
             except: # QT < 5.6
                 self.view.page().mainFrame().evaluateJavaScript(script)
-                
+
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)
@@ -611,6 +614,9 @@ def create_window(window):
     if window.uid == 'master':
         global _app
         _app = QApplication.instance() or QApplication([])
+
+        if is_webengine:
+            BrowserView.otr_profile = QWebEngineProfile()
 
         _create()
         _app.exec_()
