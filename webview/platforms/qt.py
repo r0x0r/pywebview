@@ -35,7 +35,7 @@ from qtpy.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox, 
 from qtpy.QtGui import QColor, QScreen
 
 try:
-    from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
+    from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage, QWebEngineProfile
     from qtpy.QtWebChannel import QWebChannel
     renderer = 'qtwebengine'
     is_webengine = True
@@ -166,7 +166,10 @@ class BrowserView(QMainWindow):
 
     class WebPage(QWebPage):
         def __init__(self, parent=None):
-            super(BrowserView.WebPage, self).__init__(parent)
+            if is_webengine:
+                super(BrowserView.WebPage, self).__init__(BrowserView.otr_profile, parent)
+            else:
+                super(BrowserView.WebPage, self).__init__(parent)
             if is_webengine:
                 self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
                 self.nav_handler = BrowserView.NavigationHandler(self)
@@ -650,6 +653,9 @@ def create_window(window):
     if window.uid == 'master':
         global _app
         _app = QApplication.instance() or QApplication([])
+
+        if is_webengine:
+            BrowserView.otr_profile = QWebEngineProfile()
 
         _create()
         _app.exec_()
