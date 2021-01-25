@@ -87,7 +87,7 @@ def _is_chromium():
     try:
         net_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full')
         version, _ = winreg.QueryValueEx(net_key, 'Release')
-        
+
         if version < 394802: # .NET 4.6.2
             return False
 
@@ -207,7 +207,7 @@ class BrowserView:
             elif is_edge:
                 self.browser = Edge.EdgeHTML(self, window)
             else:
-                self.browser = IE.MSHTML(self, window)
+                self.browser = IE.MSHTML(self, window, BrowserView.alert)
 
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
@@ -342,8 +342,8 @@ class BrowserView:
             SWP_NOSIZE = 0x0001  # Retains the current size
             SWP_NOZORDER = 0x0004  # Retains the current Z order
             SWP_SHOWWINDOW = 0x0040  # Displays the window
-            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, x, y, None, None,
-                                       SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
+            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x), int(y), None, None,
+                                    SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
 
         def minimize(self):
             def _minimize():
@@ -429,7 +429,7 @@ def _set_ie_mode():
     winreg.SetValueEx(dpi_support, executable_name, 0, winreg.REG_DWORD, 1)
     winreg.CloseKey(dpi_support)
 
-    
+
 _main_window_created = Event()
 _main_window_created.clear()
 

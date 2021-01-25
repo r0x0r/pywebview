@@ -40,22 +40,24 @@ from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 logger = logging.getLogger('pywebview')
 
 settings = {}
-    
+
 class MSHTML:
+    alert = None
+
     class JSBridge(IWebBrowserInterop):
         __namespace__ = 'MSHTML.JSBridge'
         window = None
 
         def call(self, func_name, param, value_id):
-            return js_bridge_call(self.window, func_name, param, value_id)
+            return js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
         def alert(self, message):
-            BrowserView.alert(message)
+            MSHTML.alert(message)
 
         def console(self, message):
             print(message)
 
-    def __init__(self, form, window):
+    def __init__(self, form, window, alert):
         self.pywebview_window = window
         self.web_browser = WebBrowserEx()
         self.web_browser.Dock = WinForms.DockStyle.Fill
@@ -63,6 +65,7 @@ class MSHTML:
         self.web_browser.IsWebBrowserContextMenuEnabled = _debug
         self.web_browser.WebBrowserShortcutsEnabled = False
         self.web_browser.DpiAware = True
+        MSHTML.alert = alert
 
         user_agent = _user_agent or settings.get('user_agent')
         if user_agent:
