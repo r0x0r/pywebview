@@ -2,9 +2,9 @@ import multiprocessing as mp
 from uuid import uuid4
 from threading import Thread
 
-from webview import windows
 from webview.platforms import cocoa as guilib
 
+windows = {}
 queue = mp.Queue()
 manager = mp.Manager()
 event_queue = manager.Queue()
