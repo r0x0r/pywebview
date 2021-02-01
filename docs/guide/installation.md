@@ -26,8 +26,8 @@ pip install pywebview[cef]
 `pythonnet` requires to have .NET 4.0 installed
 
 To use with the latest Chromium you need 
-[WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
-[Distribution guidelines](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution)
+[WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). If you plan to distribute your software, check out  
+[distribution guidelines](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution) too.
 
 To use with CEF you need
 [cefpython](https://github.com/cztomczak/cefpython/)
