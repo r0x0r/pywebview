@@ -1,6 +1,7 @@
 ### Specification
 - pywebview version: 
-- platform / version: 
+- operating system:
+- web renderer: 
 
 ### Description  
   
