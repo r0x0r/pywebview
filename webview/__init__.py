@@ -62,11 +62,12 @@ _debug = {
 }
 _user_agent = None
 _http_server = False
+_incognito = True
 
 token = _token
 windows = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None, incognito=True):
     """
     Start a GUI loop and display previously created windows. This function must
     be called from a main thread.
@@ -84,8 +85,10 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         window, a separate HTTP server is spawned. This option is ignored for
         non-local URLs.
     :param user_agent: Change user agent string. Not supported in EdgeHTML.
+    :param incognito: Enable incognito mode. Default is True. Non-incognito mode
+        is considered experimental and not supported on all platforms/renderers.
     """
-    global guilib, _debug, _http_server, _user_agent
+    global guilib, _debug, _http_server, _user_agent, _incognito
 
     def _create_children(other_windows):
         if not windows[0].events.shown.wait(10):
@@ -101,6 +104,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
     _user_agent = user_agent
     _http_server = http_server
+    _incognito = incognito
 
     original_localization.update(localization)
 
