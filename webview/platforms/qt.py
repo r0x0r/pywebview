@@ -15,7 +15,7 @@ from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
 
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
+from webview import _debug, _user_agent, _incognito, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.localization import localization
 from webview.window import Window
 from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
@@ -165,7 +165,7 @@ class BrowserView(QMainWindow):
 
     class WebPage(QWebPage):
         def __init__(self, parent=None):
-            if is_webengine:
+            if is_webengine and _incognito:
                 super(BrowserView.WebPage, self).__init__(BrowserView.otr_profile, parent)
             else:
                 super(BrowserView.WebPage, self).__init__(parent)
@@ -615,8 +615,10 @@ def create_window(window):
         global _app
         _app = QApplication.instance() or QApplication([])
 
-        if is_webengine:
+        if is_webengine and _incognito:
             BrowserView.otr_profile = QWebEngineProfile()
+        elif not is_webengine and not _incognito:
+            logger.warning('qtwebkit does not support incognito=False')
 
         _create()
         _app.exec_()
