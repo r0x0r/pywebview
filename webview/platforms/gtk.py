@@ -545,6 +545,11 @@ def get_size(uid):
 
     return result['size']
 
+def get_screens():
+    num = Gdk.Screen.get_n_monitors()
+    print(num)
+    Gdk.Screen.get_monitor_geometry()
+
 
 def configure_transparency(c):
     c.set_visual(c.get_screen().get_rgba_visual())

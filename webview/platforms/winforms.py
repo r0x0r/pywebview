@@ -630,3 +630,7 @@ def get_position(uid):
 def get_size(uid):
     size = BrowserView.instances[uid].Size
     return size.Width, size.Height
+
+
+def get_screens():
+    screens = WinForms.Screen.AllScreens
