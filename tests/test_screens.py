@@ -1,5 +1,5 @@
 import webview
 
 
-def test_creens():
+def test_screens():
     assert(len(webview.screens) > 0)
