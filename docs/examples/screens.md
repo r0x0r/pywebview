@@ -1,8 +1,10 @@
-import webview
+# Screens
 
-"""
-This example demonstrates how to obtain available display information using webview.screens
-"""
+
+Get available display information using `webview.screens`
+
+``` python
+import webview
 
 def display_screen_info():
     screens = webview.screens
@@ -14,3 +16,4 @@ if __name__ == '__main__':
 
     window = webview.create_window('Simple browser', 'https://pywebview.flowrl.com/hello')
     webview.start(display_screen_info)
+```
