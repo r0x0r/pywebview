@@ -370,10 +370,10 @@ class BrowserView:
 
         def _callback(webview, task, data):
             value = webview.run_javascript_finish(task)
-            if value:
-                self.js_results[unique_id]['result'] = value.get_js_value().to_string()
-            else:
-                self.js_results[unique_id]['result'] = None
+            result = value.get_js_value().to_string() if value else None
+
+            if unique_id in self.js_results:
+                self.js_results[unique_id]['result'] = result
 
             result_semaphore.release()
 
