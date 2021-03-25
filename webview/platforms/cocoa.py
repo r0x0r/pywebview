@@ -492,10 +492,8 @@ class BrowserView:
         self.window.deminiaturize_(self)
 
     def move(self, x, y):
-        screen = get_screens()[0]
-
-
-        flipped_y = screen.height - y
+        screen = self.window.screen().frame()
+        flipped_y = screen.size.height - y
         self.window.setFrameTopLeftPoint_(AppKit.NSPoint(x, flipped_y))
 
     def get_current_url(self):
