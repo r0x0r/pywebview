@@ -246,14 +246,14 @@ class BrowserView:
 
             if event.modifierFlags() & getattr(AppKit, 'NSEventModifierFlagControl', 1 << 18):
                 i = BrowserView.get_instance('webkit', self)
-                if not _debug:
+                if not _debug['mode']:
                     return
 
             super(BrowserView.WebKitHost, self).mouseDown_(event)
 
         def rightMouseDown_(self, event):
             i = BrowserView.get_instance('webkit', self)
-            if _debug:
+            if _debug['mode']:
                 super(BrowserView.WebKitHost, self).rightMouseDown_(event)
 
         def performKeyEquivalent_(self, theEvent):
@@ -404,7 +404,7 @@ class BrowserView:
         except:
             pass
 
-        if _debug:
+        if _debug['mode']:
             config.preferences().setValue_forKey_(Foundation.YES, 'developerExtrasEnabled')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)

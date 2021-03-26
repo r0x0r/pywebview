@@ -61,8 +61,8 @@ class MSHTML:
         self.pywebview_window = window
         self.web_browser = WebBrowserEx()
         self.web_browser.Dock = WinForms.DockStyle.Fill
-        self.web_browser.ScriptErrorsSuppressed = not _debug
-        self.web_browser.IsWebBrowserContextMenuEnabled = _debug
+        self.web_browser.ScriptErrorsSuppressed = not _debug['mode']
+        self.web_browser.IsWebBrowserContextMenuEnabled = _debug['mode']
         self.web_browser.WebBrowserShortcutsEnabled = False
         self.web_browser.DpiAware = True
         MSHTML.alert = alert
@@ -71,8 +71,8 @@ class MSHTML:
         if user_agent:
             self.web_browser.ChangeUserAgent(user_agent)
 
-        self.web_browser.ScriptErrorsSuppressed = not _debug
-        self.web_browser.IsWebBrowserContextMenuEnabled = _debug
+        self.web_browser.ScriptErrorsSuppressed = not _debug['mode']
+        self.web_browser.IsWebBrowserContextMenuEnabled = _debug['mode']
 
         self.js_result_semaphore = Semaphore(0)
         self.js_bridge = MSHTML.JSBridge()
@@ -151,7 +151,7 @@ class MSHTML:
         document = self.web_browser.Document
         document.InvokeScript('eval', (alert.src,))
 
-        if _debug:
+        if _debug['mode']:
             document.InvokeScript('eval', ('window.console = { log: function(msg) { window.external.console(JSON.stringify(msg)) }}',))
 
         if self.first_load:
