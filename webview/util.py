@@ -241,3 +241,4 @@ def interop_dll_path(dll_name):
         pass
 
     raise Exception('Cannot find %s' % dll_name)
+

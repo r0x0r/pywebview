@@ -77,6 +77,7 @@ module.exports = {
         'open_url',
         'resize_window',
         'save_file_dialog',
+        'screens',
         'toggle_fullscreen',
         'user_agent',
         'window_title_change'

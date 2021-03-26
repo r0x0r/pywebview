@@ -19,6 +19,7 @@ from webview.localization import localization
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
+from webview.screen import Screen
 
 logger = logging.getLogger('pywebview')
 
@@ -544,6 +545,14 @@ def get_size(uid):
         semaphore.acquire()
 
     return result['size']
+
+def get_screens():
+    screen = Gdk.Screen.get_default()
+    n = screen.get_n_monitors()
+    geometries = [screen.get_monitor_geometry(i) for i in range(n)]
+    screens = [Screen(geom.width, geom.height) for geom in geometries]
+
+    return screens
 
 
 def configure_transparency(c):

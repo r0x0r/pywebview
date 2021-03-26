@@ -4,10 +4,8 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
-import sys
 import json
 import logging
-import subprocess
 import webbrowser
 import ctypes
 from threading import Event, Semaphore
@@ -16,12 +14,13 @@ import Foundation
 import AppKit
 import WebKit
 from PyObjCTools import AppHelper
-from objc import _objc, nil, super, pyobjc_unicode, registerMetaDataForSelector
+from objc import _objc, nil, super, registerMetaDataForSelector
 
 from webview.localization import localization
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
-from webview.util import convert_string, parse_api_js, default_html, js_bridge_call
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, windows
+from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
+from webview.screen import Screen
 
 settings = {}
 
@@ -494,11 +493,8 @@ class BrowserView:
         self.window.deminiaturize_(self)
 
     def move(self, x, y):
-        screen_frame = AppKit.NSScreen.mainScreen().frame()
-        if screen_frame is None:
-            raise RuntimeError('Failed to obtain screen')
-
-        flipped_y = screen_frame.size.height - y
+        screen = self.window.screen().frame()
+        flipped_y = screen.size.height - y
         self.window.setFrameTopLeftPoint_(AppKit.NSPoint(x, flipped_y))
 
     def get_current_url(self):
@@ -904,6 +900,11 @@ def get_size(uid):
         semaphore.acquire()
 
     return dimensions
+
+
+def get_screens():
+    screens = [Screen(s.frame().size.width, s.frame().size.height) for s in AppKit.NSScreen.screens()]
+    return screens
 
 
 

@@ -25,6 +25,7 @@ from webview.guilib import forced_gui_
 from webview.util import parse_file_type, inject_base_uri
 from webview.js import alert
 from webview.localization import localization
+from webview.screen import Screen
 
 try:
     import _winreg as winreg  # Python 2
@@ -633,3 +634,8 @@ def get_position(uid):
 def get_size(uid):
     size = BrowserView.instances[uid].Size
     return size.Width, size.Height
+
+
+def get_screens():
+    screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens] 
+    return screens
