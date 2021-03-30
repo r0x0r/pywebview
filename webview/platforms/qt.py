@@ -20,6 +20,7 @@ from webview.localization import localization
 from webview.window import Window
 from webview.util import convert_string, default_html, parse_api_js, js_bridge_call, Process
 from webview.js.css import disable_text_select
+from webview.screen import Screen
 
 
 logger = logging.getLogger('pywebview')
@@ -31,8 +32,8 @@ from PyQt5.QtCore import QT_VERSION_STR
 
 logger.debug('Using Qt %s' % QT_VERSION_STR)
 
-from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QApplication, QFileDialog, QMessageBox, QAction
-from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox, QAction
+from PyQt5.QtGui import QColor, QScreen
 
 try:
     from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
@@ -445,11 +446,11 @@ class BrowserView(QMainWindow):
         if not self.text_select:
             script = disable_text_select.replace('\n', '')
 
-            try:  
+            try:
                 self.view.page().runJavaScript(script)
             except: # QT < 5.6
                 self.view.page().mainFrame().evaluateJavaScript(script)
-                
+
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)
@@ -699,3 +700,13 @@ def get_position(uid):
 def get_size(uid):
     window = BrowserView.instances[uid]
     return window.width(), window.height()
+
+
+def get_screens():
+    global _app
+    _app = QApplication.instance() or QApplication([])
+
+    geometries = [s.geometry() for s in _app.screens()]
+    screens = [Screen(g.width(), g.height()) for g in geometries]
+
+    return screens

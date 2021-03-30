@@ -15,6 +15,7 @@ install_requires = [
     'pyobjc-framework-WebKit ; sys_platform == "darwin"',
     'PyQt5 ; sys_platform == "openbsd6"',
     'importlib_resources; python_version < "3.7"',
+    'proxy_tools',
 ]
 
 

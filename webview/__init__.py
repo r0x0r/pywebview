@@ -13,10 +13,12 @@ http://github.com/r0x0r/pywebview/
 
 
 import logging
+import sys
 import os
 import re
 import threading
 from uuid import uuid4
+from proxy_tools import module_property
 
 from webview.event import Event
 from webview.guilib import initialize
@@ -172,3 +174,10 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
         guilib.create_window(window)
 
     return window
+
+
+@module_property
+def screens():
+    guilib = initialize()
+    screens = guilib.get_screens()
+    return screens

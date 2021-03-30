@@ -59,6 +59,17 @@ Start a GUI loop and display previously created windows. This function must be c
 * [Stop freezing main thread](/examples/noblock.html)
 
 
+## webview.screens
+
+``` python
+webview.screens
+```
+
+Return a list of available displays (as `Screen` objects) with the primary display as the first element of the list.
+
+### Examples
+* [Simple window](/examples/screens.html)
+
 ## webview.token
 
 ``` python
@@ -68,9 +79,30 @@ webview.token
 A CSRF token property unique to the session. The same token is exposed as `window.pywebview.token`. See [Security](/guide/security.md) for usage details.
 
 
+# Screen object
+
+Represents a display found on the system.
+
+
+## height
+
+``` python
+screen.height
+```
+
+Get display height.
+
+## width
+
+``` python
+screen.width
+```
+
+Get display width.
+
 # Window object
 
-These properties and functions are part of the `window` object returned by `create_window`
+Represents a window that hosts webview. `window` object is returned by `create_window` function.
 
 ## on_top
 
