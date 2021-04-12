@@ -137,7 +137,7 @@ class BrowserView:
             wvbg.alpha = 0.0
             self.webview.set_background_color(wvbg)
 
-        if _debug:
+        if _debug['mode']:
             self.webview.get_settings().props.enable_developer_extras = True
         else:
             self.webview.connect('context-menu', lambda a,b,c,d: True) # Disable context menu

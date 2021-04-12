@@ -9,18 +9,14 @@ http://github.com/r0x0r/pywebview/
 import os
 import sys
 import logging
-import json
-import shutil
-import tempfile
-import webbrowser
-from threading import Event, Semaphore
+from threading import Event
 import ctypes
 from ctypes import windll
 from uuid import uuid4
 from platform import machine
 import time
 
-from webview import WebViewException, windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, _debug, _user_agent
+from webview import windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.guilib import forced_gui_
 from webview.util import parse_file_type, inject_base_uri
 from webview.js import alert
@@ -637,5 +633,5 @@ def get_size(uid):
 
 
 def get_screens():
-    screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens] 
+    screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens]
     return screens

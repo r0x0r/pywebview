@@ -109,7 +109,7 @@ class EdgeHTML:
 
     def load_url(self, url):
         self.ishtml = False
-        
+
         # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
         if url.startswith('file://'):
             url = resolve_url(url, True)
@@ -145,7 +145,7 @@ class EdgeHTML:
         self.url = None if self.ishtml else url
         self.web_view.InvokeScript('eval', ('window.alert = (msg) => window.external.notify(JSON.stringify(["alert", msg+"", ""]))',))
 
-        if _debug:
+        if _debug['mode']:
             self.web_view.InvokeScript('eval', ('window.console = { log: (msg) => window.external.notify(JSON.stringify(["console", msg+"", ""]))}',))
 
         self.web_view.InvokeScript('eval', (parse_api_js(self.pywebview_window, 'edgehtml'),))
@@ -180,8 +180,8 @@ def _allow_localhost():
         return ret
 
     output = subprocess.check_output('checknetisolation LoopbackExempt -s', **subprocess_args(False))
-    
+
     if 'cw5n1h2txyewy' not in str(output):
         windll.shell32.ShellExecuteW(None, 'runas', 'checknetisolation', 'LoopbackExempt -a -n=\"Microsoft.Win32WebViewHost_cw5n1h2txyewy\"', None, 1)
 
-        
+
