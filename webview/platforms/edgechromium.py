@@ -59,7 +59,7 @@ class EdgeChrome:
         self.js_result_semaphore = Semaphore(0)
         self.web_view.Dock = WinForms.DockStyle.Fill
 
-        self.web_view.CoreWebView2Ready += self.on_webview_ready
+        self.web_view.CoreWebView2InitializationCompleted += self.on_webview_ready
         self.web_view.NavigationStarting += self.on_navigation_start
         self.web_view.NavigationCompleted += self.on_navigation_completed
         self.web_view.WebMessageReceived += self.on_script_notify
@@ -127,7 +127,7 @@ class EdgeChrome:
 
     def on_new_window_request(self, _, args):
         args.set_Handled(True)
-        #webbrowser.open(str(args.get_Uri()))
+        webbrowser.open(str(args.get_Uri()))
 
     def on_webview_ready(self, sender, args):
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
