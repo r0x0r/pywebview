@@ -20,7 +20,8 @@ class Event:
         def execute():
             for func in self._items:
                 try:
-                    func(*args, **kwargs)
+                    value = func(*args, **kwargs)
+                    return_values.add(value)
 
                 except Exception as e:
                     logger.exception(e)
@@ -29,6 +30,7 @@ class Event:
                 semaphore.release()
 
         semaphore = threading.Semaphore(0)
+        return_values = set()
 
         if len(self._items):
             t = threading.Thread(target=execute)
@@ -37,7 +39,10 @@ class Event:
             if self._should_lock:
                 semaphore.acquire()
 
+        false_values = [v for v in return_values if v is False]
         self._event.set()
+
+        return len(false_values) != 1
 
     def is_set(self):
         return self._event.is_set()
