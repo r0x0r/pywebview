@@ -206,7 +206,7 @@ def init(window):
         default_settings = {
             'multi_threaded_message_loop': True,
             'context_menu': {
-                'enabled': _debug
+                'enabled': _debug['mode']
             }
         }
 
@@ -214,7 +214,7 @@ def init(window):
             "enable-media-stream": ""
         }
 
-        if not _debug:
+        if not _debug['mode']:
             default_settings['remote_debugging_port'] = -1
 
         if _user_agent:

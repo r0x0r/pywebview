@@ -30,7 +30,7 @@ from .wsgi import Routing, StaticFiles, StaticResources
 
 __all__ = (
     # Stuff that's here
-    'start', 'create_window', 'token',
+    'start', 'create_window', 'token', 'screens'
     # From wsgi
     'Routing', 'StaticFiles', 'StaticResources',
     # From event
@@ -58,7 +58,9 @@ SAVE_DIALOG = 30
 DRAG_REGION_SELECTOR = '.pywebview-drag-region'
 
 guilib = None
-_debug = False
+_debug = {
+  'mode': False
+}
 _user_agent = None
 _multiprocessing = False
 _http_server = False
@@ -95,7 +97,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         for window in other_windows:
             guilib.create_window(window)
 
-    _debug = debug
+    _debug['mode'] = debug
     _user_agent = user_agent
     _multiprocessing = not block
     _http_server = http_server

@@ -9,11 +9,7 @@ http://github.com/r0x0r/pywebview/
 import os
 import sys
 import logging
-import json
-import shutil
-import tempfile
-import webbrowser
-from threading import Event, Semaphore
+from threading import Event
 import ctypes
 from ctypes import windll
 from uuid import uuid4
@@ -645,5 +641,5 @@ def get_size(uid):
 
 
 def get_screens():
-    screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens] 
+    screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens]
     return screens
