@@ -24,6 +24,13 @@ if __name__ == '__main__':
         'linux.openFolder': u'Открыть папку',
     }
 
-    webview.create_window('Localization Example', 'https://pywebview.flowrl.com/hello')
-    webview.start(localization=localization)
+    window_localization_override = {
+        'global.saveFile': u'Save file',
+    }
 
+    webview.create_window(
+        'Localization Example',
+        'https://pywebview.flowrl.com/hello',
+        localization=window_localization_override,
+    )
+    webview.start(localization=localization)
