@@ -179,8 +179,7 @@ class BrowserView:
 
             if icon_handle != 0:
                 self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handle))).Clone()
-
-            windll.user32.DestroyIcon(icon_handle)
+                windll.user32.DestroyIcon(icon_handle)
 
             self.closed = window.closed
             self.closing = window.closing
