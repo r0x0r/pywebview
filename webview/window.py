@@ -4,6 +4,7 @@ import os
 from functools import wraps
 
 from webview.event import Event
+from webview.localization import original_localization
 from webview.serving import resolve_url
 from webview.util import base_uri, parse_file_type, escape_string, make_unicode, WebViewException
 from .js import css
@@ -46,7 +47,7 @@ def _loaded_call(function):
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select, transparent):
+                 background_color, js_api, text_select, transparent, localization):
         self.uid = uid
         self.title = make_unicode(title)
         self.original_url = None if html else url  # original URL provided by user
@@ -68,6 +69,7 @@ class Window:
         self.on_top = on_top
         self.minimized = minimized
         self.transparent = transparent
+        self.localization_override = localization
 
         self._js_api = js_api
         self._functions = {}
@@ -96,6 +98,10 @@ class Window:
             self._is_http_server = True
 
         self.real_url = resolve_url(self.original_url, self._is_http_server)
+
+        self.localization = original_localization.copy()
+        if self.localization_override:
+            self.localization.update(self.localization_override)
 
     @property
     def width(self):

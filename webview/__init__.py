@@ -24,7 +24,7 @@ from webview.event import Event
 from webview.guilib import initialize
 from webview.util import _token, base_uri, parse_file_type, escape_string, make_unicode, escape_line_breaks, WebViewException
 from webview.window import Window
-from .localization import localization as original_localization
+from .localization import original_localization
 from .wsgi import Routing, StaticFiles, StaticResources
 
 
@@ -144,7 +144,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
                   frameless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
-                  transparent=False, text_select=False):
+                  transparent=False, text_select=False, localization=None):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -176,7 +176,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     window = Window(uid, make_unicode(title), url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
-                    js_api, text_select, transparent)
+                    js_api, text_select, transparent, localization)
 
     windows.append(window)
 
