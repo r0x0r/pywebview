@@ -445,7 +445,7 @@ def create_window(window):
     app = WinForms.Application
 
     if window.uid == 'master':
-        if not is_edge and not is_cef:
+        if not is_edge and not is_cef and not is_chromium:
             _set_ie_mode()
 
         if sys.getwindowsversion().major >= 6:
