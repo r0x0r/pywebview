@@ -20,7 +20,6 @@ from webview import windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.guilib import forced_gui_
 from webview.util import parse_file_type, inject_base_uri
 from webview.js import alert
-from webview.localization import localization
 from webview.screen import Screen
 
 try:
@@ -212,6 +211,8 @@ class BrowserView:
             if is_cef:
                 self.Resize += self.on_resize
 
+            self.localization = window.localization
+
         def on_shown(self, sender, args):
             if not is_cef:
                 self.shown.set()
@@ -238,7 +239,7 @@ class BrowserView:
 
         def on_closing(self, sender, args):
             if self.pywebview_window.confirm_close:
-                result = WinForms.MessageBox.Show(localization['global.quitConfirmation'], self.Text,
+                result = WinForms.MessageBox.Show(self.localization['global.quitConfirmation'], self.Text,
                                                 WinForms.MessageBoxButtons.OKCancel, WinForms.MessageBoxIcon.Asterisk)
 
                 if result == WinForms.DialogResult.Cancel:
@@ -509,7 +510,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
             if len(file_types) > 0:
                 dialog.Filter = '|'.join(['{0} ({1})|{1}'.format(*parse_file_type(f)) for f in file_types])
             else:
-                dialog.Filter = localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
+                dialog.Filter = window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
             dialog.RestoreDirectory = True
 
             result = dialog.ShowDialog(window)
@@ -523,7 +524,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
             if len(file_types) > 0:
                 dialog.Filter = '|'.join(['{0} ({1})|{1}'.format(*parse_file_type(f)) for f in file_types])
             else:
-                dialog.Filter = localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
+                dialog.Filter = window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
             dialog.InitialDirectory = directory
             dialog.RestoreDirectory = True
             dialog.FileName = save_filename
