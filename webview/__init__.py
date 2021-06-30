@@ -97,6 +97,10 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
             guilib.create_window(window)
 
     _debug['mode'] = debug
+
+    if debug:
+        logger.setLevel(logging.DEBUG)
+
     _user_agent = user_agent
     #_multiprocessing = multiprocessing
     multiprocessing = False # TODO
