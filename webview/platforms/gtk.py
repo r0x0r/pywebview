@@ -156,7 +156,10 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
-        self.pywebview_window.closing.set()
+        should_cancel = self.pywebview_window.closing.set()
+
+        if should_cancel:
+            return
 
         for res in self.js_results.values():
             res['semaphore'].release()
