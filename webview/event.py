@@ -42,7 +42,7 @@ class Event:
         false_values = [v for v in return_values if v is False]
         self._event.set()
 
-        return len(false_values) != 1
+        return len(false_values) != 0
 
     def is_set(self):
         return self._event.is_set()

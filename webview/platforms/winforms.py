@@ -250,7 +250,10 @@ class BrowserView:
                     args.Cancel = True
 
             if not args.Cancel:
-                self.closing.set()
+                should_cancel = self.closing.set()
+
+                if should_cancel:
+                    args.Cancel = True
 
         def on_resize(self, sender, args):
             CEF.resize(self.Width, self.Height, self.uid)
@@ -637,5 +640,5 @@ def get_size(uid):
 
 
 def get_screens():
-    screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens] 
+    screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens]
     return screens

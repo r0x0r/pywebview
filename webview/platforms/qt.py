@@ -367,7 +367,6 @@ class BrowserView(QMainWindow):
         self.show()
 
     def closeEvent(self, event):
-        self.pywebview_window.closing.set()
         if self.confirm_close:
             reply = QMessageBox.question(self, self.title, localization['global.quitConfirmation'],
                                          QMessageBox.Yes, QMessageBox.No)
@@ -375,6 +374,12 @@ class BrowserView(QMainWindow):
             if reply == QMessageBox.No:
                 event.ignore()
                 return
+
+        should_cancel = self.pywebview_window.closing.set()
+
+        if should_cancel:
+            event.ignore()
+            return
 
         event.accept()
         BrowserView.instances[self.uid].close()
