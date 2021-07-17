@@ -246,7 +246,10 @@ class BrowserView:
                     args.Cancel = True
 
             if not args.Cancel:
-                self.closing.set()
+                should_cancel = self.closing.set()
+
+                if should_cancel:
+                    args.Cancel = True
 
         def on_resize(self, sender, args):
             CEF.resize(self.Width, self.Height, self.uid)

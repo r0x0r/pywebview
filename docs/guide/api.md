@@ -311,7 +311,7 @@ Event that is fired just before pywebview window is closed.
 [Example](/examples/events.html)
 
 ## closing
-Event that is fired when pywebview window is about to be closed. If confirm_quit is set, then this event is fired before the close confirmation is displayed.
+Event that is fired when pywebview window is about to be closed. If confirm_quit is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled.
 
 [Example](/examples/events.html)
 
