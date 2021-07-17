@@ -15,7 +15,6 @@ except ImportError:
 
 from uuid import uuid1
 from threading import Event, Semaphore
-from webview.localization import localization
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
@@ -69,6 +68,8 @@ class BrowserView:
 
         self.shown = window.shown
         self.loaded = window.loaded
+
+        self.localization = window.localization
 
         if window.resizable:
             self.window.set_size_request(window.min_size[0], window.min_size[1])
@@ -137,7 +138,7 @@ class BrowserView:
             wvbg.alpha = 0.0
             self.webview.set_background_color(wvbg)
 
-        if _debug:
+        if _debug['mode']:
             self.webview.get_settings().props.enable_developer_extras = True
         else:
             self.webview.connect('context-menu', lambda a,b,c,d: True) # Disable context menu
@@ -181,7 +182,7 @@ class BrowserView:
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
                                           type=gtk.MessageType.QUESTION, buttons=gtk.ButtonsType.OK_CANCEL,
-                                          message_format=localization['global.quitConfirmation'])
+                                          message_format=self.localization['global.quitConfirmation'])
         result = dialog.run()
         if result == gtk.ResponseType.OK:
             self.close_window()
@@ -304,19 +305,19 @@ class BrowserView:
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if dialog_type == FOLDER_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
-            title = localization['linux.openFolder']
+            title = self.localization['linux.openFolder']
             button = gtk.STOCK_OPEN
         elif dialog_type == OPEN_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.OPEN
             if allow_multiple:
-                title = localization['linux.openFiles']
+                title = self.localization['linux.openFiles']
             else:
-                title = localization['linux.openFile']
+                title = self.localization['linux.openFile']
 
             button = gtk.STOCK_OPEN
         elif dialog_type == SAVE_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SAVE
-            title = localization['global.saveFile']
+            title = self.localization['global.saveFile']
             button = gtk.STOCK_SAVE
 
         dialog = gtk.FileChooserDialog(title, self.window, gtk_dialog_type,
