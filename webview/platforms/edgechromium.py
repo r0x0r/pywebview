@@ -151,10 +151,6 @@ class EdgeChrome:
     def on_navigation_completed(self, sender, args):
         url = str(sender.Source)
         self.url = None if self.ishtml else url
-        self.web_view.ExecuteScriptAsync('window.alert = (msg) => window.chrome.webview.postMessage(["alert", msg+"", ""])')
-
-        if _debug['mode']:
-            self.web_view.ExecuteScriptAsync('window.console = { log: (msg) => window.chrome.webview.postMessage(["console", msg+"", ""])}')
 
         self.web_view.ExecuteScriptAsync(parse_api_js(self.pywebview_window, 'chromium'))
 
