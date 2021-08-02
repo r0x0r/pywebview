@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.5
+
+_Released 02/08/2021_
+- `New` [All] Get information about available screens via new `webview.screens` property.
+- `New` [All] Per window localization. Thanks @fizzadar.
+- `New` [All] Window closing can be cancelled by returning False from a closing event handler. #744.
+- `Fix` [All] Debug mode cannot be set under certain conditions. #628
+- `Improvement` [All] Selected web renderer printed in Python console in debug mode.
+- `Improvement` [All] JS API serialization logic. Thanks @peter23
+- `Improvement` [EdgeChromium] Chromium runtime updated to version 1.0.774.44. Thanks @sbbosco.
+- `Improvement` [EdgeChromium] Custom user agent support.
+- `Fix` [WinForms] Icon handling logic to make pywebview compatible with pystray. #720. Thanks @simonrob
+- `Fix` [EdgeChromium] Change webview component to transparent. Thanks @ODtian
+- `Fix` [CEF] Fix exception when destroying window
+- `Fix` [Cocoa] cmd+w bypasses exit confirmation dialogue. #698. Thanks @fizzadar
+- `Fix` [Cocoa] Fix window coordinate calculation logic when moving a window.
+- `Fix` [MSHTML] Fix drag_region
+- `Fix` [MSHTML] Fix window.alert
+
+
 ## 3.4: Second wave
 
 _Released 04/12/2020_
