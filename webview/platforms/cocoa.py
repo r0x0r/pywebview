@@ -16,7 +16,7 @@ import WebKit
 from PyObjCTools import AppHelper
 from objc import _objc, nil, super, registerMetaDataForSelector
 
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, windows
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, windows, FixWindow
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
@@ -479,9 +479,13 @@ class BrowserView:
         def _resize():
             frame = self.window.frame()
 
-            # Keep the top left of the window in the same place
-            frame.origin.y += frame.size.height
-            frame.origin.y -= height
+            if self.pywebview_window.fix_point & FixWindow.EAST:
+                # Keep the right of the window in the same place
+                frame.origin.x += frame.size.width - width
+
+            if self.pywebview_window.fix_point & FixWindow.SOUTH:
+                # Keep the top of the window in the same place
+                frame.origin.y += frame.size.height - height
 
             frame.size.width = width
             frame.size.height = height

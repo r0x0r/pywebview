@@ -47,7 +47,8 @@ def _loaded_call(function):
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select, transparent, localization):
+                 background_color, js_api, text_select, transparent, localization,
+                 fix_point):
         self.uid = uid
         self.title = make_unicode(title)
         self.original_url = None if html else url  # original URL provided by user
@@ -70,6 +71,7 @@ class Window:
         self.minimized = minimized
         self.transparent = transparent
         self.localization_override = localization
+        self.fix_point = fix_point
 
         self._js_api = js_api
         self._functions = {}
@@ -136,6 +138,15 @@ class Window:
         self.__on_top = on_top
         if hasattr(self, 'gui') and self.gui != None:
             self.gui.set_on_top(self.uid, on_top)
+
+    @property
+    def fix_point(self):
+        return self.__fix_point
+
+    @fix_point.setter
+    def fix_point(self, fix_point):
+        self.__fix_point = fix_point
+
 
     @_loaded_call
     def get_elements(self, selector):

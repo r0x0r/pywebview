@@ -15,7 +15,7 @@ from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
 
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows, FixWindow
 from webview.window import Window
 from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
 from webview.js.css import disable_text_select
@@ -414,6 +414,17 @@ class BrowserView(QMainWindow):
         self.is_fullscreen = not self.is_fullscreen
 
     def on_window_size(self, width, height):
+        geo = self.geometry()
+
+        if self.pywebview_window.fix_point & FixWindow.EAST:
+            # Keep the right of the window in the same place
+            geo.setX(geo.x() + geo.width() - width)
+
+        if self.pywebview_window.fix_point & FixWindow.SOUTH:
+            # Keep the top of the window in the same place
+            geo.setY(geo.y() + geo.height() - height)
+
+        self.setGeometry(geo)
         self.setFixedSize(width, height)
 
     def on_window_move(self, x, y):
