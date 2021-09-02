@@ -66,7 +66,7 @@ class BrowserView:
             msg = i.localization['global.quitConfirmation']
 
             if not i.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
-                should_cancel = not i.closing.set()
+                should_cancel = i.closing.set()
                 if should_cancel:
                     return Foundation.NO
                 else:
