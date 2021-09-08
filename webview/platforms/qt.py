@@ -15,11 +15,12 @@ from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
 
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows, FixWindow
+from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.window import Window
 from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
+from webview.window import FixPoint
 
 
 logger = logging.getLogger('pywebview')
@@ -413,14 +414,14 @@ class BrowserView(QMainWindow):
 
         self.is_fullscreen = not self.is_fullscreen
 
-    def on_window_size(self, width, height):
+    def on_window_size(self, width, height, fix_point):
         geo = self.geometry()
 
-        if self.pywebview_window.fix_point & FixWindow.EAST:
+        if fix_point & FixPoint.EAST:
             # Keep the right of the window in the same place
             geo.setX(geo.x() + geo.width() - width)
 
-        if self.pywebview_window.fix_point & FixWindow.SOUTH:
+        if fix_point & FixPoint.SOUTH:
             # Keep the top of the window in the same place
             geo.setY(geo.y() + geo.height() - height)
 
@@ -517,8 +518,8 @@ class BrowserView(QMainWindow):
     def toggle_fullscreen(self):
         self.fullscreen_trigger.emit()
 
-    def resize_(self, width, height):
-        self.window_size_trigger.emit(width, height)
+    def resize_(self, width, height, fix_point):
+        self.window_size_trigger.emit(width, height, fix_point)
 
     def move_window(self, x, y):
         self.window_move_trigger.emit(x, y)
@@ -683,8 +684,8 @@ def set_on_top(uid, top):
     BrowserView.instances[uid].set_on_top(top)
 
 
-def resize(width, height, uid):
-    BrowserView.instances[uid].resize_(width, height)
+def resize(width, height, uid, fix_point):
+    BrowserView.instances[uid].resize_(width, height, fix_point)
 
 
 def move(x, y, uid):

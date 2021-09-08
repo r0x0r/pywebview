@@ -1,6 +1,7 @@
 import inspect
 import logging
 import os
+from enum import Flag, auto
 from functools import wraps
 
 from webview.event import Event
@@ -44,11 +45,17 @@ def _loaded_call(function):
     return _api_call(function, 'loaded')
 
 
+class FixPoint(Flag):
+    NORTH = auto()
+    WEST = auto()
+    EAST = auto()
+    SOUTH = auto()
+
+
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select, transparent, localization,
-                 fix_point):
+                 background_color, js_api, text_select, transparent, localization):
         self.uid = uid
         self.title = make_unicode(title)
         self.original_url = None if html else url  # original URL provided by user
@@ -71,7 +78,6 @@ class Window:
         self.minimized = minimized
         self.transparent = transparent
         self.localization_override = localization
-        self.fix_point = fix_point
 
         self._js_api = js_api
         self._functions = {}
@@ -138,15 +144,6 @@ class Window:
         self.__on_top = on_top
         if hasattr(self, 'gui') and self.gui != None:
             self.gui.set_on_top(self.uid, on_top)
-
-    @property
-    def fix_point(self):
-        return self.__fix_point
-
-    @fix_point.setter
-    def fix_point(self, fix_point):
-        self.__fix_point = fix_point
-
 
     @_loaded_call
     def get_elements(self, selector):
@@ -245,16 +242,20 @@ class Window:
         :param height: desired height of target window
         """
         logger.warning('This function is deprecated and will be removed in future releases. Use resize() instead')
-        self.gui.resize(width, height, self.uid)
+        self.resize(width, height)
 
     @_shown_call
-    def resize(self, width, height):
+    def resize(self, width, height, fix_point=FixPoint.NORTH | FixPoint.WEST):
         """
         Resize window
         :param width: desired width of target window
         :param height: desired height of target window
+        :param fix_point: Fix window to specified point during resize.
+            Must be of type FixPoint. Different points can be combined
+            with bitwise operators.
+            Example: FixPoint.NORTH | FixPoint.WEST
         """
-        self.gui.resize(width, height, self.uid)
+        self.gui.resize(width, height, self.uid, fix_point)
 
     @_shown_call
     def minimize(self):

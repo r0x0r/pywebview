@@ -588,7 +588,7 @@ def set_on_top(uid, on_top):
     window.on_top = on_top
 
 
-def resize(width, height, uid):
+def resize(width, height, uid, fix_point):
     window = BrowserView.instances[uid]
     window.resize(width, height)
 

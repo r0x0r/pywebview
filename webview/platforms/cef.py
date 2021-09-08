@@ -288,7 +288,7 @@ def get_current_url(uid):
 
 
 @_cef_call
-def resize(width, height, uid):
+def resize(width, height, uid, fix_point):
     instance = instances[uid]
     instance.resize(width, height)
 
