@@ -21,6 +21,7 @@ from webview.guilib import forced_gui_
 from webview.util import parse_file_type, inject_base_uri
 from webview.js import alert
 from webview.screen import Screen
+from webview.window import FixPoint
 
 try:
     import _winreg as winreg  # Python 2
@@ -334,9 +335,18 @@ class BrowserView:
             else:
                 _set()
 
-        def resize(self, width, height):
-            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
-                width, height, 64)
+        def resize(self, width, height, fix_point):
+
+            x = self.Location.X
+            y = self.Location.Y
+
+            if fix_point & FixPoint.EAST:
+                x = x + self.Width - width
+
+            if fix_point & FixPoint.SOUTH:
+                y = y + self.Height - height
+
+            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, x, y, width, height, 64)
 
         def move(self, x, y):
             SWP_NOSIZE = 0x0001  # Retains the current size
@@ -590,7 +600,7 @@ def set_on_top(uid, on_top):
 
 def resize(width, height, uid, fix_point):
     window = BrowserView.instances[uid]
-    window.resize(width, height)
+    window.resize(width, height, fix_point)
 
 
 def move(x, y, uid):
