@@ -195,7 +195,7 @@ window.get_elements(selector)
 
 Return the serialized DOM element by its selector. None if no element matches. For GTK you must have WebKit2 2.22 or greater to use this function.
 
-[Example](/examples/get_element.html)
+[Example](/examples/get_elements.html)
 
 ## hide
 
