@@ -24,7 +24,7 @@ from webview.event import Event
 from webview.guilib import initialize
 from webview.util import _token, base_uri, parse_file_type, escape_string, make_unicode, escape_line_breaks, WebViewException
 from webview.window import Window
-from .localization import localization as original_localization
+from .localization import original_localization
 from .wsgi import Routing, StaticFiles, StaticResources
 
 
