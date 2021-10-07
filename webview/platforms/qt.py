@@ -16,7 +16,6 @@ from copy import deepcopy
 from threading import Semaphore, Event
 
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
-from webview.localization import localization
 from webview.window import Window
 from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
 from webview.js.css import disable_text_select
@@ -131,7 +130,8 @@ class BrowserView(QMainWindow):
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
                 print(url)
                 window = Window('web_inspector', title, url, '', 700, 500, None, None, True, False,
-                                (300, 200), False, False, False, False, False, False, '#fff', None, False, False, '' )
+                                (300, 200), False, False, False, False, False, False, '#fff', None, False, False, '')
+                window.localization = self.parent().localization
 
                 inspector = BrowserView(window)
                 inspector.show()
@@ -222,6 +222,8 @@ class BrowserView(QMainWindow):
 
         self.loaded = window.loaded
         self.shown = window.shown
+
+        self.localization = window.localization
 
         self._js_results = {}
         self._current_url = None
@@ -340,17 +342,17 @@ class BrowserView(QMainWindow):
 
     def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         if dialog_type == FOLDER_DIALOG:
-            self._file_name = QFileDialog.getExistingDirectory(self, localization['linux.openFolder'], options=QFileDialog.ShowDirsOnly)
+            self._file_name = QFileDialog.getExistingDirectory(self, self.localization['linux.openFolder'], options=QFileDialog.ShowDirsOnly)
         elif dialog_type == OPEN_DIALOG:
             if allow_multiple:
-                self._file_name = QFileDialog.getOpenFileNames(self, localization['linux.openFiles'], directory, file_filter)
+                self._file_name = QFileDialog.getOpenFileNames(self, self.localization['linux.openFiles'], directory, file_filter)
             else:
-                self._file_name = QFileDialog.getOpenFileName(self, localization['linux.openFile'], directory, file_filter)
+                self._file_name = QFileDialog.getOpenFileName(self, self.localization['linux.openFile'], directory, file_filter)
         elif dialog_type == SAVE_DIALOG:
             if directory:
                 save_filename = os.path.join(str(directory), str(save_filename))
 
-            self._file_name = QFileDialog.getSaveFileName(self, localization['global.saveFile'], save_filename)
+            self._file_name = QFileDialog.getSaveFileName(self, self.localization['global.saveFile'], save_filename)
 
         self._file_name_semaphore.release()
 
@@ -375,14 +377,19 @@ class BrowserView(QMainWindow):
         self.show()
 
     def closeEvent(self, event):
-        self.pywebview_window.closing.set()
         if self.confirm_close:
-            reply = QMessageBox.question(self, self.title, localization['global.quitConfirmation'],
+            reply = QMessageBox.question(self, self.title, self.localization['global.quitConfirmation'],
                                          QMessageBox.Yes, QMessageBox.No)
 
             if reply == QMessageBox.No:
                 event.ignore()
                 return
+
+        should_cancel = self.pywebview_window.closing.set()
+
+        if should_cancel:
+            event.ignore()
+            return
 
         event.accept()
         BrowserView.instances[self.uid].close()

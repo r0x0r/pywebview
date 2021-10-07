@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-localization = {
+original_localization = {
     'global.quitConfirmation': u'Do you really want to quit?',
     'global.ok': u'OK',
     'global.quit': u'Quit',
