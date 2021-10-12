@@ -59,11 +59,14 @@ class EdgeChrome:
         self.js_result_semaphore = Semaphore(0)
         self.web_view.Dock = WinForms.DockStyle.Fill
 
-        self.web_view.CoreWebView2Ready += self.on_webview_ready
+        self.web_view.CoreWebView2InitializationCompleted += self.on_webview_ready
         self.web_view.NavigationStarting += self.on_navigation_start
         self.web_view.NavigationCompleted += self.on_navigation_completed
         self.web_view.WebMessageReceived += self.on_script_notify
-
+        
+        if window.transparent:
+            self.web_view.DefaultBackgroundColor = Color.Transparent
+        
         self.url = None
         self.ishtml = False
         self.html = None
@@ -106,7 +109,10 @@ class EdgeChrome:
     def load_html(self, content, base_uri):
         self.html = content
         self.ishtml = True
-        self.web_view.EnsureCoreWebView2Async(None)
+        if self.web_view.CoreWebView2:
+            self.web_view.CoreWebView2.NavigateToString(self.html)
+        else:
+            self.web_view.EnsureCoreWebView2Async(None)
 
     def load_url(self, url):
         self.ishtml = False
@@ -127,7 +133,7 @@ class EdgeChrome:
 
     def on_new_window_request(self, _, args):
         args.set_Handled(True)
-        #webbrowser.open(str(args.get_Uri()))
+        webbrowser.open(str(args.get_Uri()))
 
     def on_webview_ready(self, sender, args):
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
@@ -140,6 +146,7 @@ class EdgeChrome:
         settings.IsWebMessageEnabled = True
         settings.IsStatusBarEnabled = _debug['mode']
         settings.IsZoomControlEnabled = True
+        if _user_agent: settings.UserAgent = _user_agent
         if self.html: sender.CoreWebView2.NavigateToString(self.html)
 
     def on_navigation_start(self, sender, args):
@@ -148,10 +155,6 @@ class EdgeChrome:
     def on_navigation_completed(self, sender, args):
         url = str(sender.Source)
         self.url = None if self.ishtml else url
-        self.web_view.ExecuteScriptAsync('window.alert = (msg) => window.chrome.webview.postMessage(["alert", msg+"", ""])')
-
-        if _debug['mode']:
-            self.web_view.ExecuteScriptAsync('window.console = { log: (msg) => window.chrome.webview.postMessage(["console", msg+"", ""])}')
 
         self.web_view.ExecuteScriptAsync(parse_api_js(self.pywebview_window, 'chromium'))
 
