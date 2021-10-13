@@ -47,7 +47,8 @@ def _loaded_call(function):
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select, transparent, localization):
+                 background_color, js_api, text_select, transparent, localization,
+                 verbose_events):
         self.uid = uid
         self.title = make_unicode(title)
         self.original_url = None if html else url  # original URL provided by user
@@ -70,6 +71,7 @@ class Window:
         self.minimized = minimized
         self.transparent = transparent
         self.localization_override = localization
+        self.verbose_events = verbose_events
 
         self._js_api = js_api
         self._functions = {}

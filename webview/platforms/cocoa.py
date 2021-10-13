@@ -75,14 +75,28 @@ class BrowserView:
                 return Foundation.NO
 
         def windowWillClose_(self, notification):
-            # Delete the closed instance from the dict
+            
             i = BrowserView.get_instance('window', notification.object())
+
+            # Add extra window information to the callback since window
+            # instance will be unavailable to query.
+            args, kwargs = [], {}
+            if i.pywebview_window.verbose_events:
+                win = i.pywebview_window
+                args = [ i.uid ]
+                kwargs = { "width"  : win.width,
+                           "height" : win.height,
+                           "x"      : win.x,
+                           "y"      : win.y  }
+
+            # Delete the closed instance from the dict
             del BrowserView.instances[i.uid]
 
             if i.pywebview_window in windows:
                 windows.remove(i.pywebview_window)
 
-            i.closed.set()
+            # Trigger the event callbacks
+            i.closed.set(*args, **kwargs)
 
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
