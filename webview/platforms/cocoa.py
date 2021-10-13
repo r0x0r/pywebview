@@ -453,6 +453,7 @@ class BrowserView:
             self._add_view_menu()
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
+            AppHelper.installMachInterrupt()
             BrowserView.app.run()
 
     def show(self):
