@@ -8,17 +8,14 @@ http://github.com/r0x0r/pywebview/
 """
 
 import os
-import sys
 import logging
 import json
-import shutil
-import tempfile
 import webbrowser
-from threading import Event, Semaphore
+from threading import Semaphore
 from ctypes import windll
 from platform import architecture
 
-from webview import WebViewException, _debug, _user_agent
+from webview import _debug, _user_agent
 from webview.serving import resolve_url
 from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
 from webview.js import alert
@@ -63,10 +60,10 @@ class EdgeChrome:
         self.web_view.NavigationStarting += self.on_navigation_start
         self.web_view.NavigationCompleted += self.on_navigation_completed
         self.web_view.WebMessageReceived += self.on_script_notify
-        
+
         if window.transparent:
             self.web_view.DefaultBackgroundColor = Color.Transparent
-        
+
         self.url = None
         self.ishtml = False
         self.html = None
@@ -146,8 +143,12 @@ class EdgeChrome:
         settings.IsWebMessageEnabled = True
         settings.IsStatusBarEnabled = _debug['mode']
         settings.IsZoomControlEnabled = True
-        if _user_agent: settings.UserAgent = _user_agent
-        if self.html: sender.CoreWebView2.NavigateToString(self.html)
+
+        if _user_agent:
+            settings.UserAgent = _user_agent
+
+        if self.html:
+            sender.CoreWebView2.NavigateToString(self.html)
 
     def on_navigation_start(self, sender, args):
         pass
