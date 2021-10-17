@@ -111,24 +111,7 @@ class Browser:
         self.browser.CloseBrowser(True)
 
     def resize(self, width, height, fix_point):
-
-        # How much to move to the right
-        move_x = 0
-        # How much to move to the bottom
-        move_y = 0
-
-        rect = windll.?.RECT()
-        rect = windll.user32.GetWindowRect(self.inner_hwnd, rect)
-
-        if fix_point & FixPoint.EAST:
-            current_width = rect.right - rect.left
-            move_x = current_width - width
-
-        if fix_point & FixPoint.SOUTH:
-            current_height = rect.bottom - rect.top
-            move_y = current_height - height
-
-        windll.user32.SetWindowPos(self.inner_hwnd, 0, move_x, move_y, width - 16, height - 38,
+        windll.user32.SetWindowPos(self.inner_hwnd, 0, 0, 0, width - 16, height - 38,
                                    0x0002 | 0x0004 | 0x0010)
         self.browser.NotifyMoveOrResizeStarted()
 
