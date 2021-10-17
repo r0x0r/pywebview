@@ -19,6 +19,7 @@ from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
+from webview.window import FixPoint
 
 logger = logging.getLogger('pywebview')
 
@@ -286,7 +287,24 @@ class BrowserView:
 
         self.is_fullscreen = not self.is_fullscreen
 
-    def resize(self, width, height):
+    def resize(self, width, height, fix_point):
+        if fix_point & FixPoint.NORTH and fix_point & FixPoint.WEST:
+            self.window.set_gravity(Gdk.Gravity.NORTH_WEST)
+        elif fix_point & FixPoint.NORTH and fix_point & FixPoint.EAST:
+            self.window.set_gravity(Gdk.Gravity.NORTH_EAST)
+        elif fix_point & FixPoint.SOUTH and fix_point & FixPoint.EAST:
+            self.window.set_gravity(Gdk.Gravity.SOUTH_EAST)
+        elif fix_point & FixPoint.SOUTH and fix_point & FixPoint.WEST:
+            self.window.set_gravity(Gdk.Gravity.SOUTH_WEST)
+        elif fix_point & FixPoint.SOUTH:
+            self.window.set_gravity(Gdk.Gravity.SOUTH)
+        elif fix_point & FixPoint.NORTH:
+            self.window.set_gravity(Gdk.Gravity.NORTH)
+        elif fix_point & FixPoint.WEST:
+            self.window.set_gravity(Gdk.Gravity.WEST)
+        elif fix_point & FixPoint.EAST:
+            self.window.set_gravity(Gdk.Gravity.EAST)
+
         self.window.resize(width, height)
 
     def move(self, x, y):
@@ -448,9 +466,9 @@ def set_on_top(uid, top):
     glib.idle_add(_set_on_top)
 
 
-def resize(width, height, uid):
+def resize(width, height, uid, fix_point):
     def _resize():
-        BrowserView.instances[uid].resize(width,height)
+        BrowserView.instances[uid].resize(width, height, fix_point)
     glib.idle_add(_resize)
 
 

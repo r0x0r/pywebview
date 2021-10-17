@@ -1,6 +1,7 @@
 import inspect
 import logging
 import os
+from enum import Flag, auto
 from functools import wraps
 
 from webview.event import Event
@@ -42,6 +43,13 @@ def _shown_call(function):
 
 def _loaded_call(function):
     return _api_call(function, 'loaded')
+
+
+class FixPoint(Flag):
+    NORTH = auto()
+    WEST = auto()
+    EAST = auto()
+    SOUTH = auto()
 
 
 class Window:
@@ -234,16 +242,20 @@ class Window:
         :param height: desired height of target window
         """
         logger.warning('This function is deprecated and will be removed in future releases. Use resize() instead')
-        self.gui.resize(width, height, self.uid)
+        self.resize(width, height)
 
     @_shown_call
-    def resize(self, width, height):
+    def resize(self, width, height, fix_point=FixPoint.NORTH | FixPoint.WEST):
         """
         Resize window
         :param width: desired width of target window
         :param height: desired height of target window
+        :param fix_point: Fix window to specified point during resize.
+            Must be of type FixPoint. Different points can be combined
+            with bitwise operators.
+            Example: FixPoint.NORTH | FixPoint.WEST
         """
-        self.gui.resize(width, height, self.uid)
+        self.gui.resize(width, height, self.uid, fix_point)
 
     @_shown_call
     def minimize(self):

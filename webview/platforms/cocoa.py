@@ -20,6 +20,7 @@ from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
+from webview.window import FixPoint
 
 settings = {}
 
@@ -475,13 +476,17 @@ class BrowserView:
         AppHelper.callAfter(toggle)
         self.is_fullscreen = not self.is_fullscreen
 
-    def resize(self, width, height):
+    def resize(self, width, height, fix_point):
         def _resize():
             frame = self.window.frame()
 
-            # Keep the top left of the window in the same place
-            frame.origin.y += frame.size.height
-            frame.origin.y -= height
+            if fix_point & FixPoint.EAST:
+                # Keep the right of the window in the same place
+                frame.origin.x += frame.size.width - width
+
+            if fix_point & FixPoint.NORTH:
+                # Keep the top of the window in the same place
+                frame.origin.y += frame.size.height - height
 
             frame.size.width = width
             frame.size.height = height
@@ -838,8 +843,8 @@ def set_on_top(uid, top):
     AppHelper.callAfter(_set_on_top)
 
 
-def resize(width, height, uid):
-    BrowserView.instances[uid].resize(width, height)
+def resize(width, height, uid, fix_point):
+    BrowserView.instances[uid].resize(width, height, fix_point)
 
 
 def minimize(uid):
