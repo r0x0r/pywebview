@@ -110,7 +110,7 @@ class Browser:
     def close(self):
         self.browser.CloseBrowser(True)
 
-    def resize(self, width, height, fix_point):
+    def resize(self, width, height):
         windll.user32.SetWindowPos(self.inner_hwnd, 0, 0, 0, width - 16, height - 38,
                                    0x0002 | 0x0004 | 0x0010)
         self.browser.NotifyMoveOrResizeStarted()
@@ -289,9 +289,9 @@ def get_current_url(uid):
 
 
 @_cef_call
-def resize(width, height, uid, fix_point):
+def resize(width, height, uid):
     instance = instances[uid]
-    instance.resize(width, height, fix_point)
+    instance.resize(width, height)
 
 
 @_cef_call
