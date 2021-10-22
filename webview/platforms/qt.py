@@ -131,7 +131,7 @@ class BrowserView(QMainWindow):
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
                 print(url)
                 window = Window('web_inspector', title, url, '', 700, 500, None, None, True, False,
-                                (300, 200), False, False, False, False, False, False, '#fff', None, False, False, '')
+                                (300, 200), False, False, False, False, False, False, '#fff', None, False, False, '', '')
                 window.localization = self.parent().localization
 
                 inspector = BrowserView(window)
