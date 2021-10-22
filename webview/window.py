@@ -55,9 +55,10 @@ class FixPoint(Flag):
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select, transparent, localization):
+                 background_color, js_api, text_select, transparent, localization, icon):
         self.uid = uid
         self.title = make_unicode(title)
+        self.icon = icon
         self.original_url = None if html else url  # original URL provided by user
         self.real_url = None  # transformed URL for internal HTTP server
         self.html = html
@@ -169,6 +170,10 @@ class Window:
         return self.evaluate_js(code)
 
     @_shown_call
+    def get_instance(self):
+        return self.gui.get_instance(self.uid)
+
+    @_shown_call
     def load_url(self, url):
         """
         Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is
@@ -205,6 +210,14 @@ class Window:
         Set a new title of the window
         """
         self.gui.set_title(title, self.uid)
+
+    @_shown_call
+    def set_icon(self, icon):
+        """
+        Set a new title of the window
+        """
+        self.gui.set_icon(icon, self.uid)
+
 
     @_loaded_call
     def get_current_url(self):

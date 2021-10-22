@@ -4,8 +4,9 @@ import os
 import shutil
 import sys
 import webbrowser
+import platform
 
-from ctypes import windll
+from ctypes import windll, wintypes
 from functools import wraps
 from uuid import uuid1
 from threading import Event
@@ -253,6 +254,20 @@ def create_browser(window, handle, alert_func):
 
         instances[window.uid] = browser
         window.shown.set()
+        
+        if window.icon:
+            icon = window.icon+".ico"
+            if os.path.isfile(icon):
+                smallx = windll.user32.GetSystemMetrics(49) #SM_CXSMICON
+                smally = windll.user32.GetSystemMetrics(50) #SM_CYSMICON
+                small_icon =  windll.user32.LoadImageW(0, icon, 1, smallx, smally, 0x00000010)
+                windll.user32.SendMessageW(handle, 0x0080, 0, small_icon)
+
+                bigx = windll.user32.GetSystemMetrics(11) #SM_CXICON
+                bigy = windll.user32.GetSystemMetrics(12) #SM_CYICON
+                big_icon = windll.user32.LoadImageW(0, icon, 1, bigx, bigy, 0x00000010)
+                windll.user32.SendMessageW(handle, 0x0080, 1, big_icon)
+
 
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)
