@@ -17,6 +17,7 @@ _pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/).
 
 ### Install
 
+*currently only python version 3.8 or older supported*
 ``` bash
 pip install pywebview
 ```
