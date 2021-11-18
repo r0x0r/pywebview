@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 settings = {}
 
+browser_settings = {}
+
 command_line_switches = {}
 
 
@@ -241,7 +243,11 @@ def init(window):
 def create_browser(window, handle, alert_func):
     def _create():
         real_url = 'data:text/html,{0}'.format(window.html) if window.html else window.real_url or 'data:text/html,{0}'.format(default_html)
-        cef_browser = cef.CreateBrowserSync(window_info=window_info, url=real_url)
+        
+        default_browser_settings = {}
+        all_browser_settings = dict(default_browser_settings, **browser_settings)
+
+        cef_browser = cef.CreateBrowserSync(window_info=window_info, settings=browser_settings, url=real_url)
         browser = Browser(window, handle, cef_browser)
 
         bindings = cef.JavascriptBindings()
