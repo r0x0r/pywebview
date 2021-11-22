@@ -247,7 +247,7 @@ def create_browser(window, handle, alert_func):
         default_browser_settings = {}
         all_browser_settings = dict(default_browser_settings, **browser_settings)
 
-        cef_browser = cef.CreateBrowserSync(window_info=window_info, settings=browser_settings, url=real_url)
+        cef_browser = cef.CreateBrowserSync(window_info=window_info, settings=all_browser_settings, url=real_url)
         browser = Browser(window, handle, cef_browser)
 
         bindings = cef.JavascriptBindings()
