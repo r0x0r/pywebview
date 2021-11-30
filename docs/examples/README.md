@@ -6,7 +6,9 @@ Below there are a couple of non-trivial examples that demonstrate an application
 
 ## React Boilerplate
 
-[React boilerplate](https://github.com/r0x0r/pywebview-react-boilerplate). A complete React-based boilerplate with installation, usage and building taken care of out of the box.
+[React boilerplate with parcel-bundler](https://github.com/r0x0r/pywebview-react-boilerplate). A complete React-based boilerplate with installation, usage and building taken care of out of the box.
+
+[React boilerplate with create-react-app](https://github.com/dzc0d3r/pywebview-react-boilerplate/). A complete React-based boilerplate with installation, usage and building taken care of out of the box.
 
 
 ## Serverless application
