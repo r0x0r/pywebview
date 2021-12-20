@@ -153,6 +153,17 @@ def js_bridge_call(window, func_name, param, value_id):
         window.move(*param)
         return
 
+    if func_name == 'asyncCallback':
+        value = json.loads(param)
+
+        if callable(window._callbacks[value_id]):
+            window._callbacks[value_id](value)
+        else:
+            logger.error('Async function called and no callback provided. Returned value {0}'.format(value))
+
+        del window._callbacks[value_id]
+        return
+
     func = window._functions.get(func_name) or getattr(window._js_api, func_name, None)
 
     if func is not None:

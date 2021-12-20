@@ -3,6 +3,7 @@ import logging
 import os
 from enum import Flag, auto
 from functools import wraps
+from uuid import uuid1
 
 from webview.event import Event
 from webview.localization import original_localization
@@ -81,6 +82,7 @@ class Window:
 
         self._js_api = js_api
         self._functions = {}
+        self._callbacks = {}
 
         self.closed = Event()
         self.closing = Event(True)
@@ -288,13 +290,26 @@ class Window:
         self.gui.move(x, y, self.uid)
 
     @_loaded_call
-    def evaluate_js(self, script):
+    def evaluate_js(self, script, callback=None):
         """
         Evaluate given JavaScript code and return the result
         :param script: The JavaScript code to be evaluated
         :return: Return value of the evaluated code
+        :callback: Optional callback function that will be called for resolved promises
         """
-        escaped_script = 'JSON.stringify(eval("{0}"))'.format(escape_string(script))
+        unique_id = uuid1().hex
+        self._callbacks[unique_id] = callback
+
+        escaped_script = """
+            var value = eval("{0}");
+            if (pywebview._isPromise(promise)) {{
+                value.then(function evaluate_async(result) {{
+                    pywebview._asyncCallback(JSON.stringify(result), "{1}")
+                }});
+                'true';
+            }} else {{ JSON.stringify(value); }}
+        """.format(escape_string(script), unique_id)
+
         return self.gui.evaluate_js(escaped_script, self.uid)
 
     @_shown_call
