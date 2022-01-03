@@ -130,11 +130,11 @@ elif is_edge:
     from . import edgehtml as Edge
     IWebBrowserInterop = object
 
-    logger.debug('Using WinForms / EdgeHTML')
+    logger.warning('EdgeHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium')
     renderer = 'edgehtml'
 else:
     from . import mshtml as IE
-
+    logger.warning('MSHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium')
     logger.debug('Using WinForms / MSHTML')
     renderer = 'mshtml'
 
@@ -205,6 +205,7 @@ class BrowserView:
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
 
+            self.Activated += self.on_activated
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
             self.FormClosing += self.on_closing
@@ -214,9 +215,16 @@ class BrowserView:
 
             self.localization = window.localization
 
+        def on_activated(self, sender, args):
+            if self.browser:
+                self.browser.web_view.Focus()
+
         def on_shown(self, sender, args):
             if not is_cef:
                 self.shown.set()
+
+            if self.browser:
+                self.browser.web_view.Focus()
 
         def on_close(self, sender, args):
             def _shutdown():
@@ -366,8 +374,6 @@ class BrowserView:
                 self.WindowState = WinForms.FormWindowState.Normal
 
             self.Invoke(Func[Type](_restore))
-
-
 
     @staticmethod
     def alert(message):
