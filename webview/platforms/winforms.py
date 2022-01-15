@@ -63,16 +63,16 @@ def _is_edge():
 
 
 def _is_chromium():
-    def edge_build(key, description=''):
+    def edge_build(key_type, key, description=''):
         try:
             windows_key = None
-            if machine() == 'x86':
+            if machine() == 'x86' or key_type == 'HKEY_CURRENT_USER':
                 path = rf'Microsoft\EdgeUpdate\Clients\{key}'
             else:
                 path = rf'WOW6432Node\Microsoft\EdgeUpdate\Clients\{key}'
 
-            register_key = rf'Computer\HKEY_LOCAL_MACHINE\{path}'
-            windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,  rf'SOFTWARE\{path}')
+            register_key = rf'Computer\{key_type}\{path}'
+            windows_key = winreg.OpenKey(getattr(winreg, key_type), rf'SOFTWARE\{path}')
             build, _ = winreg.QueryValueEx(windows_key, 'pv')
             build = int(build.replace('.', '')[:6])
 
@@ -108,10 +108,11 @@ def _is_chromium():
         ]
 
         for item in build_versions:
-            build = edge_build(item['key'], item['description'])
+            for key_type in ('HKEY_CURRENT_USER', 'HKEY_LOCAL_MACHINE'):
+                build = edge_build(key_type, item['key'], item['description'])
 
-            if build >= 860622: # Webview2 86.0.622.0
-                return True
+                if build >= 860622: # Webview2 86.0.622.0
+                    return True
 
     except Exception as e:
         logger.debug(e)
