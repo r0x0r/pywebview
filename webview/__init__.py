@@ -22,6 +22,7 @@ from proxy_tools import module_property
 
 from webview.event import Event
 from webview.guilib import initialize
+from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.util import _token, base_uri, parse_file_type, escape_string, make_unicode, escape_line_breaks, WebViewException
 from webview.window import Window
 from .localization import original_localization
@@ -144,7 +145,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
                   frameless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
-                  transparent=False, text_select=False, localization=None):
+                  transparent=False, text_select=False, localization=None, bar_menu_items=[]):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -164,6 +165,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
+    :param bar_menu_items: menu array for application menu bar
     :return: window object.
     """
 
@@ -176,7 +178,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     window = Window(uid, make_unicode(title), url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
-                    js_api, text_select, transparent, localization)
+                    js_api, text_select, transparent, localization, bar_menu_items)
 
     windows.append(window)
 
