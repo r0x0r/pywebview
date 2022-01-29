@@ -107,6 +107,8 @@ class BrowserView:
         else:
             self.window.connect('delete-event', self.close_window)
 
+        self.window.connect('window-state-event', self.on_window_state_change)
+
         self.js_bridge = BrowserView.JSBridge(window)
         self.text_select = window.text_select
 
@@ -191,6 +193,22 @@ class BrowserView:
         dialog.destroy()
         return True
 
+    def on_window_state_change(self, window, window_state):
+        if window_state.changed_mask == Gdk.WindowState.ICONIFIED:
+
+            if Gdk.WindowState.ICONIFIED & window_state.new_window_state == Gdk.WindowState.ICONIFIED:
+                self.pywebview_window.on_minimized.set()
+            else:
+                self.pywebview_window.on_restored.set()
+
+        elif window_state.changed_mask == Gdk.WindowState.MAXIMIZED:
+
+            if Gdk.WindowState.MAXIMIZED & window_state.new_window_state == Gdk.WindowState.MAXIMIZED:
+                self.pywebview_window.on_maximized.set()
+            else:
+                self.pywebview_window.on_restored.set()
+
+
     def on_webview_ready(self, arg1, arg2):
         # in webkit2 notify:visible fires after the window was closed and BrowserView object destroyed.
         # for a lack of better solution we check that BrowserView has 'webview_ready' attribute
@@ -236,9 +254,9 @@ class BrowserView:
                 webview.run_javascript(code)
 
         except ValueError: # Python 2
-            logger.debug('GTK: JSON decode failed:\n %s' % title)
+            return
         except json.JSONDecodeError: # Python 3
-            logger.debug('GTK: JSON decode failed:\n %s' % title)
+            return
 
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) == webkit.NavigationPolicyDecision:

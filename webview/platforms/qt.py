@@ -397,6 +397,19 @@ class BrowserView(QMainWindow):
             self.hide()
             _app.exit()
 
+    def changeEvent(self, e):
+        if e.type() != QtCore.QEvent.WindowStateChange:
+            return
+
+        if self.windowState() == QtCore.Qt.WindowMinimized:
+            self.pywebview_window.on_minimized.set()
+
+        if self.windowState() == QtCore.Qt.WindowMaximized:
+            self.pywebview_window.on_maximized.set()
+
+        if self.windowState() == QtCore.Qt.WindowNoState and e.oldState() in (QtCore.Qt.WindowMinimized, QtCore.Qt.WindowMaximized):
+            self.pywebview_window.on_restored.set()
+
     def on_show_window(self):
         self.show()
 

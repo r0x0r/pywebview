@@ -87,7 +87,7 @@ def _is_chromium():
 
             # Adding extra info to error
             e.strerror += ' - ' + extra_info
-            logger.debug(e)           
+            logger.debug(e)
         finally:
             winreg.CloseKey(windows_key)
 
@@ -186,6 +186,8 @@ class BrowserView:
             if window.minimized:
                 self.WindowState = WinForms.FormWindowState.Minimized
 
+            self.old_state =  self.WindowState
+
             # Application icon
             handle = kernel32.GetModuleHandleW(None)
             icon_handle = windll.shell32.ExtractIconW(handle, sys.executable, 0)
@@ -221,9 +223,7 @@ class BrowserView:
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
             self.FormClosing += self.on_closing
-
-            if is_cef:
-                self.Resize += self.on_resize
+            self.Resize += self.on_resize
 
             self.localization = window.localization
 
@@ -266,7 +266,19 @@ class BrowserView:
                     args.Cancel = True
 
         def on_resize(self, sender, args):
-            CEF.resize(self.Width, self.Height, self.uid)
+            if self.WindowState == WinForms.FormWindowState.Maximized:
+                self.pywebview_window.on_maximized.set()
+
+            if self.WindowState == WinForms.FormWindowState.Minimized:
+                self.pywebview_window.on_minimized.set()
+
+            if self.WindowState == WinForms.FormWindowState.Normal and self.old_state in (WinForms.FormWindowState.Minimized, WinForms.FormWindowState.Maximized):
+                self.pywebview_window.on_restored.set()
+
+            self.old_state = self.WindowState
+
+            if is_cef:
+                CEF.resize(self.Width, self.Height, self.uid)
 
         def evaluate_js(self, script):
             id = uuid4().hex[:8]

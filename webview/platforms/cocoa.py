@@ -88,6 +88,23 @@ class BrowserView:
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
 
+        def windowDidMiniaturize_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+            i.pywebview_window.on_minimized.set()
+
+        def windowDidDeminiaturize_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+            i.pywebview_window.on_restored.set()
+
+        def windowDidEnterFullScreen_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+            i.pywebview_window.on_maximized.set()
+
+        def windowDidExitFullScreen_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+            i.pywebview_window.on_restored.set()
+
+
     class JSBridge(AppKit.NSObject):
         def initWithObject_(self, window):
             super(BrowserView.JSBridge, self).init()
