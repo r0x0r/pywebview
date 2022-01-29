@@ -320,20 +320,18 @@ Event fired when DOM is ready.
 
 [Example](/examples/events.html)
 
-## minimized
+## on_minimized
 Event fired when window is minimzed.
 
 [Example](/examples/events.html)
 
-## restore
+## on_restore
 Event fired when window is restored.
 
 [Example](/examples/events.html)
 
-## maximized
+## on_maximized
 Event fired when window is maximized (fullscreen on macOS)
-
-[Example](/examples/events.html)
 
 ## shown
 Event fired when pywebview window is shown.
