@@ -302,7 +302,7 @@ class Window:
 
         escaped_script = """
             var value = eval("{0}");
-            if (pywebview._isPromise(promise)) {{
+            if (pywebview._isPromise(value)) {{
                 value.then(function evaluate_async(result) {{
                     pywebview._asyncCallback(JSON.stringify(result), "{1}")
                 }});
