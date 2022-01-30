@@ -68,6 +68,7 @@ _http_server = False
 
 token = _token
 windows = []
+menus = []
 
 def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
     """
@@ -121,6 +122,10 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         raise WebViewException('You must create a window first before calling this function.')
 
     guilib = initialize(gui)
+    guilib.setup()
+
+    for menu in menus:
+        guilib.add_menu(menu)
 
     for window in windows:
         window._initialize(guilib, multiprocessing, http_server)
@@ -189,8 +194,26 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     return window
 
 
+def add_bar_menu(bar_menu_item):
+    """
+    The bar menu is global (meaning that it is not per-window, it is per-application)
+    so we have this function here. It will call the appropriate gui-specific add menu
+    function to add a menu to the menu bar.
+    """
+
+    menus.append(bar_menu_item)
+
+    if guilib:
+        guilib.add_menu(bar_menu_item)
+
+def active_window():
+    if guilib:
+        return guilib.get_active_window()
+    return None
+
 @module_property
 def screens():
     guilib = initialize()
     screens = guilib.get_screens()
     return screens
+
