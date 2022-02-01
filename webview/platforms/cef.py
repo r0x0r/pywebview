@@ -86,8 +86,8 @@ class Browser:
         self.browser = browser
         self.text_select = window.text_select
         self.uid = window.uid
-        self.loaded = window.loaded
-        self.shown = window.shown
+        self.loaded = window.on_loaded
+        self.shown = window.on_shown
         self.inner_hwnd = self.browser.GetWindowHandle()
         self.eval_events = {}
         self.js_bridge = JSBridge(window, self.eval_events)
@@ -243,7 +243,7 @@ def init(window):
 def create_browser(window, handle, alert_func):
     def _create():
         real_url = 'data:text/html,{0}'.format(window.html) if window.html else window.real_url or 'data:text/html,{0}'.format(default_html)
-        
+
         default_browser_settings = {}
         all_browser_settings = dict(default_browser_settings, **browser_settings)
 
@@ -258,7 +258,7 @@ def create_browser(window, handle, alert_func):
         cef_browser.SetClientHandler(LoadHandler())
 
         instances[window.uid] = browser
-        window.shown.set()
+        window.on_shown.set()
 
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)

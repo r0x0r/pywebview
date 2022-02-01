@@ -21,7 +21,7 @@ def _api_call(function, event_type):
     """
     @wraps(function)
     def wrapper(*args, **kwargs):
-        event = args[0].loaded if event_type == 'loaded' else args[0].shown
+        event = args[0].on_loaded if event_type == 'loaded' else args[0].on_shown
 
         try:
             if not event.wait(15):
@@ -82,10 +82,15 @@ class Window:
         self._js_api = js_api
         self._functions = {}
 
-        self.closed = Event()
-        self.closing = Event(True)
-        self.loaded = Event()
-        self.shown = Event()
+        self.on_closed = Event()
+        self.on_closing = Event(True)
+        self.on_loaded = Event()
+        self.on_shown = Event()
+
+        self._closed = self.on_closed
+        self._closing = self.on_closing
+        self._loaded = self.on_loaded
+        self._shown = self.on_shown
 
         # new naming format of events. 4.0 will migrate all the events to this format
         self.on_minimized = Event()
@@ -97,8 +102,8 @@ class Window:
 
     def _initialize(self, gui, multiprocessing, http_server):
         self.gui = gui
-        self.loaded._initialize(multiprocessing)
-        self.shown._initialize(multiprocessing)
+        self.on_loaded._initialize(multiprocessing)
+        self.on_shown._initialize(multiprocessing)
         self._is_http_server = http_server
 
         # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
@@ -117,26 +122,62 @@ class Window:
             self.localization.update(self.localization_override)
 
     @property
+    def shown(self):
+        logger.warning('shown event is deprecated and will be removed in 4.0. Use on_shown instead')
+        return self.on_shown
+
+    @shown.setter
+    def shown(self, value):
+        self.on_shown = value
+
+    @property
+    def loaded(self):
+        logger.warning('loaded event is deprecated and will be removed in 4.0. Use on_loaded instead')
+        return self.on_loaded
+
+    @loaded.setter
+    def shown(self, value):
+        self.on_loaded = value
+
+    @property
+    def closed(self):
+        logger.warning('closed event is deprecated and will be removed in 4.0. Use on_closed instead')
+        return self.on_closed
+
+    @closed.setter
+    def closed(self, value):
+        self.on_closed = value
+
+    @property
+    def closing(self):
+        logger.warning('closing event is deprecated and will be removed in 4.0. Use on_closing instead')
+        return self.on_closed
+
+    @closing.setter
+    def closing(self, value):
+        self.on_closing = value
+
+    @property
     def width(self):
-        self.shown.wait(15)
+        self.on_shown.wait(15)
         width, _ = self.gui.get_size(self.uid)
         return width
 
     @property
     def height(self):
-        self.shown.wait(15)
+        self.on_shown.wait(15)
         _, height = self.gui.get_size(self.uid)
         return height
 
     @property
     def x(self):
-        self.shown.wait(15)
+        self.on_shown.wait(15)
         x, _ = self.gui.get_position(self.uid)
         return x
 
     @property
     def y(self):
-        self.shown.wait(15)
+        self.on_shown.wait(15)
         _, y = self.gui.get_position(self.uid)
         return y
 
@@ -346,5 +387,5 @@ class Window:
                 'params': params
             })
 
-        if self.loaded.is_set():
+        if self.on_loaded.is_set():
             self.evaluate_js('window.pywebview._createApi(%s)' % func_list)

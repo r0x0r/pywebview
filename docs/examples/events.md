@@ -45,10 +45,10 @@ def on_loaded():
 if __name__ == '__main__':
     window = webview.create_window('Simple browser', 'https://pywebview.flowrl.com/', confirm_close=True)
 
-    window.closed += on_closed
-    window.closing += on_closing
-    window.shown += on_shown
-    window.loaded += on_loaded
+    window.on_closed += on_closed
+    window.on_closing += on_closing
+    window.on_shown += on_shown
+    window.on_loaded += on_loaded
     window.on_minimized += on_minimized
     window.on_maximized += on_maximized
     window.on_restored += on_restored

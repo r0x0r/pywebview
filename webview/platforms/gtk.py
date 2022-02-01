@@ -67,8 +67,8 @@ class BrowserView:
         glib.threads_init()
         self.window = gtk.Window(title=window.title)
 
-        self.shown = window.shown
-        self.loaded = window.loaded
+        self.shown = window.on_shown
+        self.loaded = window.on_loaded
 
         self.localization = window.localization
 
@@ -160,7 +160,7 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
-        should_cancel = self.pywebview_window.closing.set()
+        should_cancel = self.pywebview_window.on_closing.set()
 
         if should_cancel:
             return
@@ -177,7 +177,7 @@ class BrowserView:
         if self.pywebview_window in windows:
             windows.remove(self.pywebview_window)
 
-        self.pywebview_window.closed.set()
+        self.pywebview_window.on_closed.set()
 
         if BrowserView.instances == {}:
             gtk.main_quit()

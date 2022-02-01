@@ -196,10 +196,10 @@ class BrowserView:
                 self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handle))).Clone()
                 windll.user32.DestroyIcon(icon_handle)
 
-            self.closed = window.closed
-            self.closing = window.closing
-            self.shown = window.shown
-            self.loaded = window.loaded
+            self.closed = window.on_closed
+            self.closing = window.on_closing
+            self.shown = window.on_shown
+            self.loaded = window.on_loaded
             self.url = window.real_url
             self.text_select = window.text_select
             self.on_top = window.on_top
@@ -587,13 +587,13 @@ def get_current_url(uid):
         return CEF.get_current_url(uid)
     else:
         window = BrowserView.instances[uid]
-        window.loaded.wait()
+        window.on_loaded.wait()
         return window.browser.url
 
 
 def load_url(url, uid):
     window = BrowserView.instances[uid]
-    window.loaded.clear()
+    window.on_loaded.clear()
 
     if is_cef:
         CEF.load_url(url, uid)

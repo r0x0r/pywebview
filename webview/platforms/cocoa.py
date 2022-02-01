@@ -333,10 +333,10 @@ class BrowserView:
         self._file_name = None
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
-        self.closed = window.closed
-        self.closing = window.closing
-        self.shown = window.shown
-        self.loaded = window.loaded
+        self.closed = window.on_closed
+        self.closing = window.on_closing
+        self.shown = window.on_shown
+        self.loaded = window.on_loaded
         self.confirm_close = window.confirm_close
         self.title = window.title
         self.text_select = window.text_select

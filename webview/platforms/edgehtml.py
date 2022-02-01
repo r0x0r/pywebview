@@ -153,7 +153,7 @@ class EdgeHTML:
         if not self.pywebview_window.text_select:
             self.web_view.InvokeScript('eval', (disable_text_select,))
 
-        self.pywebview_window.loaded.set()
+        self.pywebview_window.on_loaded.set()
 
 def _allow_localhost():
     import subprocess
