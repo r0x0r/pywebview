@@ -87,6 +87,11 @@ class Window:
         self.loaded = Event()
         self.shown = Event()
 
+        # new naming format of events. 4.0 will migrate all the events to this format
+        self.on_minimized = Event()
+        self.on_maximized = Event()
+        self.on_restored = Event()
+
         self.gui = None
         self._is_http_server = False
 

@@ -16,6 +16,18 @@ def on_shown():
     print('pywebview window shown')
 
 
+def on_minimized():
+    print('pywebview window minimized')
+
+
+def on_restored():
+    print('pywebview window restored')
+
+
+def on_maximized():
+    print('pywebview window maximized')
+
+
 def on_loaded():
     print('DOM is ready')
 
@@ -26,8 +38,13 @@ def on_loaded():
 
 if __name__ == '__main__':
     window = webview.create_window('Simple browser', 'https://pywebview.flowrl.com/', confirm_close=True)
+
     window.closed += on_closed
     window.closing += on_closing
     window.shown += on_shown
     window.loaded += on_loaded
-    webview.start()
+    window.on_minimized += on_minimized
+    window.on_maximized += on_maximized
+    window.on_restored += on_restored
+
+    webview.start(debug=True)
