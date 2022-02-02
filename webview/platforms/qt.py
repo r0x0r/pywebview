@@ -462,6 +462,8 @@ class BrowserView(QMainWindow):
 
         try:    # < Qt5.6
             self.view.page().runJavaScript(script, return_result)
+        except TypeError:
+            self.view.page().runJavaScript(script)  # PySide2 & PySide6
         except AttributeError:
             result = self.view.page().mainFrame().evaluateJavaScript(script)
             return_result(result)
