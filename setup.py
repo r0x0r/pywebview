@@ -3,9 +3,11 @@ import platform
 from setuptools import setup
 
 extras_require = {
-    'qt': ['QtPy', 'PySide2'],
     'cef': ['cefpython3'],
     'gtk': ['PyGObject'],
+    'pyside2': ['QtPy', 'PySide2'],
+    'pyside6': ['QtPy', 'PySide6'],
+    'qt': ['QtPy', 'PyQt5', 'pyqtwebengine'],
 }
 
 install_requires = [
