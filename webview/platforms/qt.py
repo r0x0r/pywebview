@@ -66,7 +66,7 @@ class BrowserView(QMainWindow):
     hide_trigger = QtCore.pyqtSignal()
     show_trigger = QtCore.pyqtSignal()
     fullscreen_trigger = QtCore.pyqtSignal()
-    window_size_trigger = QtCore.pyqtSignal(int, int)
+    window_size_trigger = QtCore.pyqtSignal(int, int, FixPoint)
     window_move_trigger = QtCore.pyqtSignal(int, int)
     window_minimize_trigger = QtCore.pyqtSignal()
     window_restore_trigger = QtCore.pyqtSignal()
