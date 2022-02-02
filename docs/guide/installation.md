@@ -4,7 +4,7 @@
 pip install pywebview
 ```
 
-This will install _pywebview_ with default dependencies. To install _pywebview_ with PyQt5 (available on Linux and macOS) use
+This will install _pywebview_ with default dependencies. To install _pywebview_ with PySide2 (available on Linux and macOS and Windows) use
 
 ``` bash
 pip install pywebview[qt]
@@ -57,11 +57,11 @@ Note that WebKit2 version 2.22 or greater is required for certain features to wo
 
 <br/><br/>
 
-[PyQt5](http://pyqt.sourceforge.net/Docs/PyQt5/index.html) is used with QT. `pywebview` supports both QtWebChannel (newer and preferred) and QtWebKit implementations. Use QtWebChannel, unless it is not available on your system.
+[PySide2](https://doc.qt.io/qtforpython-5/) is used with QT. `pywebview` supports both QtWebChannel (newer and preferred) and QtWebKit implementations. Use QtWebChannel, unless it is not available on your system.
 
 To install QT via pip
 ``` bash
-pip install pyqt5 pyqtwebengine
+pip install qtpy pyside2
 ```
 
 To install QtWebChannel on Debian-based systems.

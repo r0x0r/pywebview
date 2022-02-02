@@ -84,5 +84,8 @@ pytest tests/test_simple_browser.py
 
 ### Linux 
 * [PyGObject API reference](https://lazka.github.io/pgi-docs/)
-* [PyQt5 reference guide](http://pyqt.sourceforge.net/Docs/PyQt5/)
+
+### Qt
+* [Qt for Python Documentation](https://doc.qt.io/qtforpython-5/contents.html)
 * [Qt5 documentation](https://doc.qt.io/qt-5/index.html)
+* [PySide2 QtWidgets](https://doc.qt.io/qtforpython-5/PySide2/QtWidgets/index.html)
