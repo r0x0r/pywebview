@@ -122,7 +122,6 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         raise WebViewException('You must create a window first before calling this function.')
 
     guilib = initialize(gui)
-    guilib.setup()
 
     for menu in menus:
         guilib.add_menu(menu)

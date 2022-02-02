@@ -55,14 +55,6 @@ logger.debug('Using Cocoa')
 
 renderer = 'wkwebview'
 
-def setup():
-    """
-    TODO: add setup to all platforms
-    """
-    # Set the main menu for the application
-    mainMenu = AppKit.NSMenu.alloc().init()
-    BrowserView.app.setMainMenu_(mainMenu)
-
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
@@ -926,7 +918,12 @@ def add_menu(bar_menu):
                 elif isinstance(menu_line_item, Menu):
                     create_submenu(menu_line_item.title, menu_line_item.items, m)
 
-        create_submenu(bar_menu.title, bar_menu.items, BrowserView.app.mainMenu())
+        os_bar_menu = BrowserView.app.mainMenu()
+        if os_bar_menu is None:
+            os_bar_menu = AppKit.NSMenu.alloc().init()
+            BrowserView.app.setMainMenu_(os_bar_menu)
+
+        create_submenu(bar_menu.title, bar_menu.items, os_bar_menu)
 
 def get_active_window():
     active_window = BrowserView.app.keyWindow()
