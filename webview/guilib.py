@@ -93,7 +93,10 @@ def initialize(forced_gui=None):
             raise WebViewException('You must have either QT or GTK with Python extensions installed in order to use pywebview.')
 
     elif platform.system() == 'Windows':
-        guis = [import_winforms]
+        if forced_gui == 'qt':
+            guis = [import_qt]
+        else:
+            guis = [import_winforms]
 
         if not try_import(guis):
             raise WebViewException('You must have pythonnet installed in order to use pywebview.')
