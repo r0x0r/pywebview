@@ -14,6 +14,7 @@ import socket
 from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
+import typing as t
 
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.window import Window, FixPoint
@@ -21,6 +22,7 @@ from webview.util import convert_string, default_html, parse_api_js, js_bridge_c
 from webview.js.css import disable_text_select
 from webview.screen import Screen
 from webview.window import FixPoint
+from webview.menu import Menu, MenuAction, MenuSeparator
 
 
 logger = logging.getLogger('pywebview')
@@ -31,7 +33,7 @@ from qtpy import QtCore
 
 logger.debug('Using Qt %s' % QtCore.__version__)
 
-from qtpy.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox, QAction
+from qtpy.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox, QAction, QMenuBar
 from qtpy.QtGui import QColor, QScreen
 
 try:
@@ -55,6 +57,9 @@ os.environ['QT_STYLE_OVERRIDE'] = ''
 class BrowserView(QMainWindow):
     instances = {}
     inspector_port = None  # The localhost port at which the Remote debugger listens
+
+    # If we don't save these, then QApplication can't access them
+    application_menu_objects = []
 
     create_window_trigger = QtCore.Signal(object)
     set_title_trigger = QtCore.Signal(str)
@@ -673,6 +678,57 @@ def load_url(url, uid):
 
 def load_html(content, base_uri, uid):
     BrowserView.instances[uid].load_html(content, base_uri)
+
+
+def set_app_menu(app_menu_list):
+    """
+    Create a custom menu for the app bar menu (on supported platforms).
+    Otherwise, this menu is used across individual windows.
+
+    Args:
+        app_menu_list ([webview.menu.Menu])
+    """
+    def create_submenu(title, line_items, supermenu):
+        m = supermenu.addMenu(title)
+        BrowserView.application_menu_objects.append(m)
+        for menu_line_item in line_items:
+            if isinstance(menu_line_item, MenuSeparator):
+                m.addSeparator()
+            elif isinstance(menu_line_item, MenuAction):
+                new_action = QAction(menu_line_item.title)
+                new_action.triggered.connect(menu_line_item.function)
+                m.addAction(new_action)
+                BrowserView.application_menu_objects.append(new_action)
+            elif isinstance(menu_line_item, Menu):
+                create_submenu(menu_line_item.title, menu_line_item.items, m)
+
+    global _app
+    _app = QApplication.instance() or QApplication([])
+
+    # If the application menu has already been created, we don't want to do it again
+    if len(BrowserView.application_menu_objects) > 0:
+        return
+
+    top_level_menu = QMenuBar()
+    top_level_menu.setNativeMenuBar(True)
+
+    BrowserView.application_menu_objects.append(top_level_menu)
+
+    for app_menu in app_menu_list:
+        create_submenu(app_menu.title, app_menu.items, top_level_menu)
+
+
+def get_active_window():
+    active_window = None
+    try:
+        active_window = _app.activeWindow()
+    except:
+        return None
+
+    if active_window:
+        return active_window.pywebview_window
+
+    return None
 
 
 def destroy_window(uid):

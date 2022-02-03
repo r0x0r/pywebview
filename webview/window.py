@@ -60,7 +60,7 @@ class EventContainer:
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select, transparent, localization, bar_menu_items):
+                 background_color, js_api, text_select, transparent, localization):
         self.uid = uid
         self.title = make_unicode(title)
         self.original_url = None if html else url  # original URL provided by user
@@ -83,8 +83,6 @@ class Window:
         self.minimized = minimized
         self.transparent = transparent
         self.localization_override = localization
-
-        self.bar_menu_items = bar_menu_items
 
         self._js_api = js_api
         self._functions = {}

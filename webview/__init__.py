@@ -70,7 +70,8 @@ token = _token
 windows = []
 menus = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None,
+          app_menu_list=[]):
     """
     Start a GUI loop and display previously created windows. This function must
     be called from a main thread.
@@ -88,6 +89,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         window, a separate HTTP server is spawned. This option is ignored for
         non-local URLs.
     :param user_agent: Change user agent string. Not supported in EdgeHTML.
+    :param app_menu_list: List of menus to be included in the app menu
     """
     global guilib, _debug, _multiprocessing, _http_server, _user_agent
 
@@ -123,9 +125,6 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
     guilib = initialize(gui)
 
-    for menu in menus:
-        guilib.add_menu(menu)
-
     for window in windows:
         window._initialize(guilib, multiprocessing, http_server)
 
@@ -142,6 +141,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
             t = Thread(target=func)
         t.start()
 
+    guilib.set_app_menu(app_menu_list)
     guilib.create_window(windows[0])
 
 
@@ -149,7 +149,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
                   frameless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
-                  transparent=False, text_select=False, localization=None, bar_menu_items=[]):
+                  transparent=False, text_select=False, localization=None):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -169,7 +169,6 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
-    :param bar_menu_items: menu array for application menu bar
     :return: window object.
     """
 
@@ -182,7 +181,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     window = Window(uid, make_unicode(title), url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
-                    js_api, text_select, transparent, localization, bar_menu_items)
+                    js_api, text_select, transparent, localization)
 
     windows.append(window)
 
@@ -191,19 +190,6 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
         guilib.create_window(window)
 
     return window
-
-
-def add_bar_menu(bar_menu_item):
-    """
-    The bar menu is global (meaning that it is not per-window, it is per-application)
-    so we have this function here. It will call the appropriate gui-specific add menu
-    function to add a menu to the menu bar.
-    """
-
-    menus.append(bar_menu_item)
-
-    if guilib:
-        guilib.add_menu(bar_menu_item)
 
 def active_window():
     if guilib:
