@@ -58,8 +58,13 @@ class BrowserView(QMainWindow):
     instances = {}
     inspector_port = None  # The localhost port at which the Remote debugger listens
 
-    # If we don't save these, then QApplication can't access them
-    application_menu_objects = []
+    # In case we don't have native menubar, we have to save the top level menus and add them
+    #     to each window's bar menu
+    global_menubar_top_menus = []
+    # If we don't save the rest of these, then QApplication can't access them
+    global_menubar_other_objects = []
+    # The first QMenuBar created
+    global_menubar = None
 
     create_window_trigger = QtCore.Signal(object)
     set_title_trigger = QtCore.Signal(str)
@@ -642,6 +647,13 @@ def create_window(window):
     def _create():
         browser = BrowserView(window)
 
+        # If the menu we created as part of set_app_menu was not set as the native menu, then
+        #     we need to recreate the menu for every window
+        if BrowserView.global_menubar and not BrowserView.global_menubar.isNativeMenuBar():
+            window_menubar = browser.menuBar()
+            for menu in BrowserView.global_menubar_top_menus:
+                window_menubar.addMenu(menu)
+
         _main_window_created.set()
 
         if window.minimized:
@@ -690,7 +702,7 @@ def set_app_menu(app_menu_list):
     """
     def create_submenu(title, line_items, supermenu):
         m = supermenu.addMenu(title)
-        BrowserView.application_menu_objects.append(m)
+        BrowserView.global_menubar_other_objects.append(m)
         for menu_line_item in line_items:
             if isinstance(menu_line_item, MenuSeparator):
                 m.addSeparator()
@@ -698,24 +710,28 @@ def set_app_menu(app_menu_list):
                 new_action = QAction(menu_line_item.title)
                 new_action.triggered.connect(menu_line_item.function)
                 m.addAction(new_action)
-                BrowserView.application_menu_objects.append(new_action)
+                BrowserView.global_menubar_other_objects.append(new_action)
             elif isinstance(menu_line_item, Menu):
                 create_submenu(menu_line_item.title, menu_line_item.items, m)
+
+        return m
 
     global _app
     _app = QApplication.instance() or QApplication([])
 
     # If the application menu has already been created, we don't want to do it again
-    if len(BrowserView.application_menu_objects) > 0:
+    if len(BrowserView.global_menubar_top_menus) > 0 or len(BrowserView.global_menubar_other_objects) > 0:
         return
 
     top_level_menu = QMenuBar()
     top_level_menu.setNativeMenuBar(True)
 
-    BrowserView.application_menu_objects.append(top_level_menu)
+    BrowserView.global_menubar = top_level_menu
 
     for app_menu in app_menu_list:
-        create_submenu(app_menu.title, app_menu.items, top_level_menu)
+        BrowserView.global_menubar_top_menus.append(
+            create_submenu(app_menu.title, app_menu.items, top_level_menu)
+        )
 
 
 def get_active_window():
