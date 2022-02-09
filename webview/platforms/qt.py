@@ -27,17 +27,16 @@ logger = logging.getLogger('pywebview')
 
 settings = {}
 
-from PyQt5 import QtCore
-from PyQt5.QtCore import QT_VERSION_STR
+from qtpy import QtCore
 
-logger.debug('Using Qt %s' % QT_VERSION_STR)
+logger.debug('Using Qt %s' % QtCore.__version__)
 
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox, QAction
-from PyQt5.QtGui import QColor, QScreen
+from qtpy.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox, QAction
+from qtpy.QtGui import QColor, QScreen
 
 try:
-    from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
-    from PyQt5.QtWebChannel import QWebChannel
+    from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
+    from qtpy.QtWebChannel import QWebChannel
     renderer = 'qtwebengine'
     is_webengine = True
 except ImportError:
@@ -57,22 +56,22 @@ class BrowserView(QMainWindow):
     instances = {}
     inspector_port = None  # The localhost port at which the Remote debugger listens
 
-    create_window_trigger = QtCore.pyqtSignal(object)
-    set_title_trigger = QtCore.pyqtSignal(str)
-    load_url_trigger = QtCore.pyqtSignal(str)
-    html_trigger = QtCore.pyqtSignal(str, str)
-    dialog_trigger = QtCore.pyqtSignal(int, str, bool, str, str)
-    destroy_trigger = QtCore.pyqtSignal()
-    hide_trigger = QtCore.pyqtSignal()
-    show_trigger = QtCore.pyqtSignal()
-    fullscreen_trigger = QtCore.pyqtSignal()
-    window_size_trigger = QtCore.pyqtSignal(int, int, FixPoint)
-    window_move_trigger = QtCore.pyqtSignal(int, int)
-    window_minimize_trigger = QtCore.pyqtSignal()
-    window_restore_trigger = QtCore.pyqtSignal()
-    current_url_trigger = QtCore.pyqtSignal()
-    evaluate_js_trigger = QtCore.pyqtSignal(str, str)
-    on_top_trigger = QtCore.pyqtSignal(bool)
+    create_window_trigger = QtCore.Signal(object)
+    set_title_trigger = QtCore.Signal(str)
+    load_url_trigger = QtCore.Signal(str)
+    html_trigger = QtCore.Signal(str, str)
+    dialog_trigger = QtCore.Signal(int, str, bool, str, str)
+    destroy_trigger = QtCore.Signal()
+    hide_trigger = QtCore.Signal()
+    show_trigger = QtCore.Signal()
+    fullscreen_trigger = QtCore.Signal()
+    window_size_trigger = QtCore.Signal(int, int)
+    window_move_trigger = QtCore.Signal(int, int)
+    window_minimize_trigger = QtCore.Signal()
+    window_restore_trigger = QtCore.Signal()
+    current_url_trigger = QtCore.Signal()
+    evaluate_js_trigger = QtCore.Signal(str, str)
+    on_top_trigger = QtCore.Signal(bool)
 
     class JSBridge(QtCore.QObject):
         qtype = QtCore.QJsonValue if is_webengine else str
@@ -80,7 +79,7 @@ class BrowserView(QMainWindow):
         def __init__(self):
             super(BrowserView.JSBridge, self).__init__()
 
-        @QtCore.pyqtSlot(str, qtype, str, result=str)
+        @QtCore.Slot(str, qtype, str, result=str)
         def call(self, func_name, param, value_id):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
@@ -463,6 +462,8 @@ class BrowserView(QMainWindow):
 
         try:    # < Qt5.6
             self.view.page().runJavaScript(script, return_result)
+        except TypeError:
+            self.view.page().runJavaScript(script)  # PySide2 & PySide6
         except AttributeError:
             result = self.view.page().mainFrame().evaluateJavaScript(script)
             return_result(result)

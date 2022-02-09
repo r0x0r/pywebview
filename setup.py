@@ -3,9 +3,11 @@ import platform
 from setuptools import setup
 
 extras_require = {
-    'qt': ['PyQt5', 'pyqtwebengine'],
     'cef': ['cefpython3'],
     'gtk': ['PyGObject'],
+    'pyside2': ['QtPy', 'PySide2'],
+    'pyside6': ['QtPy', 'PySide6'],
+    'qt': ['QtPy', 'PyQt5', 'pyqtwebengine'],
 }
 
 install_requires = [
@@ -13,7 +15,7 @@ install_requires = [
     'pyobjc-core ; sys_platform == "darwin"',
     'pyobjc-framework-Cocoa ; sys_platform == "darwin"',
     'pyobjc-framework-WebKit ; sys_platform == "darwin"',
-    'PyQt5 ; sys_platform == "openbsd6"',
+    'QtPy ; sys_platform == "openbsd6" or sys_platform == "win32"',
     'importlib_resources; python_version < "3.7"',
     'proxy_tools',
 ]
