@@ -90,19 +90,19 @@ class BrowserView:
 
         def windowDidMiniaturize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.on_minimized.set()
+            i.pywebview_window.events.minimized.set()
 
         def windowDidDeminiaturize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.on_restored.set()
+            i.pywebview_window.events.restored.set()
 
         def windowDidEnterFullScreen_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.on_maximized.set()
+            i.pywebview_window.events.maximized.set()
 
         def windowDidExitFullScreen_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.on_restored.set()
+            i.pywebview_window.events.restored.set()
 
 
     class JSBridge(AppKit.NSObject):
@@ -333,10 +333,10 @@ class BrowserView:
         self._file_name = None
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
-        self.closed = window.on_closed
-        self.closing = window.on_closing
-        self.shown = window.on_shown
-        self.loaded = window.on_loaded
+        self.closed = window.events.closed
+        self.closing = window.events.closing
+        self.shown = window.events.shown
+        self.loaded = window.events.loaded
         self.confirm_close = window.confirm_close
         self.title = window.title
         self.text_select = window.text_select

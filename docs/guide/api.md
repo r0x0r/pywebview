@@ -303,7 +303,7 @@ Toggle fullscreen mode on the active monitor.
 
 # Events
 
-Window object has a number of lifecycle events. To subscribe to an event, use the `+=` syntax, e.g. `window.on_loaded += func`. The func will be invoked, when event is fired. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe `window.on_loaded -= func`.
+Window object has a number of lifecycle events. To subscribe to an event, use the `+=` syntax, e.g. `window.events.loaded += func`. The func will be invoked, when event is fired. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe `window.events.loaded -= func`.
 
 ## closed
 Event fired just before pywebview window is closed.

@@ -162,4 +162,4 @@ class EdgeChrome:
         if not self.pywebview_window.text_select:
             self.web_view.ExecuteScriptAsync(disable_text_select)
 
-        self.pywebview_window.on_loaded.set()
+        self.pywebview_window.events.loaded.set()

@@ -67,8 +67,8 @@ class BrowserView:
         glib.threads_init()
         self.window = gtk.Window(title=window.title)
 
-        self.shown = window.on_shown
-        self.loaded = window.on_loaded
+        self.shown = window.events.shown
+        self.loaded = window.events.loaded
 
         self.localization = window.localization
 
@@ -160,7 +160,7 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
-        should_cancel = self.pywebview_window.on_closing.set()
+        should_cancel = self.pywebview_window.events.closing.set()
 
         if should_cancel:
             return
@@ -177,7 +177,7 @@ class BrowserView:
         if self.pywebview_window in windows:
             windows.remove(self.pywebview_window)
 
-        self.pywebview_window.on_closed.set()
+        self.pywebview_window.events.closed.set()
 
         if BrowserView.instances == {}:
             gtk.main_quit()
@@ -197,16 +197,16 @@ class BrowserView:
         if window_state.changed_mask == Gdk.WindowState.ICONIFIED:
 
             if Gdk.WindowState.ICONIFIED & window_state.new_window_state == Gdk.WindowState.ICONIFIED:
-                self.pywebview_window.on_minimized.set()
+                self.pywebview_window.events.minimized.set()
             else:
-                self.pywebview_window.on_restored.set()
+                self.pywebview_window.events.restored.set()
 
         elif window_state.changed_mask == Gdk.WindowState.MAXIMIZED:
 
             if Gdk.WindowState.MAXIMIZED & window_state.new_window_state == Gdk.WindowState.MAXIMIZED:
-                self.pywebview_window.on_maximized.set()
+                self.pywebview_window.events.maximized.set()
             else:
-                self.pywebview_window.on_restored.set()
+                self.pywebview_window.events.restored.set()
 
 
     def on_webview_ready(self, arg1, arg2):

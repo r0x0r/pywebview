@@ -219,8 +219,8 @@ class BrowserView(QMainWindow):
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
 
-        self.loaded = window.on_loaded
-        self.shown = window.on_shown
+        self.loaded = window.events.loaded
+        self.shown = window.events.shown
 
         self.localization = window.localization
 
@@ -390,7 +390,7 @@ class BrowserView(QMainWindow):
         if self.pywebview_window in windows:
             windows.remove(self.pywebview_window)
 
-        self.pywebview_window.on_closed.set()
+        self.pywebview_window.events.closed.set()
 
         if len(BrowserView.instances) == 0:
             self.hide()
@@ -401,13 +401,13 @@ class BrowserView(QMainWindow):
             return
 
         if self.windowState() == QtCore.Qt.WindowMinimized:
-            self.pywebview_window.on_minimized.set()
+            self.pywebview_window.events.minimized.set()
 
         if self.windowState() == QtCore.Qt.WindowMaximized:
-            self.pywebview_window.on_maximized.set()
+            self.pywebview_window.events.maximized.set()
 
         if self.windowState() == QtCore.Qt.WindowNoState and e.oldState() in (QtCore.Qt.WindowMinimized, QtCore.Qt.WindowMaximized):
-            self.pywebview_window.on_restored.set()
+            self.pywebview_window.events.restored.set()
 
     def on_show_window(self):
         self.show()

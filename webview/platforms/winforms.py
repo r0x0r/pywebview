@@ -196,10 +196,10 @@ class BrowserView:
                 self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handle))).Clone()
                 windll.user32.DestroyIcon(icon_handle)
 
-            self.closed = window.on_closed
+            self.closed = window.events.closed
             self.closing = window.on_closing
-            self.shown = window.on_shown
-            self.loaded = window.on_loaded
+            self.shown = window.events.shown
+            self.loaded = window.events.loaded
             self.url = window.real_url
             self.text_select = window.text_select
             self.on_top = window.on_top
@@ -275,13 +275,13 @@ class BrowserView:
 
         def on_resize(self, sender, args):
             if self.WindowState == WinForms.FormWindowState.Maximized:
-                self.pywebview_window.on_maximized.set()
+                self.pywebview_window.events.maximized.set()
 
             if self.WindowState == WinForms.FormWindowState.Minimized:
-                self.pywebview_window.on_minimized.set()
+                self.pywebview_window.events.minimized.set()
 
             if self.WindowState == WinForms.FormWindowState.Normal and self.old_state in (WinForms.FormWindowState.Minimized, WinForms.FormWindowState.Maximized):
-                self.pywebview_window.on_restored.set()
+                self.pywebview_window.events.restored.set()
 
             self.old_state = self.WindowState
 
@@ -587,13 +587,13 @@ def get_current_url(uid):
         return CEF.get_current_url(uid)
     else:
         window = BrowserView.instances[uid]
-        window.on_loaded.wait()
+        window.events.loaded.wait()
         return window.browser.url
 
 
 def load_url(url, uid):
     window = BrowserView.instances[uid]
-    window.on_loaded.clear()
+    window.events.loaded.clear()
 
     if is_cef:
         CEF.load_url(url, uid)
