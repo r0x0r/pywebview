@@ -88,8 +88,11 @@ def _is_chromium():
             # Adding extra info to error
             e.strerror += ' - ' + extra_info
             logger.debug(e)
-        finally:
+
+        try:
             winreg.CloseKey(windows_key)
+        except:
+            pass
 
         return 0
 
@@ -115,7 +118,7 @@ def _is_chromium():
                     return True
 
     except Exception as e:
-        logger.debug(e)
+        logger.exception(e)
     finally:
         winreg.CloseKey(net_key)
 
@@ -163,13 +166,6 @@ class BrowserView:
             self.Text = window.title
             self.Size = Size(window.initial_width, window.initial_height)
             self.MinimumSize = Size(window.min_size[0], window.min_size[1])
-
-            if window.transparent: # window transparency is not supported, as webviews are not transparent.
-                self.BackColor = Color.LimeGreen
-                self.TransparencyKey = Color.LimeGreen
-                self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
-            else:
-                self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
             if window.initial_x is not None and window.initial_y is not None:
                 self.move(window.initial_x, window.initial_y)
@@ -219,6 +215,14 @@ class BrowserView:
                 self.browser = Edge.EdgeHTML(self, window)
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
+
+            if window.transparent: # window transparency is not supported, as webviews are not transparent.
+                self.BackColor = Color.LimeGreen
+                self.TransparencyKey = Color.LimeGreen
+                self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
+                self.browser.DefaultBackgroundColor = Color.Transparent
+            else:
+                self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
             self.Activated += self.on_activated
             self.Shown += self.on_shown
