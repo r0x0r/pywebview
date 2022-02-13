@@ -197,7 +197,7 @@ class BrowserView:
                 windll.user32.DestroyIcon(icon_handle)
 
             self.closed = window.events.closed
-            self.closing = window.on_closing
+            self.closing = window.events.closing
             self.shown = window.events.shown
             self.loaded = window.events.loaded
             self.url = window.real_url

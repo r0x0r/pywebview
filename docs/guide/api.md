@@ -320,17 +320,17 @@ Event fired when DOM is ready.
 
 [Example](/examples/events.html)
 
-## on_minimized
+## minimized
 Event fired when window is minimzed.
 
 [Example](/examples/events.html)
 
-## on_restore
+## restore
 Event fired when window is restored.
 
 [Example](/examples/events.html)
 
-## on_maximized
+## maximized
 Event fired when window is maximized (fullscreen on macOS)
 
 ## shown

@@ -128,7 +128,7 @@ class Window:
 
     @property
     def shown(self):
-        logger.warning('shown event is deprecated and will be removed in 4.0. Use on_shown instead')
+        logger.warning('shown event is deprecated and will be removed in 4.0. Use events.shown instead')
         return self.events.shown
 
     @shown.setter
@@ -137,7 +137,7 @@ class Window:
 
     @property
     def loaded(self):
-        logger.warning('loaded event is deprecated and will be removed in 4.0. Use on_loaded instead')
+        logger.warning('loaded event is deprecated and will be removed in 4.0. Use events.loaded instead')
         return self.events.loaded
 
     @loaded.setter
@@ -146,7 +146,7 @@ class Window:
 
     @property
     def closed(self):
-        logger.warning('closed event is deprecated and will be removed in 4.0. Use on_closed instead')
+        logger.warning('closed event is deprecated and will be removed in 4.0. Use events.closed instead')
         return self.events.closed
 
     @closed.setter
@@ -155,7 +155,7 @@ class Window:
 
     @property
     def closing(self):
-        logger.warning('closing event is deprecated and will be removed in 4.0. Use on_closing instead')
+        logger.warning('closing event is deprecated and will be removed in 4.0. Use events.closing instead')
         return self.events.closed
 
     @closing.setter

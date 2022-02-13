@@ -377,7 +377,7 @@ class BrowserView(QMainWindow):
                 event.ignore()
                 return
 
-        should_cancel = self.pywebview_window.on_closing.set()
+        should_cancel = self.pywebview_window.events.closing.set()
 
         if should_cancel:
             event.ignore()
