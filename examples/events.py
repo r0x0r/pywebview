@@ -28,6 +28,10 @@ def on_maximized():
     print('pywebview window maximized')
 
 
+def on_resized(width, height):
+    print('pywebview window is resized. new dimensions are {width} x {height}'.format(width=width, height=height))
+
+
 def on_loaded():
     print('DOM is ready')
 
@@ -46,5 +50,6 @@ if __name__ == '__main__':
     window.events.minimized += on_minimized
     window.events.maximized += on_maximized
     window.events.restored += on_restored
+    window.events.resized += on_resized
 
-    webview.start()
+    webview.start(debug=True)

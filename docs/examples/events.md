@@ -42,6 +42,10 @@ def on_loaded():
     webview.windows[0].load_url('https://pywebview.flowrl.com/hello')
 
 
+def on_resized(width, height):
+    print('pywebview window is resized. new dimensions are {width} x {height}'.format(width=width, height=height))
+
+
 if __name__ == '__main__':
     window = webview.create_window('Simple browser', 'https://pywebview.flowrl.com/', confirm_close=True)
 
@@ -52,6 +56,7 @@ if __name__ == '__main__':
     window.events.minimized += on_minimized
     window.events.maximized += on_maximized
     window.events.restored += on_restored
+    window.events.resized += on_resized
 
     webview.start()
 ```

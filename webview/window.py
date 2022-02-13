@@ -91,16 +91,15 @@ class Window:
         self.events.closing = Event(True)
         self.events.loaded = Event()
         self.events.shown = Event()
+        self.events.minimized = Event()
+        self.events.maximized = Event()
+        self.events.restored = Event()
+        self.events.resized = Event()
 
         self._closed = self.events.closed
         self._closing = self.events.closing
         self._loaded = self.events.loaded
         self._shown = self.events.shown
-
-        # new naming format of events. 4.0 will migrate all the events to this format
-        self.events.minimized = Event()
-        self.events.maximized = Event()
-        self.events.restored = Event()
 
         self.gui = None
         self._is_http_server = False
