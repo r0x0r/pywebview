@@ -587,13 +587,13 @@ def get_current_url(uid):
         return CEF.get_current_url(uid)
     else:
         window = BrowserView.instances[uid]
-        window.events.loaded.wait()
+        window.loaded.wait()
         return window.browser.url
 
 
 def load_url(url, uid):
     window = BrowserView.instances[uid]
-    window.events.loaded.clear()
+    window.loaded.clear()
 
     if is_cef:
         CEF.load_url(url, uid)
