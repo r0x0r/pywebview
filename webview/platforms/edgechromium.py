@@ -117,8 +117,8 @@ class EdgeChrome:
 
     def on_script_notify(self, _, args):
         try:
-            func_name, func_param, value_id = json.loads(args.get_WebMessageAsJson())
-
+            return_value = args.get_WebMessageAsJson()
+            func_name, func_param, value_id = json.loads(return_value)
             if func_name == 'alert':
                 WinForms.MessageBox.Show(func_param)
             elif func_name == 'console':

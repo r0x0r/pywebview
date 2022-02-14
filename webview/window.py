@@ -305,15 +305,22 @@ class Window:
         else:
             sync_eval = 'JSON.stringify(value);'
 
-        escaped_script = """
-            var value = eval("{0}");
-            if (pywebview._isPromise(value)) {{
-                value.then(function evaluate_async(result) {{
-                    pywebview._asyncCallback(JSON.stringify(result), "{1}")
-                }});
-                'true';
-            }} else {{ console.log('1'); {2} }}
-        """.format(escape_string(script), unique_id, sync_eval)
+
+        if callback:
+            escaped_script = """
+                var value = eval("{0}");
+                if (pywebview._isPromise(value)) {{
+                    value.then(function evaluate_async(result) {{
+                        pywebview._asyncCallback(JSON.stringify(result), "{1}")
+                    }});
+                    true;
+                }} else {{ {2} }}
+            """.format(escape_string(script), unique_id, sync_eval)
+        else:
+            escaped_script = """
+                var value = eval("{0}");
+                {1};
+            """.format(escape_string(script), sync_eval)
 
         if self.gui.renderer == 'cef':
             return self.gui.evaluate_js(escaped_script, self.uid, unique_id)
