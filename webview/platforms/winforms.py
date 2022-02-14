@@ -371,7 +371,7 @@ class BrowserView:
 
     @staticmethod
     def alert(message):
-        WinForms.MessageBox.Show(message)
+        WinForms.MessageBox.Show(str(message))
 
 
 def _set_ie_mode():
@@ -629,9 +629,9 @@ def destroy_window(uid):
         window.browser.js_result_semaphore.release()
 
 
-def evaluate_js(script, uid):
+def evaluate_js(script, uid, result_id=None):
     if is_cef:
-        return CEF.evaluate_js(script, uid)
+        return CEF.evaluate_js(script, result_id, uid)
     else:
         return BrowserView.instances[uid].evaluate_js(script)
 

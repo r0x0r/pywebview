@@ -25,7 +25,7 @@ def _api_call(function, event_type):
         event = args[0].loaded if event_type == 'loaded' else args[0].shown
 
         try:
-            if not event.wait(15):
+            if not event.wait(20):
                 raise WebViewException('Main window failed to start')
 
             if args[0].gui is None:
@@ -300,6 +300,11 @@ class Window:
         unique_id = uuid1().hex
         self._callbacks[unique_id] = callback
 
+        if self.gui.renderer == 'cef':
+            sync_eval = 'window.external.return_result(JSON.stringify(value), "{0}");'.format(unique_id,)
+        else:
+            sync_eval = 'JSON.stringify(value);'
+
         escaped_script = """
             var value = eval("{0}");
             if (pywebview._isPromise(value)) {{
@@ -307,10 +312,13 @@ class Window:
                     pywebview._asyncCallback(JSON.stringify(result), "{1}")
                 }});
                 'true';
-            }} else {{ JSON.stringify(value); }}
-        """.format(escape_string(script), unique_id)
+            }} else {{ console.log('1'); {2} }}
+        """.format(escape_string(script), unique_id, sync_eval)
 
-        return self.gui.evaluate_js(escaped_script, self.uid)
+        if self.gui.renderer == 'cef':
+            return self.gui.evaluate_js(escaped_script, self.uid, unique_id)
+        else:
+            return self.gui.evaluate_js(escaped_script, self.uid)
 
     @_shown_call
     def create_file_dialog(self, dialog_type=10, directory='', allow_multiple=False, save_filename='', file_types=()):
