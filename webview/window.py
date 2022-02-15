@@ -3,6 +3,7 @@ import logging
 import os
 from enum import Flag, auto
 from functools import wraps
+from uuid import uuid1
 
 from webview.event import Event
 from webview.localization import original_localization
@@ -24,7 +25,7 @@ def _api_call(function, event_type):
         event = args[0].loaded if event_type == 'loaded' else args[0].shown
 
         try:
-            if not event.wait(15):
+            if not event.wait(20):
                 raise WebViewException('Main window failed to start')
 
             if args[0].gui is None:
@@ -81,6 +82,7 @@ class Window:
 
         self._js_api = js_api
         self._functions = {}
+        self._callbacks = {}
 
         self.closed = Event()
         self.closing = Event(True)
@@ -293,14 +295,42 @@ class Window:
         self.gui.move(x, y, self.uid)
 
     @_loaded_call
-    def evaluate_js(self, script):
+    def evaluate_js(self, script, callback=None):
         """
         Evaluate given JavaScript code and return the result
         :param script: The JavaScript code to be evaluated
         :return: Return value of the evaluated code
+        :callback: Optional callback function that will be called for resolved promises
         """
-        escaped_script = 'JSON.stringify(eval("{0}"))'.format(escape_string(script))
-        return self.gui.evaluate_js(escaped_script, self.uid)
+        unique_id = uuid1().hex
+        self._callbacks[unique_id] = callback
+
+        if self.gui.renderer == 'cef':
+            sync_eval = 'window.external.return_result(JSON.stringify(value), "{0}");'.format(unique_id,)
+        else:
+            sync_eval = 'JSON.stringify(value);'
+
+
+        if callback:
+            escaped_script = """
+                var value = eval("{0}");
+                if (pywebview._isPromise(value)) {{
+                    value.then(function evaluate_async(result) {{
+                        pywebview._asyncCallback(JSON.stringify(result), "{1}")
+                    }});
+                    true;
+                }} else {{ {2} }}
+            """.format(escape_string(script), unique_id, sync_eval)
+        else:
+            escaped_script = """
+                var value = eval("{0}");
+                {1};
+            """.format(escape_string(script), sync_eval)
+
+        if self.gui.renderer == 'cef':
+            return self.gui.evaluate_js(escaped_script, self.uid, unique_id)
+        else:
+            return self.gui.evaluate_js(escaped_script, self.uid)
 
     @_shown_call
     def create_file_dialog(self, dialog_type=10, directory='', allow_multiple=False, save_filename='', file_types=()):

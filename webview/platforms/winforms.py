@@ -206,7 +206,7 @@ class BrowserView:
 
             if window.frameless:
                 self.frameless = window.frameless
-                self.FormBorderStyle = 0
+                self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
             if is_cef:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             elif is_chromium:
@@ -339,7 +339,7 @@ class BrowserView:
                     self.old_state = self.WindowState
                     self.old_style = self.FormBorderStyle
                     self.old_location = self.Location
-                    self.FormBorderStyle = 0  # FormBorderStyle.None
+                    self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
                     self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
                     self.WindowState = WinForms.FormWindowState.Maximized
                     self.is_fullscreen = True
@@ -406,7 +406,7 @@ class BrowserView:
 
     @staticmethod
     def alert(message):
-        WinForms.MessageBox.Show(message)
+        WinForms.MessageBox.Show(str(message))
 
 
 def _set_ie_mode():
@@ -664,9 +664,9 @@ def destroy_window(uid):
         window.browser.js_result_semaphore.release()
 
 
-def evaluate_js(script, uid):
+def evaluate_js(script, uid, result_id=None):
     if is_cef:
-        return CEF.evaluate_js(script, uid)
+        return CEF.evaluate_js(script, result_id, uid)
     else:
         return BrowserView.instances[uid].evaluate_js(script)
 

@@ -557,7 +557,7 @@ class BrowserView:
             self.webkit.evaluateJavaScript_completionHandler_(script, handler)
 
         def handler(result, error):
-            JSResult.result = None if result is None or result == 'null' else json.loads(result)
+            JSResult.result = None if result is None else json.loads(result)
             JSResult.result_semaphore.release()
 
         class JSResult:

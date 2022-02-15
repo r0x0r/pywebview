@@ -69,7 +69,13 @@ window.pywebview = {
          }, 100)
     },
 
-    _returnValues: {}
+    _returnValues: {},
+    _asyncCallback: function(result, id) {
+        window.pywebview._bridge.call('asyncCallback', result, id)
+    },
+    _isPromise: function (obj) {
+        return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
+    }
 }
 window.pywebview._createApi(%s);
 

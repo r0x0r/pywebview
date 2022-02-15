@@ -117,26 +117,17 @@ class Browser:
                                    0x0002 | 0x0004 | 0x0010)
         self.browser.NotifyMoveOrResizeStarted()
 
-    def evaluate_js(self, code):
+    def evaluate_js(self, code, unique_id):
         self.loaded.wait()
-        eval_script = """
-            try {{
-                window.external.return_result({0}, '{1}');
-            }} catch(e) {{
-                console.error(e.stack);
-                window.external.return_result(null, '{1}');
-            }}
-        """
 
-        id_ = uuid1().hex[:8]
-        self.eval_events[id_] = Event()
-        self.browser.ExecuteJavascript(eval_script.format(code, id_))
-        self.eval_events[id_].wait()  # result is obtained via JSBridge.return_result
+        self.eval_events[unique_id] = Event()
+        result = self.browser.ExecuteJavascript(code)
+        self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
 
-        result = copy(self.js_bridge.results[id_])
+        result = copy(self.js_bridge.results[unique_id])
 
-        del self.eval_events[id_]
-        del self.js_bridge.results[id_]
+        del self.eval_events[unique_id]
+        del self.js_bridge.results[unique_id]
 
         return result
 
@@ -191,7 +182,7 @@ def _cef_call(func):
         uid = args[-1]
 
         if uid not in instances:
-            logger.debug('CEF window with uid {0} does not exist'.format(uid))
+            logger.error('CEF window with uid {0} does not exist'.format(uid))
             return
 
         return func(*args, **kwargs)
@@ -278,9 +269,9 @@ def load_url(url, uid):
 
 
 @_cef_call
-def evaluate_js(code, uid):
+def evaluate_js(code, result, uid):
     instance = instances[uid]
-    return instance.evaluate_js(code)
+    return instance.evaluate_js(code, result)
 
 
 @_cef_call
