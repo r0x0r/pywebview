@@ -1,5 +1,3 @@
-import os
-import platform
 from setuptools import setup
 
 extras_require = {
@@ -15,7 +13,7 @@ install_requires = [
     'pyobjc-core ; sys_platform == "darwin"',
     'pyobjc-framework-Cocoa ; sys_platform == "darwin"',
     'pyobjc-framework-WebKit ; sys_platform == "darwin"',
-    'QtPy ; sys_platform == "openbsd6" or sys_platform == "win32"',
+    'QtPy ; sys_platform == "openbsd6"',
     'importlib_resources; python_version < "3.7"',
     'proxy_tools',
 ]

@@ -4,10 +4,10 @@ heroImage: logo.png
 heroText:
 actionText: Get Started →
 actionLink: /guide/
-footer: BSD Licensed | Copyright © 2014-present Roman Sirokov
+footer: BSD Licensed | Copyright © 2014–present Roman Sirokov
 ---
 <div class='center version'>
-Current version: <strong>3.5</strong><br/>
+Current version: <strong>3.6</strong><br/>
 <a href='/changelog'>What's new</a>
 </div>
 
