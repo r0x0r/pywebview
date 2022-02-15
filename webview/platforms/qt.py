@@ -9,6 +9,7 @@ import os
 import platform
 import json
 import logging
+from re import S
 import webbrowser
 import socket
 from uuid import uuid1
@@ -408,6 +409,11 @@ class BrowserView(QMainWindow):
 
         if self.windowState() == QtCore.Qt.WindowNoState and e.oldState() in (QtCore.Qt.WindowMinimized, QtCore.Qt.WindowMaximized):
             self.pywebview_window.events.restored.set()
+
+    def resizeEvent(self, e):
+        if self.pywebview_window.initial_width != self.width() or \
+           self.pywebview_window.initial_height != self.height():
+            self.pywebview_window.events.resized.set(self.width(), self.height())
 
     def on_show_window(self):
         self.show()

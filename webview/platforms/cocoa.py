@@ -88,6 +88,11 @@ class BrowserView:
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
 
+        def windowDidResize_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+            size = i.window.frame().size
+            i.pywebview_window.events.resized.set(size.width, size.height)
+
         def windowDidMiniaturize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
             i.pywebview_window.events.minimized.set()

@@ -305,35 +305,40 @@ Toggle fullscreen mode on the active monitor.
 
 Window object has a number of lifecycle events. To subscribe to an event, use the `+=` syntax, e.g. `window.events.loaded += func`. The func will be invoked, when event is fired. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe `window.events.loaded -= func`.
 
-## closed
+## events.closed
 Event fired just before pywebview window is closed.
 
 [Example](/examples/events.html)
 
-## closing
+## events.closing
 Event fired when pywebview window is about to be closed. If confirm_quit is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled.
 
 [Example](/examples/events.html)
 
-## loaded
+## events.loaded
 Event fired when DOM is ready.
 
 [Example](/examples/events.html)
 
-## minimized
+## events.minimized
 Event fired when window is minimzed.
 
 [Example](/examples/events.html)
 
-## restore
+## events.restore
 Event fired when window is restored.
 
 [Example](/examples/events.html)
 
-## maximized
+## events.maximized
 Event fired when window is maximized (fullscreen on macOS)
 
-## shown
+## events.resized
+Event fired when pywebview window is resized. Event handler can either have no or accept (width, height) arguments.
+
+[Example](/examples/events.html)
+
+## events.shown
 Event fired when pywebview window is shown.
 
 [Example](/examples/events.html)

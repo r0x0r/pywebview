@@ -292,6 +292,8 @@ class BrowserView:
             if is_cef:
                 CEF.resize(self.Width, self.Height, self.uid)
 
+            self.pywebview_window.events.resized.set(self.Width, self.Height)
+
         def evaluate_js(self, script):
             id = uuid4().hex[:8]
             def _evaluate_js():
