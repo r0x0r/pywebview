@@ -174,7 +174,7 @@ Destroy the window.
 window.evaluate_js(script, callback=None)
 ```
 
-Execute Javascript code. The last evaluated expression is returned. Promises are resolved and callback function is called with the result. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
+Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
 You must escape \n and \r among other escape sequences if they present in Javascript code. Otherwise they get parsed by Python. r'strings' is a recommended way to load Javascript. For GTK WebKit2 versions older than 2.22, there is a limit of about ~900 characters for a value returned by `evaluate_js`.
 
 ## get_current_url
