@@ -216,7 +216,7 @@ class BrowserView:
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
 
-            if window.transparent: # window transparency is not supported, as webviews are not transparent.
+            if window.transparent: # window transparency is supported only with EdgeChromium
                 self.BackColor = Color.LimeGreen
                 self.TransparencyKey = Color.LimeGreen
                 self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)

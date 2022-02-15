@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.6
+
+_Released 15/02/2022_
+- `New` [All] `minimized`, `maximized`, `restored`, `resized` events. Thanks @BillBridge for sponsorship
+- `New` [All] `evaluate_js` async support. `evaluate_js(code, callback)` can evaluate promises via an optional callback parameter.
+- `New` [All] Events moved to its own `window.events` namespace (e.g. `window.loaded` -> window.events.loaded). Old events are supported throughout 3.x and will be removed in 4.0.
+- `New` [All] `window.resize(width, height, fix_point)` has now an optional parameter fix_point that controls in respect to which point the window is resized.
+- `New` [All] MSHTML and EdgeHTML are deprecated. No further development will be done on these renderers.
+- `New` [Winforms] Focus webview on start or window activate events.
+- `New` [EdgeChromium] Custom user agent support.
+- `New` [EdgeChromium] Window transparency support. Mouse and keyboards events are not supported in transparent. Thanks @odtian
+- `New` [CEF] Ability to pass custom CEF browser settings. Thanks @Rolf-MP.
+- `Improvement` [EdgeChromium] Support non-elevated installations of WebView2. Thanks @ultrararetoad.
+- `Improvement` [EdgeChromium] Better support for Edge Chromium runtime detectiom. Thanks @r-muthu-saravanan.
+- `Improvement` [EdgeChromium] WebView2 runtime updated to
+- `Improvement` [QT] Pyside support via PyQT wrapper. Thanks @tshemeng.
+- `Fix` [Cocoa] Make Ctrl-C (SIGINT) work on Cocoa when running from the command line
+- `Fix` [EdgeChromium] Fix `load_html. Thanks @sbbosco.
+- `Fix` [Cocoa] Fix cancelling of closing the window in the closing event Thanks @fizzadar.
+- `Fix` [QT] Fix QT debug inspector. Thanks @web32.
+- `Fix` [QT] Fix simultaneous calls to JS API.
+
 ## 3.5
 
 _Released 02/08/2021_
