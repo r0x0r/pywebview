@@ -259,6 +259,16 @@ Move window to a new position.
 
 [Example](/examples/move_window.html)
 
+## resize
+
+``` python
+window.resize(width, height, fix_point=FixPoint.NORTH | FixPoint.WEST)
+```
+
+Resize window. Optional parameter fix_point specifies in respect to which point the window is resized. The parameter accepts values of the `webview.window.FixPoint` enum (`NORTH`, `SOUTH`, `EAST`, `WEST`)
+
+[Example](/examples/minimize.html)
+
 
 ## restore
 
