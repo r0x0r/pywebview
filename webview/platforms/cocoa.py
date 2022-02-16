@@ -20,6 +20,7 @@ from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
+from webview.window import FixPoint
 
 settings = {}
 
@@ -66,7 +67,7 @@ class BrowserView:
             msg = i.localization['global.quitConfirmation']
 
             if not i.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
-                should_cancel = not i.closing.set()
+                should_cancel = i.closing.set()
                 if should_cancel:
                     return Foundation.NO
                 else:
@@ -86,6 +87,28 @@ class BrowserView:
 
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
+
+        def windowDidResize_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+            size = i.window.frame().size
+            i.pywebview_window.events.resized.set(size.width, size.height)
+
+        def windowDidMiniaturize_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+            i.pywebview_window.events.minimized.set()
+
+        def windowDidDeminiaturize_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+            i.pywebview_window.events.restored.set()
+
+        def windowDidEnterFullScreen_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+            i.pywebview_window.events.maximized.set()
+
+        def windowDidExitFullScreen_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+            i.pywebview_window.events.restored.set()
+
 
     class JSBridge(AppKit.NSObject):
         def initWithObject_(self, window):
@@ -315,10 +338,10 @@ class BrowserView:
         self._file_name = None
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
-        self.closed = window.closed
-        self.closing = window.closing
-        self.shown = window.shown
-        self.loaded = window.loaded
+        self.closed = window.events.closed
+        self.closing = window.events.closing
+        self.shown = window.events.shown
+        self.loaded = window.events.loaded
         self.confirm_close = window.confirm_close
         self.title = window.title
         self.text_select = window.text_select
@@ -439,6 +462,7 @@ class BrowserView:
             self._add_view_menu()
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
+            AppHelper.installMachInterrupt()
             BrowserView.app.run()
 
     def show(self):
@@ -475,13 +499,17 @@ class BrowserView:
         AppHelper.callAfter(toggle)
         self.is_fullscreen = not self.is_fullscreen
 
-    def resize(self, width, height):
+    def resize(self, width, height, fix_point):
         def _resize():
             frame = self.window.frame()
 
-            # Keep the top left of the window in the same place
-            frame.origin.y += frame.size.height
-            frame.origin.y -= height
+            if fix_point & FixPoint.EAST:
+                # Keep the right of the window in the same place
+                frame.origin.x += frame.size.width - width
+
+            if fix_point & FixPoint.NORTH:
+                # Keep the top of the window in the same place
+                frame.origin.y += frame.size.height - height
 
             frame.size.width = width
             frame.size.height = height
@@ -534,7 +562,7 @@ class BrowserView:
             self.webkit.evaluateJavaScript_completionHandler_(script, handler)
 
         def handler(result, error):
-            JSResult.result = None if result is None or result == 'null' else json.loads(result)
+            JSResult.result = None if result is None else json.loads(result)
             JSResult.result_semaphore.release()
 
         class JSResult:
@@ -838,8 +866,8 @@ def set_on_top(uid, top):
     AppHelper.callAfter(_set_on_top)
 
 
-def resize(width, height, uid):
-    BrowserView.instances[uid].resize(width, height)
+def resize(width, height, uid, fix_point):
+    BrowserView.instances[uid].resize(width, height, fix_point)
 
 
 def minimize(uid):

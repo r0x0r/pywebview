@@ -56,7 +56,7 @@ def js_bridge(window):
 
 
 def evaluate_js(window):
-    child_window = webview.create_window('Window #2', 'https://google.com')
+    child_window = webview.create_window('Window #2', 'https://pywebview.flowrl.com')
     assert child_window.uid != 'MainWindow'
     result1 = window.evaluate_js("""
         document.body.style.backgroundColor = '#212121';
@@ -90,7 +90,7 @@ def load_html(window):
 def load_url(window):
     child_window = webview.create_window('Window #2')
     assert child_window != 'MainWindow'
-    child_window.load_url('https://google.com')
+    child_window.load_url('https://woot.fi')
     child_window.destroy()
 
 

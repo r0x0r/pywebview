@@ -36,9 +36,13 @@ window.pywebview = {
                 case 'cocoa':
                     return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params, id]));
                 case 'qtwebengine':
-                    new QWebChannel(qt.webChannelTransport, function(channel) {
-                        channel.objects.external.call(funcName, JSON.stringify(params), id);
-                    });
+                    if (!window.pywebview._QWebChannel) {
+                        setTimeout(function() {
+                            window.pywebview._QWebChannel.objects.external.call(funcName, JSON.stringify(params), id);
+                        }, 100)
+                    } else {
+                        window.pywebview._QWebChannel.objects.external.call(funcName, JSON.stringify(params), id);
+                    }
                     break;
                 case 'gtk':
                     document.title = JSON.stringify({"type": "invoke", "uid": "%s", "function": funcName, "param": params, "id": id});
@@ -71,8 +75,22 @@ window.pywebview = {
          }, 100)
     },
 
-    _returnValues: {}
+    _returnValues: {},
+    _asyncCallback: function(result, id) {
+        window.pywebview._bridge.call('asyncCallback', result, id)
+    },
+    _isPromise: function (obj) {
+        return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
+    }
 }
 window.pywebview._createApi(%s);
-window.dispatchEvent(new CustomEvent('pywebviewready'));
+
+if (window.pywebview.platform == 'qtwebengine') {
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+        window.pywebview._QWebChannel = channel;
+        window.dispatchEvent(new CustomEvent('pywebviewready'));
+    });
+} else {
+    window.dispatchEvent(new CustomEvent('pywebviewready'));
+}
 """

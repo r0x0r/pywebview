@@ -19,6 +19,7 @@ from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
+from webview.window import FixPoint
 
 logger = logging.getLogger('pywebview')
 
@@ -66,10 +67,13 @@ class BrowserView:
         glib.threads_init()
         self.window = gtk.Window(title=window.title)
 
-        self.shown = window.shown
-        self.loaded = window.loaded
+        self.shown = window.events.shown
+        self.loaded = window.events.loaded
 
         self.localization = window.localization
+
+        self._last_width = window.initial_width
+        self._last_height = window.initial_height
 
         if window.resizable:
             self.window.set_size_request(window.min_size[0], window.min_size[1])
@@ -105,6 +109,9 @@ class BrowserView:
             self.window.connect('delete-event', self.on_destroy)
         else:
             self.window.connect('delete-event', self.close_window)
+
+        self.window.connect('window-state-event', self.on_window_state_change)
+        self.window.connect('size-allocate', self.on_window_resize)
 
         self.js_bridge = BrowserView.JSBridge(window)
         self.text_select = window.text_select
@@ -157,7 +164,7 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
-        should_cancel = self.pywebview_window.closing.set()
+        should_cancel = self.pywebview_window.events.closing.set()
 
         if should_cancel:
             return
@@ -174,7 +181,7 @@ class BrowserView:
         if self.pywebview_window in windows:
             windows.remove(self.pywebview_window)
 
-        self.pywebview_window.closed.set()
+        self.pywebview_window.events.closed.set()
 
         if BrowserView.instances == {}:
             gtk.main_quit()
@@ -189,6 +196,28 @@ class BrowserView:
 
         dialog.destroy()
         return True
+
+    def on_window_state_change(self, window, window_state):
+        if window_state.changed_mask == Gdk.WindowState.ICONIFIED:
+
+            if Gdk.WindowState.ICONIFIED & window_state.new_window_state == Gdk.WindowState.ICONIFIED:
+                self.pywebview_window.events.minimized.set()
+            else:
+                self.pywebview_window.events.restored.set()
+
+        elif window_state.changed_mask == Gdk.WindowState.MAXIMIZED:
+
+            if Gdk.WindowState.MAXIMIZED & window_state.new_window_state == Gdk.WindowState.MAXIMIZED:
+                self.pywebview_window.events.maximized.set()
+            else:
+                self.pywebview_window.events.restored.set()
+
+    def on_window_resize(self, window, allocation):
+
+        if allocation.width != self._last_width or allocation.height != self._last_height:
+            self._last_width = allocation.width
+            self._last_height = allocation.height
+            self.pywebview_window.events.resized.set(allocation.width, allocation.height)
 
     def on_webview_ready(self, arg1, arg2):
         # in webkit2 notify:visible fires after the window was closed and BrowserView object destroyed.
@@ -235,9 +264,9 @@ class BrowserView:
                 webview.run_javascript(code)
 
         except ValueError: # Python 2
-            logger.debug('GTK: JSON decode failed:\n %s' % title)
+            return
         except json.JSONDecodeError: # Python 3
-            logger.debug('GTK: JSON decode failed:\n %s' % title)
+            return
 
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) == webkit.NavigationPolicyDecision:
@@ -286,7 +315,24 @@ class BrowserView:
 
         self.is_fullscreen = not self.is_fullscreen
 
-    def resize(self, width, height):
+    def resize(self, width, height, fix_point):
+        if fix_point & FixPoint.NORTH and fix_point & FixPoint.WEST:
+            self.window.set_gravity(Gdk.Gravity.NORTH_WEST)
+        elif fix_point & FixPoint.NORTH and fix_point & FixPoint.EAST:
+            self.window.set_gravity(Gdk.Gravity.NORTH_EAST)
+        elif fix_point & FixPoint.SOUTH and fix_point & FixPoint.EAST:
+            self.window.set_gravity(Gdk.Gravity.SOUTH_EAST)
+        elif fix_point & FixPoint.SOUTH and fix_point & FixPoint.WEST:
+            self.window.set_gravity(Gdk.Gravity.SOUTH_WEST)
+        elif fix_point & FixPoint.SOUTH:
+            self.window.set_gravity(Gdk.Gravity.SOUTH)
+        elif fix_point & FixPoint.NORTH:
+            self.window.set_gravity(Gdk.Gravity.NORTH)
+        elif fix_point & FixPoint.WEST:
+            self.window.set_gravity(Gdk.Gravity.WEST)
+        elif fix_point & FixPoint.EAST:
+            self.window.set_gravity(Gdk.Gravity.EAST)
+
         self.window.resize(width, height)
 
     def move(self, x, y):
@@ -448,9 +494,9 @@ def set_on_top(uid, top):
     glib.idle_add(_set_on_top)
 
 
-def resize(width, height, uid):
+def resize(width, height, uid, fix_point):
     def _resize():
-        BrowserView.instances[uid].resize(width,height)
+        BrowserView.instances[uid].resize(width, height, fix_point)
     glib.idle_add(_resize)
 
 
@@ -477,7 +523,17 @@ def restore(uid):
 
 
 def get_current_url(uid):
-    return BrowserView.instances[uid].get_current_url()
+    def _get_current_url():
+        result['url'] = BrowserView.instances[uid].get_current_url()
+        semaphore.release()
+
+    result = {}
+    semaphore = Semaphore(0)
+
+    glib.idle_add(_get_current_url)
+    semaphore.acquire()
+
+    return result['url']
 
 
 def load_url(url, uid):
@@ -502,7 +558,6 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         if result is None:
             file_names.append(None)
         else:
-            result = map(unicode, result) if sys.version < '3' else result
             file_names.append(tuple(result))
 
         file_name_semaphore.release()
@@ -525,11 +580,8 @@ def get_position(uid):
     result = {}
     semaphore = Semaphore(0)
 
-    try:
-        _get_position()
-    except:
-        glib.idle_add(_get_position)
-        semaphore.acquire()
+    glib.idle_add(_get_position)
+    semaphore.acquire()
 
     return result['position']
 
@@ -542,11 +594,8 @@ def get_size(uid):
     result = {}
     semaphore = Semaphore(0)
 
-    try:
-        _get_size()
-    except:
-        glib.idle_add(_get_size)
-        semaphore.acquire()
+    glib.idle_add(_get_size)
+    semaphore.acquire()
 
     return result['size']
 

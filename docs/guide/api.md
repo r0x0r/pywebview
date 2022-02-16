@@ -26,7 +26,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
 * `hidden` - Create a window hidden by default. Default is False
 * `frameless` - Create a frameless window. Default is False.
-* `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/guide/api.md#drag-area) for details.
+* `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/guide/security.md#drag-area) for details.
 * `minimized` - Start in minimized mode
 * `on_top` - Set window to be always on top of other windows. Default is False.
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
@@ -171,10 +171,10 @@ Destroy the window.
 ## evaluate_js
 
 ``` python
-window.evaluate_js(script)
+window.evaluate_js(script, callback=None)
 ```
 
-Execute Javascript code. The last evaluated expression is returned. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
+Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
 You must escape \n and \r among other escape sequences if they present in Javascript code. Otherwise they get parsed by Python. r'strings' is a recommended way to load Javascript. For GTK WebKit2 versions older than 2.22, there is a limit of about ~900 characters for a value returned by `evaluate_js`.
 
 ## get_current_url
@@ -195,7 +195,7 @@ window.get_elements(selector)
 
 Return the serialized DOM element by its selector. None if no element matches. For GTK you must have WebKit2 2.22 or greater to use this function.
 
-[Example](/examples/get_element.html)
+[Example](/examples/get_elements.html)
 
 ## hide
 
@@ -259,6 +259,16 @@ Move window to a new position.
 
 [Example](/examples/move_window.html)
 
+## resize
+
+``` python
+window.resize(width, height, fix_point=FixPoint.NORTH | FixPoint.WEST)
+```
+
+Resize window. Optional parameter fix_point specifies in respect to which point the window is resized. The parameter accepts values of the `webview.window.FixPoint` enum (`NORTH`, `SOUTH`, `EAST`, `WEST`)
+
+[Example](/examples/minimize.html)
+
 
 ## restore
 
@@ -303,27 +313,47 @@ Toggle fullscreen mode on the active monitor.
 
 # Events
 
-Window object has a number of lifecycle events. To subscribe to an event, use the `+=` syntax, e.g. `window.loaded += func`. The func will be invoked, when event is fired. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe `window.loaded -= func`.
+Window object has a number of lifecycle events. To subscribe to an event, use the `+=` syntax, e.g. `window.events.loaded += func`. The func will be invoked, when event is fired. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe `window.events.loaded -= func`.
 
-## closed
-Event that is fired just before pywebview window is closed.
-
-[Example](/examples/events.html)
-
-## closing
-Event that is fired when pywebview window is about to be closed. If confirm_quit is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled.
+## events.closed
+Event fired just before pywebview window is closed.
 
 [Example](/examples/events.html)
 
-## shown
-Event that is fired when pywebview window is shown.
+## events.closing
+Event fired when pywebview window is about to be closed. If confirm_quit is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled.
 
 [Example](/examples/events.html)
 
-## loaded
-Event that is fired when DOM is ready.
+## events.loaded
+Event fired when DOM is ready.
 
 [Example](/examples/events.html)
+
+## events.minimized
+Event fired when window is minimzed.
+
+[Example](/examples/events.html)
+
+## events.restore
+Event fired when window is restored.
+
+[Example](/examples/events.html)
+
+## events.maximized
+Event fired when window is maximized (fullscreen on macOS)
+
+## events.resized
+Event fired when pywebview window is resized. Event handler can either have no or accept (width, height) arguments.
+
+[Example](/examples/events.html)
+
+## events.shown
+Event fired when pywebview window is shown.
+
+[Example](/examples/events.html)
+
+
 
 # DOM events
 

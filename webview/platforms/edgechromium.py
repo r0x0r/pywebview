@@ -106,7 +106,10 @@ class EdgeChrome:
     def load_html(self, content, base_uri):
         self.html = content
         self.ishtml = True
-        self.web_view.EnsureCoreWebView2Async(None)
+        if self.web_view.CoreWebView2:
+            self.web_view.CoreWebView2.NavigateToString(self.html)
+        else:
+            self.web_view.EnsureCoreWebView2Async(None)
 
     def load_url(self, url):
         self.ishtml = False
@@ -114,8 +117,8 @@ class EdgeChrome:
 
     def on_script_notify(self, _, args):
         try:
-            func_name, func_param, value_id = json.loads(args.get_WebMessageAsJson())
-
+            return_value = args.get_WebMessageAsJson()
+            func_name, func_param, value_id = json.loads(return_value)
             if func_name == 'alert':
                 WinForms.MessageBox.Show(func_param)
             elif func_name == 'console':
@@ -153,14 +156,10 @@ class EdgeChrome:
     def on_navigation_completed(self, sender, args):
         url = str(sender.Source)
         self.url = None if self.ishtml else url
-        self.web_view.ExecuteScriptAsync('window.alert = (msg) => window.chrome.webview.postMessage(["alert", msg+"", ""])')
-
-        if _debug['mode']:
-            self.web_view.ExecuteScriptAsync('window.console = { log: (msg) => window.chrome.webview.postMessage(["console", msg+"", ""])}')
 
         self.web_view.ExecuteScriptAsync(parse_api_js(self.pywebview_window, 'chromium'))
 
         if not self.pywebview_window.text_select:
             self.web_view.ExecuteScriptAsync(disable_text_select)
 
-        self.pywebview_window.loaded.set()
+        self.pywebview_window.events.loaded.set()

@@ -21,6 +21,7 @@ from webview.guilib import forced_gui_
 from webview.util import parse_file_type, inject_base_uri
 from webview.js import alert
 from webview.screen import Screen
+from webview.window import FixPoint
 
 try:
     import _winreg as winreg  # Python 2
@@ -62,21 +63,36 @@ def _is_edge():
 
 
 def _is_chromium():
-    def edge_build(key):
+    def edge_build(key_type, key, description=''):
         try:
             windows_key = None
-            if machine() == 'x86':
-                windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,  r'SOFTWARE\Microsoft\EdgeUpdate\Clients\\' + key)
+            if machine() == 'x86' or key_type == 'HKEY_CURRENT_USER':
+                path = rf'Microsoft\EdgeUpdate\Clients\{key}'
             else:
-                windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,  r'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\\' + key)
+                path = rf'WOW6432Node\Microsoft\EdgeUpdate\Clients\{key}'
+
+            register_key = rf'Computer\{key_type}\{path}'
+            windows_key = winreg.OpenKey(getattr(winreg, key_type), rf'SOFTWARE\{path}')
             build, _ = winreg.QueryValueEx(windows_key, 'pv')
             build = int(build.replace('.', '')[:6])
 
             return build
         except Exception as e:
+            # Forming extra information
+            extra_info = ''
+            if description != '':
+                extra_info = f'{description} Registry path: {register_key}'
+            else:
+                extra_info = f'Registry path: {register_key}'
+
+            # Adding extra info to error
+            e.strerror += ' - ' + extra_info
             logger.debug(e)
-        finally:
+
+        try:
             winreg.CloseKey(windows_key)
+        except:
+            pass
 
         return 0
 
@@ -88,20 +104,21 @@ def _is_chromium():
             return False
 
         build_versions = [
-            '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', # runtime
-            '{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}', # beta
-            '{0D50BFEC-CD6A-4F9A-964C-C7416E3ACB10}', # dev
-            '{65C35B14-6C1D-4122-AC46-7148CC9D6497}' # canary
+            {'key':'{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'description':'Microsoft Edge WebView2 Runtime'},  # runtime
+            {'key':'{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}', 'description':'Microsoft Edge WebView2 Beta'}, # beta
+            {'key':'{0D50BFEC-CD6A-4F9A-964C-C7416E3ACB10}', 'description':'Microsoft Edge WebView2 Developer'}, # dev
+            {'key':'{65C35B14-6C1D-4122-AC46-7148CC9D6497}', 'description':'Microsoft Edge WebView2 Canary'}, # canary
         ]
 
-        for key in build_versions:
-            build = edge_build(key)
+        for item in build_versions:
+            for key_type in ('HKEY_CURRENT_USER', 'HKEY_LOCAL_MACHINE'):
+                build = edge_build(key_type, item['key'], item['description'])
 
-            if build >= 860622: # Webview2 86.0.622.0
-                return True
+                if build >= 860622: # Webview2 86.0.622.0
+                    return True
 
     except Exception as e:
-        logger.debug(e)
+        logger.exception(e)
     finally:
         winreg.CloseKey(net_key)
 
@@ -129,11 +146,11 @@ elif is_edge:
     from . import edgehtml as Edge
     IWebBrowserInterop = object
 
-    logger.debug('Using WinForms / EdgeHTML')
+    logger.warning('EdgeHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium')
     renderer = 'edgehtml'
 else:
     from . import mshtml as IE
-
+    logger.warning('MSHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium')
     logger.debug('Using WinForms / MSHTML')
     renderer = 'mshtml'
 
@@ -150,13 +167,6 @@ class BrowserView:
             self.Size = Size(window.initial_width, window.initial_height)
             self.MinimumSize = Size(window.min_size[0], window.min_size[1])
 
-            if window.transparent: # window transparency is not supported, as webviews are not transparent.
-                self.BackColor = Color.LimeGreen
-                self.TransparencyKey = Color.LimeGreen
-                self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
-            else:
-                self.BackColor = ColorTranslator.FromHtml(window.background_color)
-
             if window.initial_x is not None and window.initial_y is not None:
                 self.move(window.initial_x, window.initial_y)
             else:
@@ -172,6 +182,8 @@ class BrowserView:
             if window.minimized:
                 self.WindowState = WinForms.FormWindowState.Minimized
 
+            self.old_state =  self.WindowState
+
             # Application icon
             handle = kernel32.GetModuleHandleW(None)
             icon_handle = windll.shell32.ExtractIconW(handle, sys.executable, 0)
@@ -180,10 +192,10 @@ class BrowserView:
                 self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handle))).Clone()
                 windll.user32.DestroyIcon(icon_handle)
 
-            self.closed = window.closed
-            self.closing = window.closing
-            self.shown = window.shown
-            self.loaded = window.loaded
+            self.closed = window.events.closed
+            self.closing = window.events.closing
+            self.shown = window.events.shown
+            self.loaded = window.events.loaded
             self.url = window.real_url
             self.text_select = window.text_select
             self.on_top = window.on_top
@@ -194,7 +206,7 @@ class BrowserView:
 
             if window.frameless:
                 self.frameless = window.frameless
-                self.FormBorderStyle = 0
+                self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
             if is_cef:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             elif is_chromium:
@@ -204,18 +216,32 @@ class BrowserView:
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
 
+            if window.transparent: # window transparency is supported only with EdgeChromium
+                self.BackColor = Color.LimeGreen
+                self.TransparencyKey = Color.LimeGreen
+                self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
+                self.browser.DefaultBackgroundColor = Color.Transparent
+            else:
+                self.BackColor = ColorTranslator.FromHtml(window.background_color)
+
+            self.Activated += self.on_activated
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
             self.FormClosing += self.on_closing
-
-            if is_cef:
-                self.Resize += self.on_resize
+            self.Resize += self.on_resize
 
             self.localization = window.localization
+
+        def on_activated(self, sender, args):
+            if self.browser:
+                self.browser.web_view.Focus()
 
         def on_shown(self, sender, args):
             if not is_cef:
                 self.shown.set()
+
+            if self.browser:
+                self.browser.web_view.Focus()
 
         def on_close(self, sender, args):
             def _shutdown():
@@ -252,7 +278,21 @@ class BrowserView:
                     args.Cancel = True
 
         def on_resize(self, sender, args):
-            CEF.resize(self.Width, self.Height, self.uid)
+            if self.WindowState == WinForms.FormWindowState.Maximized:
+                self.pywebview_window.events.maximized.set()
+
+            if self.WindowState == WinForms.FormWindowState.Minimized:
+                self.pywebview_window.events.minimized.set()
+
+            if self.WindowState == WinForms.FormWindowState.Normal and self.old_state in (WinForms.FormWindowState.Minimized, WinForms.FormWindowState.Maximized):
+                self.pywebview_window.events.restored.set()
+
+            self.old_state = self.WindowState
+
+            if is_cef:
+                CEF.resize(self.Width, self.Height, self.uid)
+
+            self.pywebview_window.events.resized.set(self.Width, self.Height)
 
         def evaluate_js(self, script):
             id = uuid4().hex[:8]
@@ -301,7 +341,7 @@ class BrowserView:
                     self.old_state = self.WindowState
                     self.old_style = self.FormBorderStyle
                     self.old_location = self.Location
-                    self.FormBorderStyle = 0  # FormBorderStyle.None
+                    self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
                     self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
                     self.WindowState = WinForms.FormWindowState.Maximized
                     self.is_fullscreen = True
@@ -334,9 +374,18 @@ class BrowserView:
             else:
                 _set()
 
-        def resize(self, width, height):
-            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, self.Location.X, self.Location.Y,
-                width, height, 64)
+        def resize(self, width, height, fix_point):
+
+            x = self.Location.X
+            y = self.Location.Y
+
+            if fix_point & FixPoint.EAST:
+                x = x + self.Width - width
+
+            if fix_point & FixPoint.SOUTH:
+                y = y + self.Height - height
+
+            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, x, y, width, height, 64)
 
         def move(self, x, y):
             SWP_NOSIZE = 0x0001  # Retains the current size
@@ -357,11 +406,9 @@ class BrowserView:
 
             self.Invoke(Func[Type](_restore))
 
-
-
     @staticmethod
     def alert(message):
-        WinForms.MessageBox.Show(message)
+        WinForms.MessageBox.Show(str(message))
 
 
 def _set_ie_mode():
@@ -588,9 +635,9 @@ def set_on_top(uid, on_top):
     window.on_top = on_top
 
 
-def resize(width, height, uid):
+def resize(width, height, uid, fix_point):
     window = BrowserView.instances[uid]
-    window.resize(width, height)
+    window.resize(width, height, fix_point)
 
 
 def move(x, y, uid):
@@ -619,9 +666,9 @@ def destroy_window(uid):
         window.browser.js_result_semaphore.release()
 
 
-def evaluate_js(script, uid):
+def evaluate_js(script, uid, result_id=None):
     if is_cef:
-        return CEF.evaluate_js(script, uid)
+        return CEF.evaluate_js(script, result_id, uid)
     else:
         return BrowserView.instances[uid].evaluate_js(script)
 

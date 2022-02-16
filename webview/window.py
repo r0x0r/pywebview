@@ -1,7 +1,9 @@
 import inspect
 import logging
 import os
+from enum import Flag, auto
 from functools import wraps
+from uuid import uuid1
 
 from webview.event import Event
 from webview.localization import original_localization
@@ -20,10 +22,10 @@ def _api_call(function, event_type):
     """
     @wraps(function)
     def wrapper(*args, **kwargs):
-        event = args[0].loaded if event_type == 'loaded' else args[0].shown
+        event = args[0].events.loaded if event_type == 'loaded' else args[0].events.shown
 
         try:
-            if not event.wait(15):
+            if not event.wait(20):
                 raise WebViewException('Main window failed to start')
 
             if args[0].gui is None:
@@ -42,6 +44,17 @@ def _shown_call(function):
 
 def _loaded_call(function):
     return _api_call(function, 'loaded')
+
+
+class FixPoint(Flag):
+    NORTH = auto()
+    WEST = auto()
+    EAST = auto()
+    SOUTH = auto()
+
+
+class EventContainer:
+    pass
 
 
 class Window:
@@ -73,19 +86,30 @@ class Window:
 
         self._js_api = js_api
         self._functions = {}
+        self._callbacks = {}
 
-        self.closed = Event()
-        self.closing = Event(True)
-        self.loaded = Event()
-        self.shown = Event()
+        self.events = EventContainer()
+        self.events.closed = Event()
+        self.events.closing = Event(True)
+        self.events.loaded = Event()
+        self.events.shown = Event()
+        self.events.minimized = Event()
+        self.events.maximized = Event()
+        self.events.restored = Event()
+        self.events.resized = Event()
+
+        self._closed = self.events.closed
+        self._closing = self.events.closing
+        self._loaded = self.events.loaded
+        self._shown = self.events.shown
 
         self.gui = None
         self._is_http_server = False
 
     def _initialize(self, gui, multiprocessing, http_server):
         self.gui = gui
-        self.loaded._initialize(multiprocessing)
-        self.shown._initialize(multiprocessing)
+        self.events.loaded._initialize(multiprocessing)
+        self.events.shown._initialize(multiprocessing)
         self._is_http_server = http_server
 
         # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
@@ -104,26 +128,62 @@ class Window:
             self.localization.update(self.localization_override)
 
     @property
+    def shown(self):
+        logger.warning('shown event is deprecated and will be removed in 4.0. Use events.shown instead')
+        return self.events.shown
+
+    @shown.setter
+    def shown(self, value):
+        self.events.shown = value
+
+    @property
+    def loaded(self):
+        logger.warning('loaded event is deprecated and will be removed in 4.0. Use events.loaded instead')
+        return self.events.loaded
+
+    @loaded.setter
+    def shown(self, value):
+        self.events.loaded = value
+
+    @property
+    def closed(self):
+        logger.warning('closed event is deprecated and will be removed in 4.0. Use events.closed instead')
+        return self.events.closed
+
+    @closed.setter
+    def closed(self, value):
+        self.events.closed = value
+
+    @property
+    def closing(self):
+        logger.warning('closing event is deprecated and will be removed in 4.0. Use events.closing instead')
+        return self.events.closed
+
+    @closing.setter
+    def closing(self, value):
+        self.on_closing = value
+
+    @property
     def width(self):
-        self.shown.wait(15)
+        self.events.shown.wait(15)
         width, _ = self.gui.get_size(self.uid)
         return width
 
     @property
     def height(self):
-        self.shown.wait(15)
+        self.events.shown.wait(15)
         _, height = self.gui.get_size(self.uid)
         return height
 
     @property
     def x(self):
-        self.shown.wait(15)
+        self.events.shown.wait(15)
         x, _ = self.gui.get_position(self.uid)
         return x
 
     @property
     def y(self):
-        self.shown.wait(15)
+        self.events.shown.wait(15)
         _, y = self.gui.get_position(self.uid)
         return y
 
@@ -234,16 +294,20 @@ class Window:
         :param height: desired height of target window
         """
         logger.warning('This function is deprecated and will be removed in future releases. Use resize() instead')
-        self.gui.resize(width, height, self.uid)
+        self.resize(width, height)
 
     @_shown_call
-    def resize(self, width, height):
+    def resize(self, width, height, fix_point=FixPoint.NORTH | FixPoint.WEST):
         """
         Resize window
         :param width: desired width of target window
         :param height: desired height of target window
+        :param fix_point: Fix window to specified point during resize.
+            Must be of type FixPoint. Different points can be combined
+            with bitwise operators.
+            Example: FixPoint.NORTH | FixPoint.WEST
         """
-        self.gui.resize(width, height, self.uid)
+        self.gui.resize(width, height, self.uid, fix_point)
 
     @_shown_call
     def minimize(self):
@@ -276,14 +340,42 @@ class Window:
         self.gui.move(x, y, self.uid)
 
     @_loaded_call
-    def evaluate_js(self, script):
+    def evaluate_js(self, script, callback=None):
         """
         Evaluate given JavaScript code and return the result
         :param script: The JavaScript code to be evaluated
         :return: Return value of the evaluated code
+        :callback: Optional callback function that will be called for resolved promises
         """
-        escaped_script = 'JSON.stringify(eval("{0}"))'.format(escape_string(script))
-        return self.gui.evaluate_js(escaped_script, self.uid)
+        unique_id = uuid1().hex
+        self._callbacks[unique_id] = callback
+
+        if self.gui.renderer == 'cef':
+            sync_eval = 'window.external.return_result(JSON.stringify(value), "{0}");'.format(unique_id,)
+        else:
+            sync_eval = 'JSON.stringify(value);'
+
+
+        if callback:
+            escaped_script = """
+                var value = eval("{0}");
+                if (pywebview._isPromise(value)) {{
+                    value.then(function evaluate_async(result) {{
+                        pywebview._asyncCallback(JSON.stringify(result), "{1}")
+                    }});
+                    true;
+                }} else {{ {2} }}
+            """.format(escape_string(script), unique_id, sync_eval)
+        else:
+            escaped_script = """
+                var value = eval("{0}");
+                {1};
+            """.format(escape_string(script), sync_eval)
+
+        if self.gui.renderer == 'cef':
+            return self.gui.evaluate_js(escaped_script, self.uid, unique_id)
+        else:
+            return self.gui.evaluate_js(escaped_script, self.uid)
 
     @_shown_call
     def create_file_dialog(self, dialog_type=10, directory='', allow_multiple=False, save_filename='', file_types=()):
@@ -329,5 +421,5 @@ class Window:
                 'params': params
             })
 
-        if self.loaded.is_set():
+        if self.events.loaded.is_set():
             self.evaluate_js('window.pywebview._createApi(%s)' % func_list)

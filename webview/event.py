@@ -1,7 +1,7 @@
+import inspect
 import multiprocessing
 import threading
 import logging
-import webview
 
 logger = logging.getLogger('pywebview')
 
@@ -20,7 +20,10 @@ class Event:
         def execute():
             for func in self._items:
                 try:
-                    value = func(*args, **kwargs)
+                    if len(inspect.signature(func).parameters.values()) == 0:
+                        value = func()
+                    else:
+                        value = func(*args, **kwargs)
                     return_values.add(value)
 
                 except Exception as e:
