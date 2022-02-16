@@ -3,10 +3,10 @@
 ## 3.6
 
 _Released 15/02/2022_
-- `New` [All] Python 3.6 is the minimum supported version.
+- `New` [All] Python 3.6 is the minimum supported version from now on.
 - `New` [All] `minimized`, `maximized`, `restored`, `resized` events. Thanks @BillBridge for sponsorship.
 - `New` [All] `evaluate_js` async support. `evaluate_js(code, callback)` can evaluate promises via an optional callback parameter.
-- `New` [All] Events moved to its own `window.events` namespace (e.g. `window.loaded` -> window.events.loaded). Old events are supported throughout 3.x and will be removed in 4.0.
+- `New` [All] Events moved to its own `window.events` namespace (e.g. `window.loaded` → `window.events.loaded`). Old events are supported throughout 3.x and will be removed in 4.0.
 - `New` [All] `window.resize(width, height, fix_point)` has now an optional parameter fix_point that controls in respect to which point the window is resized.
 - `New` [All] MSHTML and EdgeHTML are deprecated. No further development will be done on these renderers.
 - `New` [Winforms] Focus webview on start or window activate events.
@@ -21,6 +21,7 @@ _Released 15/02/2022_
 - `Fix` [EdgeChromium] Fix `load_html. Thanks @sbbosco.
 - `Fix` [Cocoa] Fix cancelling of closing the window in the closing event Thanks @fizzadar.
 - `Fix` [QT] Fix simultaneous calls to JS API.
+- `Fix` [GTK] Fix concurrency issues with get_size, get_position and get_current_url.
 
 ## 3.5
 
