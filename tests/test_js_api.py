@@ -8,7 +8,6 @@ def test_js_bridge():
     window = webview.create_window('JSBridge test', js_api=api)
     run_test(webview, window, js_bridge)
 
-
 def test_exception():
     api = Api()
     window = webview.create_window('JSBridge test', js_api=api)

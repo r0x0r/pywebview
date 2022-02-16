@@ -8,7 +8,7 @@ def test_url_load():
 
 
 def url_load(window):
-    window.load_url('https://www.google.org')
+    window.load_url('https://pywebview.flowrl.com')
 
 
 
