@@ -523,7 +523,17 @@ def restore(uid):
 
 
 def get_current_url(uid):
-    return BrowserView.instances[uid].get_current_url()
+    def _get_current_url():
+        result['url'] = BrowserView.instances[uid].get_current_url()
+        semaphore.release()
+
+    result = {}
+    semaphore = Semaphore(0)
+
+    glib.idle_add(_get_current_url)
+    semaphore.acquire()
+
+    return result['url']
 
 
 def load_url(url, uid):
@@ -548,7 +558,6 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         if result is None:
             file_names.append(None)
         else:
-            result = map(unicode, result) if sys.version < '3' else result
             file_names.append(tuple(result))
 
         file_name_semaphore.release()
@@ -571,11 +580,8 @@ def get_position(uid):
     result = {}
     semaphore = Semaphore(0)
 
-    try:
-        _get_position()
-    except:
-        glib.idle_add(_get_position)
-        semaphore.acquire()
+    glib.idle_add(_get_position)
+    semaphore.acquire()
 
     return result['position']
 
@@ -588,11 +594,8 @@ def get_size(uid):
     result = {}
     semaphore = Semaphore(0)
 
-    try:
-        _get_size()
-    except:
-        glib.idle_add(_get_size)
-        semaphore.acquire()
+    glib.idle_add(_get_size)
+    semaphore.acquire()
 
     return result['size']
 

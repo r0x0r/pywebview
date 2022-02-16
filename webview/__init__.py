@@ -90,7 +90,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     global guilib, _debug, _multiprocessing, _http_server, _user_agent
 
     def _create_children(other_windows):
-        if not windows[0].shown.wait(10):
+        if not windows[0].events.shown.wait(10):
             raise WebViewException('Main window failed to load')
 
         for window in other_windows:
