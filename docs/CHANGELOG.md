@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.6.1
+
+_Released 16/02/2022_
+- `Fix` [CEF] Exception on start
+
+
 ## 3.6
 
 _Released 15/02/2022_
