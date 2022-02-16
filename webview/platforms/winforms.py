@@ -208,6 +208,7 @@ class BrowserView:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
             if is_cef:
+                self.browser = None
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window)
@@ -216,7 +217,7 @@ class BrowserView:
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
 
-            if window.transparent: # window transparency is supported only with EdgeChromium
+            if window.transparent and self.browser: # window transparency is supported only with EdgeChromium
                 self.BackColor = Color.LimeGreen
                 self.TransparencyKey = Color.LimeGreen
                 self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
@@ -309,6 +310,7 @@ class BrowserView:
                 result = self.browser.js_results[id]
                 self.browser.js_results.pop(id)
                 return result
+
             return self.browser.js_result
 
         def load_html(self, content, base_uri):
@@ -322,9 +324,6 @@ class BrowserView:
                 self.browser.load_url(url)
 
             self.Invoke(Func[Type](_load_url))
-
-        def get_current_url(self):
-            return self.browser.get_current_url
 
         def hide(self):
             self.Invoke(Func[Type](self.Hide))
