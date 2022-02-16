@@ -36,7 +36,13 @@ window.pywebview = {
                 case 'cocoa':
                     return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params, id]));
                 case 'qtwebengine':
-                    window.pywebview._QWebChannel.objects.external.call(funcName, JSON.stringify(params), id);
+                    if (!window.pywebview._QWebChannel) {
+                        setTimeout(function() {
+                            window.pywebview._QWebChannel.objects.external.call(funcName, JSON.stringify(params), id);
+                        }, 100)
+                    } else {
+                        window.pywebview._QWebChannel.objects.external.call(funcName, JSON.stringify(params), id);
+                    }
                     break;
                 case 'gtk':
                     document.title = JSON.stringify({"type": "invoke", "uid": "%s", "function": funcName, "param": params, "id": id});

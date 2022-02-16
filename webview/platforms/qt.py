@@ -9,7 +9,6 @@ import os
 import platform
 import json
 import logging
-from re import S
 import webbrowser
 import socket
 from uuid import uuid1
@@ -17,7 +16,7 @@ from copy import deepcopy
 from threading import Semaphore, Event
 
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
-from webview.window import Window
+from webview.window import Window, FixPoint
 from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
@@ -66,7 +65,7 @@ class BrowserView(QMainWindow):
     hide_trigger = QtCore.Signal()
     show_trigger = QtCore.Signal()
     fullscreen_trigger = QtCore.Signal()
-    window_size_trigger = QtCore.Signal(int, int)
+    window_size_trigger = QtCore.Signal(int, int, FixPoint)
     window_move_trigger = QtCore.Signal(int, int)
     window_minimize_trigger = QtCore.Signal()
     window_restore_trigger = QtCore.Signal()
