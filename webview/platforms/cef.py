@@ -80,10 +80,11 @@ renderer = 'cef'
 
 
 class Browser:
-    def __init__(self, window, handle, browser):
+    def __init__(self, window, handle, browser, parent):
         self.window = window
         self.handle = handle
         self.browser = browser
+        self.parent = parent
         self.text_select = window.text_select
         self.uid = window.uid
         self.loaded = window.events.loaded
@@ -113,7 +114,13 @@ class Browser:
         self.browser.CloseBrowser(True)
 
     def resize(self, width, height):
-        windll.user32.SetWindowPos(self.inner_hwnd, 0, 0, 0, width - 16, height - 38,
+        screen = self.parent.RectangleToScreen(self.parent.ClientRectangle)
+
+        height_diff = screen.Top - self.parent.Top + 12
+        width_diff = self.parent.Right - screen.Right + 12
+
+        windll.user32.SetWindowPos(self.inner_hwnd, 0, 0, 0, 
+                                   width - width_diff, height - height_diff,
                                    0x0002 | 0x0004 | 0x0010)
         self.browser.NotifyMoveOrResizeStarted()
 
@@ -231,7 +238,7 @@ def init(window):
         _initialized = True
 
 
-def create_browser(window, handle, alert_func):
+def create_browser(window, handle, alert_func, parent):
     def _create():
         real_url = 'data:text/html,{0}'.format(window.html) if window.html else window.real_url or 'data:text/html,{0}'.format(default_html)
 
@@ -239,7 +246,7 @@ def create_browser(window, handle, alert_func):
         all_browser_settings = dict(default_browser_settings, **browser_settings)
 
         cef_browser = cef.CreateBrowserSync(window_info=window_info, settings=all_browser_settings, url=real_url)
-        browser = Browser(window, handle, cef_browser)
+        browser = Browser(window, handle, cef_browser, parent)
 
         bindings = cef.JavascriptBindings()
         bindings.SetObject('external', browser.js_bridge)

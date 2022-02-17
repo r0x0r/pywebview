@@ -209,7 +209,7 @@ class BrowserView:
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
             if is_cef:
                 self.browser = None
-                CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
+                CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert, self)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window)
             elif is_edge:
