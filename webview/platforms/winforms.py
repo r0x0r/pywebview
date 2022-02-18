@@ -168,7 +168,8 @@ class BrowserView:
             self.MinimumSize = Size(window.min_size[0], window.min_size[1])
 
             if window.initial_x is not None and window.initial_y is not None:
-                self.move(window.initial_x, window.initial_y)
+                self.StartPosition = WinForms.FormStartPosition.Manual
+                self.Location = Point(window.initial_x, window.initial_y)
             else:
                 self.StartPosition = WinForms.FormStartPosition.CenterScreen
 
