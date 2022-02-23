@@ -58,22 +58,16 @@ class BrowserView:
     app = AppKit.NSApplication.sharedApplication()
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
 
+    class AppDelegate(AppKit.NSObject):
+        def applicationShouldTerminate_(self, app):
+            for i in BrowserView.instances.values():
+                i.closing.set()
+            return Foundation.YES
+
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
-
-            quit = i.localization['global.quit']
-            cancel = i.localization['global.cancel']
-            msg = i.localization['global.quitConfirmation']
-
-            if not i.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
-                should_cancel = i.closing.set()
-                if should_cancel:
-                    return Foundation.NO
-                else:
-                    return Foundation.YES
-            else:
-                return Foundation.NO
+            return BrowserView.should_close(i)
 
         def windowWillClose_(self, notification):
             # Delete the closed instance from the dict
@@ -394,6 +388,9 @@ class BrowserView:
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
+        self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
+
+        BrowserView.app.setDelegate_(self._appDelegate)
         self.webkit.setUIDelegate_(self._browserDelegate)
         self.webkit.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
@@ -759,6 +756,21 @@ class BrowserView:
             return True
         else:
             return False
+
+    @staticmethod
+    def should_close(window):
+        quit = window.localization['global.quit']
+        cancel = window.localization['global.cancel']
+        msg = window.localization['global.quitConfirmation']
+
+        if not window.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
+            should_cancel = window.events.closing.set()
+            if should_cancel:
+                return Foundation.NO
+            else:
+                return Foundation.YES
+        else:
+            return Foundation.NO
 
     @staticmethod
     def print_webview(webview):
