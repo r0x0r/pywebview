@@ -145,6 +145,9 @@ class Browser:
         self.loaded.clear()
         self.browser.LoadUrl('data:text/html,{0}'.format(html))
 
+    def focus(self):
+        self.browser.SendFocusEvent(True)
+
 
 def find_instance(browser):
     for instance in instances.values():
@@ -254,6 +257,12 @@ def create_browser(window, handle, alert_func):
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)
     cef.PostTask(cef.TID_UI, _create)
+
+
+@_cef_call
+def focus(uid):
+    instance = instances[uid]
+    instance.focus()
 
 
 @_cef_call

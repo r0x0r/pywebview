@@ -238,11 +238,14 @@ class BrowserView:
             if self.browser:
                 self.browser.web_view.Focus()
 
-        def on_shown(self, sender, args):
-            if not is_cef:
-                self.shown.set()
+            if is_cef:
+                CEF.focus(self.uid)
 
-            if self.browser:
+        def on_shown(self, sender, args):
+            if is_cef:
+                CEF.focus(self.uid)
+            else:
+                self.shown.set()
                 self.browser.web_view.Focus()
 
         def on_close(self, sender, args):
