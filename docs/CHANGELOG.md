@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.6.2
+
+_Released 05/03/2022_
+### 🐞 Bug fixes
+
+- [Cocoa] Fix closing window
+
 ## 3.6.1
 
 _Released 16/02/2022_
