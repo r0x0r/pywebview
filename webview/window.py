@@ -3,12 +3,12 @@ import logging
 import os
 from enum import Flag, auto
 from functools import wraps
+from urllib.parse import urljoin
 from uuid import uuid1
 
 from webview.event import Event
 from webview.localization import original_localization
-from webview.serving import resolve_url
-from webview.util import base_uri, parse_file_type, escape_string, make_unicode, WebViewException
+from webview.util import base_uri, parse_file_type, is_local_url, escape_string, WebViewException
 from .js import css
 
 
@@ -62,9 +62,9 @@ class Window:
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
                  background_color, js_api, text_select, transparent, localization):
         self.uid = uid
-        self.title = make_unicode(title)
+        self.title = title
         self.original_url = None if html else url  # original URL provided by user
-        self.real_url = None  # transformed URL for internal HTTP server
+        self.real_url = None
         self.html = html
         self.initial_width = width
         self.initial_height = height
@@ -104,24 +104,14 @@ class Window:
         self._shown = self.events.shown
 
         self.gui = None
-        self._is_http_server = False
 
-    def _initialize(self, gui, multiprocessing, http_server):
+    def _initialize(self, gui, url_prefix):
         self.gui = gui
-        self.events.loaded._initialize(multiprocessing)
-        self.events.shown._initialize(multiprocessing)
-        self._is_http_server = http_server
-
-        # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
-        if (
-            gui.renderer == "edgehtml" and
-            self.original_url and
-            isinstance(self.original_url, str) and
-            (self.original_url.startswith('file://') or '://' not in self.original_url)
-        ):
-            self._is_http_server = True
-
-        self.real_url = resolve_url(self.original_url, self._is_http_server)
+        if is_local_url(self.original_url) and url_prefix:
+            filename = os.path.basename(self.original_url)
+            self.real_url = urljoin(url_prefix, filename)
+        else:
+            self.real_url = self.original_url
 
         self.localization = original_localization.copy()
         if self.localization_override:
@@ -243,7 +233,6 @@ class Window:
         :param uid: uid of the target instance
         """
 
-        content = make_unicode(content)
         self.gui.load_html(content, base_uri, self.uid)
 
     @_loaded_call

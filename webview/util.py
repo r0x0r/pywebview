@@ -41,6 +41,9 @@ class WebViewException(Exception):
     pass
 
 
+def is_local_url(url):
+    return not url.startswith('http://') and not url.startswith('https://')
+
 def get_app_root():
     """
     Gets the file root of the application.
@@ -76,12 +79,6 @@ def base_uri(relative_path=''):
 
     return 'file://%s' % os.path.join(base_path, relative_path)
 
-
-def convert_string(string):
-    if sys.version < '3':
-        return unicode(string)
-    else:
-        return str(string)
 
 
 def parse_file_type(file_type):
@@ -183,19 +180,6 @@ def escape_string(string):
         .replace('"', r'\"') \
         .replace('\n', r'\n')\
         .replace('\r', r'\r')
-
-
-def make_unicode(string):
-    """
-    Python 2 and 3 compatibility function that converts a string to Unicode. In case of Unicode, the string is returned
-    unchanged
-    :param string: input string
-    :return: Unicode string
-    """
-    if sys.version < '3' and isinstance(string, str):
-        return unicode(string.decode('utf-8'))
-
-    return string
 
 
 def escape_line_breaks(string):

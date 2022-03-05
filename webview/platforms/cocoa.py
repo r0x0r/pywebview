@@ -67,7 +67,7 @@ class BrowserView:
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
-            return BrowserView.should_close(i)
+            return BrowserView.should_close(i.pywebview_window)
 
         def windowWillClose_(self, notification):
             # Delete the closed instance from the dict
