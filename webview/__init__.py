@@ -20,20 +20,18 @@ import threading
 from uuid import uuid4
 from proxy_tools import module_property
 
+import webview.http as http
+
 from webview.event import Event
 from webview.guilib import initialize
 from webview.util import _token, base_uri, parse_file_type, is_local_url, escape_string, escape_line_breaks, WebViewException
-from webview.http import start_server
 from webview.window import Window
 from .localization import original_localization
-from .wsgi import Routing, StaticFiles, StaticResources
 
 
 __all__ = (
     # Stuff that's here
     'start', 'create_window', 'token', 'screens'
-    # From wsgi
-    'Routing', 'StaticFiles', 'StaticResources',
     # From event
     'Event',
     # from util
@@ -119,20 +117,24 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         if is_local_url(w.original_url)
     ]
 
-    prefix = start_server(urls) if http_server and has_local_urls else None
+    has_file_urls = not not [
+        w.original_url
+        for w in windows
+        if w.original_url.startswith('file://')
+    ]
+
+    if gui == 'edgehtml' and has_file_urls:
+        raise WebViewException('file:// urls are not supported with EdgeHTML')
+
+    if http_server or has_local_urls or gui == 'gtk':
+        prefix, common_path = http.start_server(urls)
+    else:
+        prefix, common_path = None, None
+
     guilib = initialize(gui)
 
-    # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
-    # if (
-    #     gui.renderer == "edgehtml" and
-    #     self.original_url and
-    #     isinstance(self.original_url, str) and
-    #     (self.original_url.startswith('file://') or '://' not in self.original_url)
-    # ):
-    #     self._is_http_server = True
-
     for window in windows:
-        window._initialize(guilib, prefix)
+        window._initialize(guilib, prefix, common_path)
 
     if len(windows) > 1:
         t = threading.Thread(target=_create_children, args=(windows[1:],))
@@ -191,7 +193,15 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     windows.append(window)
 
     if threading.current_thread().name != 'MainThread' and guilib:
-        window._initialize(guilib, _http_server)
+        if guilib.gui == 'edgehtml' and url.startswith('file://'):
+            raise WebViewException('file:// urls are not supported with EdgeHTML')
+
+        if is_local_url(url) and not http.running:
+            url_prefix, common_path = http.start_server([url])
+        else:
+            url_prefix, common_path = None, None
+
+        window._initialize(guilib, url_prefix, common_path)
         guilib.create_window(window)
 
     return window

@@ -19,6 +19,7 @@ from threading import Thread
 from uuid import uuid4
 
 import webview
+import webview.http as http
 
 from .js import api, npo, dom, event, drag
 
@@ -42,7 +43,7 @@ class WebViewException(Exception):
 
 
 def is_local_url(url):
-    return not url.startswith('http://') and not url.startswith('https://')
+    return not not url and not url.startswith('http://') and not url.startswith('https://')
 
 def get_app_root():
     """
@@ -97,10 +98,7 @@ def parse_file_type(file_type):
 
 def parse_api_js(window, platform, uid=''):
     def get_args(f):
-        try:
-            params = list(inspect.getfullargspec(f).args) # Python 3
-        except AttributeError:
-            params = list(inspect.getargspec(f).args)  # Python 2
+        params = list(inspect.getfullargspec(f).args)
         return params
 
     def generate_func():
@@ -125,7 +123,11 @@ def parse_api_js(window, platform, uid=''):
         logger.exception(e)
         func_list = []
 
-    js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src + drag.src % webview.DRAG_REGION_SELECTOR
+    if platform == 'gtk':
+        http
+    js_code = npo.src + event.src + \
+        api.src % { 'token': _token, 'platform': platform, 'uid': uid, 'func_list': func_list } + \
+        dom.src + drag.src % webview.DRAG_REGION_SELECTOR
     return js_code
 
 

@@ -4,22 +4,19 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
-import sys
 import logging
 import json
 import webbrowser
-try:
-    from urllib.parse import unquote
-except ImportError:
-    from urllib import unquote
 
 from uuid import uuid1
-from threading import Event, Semaphore
+from threading import Semaphore
+
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
 from webview.window import FixPoint
+import webview.http as http
 
 logger = logging.getLogger('pywebview')
 
@@ -119,8 +116,9 @@ class BrowserView:
         self.webview = webkit.WebView()
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('load_changed', self.on_load_finish)
-        self.webview.connect('notify::title', self.on_title_change)
         self.webview.connect('decide-policy', self.on_navigation)
+
+        http.js_callback = self.on_js_callback
 
         user_agent = settings.get('user_agent') or _user_agent
         if user_agent:
@@ -236,11 +234,10 @@ class BrowserView:
                 webview.run_javascript(disable_text_select)
             self._set_js_api()
 
-    def on_title_change(self, webview, title):
-        title = webview.get_title()
+    def on_js_callback(self, params):
 
         try:
-            js_data = json.loads(title)
+            js_data = json.loads(params)
 
             if 'type' not in js_data:
                 return
@@ -260,11 +257,9 @@ class BrowserView:
                 return_val = self.js_bridge.call(func_name, param, value_id)
 
                 # Give back the return value to JS as a string
-                code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
-                webview.run_javascript(code)
+                # code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
+                return return_val
 
-        except ValueError: # Python 2
-            return
         except json.JSONDecodeError: # Python 3
             return
 
@@ -433,7 +428,18 @@ class BrowserView:
         self.js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
 
         if old_webkit:
-            script = 'document.title = JSON.stringify({{"type": "eval", "uid": "{0}", "result": {1}}})'.format(unique_id, script)
+            script = """
+                fetch("%(js_api_endpoint)s", {
+                    body: "JSON.stringify({
+                        "type": "eval",
+                        "uid": "%(unique_id)s",
+                        "result": %(script)s
+                    })
+                })""" % {
+                    'js_api_endpoint': http.js_api_endpoint,
+                    'unique_id': unique_id,
+                    'script':  script
+                }
 
         self.loaded.wait()
         glib.idle_add(_evaluate_js)
