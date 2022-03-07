@@ -46,7 +46,8 @@ window.pywebview = {
                     break;
                 case 'gtk':
                     return fetch('%(js_api_endpoint)s', {
-                        body: JSON.stringify({"type": "invoke", "uid": "%(uid)s", "function": funcName, "param": params, "id": id});
+                        method: 'POST',
+                        body: JSON.stringify({"type": "invoke", "uid": "%(uid)s", "function": funcName, "param": params, "id": id})
                     })
             }
         }

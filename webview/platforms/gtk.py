@@ -234,11 +234,8 @@ class BrowserView:
                 webview.run_javascript(disable_text_select)
             self._set_js_api()
 
-    def on_js_callback(self, params):
-
+    def on_js_callback(self, js_data):
         try:
-            js_data = json.loads(params)
-
             if 'type' not in js_data:
                 return
 

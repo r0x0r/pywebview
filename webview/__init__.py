@@ -120,18 +120,18 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     has_file_urls = not not [
         w.original_url
         for w in windows
-        if w.original_url.startswith('file://')
+        if w.original_url and w.original_url.startswith('file://')
     ]
 
     if gui == 'edgehtml' and has_file_urls:
         raise WebViewException('file:// urls are not supported with EdgeHTML')
 
-    if http_server or has_local_urls or gui == 'gtk':
+    guilib = initialize(gui)
+
+    if http_server or has_local_urls or guilib.renderer == 'gtkwebkit2':
         prefix, common_path = http.start_server(urls)
     else:
         prefix, common_path = None, None
-
-    guilib = initialize(gui)
 
     for window in windows:
         window._initialize(guilib, prefix, common_path)
@@ -193,9 +193,6 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     windows.append(window)
 
     if threading.current_thread().name != 'MainThread' and guilib:
-        if guilib.gui == 'edgehtml' and url.startswith('file://'):
-            raise WebViewException('file:// urls are not supported with EdgeHTML')
-
         if is_local_url(url) and not http.running:
             url_prefix, common_path = http.start_server([url])
         else:
