@@ -19,15 +19,10 @@ import time
 from webview import windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.guilib import forced_gui_
 from webview.util import parse_file_type, inject_base_uri
-from webview.js import alert
 from webview.screen import Screen
 from webview.window import FixPoint
 
-try:
-    import _winreg as winreg  # Python 2
-except ImportError:
-    import winreg  # Python 3
-
+import winreg
 import clr
 
 clr.AddReference('System.Windows.Forms')
@@ -44,22 +39,6 @@ kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 logger = logging.getLogger('pywebview')
 
 settings = {}
-
-def _is_edge():
-    try:
-        net_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full')
-        version, _ = winreg.QueryValueEx(net_key, 'Release')
-
-        windows_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows NT\CurrentVersion')
-        build, _ = winreg.QueryValueEx(windows_key, 'CurrentBuild')
-        build = int(build)
-
-        return version >= 394802 and build >= 17134 # .NET 4.6.2 + Windows 10 1803
-    except Exception as e:
-        logger.exception(e)
-        return False
-    finally:
-        winreg.CloseKey(net_key)
 
 
 def _is_chromium():
@@ -126,9 +105,7 @@ def _is_chromium():
 
 
 is_cef = forced_gui_ == 'cef'
-is_chromium = not is_cef and _is_chromium() and forced_gui_ not in ['mshtml', 'edgehtml']
-is_edge = not is_chromium and _is_edge() and forced_gui_ != 'mshtml'
-
+is_chromium = not is_cef and _is_chromium() and forced_gui_ != 'mshtml'
 
 if is_cef:
     from . import cef as CEF
@@ -142,12 +119,6 @@ elif is_chromium:
 
     logger.debug('Using WinForms / Chromium')
     renderer = 'edgechromium'
-elif is_edge:
-    from . import edgehtml as Edge
-    IWebBrowserInterop = object
-
-    logger.warning('EdgeHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium')
-    renderer = 'edgehtml'
 else:
     from . import mshtml as IE
     logger.warning('MSHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium')
@@ -213,8 +184,6 @@ class BrowserView:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window)
-            elif is_edge:
-                self.browser = Edge.EdgeHTML(self, window)
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
 
@@ -302,13 +271,13 @@ class BrowserView:
         def evaluate_js(self, script):
             id = uuid4().hex[:8]
             def _evaluate_js():
-                self.browser.evaluate_js(script, id) if is_chromium or is_edge else self.browser.evaluate_js(script)
+                self.browser.evaluate_js(script, id) if is_chromium else self.browser.evaluate_js(script)
 
             self.loaded.wait()
             self.Invoke(Func[Type](_evaluate_js))
             self.browser.js_result_semaphore.acquire()
 
-            if is_chromium or is_edge:
+            if is_chromium:
                 if self.browser.js_results.get(id, None) is None:
                     time.sleep(.1)
                 result = self.browser.js_results[id]
@@ -499,7 +468,7 @@ def create_window(window):
     app = WinForms.Application
 
     if window.uid == 'master':
-        if not is_edge and not is_cef and not is_chromium:
+        if not is_cef and not is_chromium:
             _set_ie_mode()
 
         if sys.getwindowsversion().major >= 6:
