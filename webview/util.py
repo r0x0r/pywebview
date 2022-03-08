@@ -19,7 +19,7 @@ from threading import Thread
 from uuid import uuid4
 
 import webview
-import webview.http as http
+import http
 
 from .js import api, npo, dom, event, drag
 
