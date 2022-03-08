@@ -60,7 +60,7 @@ def asset(file):
 
 
 
-def start_server(urls):
+def start_server(urls, http_port):
     from webview import _debug
     global address, root_path, running, js_api_endpoint
 
@@ -68,7 +68,7 @@ def start_server(urls):
     common_path = os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else None
     root_path = abspath(common_path) if common_path is not None else None
 
-    port = _get_random_port()
+    port = http_port or _get_random_port()
     t = threading.Thread(target=lambda: bottle.run(port=port, quiet=not _debug), daemon=True)
     t.start()
 

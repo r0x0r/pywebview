@@ -19,8 +19,7 @@ from threading import Thread
 from uuid import uuid4
 
 import webview
-import http
-
+from webview import http
 from .js import api, npo, dom, event, drag
 
 _token = uuid4().hex
@@ -123,8 +122,6 @@ def parse_api_js(window, platform, uid=''):
         logger.exception(e)
         func_list = []
 
-    if platform == 'gtk':
-        http
     js_code = npo.src + event.src + \
         api.src % { 'token': _token, 'platform': platform, 'uid': uid, 'func_list': func_list, 'js_api_endpoint': http.js_api_endpoint } + \
         dom.src + drag.src % webview.DRAG_REGION_SELECTOR
