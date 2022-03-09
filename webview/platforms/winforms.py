@@ -16,7 +16,7 @@ from uuid import uuid4
 from platform import machine
 import time
 
-from webview import windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import windows, _incognito, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.guilib import forced_gui_
 from webview.util import parse_file_type, inject_base_uri
 from webview.screen import Screen
@@ -125,6 +125,17 @@ else:
     logger.debug('Using WinForms / MSHTML')
     renderer = 'mshtml'
 
+if not _incognito:
+    try:
+        app_data = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+        cache_dir = os.path.join(app_data, 'pywebview')
+
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+    except Exception as e:
+        logger.exception(f'Cache directory {cache_dir} creation failed')
+else:
+    cache_dir = None
 
 class BrowserView:
     instances = {}
@@ -183,7 +194,7 @@ class BrowserView:
                 self.browser = None
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             elif is_chromium:
-                self.browser = Chromium.EdgeChrome(self, window)
+                self.browser = Chromium.EdgeChrome(self, window, cache_dir)
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
 
@@ -211,9 +222,7 @@ class BrowserView:
                 CEF.focus(self.uid)
 
         def on_shown(self, sender, args):
-            if is_cef:
-                CEF.focus(self.uid)
-            else:
+            if not is_cef:
                 self.shown.set()
                 self.browser.web_view.Focus()
 
@@ -391,10 +400,7 @@ def _set_ie_mode():
     behaviour.
     """
 
-    try:
-        import _winreg as winreg  # Python 2
-    except ImportError:
-        import winreg  # Python 3
+    import winreg
 
     def get_ie_mode():
         """
@@ -475,7 +481,7 @@ def create_window(window):
             windll.user32.SetProcessDPIAware()
 
         if is_cef:
-            CEF.init(window)
+            CEF.init(window, cache_dir)
 
         app.EnableVisualStyles()
         app.SetCompatibleTextRenderingDefault(False)

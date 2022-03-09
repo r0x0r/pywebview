@@ -16,7 +16,7 @@ import WebKit
 from PyObjCTools import AppHelper
 from objc import _objc, nil, super, registerMetaDataForSelector
 
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, windows
+from webview import _debug, _user_agent, _incognito, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
@@ -369,6 +369,46 @@ class BrowserView:
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
 
+        self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
+        self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
+        self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
+
+        BrowserView.app.setDelegate_(self._appDelegate)
+        self.webkit.setUIDelegate_(self._browserDelegate)
+        self.webkit.setNavigationDelegate_(self._browserDelegate)
+
+        config = self.webkit.configuration()
+        config.userContentController().addScriptMessageHandler_name_(self._browserDelegate, 'browserDelegate')
+
+        if _incognito:
+            datastore = WebKit.WKWebsiteDataStore.nonPersistentDataStore()
+
+            def show_cookies(cookies):
+                print(cookies)
+
+            # for datatype in WebKit.WKWebsiteDataStore.allWebsiteDataTypes():
+            #     datastore.removeDataOfTypes_forDataRecords_completionHandler_(datatype)
+            config.setWebsiteDataStore_(datastore)
+            config.websiteDataStore().httpCookieStore().getAllCookies_(show_cookies)
+        else:
+            config.setWebsiteDataStore_(WebKit.WKWebsiteDataStore.defaultDataStore())
+
+        try:
+            config.preferences().setValue_forKey_(Foundation.NO, 'backspaceKeyNavigationEnabled')
+        except:
+            pass
+
+        try:
+            config.preferences().setValue_forKey_(True, 'allowFileAccessFromFileURLs')
+        except:
+            pass
+
+        if _debug['mode']:
+            config.preferences().setValue_forKey_(Foundation.YES, 'developerExtrasEnabled')
+
+        self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
+        config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
+
         user_agent = settings.get('user_agent') or _user_agent
         if user_agent:
             self.webkit.setCustomUserAgent_(user_agent)
@@ -386,13 +426,6 @@ class BrowserView:
         else:
             self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color))
 
-        self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
-        self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
-        self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
-
-        BrowserView.app.setDelegate_(self._appDelegate)
-        self.webkit.setUIDelegate_(self._browserDelegate)
-        self.webkit.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
 
         self.frameless = window.frameless
@@ -416,20 +449,6 @@ class BrowserView:
             self.webkit.evaluateJavaScript_completionHandler_('', lambda a, b: None)
         except TypeError:
             registerMetaDataForSelector(b'WKWebView', b'evaluateJavaScript:completionHandler:', _eval_js_metadata)
-
-        config = self.webkit.configuration()
-        config.userContentController().addScriptMessageHandler_name_(self._browserDelegate, 'browserDelegate')
-
-        try:
-            config.preferences().setValue_forKey_(Foundation.NO, 'backspaceKeyNavigationEnabled')
-        except:
-            pass
-
-        if _debug['mode']:
-            config.preferences().setValue_forKey_(Foundation.YES, 'developerExtrasEnabled')
-
-        self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
-        config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
         if window.real_url:
             self.url = window.real_url

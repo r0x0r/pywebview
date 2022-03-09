@@ -193,7 +193,7 @@ def _cef_call(func):
     return wrapper
 
 
-def init(window):
+def init(window, cache_dir):
     global _initialized
 
     if not _initialized:
@@ -216,6 +216,9 @@ def init(window):
 
         if _user_agent:
             default_settings['user_agent'] = _user_agent
+
+        if cache_dir:
+            default_settings['cache_path'] = cache_dir
 
         try:  # set paths under Pyinstaller's one file mode
             default_settings.update({
@@ -252,6 +255,7 @@ def create_browser(window, handle, alert_func):
         cef_browser.SetClientHandler(LoadHandler())
 
         instances[window.uid] = browser
+        cef_browser.SendFocusEvent(True)
         window.events.shown.set()
 
     window_info = cef.WindowInfo()
