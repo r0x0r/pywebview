@@ -16,7 +16,7 @@ from uuid import uuid4
 from platform import machine
 import time
 
-from webview import windows, _incognito, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
+from webview import windows, _private_mode, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.guilib import forced_gui_
 from webview.util import parse_file_type, inject_base_uri
 from webview.screen import Screen
@@ -125,10 +125,10 @@ else:
     logger.debug('Using WinForms / MSHTML')
     renderer = 'mshtml'
 
-if not _incognito:
+if not _private_mode:
     try:
         app_data = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-        cache_dir = os.path.join(app_data, 'pywebview')
+        cache_dir = _storage_path or os.path.join(app_data, 'pywebview')
 
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)

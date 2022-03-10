@@ -14,7 +14,7 @@ import webbrowser
 from threading import Semaphore
 from platform import architecture
 
-from webview import _debug, _user_agent, _incognito
+from webview import _debug, _user_agent, _private_mode
 from webview.util import parse_api_js, interop_dll_path, default_html, js_bridge_call
 from webview.js import alert
 from webview.js.css import disable_text_select
@@ -144,7 +144,7 @@ class EdgeChrome:
         if _user_agent:
             settings.UserAgent = _user_agent
 
-        if _incognito:
+        if _private_mode:
             # cookies persist even if UserDataFolder is in memory. We have to delete cookies manually.
             sender.CoreWebView2.CookieManager.DeleteAllCookies()
 

@@ -13,7 +13,6 @@ http://github.com/r0x0r/pywebview/
 
 
 import logging
-import sys
 import os
 import re
 import threading
@@ -22,7 +21,6 @@ from proxy_tools import module_property
 
 import webview.http as http
 
-from webview.event import Event
 from webview.guilib import initialize
 from webview.util import _token, base_uri, parse_file_type, is_local_url, escape_string, escape_line_breaks, WebViewException
 from webview.window import Window
@@ -55,7 +53,6 @@ FOLDER_DIALOG = 20
 SAVE_DIALOG = 30
 
 DRAG_REGION_SELECTOR = '.pywebview-drag-region'
-DEFAULT_HTTP_PORT = 42001
 
 guilib = None
 _debug = {
@@ -63,12 +60,13 @@ _debug = {
 }
 _user_agent = None
 _http_server = False
-_incognito = True
+_private_mode = True
+_storage_path = None
 
 token = _token
 windows = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, http_port=None, user_agent=None, incognito=True):
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, http_port=None, user_agent=None, private_mode=True, storage_path=None):
     """
     Start a GUI loop and display previously created windows. This function must
     be called from a main thread.
@@ -86,10 +84,11 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         window, a separate HTTP server is spawned. This option is ignored for
         non-local URLs.
     :param user_agent: Change user agent string. Not supported in EdgeHTML.
-    :param incognito: Enable incognito mode. Default is True. Non-incognito mode
-        is considered experimental and not supported on all platforms/renderers.
+    :param private_mode: Enable private mode. In private mode, cookies and local storage are not preserved.
+           Default is True.
+    :param storage_path: Custom location for cookies and other website data
     """
-    global guilib, _debug, _http_server, _user_agent, _incognito
+    global guilib, _debug, _http_server, _user_agent, _private_mode, _storage_path
 
     def _create_children(other_windows):
         if not windows[0].events.shown.wait(10):
@@ -105,7 +104,11 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
     _user_agent = user_agent
     _http_server = http_server
-    _incognito = incognito
+    _private_mode = private_mode
+    _storage_path = storage_path
+
+    if _storage_path and _private_mode and not os.path.exists(_storage_path):
+        os.makedirs(_storage_path)
 
     original_localization.update(localization)
 
@@ -134,8 +137,6 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     guilib = initialize(gui)
 
     if http_server or has_local_urls or guilib.renderer == 'gtkwebkit2':
-        if not _incognito and not http_port:
-            http_port = DEFAULT_HTTP_PORT
         prefix, common_path = http.start_server(urls, http_port)
     else:
         prefix, common_path = None, None
