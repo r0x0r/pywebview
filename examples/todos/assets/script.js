@@ -1,6 +1,4 @@
 /* base.js */
-document.body.setAttribute('ondragstart','return false')
-
 (function () {
 	'use strict';
 
