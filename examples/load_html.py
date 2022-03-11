@@ -1,25 +1,16 @@
 import webview
+from time import sleep
+
+"""
+This example demonstrates how to load HTML in a web view window
+"""
 
 
-class Api:
-    def write(self, *args):
-        print(''.join(args))
+def load_html(window):
+    sleep(5)
+    window.load_html('<h1>This is dynamically loaded HTML</h1>')
 
-html = """
-<body>
-<input type="text" value="bla"></input>
-<input id="haha" type="text" value="blubb"></input>
-</body>
-<script type="text/javascript">
 
-window.addEventListener('focus', function(event) {
-    pywebview.api.write(`FOCUSIN ${event.target.value} ${document.hasFocus()}`)
-})
-window.addEventListener('focusout', function(event) {
-    pywebview.api.write(`FOCUSOUT ${event.target.value} ${document.hasFocus()}`)
-})
-</script>"""
-
-window = webview.create_window('b', js_api=Api(), html=html, width=200, height=200)
-
-webview.start()
+if __name__ == '__main__':
+    window = webview.create_window('Load HTML Example', html='<h1>This is initial HTML</h1>')
+    webview.start(load_html, window)
