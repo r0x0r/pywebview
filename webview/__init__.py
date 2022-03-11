@@ -53,6 +53,7 @@ FOLDER_DIALOG = 20
 SAVE_DIALOG = 30
 
 DRAG_REGION_SELECTOR = '.pywebview-drag-region'
+DEFAULT_HTTP_PORT = 42001
 
 guilib = None
 _debug = {
@@ -137,6 +138,8 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     guilib = initialize(gui)
 
     if http_server or has_local_urls or guilib.renderer == 'gtkwebkit2':
+        if not _private_mode and not http_port:
+            http_port = DEFAULT_HTTP_PORT
         prefix, common_path = http.start_server(urls, http_port)
     else:
         prefix, common_path = None, None
