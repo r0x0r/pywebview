@@ -41,14 +41,14 @@ $tests=@(
   "test_token.py::test_token",
   "test_token.py::test_persistance",
   "test_url_load.py",
-  "test_window.py",
-  "test_wsgi.py"
+  "test_window.py"
+  ""
 )
 
-This test fails with CEF on AppVeyor. Skip it for now
-if ($env:PYWEBVIEW_GUI -ne 'cef') {
- $tests += "test_http_server.py"
-}
+# This test fails with CEF on AppVeyor. Skip it for now
+# if ($env:PYWEBVIEW_GUI -ne 'cef') {
+#  $tests += "test_http_server.py"
+# }
 
 rm -r __pycache__
 

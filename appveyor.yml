@@ -9,6 +9,7 @@ environment:
       PYTHON_VERSION: "3.6.x"
       PYTHON_ARCH: "64"
       PYWEBVIEW_GUI: "cef"
+      image: Visual Studio 2022
 
 build: off
 
@@ -36,4 +37,5 @@ install:
 test_script:
   - cd tests
   - powershell -File ./run.ps1
+  - powershell Get-ComputerInfo | select WindowsProductName, WindowsVersion, OsHardwareAbstractionLayer
 
