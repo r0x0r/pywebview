@@ -42,7 +42,6 @@ $tests=@(
   "test_token.py::test_persistance",
   "test_url_load.py",
   "test_window.py"
-  ""
 )
 
 # This test fails with CEF on AppVeyor. Skip it for now

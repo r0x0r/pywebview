@@ -144,7 +144,6 @@ class BrowserView:
             else:
                 self.StartPosition = WinForms.FormStartPosition.CenterScreen
 
-            self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
             if not window.resizable:
