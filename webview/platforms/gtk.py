@@ -6,12 +6,13 @@ http://github.com/r0x0r/pywebview/
 """
 import logging
 import json
+import os
 import webbrowser
 
 from uuid import uuid1
 from threading import Semaphore
 
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
+from webview import _debug, _private_mode, _user_agent, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
@@ -29,6 +30,7 @@ from gi.repository import Gtk as gtk
 from gi.repository import Gdk
 from gi.repository import GLib as glib
 from gi.repository import WebKit2 as webkit
+from gi.repository import Soup
 
 
 # version of WebKit2 older than 2.2 does not support returning a result of javascript, so we
@@ -113,16 +115,38 @@ class BrowserView:
         self.js_bridge = BrowserView.JSBridge(window)
         self.text_select = window.text_select
 
+        storage_path = _storage_path or os.path.join(os.path.expanduser('~'), '.pywebview')
+
+        if not os.path.exists(storage_path):
+            os.makedirs(storage_path)
+
+        if not _private_mode:
+            web_context = webkit.WebContext.get_default()
+            cookie_manager = web_context.get_cookie_manager()
+            cookie_manager.set_persistent_storage(
+                os.path.join(storage_path, 'cookies'),
+                webkit.CookiePersistentStorage.SQLITE
+            )
+            #self.webview = webkit.WebView.new_with_context(web_context)
+        #else:
         self.webview = webkit.WebView()
+
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('decide-policy', self.on_navigation)
 
         http.js_callback = self.on_js_callback
 
+        webkit_settings = self.webview.get_settings().props
         user_agent = settings.get('user_agent') or _user_agent
         if user_agent:
-            self.webview.get_settings().props.user_agent = user_agent
+            webkit_settings.user_agent = user_agent
+
+        webkit_settings.enable_media_stream = True
+        webkit_settings.enable_mediasource = True
+        webkit_settings.enable_webaudio = True
+        webkit_settings.enable_webgl = True
+        webkit_settings.javascript_can_access_clipboard = True
 
         if window.frameless:
             self.window.set_decorated(False)
@@ -144,9 +168,13 @@ class BrowserView:
             self.webview.set_background_color(wvbg)
 
         if _debug['mode']:
-            self.webview.get_settings().props.enable_developer_extras = True
+            webkit_settings.enable_developer_extras = True
         else:
             self.webview.connect('context-menu', lambda a,b,c,d: True) # Disable context menu
+
+        if _private_mode:
+            webkit_settings.enable_html5_database = False
+            webkit_settings.enable_html5_local_storage = False
 
         self.webview.set_opacity(0.0)
         scrolled_window.add(self.webview)
@@ -435,7 +463,7 @@ class BrowserView:
                 })""" % {
                     'js_api_endpoint': http.js_api_endpoint,
                     'unique_id': unique_id,
-                    'script':  script
+                    'script': script
                 }
 
         self.loaded.wait()

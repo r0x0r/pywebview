@@ -15,7 +15,7 @@ from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
 
-from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
+from webview import _debug, _user_agent, _private_mode, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.window import Window, FixPoint
 from webview.util import default_html, parse_api_js, js_bridge_call
 from webview.js.css import disable_text_select
@@ -35,7 +35,7 @@ from qtpy.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox, 
 from qtpy.QtGui import QColor, QScreen
 
 try:
-    from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
+    from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage, QWebEngineProfile
     from qtpy.QtWebChannel import QWebChannel
     renderer = 'qtwebengine'
     is_webengine = True
@@ -166,7 +166,10 @@ class BrowserView(QMainWindow):
 
     class WebPage(QWebPage):
         def __init__(self, parent=None):
-            super(BrowserView.WebPage, self).__init__(parent)
+            if is_webengine:
+                super(BrowserView.WebPage, self).__init__(BrowserView.profile, parent)
+            else:
+                super(BrowserView.WebPage, self).__init__(parent)
             if is_webengine:
                 self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
                 self.nav_handler = BrowserView.NavigationHandler(self)
@@ -650,6 +653,16 @@ def create_window(window):
     if window.uid == 'master':
         global _app
         _app = QApplication.instance() or QApplication([])
+
+        if is_webengine:
+            if _private_mode:
+                BrowserView.profile = QWebEngineProfile()
+            else:
+                storage_path = _storage_path or os.path.join(os.path.expanduser('~'), '.pywebview')
+                BrowserView.profile = QWebEngineProfile('pywebview')
+                BrowserView.profile.setPersistentStoragePath(storage_path)
+        elif not is_webengine and not _private_mode:
+            logger.warning('qtwebkit does not support _private_mode=False')
 
         _create()
         _app.exec_()

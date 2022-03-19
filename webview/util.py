@@ -48,17 +48,20 @@ def get_app_root():
     """
     Gets the file root of the application.
     """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
+
+    if hasattr(sys, '_MEIPASS'): # Pyifnstaller
         return sys._MEIPASS
-    except AttributeError:
-        if 'pytest' in sys.modules:
-            for arg in reversed(sys.argv):
-                path = os.path.realpath(arg.split('::')[0])
-                if os.path.exists(path):
-                    return path if os.path.isdir(path) else os.path.dirname(path)
-        else:
-            return os.path.dirname(os.path.realpath(sys.argv[0]))
+
+    if getattr(sys, 'frozen', False): # cx_freeze
+        return os.path.dirname(sys.executable)
+
+    if 'pytest' in sys.modules:
+        for arg in reversed(sys.argv):
+            path = os.path.realpath(arg.split('::')[0])
+            if os.path.exists(path):
+                return path if os.path.isdir(path) else os.path.dirname(path)
+
+    return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
 def abspath(path):
@@ -228,7 +231,12 @@ def interop_dll_path(dll_name):
 
     try:
         # Frozen path packed as onefile
-        dll_path = os.path.join(sys._MEIPASS, dll_name)
+        if hasattr(sys, '_MEIPASS'): # Pyinstaller
+            dll_path = os.path.join(sys._MEIPASS, dll_name)
+
+        elif getattr(sys, 'frozen', False): # cx_freeze
+            dll_path = os.path.join(sys.executable, dll_name)
+
         if os.path.exists(dll_path):
             return dll_path
     except Exception:

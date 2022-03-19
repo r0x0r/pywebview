@@ -7,7 +7,6 @@ import webbrowser
 
 from ctypes import windll
 from functools import wraps
-from uuid import uuid1
 from threading import Event
 from cefpython3 import cefpython as cef
 from copy import copy
@@ -17,7 +16,6 @@ from webview.js.css import disable_text_select
 from webview.js import dom
 from webview import _debug, _user_agent
 from webview.util import parse_api_js, default_html, js_bridge_call
-from webview.window import FixPoint
 
 
 sys.excepthook = cef.ExceptHook
@@ -35,10 +33,7 @@ command_line_switches = {}
 def _set_dpi_mode(enabled):
     """
     """
-    try:
-        import _winreg as winreg  # Python 2
-    except ImportError:
-        import winreg  # Python 3
+    import winreg  # Python 3
 
     try:
         dpi_support = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
@@ -193,7 +188,7 @@ def _cef_call(func):
     return wrapper
 
 
-def init(window):
+def init(window, cache_dir):
     global _initialized
 
     if not _initialized:
@@ -216,6 +211,9 @@ def init(window):
 
         if _user_agent:
             default_settings['user_agent'] = _user_agent
+
+        if cache_dir:
+            default_settings['cache_path'] = cache_dir
 
         try:  # set paths under Pyinstaller's one file mode
             default_settings.update({
@@ -252,6 +250,7 @@ def create_browser(window, handle, alert_func):
         cef_browser.SetClientHandler(LoadHandler())
 
         instances[window.uid] = browser
+        cef_browser.SendFocusEvent(True)
         window.events.shown.set()
 
     window_info = cef.WindowInfo()

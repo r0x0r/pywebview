@@ -12,11 +12,10 @@ import logging
 import json
 import webbrowser
 from threading import Semaphore
-from ctypes import windll
 from platform import architecture
 
-from webview import _debug, _user_agent
-from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
+from webview import _debug, _user_agent, _private_mode
+from webview.util import parse_api_js, interop_dll_path, default_html, js_bridge_call
 from webview.js import alert
 from webview.js.css import disable_text_select
 
@@ -28,26 +27,25 @@ clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import IntPtr, Int32, String, Action, Func, Type, Environment, Uri
-from System.Threading.Tasks import Task, TaskScheduler, TaskContinuationOptions
-from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
+from System import String, Action, Uri
+from System.Threading.Tasks import Task, TaskScheduler
+from System.Drawing import Color
 
 archpath = 'x64' if architecture()[0] == '64bit' else 'x86'
 os.environ['Path'] = interop_dll_path(archpath) + ';' + os.environ['Path']
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 from Microsoft.Web.WebView2.WinForms import WebView2, CoreWebView2CreationProperties
-from Microsoft.Web.WebView2.Core import CoreWebView2Environment
+from Microsoft.Web.WebView2.Core import CoreWebView2Environment, CoreWebView2Cookie
 
 logger = logging.getLogger('pywebview')
 
 class EdgeChrome:
-    def __init__(self, form, window):
+    def __init__(self, form, window, cache_dir):
         self.pywebview_window = window
         self.web_view = WebView2()
         props = CoreWebView2CreationProperties()
-        #props.UserDataFolder = os.path.join(os.getcwd(), 'profile')
-        props.UserDataFolder = os.path.join(os.environ['LOCALAPPDATA'], 'pywebview')
+        props.UserDataFolder = cache_dir
         self.web_view.CreationProperties = props
         form.Controls.Add(self.web_view)
 
@@ -145,6 +143,10 @@ class EdgeChrome:
 
         if _user_agent:
             settings.UserAgent = _user_agent
+
+        if _private_mode:
+            # cookies persist even if UserDataFolder is in memory. We have to delete cookies manually.
+            sender.CoreWebView2.CookieManager.DeleteAllCookies()
 
         if self.html:
             sender.CoreWebView2.NavigateToString(self.html)
