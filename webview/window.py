@@ -3,12 +3,14 @@ import logging
 import os
 from enum import Flag, auto
 from functools import wraps
+from urllib.parse import urljoin
 from uuid import uuid1
+
+import webview.http as http
 
 from webview.event import Event
 from webview.localization import original_localization
-from webview.serving import resolve_url
-from webview.util import base_uri, parse_file_type, escape_string, make_unicode, WebViewException
+from webview.util import base_uri, parse_file_type, is_local_url, escape_string, WebViewException
 from .js import css
 
 
@@ -62,9 +64,9 @@ class Window:
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
                  background_color, js_api, text_select, transparent, localization):
         self.uid = uid
-        self.title = make_unicode(title)
+        self.title = title
         self.original_url = None if html else url  # original URL provided by user
-        self.real_url = None  # transformed URL for internal HTTP server
+        self.real_url = None
         self.html = html
         self.initial_width = width
         self.initial_height = height
@@ -83,6 +85,10 @@ class Window:
         self.minimized = minimized
         self.transparent = transparent
         self.localization_override = localization
+
+        # HTTP server path magic
+        self._url_prefix = None
+        self._common_path = None
 
         self._js_api = js_api
         self._functions = {}
@@ -104,24 +110,12 @@ class Window:
         self._shown = self.events.shown
 
         self.gui = None
-        self._is_http_server = False
 
-    def _initialize(self, gui, multiprocessing, http_server):
+    def _initialize(self, gui, url_prefix, common_path):
+        self._url_prefix = url_prefix
+        self._common_path = common_path
         self.gui = gui
-        self.events.loaded._initialize(multiprocessing)
-        self.events.shown._initialize(multiprocessing)
-        self._is_http_server = http_server
-
-        # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
-        if (
-            gui.renderer == "edgehtml" and
-            self.original_url and
-            isinstance(self.original_url, str) and
-            (self.original_url.startswith('file://') or '://' not in self.original_url)
-        ):
-            self._is_http_server = True
-
-        self.real_url = resolve_url(self.original_url, self._is_http_server)
+        self.real_url = self._resolve_url(self.original_url)
 
         self.localization = original_localization.copy()
         if self.localization_override:
@@ -228,9 +222,10 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        self.url = url
-        self.real_url = resolve_url(url, self._is_http_server or self.gui.renderer == 'edgehtml')
+        if not http.running and is_local_url(url):
+            self._url_prefix, self._common_path = http.start_server([url])
 
+        self.real_url = self._resolve_url(url)
         self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
@@ -243,7 +238,6 @@ class Window:
         :param uid: uid of the target instance
         """
 
-        content = make_unicode(content)
         self.gui.load_html(content, base_uri, self.uid)
 
     @_loaded_call
@@ -423,3 +417,10 @@ class Window:
 
         if self.events.loaded.is_set():
             self.evaluate_js('window.pywebview._createApi(%s)' % func_list)
+
+    def _resolve_url(self, url):
+        if is_local_url(url) and self._url_prefix and self._common_path is not None:
+            filename = os.path.relpath(url, self._common_path)
+            return urljoin(self._url_prefix, filename)
+        else:
+            return url

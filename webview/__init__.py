@@ -20,23 +20,22 @@ import threading
 from uuid import uuid4
 from proxy_tools import module_property
 
+import webview.http as http
+
 from webview.event import Event
 from webview.guilib import initialize
-from webview.util import _token, base_uri, parse_file_type, escape_string, make_unicode, escape_line_breaks, WebViewException
+from webview.util import _token, base_uri, parse_file_type, is_local_url, escape_string, escape_line_breaks, WebViewException
 from webview.window import Window
 from .localization import original_localization
-from .wsgi import Routing, StaticFiles, StaticResources
 
 
 __all__ = (
     # Stuff that's here
     'start', 'create_window', 'token', 'screens'
-    # From wsgi
-    'Routing', 'StaticFiles', 'StaticResources',
     # From event
     'Event',
     # from util
-    '_token', 'base_uri', 'parse_file_type', 'escape_string', 'make_unicode',
+    '_token', 'base_uri', 'parse_file_type', 'escape_string',
     'escape_line_breaks', 'WebViewException',
     # from window
     'Window',
@@ -56,19 +55,19 @@ FOLDER_DIALOG = 20
 SAVE_DIALOG = 30
 
 DRAG_REGION_SELECTOR = '.pywebview-drag-region'
+DEFAULT_HTTP_PORT = 42000
 
 guilib = None
 _debug = {
   'mode': False
 }
 _user_agent = None
-_multiprocessing = False
 _http_server = False
 
 token = _token
 windows = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, http_port=None, user_agent=None):
     """
     Start a GUI loop and display previously created windows. This function must
     be called from a main thread.
@@ -87,7 +86,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         non-local URLs.
     :param user_agent: Change user agent string. Not supported in EdgeHTML.
     """
-    global guilib, _debug, _multiprocessing, _http_server, _user_agent
+    global guilib, _debug, _http_server, _user_agent
 
     def _create_children(other_windows):
         if not windows[0].events.shown.wait(10):
@@ -102,14 +101,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         logger.setLevel(logging.DEBUG)
 
     _user_agent = user_agent
-    #_multiprocessing = multiprocessing
-    multiprocessing = False # TODO
     _http_server = http_server
-
-    if multiprocessing:
-        from multiprocessing import Process as Thread
-    else:
-        from threading import Thread
 
     original_localization.update(localization)
 
@@ -119,22 +111,43 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     if len(windows) == 0:
         raise WebViewException('You must create a window first before calling this function.')
 
+    urls = [w.original_url for w in windows]
+    has_local_urls = not not [
+        w.original_url
+        for w in windows
+        if is_local_url(w.original_url)
+    ]
+
+    has_file_urls = not not [
+        w.original_url
+        for w in windows
+        if w.original_url and w.original_url.startswith('file://')
+    ]
+
+    if gui == 'edgehtml' and has_file_urls:
+        raise WebViewException('file:// urls are not supported with EdgeHTML')
+
     guilib = initialize(gui)
 
+    if http_server or has_local_urls or guilib.renderer == 'gtkwebkit2':
+        prefix, common_path = http.start_server(urls, http_port)
+    else:
+        prefix, common_path = None, None
+
     for window in windows:
-        window._initialize(guilib, multiprocessing, http_server)
+        window._initialize(guilib, prefix, common_path)
 
     if len(windows) > 1:
-        t = Thread(target=_create_children, args=(windows[1:],))
+        t = threading.Thread(target=_create_children, args=(windows[1:],))
         t.start()
 
     if func:
         if args is not None:
             if not hasattr(args, '__iter__'):
                 args = (args,)
-            t = Thread(target=func, args=args)
+            t = threading.Thread(target=func, args=args)
         else:
-            t = Thread(target=func)
+            t = threading.Thread(target=func)
         t.start()
 
     guilib.create_window(windows[0])
@@ -173,7 +186,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
-    window = Window(uid, make_unicode(title), url, html,
+    window = Window(uid, title, url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
                     js_api, text_select, transparent, localization)
@@ -181,7 +194,12 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     windows.append(window)
 
     if threading.current_thread().name != 'MainThread' and guilib:
-        window._initialize(guilib, _multiprocessing, _http_server)
+        if is_local_url(url) and not http.running:
+            url_prefix, common_path = http.start_server([url])
+        else:
+            url_prefix, common_path = None, None
+
+        window._initialize(guilib, url_prefix, common_path)
         guilib.create_window(window)
 
     return window

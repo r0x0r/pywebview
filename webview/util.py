@@ -19,7 +19,7 @@ from threading import Thread
 from uuid import uuid4
 
 import webview
-
+from webview import http
 from .js import api, npo, dom, event, drag
 
 _token = uuid4().hex
@@ -40,6 +40,9 @@ logger = logging.getLogger('pywebview')
 class WebViewException(Exception):
     pass
 
+
+def is_local_url(url):
+    return not not url and not url.startswith('http://') and not url.startswith('https://')
 
 def get_app_root():
     """
@@ -77,12 +80,6 @@ def base_uri(relative_path=''):
     return 'file://%s' % os.path.join(base_path, relative_path)
 
 
-def convert_string(string):
-    if sys.version < '3':
-        return unicode(string)
-    else:
-        return str(string)
-
 
 def parse_file_type(file_type):
     '''
@@ -100,10 +97,7 @@ def parse_file_type(file_type):
 
 def parse_api_js(window, platform, uid=''):
     def get_args(f):
-        try:
-            params = list(inspect.getfullargspec(f).args) # Python 3
-        except AttributeError:
-            params = list(inspect.getargspec(f).args)  # Python 2
+        params = list(inspect.getfullargspec(f).args)
         return params
 
     def generate_func():
@@ -128,7 +122,9 @@ def parse_api_js(window, platform, uid=''):
         logger.exception(e)
         func_list = []
 
-    js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src + drag.src % webview.DRAG_REGION_SELECTOR
+    js_code = npo.src + event.src + \
+        api.src % { 'token': _token, 'platform': platform, 'uid': uid, 'func_list': func_list, 'js_api_endpoint': http.js_api_endpoint } + \
+        dom.src + drag.src % webview.DRAG_REGION_SELECTOR
     return js_code
 
 
@@ -183,19 +179,6 @@ def escape_string(string):
         .replace('"', r'\"') \
         .replace('\n', r'\n')\
         .replace('\r', r'\r')
-
-
-def make_unicode(string):
-    """
-    Python 2 and 3 compatibility function that converts a string to Unicode. In case of Unicode, the string is returned
-    unchanged
-    :param string: input string
-    :return: Unicode string
-    """
-    if sys.version < '3' and isinstance(string, str):
-        return unicode(string.decode('utf-8'))
-
-    return string
 
 
 def escape_line_breaks(string):

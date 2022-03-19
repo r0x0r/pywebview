@@ -67,7 +67,7 @@ class BrowserView:
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
-            return BrowserView.should_close(i)
+            return BrowserView.should_close(i.pywebview_window)
 
         def windowWillClose_(self, notification):
             # Delete the closed instance from the dict
@@ -752,10 +752,7 @@ class BrowserView:
         alert.setMessageText_(message)
         alert.setAlertStyle_(AppKit.NSWarningAlertStyle)
 
-        if alert.runModal() == AppKit.NSAlertFirstButtonReturn:
-            return True
-        else:
-            return False
+        return alert.runModal() == AppKit.NSAlertFirstButtonReturn
 
     @staticmethod
     def should_close(window):
@@ -764,7 +761,7 @@ class BrowserView:
         msg = window.localization['global.quitConfirmation']
 
         if not window.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
-            should_cancel = window.closing.set()
+            should_cancel = window.events.closing.set()
             if should_cancel:
                 return Foundation.NO
             else:

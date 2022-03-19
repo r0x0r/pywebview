@@ -17,7 +17,7 @@ from threading import Semaphore, Event
 
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.window import Window, FixPoint
-from webview.util import convert_string, default_html, parse_api_js, js_bridge_call
+from webview.util import default_html, parse_api_js, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
 from webview.window import FixPoint
@@ -601,7 +601,7 @@ class BrowserView(QMainWindow):
         except AttributeError:
             pass
 
-        return convert_string(result)
+        return str(result)
 
     @staticmethod
     def _get_debug_port():

@@ -17,9 +17,8 @@ import webbrowser
 from threading import Event, Semaphore
 from ctypes import windll
 
-from webview import WebViewException, _debug, _user_agent
-from webview.serving import resolve_url
-from webview.util import parse_api_js, interop_dll_path, parse_file_type, inject_base_uri, default_html, js_bridge_call
+from webview import _debug, _user_agent
+from webview.util import parse_api_js, interop_dll_path, inject_base_uri, default_html, js_bridge_call
 from webview.js import alert
 from webview.js.css import disable_text_select
 
