@@ -37,5 +37,4 @@ install:
 test_script:
   - cd tests
   - powershell -File ./run.ps1
-  - powershell Get-ComputerInfo | select WindowsProductName, WindowsVersion, OsHardwareAbstractionLayer
 
