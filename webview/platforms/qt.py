@@ -414,6 +414,12 @@ class BrowserView(QMainWindow):
            self.pywebview_window.initial_height != self.height():
             self.pywebview_window.events.resized.set(self.width(), self.height())
 
+    def eventFilter(self, object, event):
+        if event.type() == QtCore.QEvent.Move:
+            self.pywebview_window.events.moved.set(self.x(), self.y())
+
+        return super().eventFilter(object, event)
+
     def on_show_window(self):
         self.show()
 
@@ -636,6 +642,7 @@ class BrowserView(QMainWindow):
 def create_window(window):
     def _create():
         browser = BrowserView(window)
+        browser.installEventFilter(browser)
 
         _main_window_created.set()
 
