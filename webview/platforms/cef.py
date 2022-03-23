@@ -217,14 +217,13 @@ def init(window):
         if _user_agent:
             default_settings['user_agent'] = _user_agent
 
-        try:  # set paths under Pyinstaller's one file mode
-            default_settings.update({
-                'resources_dir_path': sys._MEIPASS,
-                'locales_dir_path': os.path.join(sys._MEIPASS, 'locales'),
-                'browser_subprocess_path': os.path.join(sys._MEIPASS, 'subprocess.exe'),
-            })
-        except Exception:
-            pass
+        # set paths under Pyinstaller's one file mode
+        resource_root = getattr(sys, '_MEIPASS', os.path.dirname(cef.__file__))
+        default_settings.update({
+            'resources_dir_path': resource_root,
+            'locales_dir_path': os.path.join(resource_root, 'locales'),
+            'browser_subprocess_path': os.path.join(resource_root, 'subprocess.exe'),
+        })
 
         all_settings = dict(default_settings, **settings)
         all_command_line_switches = dict(default_command_line_switches, **command_line_switches)
