@@ -213,6 +213,8 @@ class BrowserView:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window)
+                # for chromium edge, need this factor to modify the cordinates
+                self.scaleFactor = windll.shcore.GetScaleFactorForDevice(0)/100
             elif is_edge:
                 self.browser = Edge.EdgeHTML(self, window)
             else:
@@ -394,8 +396,12 @@ class BrowserView:
             SWP_NOSIZE = 0x0001  # Retains the current size
             SWP_NOZORDER = 0x0004  # Retains the current Z order
             SWP_SHOWWINDOW = 0x0040  # Displays the window
-            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x), int(y), None, None,
-                                    SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
+            if(self.scaleFactor):
+                xModified = x * self.scaleFactor
+                yModified = y * self.scaleFactor
+                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(xModified), int(yModified), None, None,SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
+            else:
+                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x), int(y), None, None,SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
 
         def minimize(self):
             def _minimize():
