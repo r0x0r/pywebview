@@ -105,8 +105,9 @@ class BrowserView:
 
         def windowDidMove_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            origin = i.window.frame().origin
-            i.pywebview_window.events.moved.set(origin.x, origin.y)
+            frame = i.window.frame()
+            flipped_y = frame.origin.y + frame.size.height
+            i.pywebview_window.events.moved.set(frame.origin.x, flipped_y)
 
 
     class JSBridge(AppKit.NSObject):
