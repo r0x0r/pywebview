@@ -74,7 +74,8 @@ def _is_chromium():
             register_key = rf'Computer\{key_type}\{path}'
             windows_key = winreg.OpenKey(getattr(winreg, key_type), rf'SOFTWARE\{path}')
             build, _ = winreg.QueryValueEx(windows_key, 'pv')
-            build = int(build.replace('.', '')[:6])
+            # build = int(build.replace('.', '')[:6])
+            build = int(build.split('.')[0])
 
             return build
         except Exception as e:
@@ -113,8 +114,8 @@ def _is_chromium():
         for item in build_versions:
             for key_type in ('HKEY_CURRENT_USER', 'HKEY_LOCAL_MACHINE'):
                 build = edge_build(key_type, item['key'], item['description'])
-
-                if build >= 860622: # Webview2 86.0.622.0
+                # if build >= 860622: # Webview2 86.0.622.0
+                if build >= 86: # Webview2 86.x
                     return True
 
     except Exception as e:
@@ -200,7 +201,8 @@ class BrowserView:
             self.url = window.real_url
             self.text_select = window.text_select
             self.on_top = window.on_top
-
+            self.scale_factor = 1
+            
             self.is_fullscreen = False
             if window.fullscreen:
                 self.toggle_fullscreen()
@@ -396,7 +398,8 @@ class BrowserView:
             SWP_NOSIZE = 0x0001  # Retains the current size
             SWP_NOZORDER = 0x0004  # Retains the current Z order
             SWP_SHOWWINDOW = 0x0040  # Displays the window
-            if(self.scale_factor):
+            if(self.scale_factor != 1):
+                # The coordinates needed to be scaled
                 x_modified = x * self.scale_factor
                 y_modified = y * self.scale_factor
                 windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x_modified), int(y_modified), None, None, SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
