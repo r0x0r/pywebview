@@ -214,7 +214,7 @@ class BrowserView:
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window)
                 # for chromium edge, need this factor to modify the cordinates
-                self.scaleFactor = windll.shcore.GetScaleFactorForDevice(0)/100
+                self.scale_factor = windll.shcore.GetScaleFactorForDevice(0)/100
             elif is_edge:
                 self.browser = Edge.EdgeHTML(self, window)
             else:
@@ -396,12 +396,12 @@ class BrowserView:
             SWP_NOSIZE = 0x0001  # Retains the current size
             SWP_NOZORDER = 0x0004  # Retains the current Z order
             SWP_SHOWWINDOW = 0x0040  # Displays the window
-            if(self.scaleFactor):
-                xModified = x * self.scaleFactor
-                yModified = y * self.scaleFactor
-                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(xModified), int(yModified), None, None,SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
+            if(self.scale_factor):
+                x_modified = x * self.scale_factor
+                y_modified = y * self.scale_factor
+                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x_modified), int(y_modified), None, None, SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
             else:
-                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x), int(y), None, None,SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
+                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x), int(y), None, None, SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
 
         def minimize(self):
             def _minimize():
