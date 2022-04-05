@@ -61,6 +61,14 @@ def _is_edge():
     finally:
         winreg.CloseKey(net_key)
 
+def _is_new_version(current_version, new_version):
+    new_range = new_version.split(".")
+    cur_range = current_version.split(".")
+    for index in range(len(new_range)):
+        if len(cur_range) > index:
+            return int(new_range[index]) >= int(cur_range[index])
+
+    return False
 
 def _is_chromium():
     def edge_build(key_type, key, description=''):
@@ -74,9 +82,8 @@ def _is_chromium():
             register_key = rf'Computer\{key_type}\{path}'
             windows_key = winreg.OpenKey(getattr(winreg, key_type), rf'SOFTWARE\{path}')
             build, _ = winreg.QueryValueEx(windows_key, 'pv')
-            build = int(build.replace('.', '')[:6])
 
-            return build
+            return str(build)
         except Exception as e:
             # Forming extra information
             extra_info = ''
@@ -94,7 +101,7 @@ def _is_chromium():
         except:
             pass
 
-        return 0
+        return '0'
 
     try:
         net_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full')
@@ -114,7 +121,7 @@ def _is_chromium():
             for key_type in ('HKEY_CURRENT_USER', 'HKEY_LOCAL_MACHINE'):
                 build = edge_build(key_type, item['key'], item['description'])
 
-                if build >= 860622: # Webview2 86.0.622.0
+                if _is_new_version('86.0.622.0', build): # Webview2 86.0.622.0
                     return True
 
     except Exception as e:
