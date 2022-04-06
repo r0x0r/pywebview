@@ -120,7 +120,6 @@ def _is_chromium():
         for item in build_versions:
             for key_type in ('HKEY_CURRENT_USER', 'HKEY_LOCAL_MACHINE'):
                 build = edge_build(key_type, item['key'], item['description'])
-
                 if _is_new_version('86.0.622.0', build): # Webview2 86.0.622.0
                     return True
 
@@ -207,7 +206,8 @@ class BrowserView:
             self.url = window.real_url
             self.text_select = window.text_select
             self.on_top = window.on_top
-
+            self.scale_factor = 1
+            
             self.is_fullscreen = False
             if window.fullscreen:
                 self.toggle_fullscreen()
@@ -220,6 +220,8 @@ class BrowserView:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window)
+                # for chromium edge, need this factor to modify the cordinates
+                self.scale_factor = windll.shcore.GetScaleFactorForDevice(0)/100
             elif is_edge:
                 self.browser = Edge.EdgeHTML(self, window)
             else:
@@ -401,8 +403,13 @@ class BrowserView:
             SWP_NOSIZE = 0x0001  # Retains the current size
             SWP_NOZORDER = 0x0004  # Retains the current Z order
             SWP_SHOWWINDOW = 0x0040  # Displays the window
-            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x), int(y), None, None,
-                                    SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
+            if(self.scale_factor != 1):
+                # The coordinates needed to be scaled
+                x_modified = x * self.scale_factor
+                y_modified = y * self.scale_factor
+                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x_modified), int(y_modified), None, None, SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
+            else:
+                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x), int(y), None, None, SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
 
         def minimize(self):
             def _minimize():
