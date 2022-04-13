@@ -168,7 +168,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
                   frameless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
-                  transparent=False, text_select=False, localization=None):
+                  transparent=False, text_select=False, zoomable=False, draggable=False, localization=None):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -200,7 +200,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     window = Window(uid, title, url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
-                    js_api, text_select, transparent, localization)
+                    js_api, text_select, transparent, zoomable, draggable, localization)
 
     windows.append(window)
 

@@ -126,8 +126,18 @@ def parse_api_js(window, platform, uid=''):
         func_list = []
 
     js_code = npo.src + event.src + \
-        api.src % { 'token': _token, 'platform': platform, 'uid': uid, 'func_list': func_list, 'js_api_endpoint': http.js_api_endpoint } + \
-        dom.src + drag.src % webview.DRAG_REGION_SELECTOR
+        api.src % {
+            'token': _token,
+            'platform': platform,
+            'uid': uid,
+            'func_list': func_list,
+            'js_api_endpoint': http.js_api_endpoint
+        } + \
+        dom.src + drag.src % {
+            'drag_selector': webview.DRAG_REGION_SELECTOR,
+            'zoomable': str(window.zoomable).lower(),
+            'draggable': str(window.draggable).lower()
+        }
     return js_code
 
 
