@@ -194,6 +194,11 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     return window
 
 def active_window():
+    """
+    Get the active window
+
+    :return: window object or None
+    """
     if guilib:
         return guilib.get_active_window()
     return None
