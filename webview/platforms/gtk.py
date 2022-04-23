@@ -459,10 +459,14 @@ class BrowserView:
         glib.idle_add(create_bridge)
 
 
-def create_window(window):
+def setup():
+    # MUST be called before create_window and set_app_menu
     global _app
     if _app is None:
         _app = gtk.Application.new(None, 0)
+
+def create_window(window):
+    global _app 
 
     def create():
         browser = BrowserView(window)
@@ -598,8 +602,6 @@ def set_app_menu(app_menu_list):
         supermenu.append_submenu(title, m)
 
     global _app
-    if _app is None:
-        _app = gtk.Application.new(None, 0)
 
     menubar = Gio.Menu()
 

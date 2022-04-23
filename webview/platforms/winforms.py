@@ -22,6 +22,7 @@ from webview.util import parse_file_type, inject_base_uri
 from webview.js import alert
 from webview.screen import Screen
 from webview.window import FixPoint
+from webview.menu import Menu, MenuAction, MenuSeparator
 
 try:
     import _winreg as winreg  # Python 2
@@ -163,6 +164,8 @@ else:
 
 class BrowserView:
     instances = {}
+
+    menu_strip_object = None
 
     class BrowserForm(WinForms.Form):
         def __init__(self, window):
@@ -497,10 +500,18 @@ def _set_ie_mode():
 _main_window_created = Event()
 _main_window_created.clear()
 
+def setup_app():
+    # MUST be called before create_window and set_app_menu
+    WinForms.Application.EnableVisualStyles()
+    WinForms.Application.SetCompatibleTextRenderingDefault(False)
+
 def create_window(window):
     def create():
         browser = BrowserView.BrowserForm(window)
         BrowserView.instances[window.uid] = browser
+
+        if (BrowserView.menu_strip_object):
+            browser.Controls.Add(BrowserView.menu_strip_object)
 
         if not window.hidden:
             browser.Show()
@@ -522,8 +533,6 @@ def create_window(window):
         if is_cef:
             CEF.init(window)
 
-        app.EnableVisualStyles()
-        app.SetCompatibleTextRenderingDefault(False)
         thread = Thread(ThreadStart(create))
         thread.SetApartmentState(ApartmentState.STA)
         thread.Start()
@@ -630,6 +639,57 @@ def load_html(content, base_uri, uid):
         return
     else:
         BrowserView.instances[uid].load_html(content, base_uri)
+
+def set_app_menu(app_menu_list):
+    """
+    Create a custom menu for the app bar menu (on supported platforms).
+    Otherwise, this menu is used across individual windows.
+
+    Args:
+        app_menu_list ([webview.menu.Menu])
+    """
+    def create_submenu(title, line_items, supermenu=None):
+        m = WinForms.ToolStripMenuItem(title)
+        for menu_line_item in line_items:
+            if isinstance(menu_line_item, MenuSeparator):
+                m.DropDownItems.Add(WinForms.ToolStripSeparator())
+                continue
+            elif isinstance(menu_line_item, MenuAction):
+                action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
+                action_item.Click += lambda _,__ : menu_line_item.function()
+                m.DropDownItems.Add(action_item)
+            elif isinstance(menu_line_item, Menu):
+                create_submenu(menu_line_item.title, menu_line_item.items, m)
+
+        if supermenu:
+            supermenu.DropDownItems.Add(m)
+
+        return m
+
+    # If the application menu has already been created, we don't want to do it again
+    if BrowserView.menu_strip_object:
+        return
+
+    top_level_menu = WinForms.MenuStrip()
+
+    for app_menu in app_menu_list:
+        top_level_menu.Items.Add(create_submenu(app_menu.title, app_menu.items))
+
+    BrowserView.menu_strip_object = top_level_menu
+
+def get_active_window():
+    active_window = None
+    try: 
+        active_window = WinForms.Form.ActiveForm
+    except:
+        return None
+
+    if active_window:
+        for uid, browser_view_instance in BrowserView.instances.items():
+            if browser_view_instance.Handle == active_window.Handle:
+                return browser_view_instance.pywebview_window
+
+    return None
 
 
 def show(uid):

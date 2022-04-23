@@ -818,6 +818,10 @@ class BrowserView:
         return string.replace(' ', '%20')
 
 
+def setup_app():
+    # MUST be called before create_window and set_app_menu
+    pass
+
 def create_window(window):
     global _debug
 

@@ -12,7 +12,8 @@ class MenuAction:
     def __init__(self, title, function, shortcut=None):
         self.title = title
         self.function = function
-        self.shortcut = shortcut
+        # TODO: support platform-agnostic shortcut
+        # self.shortcut = shortcut
 
 class MenuSeparator:
     pass

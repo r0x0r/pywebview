@@ -643,6 +643,11 @@ class BrowserView(QMainWindow):
         func()
 
 
+def setup_app():
+    # MUST be called before create_window and set_app_menu
+    global _app
+    _app = QApplication.instance() or QApplication([])
+
 def create_window(window):
     def _create():
         browser = BrowserView(window)
@@ -666,7 +671,6 @@ def create_window(window):
 
     if window.uid == 'master':
         global _app
-        _app = QApplication.instance() or QApplication([])
 
         _create()
         _app.exec_()
@@ -715,9 +719,6 @@ def set_app_menu(app_menu_list):
                 create_submenu(menu_line_item.title, menu_line_item.items, m)
 
         return m
-
-    global _app
-    _app = QApplication.instance() or QApplication([])
 
     # If the application menu has already been created, we don't want to do it again
     if len(BrowserView.global_menubar_top_menus) > 0 or len(BrowserView.global_menubar_other_objects) > 0:
