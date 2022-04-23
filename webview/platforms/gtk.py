@@ -459,7 +459,7 @@ class BrowserView:
         glib.idle_add(create_bridge)
 
 
-def setup():
+def setup_app():
     # MUST be called before create_window and set_app_menu
     global _app
     if _app is None:

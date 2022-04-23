@@ -186,6 +186,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     windows.append(window)
 
+    # This immediately creates the window only if `start` has already been called
     if threading.current_thread().name != 'MainThread' and guilib:
         window._initialize(guilib, _multiprocessing, _http_server)
         guilib.create_window(window)
