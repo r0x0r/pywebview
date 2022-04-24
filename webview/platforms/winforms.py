@@ -500,10 +500,15 @@ def _set_ie_mode():
 _main_window_created = Event()
 _main_window_created.clear()
 
+_already_set_up_app = False
 def setup_app():
     # MUST be called before create_window and set_app_menu
+    global _already_set_up_app
+    if _already_set_up_app:
+        return
     WinForms.Application.EnableVisualStyles()
     WinForms.Application.SetCompatibleTextRenderingDefault(False)
+    _already_set_up_app = True
 
 def create_window(window):
     def create():
