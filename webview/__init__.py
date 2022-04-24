@@ -124,6 +124,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         raise WebViewException('You must create a window first before calling this function.')
 
     guilib = initialize(gui)
+    guilib.setup_app()
 
     for window in windows:
         window._initialize(guilib, multiprocessing, http_server)
@@ -141,7 +142,6 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
             t = Thread(target=func)
         t.start()
 
-    guilib.setup_app()
     guilib.set_app_menu(app_menu_list)
     guilib.create_window(windows[0])
 
