@@ -97,6 +97,7 @@ class Window:
         self.events.maximized = Event()
         self.events.restored = Event()
         self.events.resized = Event()
+        self.events.moved = Event()
 
         self._closed = self.events.closed
         self._closing = self.events.closing

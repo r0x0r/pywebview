@@ -240,6 +240,7 @@ class BrowserView:
             self.FormClosed += self.on_close
             self.FormClosing += self.on_closing
             self.Resize += self.on_resize
+            self.Move += self.on_move
 
             self.localization = window.localization
 
@@ -307,6 +308,9 @@ class BrowserView:
                 CEF.resize(self.Width, self.Height, self.uid)
 
             self.pywebview_window.events.resized.set(self.Width, self.Height)
+
+        def on_move(self, sender, args):
+            self.pywebview_window.events.moved.set(self.Location.X, self.Location.Y)
 
         def evaluate_js(self, script):
             id = uuid4().hex[:8]
