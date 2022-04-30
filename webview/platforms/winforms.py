@@ -739,6 +739,8 @@ def restore(uid):
 
 def destroy_window(uid):
     def _close():
+        if (BrowserView.menu_strip_object):
+            window.Controls.Remove(BrowserView.menu_strip_object)
         window.Close()
 
     window = BrowserView.instances[uid]
