@@ -165,7 +165,7 @@ else:
 class BrowserView:
     instances = {}
 
-    menu_strip_object = None
+    app_menu_list = None
 
     class BrowserForm(WinForms.Form):
         def __init__(self, window):
@@ -347,6 +347,35 @@ class BrowserView:
         def show(self):
             self.Invoke(Func[Type](self.Show))
 
+        def set_window_menu(self, menu_list):
+            def _set_window_menu():
+                def create_submenu(title, line_items, supermenu=None):
+                    m = WinForms.ToolStripMenuItem(title)
+                    for menu_line_item in line_items:
+                        if isinstance(menu_line_item, MenuSeparator):
+                            m.DropDownItems.Add(WinForms.ToolStripSeparator())
+                            continue
+                        elif isinstance(menu_line_item, MenuAction):
+                            action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
+                            action_item.Click += lambda _,__,menu_line_item=menu_line_item : menu_line_item.function()
+                            m.DropDownItems.Add(action_item)
+                        elif isinstance(menu_line_item, Menu):
+                            create_submenu(menu_line_item.title, menu_line_item.items, m)
+
+                    if supermenu: 
+                        supermenu.DropDownItems.Add(m)
+
+                    return m
+
+                top_level_menu = WinForms.MenuStrip()
+
+                for menu in menu_list:
+                    top_level_menu.Items.Add(create_submenu(menu.title, menu.items))
+
+                self.Controls.Add(top_level_menu)
+
+            self.Invoke(Func[Type](_set_window_menu))
+
         def toggle_fullscreen(self):
             def _toggle():
                 screen = WinForms.Screen.FromControl(self)
@@ -515,8 +544,8 @@ def create_window(window):
         browser = BrowserView.BrowserForm(window)
         BrowserView.instances[window.uid] = browser
 
-        if (BrowserView.menu_strip_object):
-            browser.Controls.Add(BrowserView.menu_strip_object)
+        if (BrowserView.app_menu_list):
+            browser.set_window_menu(BrowserView.app_menu_list) 
 
         if not window.hidden:
             browser.Show()
@@ -645,6 +674,16 @@ def load_html(content, base_uri, uid):
     else:
         BrowserView.instances[uid].load_html(content, base_uri)
 
+def set_window_menu(menu_list, uid):
+    """
+    Create a custom menu for a specific window.
+
+    Args:
+        menu_list ([webview.menu.Menu])
+        uid (int)
+    """
+    BrowserView.instances[uid].set_window_menu(menu_list)
+
 def set_app_menu(app_menu_list):
     """
     Create a custom menu for the app bar menu (on supported platforms).
@@ -653,34 +692,10 @@ def set_app_menu(app_menu_list):
     Args:
         app_menu_list ([webview.menu.Menu])
     """
-    def create_submenu(title, line_items, supermenu=None):
-        m = WinForms.ToolStripMenuItem(title)
-        for menu_line_item in line_items:
-            if isinstance(menu_line_item, MenuSeparator):
-                m.DropDownItems.Add(WinForms.ToolStripSeparator())
-                continue
-            elif isinstance(menu_line_item, MenuAction):
-                action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
-                action_item.Click += lambda _,__ : menu_line_item.function()
-                m.DropDownItems.Add(action_item)
-            elif isinstance(menu_line_item, Menu):
-                create_submenu(menu_line_item.title, menu_line_item.items, m)
-
-        if supermenu:
-            supermenu.DropDownItems.Add(m)
-
-        return m
-
-    # If the application menu has already been created, we don't want to do it again
-    if BrowserView.menu_strip_object:
-        return
-
-    top_level_menu = WinForms.MenuStrip()
-
-    for app_menu in app_menu_list:
-        top_level_menu.Items.Add(create_submenu(app_menu.title, app_menu.items))
-
-    BrowserView.menu_strip_object = top_level_menu
+    # WindowsForms doesn't allow controls to have more than one parent, so we
+    #     save the app_menu_list and recreate the menu for each window as they
+    #     are created.
+    BrowserView.app_menu_list = app_menu_list
 
 def get_active_window():
     active_window = None
@@ -739,8 +754,6 @@ def restore(uid):
 
 def destroy_window(uid):
     def _close():
-        if (BrowserView.menu_strip_object):
-            window.Controls.Remove(BrowserView.menu_strip_object)
         window.Close()
 
     window = BrowserView.instances[uid]
