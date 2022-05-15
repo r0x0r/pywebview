@@ -19,10 +19,28 @@ def click_me():
 def do_nothing():
     pass
 
+def say_this_is_window_2():
+    active_window = webview.active_window()
+    if active_window:
+        active_window.load_html('<h1>This is window 2</h2>')
+
 
 if __name__ == '__main__':
+    window_2_menu = [
+        wm.Menu(
+            'Window 2 Test Menu 1',
+            [
+                wm.MenuAction('This is Window 2', say_this_is_window_2)
+            ]
+        )
+    ]
+
     window_1 = webview.create_window('Application Menu Example', 'https://pywebview.flowrl.com/hello')
-    window_2 = webview.create_window('Another Window', html='<h1>Another window to test application menu</h1>')
+    window_2 = webview.create_window(
+        'Another Window', 
+        html='<h1>Another window to test application menu</h1>',
+        menu=window_2_menu
+    )
 
     menu_items = [
         wm.Menu(

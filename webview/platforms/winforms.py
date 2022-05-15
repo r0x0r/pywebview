@@ -246,6 +246,8 @@ class BrowserView:
 
             self.localization = window.localization
 
+            self.menu_list = window.menu_list
+
         def on_activated(self, sender, args):
             if self.browser:
                 self.browser.web_view.Focus()
@@ -544,7 +546,9 @@ def create_window(window):
         browser = BrowserView.BrowserForm(window)
         BrowserView.instances[window.uid] = browser
 
-        if (BrowserView.app_menu_list):
+        if (window.menu_list):
+            browser.set_window_menu(window.menu_list)
+        elif (BrowserView.app_menu_list):
             browser.set_window_menu(BrowserView.app_menu_list) 
 
         if not window.hidden:
