@@ -580,13 +580,13 @@ def set_app_menu(app_menu_list):
     def create_submenu(title, line_items, supermenu, action_prepend=""):
         m = Gio.Menu.new()
         current_section = Gio.Menu.new()
-        action_prepend = "{}_{}".format(action_prepend, title)
+        action_prepend = "{}_{}".format(action_prepend, title.replace(" ", "-"))
         for menu_line_item in line_items:
             if isinstance(menu_line_item, MenuSeparator):
                 m.append_section(None, current_section)
                 current_section = Gio.Menu.new()
             elif isinstance(menu_line_item, MenuAction):
-                action_label = "{}_{}".format(action_prepend, menu_line_item.title)
+                action_label = "{}_{}".format(action_prepend, menu_line_item.title.replace(" ", "-"))
                 while action_label in _app_actions.keys():
                     action_label += "_"
                 _app_actions[action_label] = menu_line_item.function
