@@ -71,7 +71,7 @@ windows = []
 menus = []
 
 def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None,
-          app_menu_list=[]):
+          menu=[]):
     """
     Start a GUI loop and display previously created windows. This function must
     be called from a main thread.
@@ -89,7 +89,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         window, a separate HTTP server is spawned. This option is ignored for
         non-local URLs.
     :param user_agent: Change user agent string. Not supported in EdgeHTML.
-    :param app_menu_list: List of menus to be included in the app menu
+    :param menu: List of menus to be included in the app menu
     """
     global guilib, _debug, _multiprocessing, _http_server, _user_agent
 
@@ -142,7 +142,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
             t = Thread(target=func)
         t.start()
 
-    guilib.set_app_menu(app_menu_list)
+    guilib.set_app_menu(menu)
     guilib.create_window(windows[0])
 
 

@@ -476,7 +476,7 @@ def create_window(window):
         create()
 
     if window.uid == 'master':
-        _app.connect("activate", create_master_callback)
+        _app.connect('activate', create_master_callback)
         _app.run()
     else:
         # _app will already have been activated by this point
@@ -577,23 +577,23 @@ def set_app_menu(app_menu_list):
             return
         function()
 
-    def create_submenu(title, line_items, supermenu, action_prepend=""):
+    def create_submenu(title, line_items, supermenu, action_prepend=''):
         m = Gio.Menu.new()
         current_section = Gio.Menu.new()
-        action_prepend = "{}_{}".format(action_prepend, title.replace(" ", "-"))
+        action_prepend = '{}_{}'.format(action_prepend, title)
         for menu_line_item in line_items:
             if isinstance(menu_line_item, MenuSeparator):
                 m.append_section(None, current_section)
                 current_section = Gio.Menu.new()
             elif isinstance(menu_line_item, MenuAction):
-                action_label = "{}_{}".format(action_prepend, menu_line_item.title.replace(" ", "-"))
+                action_label = '{}_{}'.format(action_prepend, menu_line_item.title)
                 while action_label in _app_actions.keys():
-                    action_label += "_"
+                    action_label += '_'
                 _app_actions[action_label] = menu_line_item.function
                 new_action = Gio.SimpleAction.new(action_label, None)
-                new_action.connect("activate", action_callback)
+                new_action.connect('activate', action_callback)
                 _app.add_action(new_action)
-                current_section.append(menu_line_item.title, "app." + action_label)
+                current_section.append(menu_line_item.title, 'app.' + action_label)
             elif isinstance(menu_line_item, Menu):
                 create_submenu(menu_line_item.title, menu_line_item.items, current_section, action_prepend=action_prepend)
 
@@ -611,7 +611,7 @@ def set_app_menu(app_menu_list):
     def set_menubar(app):
         app.set_menubar(menubar)
 
-    _app.connect("startup", set_menubar)
+    _app.connect('startup', set_menubar)
 
 
 def get_active_window():

@@ -894,7 +894,7 @@ def set_app_menu(app_menu_list):
     class InternalAction:
         def __init__(self, parent: InternalMenu, title: str, action: callable, command=None):
             self.action = action
-            s = selector(self._call_action, signature=b"v@:")
+            s = selector(self._call_action, signature=b'v@:')
             if command:
                 item = parent.m.addItemWithTitle_action_keyEquivalent_(title, s, command)
             else:

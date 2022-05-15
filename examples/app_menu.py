@@ -46,4 +46,4 @@ if __name__ == '__main__':
         )
     ]
 
-    webview.start(app_menu_list=menu_items)
+    webview.start(menu=menu_items)
