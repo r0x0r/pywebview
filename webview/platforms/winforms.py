@@ -546,9 +546,7 @@ def create_window(window):
         browser = BrowserView.BrowserForm(window)
         BrowserView.instances[window.uid] = browser
 
-        if (window.menu_list):
-            browser.set_window_menu(window.menu_list)
-        elif (BrowserView.app_menu_list):
+        if len(BrowserView.app_menu_list):
             browser.set_window_menu(BrowserView.app_menu_list) 
 
         if not window.hidden:
@@ -677,16 +675,6 @@ def load_html(content, base_uri, uid):
         return
     else:
         BrowserView.instances[uid].load_html(content, base_uri)
-
-def set_window_menu(menu_list, uid):
-    """
-    Create a custom menu for a specific window.
-
-    Args:
-        menu_list ([webview.menu.Menu])
-        uid (int)
-    """
-    BrowserView.instances[uid].set_window_menu(menu_list)
 
 def set_app_menu(app_menu_list):
     """

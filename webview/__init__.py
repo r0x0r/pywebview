@@ -124,7 +124,6 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         raise WebViewException('You must create a window first before calling this function.')
 
     guilib = initialize(gui)
-    guilib.setup_app()
 
     for window in windows:
         window._initialize(guilib, multiprocessing, http_server)
@@ -150,7 +149,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
                   frameless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
-                  transparent=False, text_select=False, localization=None, menu=None):
+                  transparent=False, text_select=False, localization=None):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -170,7 +169,6 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
-    :param menu: List of menus to be included in window menu
     :return: window object.
     """
 
@@ -183,7 +181,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     window = Window(uid, make_unicode(title), url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
-                    js_api, text_select, transparent, localization, menu)
+                    js_api, text_select, transparent, localization)
 
     windows.append(window)
 
