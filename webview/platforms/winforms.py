@@ -246,8 +246,6 @@ class BrowserView:
 
             self.localization = window.localization
 
-            self.menu_list = window.menu_list
-
         def on_activated(self, sender, args):
             if self.browser:
                 self.browser.web_view.Focus()
