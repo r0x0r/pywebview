@@ -586,7 +586,7 @@ def set_app_menu(app_menu_list):
                 m.append_section(None, current_section)
                 current_section = Gio.Menu.new()
             elif isinstance(menu_line_item, MenuAction):
-                action_label = '{}_{}'.format(action_prepend, menu_line_item.title)
+                action_label = '{}_{}'.format(action_prepend, menu_line_item.title).replace(' ', '_')
                 while action_label in _app_actions.keys():
                     action_label += '_'
                 _app_actions[action_label] = menu_line_item.function
