@@ -66,8 +66,10 @@ _storage_path = None
 
 token = _token
 windows = []
+menus = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, http_port=None, user_agent=None, private_mode=True, storage_path=None):
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False,
+          http_port=None, user_agent=None, private_mode=True, storage_path=None, menu=[]):
     """
     Start a GUI loop and display previously created windows. This function must
     be called from a main thread.
@@ -88,6 +90,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     :param private_mode: Enable private mode. In private mode, cookies and local storage are not preserved.
            Default is True.
     :param storage_path: Custom location for cookies and other website data
+    :param menu: List of menus to be included in the app menu
     """
     global guilib, _debug, _http_server, _user_agent, _private_mode, _storage_path
 
@@ -161,6 +164,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
             t = threading.Thread(target=func)
         t.start()
 
+    guilib.set_app_menu(menu)
     guilib.create_window(windows[0])
 
 
@@ -204,6 +208,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     windows.append(window)
 
+    # This immediately creates the window only if `start` has already been called
     if threading.current_thread().name != 'MainThread' and guilib:
         if is_local_url(url) and not http.running:
             url_prefix, common_path = http.start_server([url])
@@ -215,9 +220,19 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     return window
 
+def active_window():
+    """
+    Get the active window
+
+    :return: window object or None
+    """
+    if guilib:
+        return guilib.get_active_window()
+    return None
 
 @module_property
 def screens():
     guilib = initialize()
     screens = guilib.get_screens()
     return screens
+

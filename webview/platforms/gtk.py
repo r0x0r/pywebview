@@ -12,12 +12,13 @@ import webbrowser
 from uuid import uuid1
 from threading import Semaphore
 
-from webview import _debug, _private_mode, _user_agent, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, escape_string, windows
+from webview import _debug, _private_mode, _user_agent, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
 from webview.window import FixPoint
 import webview.http as http
+from webview.menu import Menu, MenuAction, MenuSeparator
 
 logger = logging.getLogger('pywebview')
 
@@ -28,9 +29,9 @@ gi.require_version('WebKit2', '4.0')
 
 from gi.repository import Gtk as gtk
 from gi.repository import Gdk
+from gi.repository import Gio
 from gi.repository import GLib as glib
 from gi.repository import WebKit2 as webkit
-from gi.repository import Soup
 
 
 # version of WebKit2 older than 2.2 does not support returning a result of javascript, so we
@@ -41,6 +42,9 @@ old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
 renderer = 'gtkwebkit2'
 
 settings = {}
+
+_app = None
+_app_actions = {} # action_label: function
 
 class BrowserView:
     instances = {}
@@ -56,6 +60,9 @@ class BrowserView:
             return js_bridge_call(self.window, func_name, param, value_id)
 
     def __init__(self, window):
+        # Note: _app won't be None because BrowserView() is called after _app is made in `create_window`
+        global _app
+
         BrowserView.instances[window.uid] = self
         self.uid = window.uid
         self.pywebview_window = window
@@ -64,7 +71,7 @@ class BrowserView:
         self.js_results = {}
 
         glib.threads_init()
-        self.window = gtk.Window(title=window.title)
+        self.window = gtk.ApplicationWindow(title=window.title, application=_app)
 
         self.shown = window.events.shown
         self.loaded = window.events.loaded
@@ -198,9 +205,6 @@ class BrowserView:
         for res in self.js_results.values():
             res['semaphore'].release()
 
-        while gtk.events_pending():
-            gtk.main_iteration()
-
         self.window.destroy()
         del BrowserView.instances[self.uid]
 
@@ -208,9 +212,6 @@ class BrowserView:
             windows.remove(self.pywebview_window)
 
         self.pywebview_window.events.closed.set()
-
-        if BrowserView.instances == {}:
-            gtk.main_quit()
 
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
@@ -314,7 +315,6 @@ class BrowserView:
         if gtk.main_level() == 0:
             if self.pywebview_window.hidden:
                 self.window.hide()
-            gtk.main()
         else:
             glib.idle_add(self.window.show_all)
 
@@ -489,14 +489,27 @@ class BrowserView:
         glib.idle_add(create_bridge)
 
 
+def setup_app():
+    # MUST be called before create_window and set_app_menu
+    global _app
+    if _app is None:
+        _app = gtk.Application.new(None, 0)
+
 def create_window(window):
+    global _app
+
     def create():
         browser = BrowserView(window)
         browser.show()
 
-    if window.uid == 'master':
+    def create_master_callback(app):
         create()
+
+    if window.uid == 'master':
+        _app.connect('activate', create_master_callback)
+        _app.run()
     else:
+        # _app will already have been activated by this point
         glib.idle_add(create)
 
 
@@ -577,6 +590,74 @@ def load_html(content, base_uri, uid):
     def _load_html():
         BrowserView.instances[uid].load_html(content, base_uri)
     glib.idle_add(_load_html)
+
+
+def set_app_menu(app_menu_list):
+    """
+    Create a custom menu for the app bar menu (on supported platforms).
+    Otherwise, this menu is used across individual windows.
+
+    Args:
+        app_menu_list ([webview.menu.Menu])
+    """
+    global _app_actions
+    def action_callback(action, parameter):
+        function = _app_actions.get(action.get_name())
+        if function is None:
+            return
+        function()
+
+    def create_submenu(title, line_items, supermenu, action_prepend=''):
+        m = Gio.Menu.new()
+        current_section = Gio.Menu.new()
+        action_prepend = '{}_{}'.format(action_prepend, title)
+        for menu_line_item in line_items:
+            if isinstance(menu_line_item, MenuSeparator):
+                m.append_section(None, current_section)
+                current_section = Gio.Menu.new()
+            elif isinstance(menu_line_item, MenuAction):
+                action_label = '{}_{}'.format(action_prepend, menu_line_item.title).replace(' ', '_')
+                while action_label in _app_actions.keys():
+                    action_label += '_'
+                _app_actions[action_label] = menu_line_item.function
+                new_action = Gio.SimpleAction.new(action_label, None)
+                new_action.connect('activate', action_callback)
+                _app.add_action(new_action)
+                current_section.append(menu_line_item.title, 'app.' + action_label)
+            elif isinstance(menu_line_item, Menu):
+                create_submenu(menu_line_item.title, menu_line_item.items, current_section, action_prepend=action_prepend)
+
+        m.append_section(None, current_section)
+
+        supermenu.append_submenu(title, m)
+
+    global _app
+
+    menubar = Gio.Menu()
+
+    for app_menu in app_menu_list:
+        create_submenu(app_menu.title, app_menu.items, menubar)
+
+    def set_menubar(app):
+        app.set_menubar(menubar)
+
+    _app.connect('startup', set_menubar)
+
+
+def get_active_window():
+    active_window = None
+    try:
+        active_window = _app.get_active_window()
+    except:
+        return None
+
+    active_window_number = active_window.get_id()
+
+    for uid, browser_view_instance in BrowserView.instances.items():
+        if browser_view_instance.window.get_id() == active_window_number:
+            return browser_view_instance.pywebview_window
+
+    return None
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
