@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.6.3
+
+_Released 05/04/2022_
+### 🐞 Bug fixes
+
+- [Winforms] Support for Edge Chromium v100. Thanks @greper.
+
 ## 3.6.2
 
 _Released 05/03/2022_
