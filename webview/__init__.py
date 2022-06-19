@@ -22,6 +22,7 @@ from proxy_tools import module_property
 
 from webview.event import Event
 from webview.guilib import initialize
+from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.util import _token, base_uri, parse_file_type, escape_string, make_unicode, escape_line_breaks, WebViewException
 from webview.window import Window
 from .localization import original_localization
@@ -67,8 +68,10 @@ _http_server = False
 
 token = _token
 windows = []
+menus = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None,
+          menu=[]):
     """
     Start a GUI loop and display previously created windows. This function must
     be called from a main thread.
@@ -86,6 +89,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         window, a separate HTTP server is spawned. This option is ignored for
         non-local URLs.
     :param user_agent: Change user agent string. Not supported in EdgeHTML.
+    :param menu: List of menus to be included in the app menu
     """
     global guilib, _debug, _multiprocessing, _http_server, _user_agent
 
@@ -137,6 +141,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
             t = Thread(target=func)
         t.start()
 
+    guilib.set_app_menu(menu)
     guilib.create_window(windows[0])
 
 
@@ -180,15 +185,26 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     windows.append(window)
 
+    # This immediately creates the window only if `start` has already been called
     if threading.current_thread().name != 'MainThread' and guilib:
         window._initialize(guilib, _multiprocessing, _http_server)
         guilib.create_window(window)
 
     return window
 
+def active_window():
+    """
+    Get the active window
+
+    :return: window object or None
+    """
+    if guilib:
+        return guilib.get_active_window()
+    return None
 
 @module_property
 def screens():
     guilib = initialize()
     screens = guilib.get_screens()
     return screens
+

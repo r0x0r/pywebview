@@ -9,18 +9,20 @@ import logging
 import webbrowser
 import ctypes
 from threading import Event, Semaphore
+import typing as t
 
 import Foundation
 import AppKit
 import WebKit
 from PyObjCTools import AppHelper
-from objc import _objc, nil, super, registerMetaDataForSelector
+from objc import _objc, nil, super, registerMetaDataForSelector, selector
 
 from webview import _debug, _user_agent, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
 from webview.window import FixPoint
+from webview.menu import Menu, MenuAction, MenuSeparator
 
 settings = {}
 
@@ -642,9 +644,8 @@ class BrowserView:
         'Hide Others', 'Show All', and 'Quit'. Will append the application name
         to some menu items if it's available.
         """
-        # Set the main menu for the application
-        mainMenu = AppKit.NSMenu.alloc().init()
-        self.app.setMainMenu_(mainMenu)
+
+        mainMenu = self.app.mainMenu()
 
         # Create an application menu and make it a submenu of the main menu
         mainAppMenuItem = AppKit.NSMenuItem.alloc().init()
@@ -686,7 +687,8 @@ class BrowserView:
         viewMenu.setTitle_(self.localization["cocoa.menu.view"])
         viewMenuItem = AppKit.NSMenuItem.alloc().init()
         viewMenuItem.setSubmenu_(viewMenu)
-        mainMenu.addItem_(viewMenuItem)
+        # mainMenu.addItem_(viewMenuItem)
+        mainMenu.insertItem_atIndex_(viewMenuItem, 0)
 
         # TODO: localization of the Enter fullscreen string has no effect
         fullScreenMenuItem = viewMenu.addItemWithTitle_action_keyEquivalent_(self.localization["cocoa.menu.fullscreen"], "toggleFullScreen:", "f")
@@ -816,6 +818,10 @@ class BrowserView:
         return string.replace(' ', '%20')
 
 
+def setup_app():
+    # MUST be called before create_window and set_app_menu
+    pass
+
 def create_window(window):
     global _debug
 
@@ -849,10 +855,91 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 def load_url(url, uid):
     BrowserView.instances[uid].load_url(url)
 
-
 def load_html(content, base_uri, uid):
     BrowserView.instances[uid].load_html(content, base_uri)
 
+def set_app_menu(app_menu_list):
+    """
+    Create a custom menu for the app menu (MacOS bar menu)
+
+    Args:
+        app_menu_list ([webview.menu.Menu])
+    """
+
+    # From https://github.com/r0x0r/pywebview/issues/500
+    class InternalMenu:
+        def __init__(self, title, parent):
+            self.m = AppKit.NSMenu.alloc().init()
+            self.item = AppKit.NSMenuItem.alloc().init()
+            self.item.setSubmenu_(self.m)
+            if not isinstance(parent, self.__class__):
+                self.m.setTitle_(title)
+                parent.addItem_(self.item)
+            else:
+                self.item.setTitle_(title)
+                parent.m.addItem_(self.item)
+
+        def action(self, title: str, action: callable, command: t.Optional[str] = None):
+            InternalAction(self, title, action, command)
+            return self
+
+        def separator(self):
+            self.m.addItem_(AppKit.NSMenuItem.separatorItem())
+            return self
+
+        def sub_menu(self, title: str):
+            return self.__class__(title, parent=self)
+
+
+    class InternalAction:
+        def __init__(self, parent: InternalMenu, title: str, action: callable, command=None):
+            self.action = action
+            s = selector(self._call_action, signature=b'v@:')
+            if command:
+                item = parent.m.addItemWithTitle_action_keyEquivalent_(title, s, command)
+            else:
+                item = AppKit.NSMenuItem.alloc().init()
+                item.setAction_(s)
+                item.setTitle_(title)
+                parent.m.addItem_(item)
+            item.setTarget_(self)
+
+        def _call_action(self):
+            self.action()
+
+    def create_submenu(title, line_items, supermenu):
+        m = InternalMenu(title, parent=supermenu)
+        for menu_line_item in line_items:
+            if isinstance(menu_line_item, MenuSeparator):
+                m = m.separator()
+            elif isinstance(menu_line_item, MenuAction):
+                m = m.action(
+                    menu_line_item.title,
+                    menu_line_item.function
+                )
+            elif isinstance(menu_line_item, Menu):
+                create_submenu(menu_line_item.title, menu_line_item.items, m)
+
+    os_bar_menu = BrowserView.app.mainMenu()
+    if os_bar_menu is None:
+        os_bar_menu = AppKit.NSMenu.alloc().init()
+        BrowserView.app.setMainMenu_(os_bar_menu)
+
+    for app_menu in app_menu_list:
+        create_submenu(app_menu.title, app_menu.items, os_bar_menu)
+
+def get_active_window():
+    active_window = BrowserView.app.keyWindow()
+    if active_window is None:
+        return None
+
+    active_window_number = active_window.windowNumber()
+
+    for uid, browser_view_instance in BrowserView.instances.items():
+        if browser_view_instance.window.windowNumber() == active_window_number:
+            return browser_view_instance.pywebview_window
+
+    return None
 
 def destroy_window(uid):
     BrowserView.instances[uid].destroy()
@@ -949,7 +1036,4 @@ def get_size(uid):
 def get_screens():
     screens = [Screen(s.frame().size.width, s.frame().size.height) for s in AppKit.NSScreen.screens()]
     return screens
-
-
-
 
