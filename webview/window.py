@@ -364,7 +364,7 @@ class Window:
                     value.then(function evaluate_async(result) {{
                         pywebview._asyncCallback(JSON.stringify(result), "{1}")
                     }});
-                    true;
+                    "true";
                 }} else {{ {2} }}
             """.format(escape_string(script), unique_id, sync_eval)
         else:
