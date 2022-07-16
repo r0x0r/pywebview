@@ -1,7 +1,7 @@
 
 # Minimize / restore window
 
-Minimize and restore window programmmatically
+Minimize and restore window programmatically
 
 
 ```python
