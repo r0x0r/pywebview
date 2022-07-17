@@ -220,7 +220,7 @@ class BrowserView:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window)
-                # for chromium edge, need this factor to modify the cordinates
+                # for chromium edge, need this factor to modify the coordinates
                 self.scale_factor = windll.shcore.GetScaleFactorForDevice(0)/100
             elif is_edge:
                 self.browser = Edge.EdgeHTML(self, window)

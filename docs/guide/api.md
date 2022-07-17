@@ -331,7 +331,7 @@ Event fired when DOM is ready.
 [Example](/examples/events.html)
 
 ## events.minimized
-Event fired when window is minimzed.
+Event fired when window is minimized.
 
 [Example](/examples/events.html)
 
@@ -364,7 +364,7 @@ _pywebview_ exposes a `window.pywebviewready` DOM event that is fired when `wind
 
 # Drag area
 
-_pywebview_ window can be moved by dragging any element with the `pywebview-drag-region` class name. This is useful, for example, in frameless mode when you would like to implement a custom caption bar. The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
+_pywebview_ window can be moved by dragging any element with the `pywebview-drag-region` class name. This is useful, for example, in frameless mode when you would like to implement a custom caption bar. The magic class name can be overridden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
 
 
 [Example](/examples/js_api.html)
