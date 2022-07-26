@@ -664,7 +664,8 @@ class BrowserView:
 
         # Create an application menu and make it a submenu of the main menu
         mainAppMenuItem = AppKit.NSMenuItem.alloc().init()
-        mainMenu.addItem_(mainAppMenuItem)
+        # The application menu is the first item, so add this menu ast the first item
+        mainMenu.insertItem_atIndex_(mainAppMenuItem, 0)
         appMenu = AppKit.NSMenu.alloc().init()
         mainAppMenuItem.setSubmenu_(appMenu)
 
@@ -702,8 +703,8 @@ class BrowserView:
         viewMenu.setTitle_(self.localization["cocoa.menu.view"])
         viewMenuItem = AppKit.NSMenuItem.alloc().init()
         viewMenuItem.setSubmenu_(viewMenu)
-        # mainMenu.addItem_(viewMenuItem)
-        mainMenu.insertItem_atIndex_(viewMenuItem, 0)
+        # Make the view menu the first item after the application menu
+        mainMenu.insertItem_atIndex_(viewMenuItem, 1)
 
         # TODO: localization of the Enter fullscreen string has no effect
         fullScreenMenuItem = viewMenu.addItemWithTitle_action_keyEquivalent_(self.localization["cocoa.menu.fullscreen"], "toggleFullScreen:", "f")
