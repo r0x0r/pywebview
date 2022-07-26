@@ -166,6 +166,7 @@ class BrowserView:
 
     class BrowserForm(WinForms.Form):
         def __init__(self, window):
+            super().__init__()
             self.uid = window.uid
             self.pywebview_window = window
             self.real_url = None
