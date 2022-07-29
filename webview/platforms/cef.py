@@ -121,7 +121,16 @@ class Browser:
         self.loaded.wait()
 
         self.eval_events[unique_id] = Event()
-        result = self.browser.ExecuteJavascript(code)
+        eval_script = """
+            try {{
+                {0}
+            }} catch(e) {{
+                console.error(e.stack);
+                window.external.return_result(null, '{1}');
+            }}
+        """.format(code, unique_id)
+
+        result = self.browser.ExecuteJavascript(eval_script)
         self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
 
         result = copy(self.js_bridge.results[unique_id])
