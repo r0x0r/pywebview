@@ -7,7 +7,7 @@ def test_token():
     run_test(webview, window, token_test)
 
 def test_persistance():
-    window = webview.create_window('Token persistance test')
+    window = webview.create_window('Token persistence test')
     run_test(webview, window, persistance_test)
 
 

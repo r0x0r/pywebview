@@ -164,7 +164,7 @@ _Released 04/11/2019_
 - `Improvement` [All] `window.set_window_size` is deprecated in favour to `window.resize`.
 - `Improvement` [All] Exceptions are now handled in JS API functions and rerouted to the function promise catch method.
 - `Improvement` [All] Suppress built-in HTTP server logging. Logging is active only in the debug mode.
-- `Fix` [CEF] Fix deadlock occuring when trying to access `window.pywebview` object right after the window is created.
+- `Fix` [CEF] Fix deadlock occurring when trying to access `window.pywebview` object right after the window is created.
 - `Fix` [CEF] High DPI fix resulting in a small window appearing inside the main window,
 - `Fix` [EdgeHTML] Unicode error when loading HTML.
 - `Fix` [MSHTML] `get_elements` failing.
@@ -180,7 +180,7 @@ _Released 17/08/2019_
 
 - `Fix` [All] Prevent JSON like strings being converted to JSON objects when returning JS API calls. #352
 - `Fix` [Windows] HTTP server is now used by default for local URLs and HTML for EdgeHTML. This fixes a PermissionDenied error, when the directory the executable is in is not writable.
-- `Fix` [Tests] Tests now fail on an exception occuring in a thread.
+- `Fix` [Tests] Tests now fail on an exception occurring in a thread.
 
 
 ## 3.0.1
@@ -294,7 +294,7 @@ Released 28/04/2018
 - `Fix` [Winforms] Hide `Message from webpage` when using `alert` Javascript function #150
 - `Fix` [Winforms] Support for high DPI #179
 - `Fix` [QT] Support for QT 5.10 #171. Thanks @adbenitez
-- `Fix` [QT] Deprecate QT4. Starting from this verison new features won't be tested on QT4 and support will be removed in the future.
+- `Fix` [QT] Deprecate QT4. Starting from this version new features won't be tested on QT4 and support will be removed in the future.
 
 
 
