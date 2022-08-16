@@ -230,6 +230,51 @@ class BrowserView:
             option = sender.indexOfSelectedItem()
             self.window().setAllowedFileTypes_(self.filter[option][1])
 
+    class DragBar(AppKit.NSView):
+        # Fallbacks, in case these constants are not wrapped by PyObjC
+        try:
+            NSFullSizeContentViewWindowMask = AppKit.NSFullSizeContentViewWindowMask
+        except AttributeError:
+            NSFullSizeContentViewWindowMask = 1 << 15
+        try:
+            NSWindowTitleHidden = AppKit.NSWindowTitleHidden
+        except AttributeError:
+            NSWindowTitleHidden = 1
+
+        def mouseDragged_(self, theEvent):
+            screenFrame = AppKit.NSScreen.mainScreen().frame()
+            if screenFrame is None:
+                raise RuntimeError('Failed to obtain screen')
+
+            window = self.window()
+            windowFrame = window.frame()
+            if windowFrame is None:
+                raise RuntimeError('Failed to obtain frame')
+
+            currentLocation = window.convertBaseToScreen_(window.mouseLocationOutsideOfEventStream())
+            newOrigin = AppKit.NSMakePoint((currentLocation.x - self.initialLocation.x),
+                                    (currentLocation.y - self.initialLocation.y))
+            if (newOrigin.y + windowFrame.size.height) > \
+                (screenFrame.origin.y + screenFrame.size.height):
+                newOrigin.y = screenFrame.origin.y + \
+                              (screenFrame.size.height + windowFrame.size.height)
+            window.setFrameOrigin_(newOrigin)
+            super(BrowserView.DragBar, self).mouseDragged_(theEvent)
+
+        def mouseDown_(self, theEvent):
+            window = self.window()
+
+            windowFrame = window.frame()
+            if windowFrame is None:
+                raise RuntimeError('Failed to obtain screen')
+
+            self.initialLocation = \
+                window.convertBaseToScreen_(theEvent.locationInWindow())
+            self.initialLocation.x -= windowFrame.origin.x
+            self.initialLocation.y -= windowFrame.origin.y
+            super(BrowserView.DragBar, self).mouseDown_(theEvent)
+
+
     class WebKitHost(WebKit.WKWebView):
         def mouseDown_(self, event):
             i = BrowserView.get_instance('webkit', self)
@@ -409,9 +454,19 @@ class BrowserView:
             # Make content full size and titlebar transparent
             self.window.setTitlebarAppearsTransparent_(True)
             self.window.setTitleVisibility_(NSWindowTitleHidden)
-            self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
-            self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
-            self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
+            if window.titlebar_visible:
+                self.window.setTitlebarHeight_(28)
+                self.webkit.setFlipped_(True)
+                # 增加顶部横向拖拽条
+                frame = self.window.frame()
+                rect = AppKit.NSMakeRect(0, 0,  frame.size.width, 28)
+                drag_bar = BrowserView.DragBar.alloc().initWithFrame_(rect)
+                drag_bar.setAutoresizingMask_(AppKit.NSViewWidthSizable)
+                self.webkit.addSubview_(drag_bar)
+            else: 
+                self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
+                self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
+                self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
         else:
             # Set the titlebar color (so that it does not change with the window color)
             self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
