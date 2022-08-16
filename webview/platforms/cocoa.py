@@ -393,6 +393,17 @@ class BrowserView:
         else:
             self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color))
 
+        # macos vibrancy
+        if window.vibrancy:
+          frame_vibrancy =  AppKit.NSMakeRect(0, 0, frame.size.width,frame.size.height)
+          visualEffectView = AppKit.NSVisualEffectView.new()
+          visualEffectView.setAutoresizingMask_(AppKit.NSViewWidthSizable|AppKit.NSViewHeightSizable)
+          visualEffectView.setWantsLayer_(True)
+          visualEffectView.setFrame_(frame_vibrancy)
+          visualEffectView.setState_(AppKit.NSVisualEffectStateActive)
+          visualEffectView.setBlendingMode_(AppKit.NSVisualEffectBlendingModeBehindWindow)
+          self.webkit.addSubview_positioned_relativeTo_(visualEffectView, AppKit.NSWindowBelow,  self.webkit)
+    
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
         self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
