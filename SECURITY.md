@@ -12,4 +12,4 @@ Versions lower than 3.0 are not supported
 ## Reporting a Vulnerability
 
 If you find a vulnerability in the pywebview code, please get in touch via roman@flowrl.com 
-Please do not report any vulnerabilities in node_modules depedencies of the pywebview website. 
+Please do not report any vulnerabilities in node_modules dependencies of the pywebview website. 

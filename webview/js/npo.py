@@ -5,7 +5,7 @@ src = """
 */
 
 (function UMD(name,context,definition){
-	// special form of UMD for polyfilling across evironments
+	// special form of UMD for polyfilling across environments
 	context[name] = context[name] || definition();
 	if (typeof module != "undefined" && module.exports) { module.exports = context[name]; }
 	else if (typeof define == "function" && define.amd) { define(function $AMD$(){ return context[name]; }); }
