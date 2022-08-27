@@ -24,6 +24,10 @@ def say_this_is_window_2():
     if active_window:
         active_window.load_html('<h1>This is window 2</h2>')
 
+def open_file_dialog():
+    active_window = webview.active_window()
+    active_window.create_file_dialog(webview.SAVE_DIALOG, directory='/', save_filename='test.file')
+
 
 if __name__ == '__main__':
     window_1 = webview.create_window('Application Menu Example', 'https://pywebview.flowrl.com/hello')
@@ -38,7 +42,8 @@ if __name__ == '__main__':
                 wm.Menu(
                     'Random',
                     [
-                        wm.MenuAction('Click Me', click_me)
+                        wm.MenuAction('Click Me', click_me),
+                        wm.MenuAction('File Dialog', open_file_dialog)
                     ]
                 )
             ]
