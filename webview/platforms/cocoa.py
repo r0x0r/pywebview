@@ -579,6 +579,32 @@ class BrowserView:
         JSResult.result_semaphore.acquire()
         return JSResult.result
 
+    def create_text_dialog(self, title, message):
+        def create_dialog(title, message):
+            text_dlg = AppKit.NSAlert.alloc().init()
+            text_dlg.setAlertStyle_(AppKit.NSAlertStyleInformational)
+            text_dlg.setMessageText_(title)
+            text_dlg.setInformativeText_(message)
+            text_dlg.addButtonWithTitle_(self.localization['global.ok'])
+            text_dlg.addButtonWithTitle_(self.localization['global.cancel'])
+
+            button_result = text_dlg.runModal()
+            result_return_dict = {
+                AppKit.NSAlertFirstButtonReturn: 1, # ok
+                AppKit.NSAlertSecondButtonReturn: 0, # cancel
+            }
+            DialogResult.result = result_return_dict.get(button_result, 0)
+            DialogResult.result_semaphore.release()
+
+        class DialogResult:
+            result = -1
+            result_semaphore = Semaphore(0)
+
+        AppHelper.callAfter(create_dialog, title, message)
+        DialogResult.result_semaphore.acquire()
+
+        return DialogResult.result
+
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter, main_thread=False):
         def create_dialog(*args):
             dialog_type = args[0]
@@ -839,6 +865,8 @@ def create_window(window):
 def set_title(title, uid):
     BrowserView.instances[uid].set_title(title)
 
+def create_text_dialog(title, message, uid):
+    return BrowserView.instances[uid].create_text_dialog(title, message)
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
     file_filter = []

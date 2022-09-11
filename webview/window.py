@@ -379,6 +379,17 @@ class Window:
             return self.gui.evaluate_js(escaped_script, self.uid)
 
     @_shown_call
+    def create_text_dialog(self, title, message):
+        """
+        Create a text dialog
+        :param title: Dialog title
+        :param message: Dialog detail message
+        :return: 1 for OK, 0 for Cancel
+        """
+
+        return self.gui.create_text_dialog(title, message, self.uid)
+
+    @_shown_call
     def create_file_dialog(self, dialog_type=10, directory='', allow_multiple=False, save_filename='', file_types=()):
         """
         Create a file dialog

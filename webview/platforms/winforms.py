@@ -535,6 +535,16 @@ def set_title(title, uid):
         _set_title()
 
 
+def create_text_dialog(title, message, uid):
+    window = BrowserView.instances[uid]
+
+    result = WinForms.MessageBox.Show(title, message, WinForms.MessageBoxButtons.OKCancel)
+
+    if result == WinForms.DialogResult.OK:
+        return 1
+
+    return 0
+
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
     window = BrowserView.instances[uid]
 
