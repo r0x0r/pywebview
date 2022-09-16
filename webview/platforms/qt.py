@@ -63,7 +63,8 @@ class BrowserView(QMainWindow):
     set_title_trigger = QtCore.Signal(str)
     load_url_trigger = QtCore.Signal(str)
     html_trigger = QtCore.Signal(str, str)
-    dialog_trigger = QtCore.Signal(int, str, bool, str, str)
+    text_dialog_trigger = QtCore.Signal(str, str, str)
+    file_dialog_trigger = QtCore.Signal(int, str, bool, str, str)
     destroy_trigger = QtCore.Signal()
     hide_trigger = QtCore.Signal()
     show_trigger = QtCore.Signal()
@@ -233,6 +234,7 @@ class BrowserView(QMainWindow):
         self._js_results = {}
         self._current_url = None
         self._file_name = None
+        self._text_dialog_results = {}
 
         self.resize(window.initial_width, window.initial_height)
         self.title = window.title
@@ -295,7 +297,8 @@ class BrowserView(QMainWindow):
         self.create_window_trigger.connect(BrowserView.on_create_window)
         self.load_url_trigger.connect(self.on_load_url)
         self.html_trigger.connect(self.on_load_html)
-        self.dialog_trigger.connect(self.on_file_dialog)
+        self.text_dialog_trigger.connect(self.on_text_dialog)
+        self.file_dialog_trigger.connect(self.on_file_dialog)
         self.destroy_trigger.connect(self.on_destroy_window)
         self.show_trigger.connect(self.on_show_window)
         self.hide_trigger.connect(self.on_hide_window)
@@ -343,6 +346,19 @@ class BrowserView(QMainWindow):
 
     def on_set_title(self, title):
         self.setWindowTitle(title)
+
+    def on_text_dialog(self, title, message, uuid):
+        uuid_ = BrowserView._convert_string(uuid)
+        reply = QMessageBox.question(self, title, message,
+                                         QMessageBox.Cancel, QMessageBox.Ok)
+
+        text_dialog_result = self._text_dialog_results[uuid_]
+
+        result = 0
+        if reply == QMessageBox.Ok:
+            result = 1
+        text_dialog_result['result'] = result
+        text_dialog_result['semaphore'].release()
 
     def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         if dialog_type == FOLDER_DIALOG:
@@ -529,8 +545,21 @@ class BrowserView(QMainWindow):
         self.loaded.clear()
         self.html_trigger.emit(content, base_uri)
 
+    def create_text_dialog(self, title, message):
+        result_semaphore = Semaphore(0)
+        unique_id = uuid1().hex
+        self._text_dialog_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
+
+        self.text_dialog_trigger.emit(title, message, unique_id)
+        result_semaphore.acquire()
+
+        result = _text_dialog_results[unique_id]['result']
+        del self._text_dialog_results[unique_id]
+
+        return result
+
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
-        self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
+        self.file_dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
         self._file_name_semaphore.acquire()
 
         if dialog_type == FOLDER_DIALOG:
@@ -731,6 +760,10 @@ def resize(width, height, uid, fix_point):
 
 def move(x, y, uid):
     BrowserView.instances[uid].move_window(x, y)
+
+
+def create_text_dialog(title, message, uid):
+    return BrowserView.instances[uid].create_text_dialog(title, message)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
