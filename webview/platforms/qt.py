@@ -13,7 +13,7 @@ import webbrowser
 import socket
 from uuid import uuid1
 from copy import deepcopy
-from threading import Semaphore, Event
+from threading import Semaphore, Event, Thread
 import typing as t
 
 from webview import _debug, _user_agent, _private_mode, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
