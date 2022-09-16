@@ -726,7 +726,7 @@ def set_app_menu(app_menu_list):
                 m.addSeparator()
             elif isinstance(menu_line_item, MenuAction):
                 new_action = QAction(menu_line_item.title)
-                new_action.triggered.connect(menu_line_item.function)
+                new_action.triggered.connect(Thread(target=menu_line_item.function).start)
                 m.addAction(new_action)
                 BrowserView.global_menubar_other_objects.append(new_action)
             elif isinstance(menu_line_item, Menu):
