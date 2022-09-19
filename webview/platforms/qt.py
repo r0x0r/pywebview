@@ -11,6 +11,7 @@ import json
 import logging
 import webbrowser
 import socket
+import sys
 from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
@@ -656,7 +657,7 @@ def create_window(window):
 
     if window.uid == 'master':
         global _app
-        _app = QApplication.instance() or QApplication([])
+        _app = QApplication.instance() or QApplication(sys.argv)
 
         _create()
         _app.exec_()
@@ -743,7 +744,7 @@ def get_size(uid):
 
 def get_screens():
     global _app
-    _app = QApplication.instance() or QApplication([])
+    _app = QApplication.instance() or QApplication(sys.argv)
 
     geometries = [s.geometry() for s in _app.screens()]
     screens = [Screen(g.width(), g.height()) for g in geometries]
