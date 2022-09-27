@@ -34,9 +34,10 @@ logger.debug('Using Qt %s' % QtCore.__version__)
 
 from qtpy.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox, QAction
 from qtpy.QtGui import QColor, QScreen
+from qtpy import PYQT6, PYSIDE6
 
 try:
-    from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
+    from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage, QWebEngineProfile
     from qtpy.QtWebChannel import QWebChannel
     renderer = 'qtwebengine'
     is_webengine = True
@@ -51,6 +52,7 @@ _main_window_created.clear()
 
 # suppress invalid style override error message on some Linux distros
 os.environ['QT_STYLE_OVERRIDE'] = ''
+_qt6 = True if PYQT6 or PYSIDE6 else False
 
 
 class BrowserView(QMainWindow):
@@ -102,7 +104,10 @@ class BrowserView(QMainWindow):
                 self.setStyleSheet("background: transparent;")
 
         def contextMenuEvent(self, event):
-            menu = self.page().createStandardContextMenu()
+            if _qt6:
+                menu = self.createStandardContextMenu()
+            else:
+                menu = self.page().createStandardContextMenu()
 
             # If 'Inspect Element' is present in the default context menu, it
             # means the inspector is already up and running.
@@ -166,8 +171,8 @@ class BrowserView(QMainWindow):
             return False
 
     class WebPage(QWebPage):
-        def __init__(self, parent=None):
-            super(BrowserView.WebPage, self).__init__(parent)
+        def __init__(self, parent=None, profile=None):
+            super(BrowserView.WebPage, self).__init__(profile, parent)
             if is_webengine:
                 self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
                 self.nav_handler = BrowserView.NavigationHandler(self)
@@ -280,7 +285,8 @@ class BrowserView(QMainWindow):
         else:
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
-        self.view.setPage(BrowserView.WebPage(self.view))
+        self.profile = QWebEngineProfile('pywebview') if _qt6 and '--no-cache' not in sys.argv else None
+        self.view.setPage(BrowserView.WebPage(self.view, profile=self.profile))
         self.view.page().loadFinished.connect(self.on_load_finished)
 
         self.setCentralWidget(self.view)
@@ -321,9 +327,13 @@ class BrowserView(QMainWindow):
         if window.initial_x is not None and window.initial_y is not None:
             self.move(window.initial_x, window.initial_y)
         else:
-            center = QApplication.desktop().availableGeometry().center() - self.rect().center()
-            self.move(center.x(), center.y())
-
+            if _qt6:
+                center = QScreen.availableGeometry(QApplication.primaryScreen()).center() - self.rect().center()
+                self.move(center.x(), center.y() - 16)
+            else:
+                center = QApplication.desktop().availableGeometry().center() - self.rect().center()
+                self.move(center.x(), center.y())
+                
         if not window.minimized:
             self.activateWindow()
             self.raise_()
@@ -473,7 +483,10 @@ class BrowserView(QMainWindow):
             js_result['semaphore'].release()
 
         try:    # < Qt5.6
-            self.view.page().runJavaScript(script, return_result)
+            if _qt6:
+                self.view.page().runJavaScript(script, 0, return_result)
+            else:
+                self.view.page().runJavaScript(script, return_result)
         except TypeError:
             self.view.page().runJavaScript(script)  # PySide2 & PySide6
         except AttributeError:
