@@ -364,7 +364,12 @@ _pywebview_ exposes a `window.pywebviewready` DOM event that is fired when `wind
 
 # Drag area
 
-_pywebview_ window can be moved by dragging any element with the `pywebview-drag-region` class name. This is useful, for example, in frameless mode when you would like to implement a custom caption bar. The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
+With a frameless _pywebview_ window, A window can be moved or dragged by adding a special class called `pywebview-drag-region` in your html 
+```html
+<div class='pywebview-drag-region'>This div element can be used to moved or drag your window like a native OS window</div>
+```
+
+The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
 
 
 [Example](/examples/js_api.html)
