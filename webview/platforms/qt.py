@@ -285,8 +285,9 @@ class BrowserView(QMainWindow):
         else:
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
-        self.profile = QWebEngineProfile('pywebview') if _qt6 and '--no-cache' not in sys.argv else None
-        self.view.setPage(BrowserView.WebPage(self.view, profile=self.profile))
+        global _qprofile  # prevent 'Release of profile requested but WebEnginePage still not deleted. Expect troubles !'
+        _qprofile = QWebEngineProfile('pywebview') if _qt6 and '--no-cache' not in sys.argv else None
+        self.view.setPage(BrowserView.WebPage(self.view, profile=_qprofile))
         self.view.page().loadFinished.connect(self.on_load_finished)
 
         self.setCentralWidget(self.view)
