@@ -22,6 +22,8 @@ from webview.js.css import disable_text_select
 from webview.screen import Screen
 from webview.window import FixPoint
 
+from keyboard import key_to_scan_codes
+
 settings = {}
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
@@ -303,25 +305,25 @@ class BrowserView:
                     range_ = responder.selectedRange()
                     hasSelectedText = len(range_) > 0
 
-                    if keyCode == 7 and hasSelectedText : #cut
+                    if keyCode == kcode("x") and hasSelectedText : #cut
                         responder.cut_(self)
                         handled = True
-                    elif keyCode == 8 and hasSelectedText:  #copy
+                    elif keyCode == kcode("c") and hasSelectedText:  #copy
                         responder.copy_(self)
                         handled = True
-                    elif keyCode == 9:  # paste
+                    elif keyCode == kcode("v"):  # paste
                         responder.paste_(self)
                         handled = True
-                    elif keyCode == 0:  # select all
+                    elif keyCode == kcode("a"):  # select all
                         responder.selectAll_(self)
                         handled = True
-                    elif keyCode == 6:  # undo
+                    elif keyCode == kcode("z"):  # undo
                         if responder.undoManager().canUndo():
                             responder.undoManager().undo()
                             handled = True
-                    elif keyCode == 12:  # quit
+                    elif keyCode == kcode("q"):  # quit
                         BrowserView.app.stop_(self)
-                    elif keyCode == 13:  # w (close)
+                    elif keyCode == kcode("w"):  # w (close)
                         self.window().performClose_(theEvent)
                         handled = True
 
@@ -957,6 +959,7 @@ def get_screens():
     screens = [Screen(s.frame().size.width, s.frame().size.height) for s in AppKit.NSScreen.screens()]
     return screens
 
-
+def kcode(key):
+    return key_to_scan_codes(key)[0]
 
 

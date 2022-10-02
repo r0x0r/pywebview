@@ -1,9 +1,8 @@
-pythonnet; sys_platform == "win32"
-pyobjc-core; sys_platform == "darwin"
-pyobjc-framework-Cocoa; sys_platform == "darwin"
-pyobjc-framework-WebKit; sys_platform == "darwin"
-PyQt5; sys_platform == "openbsd6" or sys_platform == "linux"
-pyqtwebengine; sys_platform == "openbsd6" or sys_platform == "linux"
-QtPy; sys_platform == "openbsd6" or sys_platform == "linux"
-importlib_resources; python_version < "3.7"
-proxy_tools
+keyboard==0.13.5
+proxy-tools==0.1.0
+pyobjc-core==8.5.1
+pyobjc-framework-ApplicationServices==8.5.1
+pyobjc-framework-Cocoa==8.5.1
+pyobjc-framework-Quartz==8.5.1
+pyobjc-framework-WebKit==8.5.1
+six==1.16.0
