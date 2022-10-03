@@ -22,7 +22,9 @@ from webview.js.css import disable_text_select
 from webview.screen import Screen
 from webview.window import FixPoint
 
-from keyboard import key_to_scan_codes
+from .cocoa_keyboard import KeyMap
+
+km = KeyMap()
 
 settings = {}
 
@@ -960,6 +962,6 @@ def get_screens():
     return screens
 
 def kcode(key):
-    return key_to_scan_codes(key)[0]
+    return km.character_to_vk(key)[0]
 
 
