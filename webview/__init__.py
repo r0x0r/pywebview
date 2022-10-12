@@ -142,7 +142,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
-                  frameless=False, easy_drag=True,
+                  frameless=False, buttonless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
                   transparent=False, text_select=False, localization=None):
     """
@@ -157,6 +157,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
     :param hidden: Whether the window should be hidden.
     :param frameless: Whether the window should have a frame.
+    :param buttonless: Whether the window should have close, minimize and maximize buttons.
     :param easy_drag: Easy window drag mode when window is frameless.
     :param minimized: Display window minimized
     :param on_top: Keep window above other windows (required OS: Windows)
@@ -175,7 +176,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     window = Window(uid, make_unicode(title), url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
-                    frameless, easy_drag, minimized, on_top, confirm_close, background_color,
+                    frameless, buttonless, easy_drag, minimized, on_top, confirm_close, background_color,
                     js_api, text_select, transparent, localization)
 
     windows.append(window)

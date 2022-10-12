@@ -413,12 +413,15 @@ class BrowserView:
             # Make content full size and titlebar transparent
             self.window.setTitlebarAppearsTransparent_(True)
             self.window.setTitleVisibility_(NSWindowTitleHidden)
-            self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
-            self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
-            self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
         else:
             # Set the titlebar color (so that it does not change with the window color)
             self.window.contentView().superview().subviews().lastObject().setBackgroundColor_(AppKit.NSColor.windowBackgroundColor())
+
+        if window.buttonless:
+            self.window.standardWindowButton_(AppKit.NSWindowCloseButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowMiniaturizeButton).setHidden_(True)
+            self.window.standardWindowButton_(AppKit.NSWindowZoomButton).setHidden_(True)
+
 
         if window.on_top:
             self.window.setLevel_(AppKit.NSStatusWindowLevel)
