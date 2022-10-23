@@ -22,10 +22,6 @@ from webview.js.css import disable_text_select
 from webview.screen import Screen
 from webview.window import FixPoint
 
-from .cocoa_keyboard import KeyMap
-
-km = KeyMap()
-
 settings = {}
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
@@ -300,32 +296,33 @@ class BrowserView:
 
             if theEvent.type() == AppKit.NSKeyDown and theEvent.modifierFlags() & AppKit.NSCommandKeyMask:
                 responder = self.window().firstResponder()
-                keyCode = theEvent.keyCode()
 
                 if responder != None:
                     handled = False
                     range_ = responder.selectedRange()
                     hasSelectedText = len(range_) > 0
 
-                    if keyCode == kcode("x") and hasSelectedText : #cut
+                    char = theEvent.characters()
+
+                    if char == "x" and hasSelectedText : #cut
                         responder.cut_(self)
                         handled = True
-                    elif keyCode == kcode("c") and hasSelectedText:  #copy
+                    elif char == "c" and hasSelectedText:  #copy
                         responder.copy_(self)
                         handled = True
-                    elif keyCode == kcode("v"):  # paste
+                    elif char == "v":  # paste
                         responder.paste_(self)
                         handled = True
-                    elif keyCode == kcode("a"):  # select all
+                    elif char == "a":  # select all
                         responder.selectAll_(self)
                         handled = True
-                    elif keyCode == kcode("z"):  # undo
+                    elif char == "z":  # undo
                         if responder.undoManager().canUndo():
                             responder.undoManager().undo()
                             handled = True
-                    elif keyCode == kcode("q"):  # quit
+                    elif char == "q":  # quit
                         BrowserView.app.stop_(self)
-                    elif keyCode == kcode("w"):  # w (close)
+                    elif char == "w":  # w (close)
                         self.window().performClose_(theEvent)
                         handled = True
 
@@ -963,8 +960,3 @@ def get_size(uid):
 def get_screens():
     screens = [Screen(s.frame().size.width, s.frame().size.height) for s in AppKit.NSScreen.screens()]
     return screens
-
-def kcode(key):
-    return km.character_to_vk(key)[0]
-
-
