@@ -323,7 +323,7 @@ def shutdown():
         if os.path.exists('webrtc_event_logs'):
             shutil.rmtree('webrtc_event_logs')
 
-        if os.path.exists('error.log'):
+        if os.path.exists('error.log') and not _debug['mode']:
             os.remove('error.log')
 
         if sys.platform == 'win32':
