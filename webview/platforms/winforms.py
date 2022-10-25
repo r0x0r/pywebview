@@ -79,26 +79,11 @@ def _is_chromium():
             else:
                 path = rf'WOW6432Node\Microsoft\EdgeUpdate\Clients\{key}'
 
-            register_key = rf'Computer\{key_type}\{path}'
-            windows_key = winreg.OpenKey(getattr(winreg, key_type), rf'SOFTWARE\{path}')
-            build, _ = winreg.QueryValueEx(windows_key, 'pv')
+            with winreg.OpenKey(getattr(winreg, key_type), rf'SOFTWARE\{path}') as windows_key:
+                build, _ = winreg.QueryValueEx(windows_key, 'pv')
+                return str(build)
 
-            return str(build)
         except Exception as e:
-            # Forming extra information
-            extra_info = ''
-            if description != '':
-                extra_info = f'{description} Registry path: {register_key}'
-            else:
-                extra_info = f'Registry path: {register_key}'
-
-            # Adding extra info to error
-            e.strerror += ' - ' + extra_info
-            logger.debug(e)
-
-        try:
-            winreg.CloseKey(windows_key)
-        except:
             pass
 
         return '0'
