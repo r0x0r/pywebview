@@ -258,9 +258,10 @@ def create_browser(window, handle, alert_func):
 
         cef_browser.SetJavascriptBindings(bindings)
         cef_browser.SetClientHandler(LoadHandler())
-
         instances[window.uid] = browser
         window.events.shown.set()
+        cef_browser.SendFocusEvent(True)
+
 
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)
