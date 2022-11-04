@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.7
+
+_Released 04/11/2022_
+
+### ⚡ Features
+- [All] New `window.moved` event. Thanks @irtimir
+
+### 🚀 Improvements
+- [EdgeChromium] Remove `The system cannot find the file specified - Microsoft Edge WebView2 Runtime Registry path: Computer\HKEY_CURRENT_USER\Microsoft\EdgeUpdate\Clients{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}` error message displayed in debug mode.
+- [CEF] error.log is no longer deleted when in debug mode.
+
+### 🐞 Bug fixes
+- [All] Fix `evaluate_js_async` crash and program termination prevention. Thanks @detritophage.
+- [WinForms] Fix form initialization for pythonnet 3. Thanks @irtimir
+- [CEF] Fix errorous script execution in `evaluate_js`, so that further script do not get stuck. Thanks @irtimir
+- [CEF] Fix `master uid not found` error on startup.
+- [QT] Remove 'Empty key passed' messages. Thanks @TomFryers
+- [QT] PySide6 backend not working. Thanks @sbbosco
+- [QT] Prevent  'Release of profile requested but WebEnginePage still not deleted. Expect troubles !' message on close. Thanks @sbbosco
+
+
 ## 3.6.3
 
 _Released 05/04/2022_
