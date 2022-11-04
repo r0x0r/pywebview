@@ -553,7 +553,7 @@ class BrowserView(QMainWindow):
         self.text_dialog_trigger.emit(title, message, unique_id)
         result_semaphore.acquire()
 
-        result = _text_dialog_results[unique_id]['result']
+        result = self._text_dialog_results[unique_id]['result']
         del self._text_dialog_results[unique_id]
 
         return result

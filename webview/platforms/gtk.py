@@ -356,8 +356,8 @@ class BrowserView:
         dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
                                       type=gtk.MessageType.QUESTION,
                                       text=title,
-                                      message=message,
-                                      buttons=Gtk.ButtonsType.OK_CANCEL)
+                                      message_format=message,
+                                      buttons=gtk.ButtonsType.OK_CANCEL)
         response = dialog.run()
         dialog.destroy()
         if response == gtk.ResponseType.OK:
@@ -571,7 +571,7 @@ def create_text_dialog(title, message, uid):
     result = -1
 
     def _create():
-        result = i.create_text_dialog(title, message, uid)
+        result = i.create_text_dialog(title, message)
         result_semaphore.release()
 
     glib.idle_add(_create)
