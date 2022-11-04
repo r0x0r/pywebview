@@ -168,7 +168,7 @@ class Routing(dict):
 
 class StaticContentsApp:
     """
-    Base class for static serving implementatins
+    Base class for static serving implementations
     """
     max_age = 60  # 1min, takes the edge off any frequent responses while staying fresh
 

@@ -127,7 +127,7 @@ class EdgeHTML:
             else:
                 js_bridge_call(self.pywebview_window, func_name, func_param, value_id)
         except Exception as e:
-            logger.exception('Exception occured during on_script_notify')
+            logger.exception('Exception occurred during on_script_notify')
 
     def on_new_window_request(self, _, args):
         webbrowser.open(str(args.get_Uri()))
