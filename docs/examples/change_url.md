@@ -16,6 +16,6 @@ def change_url(window):
 
 
 if __name__ == '__main__':
-    window = webview.create_window('URL Change Example', 'https://pywebview.flowrl.com/hello'')
+    window = webview.create_window('URL Change Example', 'https://pywebview.flowrl.com/hello')
     webview.start(change_url, window)
 ```
