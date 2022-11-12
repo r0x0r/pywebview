@@ -12,7 +12,6 @@ import logging
 import json
 import webbrowser
 from threading import Semaphore
-from platform import architecture, processor
 
 from webview import _debug, _user_agent
 from webview.util import parse_api_js, interop_dll_path, default_html, js_bridge_call
@@ -31,17 +30,14 @@ from System import  String, Action, Uri
 from System.Threading.Tasks import Task, TaskScheduler
 from System.Drawing import Color
 
-if 'ARM' in processor():
-    archpath = 'arm64'
-else:
-    archpath = 'x64' if architecture()[0] == '64bit' else 'x86'
-
-os.environ['Path'] = interop_dll_path(archpath) + ';' + os.environ['Path']
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
 from Microsoft.Web.WebView2.WinForms import WebView2, CoreWebView2CreationProperties
-from Microsoft.Web.WebView2.Core import CoreWebView2Environment
+
+
+for platform in ('arm64', 'x64', 'x86'):
+    os.environ['Path'] += ';' + interop_dll_path(platform) 
 
 
 logger = logging.getLogger('pywebview')
@@ -137,25 +133,26 @@ class EdgeChrome:
         webbrowser.open(str(args.get_Uri()))
 
     def on_webview_ready(self, sender, args):
-        try:
-            sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
-            settings = sender.CoreWebView2.Settings
-            settings.AreDefaultContextMenusEnabled = _debug['mode']
-            settings.AreDefaultScriptDialogsEnabled = True
-            settings.AreDevToolsEnabled = _debug['mode']
-            settings.IsBuiltInErrorPageEnabled = True
-            settings.IsScriptEnabled = True
-            settings.IsWebMessageEnabled = True
-            settings.IsStatusBarEnabled = _debug['mode']
-            settings.IsZoomControlEnabled = True
+        if not args.IsSuccess:
+            logger.error('WebView2 initialization failed with exception:\n ' + str(args.InitializationException))
+            return
 
-            if _user_agent:
-                settings.UserAgent = _user_agent
+        sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
+        settings = sender.CoreWebView2.Settings
+        settings.AreDefaultContextMenusEnabled = _debug['mode']
+        settings.AreDefaultScriptDialogsEnabled = True
+        settings.AreDevToolsEnabled = _debug['mode']
+        settings.IsBuiltInErrorPageEnabled = True
+        settings.IsScriptEnabled = True
+        settings.IsWebMessageEnabled = True
+        settings.IsStatusBarEnabled = _debug['mode']
+        settings.IsZoomControlEnabled = True
 
-            if self.html:
-                sender.CoreWebView2.NavigateToString(self.html)
-        except Exception as e:
-            logger.exception('Edge Chromium DLLs cannot be loaded.')
+        if _user_agent:
+            settings.UserAgent = _user_agent
+
+        if self.html:
+            sender.CoreWebView2.NavigateToString(self.html)
 
 
     def on_navigation_start(self, sender, args):
