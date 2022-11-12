@@ -8,7 +8,7 @@ import json
 import logging
 import webbrowser
 import ctypes
-from threading import Semaphore
+from threading import Semaphore, Thread
 import typing as t
 
 import Foundation
@@ -918,7 +918,8 @@ def set_app_menu(app_menu_list):
             item.setTarget_(self)
 
         def _call_action(self):
-            self.action()
+            # Don't run action function on main thread
+            Thread(target=self.action).start()
 
     def create_submenu(title, line_items, supermenu):
         m = InternalMenu(title, parent=supermenu)

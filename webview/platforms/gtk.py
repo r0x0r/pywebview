@@ -10,7 +10,7 @@ import os
 import webbrowser
 
 from uuid import uuid1
-from threading import Semaphore
+from threading import Semaphore, Thread
 
 from webview import _debug, _private_mode, _user_agent, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, windows
 from webview.util import parse_api_js, default_html, js_bridge_call
@@ -605,7 +605,8 @@ def set_app_menu(app_menu_list):
         function = _app_actions.get(action.get_name())
         if function is None:
             return
-        function()
+        # Don't run action function on main thread
+        Thread(target=function).start()
 
     def create_submenu(title, line_items, supermenu, action_prepend=''):
         m = Gio.Menu.new()
