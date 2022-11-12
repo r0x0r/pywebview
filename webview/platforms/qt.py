@@ -12,7 +12,7 @@ import logging
 import webbrowser
 import socket
 from uuid import uuid1
-from copy import deepcopy
+from copy import copy, deepcopy
 from threading import Semaphore, Event, Thread
 import typing as t
 
@@ -726,13 +726,15 @@ def set_app_menu(app_menu_list):
                 m.addSeparator()
             elif isinstance(menu_line_item, MenuAction):
                 new_action = QAction(menu_line_item.title)
-                new_action.triggered.connect(Thread(target=menu_line_item.function).start)
+                func = copy(menu_line_item.function)
+                new_action.triggered.connect(lambda: Thread(target=func).start())
                 m.addAction(new_action)
                 BrowserView.global_menubar_other_objects.append(new_action)
             elif isinstance(menu_line_item, Menu):
                 create_submenu(menu_line_item.title, menu_line_item.items, m)
 
         return m
+
 
     # If the application menu has already been created, we don't want to do it again
     if len(BrowserView.global_menubar_top_menus) > 0 or len(BrowserView.global_menubar_other_objects) > 0:
