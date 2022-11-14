@@ -65,7 +65,6 @@ pywebviewtest test_url_load.py ${PYTEST_OPTIONS}
 
 pywebviewtest test_window.py ${PYTEST_OPTIONS}
 
-pywebviewtest test_wsgi.py ${PYTEST_OPTIONS}
 
 if [ $exitcode != 0 ]; then
   echo -e '\033[0;31mTEST FAILURES HAVE OCCURRED!\033[0m'

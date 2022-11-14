@@ -16,6 +16,7 @@ install_requires = [
     'QtPy ; sys_platform == "openbsd6"',
     'importlib_resources; python_version < "3.7"',
     'proxy_tools',
+    'bottle'
 ]
 
 

@@ -103,4 +103,6 @@ def initialize(forced_gui=None):
     else:
         raise WebViewException('Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.')
 
+    guilib.setup_app()
+
     return guilib
