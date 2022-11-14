@@ -105,6 +105,13 @@ class BrowserView:
             i = BrowserView.get_instance('window', notification.object())
             i.pywebview_window.events.restored.set()
 
+        def windowDidMove_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+            frame = i.window.frame()
+            screen = i.window.screen().frame()
+            flipped_y = screen.size.height - frame.size.height - frame.origin.y
+            i.pywebview_window.events.moved.set(frame.origin.x, flipped_y)
+
 
     class JSBridge(AppKit.NSObject):
         def initWithObject_(self, window):
@@ -136,13 +143,9 @@ class BrowserView:
             ok = i.localization['global.ok']
             cancel = i.localization['global.cancel']
 
-            if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@B')
-
-            if BrowserView.display_confirmation_dialog(ok, cancel, message):
-                handler(Foundation.YES)
-            else:
-                handler(Foundation.NO)
+            # TODO returning confirmation result does not work currently
+            result = BrowserView.display_confirmation_dialog(ok, cancel, message)
+            handler(Foundation.YES)
 
         # Display an open panel for <input type="file"> element
         def webView_runOpenPanelWithParameters_initiatedByFrame_completionHandler_(self, webview, param, frame, handler):
@@ -850,6 +853,25 @@ def create_window(window):
 
 def set_title(title, uid):
     BrowserView.instances[uid].set_title(title)
+
+def create_confirmation_dialog(title, message, uid):
+    def _confirm():
+        nonlocal result
+
+        i =  BrowserView.instances[uid]
+        ok = i.localization['global.ok']
+        cancel = i.localization['global.cancel']
+
+        result = BrowserView.display_confirmation_dialog(ok, cancel, message)
+        semaphore.release()
+
+    result = False
+
+    semaphore = Semaphore(0)
+    AppHelper.callAfter(_confirm)
+    semaphore.acquire()
+
+    return result
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):

@@ -11,6 +11,7 @@ import json
 import logging
 import webbrowser
 import socket
+import sys
 from uuid import uuid1
 from copy import copy, deepcopy
 from threading import Semaphore, Event, Thread
@@ -35,6 +36,7 @@ logger.debug('Using Qt %s' % QtCore.__version__)
 
 from qtpy.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox, QAction, QMenuBar
 from qtpy.QtGui import QColor, QScreen
+from qtpy import PYQT6, PYSIDE6
 
 try:
     from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage, QWebEngineProfile
@@ -52,6 +54,7 @@ _main_window_created.clear()
 
 # suppress invalid style override error message on some Linux distros
 os.environ['QT_STYLE_OVERRIDE'] = ''
+_qt6 = True if PYQT6 or PYSIDE6 else False
 
 
 class BrowserView(QMainWindow):
@@ -70,7 +73,8 @@ class BrowserView(QMainWindow):
     set_title_trigger = QtCore.Signal(str)
     load_url_trigger = QtCore.Signal(str)
     html_trigger = QtCore.Signal(str, str)
-    dialog_trigger = QtCore.Signal(int, str, bool, str, str)
+    confirmation_dialog_trigger = QtCore.Signal(str, str, str)
+    file_dialog_trigger = QtCore.Signal(int, str, bool, str, str)
     destroy_trigger = QtCore.Signal()
     hide_trigger = QtCore.Signal()
     show_trigger = QtCore.Signal()
@@ -111,7 +115,10 @@ class BrowserView(QMainWindow):
                 self.setStyleSheet("background: transparent;")
 
         def contextMenuEvent(self, event):
-            menu = self.page().createStandardContextMenu()
+            if _qt6:
+                menu = self.createStandardContextMenu()
+            else:
+                menu = self.page().createStandardContextMenu()
 
             # If 'Inspect Element' is present in the default context menu, it
             # means the inspector is already up and running.
@@ -181,6 +188,7 @@ class BrowserView(QMainWindow):
                 super(BrowserView.WebPage, self).__init__(BrowserView.profile, parent)
             else:
                 super(BrowserView.WebPage, self).__init__(parent)
+
             if is_webengine:
                 self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
                 self.nav_handler = BrowserView.NavigationHandler(self)
@@ -241,6 +249,7 @@ class BrowserView(QMainWindow):
         self._js_results = {}
         self._current_url = None
         self._file_name = None
+        self._confirmation_dialog_results = {}
 
         self.resize(window.initial_width, window.initial_height)
         self.title = window.title
@@ -293,7 +302,9 @@ class BrowserView(QMainWindow):
         else:
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
-        self.view.setPage(BrowserView.WebPage(self.view))
+        global _qprofile  # prevent 'Release of profile requested but WebEnginePage still not deleted. Expect troubles !'
+        _qprofile = QWebEngineProfile('pywebview') if _qt6 and '--no-cache' not in sys.argv else None
+        self.view.setPage(BrowserView.WebPage(self.view, profile=_qprofile))
         self.view.page().loadFinished.connect(self.on_load_finished)
 
         self.setCentralWidget(self.view)
@@ -301,7 +312,8 @@ class BrowserView(QMainWindow):
         self.create_window_trigger.connect(BrowserView.on_create_window)
         self.load_url_trigger.connect(self.on_load_url)
         self.html_trigger.connect(self.on_load_html)
-        self.dialog_trigger.connect(self.on_file_dialog)
+        self.confirmation_dialog_trigger.connect(self.on_confirmation_dialog)
+        self.file_dialog_trigger.connect(self.on_file_dialog)
         self.destroy_trigger.connect(self.on_destroy_window)
         self.show_trigger.connect(self.on_show_window)
         self.hide_trigger.connect(self.on_hide_window)
@@ -334,8 +346,12 @@ class BrowserView(QMainWindow):
         if window.initial_x is not None and window.initial_y is not None:
             self.move(window.initial_x, window.initial_y)
         else:
-            center = QApplication.desktop().availableGeometry().center() - self.rect().center()
-            self.move(center.x(), center.y())
+            if _qt6:
+                center = QScreen.availableGeometry(QApplication.primaryScreen()).center() - self.rect().center()
+                self.move(center.x(), center.y() - 16)
+            else:
+                center = QApplication.desktop().availableGeometry().center() - self.rect().center()
+                self.move(center.x(), center.y())
 
         if not window.minimized:
             self.activateWindow()
@@ -345,6 +361,19 @@ class BrowserView(QMainWindow):
 
     def on_set_title(self, title):
         self.setWindowTitle(title)
+
+    def on_confirmation_dialog(self, title, message, uuid):
+        uuid_ = BrowserView._convert_string(uuid)
+        reply = QMessageBox.question(self, title, message,
+                                         QMessageBox.Cancel, QMessageBox.Ok)
+
+        confirmation_dialog_result = self._confirmation_dialog_results[uuid_]
+
+        result = False
+        if reply == QMessageBox.Ok:
+            result = True
+        confirmation_dialog_result['result'] = result
+        confirmation_dialog_result['semaphore'].release()
 
     def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         if dialog_type == FOLDER_DIALOG:
@@ -428,6 +457,12 @@ class BrowserView(QMainWindow):
            self.pywebview_window.initial_height != self.height():
             self.pywebview_window.events.resized.set(self.width(), self.height())
 
+    def eventFilter(self, object, event):
+        if event.type() == QtCore.QEvent.Move:
+            self.pywebview_window.events.moved.set(self.x(), self.y())
+
+        return super().eventFilter(object, event)
+
     def on_show_window(self):
         self.show()
 
@@ -480,7 +515,10 @@ class BrowserView(QMainWindow):
             js_result['semaphore'].release()
 
         try:    # < Qt5.6
-            self.view.page().runJavaScript(script, return_result)
+            if _qt6:
+                self.view.page().runJavaScript(script, 0, return_result)
+            else:
+                self.view.page().runJavaScript(script, return_result)
         except TypeError:
             self.view.page().runJavaScript(script)  # PySide2 & PySide6
         except AttributeError:
@@ -522,8 +560,21 @@ class BrowserView(QMainWindow):
         self.loaded.clear()
         self.html_trigger.emit(content, base_uri)
 
+    def create_confirmation_dialog(self, title, message):
+        result_semaphore = Semaphore(0)
+        unique_id = uuid1().hex
+        self._confirmation_dialog_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
+
+        self.confirmation_dialog_trigger.emit(title, message, unique_id)
+        result_semaphore.acquire()
+
+        result = self._confirmation_dialog_results[unique_id]['result']
+        del self._confirmation_dialog_results[unique_id]
+
+        return result
+
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
-        self.dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
+        self.file_dialog_trigger.emit(dialog_type, directory, allow_multiple, save_filename, file_filter)
         self._file_name_semaphore.acquire()
 
         if dialog_type == FOLDER_DIALOG:
@@ -655,6 +706,7 @@ def setup_app():
 def create_window(window):
     def _create():
         browser = BrowserView(window)
+        browser.installEventFilter(browser)
 
         # If the menu we created as part of set_app_menu was not set as the native menu, then
         #     we need to recreate the menu for every window
@@ -685,6 +737,8 @@ def create_window(window):
                 BrowserView.profile.setPersistentStoragePath(storage_path)
         elif not is_webengine and not _private_mode:
             logger.warning('qtwebkit does not support _private_mode=False')
+
+        _app = QApplication.instance() or QApplication(sys.argv)
 
         _create()
         _app.exec_()
@@ -800,6 +854,10 @@ def move(x, y, uid):
     BrowserView.instances[uid].move_window(x, y)
 
 
+def create_confirmation_dialog(title, message, uid):
+    return BrowserView.instances[uid].create_confirmation_dialog(title, message)
+
+
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
     # Create a file filter by parsing allowed file types
     file_types = [s.replace(';', ' ') for s in file_types]
@@ -825,7 +883,7 @@ def get_size(uid):
 
 def get_screens():
     global _app
-    _app = QApplication.instance() or QApplication([])
+    _app = QApplication.instance() or QApplication(sys.argv)
 
     geometries = [s.geometry() for s in _app.screens()]
     screens = [Screen(g.width(), g.height()) for g in geometries]

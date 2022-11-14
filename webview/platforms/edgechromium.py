@@ -16,7 +16,6 @@ from platform import architecture
 
 from webview import _debug, _user_agent, _private_mode
 from webview.util import parse_api_js, interop_dll_path, default_html, js_bridge_call
-from webview.js import alert
 from webview.js.css import disable_text_select
 
 import clr
@@ -123,7 +122,7 @@ class EdgeChrome:
             else:
                 js_bridge_call(self.pywebview_window, func_name, func_param, value_id)
         except Exception as e:
-            logger.exception('Exception occured during on_script_notify')
+            logger.exception('Exception occurred during on_script_notify')
 
     def on_new_window_request(self, _, args):
         args.set_Handled(True)

@@ -118,6 +118,7 @@ class BrowserView:
 
         self.window.connect('window-state-event', self.on_window_state_change)
         self.window.connect('size-allocate', self.on_window_resize)
+        self.window.connect('configure-event', self.on_window_configure)
 
         self.js_bridge = BrowserView.JSBridge(window)
         self.text_select = window.text_select
@@ -246,6 +247,9 @@ class BrowserView:
             self._last_height = allocation.height
             self.pywebview_window.events.resized.set(allocation.width, allocation.height)
 
+    def on_window_configure(self, window, event):
+        self.pywebview_window.events.moved.set(event.x, event.y)
+
     def on_webview_ready(self, arg1, arg2):
         # in webkit2 notify:visible fires after the window was closed and BrowserView object destroyed.
         # for a lack of better solution we check that BrowserView has 'webview_ready' attribute
@@ -367,6 +371,19 @@ class BrowserView:
             self.window.present()
 
         glib.idle_add(_restore)
+
+    def create_confirmation_dialog(self, title, message):
+        dialog = gtk.MessageDialog(parent=self.window, flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                      type=gtk.MessageType.QUESTION,
+                                      text=title,
+                                      message_format=message,
+                                      buttons=gtk.ButtonsType.OK_CANCEL)
+        response = dialog.run()
+        dialog.destroy()
+        if response == gtk.ResponseType.OK:
+            return True
+
+        return False
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if dialog_type == FOLDER_DIALOG:
@@ -590,6 +607,22 @@ def load_html(content, base_uri, uid):
     def _load_html():
         BrowserView.instances[uid].load_html(content, base_uri)
     glib.idle_add(_load_html)
+
+
+def create_confirmation_dialog(title, message, uid):
+    i = BrowserView.instances[uid]
+    result_semaphore = Semaphore(0)
+    result = -1
+
+    def _create():
+        nonlocal result
+        result = i.create_confirmation_dialog(title, message)
+        result_semaphore.release()
+
+    glib.idle_add(_create)
+    result_semaphore.acquire()
+
+    return result
 
 
 def set_app_menu(app_menu_list):

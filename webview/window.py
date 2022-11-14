@@ -105,6 +105,7 @@ class Window:
         self.events.maximized = Event()
         self.events.restored = Event()
         self.events.resized = Event()
+        self.events.moved = Event()
 
         self._closed = self.events.closed
         self._closing = self.events.closing
@@ -359,7 +360,7 @@ class Window:
                     value.then(function evaluate_async(result) {{
                         pywebview._asyncCallback(JSON.stringify(result), "{1}")
                     }});
-                    true;
+                    "true";
                 }} else {{ {2} }}
             """.format(escape_string(script), unique_id, sync_eval)
         else:
@@ -372,6 +373,28 @@ class Window:
             return self.gui.evaluate_js(escaped_script, self.uid, unique_id)
         else:
             return self.gui.evaluate_js(escaped_script, self.uid)
+
+    @_shown_call
+    def create_confirmation_dialog(self, title, message):
+        """
+        Create a confirmation dialog
+        :param title: Dialog title
+        :param message: Dialog detail message
+        :return: True for OK, False for Cancel
+        """
+
+        return self.gui.create_confirmation_dialog(title, message, self.uid)
+
+    @_shown_call
+    def create_message_box(self, title, message):
+        """
+        Create a confirmation dialog
+        :param title: Dialog title
+        :param message: Dialog detail message
+        :return: True for OK, False for Cancel
+        """
+
+        return self.gui.create_message_box(title, message, self.uid)
 
     @_shown_call
     def create_file_dialog(self, dialog_type=10, directory='', allow_multiple=False, save_filename='', file_types=()):
