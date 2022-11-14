@@ -100,10 +100,7 @@ def parse_file_type(file_type):
 
 def parse_api_js(window, platform, uid=''):
     def get_args(f):
-        try:
-            params = list(inspect.getfullargspec(f).args) # Python 3
-        except AttributeError:
-            params = list(inspect.getargspec(f).args)  # Python 2
+        params = list(inspect.getfullargspec(f).args)
         return params
 
     def generate_func():

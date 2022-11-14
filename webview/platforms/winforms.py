@@ -19,7 +19,6 @@ import time
 from webview import windows, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.guilib import forced_gui_
 from webview.util import parse_file_type, inject_base_uri
-from webview.js import alert
 from webview.screen import Screen
 from webview.window import FixPoint
 
@@ -193,7 +192,7 @@ class BrowserView:
             self.text_select = window.text_select
             self.on_top = window.on_top
             self.scale_factor = 1
-            
+
             self.is_fullscreen = False
             if window.fullscreen:
                 self.toggle_fullscreen()
@@ -535,15 +534,10 @@ def set_title(title, uid):
         _set_title()
 
 
-def create_text_dialog(title, message, uid):
-    window = BrowserView.instances[uid]
-
+def create_confirmation_dialog(title, message, uid):
     result = WinForms.MessageBox.Show(title, message, WinForms.MessageBoxButtons.OKCancel)
+    return result == WinForms.DialogResult.OK
 
-    if result == WinForms.DialogResult.OK:
-        return 1
-
-    return 0
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
     window = BrowserView.instances[uid]

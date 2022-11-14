@@ -379,15 +379,26 @@ class Window:
             return self.gui.evaluate_js(escaped_script, self.uid)
 
     @_shown_call
-    def create_text_dialog(self, title, message):
+    def create_confirmation_dialog(self, title, message):
         """
-        Create a text dialog
+        Create a confirmation dialog
         :param title: Dialog title
         :param message: Dialog detail message
-        :return: 1 for OK, 0 for Cancel
+        :return: True for OK, False for Cancel
         """
 
-        return self.gui.create_text_dialog(title, message, self.uid)
+        return self.gui.create_confirmation_dialog(title, message, self.uid)
+
+    @_shown_call
+    def create_message_box(self, title, message):
+        """
+        Create a confirmation dialog
+        :param title: Dialog title
+        :param message: Dialog detail message
+        :return: True for OK, False for Cancel
+        """
+
+        return self.gui.create_message_box(title, message, self.uid)
 
     @_shown_call
     def create_file_dialog(self, dialog_type=10, directory='', allow_multiple=False, save_filename='', file_types=()):
