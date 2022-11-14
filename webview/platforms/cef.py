@@ -116,7 +116,16 @@ class Browser:
         self.loaded.wait()
 
         self.eval_events[unique_id] = Event()
-        result = self.browser.ExecuteJavascript(code)
+        eval_script = """
+            try {{
+                {0}
+            }} catch(e) {{
+                console.error(e.stack);
+                window.external.return_result(null, '{1}');
+            }}
+        """.format(code, unique_id)
+
+        result = self.browser.ExecuteJavascript(eval_script)
         self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
 
         result = copy(self.js_bridge.results[unique_id])
@@ -247,10 +256,11 @@ def create_browser(window, handle, alert_func):
 
         cef_browser.SetJavascriptBindings(bindings)
         cef_browser.SetClientHandler(LoadHandler())
-
         instances[window.uid] = browser
         cef_browser.SendFocusEvent(True)
         window.events.shown.set()
+        cef_browser.SendFocusEvent(True)
+
 
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)
@@ -313,7 +323,7 @@ def shutdown():
         if os.path.exists('webrtc_event_logs'):
             shutil.rmtree('webrtc_event_logs')
 
-        if os.path.exists('error.log'):
+        if os.path.exists('error.log') and not _debug['mode']:
             os.remove('error.log')
 
         if sys.platform == 'win32':

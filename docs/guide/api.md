@@ -26,7 +26,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
 * `hidden` - Create a window hidden by default. Default is False
 * `frameless` - Create a frameless window. Default is False.
-* `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/guide/security.md#drag-area) for details.
+* `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/guide/api.html#drag-area) for details.
 * `minimized` - Start in minimized mode
 * `on_top` - Set window to be always on top of other windows. Default is False.
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
@@ -331,7 +331,7 @@ Event fired when DOM is ready.
 [Example](/examples/events.html)
 
 ## events.minimized
-Event fired when window is minimzed.
+Event fired when window is minimized.
 
 [Example](/examples/events.html)
 
@@ -364,7 +364,11 @@ _pywebview_ exposes a `window.pywebviewready` DOM event that is fired when `wind
 
 # Drag area
 
-_pywebview_ window can be moved by dragging any element with the `pywebview-drag-region` class name. This is useful, for example, in frameless mode when you would like to implement a custom caption bar. The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
+With a frameless _pywebview_ window, A window can be moved or dragged by adding a special class called `pywebview-drag-region` in your html 
+```html
+<div class='pywebview-drag-region'>This div element can be used to moved or drag your window like a native OS window</div>
+```
+The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
 
 
 [Example](/examples/js_api.html)

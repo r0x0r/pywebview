@@ -118,6 +118,7 @@ class BrowserView:
 
         self.window.connect('window-state-event', self.on_window_state_change)
         self.window.connect('size-allocate', self.on_window_resize)
+        self.window.connect('configure-event', self.on_window_configure)
 
         self.js_bridge = BrowserView.JSBridge(window)
         self.text_select = window.text_select
@@ -245,6 +246,9 @@ class BrowserView:
             self._last_width = allocation.width
             self._last_height = allocation.height
             self.pywebview_window.events.resized.set(allocation.width, allocation.height)
+
+    def on_window_configure(self, window, event):
+        self.pywebview_window.events.moved.set(event.x, event.y)
 
     def on_webview_ready(self, arg1, arg2):
         # in webkit2 notify:visible fires after the window was closed and BrowserView object destroyed.

@@ -11,6 +11,7 @@ import json
 import logging
 import webbrowser
 import socket
+import sys
 from uuid import uuid1
 from copy import deepcopy
 from threading import Semaphore, Event
@@ -35,6 +36,7 @@ logger.debug('Using Qt %s' % QtCore.__version__)
 
 from qtpy.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox, QAction, QMenuBar
 from qtpy.QtGui import QColor, QScreen
+from qtpy import PYQT6, PYSIDE6
 
 try:
     from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage, QWebEngineProfile
@@ -52,6 +54,7 @@ _main_window_created.clear()
 
 # suppress invalid style override error message on some Linux distros
 os.environ['QT_STYLE_OVERRIDE'] = ''
+_qt6 = True if PYQT6 or PYSIDE6 else False
 
 
 class BrowserView(QMainWindow):
@@ -111,7 +114,10 @@ class BrowserView(QMainWindow):
                 self.setStyleSheet("background: transparent;")
 
         def contextMenuEvent(self, event):
-            menu = self.page().createStandardContextMenu()
+            if _qt6:
+                menu = self.createStandardContextMenu()
+            else:
+                menu = self.page().createStandardContextMenu()
 
             # If 'Inspect Element' is present in the default context menu, it
             # means the inspector is already up and running.
@@ -181,6 +187,7 @@ class BrowserView(QMainWindow):
                 super(BrowserView.WebPage, self).__init__(BrowserView.profile, parent)
             else:
                 super(BrowserView.WebPage, self).__init__(parent)
+
             if is_webengine:
                 self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
                 self.nav_handler = BrowserView.NavigationHandler(self)
@@ -293,7 +300,9 @@ class BrowserView(QMainWindow):
         else:
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
-        self.view.setPage(BrowserView.WebPage(self.view))
+        global _qprofile  # prevent 'Release of profile requested but WebEnginePage still not deleted. Expect troubles !'
+        _qprofile = QWebEngineProfile('pywebview') if _qt6 and '--no-cache' not in sys.argv else None
+        self.view.setPage(BrowserView.WebPage(self.view, profile=_qprofile))
         self.view.page().loadFinished.connect(self.on_load_finished)
 
         self.setCentralWidget(self.view)
@@ -334,8 +343,12 @@ class BrowserView(QMainWindow):
         if window.initial_x is not None and window.initial_y is not None:
             self.move(window.initial_x, window.initial_y)
         else:
-            center = QApplication.desktop().availableGeometry().center() - self.rect().center()
-            self.move(center.x(), center.y())
+            if _qt6:
+                center = QScreen.availableGeometry(QApplication.primaryScreen()).center() - self.rect().center()
+                self.move(center.x(), center.y() - 16)
+            else:
+                center = QApplication.desktop().availableGeometry().center() - self.rect().center()
+                self.move(center.x(), center.y())
 
         if not window.minimized:
             self.activateWindow()
@@ -428,6 +441,12 @@ class BrowserView(QMainWindow):
            self.pywebview_window.initial_height != self.height():
             self.pywebview_window.events.resized.set(self.width(), self.height())
 
+    def eventFilter(self, object, event):
+        if event.type() == QtCore.QEvent.Move:
+            self.pywebview_window.events.moved.set(self.x(), self.y())
+
+        return super().eventFilter(object, event)
+
     def on_show_window(self):
         self.show()
 
@@ -480,7 +499,10 @@ class BrowserView(QMainWindow):
             js_result['semaphore'].release()
 
         try:    # < Qt5.6
-            self.view.page().runJavaScript(script, return_result)
+            if _qt6:
+                self.view.page().runJavaScript(script, 0, return_result)
+            else:
+                self.view.page().runJavaScript(script, return_result)
         except TypeError:
             self.view.page().runJavaScript(script)  # PySide2 & PySide6
         except AttributeError:
@@ -655,6 +677,7 @@ def setup_app():
 def create_window(window):
     def _create():
         browser = BrowserView(window)
+        browser.installEventFilter(browser)
 
         # If the menu we created as part of set_app_menu was not set as the native menu, then
         #     we need to recreate the menu for every window
@@ -685,6 +708,8 @@ def create_window(window):
                 BrowserView.profile.setPersistentStoragePath(storage_path)
         elif not is_webengine and not _private_mode:
             logger.warning('qtwebkit does not support _private_mode=False')
+
+        _app = QApplication.instance() or QApplication(sys.argv)
 
         _create()
         _app.exec_()
@@ -823,7 +848,7 @@ def get_size(uid):
 
 def get_screens():
     global _app
-    _app = QApplication.instance() or QApplication([])
+    _app = QApplication.instance() or QApplication(sys.argv)
 
     geometries = [s.geometry() for s in _app.screens()]
     screens = [Screen(g.width(), g.height()) for g in geometries]

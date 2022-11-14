@@ -105,6 +105,7 @@ class Window:
         self.events.maximized = Event()
         self.events.restored = Event()
         self.events.resized = Event()
+        self.events.moved = Event()
 
         self._closed = self.events.closed
         self._closing = self.events.closing
@@ -359,7 +360,7 @@ class Window:
                     value.then(function evaluate_async(result) {{
                         pywebview._asyncCallback(JSON.stringify(result), "{1}")
                     }});
-                    true;
+                    "true";
                 }} else {{ {2} }}
             """.format(escape_string(script), unique_id, sync_eval)
         else:

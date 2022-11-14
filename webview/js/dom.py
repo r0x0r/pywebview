@@ -138,7 +138,7 @@ src = r"""
 
 
 	/**
-	 * A list of serialized read-only nodes to ignore; these can ovewritten if the user specifies the "filter" option
+	 * A list of serialized read-only nodes to ignore; these can overwritten if the user specifies the "filter" option
 	 * @private
 	 * @ignore
 	 */
@@ -251,7 +251,7 @@ src = r"""
 
 	/**
 	 * Do a boolean difference between an array/object and a filter array
-	 * @param {Object|string[]} item The object/array that will be differntiated with the filter
+	 * @param {Object|string[]} item The object/array that will be differentiated with the filter
 	 * @param {boolean|string[]} filter Specifies which properties to exclude from the "item" (or element to remove, if "item is an array")
 	 * @private
 	 * @ignore
@@ -278,7 +278,7 @@ src = r"""
 
 	/**
 	 * Determine whether we want to do a boolean intersection or difference
-	 * @param {Object|string[]} item The object/array that will be differntiated with the filter
+	 * @param {Object|string[]} item The object/array that will be differentiated with the filter
 	 * @param {boolean|Array} filter Specifies which a filter behavior; if it is an array, the first value can be a boolean, indicating whether the filter array is intended for differentiation (true) or intersection (false)
 	 * @private
 	 * @ignore
@@ -292,7 +292,7 @@ src = r"""
 		if (filter instanceof Array && filter.length) {
 			if (typeof filter[0] === 'boolean') {
 				if (filter.length == 1 && typeof(filter[0]) === 'boolean') {
-					//There is a filter array, but its only a sigle boolean
+					//There is a filter array, but its only a single boolean
 					if (filter[0] === true) {
 						return copy(item);
 					} else {

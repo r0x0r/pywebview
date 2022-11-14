@@ -60,26 +60,11 @@ def _is_chromium():
             else:
                 path = rf'WOW6432Node\Microsoft\EdgeUpdate\Clients\{key}'
 
-            register_key = rf'Computer\{key_type}\{path}'
-            windows_key = winreg.OpenKey(getattr(winreg, key_type), rf'SOFTWARE\{path}')
-            build, _ = winreg.QueryValueEx(windows_key, 'pv')
+            with winreg.OpenKey(getattr(winreg, key_type), rf'SOFTWARE\{path}') as windows_key:
+                build, _ = winreg.QueryValueEx(windows_key, 'pv')
+                return str(build)
 
-            return str(build)
         except Exception as e:
-            # Forming extra information
-            extra_info = ''
-            if description != '':
-                extra_info = f'{description} Registry path: {register_key}'
-            else:
-                extra_info = f'Registry path: {register_key}'
-
-            # Adding extra info to error
-            e.strerror += ' - ' + extra_info
-            logger.debug(e)
-
-        try:
-            winreg.CloseKey(windows_key)
-        except:
             pass
 
         return '0'
@@ -152,6 +137,7 @@ class BrowserView:
 
     class BrowserForm(WinForms.Form):
         def __init__(self, window):
+            super().__init__()
             self.uid = window.uid
             self.pywebview_window = window
             self.real_url = None
@@ -205,7 +191,7 @@ class BrowserView:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window, cache_dir)
-                # for chromium edge, need this factor to modify the cordinates
+                # for chromium edge, need this factor to modify the coordinates
                 self.scale_factor = windll.shcore.GetScaleFactorForDevice(0)/100
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
@@ -223,6 +209,7 @@ class BrowserView:
             self.FormClosed += self.on_close
             self.FormClosing += self.on_closing
             self.Resize += self.on_resize
+            self.Move += self.on_move
 
             self.localization = window.localization
 
@@ -234,8 +221,9 @@ class BrowserView:
                 CEF.focus(self.uid)
 
         def on_shown(self, sender, args):
+            self.shown.set()
+
             if not is_cef:
-                self.shown.set()
                 self.browser.web_view.Focus()
 
         def on_close(self, sender, args):
@@ -289,6 +277,9 @@ class BrowserView:
 
             self.pywebview_window.events.resized.set(self.Width, self.Height)
 
+        def on_move(self, sender, args):
+            self.pywebview_window.events.moved.set(self.Location.X, self.Location.Y)
+
         def evaluate_js(self, script):
             id = uuid4().hex[:8]
             def _evaluate_js():
@@ -340,7 +331,7 @@ class BrowserView:
                         elif isinstance(menu_line_item, Menu):
                             create_submenu(menu_line_item.title, menu_line_item.items, m)
 
-                    if supermenu: 
+                    if supermenu:
                         supermenu.DropDownItems.Add(m)
 
                     return m
@@ -520,7 +511,7 @@ def create_window(window):
         BrowserView.instances[window.uid] = browser
 
         if len(BrowserView.app_menu_list):
-            browser.set_window_menu(BrowserView.app_menu_list) 
+            browser.set_window_menu(BrowserView.app_menu_list)
 
         if not window.hidden:
             browser.Show()
@@ -664,7 +655,7 @@ def set_app_menu(app_menu_list):
 
 def get_active_window():
     active_window = None
-    try: 
+    try:
         active_window = WinForms.Form.ActiveForm
     except:
         return None
