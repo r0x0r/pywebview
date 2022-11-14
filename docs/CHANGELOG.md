@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.7.1
+
+_Released 14/11/2022_
+
+### 🐞 Bug fixes
+- [Edge Chromium] Better platform detection
+
+### 🚀 Improvements
+- [Edge Chromium] ARM64 support
+
 ## 3.7
 
 _Released 04/11/2022_

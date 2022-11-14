@@ -7,7 +7,7 @@ actionLink: /guide/
 footer: BSD Licensed | Copyright © 2014–present Roman Sirokov
 ---
 <div class='center version'>
-Current version: <strong>3.7</strong><br/>
+Current version: <strong>3.7.1</strong><br/>
 <a href='/changelog'>What's new</a>
 </div>
 
