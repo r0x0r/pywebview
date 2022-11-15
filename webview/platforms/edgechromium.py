@@ -37,7 +37,7 @@ from Microsoft.Web.WebView2.WinForms import WebView2, CoreWebView2CreationProper
 
 
 for platform in ('arm64', 'x64', 'x86'):
-    os.environ['Path'] += ';' + interop_dll_path(platform) 
+    os.environ['Path'] += ';' + interop_dll_path(platform)
 
 
 logger = logging.getLogger('pywebview')
@@ -54,7 +54,6 @@ class EdgeChrome:
         self.js_results = {}
         self.js_result_semaphore = Semaphore(0)
         self.web_view.Dock = WinForms.DockStyle.Fill
-
         self.web_view.CoreWebView2InitializationCompleted += self.on_webview_ready
         self.web_view.NavigationStarting += self.on_navigation_start
         self.web_view.NavigationCompleted += self.on_navigation_completed
@@ -139,6 +138,7 @@ class EdgeChrome:
 
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
         settings = sender.CoreWebView2.Settings
+        settings.AreBrowserAcceleratorKeysEnabled = _debug['mode']
         settings.AreDefaultContextMenusEnabled = _debug['mode']
         settings.AreDefaultScriptDialogsEnabled = True
         settings.AreDevToolsEnabled = _debug['mode']
@@ -153,7 +153,6 @@ class EdgeChrome:
 
         if self.html:
             sender.CoreWebView2.NavigateToString(self.html)
-
 
     def on_navigation_start(self, sender, args):
         pass
