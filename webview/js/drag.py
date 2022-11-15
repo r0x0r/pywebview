@@ -35,6 +35,12 @@ if (!%(zoomable)s) {
             e.stopImmediatePropagation();
         }
     }, {passive: false});
+
+    window.addEventListener('wheel', function (e) {
+        if (e.ctrlKey) {
+            e.preventDefault();
+        }
+    }, {passive: false});
 }
 
 // draggable
