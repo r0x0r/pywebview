@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.7.2
+
+_Released 16/11/2022_
+
+### 🐞 Bug fixes
+- [All] Fix missing libraries from the previous release
+
+### 🚀 Improvements
+- [Windows / Linux] Devtools is automatically opened in debug mode.
+- [EdgeChromium] Browser shortcut keys are disabled by default
+
+## 3.7.1
+
+_Released 14/11/2022_
+
+### 🐞 Bug fixes
+- [Edge Chromium] Better platform detection
+
+### 🚀 Improvements
+- [Edge Chromium] ARM64 support
+
 ## 3.7
 
 _Released 04/11/2022_

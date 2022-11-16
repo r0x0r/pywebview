@@ -268,6 +268,8 @@ def create_browser(window, handle, alert_func, parent):
         window.events.shown.set()
         cef_browser.SendFocusEvent(True)
 
+        if _debug['mode']:
+            cef_browser.ShowDevTools()
 
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)

@@ -541,6 +541,9 @@ class BrowserView(QMainWindow):
             except: # QT < 5.6
                 self.view.page().mainFrame().evaluateJavaScript(script)
 
+        if _debug['mode']:
+            self.view.show_inspector()
+
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)

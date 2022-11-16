@@ -177,6 +177,7 @@ class BrowserView:
 
         if _debug['mode']:
             webkit_settings.enable_developer_extras = True
+            self.webview.get_inspector().show()
         else:
             self.webview.connect('context-menu', lambda a,b,c,d: True) # Disable context menu
 
