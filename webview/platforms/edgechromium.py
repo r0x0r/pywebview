@@ -154,6 +154,10 @@ class EdgeChrome:
         if self.html:
             sender.CoreWebView2.NavigateToString(self.html)
 
+        if _debug['mode']:
+            sender.CoreWebView2.OpenDevToolsWindow()
+
+
     def on_navigation_start(self, sender, args):
         pass
 

@@ -334,7 +334,7 @@ class BrowserView(QMainWindow):
             else:
                 center = QApplication.desktop().availableGeometry().center() - self.rect().center()
                 self.move(center.x(), center.y())
-                
+
         if not window.minimized:
             self.activateWindow()
             self.raise_()
@@ -509,6 +509,9 @@ class BrowserView(QMainWindow):
                 self.view.page().runJavaScript(script)
             except: # QT < 5.6
                 self.view.page().mainFrame().evaluateJavaScript(script)
+
+        if _debug['mode']:
+            self.view.show_inspector()
 
 
     def set_title(self, title):
