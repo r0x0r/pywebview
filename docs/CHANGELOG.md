@@ -5,7 +5,11 @@
 _Released 16/11/2022_
 
 ### 🐞 Bug fixes
-- Fix missing libraries from the previous release
+- [All] Fix missing libraries from the previous release
+
+### 🚀 Improvements
+- [Windows / Linux] Devtools is automatically opened in debug mode.
+- [EdgeChromium] Browser shortcut keys are disabled by default
 
 ## 3.7.1
 
