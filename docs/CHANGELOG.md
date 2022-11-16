@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.7.2
+
+_Released 16/11/2022_
+
+### 🐞 Bug fixes
+- Fix missing libraries from the previous release
+
 ## 3.7.1
 
 _Released 14/11/2022_
