@@ -230,6 +230,10 @@ class BrowserView:
                     CEF.shutdown()
                 WinForms.Application.Exit()
 
+            if not is_cef:
+                # stop waiting for JS result
+                self.browser.js_result_semaphore.release()
+
             if is_cef:
                 CEF.close_window(self.uid)
 
