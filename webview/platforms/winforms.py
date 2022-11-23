@@ -249,6 +249,10 @@ class BrowserView:
                     CEF.shutdown()
                 WinForms.Application.Exit()
 
+            if not is_cef:
+                # stop waiting for JS result
+                self.browser.js_result_semaphore.release()
+
             if is_cef:
                 CEF.close_window(self.uid)
 
@@ -309,9 +313,7 @@ class BrowserView:
             if is_chromium or is_edge:
                 if self.browser.js_results.get(id, None) is None:
                     time.sleep(.1)
-                result = self.browser.js_results[id]
-                self.browser.js_results.pop(id)
-                return result
+                return self.browser.js_results.pop(id, None)
 
             return self.browser.js_result
 
