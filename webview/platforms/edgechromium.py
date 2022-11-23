@@ -14,6 +14,7 @@ import webbrowser
 from threading import Semaphore
 
 from webview import _debug, _user_agent, _private_mode
+from webview.cookie import Cookie
 from webview.util import parse_api_js, interop_dll_path, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 
@@ -26,14 +27,15 @@ clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
 from System import String, Action, Uri
+from System.Collections.Generic import List
 from System.Threading.Tasks import Task, TaskScheduler
 from System.Drawing import Color
 
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
+from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2Environment
 from Microsoft.Web.WebView2.WinForms import WebView2, CoreWebView2CreationProperties
-
 
 for platform in ('arm64', 'x64', 'x86'):
     os.environ['Path'] += ';' + interop_dll_path(platform)
@@ -57,6 +59,7 @@ class EdgeChrome:
         self.web_view.NavigationStarting += self.on_navigation_start
         self.web_view.NavigationCompleted += self.on_navigation_completed
         self.web_view.WebMessageReceived += self.on_script_notify
+        self.syncContextTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext()
 
         if window.transparent:
             self.web_view.DefaultBackgroundColor = Color.Transparent
@@ -86,7 +89,6 @@ class EdgeChrome:
                 self.js_results[id] = None
                 self.js_result_semaphore.release()
 
-        self.syncContextTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext()
         try:
             result = self.web_view.ExecuteScriptAsync(script).ContinueWith(
             Action[Task[String]](
@@ -97,6 +99,27 @@ class EdgeChrome:
             logger.exception('Error occurred in script')
             self.js_results[id] = None
             self.js_result_semaphore.release()
+
+    def get_cookies(self, cookies, lock):
+        def _callback(task):
+            print('callback')
+            try:
+                for c in task.Result:
+                    print(c)
+                    print(c.Value)
+                    same_site = None if c.SameSite == 0 else str(c.SameSite)
+                    cookie = Cookie(c.Name, c.Value, c.Expires, c.Path, c.IsHttpOnly, \
+                                    c.IsSecure,  c.IsSession, same_site)
+                    cookies.append(cookie)
+
+            except Exception as e:
+                logger.exception(e)
+            print('finish callback')
+            lock.release()
+            return True
+
+        task = self.web_view.CoreWebView2.CookieManager.GetCookiesAsync(self.url).ContinueWith(
+                Action[Task[List[CoreWebView2Cookie]]](_callback))
 
     def get_current_url(self):
         return self.url
@@ -135,6 +158,7 @@ class EdgeChrome:
             logger.error('WebView2 initialization failed with exception:\n ' + str(args.InitializationException))
             return
 
+        print(CoreWebView2Environment.GetAvailableBrowserVersionString())
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
         settings = sender.CoreWebView2.Settings
         settings.AreBrowserAcceleratorKeysEnabled = _debug['mode']

@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import traceback
+from http.cookies import SimpleCookie
 from platform import architecture
 from threading import Thread
 from uuid import uuid4
@@ -43,6 +44,7 @@ class WebViewException(Exception):
 
 def is_local_url(url):
     return not not url and not url.startswith('http://') and not url.startswith('https://')
+
 
 def get_app_root():
     """
@@ -81,6 +83,26 @@ def base_uri(relative_path=''):
         raise ValueError('Path %s does not exist' % base_path)
 
     return 'file://%s' % os.path.join(base_path, relative_path)
+
+
+def create_cookie(input):
+    if type(input) == dict:
+        cookie = SimpleCookie()
+        name = input['name']
+        cookie[name] = input['value']
+        cookie[name]['path'] = input['path']
+        cookie[name]['domain'] = input['domain']
+        cookie[name]['expires'] = input['expires']
+        cookie[name]['secure'] = input['secure']
+        cookie[name]['httponly'] = input['httponly']
+        cookie[name]['samesite'] = input['samesite']
+
+        return cookie
+    elif type(input) == str:
+        return SimpleCookie(input)
+
+    raise WebViewException('Unknown input to create_cookie')
+
 
 
 

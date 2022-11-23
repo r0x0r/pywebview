@@ -13,7 +13,7 @@ from uuid import uuid1
 from threading import Semaphore, Thread
 
 from webview import _debug, _private_mode, _user_agent, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, windows
-from webview.util import parse_api_js, default_html, js_bridge_call
+from webview.util import create_cookie, parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
 from webview.window import FixPoint
@@ -31,6 +31,7 @@ from gi.repository import Gtk as gtk
 from gi.repository import Gdk
 from gi.repository import Gio
 from gi.repository import GLib as glib
+from gi.repository import Soup
 from gi.repository import WebKit2 as webkit
 
 
@@ -128,15 +129,15 @@ class BrowserView:
         if not os.path.exists(storage_path):
             os.makedirs(storage_path)
 
+        web_context = webkit.WebContext.get_default()
+        self.cookie_manager = web_context.get_cookie_manager()
+
         if not _private_mode:
-            web_context = webkit.WebContext.get_default()
-            cookie_manager = web_context.get_cookie_manager()
-            cookie_manager.set_persistent_storage(
+            self.cookie_manager.set_persistent_storage(
                 os.path.join(storage_path, 'cookies'),
                 webkit.CookiePersistentStorage.SQLITE
             )
-            #self.webview = webkit.WebView.new_with_context(web_context)
-        #else:
+
         self.webview = webkit.WebView()
 
         self.webview.connect('notify::visible', self.on_webview_ready)
@@ -439,6 +440,28 @@ class BrowserView:
 
             dialog.add_filter(f)
 
+    def get_cookies(self):
+        def _get_cookies():
+            self.cookie_manager.get_cookies(self.webview.get_uri(), None, callback, None)
+
+        def callback(source, task, data):
+            results = source.get_cookies_finish(task)
+
+            for c in results:
+                cookie = create_cookie(c.to_set_cookie_header())
+                cookies.append(cookie)
+
+            semaphore.release()
+
+        self.loaded.wait()
+
+        cookies = []
+        semaphore = Semaphore(0)
+        glib.idle_add(_get_cookies)
+        semaphore.acquire()
+
+        return cookies
+
     def get_current_url(self):
         self.loaded.wait()
         uri = self.webview.get_uri()
@@ -582,6 +605,11 @@ def minimize(uid):
 
 def restore(uid):
     glib.idle_add(BrowserView.instances[uid].restore)
+
+
+def get_cookies(uid):
+    cookies = BrowserView.instances[uid].get_cookies()
+    return cookies
 
 
 def get_current_url(uid):

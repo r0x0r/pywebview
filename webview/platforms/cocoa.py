@@ -18,7 +18,7 @@ from PyObjCTools import AppHelper
 from objc import _objc, nil, super, registerMetaDataForSelector, selector
 
 from webview import _debug, _user_agent, _private_mode, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, parse_file_type, windows
-from webview.util import parse_api_js, default_html, js_bridge_call
+from webview.util import create_cookie, parse_api_js, default_html, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
 from webview.window import FixPoint
@@ -398,8 +398,8 @@ class BrowserView:
             config.setWebsiteDataStore_(datastore)
             datastore.removeDataOfTypes_modifiedSince_completionHandler_(data_types, from_start, dummy_completion_handler)
         else:
-            datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
-            config.setWebsiteDataStore_(datastore)
+            self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
+            config.setWebsiteDataStore_(self.datastore)
 
         config.preferences().setValue_forKey_(Foundation.NO, 'backspaceKeyNavigationEnabled')
         config.preferences().setValue_forKey_(True, 'allowFileAccessFromFileURLs')
@@ -546,6 +546,36 @@ class BrowserView:
         flipped_y = screen.size.height - y
         self.window.setFrameTopLeftPoint_(AppKit.NSPoint(x, flipped_y))
 
+    def get_cookies(self):
+        def handler(cookies):
+            for c in cookies:
+                domain = c.domain()[1:] if c.domain().startswith('.') else c.domain()
+                if domain not in self.url:
+                    continue
+
+                data = {
+                    'name': c.name(),
+                    'value': c.value(),
+                    'path': c.path(),
+                    'domain': c.domain(),
+                    'expires': c.expiresDate(),
+                    'secure': c.isSecure(),
+                    'httponly': c.isHTTPOnly(),
+                    'samesite': c.SameSitePolicy()
+                }
+
+                cookie = create_cookie(data)
+                _cookies.append(cookie)
+
+            cookie_semaphore.release()
+
+        _cookies = []
+        AppHelper.callAfter(self.datastore.httpCookieStore().getAllCookies_, handler)
+        cookie_semaphore = Semaphore(0)
+        cookie_semaphore.acquire()
+
+        return _cookies
+
     def get_current_url(self):
         def get():
             self._current_url = str(self.webkit.URL())
@@ -555,6 +585,7 @@ class BrowserView:
 
         self._current_url_semaphore.acquire()
         return None if self._current_url == 'about:blank' else self._current_url
+
 
     def load_url(self, url):
         def load(url):
@@ -1019,6 +1050,10 @@ def move(x, y, uid):
 
 def get_current_url(uid):
     return BrowserView.instances[uid].get_current_url()
+
+
+def get_cookies(uid):
+    return BrowserView.instances[uid].get_cookies()
 
 
 def evaluate_js(script, uid):

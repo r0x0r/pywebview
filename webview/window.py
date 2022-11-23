@@ -256,6 +256,14 @@ class Window:
         self.gui.set_title(title, self.uid)
 
     @_loaded_call
+    def get_cookies(self):
+        """
+        Get cookies for the current website
+        """
+        return self.gui.get_cookies(self.uid)
+
+
+    @_loaded_call
     def get_current_url(self):
         """
         Get the URL currently loaded in the target webview

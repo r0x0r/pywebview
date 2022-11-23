@@ -9,7 +9,7 @@ http://github.com/r0x0r/pywebview/
 import os
 import sys
 import logging
-from threading import Event, Thread
+from threading import Event, Semaphore, Thread
 import ctypes
 from ctypes import windll
 from uuid import uuid4
@@ -298,6 +298,27 @@ class BrowserView:
 
             return self.browser.js_result
 
+        def get_cookies(self):
+            def _get_cookies():
+                self.browser.get_cookies(cookies, lock)
+
+            cookies = []
+            if not is_chromium:
+                logger.error('get_cookies() is not implemented for this platform')
+                return cookies
+
+            self.loaded.wait()
+
+            lock = Semaphore(0)
+
+            self.Invoke(Func[Type](_get_cookies))
+            print('acquired')
+            lock.acquire()
+            print('released')
+
+            return cookies
+
+
         def load_html(self, content, base_uri):
             def _load_html():
                  self.browser.load_html(content, base_uri)
@@ -389,7 +410,6 @@ class BrowserView:
                 _set()
 
         def resize(self, width, height, fix_point):
-
             x = self.Location.X
             y = self.Location.Y
 
@@ -618,6 +638,14 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     except:
         logger.exception('Error invoking {0} dialog'.format(dialog_type))
         return None
+
+
+def get_cookies(uid):
+    if is_cef:
+        return CEF.get_cookies(uid)
+    else:
+        window = BrowserView.instances[uid]
+        return window.get_cookies()
 
 
 def get_current_url(uid):
