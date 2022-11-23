@@ -2,7 +2,6 @@ import bottle
 import json
 import logging
 import os
-import sys
 import threading
 import random
 import socket
