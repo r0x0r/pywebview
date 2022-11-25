@@ -95,7 +95,9 @@ def create_cookie(input):
         cookie[name]['expires'] = input['expires']
         cookie[name]['secure'] = input['secure']
         cookie[name]['httponly'] = input['httponly']
-        cookie[name]['samesite'] = input['samesite']
+
+        if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
+            cookie[name]['samesite'] = input['samesite']
 
         return cookie
     elif type(input) == str:

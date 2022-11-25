@@ -18,7 +18,7 @@ import time
 
 from webview import windows, _private_mode, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.guilib import forced_gui_
-from webview.util import create_cookie, parse_file_type, inject_base_uri
+from webview.util import parse_file_type, inject_base_uri
 from webview.screen import Screen
 from webview.window import FixPoint
 from webview.menu import Menu, MenuAction, MenuSeparator
@@ -32,7 +32,6 @@ clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
 from System import IntPtr, Int32, Func, Type, Environment
-from System.Globalization import CultureInfo
 from System.Threading import Thread, ThreadStart, ApartmentState
 from System.Drawing import Size, Point, Icon, Color, ColorTranslator
 
@@ -282,50 +281,27 @@ class BrowserView:
             self.pywebview_window.events.moved.set(self.Location.X, self.Location.Y)
 
         def evaluate_js(self, script):
-            id = uuid4().hex[:8]
             def _evaluate_js():
-                self.browser.evaluate_js(script, id) if is_chromium else self.browser.evaluate_js(script)
+                self.browser.evaluate_js(script, semaphore, js_result) if is_chromium else self.browser.evaluate_js(script)
+
+            semaphore = Semaphore(0)
+            js_result = []
 
             self.loaded.wait()
             self.Invoke(Func[Type](_evaluate_js))
-            self.browser.js_result_semaphore.acquire()
+            semaphore.acquire()
 
             if is_chromium:
-                if self.browser.js_results.get(id, None) is None:
-                    time.sleep(.1)
-                result = self.browser.js_results[id]
-                self.browser.js_results.pop(id)
+                result = js_result.pop()
                 return result
 
             return self.browser.js_result
 
         def get_cookies(self):
             def _get_cookies():
-                self.browser.get_cookies(_cookies, semaphore)
+                self.browser.get_cookies(cookies, semaphore)
 
-            def _parse_cookies():
-                # cookies must be accessed in the main thread, otherwise an exception is thrown
-                # https://github.com/MicrosoftEdge/WebView2Feedback/issues/1976
-                for c in _cookies:
-                    same_site = None if c.SameSite == 0 else str(c.SameSite).lower()
-
-                    data = {
-                        'name': c.Name,
-                        'value': c.Value,
-                        'path': c.Path,
-                        'domain': c.Domain,
-                        'expires': c.Expires.ToString('r', CultureInfo.GetCultureInfo('en-US')),
-                        'secure': c.IsSecure,
-                        'httponly': c.IsHttpOnly,
-                        'samesite': same_site
-                    }
-
-                    cookie = create_cookie(data)
-                    cookies.append(cookie)
-                    
-                semaphore.release()
-
-            cookies, _cookies = [], []
+            cookies = []
             if not is_chromium:
                 logger.error('get_cookies() is not implemented for this platform')
                 return cookies
@@ -335,9 +311,6 @@ class BrowserView:
             semaphore = Semaphore(0)
 
             self.Invoke(Func[Type](_get_cookies))
-            semaphore.acquire()
-           
-            self.Invoke(Func[Type](_parse_cookies))
             semaphore.acquire()
 
             return cookies
