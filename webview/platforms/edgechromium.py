@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-(C) 2014-2019 Roman Sirokov and contributors
+(C) 2014-2022 Roman Sirokov and contributors
 Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
@@ -12,7 +12,6 @@ import logging
 import json
 import webbrowser
 from threading import Semaphore
-from platform import architecture
 
 from webview import _debug, _user_agent, _private_mode
 from webview.util import parse_api_js, interop_dll_path, default_html, js_bridge_call
@@ -30,12 +29,15 @@ from System import String, Action, Uri
 from System.Threading.Tasks import Task, TaskScheduler
 from System.Drawing import Color
 
-archpath = 'x64' if architecture()[0] == '64bit' else 'x86'
-os.environ['Path'] = interop_dll_path(archpath) + ';' + os.environ['Path']
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
+
 from Microsoft.Web.WebView2.WinForms import WebView2, CoreWebView2CreationProperties
-from Microsoft.Web.WebView2.Core import CoreWebView2Environment, CoreWebView2Cookie
+
+
+for platform in ('arm64', 'x64', 'x86'):
+    os.environ['Path'] += ';' + interop_dll_path(platform)
+
 
 logger = logging.getLogger('pywebview')
 
@@ -51,7 +53,6 @@ class EdgeChrome:
         self.js_results = {}
         self.js_result_semaphore = Semaphore(0)
         self.web_view.Dock = WinForms.DockStyle.Fill
-
         self.web_view.CoreWebView2InitializationCompleted += self.on_webview_ready
         self.web_view.NavigationStarting += self.on_navigation_start
         self.web_view.NavigationCompleted += self.on_navigation_completed
@@ -72,6 +73,7 @@ class EdgeChrome:
         else:
             self.html = default_html
             self.load_html(default_html, '')
+
 
     def evaluate_js(self, script, id, callback=None):
         def _callback(result):
@@ -129,8 +131,13 @@ class EdgeChrome:
         webbrowser.open(str(args.get_Uri()))
 
     def on_webview_ready(self, sender, args):
+        if not args.IsSuccess:
+            logger.error('WebView2 initialization failed with exception:\n ' + str(args.InitializationException))
+            return
+
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
         settings = sender.CoreWebView2.Settings
+        settings.AreBrowserAcceleratorKeysEnabled = _debug['mode']
         settings.AreDefaultContextMenusEnabled = _debug['mode']
         settings.AreDefaultScriptDialogsEnabled = True
         settings.AreDevToolsEnabled = _debug['mode']
@@ -149,6 +156,10 @@ class EdgeChrome:
 
         if self.html:
             sender.CoreWebView2.NavigateToString(self.html)
+
+        if _debug['mode']:
+            sender.CoreWebView2.OpenDevToolsWindow()
+
 
     def on_navigation_start(self, sender, args):
         pass
