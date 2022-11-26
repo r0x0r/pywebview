@@ -29,8 +29,6 @@ window.pywebview = {
                 case 'cef':
                 case 'qtwebkit':
                     return window.external.call(funcName, JSON.stringify(params), id);
-                case 'edgehtml':
-                    return window.external.notify(JSON.stringify([funcName, params, id]));
                 case 'chromium':
                     return window.chrome.webview.postMessage([funcName, params, id]);
                 case 'cocoa':

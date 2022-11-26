@@ -129,15 +129,6 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         if is_local_url(w.original_url)
     ]
 
-    has_file_urls = not not [
-        w.original_url
-        for w in windows
-        if w.original_url and w.original_url.startswith('file://')
-    ]
-
-    if gui == 'edgehtml' and has_file_urls:
-        raise WebViewException('file:// urls are not supported with EdgeHTML')
-
     guilib = initialize(gui)
 
     if http_server or has_local_urls or guilib.renderer == 'gtkwebkit2':

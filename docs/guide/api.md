@@ -49,7 +49,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `gui` - force a specific GUI. Allowed values are `cef`, `qt` or `gtk` depending on a platform. See [Renderer](/guide/renderer.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server. If enabled, local files will be served using a local HTTP server on a random port. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
-* `user_agent` - change user agent string. Not supported in EdgeHTML.
+* `user_agent` - change user agent string.
 
 ### Examples
 * [Simple window](/examples/open_url.html)
@@ -364,7 +364,7 @@ _pywebview_ exposes a `window.pywebviewready` DOM event that is fired when `wind
 
 # Drag area
 
-With a frameless _pywebview_ window, A window can be moved or dragged by adding a special class called `pywebview-drag-region` in your html 
+With a frameless _pywebview_ window, A window can be moved or dragged by adding a special class called `pywebview-drag-region` in your html
 ```html
 <div class='pywebview-drag-region'>This div element can be used to moved or drag your window like a native OS window</div>
 ```
