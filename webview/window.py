@@ -107,11 +107,6 @@ class Window:
         self.events.resized = Event()
         self.events.moved = Event()
 
-        self._closed = self.events.closed
-        self._closing = self.events.closing
-        self._loaded = self.events.loaded
-        self._shown = self.events.shown
-
         self.gui = None
 
     def _initialize(self, gui, url_prefix, common_path):
@@ -123,42 +118,6 @@ class Window:
         self.localization = original_localization.copy()
         if self.localization_override:
             self.localization.update(self.localization_override)
-
-    @property
-    def shown(self):
-        logger.warning('shown event is deprecated and will be removed in 4.0. Use events.shown instead')
-        return self.events.shown
-
-    @shown.setter
-    def shown(self, value):
-        self.events.shown = value
-
-    @property
-    def loaded(self):
-        logger.warning('loaded event is deprecated and will be removed in 4.0. Use events.loaded instead')
-        return self.events.loaded
-
-    @loaded.setter
-    def shown(self, value):
-        self.events.loaded = value
-
-    @property
-    def closed(self):
-        logger.warning('closed event is deprecated and will be removed in 4.0. Use events.closed instead')
-        return self.events.closed
-
-    @closed.setter
-    def closed(self, value):
-        self.events.closed = value
-
-    @property
-    def closing(self):
-        logger.warning('closing event is deprecated and will be removed in 4.0. Use events.closing instead')
-        return self.events.closed
-
-    @closing.setter
-    def closing(self, value):
-        self.on_closing = value
 
     @property
     def width(self):
@@ -261,7 +220,6 @@ class Window:
         Get cookies for the current website
         """
         return self.gui.get_cookies(self.uid)
-
 
     @_loaded_call
     def get_current_url(self):
