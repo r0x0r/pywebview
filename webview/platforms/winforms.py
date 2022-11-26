@@ -9,12 +9,10 @@ http://github.com/r0x0r/pywebview/
 import os
 import sys
 import logging
-from threading import Event, Thread
+from threading import Event, Semaphore, Thread
 import ctypes
 from ctypes import windll
-from uuid import uuid4
 from platform import machine
-import time
 
 from webview import windows, _private_mode, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.guilib import forced_gui_
@@ -31,9 +29,9 @@ clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import IntPtr, Int32, Func, Type, Environment, Uri
+from System import IntPtr, Int32, Func, Type, Environment
 from System.Threading import Thread, ThreadStart, ApartmentState
-from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
+from System.Drawing import Size, Point, Icon, Color, ColorTranslator
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
@@ -281,22 +279,40 @@ class BrowserView:
             self.pywebview_window.events.moved.set(self.Location.X, self.Location.Y)
 
         def evaluate_js(self, script):
-            id = uuid4().hex[:8]
             def _evaluate_js():
-                self.browser.evaluate_js(script, id) if is_chromium else self.browser.evaluate_js(script)
+                self.browser.evaluate_js(script, semaphore, js_result) if is_chromium else self.browser.evaluate_js(script)
+
+            semaphore = Semaphore(0)
+            js_result = []
 
             self.loaded.wait()
             self.Invoke(Func[Type](_evaluate_js))
-            self.browser.js_result_semaphore.acquire()
+            semaphore.acquire()
 
             if is_chromium:
-                if self.browser.js_results.get(id, None) is None:
-                    time.sleep(.1)
-                result = self.browser.js_results[id]
-                self.browser.js_results.pop(id)
+                result = js_result.pop()
                 return result
 
             return self.browser.js_result
+
+        def get_cookies(self):
+            def _get_cookies():
+                self.browser.get_cookies(cookies, semaphore)
+
+            cookies = []
+            if not is_chromium:
+                logger.error('get_cookies() is not implemented for this platform')
+                return cookies
+
+            self.loaded.wait()
+
+            semaphore = Semaphore(0)
+
+            self.Invoke(Func[Type](_get_cookies))
+            semaphore.acquire()
+
+            return cookies
+
 
         def load_html(self, content, base_uri):
             def _load_html():
@@ -389,7 +405,6 @@ class BrowserView:
                 _set()
 
         def resize(self, width, height, fix_point):
-
             x = self.Location.X
             y = self.Location.Y
 
@@ -618,6 +633,14 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     except:
         logger.exception('Error invoking {0} dialog'.format(dialog_type))
         return None
+
+
+def get_cookies(uid):
+    if is_cef:
+        return CEF.get_cookies(uid)
+    else:
+        window = BrowserView.instances[uid]
+        return window.get_cookies()
 
 
 def get_current_url(uid):

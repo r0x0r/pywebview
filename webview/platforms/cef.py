@@ -15,7 +15,7 @@ from time import sleep
 from webview.js.css import disable_text_select
 from webview.js import dom
 from webview import _debug, _user_agent
-from webview.util import parse_api_js, default_html, js_bridge_call
+from webview.util import create_cookie, parse_api_js, default_html, js_bridge_call
 
 
 sys.excepthook = cef.ExceptHook
@@ -73,6 +73,26 @@ class JSBridge:
 
 renderer = 'cef'
 
+class CookieVisitor(object):
+    def Visit(self, cookie, count, total, delete_cookie_out):
+        data = {
+            'name': cookie.GetName(),
+            'value': cookie.GetValue(),
+            'path': cookie.GetPath(),
+            'domain': cookie.GetDomain(),
+            'expires': cookie.GetExpires().strftime('%a, %d %b %Y %H:%M:%S GMT'),
+            'secure': cookie.GetSecure(),
+            'httponly': cookie.GetHttpOnly()
+        }
+
+        cookie = create_cookie(data)
+        self.cookies.append(cookie)
+
+        if count + 1 == total:
+            self.lock.set()
+
+        return True
+
 
 class Browser:
     def __init__(self, window, handle, browser, parent):
@@ -92,6 +112,9 @@ class Browser:
     def initialize(self):
         if self.initialized:
             return
+
+        self.cookie_manager = cef.CookieManager.GetGlobalManager()
+        self.cookie_visitor = CookieVisitor()
 
         self.browser.GetJavascriptBindings().Rebind()
         self.browser.ExecuteJavascript(parse_api_js(self.window, 'cef'))
@@ -114,7 +137,7 @@ class Browser:
         height_diff = screen.Top - self.parent.Top + 12
         width_diff = self.parent.Right - screen.Right + 12
 
-        windll.user32.SetWindowPos(self.inner_hwnd, 0, 0, 0, 
+        windll.user32.SetWindowPos(self.inner_hwnd, 0, 0, 0,
                                    width - width_diff, height - height_diff,
                                    0x0002 | 0x0004 | 0x0010)
         self.browser.NotifyMoveOrResizeStarted()
@@ -141,6 +164,15 @@ class Browser:
         del self.js_bridge.results[unique_id]
 
         return result
+
+    def get_cookies(self):
+        self.loaded.wait()
+        self.cookie_visitor.cookies = []
+        self.cookie_visitor.lock = Event()
+        self.cookie_manager.VisitUrlCookies(self.browser.GetUrl(), True, self.cookie_visitor)
+        self.cookie_visitor.lock.wait()
+
+        return self.cookie_visitor.cookies
 
     def get_current_url(self):
         self.loaded.wait()
@@ -298,6 +330,12 @@ def load_url(url, uid):
 def evaluate_js(code, result, uid):
     instance = instances[uid]
     return instance.evaluate_js(code, result)
+
+
+@_cef_call
+def get_cookies(uid):
+    instance = instances[uid]
+    return instance.get_cookies()
 
 
 @_cef_call

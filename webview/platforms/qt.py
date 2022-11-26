@@ -12,6 +12,7 @@ import logging
 import webbrowser
 import socket
 import sys
+
 from uuid import uuid1
 from copy import copy, deepcopy
 from threading import Semaphore, Event, Thread
@@ -19,7 +20,7 @@ import typing as t
 
 from webview import _debug, _user_agent, _private_mode, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG, windows
 from webview.window import Window, FixPoint
-from webview.util import default_html, parse_api_js, js_bridge_call
+from webview.util import create_cookie, default_html, parse_api_js, js_bridge_call
 from webview.js.css import disable_text_select
 from webview.screen import Screen
 from webview.window import FixPoint
@@ -55,6 +56,7 @@ _main_window_created.clear()
 # suppress invalid style override error message on some Linux distros
 os.environ['QT_STYLE_OVERRIDE'] = ''
 _qt6 = True if PYQT6 or PYSIDE6 else False
+_profile_storage_path = _storage_path or os.path.join(os.path.expanduser('~'), '.pywebview')
 
 
 class BrowserView(QMainWindow):
@@ -183,9 +185,9 @@ class BrowserView(QMainWindow):
             return False
 
     class WebPage(QWebPage):
-        def __init__(self, parent=None):
-            if is_webengine:
-                super(BrowserView.WebPage, self).__init__(BrowserView.profile, parent)
+        def __init__(self, parent=None, profile=None):
+            if is_webengine and profile:
+                super(BrowserView.WebPage, self).__init__(profile, parent)
             else:
                 super(BrowserView.WebPage, self).__init__(parent)
 
@@ -302,11 +304,23 @@ class BrowserView(QMainWindow):
         else:
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)  # disable right click context menu
 
-        global _qprofile  # prevent 'Release of profile requested but WebEnginePage still not deleted. Expect troubles !'
-        _qprofile = QWebEngineProfile('pywebview') if _qt6 and '--no-cache' not in sys.argv else None
-        self.view.setPage(BrowserView.WebPage(self.view, profile=_qprofile))
-        self.view.page().loadFinished.connect(self.on_load_finished)
 
+        if is_webengine:
+            if _private_mode:
+                self.profile = QWebEngineProfile()
+            else:
+                self.profile = QWebEngineProfile('pywebview')
+                self.profile.setPersistentStoragePath(_profile_storage_path)
+                self.cookies = {}
+                cookie_store = self.profile.cookieStore()
+                cookie_store.cookieAdded.connect(self.on_cookie_added)
+                cookie_store.cookieRemoved.connect(self.on_cookie_removed)
+
+                self.view.setPage(BrowserView.WebPage(self.view, profile=self.profile))
+        elif not is_webengine and not _private_mode:
+            logger.warning('qtwebkit does not support _private_mode=False')
+
+        self.view.page().loadFinished.connect(self.on_load_finished)
         self.setCentralWidget(self.view)
 
         self.create_window_trigger.connect(BrowserView.on_create_window)
@@ -390,6 +404,20 @@ class BrowserView(QMainWindow):
             self._file_name = QFileDialog.getSaveFileName(self, self.localization['global.saveFile'], save_filename)
 
         self._file_name_semaphore.release()
+
+    def on_cookie_added(self, cookie):
+        raw = str(cookie.toRawForm(), 'utf-8')
+        cookie = create_cookie(raw)
+
+        if raw not in self.cookies:
+            self.cookies[raw] = cookie
+
+
+    def on_cookie_removed(self, cookie):
+        raw = str(cookie.toRawForm(), 'utf-8')
+
+        if raw in self.cookies:
+            del self.cookies[raw]
 
     def on_current_url(self):
         url = BrowserView._convert_string(self.view.url().toString())
@@ -544,9 +572,11 @@ class BrowserView(QMainWindow):
         if _debug['mode']:
             self.view.show_inspector()
 
-
     def set_title(self, title):
         self.set_title_trigger.emit(title)
+
+    def get_cookies(self):
+        return list(self.cookies.values())
 
     def get_current_url(self):
         self.loaded.wait()
@@ -730,17 +760,6 @@ def create_window(window):
 
     if window.uid == 'master':
         global _app
-
-        if is_webengine:
-            if _private_mode:
-                BrowserView.profile = QWebEngineProfile()
-            else:
-                storage_path = _storage_path or os.path.join(os.path.expanduser('~'), '.pywebview')
-                BrowserView.profile = QWebEngineProfile('pywebview')
-                BrowserView.profile.setPersistentStoragePath(storage_path)
-        elif not is_webengine and not _private_mode:
-            logger.warning('qtwebkit does not support _private_mode=False')
-
         _app = QApplication.instance() or QApplication(sys.argv)
 
         _create()
@@ -753,6 +772,10 @@ def create_window(window):
 
 def set_title(title, uid):
     BrowserView.instances[uid].set_title(title)
+
+
+def get_cookies(uid):
+    return BrowserView.instances[uid].get_cookies()
 
 
 def get_current_url(uid):
