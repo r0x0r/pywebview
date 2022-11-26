@@ -12,9 +12,7 @@ import logging
 from threading import Event, Semaphore, Thread
 import ctypes
 from ctypes import windll
-from uuid import uuid4
 from platform import machine
-import time
 
 from webview import windows, _private_mode, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.guilib import forced_gui_
