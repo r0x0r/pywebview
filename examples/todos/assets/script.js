@@ -1,6 +1,4 @@
 /* base.js */
-
-
 (function () {
 	'use strict';
 

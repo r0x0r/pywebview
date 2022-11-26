@@ -4,7 +4,7 @@
     "docs:build": "NODE_ENV=production vuepress build docs"
   },
   "devDependencies": {
-    "vuepress": "1.1.0",
-    "@vuepress/plugin-medium-zoom": "1.0.0-rc.1"
+    "@vuepress/plugin-medium-zoom": "1.9.7",
+    "vuepress": "1.9.7"
   }
 }

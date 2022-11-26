@@ -4,7 +4,7 @@ class Screen():
         self.height = int(height)
 
     def __str__(self):
-        return (self.width, self.height)
+        return repr(self)
 
     def __repr__(self):
         return '(%s, %s)' % (self.width, self.height)

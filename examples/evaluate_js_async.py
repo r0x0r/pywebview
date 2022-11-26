@@ -1,7 +1,7 @@
 import webview
 
 """
-This example demonstrates evaluating async JavaScript
+This example demonstrates how to evaluate async JavaScript
 """
 
 def callback(result):
@@ -19,5 +19,5 @@ def evaluate_js_async(window):
 
 
 if __name__ == '__main__':
-    window = webview.create_window('Run custom JavaScript', html='<html><body></body></html>')
+    window = webview.create_window('Run async Javascript', html='<html><body></body></html>')
     webview.start(evaluate_js_async, window, debug=True)

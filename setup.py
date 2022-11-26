@@ -16,6 +16,7 @@ install_requires = [
     'QtPy ; sys_platform == "openbsd6"',
     'importlib_resources; python_version < "3.7"',
     'proxy_tools',
+    'bottle'
 ]
 
 
@@ -30,11 +31,11 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/r0x0r/pywebview',
-    download_url='https://github.com/r0x0r/pywebview/archive/3.6.3.tar.gz',
+    download_url='https://github.com/r0x0r/pywebview/archive/3.7.2.tar.gz',
     keywords=['gui', 'webkit', 'html', 'web'],
     install_requires=install_requires,
     extras_require=extras_require,
-    version='3.6.3',
+    version='3.7.2',
     include_package_data=True,
     packages=['webview', 'webview.js', 'webview.platforms'],
     package_dir={'webview': 'webview'},
@@ -44,6 +45,7 @@ setup(
             'webview/lib/WebBrowserInterop.x86.dll',
             'webview/lib/Microsoft.Toolkit.Forms.UI.Controls.WebView.dll',
             'webview/lib/Microsoft.Toolkit.Forms.UI.Controls.WebView.LICENSE.md',
+            'webview/lib/arm64/WebView2Loader.dll',
             'webview/lib/x64/WebView2Loader.dll',
             'webview/lib/x86/WebView2Loader.dll',
             'webview/lib/Microsoft.Web.WebView2.Core.dll',

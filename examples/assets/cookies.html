@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html>
+<head lang="en">
+<meta charset="UTF-8">
+
+<style>
+    button {
+        font-size: 100%;
+        padding: 0.5rem;
+        margin: 0.3rem;
+        text-transform: uppercase;
+    }
+</style>
+</head>
+<body>
+
+
+<h1>Cookies Example</h1>
+
+<p>Cookies: <span id='cookies'></span></p>
+<p>Local storage: <span id='localstorage'></span></p>
+
+
+<button onClick="setCookies()">Set cookies</button><br/>
+<script>
+    var cookieContainer = document.getElementById('cookies')
+    var localStorageContainer = document.getElementById('localstorage')
+
+    window.addEventListener('pywebviewready', showCookies)
+
+    function setCookies() {
+      localStorage.setItem('pywebview', 'Local storage is set')
+      document.cookie = 'pywebview=Cookies are set; expires=Thu, 18  Dec 2033 12:00:00 UTC;'
+
+      showCookies()
+    }
+
+    function showCookies() {
+      cookieContainer.innerHTML = document.cookie
+      localStorageContainer.innerHTML = localStorage.getItem('pywebview')
+    }
+</script>
+</body>
+</html>

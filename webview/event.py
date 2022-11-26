@@ -12,10 +12,6 @@ class Event:
         self._should_lock = should_lock
         self._event = threading.Event()
 
-    def _initialize(self, is_multiprocessing):
-        if is_multiprocessing:
-            self._event = multiprocessing.Event()
-
     def set(self, *args, **kwargs):
         def execute():
             for func in self._items:

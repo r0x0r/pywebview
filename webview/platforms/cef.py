@@ -7,7 +7,6 @@ import webbrowser
 
 from ctypes import windll
 from functools import wraps
-from uuid import uuid1
 from threading import Event
 from cefpython3 import cefpython as cef
 from copy import copy
@@ -16,8 +15,7 @@ from time import sleep
 from webview.js.css import disable_text_select
 from webview.js import dom
 from webview import _debug, _user_agent
-from webview.util import parse_api_js, default_html, js_bridge_call
-from webview.window import FixPoint
+from webview.util import create_cookie, parse_api_js, default_html, js_bridge_call
 
 
 sys.excepthook = cef.ExceptHook
@@ -35,10 +33,7 @@ command_line_switches = {}
 def _set_dpi_mode(enabled):
     """
     """
-    try:
-        import _winreg as winreg  # Python 2
-    except ImportError:
-        import winreg  # Python 3
+    import winreg  # Python 3
 
     try:
         dpi_support = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
@@ -78,12 +73,33 @@ class JSBridge:
 
 renderer = 'cef'
 
+class CookieVisitor(object):
+    def Visit(self, cookie, count, total, delete_cookie_out):
+        data = {
+            'name': cookie.GetName(),
+            'value': cookie.GetValue(),
+            'path': cookie.GetPath(),
+            'domain': cookie.GetDomain(),
+            'expires': cookie.GetExpires().strftime('%a, %d %b %Y %H:%M:%S GMT'),
+            'secure': cookie.GetSecure(),
+            'httponly': cookie.GetHttpOnly()
+        }
+
+        cookie = create_cookie(data)
+        self.cookies.append(cookie)
+
+        if count + 1 == total:
+            self.lock.set()
+
+        return True
+
 
 class Browser:
-    def __init__(self, window, handle, browser):
+    def __init__(self, window, handle, browser, parent):
         self.window = window
         self.handle = handle
         self.browser = browser
+        self.parent = parent
         self.text_select = window.text_select
         self.uid = window.uid
         self.loaded = window.events.loaded
@@ -96,6 +112,9 @@ class Browser:
     def initialize(self):
         if self.initialized:
             return
+
+        self.cookie_manager = cef.CookieManager.GetGlobalManager()
+        self.cookie_visitor = CookieVisitor()
 
         self.browser.GetJavascriptBindings().Rebind()
         self.browser.ExecuteJavascript(parse_api_js(self.window, 'cef'))
@@ -113,7 +132,13 @@ class Browser:
         self.browser.CloseBrowser(True)
 
     def resize(self, width, height):
-        windll.user32.SetWindowPos(self.inner_hwnd, 0, 0, 0, width - 16, height - 38,
+        screen = self.parent.RectangleToScreen(self.parent.ClientRectangle)
+
+        height_diff = screen.Top - self.parent.Top + 12
+        width_diff = self.parent.Right - screen.Right + 12
+
+        windll.user32.SetWindowPos(self.inner_hwnd, 0, 0, 0,
+                                   width - width_diff, height - height_diff,
                                    0x0002 | 0x0004 | 0x0010)
         self.browser.NotifyMoveOrResizeStarted()
 
@@ -121,7 +146,16 @@ class Browser:
         self.loaded.wait()
 
         self.eval_events[unique_id] = Event()
-        result = self.browser.ExecuteJavascript(code)
+        eval_script = """
+            try {{
+                {0}
+            }} catch(e) {{
+                console.error(e.stack);
+                window.external.return_result(null, '{1}');
+            }}
+        """.format(code, unique_id)
+
+        result = self.browser.ExecuteJavascript(eval_script)
         self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
 
         result = copy(self.js_bridge.results[unique_id])
@@ -130,6 +164,15 @@ class Browser:
         del self.js_bridge.results[unique_id]
 
         return result
+
+    def get_cookies(self):
+        self.loaded.wait()
+        self.cookie_visitor.cookies = []
+        self.cookie_visitor.lock = Event()
+        self.cookie_manager.VisitUrlCookies(self.browser.GetUrl(), True, self.cookie_visitor)
+        self.cookie_visitor.lock.wait()
+
+        return self.cookie_visitor.cookies
 
     def get_current_url(self):
         self.loaded.wait()
@@ -193,7 +236,7 @@ def _cef_call(func):
     return wrapper
 
 
-def init(window):
+def init(window, cache_dir):
     global _initialized
 
     if not _initialized:
@@ -217,8 +260,11 @@ def init(window):
         if _user_agent:
             default_settings['user_agent'] = _user_agent
 
-        # set paths under Pyinstaller's one file mode
+        if cache_dir:
+            default_settings['cache_path'] = cache_dir
+
         resource_root = getattr(sys, '_MEIPASS', os.path.dirname(cef.__file__))
+
         default_settings.update({
             'resources_dir_path': resource_root,
             'locales_dir_path': os.path.join(resource_root, 'locales'),
@@ -233,7 +279,7 @@ def init(window):
         _initialized = True
 
 
-def create_browser(window, handle, alert_func):
+def create_browser(window, handle, alert_func, parent):
     def _create():
         real_url = 'data:text/html,{0}'.format(window.html) if window.html else window.real_url or 'data:text/html,{0}'.format(default_html)
 
@@ -241,7 +287,7 @@ def create_browser(window, handle, alert_func):
         all_browser_settings = dict(default_browser_settings, **browser_settings)
 
         cef_browser = cef.CreateBrowserSync(window_info=window_info, settings=all_browser_settings, url=real_url)
-        browser = Browser(window, handle, cef_browser)
+        browser = Browser(window, handle, cef_browser, parent)
 
         bindings = cef.JavascriptBindings()
         bindings.SetObject('external', browser.js_bridge)
@@ -249,9 +295,13 @@ def create_browser(window, handle, alert_func):
 
         cef_browser.SetJavascriptBindings(bindings)
         cef_browser.SetClientHandler(LoadHandler())
-
         instances[window.uid] = browser
+        cef_browser.SendFocusEvent(True)
         window.events.shown.set()
+        cef_browser.SendFocusEvent(True)
+
+        if _debug['mode']:
+            cef_browser.ShowDevTools()
 
     window_info = cef.WindowInfo()
     window_info.SetAsChild(handle)
@@ -280,6 +330,12 @@ def load_url(url, uid):
 def evaluate_js(code, result, uid):
     instance = instances[uid]
     return instance.evaluate_js(code, result)
+
+
+@_cef_call
+def get_cookies(uid):
+    instance = instances[uid]
+    return instance.get_cookies()
 
 
 @_cef_call
@@ -314,7 +370,7 @@ def shutdown():
         if os.path.exists('webrtc_event_logs'):
             shutil.rmtree('webrtc_event_logs')
 
-        if os.path.exists('error.log'):
+        if os.path.exists('error.log') and not _debug['mode']:
             os.remove('error.log')
 
         if sys.platform == 'win32':
