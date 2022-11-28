@@ -6,7 +6,7 @@
 _Released XX/xx/2022_
 
 ### 💔 BREAKING CHANGES
-- [All] Window events are moved into `window.events` namespace. `window.loaded`, `window.shown` no longer work
+- [All] Window events are moved into `window.events` namespace. `window.loaded`, `window.shown` etc no longer work.
 - EdgeHTML support is removed.
 
 ### ⚡ Features
@@ -24,6 +24,8 @@ _Released XX/xx/2022_
 
 ### 🐞 Bug fixes
 - [GTK] Fix JS bridge maximum return object size limitation. GTK's JS bridge is implemented via HTTP server.
+- [GTK] Fix hang on window closing when JS evaluation is in progress
+
 
 ## 3.7.1
 
