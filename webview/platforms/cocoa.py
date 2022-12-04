@@ -276,7 +276,8 @@ class BrowserView:
             super(BrowserView.WebKitHost, self).mouseDown_(event)
 
         def willOpenMenu_withEvent_(self, menu, event):
-            menu.removeAllItems()
+            if not _debug['mode']:
+                menu.removeAllItems()
 
         def performKeyEquivalent_(self, theEvent):
             """
