@@ -286,13 +286,6 @@ class BrowserView:
             :return:
             """
 
-            # Fix arrow keys not responding in text inputs
-            keyCode_ = theEvent.keyCode()
-            UP, DOWN, LEFT, RIGHT, DELETE, PG_DWN, PG_UP = 126, 125, 123, 124, 117, 121, 116
-
-            if keyCode_ in (UP, DOWN, LEFT, RIGHT, DELETE, PG_DWN, PG_UP):
-                return False
-
             if theEvent.type() == AppKit.NSKeyDown and theEvent.modifierFlags() & AppKit.NSCommandKeyMask:
                 responder = self.window().firstResponder()
                 keyCode = theEvent.keyCode()
@@ -326,7 +319,7 @@ class BrowserView:
 
                     return handled
 
-            return True
+            return False
 
 
     def __init__(self, window):
