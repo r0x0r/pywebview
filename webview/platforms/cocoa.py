@@ -279,47 +279,38 @@ class BrowserView:
             if not _debug['mode']:
                 menu.removeAllItems()
 
-        def performKeyEquivalent_(self, theEvent):
-            """
-            Handle common hotkey shortcuts as copy/cut/paste/undo/select all/quit
-            :param theEvent:
-            :return:
-            """
-
-            if theEvent.type() == AppKit.NSKeyDown and theEvent.modifierFlags() & AppKit.NSCommandKeyMask:
+        def keyDown_(self, event):
+            if event.modifierFlags() & AppKit.NSCommandKeyMask:
                 responder = self.window().firstResponder()
-                keyCode = theEvent.keyCode()
-
                 if responder != None:
-                    handled = False
+                    keyCode = event.keyCode()
                     range_ = responder.selectedRange()
                     hasSelectedText = len(range_) > 0
 
-                    if keyCode == 7 and hasSelectedText : #cut
+                    if keyCode == 7 and hasSelectedText:  # cut
                         responder.cut_(self)
-                        handled = True
-                    elif keyCode == 8 and hasSelectedText:  #copy
+                        return
+                    elif keyCode == 8 and hasSelectedText:  # copy
                         responder.copy_(self)
-                        handled = True
+                        return
                     elif keyCode == 9:  # paste
                         responder.paste_(self)
-                        handled = True
+                        return
                     elif keyCode == 0:  # select all
                         responder.selectAll_(self)
-                        handled = True
+                        return
                     elif keyCode == 6:  # undo
                         if responder.undoManager().canUndo():
                             responder.undoManager().undo()
-                            handled = True
+                        return
                     elif keyCode == 12:  # quit
                         BrowserView.app.stop_(self)
-                    elif keyCode == 13:  # w (close)
-                        self.window().performClose_(theEvent)
-                        handled = True
+                        return
+                    elif keyCode == 13:  # close
+                        self.window().performClose_(event)
+                        return
 
-                    return handled
-
-            return False
+            super(BrowserView.WebKitHost, self).keyDown_(event)
 
 
     def __init__(self, window):
