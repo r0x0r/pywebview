@@ -10,7 +10,7 @@ import webview.http as http
 
 from webview.event import Event
 from webview.localization import original_localization
-from webview.util import base_uri, parse_file_type, is_local_url, escape_string, WebViewException
+from webview.util import base_uri, parse_file_type, is_app, is_local_url, needs_server, escape_string, WebViewException
 from .js import css
 
 
@@ -25,7 +25,7 @@ def _api_call(function, event_type):
     @wraps(function)
     def wrapper(*args, **kwargs):
         event = args[0].events.loaded if event_type == 'loaded' else args[0].events.shown
-
+        
         try:
             if not event.wait(20):
                 raise WebViewException('Main window failed to start')
@@ -62,7 +62,8 @@ class EventContainer:
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select, transparent, zoomable, draggable, localization):
+                 background_color, js_api, text_select, transparent, zoomable, draggable, localization,
+                 http_port=None,server=None,serverArgs={}):
         self.uid = uid
         self.title = title
         self.original_url = None if html else url  # original URL provided by user
@@ -88,9 +89,15 @@ class Window:
         self.draggable = draggable
         self.localization_override = localization
 
+        # Server config
+        self._http_port=http_port
+        self._server=server
+        self._serverArgs=serverArgs
+        
         # HTTP server path magic
         self._url_prefix = None
         self._common_path = None
+        self._server = None
 
         self._js_api = js_api
         self._functions = {}
@@ -109,15 +116,24 @@ class Window:
 
         self.gui = None
 
-    def _initialize(self, gui, url_prefix, common_path):
-        self._url_prefix = url_prefix
-        self._common_path = common_path
+    def _initialize(self, gui,prefix=None,common_path=None):
         self.gui = gui
-        self.real_url = self._resolve_url(self.original_url)
 
         self.localization = original_localization.copy()
         if self.localization_override:
             self.localization.update(self.localization_override)
+        
+        import pudb; pu.db
+        if needs_server([self.original_url]) and prefix is None:
+            prefix, common_path, server = http.start_server(urls=[self.original_url], http_port=self._http_port, server=self._server, **self._serverArgs)
+        else:
+            server = None
+        
+        self._url_prefix = prefix
+        self._common_path = common_path
+        self._server = server
+        self.real_url = self._resolve_url(self.original_url)
+        print(f'Our window is {self} and the server is at {prefix}')
 
     @property
     def width(self):
@@ -184,8 +200,8 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if not http.running and is_local_url(url):
-            self._url_prefix, self._common_path = http.start_server([url])
+        if not self.server.running and (is_app(url) or is_local_url(url)):
+            self._url_prefix, self._common_path, self.server = http.start_server([url])
 
         self.real_url = self._resolve_url(url)
         self.gui.load_url(self.real_url, self.uid)
@@ -199,7 +215,6 @@ class Window:
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         :param uid: uid of the target instance
         """
-
         self.gui.load_html(content, base_uri, self.uid)
 
     @_loaded_call

@@ -42,8 +42,14 @@ class WebViewException(Exception):
     pass
 
 
+def is_app(url):
+    return not isinstance(url,str)
+
 def is_local_url(url):
-    return not not url and not url.startswith('http://') and not url.startswith('https://')
+    return not (not (is_app(url)) or ((not url) and (not url.startswith('http://')) and (not url.startswith('https://'))))
+
+def needs_server(urls):
+    return not not [url for url in urls if (is_app(url) or is_local_url(url))]
 
 
 def get_app_root():

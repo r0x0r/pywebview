@@ -22,7 +22,7 @@ from proxy_tools import module_property
 import webview.http as http
 
 from webview.guilib import initialize
-from webview.util import _token, base_uri, parse_file_type, is_local_url, escape_string, escape_line_breaks, WebViewException
+from webview.util import _token, base_uri, parse_file_type, is_app, is_local_url, escape_string, escape_line_breaks, WebViewException
 from webview.window import Window
 from .localization import original_localization
 
@@ -122,25 +122,28 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     if len(windows) == 0:
         raise WebViewException('You must create a window first before calling this function.')
 
-    urls = [w.original_url for w in windows]
-    has_local_urls = not not [
-        w.original_url
-        for w in windows
-        if is_local_url(w.original_url)
-    ]
-
     guilib = initialize(gui)
 
-    if http_server or has_local_urls or guilib.renderer == 'gtkwebkit2':
-        if not _private_mode and not http_port:
-            http_port = DEFAULT_HTTP_PORT
-
-        prefix, common_path = http.start_server(urls, http_port)
-    else:
-        prefix, common_path = None, None
-
+    # ---- To Remove
+    # urls = [w.original_url for w in windows]
+    # has_local_urls = not not [
+    #     w.original_url
+    #     for w in windows
+    #     if is_app(w.original_url) or is_local_url(w.original_url)
+    # ]
+    #
+    # if http_server or has_local_urls or guilib.renderer == 'gtkwebkit2':
+    #     if not _private_mode and not http_port:
+    #         http_port = DEFAULT_HTTP_PORT
+    #
+    #     prefix, common_path, server = http.start_server(urls, http_port)
+    # else:
+    #     prefix, common_path, server = None, None, None
+        
+    # ------ To remove
+    
     for window in windows:
-        window._initialize(guilib, prefix, common_path)
+        window._initialize(guilib)#,prefix,common_path)
 
     if len(windows) > 1:
         t = threading.Thread(target=_create_children, args=(windows[1:],))
@@ -201,7 +204,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     # This immediately creates the window only if `start` has already been called
     if threading.current_thread().name != 'MainThread' and guilib:
-        if is_local_url(url) and not http.running:
+        if is_app(url) or is_local_url(url) and not http.running:
             url_prefix, common_path = http.start_server([url])
         else:
             url_prefix, common_path = None, None
