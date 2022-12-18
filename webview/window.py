@@ -116,24 +116,23 @@ class Window:
 
         self.gui = None
 
-    def _initialize(self, gui,prefix=None,common_path=None):
+    def _initialize(self, gui, server=None):
         self.gui = gui
 
         self.localization = original_localization.copy()
         if self.localization_override:
             self.localization.update(self.localization_override)
-        
-        import pudb; pu.db
-        if needs_server([self.original_url]) and prefix is None:
+
+        if needs_server([self.original_url]) and server is None:
             prefix, common_path, server = http.start_server(urls=[self.original_url], http_port=self._http_port, server=self._server, **self._serverArgs)
-        else:
-            server = None
+        elif server is None:
+            server = http.global_server
         
-        self._url_prefix = prefix
-        self._common_path = common_path
+        self._url_prefix = server.address
+        self._common_path = server.common_path
         self._server = server
+        self.js_api_endpoint = http.global_server.js_api_endpoint
         self.real_url = self._resolve_url(self.original_url)
-        print(f'Our window is {self} and the server is at {prefix}')
 
     @property
     def width(self):
@@ -425,6 +424,8 @@ class Window:
             self.evaluate_js('window.pywebview._createApi(%s)' % func_list)
 
     def _resolve_url(self, url):
+        if is_app(url):
+            return self._url_prefix
         if is_local_url(url) and self._url_prefix and self._common_path is not None:
             filename = os.path.relpath(url, self._common_path)
             return urljoin(self._url_prefix, filename)

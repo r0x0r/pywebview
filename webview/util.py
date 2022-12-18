@@ -46,7 +46,7 @@ def is_app(url):
     return not isinstance(url,str)
 
 def is_local_url(url):
-    return not (not (is_app(url)) or ((not url) and (not url.startswith('http://')) and (not url.startswith('https://'))))
+    return not ((is_app(url)) or ((not url) or (url.startswith('http://')) or (url.startswith('https://'))))
 
 def needs_server(urls):
     return not not [url for url in urls if (is_app(url) or is_local_url(url))]
@@ -161,7 +161,7 @@ def parse_api_js(window, platform, uid=''):
             'platform': platform,
             'uid': uid,
             'func_list': func_list,
-            'js_api_endpoint': http.js_api_endpoint
+            'js_api_endpoint': window.js_api_endpoint
         } + \
         dom.src + drag.src % {
             'drag_selector': webview.DRAG_REGION_SELECTOR,

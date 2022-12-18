@@ -142,6 +142,10 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         
     # ------ To remove
     
+    # start the global server if it's not running
+    if http.global_server is None:
+        http.start_global_server()
+    
     for window in windows:
         window._initialize(guilib)#,prefix,common_path)
 
