@@ -199,7 +199,7 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if not self.server.running and (is_app(url) or is_local_url(url)):
+        if not self._server.running and (is_app(url) or is_local_url(url)):
             self._url_prefix, self._common_path, self.server = http.start_server([url])
 
         self.real_url = self._resolve_url(url)
