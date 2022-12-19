@@ -43,7 +43,7 @@ class WebViewException(Exception):
 
 
 def is_app(url):
-    return not isinstance(url,str)
+    return not (isinstance(url,str) or url == None)
 
 def is_local_url(url):
     return not ((is_app(url)) or ((not url) or (url.startswith('http://')) or (url.startswith('https://'))))
