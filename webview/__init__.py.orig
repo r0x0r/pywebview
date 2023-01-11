@@ -164,8 +164,12 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
                   frameless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
-                  transparent=False, text_select=False, zoomable=False, draggable=False, vibrancy=False, localization=None,
+<<<<<<< HEAD
+                  transparent=False, text_select=False, zoomable=False, draggable=False, localization=None,
                   server=http.BottleServer, server_args={}):
+=======
+                  transparent=False, text_select=False, zoomable=False, draggable=False, vibrancy=False, localization=None):
+>>>>>>> c1f652a897e22adaa3e003e229355aeddf616bd2
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -199,8 +203,12 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     window = Window(uid, title, url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
-                    js_api, text_select, transparent, zoomable, draggable, vibrancy, localization, 
+<<<<<<< HEAD
+                    js_api, text_select, transparent, zoomable, draggable, localization, 
                     server=server, server_args=server_args)
+=======
+                    js_api, text_select, transparent, zoomable, draggable, vibrancy, localization)
+>>>>>>> c1f652a897e22adaa3e003e229355aeddf616bd2
 
     windows.append(window)
 

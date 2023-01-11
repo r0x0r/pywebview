@@ -25,7 +25,7 @@ def _api_call(function, event_type):
     @wraps(function)
     def wrapper(*args, **kwargs):
         event = args[0].events.loaded if event_type == 'loaded' else args[0].events.shown
-
+        
         try:
             if not event.wait(20):
                 raise WebViewException('Main window failed to start')
@@ -62,8 +62,12 @@ class EventContainer:
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select, transparent, zoomable, draggable, vibrancy, localization,
+<<<<<<< HEAD
+                 background_color, js_api, text_select, transparent, zoomable, draggable, localization,
                  http_port=None, server=None, server_args={}):
+=======
+                 background_color, js_api, text_select, transparent, zoomable, draggable, vibrancy, localization):
+>>>>>>> c1f652a897e22adaa3e003e229355aeddf616bd2
         self.uid = uid
         self.title = title
         self.original_url = None if html else url  # original URL provided by user
@@ -88,12 +92,15 @@ class Window:
         self.zoomable = zoomable
         self.draggable = draggable
         self.localization_override = localization
-        self.vibrancy = vibrancy
+<<<<<<< HEAD
 
         # Server config
         self._http_port=http_port
         self._server=server
         self._server_args=server_args
+=======
+        self.vibrancy = vibrancy
+>>>>>>> c1f652a897e22adaa3e003e229355aeddf616bd2
         
         # HTTP server path magic
         self._url_prefix = None

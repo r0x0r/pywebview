@@ -381,6 +381,7 @@ class BrowserView:
         BrowserView.app.setDelegate_(self._appDelegate)
         self.webkit.setUIDelegate_(self._browserDelegate)
         self.webkit.setNavigationDelegate_(self._browserDelegate)
+        self.window.setDelegate_(self._windowDelegate)
 
         config = self.webkit.configuration()
         config.userContentController().addScriptMessageHandler_name_(self._browserDelegate, 'browserDelegate')
@@ -427,8 +428,16 @@ class BrowserView:
         else:
             self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color))
 
-        self.window.setDelegate_(self._windowDelegate)
-
+        if window.vibrancy:
+            frame_vibrancy =  AppKit.NSMakeRect(0, 0, frame.size.width,frame.size.height)
+            visualEffectView = AppKit.NSVisualEffectView.new()
+            visualEffectView.setAutoresizingMask_(AppKit.NSViewWidthSizable|AppKit.NSViewHeightSizable)
+            visualEffectView.setWantsLayer_(True)
+            visualEffectView.setFrame_(frame_vibrancy)
+            visualEffectView.setState_(AppKit.NSVisualEffectStateActive)
+            visualEffectView.setBlendingMode_(AppKit.NSVisualEffectBlendingModeBehindWindow)
+            self.webkit.addSubview_positioned_relativeTo_(visualEffectView, AppKit.NSWindowBelow,  self.webkit)
+    
         self.frameless = window.frameless
         self.easy_drag = window.easy_drag
 
