@@ -42,8 +42,6 @@ class BottleServer(object):
     def start_server(self, urls, http_port):
         from webview import _debug
         
-        #import pudb; pu.db
-        
         apps = [u for u in urls if is_app(u)]
         
         server = self()
@@ -81,7 +79,7 @@ class BottleServer(object):
         
         server.root_path = abspath(common_path) if common_path is not None else None
         server.port = http_port or _get_random_port()
-        server.thread = threading.Thread(target=lambda: bottle.run(app=app,port=server.port, quiet=not _debug), daemon=True)
+        server.thread = threading.Thread(target=lambda: bottle.run(app=app, port=server.port, quiet=not _debug), daemon=True)
         server.thread.start()
 
         server.running = True
@@ -92,11 +90,12 @@ class BottleServer(object):
         return server.address, common_path, server
 
 
-def start_server(urls,http_port,server=BottleServer,**serverArgs):
+def start_server(urls, http_port=None, server=BottleServer, **server_args):
     server = server if not server is None else BottleServer
-    return server.start_server(urls,http_port,**serverArgs)
+    return server.start_server(urls, http_port, **server_args)
 
-def start_global_server(http_port=None,serer=BottleServer,**serverArgs):
+def start_global_server(http_port=None, urls='.', server=BottleServer, **server_args):
     global global_server
-    _,_,global_server = start_server(urls='.',http_port=http_port,server=BottleServer,**serverArgs)
+    address, common_path, global_server = start_server(urls=urls, http_port=http_port, server=server, **server_args)
+    return address, common_path, global_server
     

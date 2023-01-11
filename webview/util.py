@@ -43,7 +43,8 @@ class WebViewException(Exception):
 
 
 def is_app(url):
-    return not (isinstance(url,str) or url == None)
+    """ Returns true if 'url' is a WSGI or ASGI app. """
+    return callable(url)
 
 def is_local_url(url):
     return not ((is_app(url)) or ((not url) or (url.startswith('http://')) or (url.startswith('https://'))))

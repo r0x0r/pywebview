@@ -63,7 +63,7 @@ class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
                  background_color, js_api, text_select, transparent, zoomable, draggable, localization,
-                 http_port=None,server=None,serverArgs={}):
+                 http_port=None, server=None, server_args={}):
         self.uid = uid
         self.title = title
         self.original_url = None if html else url  # original URL provided by user
@@ -92,7 +92,7 @@ class Window:
         # Server config
         self._http_port=http_port
         self._server=server
-        self._serverArgs=serverArgs
+        self._server_args=server_args
         
         # HTTP server path magic
         self._url_prefix = None
@@ -124,14 +124,14 @@ class Window:
             self.localization.update(self.localization_override)
 
         if needs_server([self.original_url]) and server is None:
-            prefix, common_path, server = http.start_server(urls=[self.original_url], http_port=self._http_port, server=self._server, **self._serverArgs)
+            prefix, common_path, server = http.start_server(urls=[self.original_url], http_port=self._http_port, server=self._server, **self._server_args)
         elif server is None:
             server = http.global_server
         
-        self._url_prefix = server.address
-        self._common_path = server.common_path
+        self._url_prefix = server.address if not server is None else None
+        self._common_path = server.common_path if not server is None else None
         self._server = server
-        self.js_api_endpoint = http.global_server.js_api_endpoint
+        self.js_api_endpoint = http.global_server.js_api_endpoint if not http.global_server is None else None
         self.real_url = self._resolve_url(self.original_url)
 
     @property
