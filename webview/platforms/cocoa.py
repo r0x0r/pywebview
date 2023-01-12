@@ -467,10 +467,8 @@ class BrowserView:
             self.load_html(window.html, '')
         else:
             self.load_html(default_html, '')
-
         if window.fullscreen:
             self.toggle_fullscreen()
-
         self.shown.set()
 
     def first_show(self):

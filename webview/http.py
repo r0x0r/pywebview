@@ -7,17 +7,12 @@ import random
 import socket
 import uuid
 
-from .util import abspath, is_local_url
+from .util import abspath, is_app, is_local_url
 
 
 logger = logging.getLogger(__name__)
-root_path='/'
-running = False
 
-address = None
-js_callback = None
-js_api_endpoint = None
-uid = str(uuid.uuid1())
+global_server = None
 
 def _get_random_port():
     while True:
@@ -33,47 +28,74 @@ def _get_random_port():
                 return port
 
 
-@bottle.post(f'/js_api/{uid}')
-def js_api():
-    bottle.response.headers['Access-Control-Allow-Origin'] = '*'
-    bottle.response.headers['Access-Control-Allow-Methods'] = 'PUT, GET, POST, DELETE, OPTIONS'
-    bottle.response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
-
-    body = json.loads(bottle.request.body.read().decode('utf-8'))
-    if js_callback:
-        return json.dumps(js_callback(body))
-    else:
-        logger.error('JS callback function is not set')
+class BottleServer(object):
+    def __init__(self):
+        self.root_path='/'
+        self.running = False
+        self.address = None
+        self.js_callback = None
+        self.js_api_endpoint = None
+        self.uid = str(uuid.uuid1())
 
 
-@bottle.route('/')
-@bottle.route('/<file:path>')
-def asset(file):
-    if not root_path:
-        return ''
-    bottle.response.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-    bottle.response.set_header('Pragma', 'no-cache')
-    bottle.response.set_header('Expires', 0)
-    return bottle.static_file(file, root=root_path)
+    @classmethod
+    def start_server(self, urls, http_port):
+        from webview import _debug
+        
+        apps = [u for u in urls if is_app(u)]
+        
+        server = self()
+        
+        if len(apps) > 0:
+            app = apps[0]
+            common_path = '.'
+        else:
+            local_urls = [u for u in urls if is_local_url(u)]
+            common_path = os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else None
+            server.root_path = abspath(common_path) if common_path is not None else None
+            app = bottle.Bottle()
+            @app.post(f'/js_api/{server.uid}')
+            def js_api():
+                bottle.response.headers['Access-Control-Allow-Origin'] = '*'
+                bottle.response.headers['Access-Control-Allow-Methods'] = 'PUT, GET, POST, DELETE, OPTIONS'
+                bottle.response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
+
+                body = json.loads(bottle.request.body.read().decode('utf-8'))
+                if js_callback:
+                    return json.dumps(js_callback(body))
+                else:
+                    logger.error('JS callback function is not set')
 
 
+            @app.route('/')
+            @app.route('/<file:path>')
+            def asset(file):
+                if not server.root_path:
+                    return ''
+                bottle.response.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                bottle.response.set_header('Pragma', 'no-cache')
+                bottle.response.set_header('Expires', 0)
+                return bottle.static_file(file, root=server.root_path)
+        
+        server.root_path = abspath(common_path) if common_path is not None else None
+        server.port = http_port or _get_random_port()
+        server.thread = threading.Thread(target=lambda: bottle.run(app=app, port=server.port, quiet=not _debug), daemon=True)
+        server.thread.start()
 
-def start_server(urls, http_port):
-    from webview import _debug
-    global address, root_path, running, js_api_endpoint
+        server.running = True
+        server.address = f'http://127.0.0.1:{server.port}/'
+        self.common_path = common_path
+        server.js_api_endpoint = f'{server.address}js_api/{server.uid}'
 
-    local_urls = [u for u in urls if is_local_url(u)]
-    common_path = os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else None
-    root_path = abspath(common_path) if common_path is not None else None
-
-    port = http_port or _get_random_port()
-    t = threading.Thread(target=lambda: bottle.run(port=port, quiet=not _debug), daemon=True)
-    t.start()
-
-    running = True
-    address = f'http://127.0.0.1:{port}/'
-    js_api_endpoint = f'{address}js_api/{uid}'
-
-    return address, common_path
+        return server.address, common_path, server
 
 
+def start_server(urls, http_port=None, server=BottleServer, **server_args):
+    server = server if not server is None else BottleServer
+    return server.start_server(urls, http_port, **server_args)
+
+def start_global_server(http_port=None, urls='.', server=BottleServer, **server_args):
+    global global_server
+    address, common_path, global_server = start_server(urls=urls, http_port=http_port, server=server, **server_args)
+    return address, common_path, global_server
+    
