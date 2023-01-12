@@ -24,6 +24,7 @@ module.exports = {
       { text: 'Blog', link: '/blog/' },
       { text: 'Changelog', link: '/CHANGELOG.md' },
       { text: '2.x', link: 'https://pywebview.flowrl.com/2.4' },
+      { text: '3.7', link: 'https://pywebview.flowrl.com/3.7' },
     ],
     sidebar: {
       '/guide/': [
