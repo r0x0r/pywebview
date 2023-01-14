@@ -3,7 +3,7 @@
 
 ## 4.0
 
-_Released 14/01/2023_
+_Released 15/01/2023_
 
 ### 💔 BREAKING CHANGES
 - [All] Window events are moved into `window.events` namespace. `window.loaded`, `window.shown` etc no longer work.
