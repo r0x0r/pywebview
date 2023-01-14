@@ -12,7 +12,7 @@ pywebviewtest() {
 }
 
 cd ..
-for test in $(pytest --collect-only -q | grep tests); do
+for test in $(pytest --collect-only -q | grep tests/); do
   pywebviewtest $test ${PYTEST_OPTIONS}
 done
 

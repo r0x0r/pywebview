@@ -3,7 +3,7 @@
 
 ## 4.0
 
-_Released XX/xx/2022_
+_Released 14/01/2023_
 
 ### 💔 BREAKING CHANGES
 - [All] Window events are moved into `window.events` namespace. `window.loaded`, `window.shown` etc no longer work.
@@ -12,10 +12,10 @@ _Released XX/xx/2022_
 ### ⚡ Features
 - [All] Local homegrown HTTP server is replaced with [bottle.py](https://bottlepy.org).
 - [All] Native application menu support. See `examples/menu.py` for usage example. Thanks @sardination
-- [All] `webview.start(private_mode=True/False)` Private mode and persistant storage support in a non-private mode. Private mode is enabled by default.
+- [All] `webview.start(private_mode=True, storage_path=None)` Private mode and persistant storage support in a non-private mode. Private mode is enabled by default.
 - [All] `webview.create_window(zoomable=False)` Enable / disable zooming on webpage. Disabled by default.
 - [All] `webview.create_window(draggable=False)` Enable / disable dragging of IMG and A elements. Disabled by default.
-- [All] `webview.create_confirmation_dialog()` creates a confirmation (Ok, Cancel) dialog. Thanks @sardination.
+- [All] `webview.create_confirmation_dialog(title, content)` creates a confirmation (Ok, Cancel) dialog. Thanks @sardination.
 - [All] `window.get_cookies()` retrieve all the cookies (including HttpOnly) for the current webpage.
 
 ### 🚀 Improvements
@@ -24,7 +24,7 @@ _Released XX/xx/2022_
 
 ### 🐞 Bug fixes
 - [GTK] Fix JS bridge maximum return object size limitation. GTK's JS bridge is implemented via HTTP server.
-- [GTK] Fix hang on window closing when JS evaluation is in progress
+- [GTK] Fix hanging problem during window closing when JS evaluation is in progress
 
 
 ## 3.7.1
