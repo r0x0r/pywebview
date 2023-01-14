@@ -20,9 +20,11 @@ _Released 14/01/2023_
 
 ### 🚀 Improvements
 - [All] Local relative URLs (eg. src/index.html) are opened using the built-in http server by default. Support for local URLs is still possible using file:// schema
+- [Cocoa] Disable Ctrl+click context menu. Thanks @ecpost.
 - [EdgeChromium] Improve `evaluate_js` performance.
 
 ### 🐞 Bug fixes
+- [Cocoa] Fix passing through keyboard events handled by pywebview. Thanks @ecpost.
 - [GTK] Fix JS bridge maximum return object size limitation. GTK's JS bridge is implemented via HTTP server.
 - [GTK] Fix hanging problem during window closing when JS evaluation is in progress
 
