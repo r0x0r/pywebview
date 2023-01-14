@@ -29,12 +29,14 @@ from .localization import original_localization
 
 __all__ = (
     # Stuff that's here
-    'start', 'create_window', 'token', 'screens'
+    'start', 'create_window', 'token', 'screens',
     # From event
     'Event',
     # from util
     '_token', 'base_uri', 'parse_file_type', 'escape_string',
     'escape_line_breaks', 'WebViewException',
+    # from screen
+    'Screen',
     # from window
     'Window',
 )
@@ -139,7 +141,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
             if not _private_mode and not http_port:
                 http_port = DEFAULT_HTTP_PORT
             prefix, common_path, server = http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
-    
+
     for window in windows:
         window._initialize(guilib)
 
@@ -199,7 +201,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     window = Window(uid, title, url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
-                    js_api, text_select, transparent, zoomable, draggable, vibrancy, localization, 
+                    js_api, text_select, transparent, zoomable, draggable, vibrancy, localization,
                     server=server, server_args=server_args)
 
     windows.append(window)
