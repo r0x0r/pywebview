@@ -1,5 +1,4 @@
 import webview
-import threading
 
 """
 This example demonstrates creating a text dialog.
@@ -7,7 +6,7 @@ This example demonstrates creating a text dialog.
 
 
 def open_confirmation_dialog(window):
-    result = window.create_confirmation_dialog('Test Title', 'Test message contents!')
+    result = window.create_confirmation_dialog('Question', 'Are you ok with this?')
     if result:
         print('User clicked OK')
     else:
@@ -15,5 +14,5 @@ def open_confirmation_dialog(window):
 
 
 if __name__ == '__main__':
-    window = webview.create_window('Open text dialog example', 'https://pywebview.flowrl.com/hello')
+    window = webview.create_window('Confirmation dialog example', 'https://pywebview.flowrl.com/hello')
     webview.start(open_confirmation_dialog, window)
