@@ -333,7 +333,6 @@ class Window:
         else:
             sync_eval = 'JSON.stringify(value);'
 
-
         if callback:
             escaped_script = """
                 var value = eval("{0}");

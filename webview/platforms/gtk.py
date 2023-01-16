@@ -144,7 +144,7 @@ class BrowserView:
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('decide-policy', self.on_navigation)
 
-        http.js_callback = self.on_js_callback
+        http.global_server.js_callback[window.uid] = self.on_js_callback
 
         webkit_settings = self.webview.get_settings().props
         user_agent = settings.get('user_agent') or _user_agent
@@ -257,7 +257,6 @@ class BrowserView:
         # for a lack of better solution we check that BrowserView has 'webview_ready' attribute
         if 'shown' in dir(self):
             self.shown.set()
-
 
     def on_load_finish(self, webview, status):
         # Show the webview if it's not already visible
@@ -511,10 +510,6 @@ class BrowserView:
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
 
-        if not gtk.main_level():
-            # Webview has been closed, don't proceed
-            return None
-
         result = self.js_results[unique_id]['result']
         result = None if result == 'undefined' or result == 'null' or result is None else result if result == '' else json.loads(result)
 
@@ -524,7 +519,7 @@ class BrowserView:
 
     def _set_js_api(self):
         def create_bridge():
-            self.webview.run_javascript(parse_api_js(self.js_bridge.window, 'gtk', uid=self.js_bridge.uid))
+            self.webview.run_javascript(parse_api_js(self.js_bridge.window, 'gtk', uid=self.pywebview_window.uid))
             self.loaded.set()
 
         glib.idle_add(create_bridge)

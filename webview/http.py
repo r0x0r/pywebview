@@ -33,7 +33,7 @@ class BottleServer(object):
         self.root_path='/'
         self.running = False
         self.address = None
-        self.js_callback = None
+        self.js_callback = {}
         self.js_api_endpoint = None
         self.uid = str(uuid.uuid1())
 
@@ -41,11 +41,10 @@ class BottleServer(object):
     @classmethod
     def start_server(self, urls, http_port):
         from webview import _debug
-        
+
         apps = [u for u in urls if is_app(u)]
-        
         server = self()
-        
+
         if len(apps) > 0:
             app = apps[0]
             common_path = '.'
@@ -54,6 +53,7 @@ class BottleServer(object):
             common_path = os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else None
             server.root_path = abspath(common_path) if common_path is not None else None
             app = bottle.Bottle()
+
             @app.post(f'/js_api/{server.uid}')
             def js_api():
                 bottle.response.headers['Access-Control-Allow-Origin'] = '*'
@@ -61,10 +61,10 @@ class BottleServer(object):
                 bottle.response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
 
                 body = json.loads(bottle.request.body.read().decode('utf-8'))
-                if js_callback:
-                    return json.dumps(js_callback(body))
+                if body['uid'] in server.js_callback:
+                    return json.dumps(server.js_callback[body['uid']](body))
                 else:
-                    logger.error('JS callback function is not set')
+                    logger.error('JS callback function is not set for window %s' % body['uid'])
 
 
             @app.route('/')
@@ -76,7 +76,7 @@ class BottleServer(object):
                 bottle.response.set_header('Pragma', 'no-cache')
                 bottle.response.set_header('Expires', 0)
                 return bottle.static_file(file, root=server.root_path)
-        
+
         server.root_path = abspath(common_path) if common_path is not None else None
         server.port = http_port or _get_random_port()
         server.thread = threading.Thread(target=lambda: bottle.run(app=app, port=server.port, quiet=not _debug), daemon=True)
@@ -98,4 +98,4 @@ def start_global_server(http_port=None, urls='.', server=BottleServer, **server_
     global global_server
     address, common_path, global_server = start_server(urls=urls, http_port=http_port, server=server, **server_args)
     return address, common_path, global_server
-    
+
