@@ -3,12 +3,14 @@ import logging
 import os
 from enum import Flag, auto
 from functools import wraps
+from urllib.parse import urljoin
 from uuid import uuid1
+
+import webview.http as http
 
 from webview.event import Event
 from webview.localization import original_localization
-from webview.serving import resolve_url
-from webview.util import base_uri, parse_file_type, escape_string, make_unicode, WebViewException
+from webview.util import base_uri, parse_file_type, is_app, is_local_url, needs_server, escape_string, WebViewException
 from .js import css
 
 
@@ -60,11 +62,12 @@ class EventContainer:
 class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select, transparent, localization):
+                 background_color, js_api, text_select, transparent, zoomable, draggable, vibrancy, localization,
+                 http_port=None, server=None, server_args={}):
         self.uid = uid
-        self.title = make_unicode(title)
+        self.title = title
         self.original_url = None if html else url  # original URL provided by user
-        self.real_url = None  # transformed URL for internal HTTP server
+        self.real_url = None
         self.html = html
         self.initial_width = width
         self.initial_height = height
@@ -82,7 +85,20 @@ class Window:
         self.on_top = on_top
         self.minimized = minimized
         self.transparent = transparent
+        self.zoomable = zoomable
+        self.draggable = draggable
         self.localization_override = localization
+        self.vibrancy = vibrancy
+
+        # Server config
+        self._http_port=http_port
+        self._server=server
+        self._server_args=server_args
+
+        # HTTP server path magic
+        self._url_prefix = None
+        self._common_path = None
+        self._server = None
 
         self._js_api = js_api
         self._functions = {}
@@ -99,70 +115,25 @@ class Window:
         self.events.resized = Event()
         self.events.moved = Event()
 
-        self._closed = self.events.closed
-        self._closing = self.events.closing
-        self._loaded = self.events.loaded
-        self._shown = self.events.shown
-
         self.gui = None
-        self._is_http_server = False
 
-    def _initialize(self, gui, multiprocessing, http_server):
+    def _initialize(self, gui, server=None):
         self.gui = gui
-        self.events.loaded._initialize(multiprocessing)
-        self.events.shown._initialize(multiprocessing)
-        self._is_http_server = http_server
-
-        # WebViewControl as of 5.1.1 crashes on file:// urls. Stupid workaround to make it work
-        if (
-            gui.renderer == "edgehtml" and
-            self.original_url and
-            isinstance(self.original_url, str) and
-            (self.original_url.startswith('file://') or '://' not in self.original_url)
-        ):
-            self._is_http_server = True
-
-        self.real_url = resolve_url(self.original_url, self._is_http_server)
 
         self.localization = original_localization.copy()
         if self.localization_override:
             self.localization.update(self.localization_override)
 
-    @property
-    def shown(self):
-        logger.warning('shown event is deprecated and will be removed in 4.0. Use events.shown instead')
-        return self.events.shown
+        if needs_server([self.original_url]) and server is None:
+            prefix, common_path, server = http.start_server(urls=[self.original_url], http_port=self._http_port, server=self._server, **self._server_args)
+        elif server is None:
+            server = http.global_server
 
-    @shown.setter
-    def shown(self, value):
-        self.events.shown = value
-
-    @property
-    def loaded(self):
-        logger.warning('loaded event is deprecated and will be removed in 4.0. Use events.loaded instead')
-        return self.events.loaded
-
-    @loaded.setter
-    def shown(self, value):
-        self.events.loaded = value
-
-    @property
-    def closed(self):
-        logger.warning('closed event is deprecated and will be removed in 4.0. Use events.closed instead')
-        return self.events.closed
-
-    @closed.setter
-    def closed(self, value):
-        self.events.closed = value
-
-    @property
-    def closing(self):
-        logger.warning('closing event is deprecated and will be removed in 4.0. Use events.closing instead')
-        return self.events.closed
-
-    @closing.setter
-    def closing(self, value):
-        self.on_closing = value
+        self._url_prefix = server.address if not server is None else None
+        self._common_path = server.common_path if not server is None else None
+        self._server = server
+        self.js_api_endpoint = http.global_server.js_api_endpoint if not http.global_server is None else None
+        self.real_url = self._resolve_url(self.original_url)
 
     @property
     def width(self):
@@ -229,9 +200,10 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        self.url = url
-        self.real_url = resolve_url(url, self._is_http_server or self.gui.renderer == 'edgehtml')
+        if ((self._server is None) or (not self._server.running)) and ((is_app(url) or is_local_url(url))):
+            self._url_prefix, self._common_path, self.server = http.start_server([url])
 
+        self.real_url = self._resolve_url(url)
         self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
@@ -243,8 +215,6 @@ class Window:
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         :param uid: uid of the target instance
         """
-
-        content = make_unicode(content)
         self.gui.load_html(content, base_uri, self.uid)
 
     @_loaded_call
@@ -260,13 +230,20 @@ class Window:
         self.gui.set_title(title, self.uid)
 
     @_loaded_call
+    def get_cookies(self):
+        """
+        Get cookies for the current website
+        """
+        return self.gui.get_cookies(self.uid)
+
+    @_loaded_call
     def get_current_url(self):
         """
         Get the URL currently loaded in the target webview
         """
         return self.gui.get_current_url(self.uid)
 
-    @_shown_call
+    @_loaded_call
     def destroy(self):
         """
         Destroy a web view window
@@ -356,7 +333,6 @@ class Window:
         else:
             sync_eval = 'JSON.stringify(value);'
 
-
         if callback:
             escaped_script = """
                 var value = eval("{0}");
@@ -377,6 +353,17 @@ class Window:
             return self.gui.evaluate_js(escaped_script, self.uid, unique_id)
         else:
             return self.gui.evaluate_js(escaped_script, self.uid)
+
+    @_shown_call
+    def create_confirmation_dialog(self, title, message):
+        """
+        Create a confirmation dialog
+        :param title: Dialog title
+        :param message: Dialog detail message
+        :return: True for OK, False for Cancel
+        """
+
+        return self.gui.create_confirmation_dialog(title, message, self.uid)
 
     @_shown_call
     def create_file_dialog(self, dialog_type=10, directory='', allow_multiple=False, save_filename='', file_types=()):
@@ -424,3 +411,12 @@ class Window:
 
         if self.events.loaded.is_set():
             self.evaluate_js('window.pywebview._createApi(%s)' % func_list)
+
+    def _resolve_url(self, url):
+        if is_app(url):
+            return self._url_prefix
+        if is_local_url(url) and self._url_prefix and self._common_path is not None:
+            filename = os.path.relpath(url, self._common_path)
+            return urljoin(self._url_prefix, filename)
+        else:
+            return url
