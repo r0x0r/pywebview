@@ -94,7 +94,7 @@ class Window:
         self._http_port=http_port
         self._server=server
         self._server_args=server_args
-        
+
         # HTTP server path magic
         self._url_prefix = None
         self._common_path = None
@@ -128,7 +128,7 @@ class Window:
             prefix, common_path, server = http.start_server(urls=[self.original_url], http_port=self._http_port, server=self._server, **self._server_args)
         elif server is None:
             server = http.global_server
-        
+
         self._url_prefix = server.address if not server is None else None
         self._common_path = server.common_path if not server is None else None
         self._server = server
@@ -364,17 +364,6 @@ class Window:
         """
 
         return self.gui.create_confirmation_dialog(title, message, self.uid)
-
-    @_shown_call
-    def create_message_box(self, title, message):
-        """
-        Create a confirmation dialog
-        :param title: Dialog title
-        :param message: Dialog detail message
-        :return: True for OK, False for Cancel
-        """
-
-        return self.gui.create_message_box(title, message, self.uid)
 
     @_shown_call
     def create_file_dialog(self, dialog_type=10, directory='', allow_multiple=False, save_filename='', file_types=()):

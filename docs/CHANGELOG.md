@@ -23,6 +23,7 @@ _Released 18/01/2023_
 - [All] Local relative URLs (eg. src/index.html) are opened using the built-in http server by default. Support for local URLs is still possible using file:// schema
 - [Cocoa] Disable Ctrl+click context menu. Thanks @ecpost.
 - [EdgeChromium] Improve `evaluate_js` performance.
+- [GTK] Enable media / audio / WebGL / clipboard related WebKit features
 
 ### 🐞 Bug fixes
 - [Cocoa] Fix passing through keyboard events handled by pywebview. Thanks @ecpost.
