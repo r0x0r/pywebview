@@ -1,15 +1,35 @@
 # Changelog
 
-## 3.7.2
 
-_Released 16/11/2022_
+## 4.0
 
-### 🐞 Bug fixes
-- [All] Fix missing libraries from the previous release
+_Released 18/01/2023_
+
+### 💔 BREAKING CHANGES
+- [All] Window events are moved into `window.events` namespace. `window.loaded`, `window.shown` etc no longer work.
+- EdgeHTML support is removed.
+
+### ⚡ Features
+- [All] Local homegrown HTTP server is replaced with [bottle.py](https://bottlepy.org). Thanks @robb-brown for WSGI support.
+- [All] Native application menu support. See `examples/menu.py` for usage example. Thanks @sardination
+- [All] `webview.start(private_mode=True, storage_path=None)` Private mode and persistant storage support in a non-private mode. Private mode is enabled by default.
+- [All] `webview.create_window(zoomable=False)` Enable / disable zooming on webpage. Disabled by default.
+- [All] `webview.create_window(draggable=False)` Enable / disable dragging of IMG and A elements. Disabled by default.
+- [All] `webview.create_confirmation_dialog(title, content)` creates a confirmation (Ok, Cancel) dialog. Thanks @sardination.
+- [All] `window.get_cookies()` retrieve all the cookies (including HttpOnly) for the current webpage.
+- [macOS] `webview.create_window(vibancy=False)` Window vibrancy suppport. macOS only. Thanks @CahierX.
 
 ### 🚀 Improvements
-- [Windows / Linux] Devtools is automatically opened in debug mode.
-- [EdgeChromium] Browser shortcut keys are disabled by default
+- [All] Local relative URLs (eg. src/index.html) are opened using the built-in http server by default. Support for local URLs is still possible using file:// schema
+- [Cocoa] Disable Ctrl+click context menu. Thanks @ecpost.
+- [EdgeChromium] Improve `evaluate_js` performance.
+- [GTK] Enable media / audio / WebGL / clipboard related WebKit features
+
+### 🐞 Bug fixes
+- [Cocoa] Fix passing through keyboard events handled by pywebview. Thanks @ecpost.
+- [GTK] Fix JS bridge maximum return object size limitation. GTK's JS bridge is implemented via HTTP server.
+- [GTK] Fix hanging problem during window closing when JS evaluation is in progress
+
 
 ## 3.7.1
 
@@ -26,7 +46,7 @@ _Released 14/11/2022_
 _Released 04/11/2022_
 
 ### ⚡ Features
-- [All] New `window.moved` event. Thanks @irtimir
+- [All] New `window.events.moved` event. Thanks @irtimir
 
 ### 🚀 Improvements
 - [EdgeChromium] Remove `The system cannot find the file specified - Microsoft Edge WebView2 Runtime Registry path: Computer\HKEY_CURRENT_USER\Microsoft\EdgeUpdate\Clients{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}` error message displayed in debug mode.

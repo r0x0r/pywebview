@@ -1,7 +1,7 @@
 src = """
 window.pywebview = {
-    token: '%s',
-    platform: '%s',
+    token: '%(token)s',
+    platform: '%(platform)s',
     api: {},
 
     _createApi: function(funcList) {
@@ -29,8 +29,6 @@ window.pywebview = {
                 case 'cef':
                 case 'qtwebkit':
                     return window.external.call(funcName, JSON.stringify(params), id);
-                case 'edgehtml':
-                    return window.external.notify(JSON.stringify([funcName, params, id]));
                 case 'chromium':
                     return window.chrome.webview.postMessage([funcName, params, id]);
                 case 'cocoa':
@@ -45,8 +43,10 @@ window.pywebview = {
                     }
                     break;
                 case 'gtk':
-                    document.title = JSON.stringify({"type": "invoke", "uid": "%s", "function": funcName, "param": params, "id": id});
-                    break;
+                    return fetch('%(js_api_endpoint)s', {
+                        method: 'POST',
+                        body: JSON.stringify({"type": "invoke", "uid": "%(uid)s", "function": funcName, "param": params, "id": id})
+                    })
             }
         }
     },
@@ -83,7 +83,7 @@ window.pywebview = {
         return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
     }
 }
-window.pywebview._createApi(%s);
+window.pywebview._createApi(%(func_list)s);
 
 if (window.pywebview.platform == 'qtwebengine') {
     new QWebChannel(qt.webChannelTransport, function(channel) {

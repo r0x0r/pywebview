@@ -13,31 +13,30 @@ http://github.com/r0x0r/pywebview/
 
 
 import logging
-import sys
 import os
 import re
 import threading
 from uuid import uuid4
 from proxy_tools import module_property
 
-from webview.event import Event
+import webview.http as http
+
 from webview.guilib import initialize
-from webview.util import _token, base_uri, parse_file_type, escape_string, make_unicode, escape_line_breaks, WebViewException
+from webview.util import _token, base_uri, parse_file_type, is_app, is_local_url, escape_string, escape_line_breaks, WebViewException
 from webview.window import Window
 from .localization import original_localization
-from .wsgi import Routing, StaticFiles, StaticResources
 
 
 __all__ = (
     # Stuff that's here
     'start', 'create_window', 'token', 'screens',
-    # From wsgi
-    'Routing', 'StaticFiles', 'StaticResources',
     # From event
     'Event',
     # from util
-    '_token', 'base_uri', 'parse_file_type', 'escape_string', 'make_unicode',
+    '_token', 'base_uri', 'parse_file_type', 'escape_string',
     'escape_line_breaks', 'WebViewException',
+    # from screen
+    'Screen',
     # from window
     'Window',
 )
@@ -56,19 +55,23 @@ FOLDER_DIALOG = 20
 SAVE_DIALOG = 30
 
 DRAG_REGION_SELECTOR = '.pywebview-drag-region'
+DEFAULT_HTTP_PORT = 42001
 
 guilib = None
 _debug = {
   'mode': False
 }
 _user_agent = None
-_multiprocessing = False
 _http_server = False
+_private_mode = True
+_storage_path = None
 
 token = _token
 windows = []
+menus = []
 
-def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False, user_agent=None):
+def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False,
+          http_port=None, user_agent=None, private_mode=True, storage_path=None, menu=[], server=http.BottleServer, server_args={}):
     """
     Start a GUI loop and display previously created windows. This function must
     be called from a main thread.
@@ -86,8 +89,14 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         window, a separate HTTP server is spawned. This option is ignored for
         non-local URLs.
     :param user_agent: Change user agent string. Not supported in EdgeHTML.
+    :param private_mode: Enable private mode. In private mode, cookies and local storage are not preserved.
+           Default is True.
+    :param storage_path: Custom location for cookies and other website data
+    :param menu: List of menus to be included in the app menu
+    :param server: Server class. Defaults to BottleServer
+    :param server_args: Dictionary of arguments to pass through to the server instantiation
     """
-    global guilib, _debug, _multiprocessing, _http_server, _user_agent
+    global guilib, _debug, _http_server, _user_agent, _private_mode, _storage_path
 
     def _create_children(other_windows):
         if not windows[0].events.shown.wait(10):
@@ -102,14 +111,12 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         logger.setLevel(logging.DEBUG)
 
     _user_agent = user_agent
-    #_multiprocessing = multiprocessing
-    multiprocessing = False # TODO
     _http_server = http_server
+    _private_mode = private_mode
+    _storage_path = storage_path
 
-    if multiprocessing:
-        from multiprocessing import Process as Thread
-    else:
-        from threading import Thread
+    if _storage_path and _private_mode and not os.path.exists(_storage_path):
+        os.makedirs(_storage_path)
 
     original_localization.update(localization)
 
@@ -121,22 +128,37 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
     guilib = initialize(gui)
 
+    urls = [w.original_url for w in windows]
+    has_local_urls = not not [
+        w.original_url
+        for w in windows
+        if is_app(w.original_url) or is_local_url(w.original_url)
+    ]
+
+    # start the global server if it's not running and we need it
+    if (http.global_server is None) and \
+        (http_server or has_local_urls or (guilib.renderer == 'gtkwebkit2')):
+            if not _private_mode and not http_port:
+                http_port = DEFAULT_HTTP_PORT
+            prefix, common_path, server = http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
+
     for window in windows:
-        window._initialize(guilib, multiprocessing, http_server)
+        window._initialize(guilib)
 
     if len(windows) > 1:
-        t = Thread(target=_create_children, args=(windows[1:],))
+        t = threading.Thread(target=_create_children, args=(windows[1:],))
         t.start()
 
     if func:
         if args is not None:
             if not hasattr(args, '__iter__'):
                 args = (args,)
-            t = Thread(target=func, args=args)
+            t = threading.Thread(target=func, args=args)
         else:
-            t = Thread(target=func)
+            t = threading.Thread(target=func)
         t.start()
 
+    guilib.set_app_menu(menu)
     guilib.create_window(windows[0])
 
 
@@ -144,7 +166,8 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
                   frameless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
-                  transparent=False, text_select=False, localization=None):
+                  transparent=False, text_select=False, zoomable=False, draggable=False, vibrancy=False, localization=None,
+                  server=http.BottleServer, server_args={}):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -164,6 +187,8 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
+    :param server: Server class. Defaults to BottleServer
+    :param server_args: Dictionary of arguments to pass through to the server instantiation
     :return: window object.
     """
 
@@ -173,22 +198,39 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
-    window = Window(uid, make_unicode(title), url, html,
+    window = Window(uid, title, url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
-                    js_api, text_select, transparent, localization)
+                    js_api, text_select, transparent, zoomable, draggable, vibrancy, localization,
+                    server=server, server_args=server_args)
 
     windows.append(window)
 
+    # This immediately creates the window only if `start` has already been called
     if threading.current_thread().name != 'MainThread' and guilib:
-        window._initialize(guilib, _multiprocessing, _http_server)
+        if is_app(url) or is_local_url(url) and not http.running:
+            url_prefix, common_path, server = http.start_server([url], server=server, **server_args)
+        else:
+            url_prefix, common_path, server = None, None, None
+
+        window._initialize(gui = guilib, server = server)
         guilib.create_window(window)
 
     return window
 
+def active_window():
+    """
+    Get the active window
+
+    :return: window object or None
+    """
+    if guilib:
+        return guilib.get_active_window()
+    return None
 
 @module_property
 def screens():
     guilib = initialize()
     screens = guilib.get_screens()
     return screens
+

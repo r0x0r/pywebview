@@ -14,12 +14,13 @@ import os
 import re
 import sys
 import traceback
+from http.cookies import SimpleCookie
 from platform import architecture
 from threading import Thread
 from uuid import uuid4
 
 import webview
-
+from webview import http
 from .js import api, npo, dom, event, drag
 
 _token = uuid4().hex
@@ -41,21 +42,35 @@ class WebViewException(Exception):
     pass
 
 
+def is_app(url):
+    """ Returns true if 'url' is a WSGI or ASGI app. """
+    return callable(url)
+
+def is_local_url(url):
+    return not ((is_app(url)) or ((not url) or (url.startswith('http://')) or (url.startswith('https://'))))
+
+def needs_server(urls):
+    return not not [url for url in urls if (is_app(url) or is_local_url(url))]
+
+
 def get_app_root():
     """
     Gets the file root of the application.
     """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
+
+    if hasattr(sys, '_MEIPASS'): # Pyifnstaller
         return sys._MEIPASS
-    except AttributeError:
-        if 'pytest' in sys.modules:
-            for arg in reversed(sys.argv):
-                path = os.path.realpath(arg.split('::')[0])
-                if os.path.exists(path):
-                    return path if os.path.isdir(path) else os.path.dirname(path)
-        else:
-            return os.path.dirname(os.path.realpath(sys.argv[0]))
+
+    if getattr(sys, 'frozen', False): # cx_freeze
+        return os.path.dirname(sys.executable)
+
+    if 'pytest' in sys.modules:
+        for arg in reversed(sys.argv):
+            path = os.path.realpath(arg.split('::')[0])
+            if os.path.exists(path):
+                return path if os.path.isdir(path) else os.path.dirname(path)
+
+    return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
 def abspath(path):
@@ -77,11 +92,27 @@ def base_uri(relative_path=''):
     return 'file://%s' % os.path.join(base_path, relative_path)
 
 
-def convert_string(string):
-    if sys.version < '3':
-        return unicode(string)
-    else:
-        return str(string)
+def create_cookie(input):
+    if type(input) == dict:
+        cookie = SimpleCookie()
+        name = input['name']
+        cookie[name] = input['value']
+        cookie[name]['path'] = input['path']
+        cookie[name]['domain'] = input['domain']
+        cookie[name]['expires'] = input['expires']
+        cookie[name]['secure'] = input['secure']
+        cookie[name]['httponly'] = input['httponly']
+
+        if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
+            cookie[name]['samesite'] = input['samesite']
+
+        return cookie
+    elif type(input) == str:
+        return SimpleCookie(input)
+
+    raise WebViewException('Unknown input to create_cookie')
+
+
 
 
 def parse_file_type(file_type):
@@ -100,10 +131,7 @@ def parse_file_type(file_type):
 
 def parse_api_js(window, platform, uid=''):
     def get_args(f):
-        try:
-            params = list(inspect.getfullargspec(f).args) # Python 3
-        except AttributeError:
-            params = list(inspect.getargspec(f).args)  # Python 2
+        params = list(inspect.getfullargspec(f).args)
         return params
 
     def generate_func():
@@ -128,7 +156,19 @@ def parse_api_js(window, platform, uid=''):
         logger.exception(e)
         func_list = []
 
-    js_code = npo.src + event.src + api.src % (_token, platform, uid, func_list) + dom.src + drag.src % webview.DRAG_REGION_SELECTOR
+    js_code = npo.src + event.src + \
+        api.src % {
+            'token': _token,
+            'platform': platform,
+            'uid': uid,
+            'func_list': func_list,
+            'js_api_endpoint': window.js_api_endpoint
+        } + \
+        dom.src + drag.src % {
+            'drag_selector': webview.DRAG_REGION_SELECTOR,
+            'zoomable': str(window.zoomable).lower(),
+            'draggable': str(window.draggable).lower()
+        }
     return js_code
 
 
@@ -185,19 +225,6 @@ def escape_string(string):
         .replace('\r', r'\r')
 
 
-def make_unicode(string):
-    """
-    Python 2 and 3 compatibility function that converts a string to Unicode. In case of Unicode, the string is returned
-    unchanged
-    :param string: input string
-    :return: Unicode string
-    """
-    if sys.version < '3' and isinstance(string, str):
-        return unicode(string.decode('utf-8'))
-
-    return string
-
-
 def escape_line_breaks(string):
     return string.replace('\\n', '\\\\n').replace('\\r', '\\\\r')
 
@@ -245,7 +272,12 @@ def interop_dll_path(dll_name):
 
     try:
         # Frozen path packed as onefile
-        dll_path = os.path.join(sys._MEIPASS, dll_name)
+        if hasattr(sys, '_MEIPASS'): # Pyinstaller
+            dll_path = os.path.join(sys._MEIPASS, dll_name)
+
+        elif getattr(sys, 'frozen', False): # cx_freeze
+            dll_path = os.path.join(sys.executable, dll_name)
+
         if os.path.exists(dll_path):
             return dll_path
     except Exception:

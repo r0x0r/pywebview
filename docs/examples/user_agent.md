@@ -1,6 +1,6 @@
 # Change user agent string
 
-Change the user-agent of a window. EdgeHTML is not supported.
+Change the user-agent of a window.
 
 ``` python
 import webview

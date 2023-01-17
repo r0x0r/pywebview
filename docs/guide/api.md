@@ -4,11 +4,12 @@
 ## webview.create_window
 
 ``` python
-webview.create_window(title, url='', html='', js_api=None, width=800, height=600, \
-                      x=None, y=None, resizable=True, fullscreen=False, \
-                      min_size=(200, 100), hidden=False, frameless=False, \
-                      minimized=False, on_top=False, confirm_close=False, \
-                      background_color='#FFF', text_select=False)
+webview.create_window(title, url=None, html=None, js_api=None, width=800, height=600,
+                      x=None, y=None, resizable=True, fullscreen=False, min_size=(200, 100),
+                      hidden=False, frameless=False, easy_drag=True,
+                      minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
+                      transparent=False, text_select=False, zoomable=False, draggable=False,
+                      server=http.BottleServer, server_args={}, localization=None)
 ```
 
 Create a new _pywebview_ window and returns its instance. Window is not shown until the GUI loop is started. If the function is invoked during the GUI loop, the window is displayed immediately.
@@ -33,12 +34,20 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
 * `transparent` - Create a transparent window. Not supported on Windows. Default is False. Note that this setting does not hide or make window chrome transparent. To hide window chrome set `frameless` to True.
 * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) CSS property.
+* `zoomable` - Enable document zooming. Default is False
+* `draggable` - Enable image and link object dragging. Default is False
+server=http.BottleServer, server_args
+* `vibrancy` - Enable window vibrancy. Default is False. macOS only.
+* `server` - A custom WSGI server instance for this window. Defaults to BottleServer.
+* `server_args` - Dictionary of arguments to pass through to the server instantiation
+* `localization` - pass a localization dictionary for per window localization.
 
 ## webview.start
 
 ``` python
-webview.start(func=None, args=None, localization={}, gui=None, debug=False, \
-              http_server=False, user_agent=None)
+webview.start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False,
+              http_port=None, user_agent=None, private_mode=True, storage_path=None, menu=[],
+              server=http.BottleServer, server_args={}):
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
@@ -49,7 +58,13 @@ Start a GUI loop and display previously created windows. This function must be c
 * `gui` - force a specific GUI. Allowed values are `cef`, `qt` or `gtk` depending on a platform. See [Renderer](/guide/renderer.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server. If enabled, local files will be served using a local HTTP server on a random port. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
-* `user_agent` - change user agent string. Not supported in EdgeHTML.
+* `http_port` - specify a port number for the HTTP server. By default port is randomized.
+* `user_agent` - change user agent string.
+* `private_mode` - Control whether cookies and other persistant objects are stored between session. By default private mode is on and nothing is stored between sessions.
+* `storage_path` - An optional location on hard drive where to store persistant objects. By default `~/.pywebview` is used  on *nix systems and `%APPDATA%\pywebview` on Windows.
+* `menu` - Pass a list of Menu objects to create an application menu. See [this example](/examples/menu.html) for usage details.
+* `server` - A custom WSGI server instance. Defaults to BottleServer.
+* `server_args` - Dictionary of arguments to pass through to the server instantiation
 
 ### Examples
 * [Simple window](/examples/open_url.html)
@@ -74,13 +89,32 @@ webview.token
 
 A CSRF token property unique to the session. The same token is exposed as `window.pywebview.token`. See [Security](/guide/security.md) for usage details.
 
+# Menu object
+
+Used to create an application menu. See [this example](/examples/menu.html) for usage details.
+
+
+## menu.Menu
+
+`Menu(title, items=[])`.
+Instantiate to create a menu that can be either top level menu or a nested menu. `title` is the title of the menu and `items` is a list of actions, separators or other menus.
+
+## menu.MenuAction
+
+`MenuAction(title, function)`
+Instantiate to create a menu item. `title` is the name of the item and function is a callback that should be called when menu action is clicked.
+
+## menu.MenuSeparator
+
+`MenuSeparator(title, function)`
+Instantiate to create a menu separator.
+
 
 # Screen object
 
 Represents a display found on the system.
 
-
-## height
+## screen.height
 
 ``` python
 screen.height
@@ -88,7 +122,7 @@ screen.height
 
 Get display height.
 
-## width
+## screen.width
 
 ``` python
 screen.width
@@ -100,7 +134,7 @@ Get display width.
 
 Represents a window that hosts webview. `window` object is returned by `create_window` function.
 
-## on_top
+## window.on_top
 
 ``` python
 window.on_top
@@ -108,19 +142,19 @@ window.on_top
 
 Get or set whether the window is always on top
 
-## x
+## window.x
 ``` python
 window.x
 ```
 Get X coordinate of the top-left corrner of the window
 
-## y
+## window.y
 ``` python
 window.y
 ```
 Get Y coordinate of the top-left corrner of the window
 
-## width
+## window.width
 
 ``` python
 window.width
@@ -128,7 +162,7 @@ window.width
 
 Get width of the window
 
-## height
+## window.height
 
 ``` python
 window.height
@@ -136,10 +170,20 @@ window.height
 
 Get height of the window
 
-## create_file_dialog
+
+## window.create_confirmation_dialog
 
 ``` python
-window.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=())`
+window.create_confirmation_dialog()
+```
+
+Create a confirmation (Ok / Cancel) dialog.
+
+
+## window.create_file_dialog
+
+``` python
+window.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=())
 ```
 
 Create an open file (`webview.OPEN_DIALOG`), open folder (`webview.FOLDER_DIALOG`) or save file (`webview.SAVE_DIALOG`) dialog.
@@ -176,6 +220,15 @@ window.evaluate_js(script, callback=None)
 
 Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None.
 You must escape \n and \r among other escape sequences if they present in Javascript code. Otherwise they get parsed by Python. r'strings' is a recommended way to load Javascript. For GTK WebKit2 versions older than 2.22, there is a limit of about ~900 characters for a value returned by `evaluate_js`.
+
+## get_cookies
+
+``` python
+window.get_cookies()
+```
+
+Return a list of all the cookies set for the current website (as [SimpleCookie](https://docs.python.org/3/library/http.cookies.html)).
+
 
 ## get_current_url
 
@@ -357,14 +410,14 @@ Event fired when pywebview window is shown.
 
 # DOM events
 
-_pywebview_ exposes a `window.pywebviewready` DOM event that is fired when `window.pywebview` is created.
+_pywebview_ exposes a `window.pywebviewready` DOM event that is fired after `window.pywebview` is created.
 
 [Example](/examples/js_api.html)
 
 
 # Drag area
 
-With a frameless _pywebview_ window, A window can be moved or dragged by adding a special class called `pywebview-drag-region` in your html 
+With a frameless _pywebview_ window, A window can be moved or dragged by adding a special class called `pywebview-drag-region` in your html
 ```html
 <div class='pywebview-drag-region'>This div element can be used to moved or drag your window like a native OS window</div>
 ```

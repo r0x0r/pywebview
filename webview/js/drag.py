@@ -20,9 +20,37 @@ src = """
         window.addEventListener('mousemove', onMouseMove);
     }
 
-    var dragBlocks = document.querySelectorAll('%s');
+    var dragBlocks = document.querySelectorAll('%(drag_selector)s');
     for(var i=0; i < dragBlocks.length; i++) {
         dragBlocks[i].addEventListener('mousedown', onMouseDown);
     }
 })();
+
+// zoomable
+if (!%(zoomable)s) {
+    document.body.addEventListener('touchstart', function(e) {
+        if ((e.touches.length > 1) || e.targetTouches.length > 1) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+        }
+    }, {passive: false});
+
+    window.addEventListener('wheel', function (e) {
+        if (e.ctrlKey) {
+            e.preventDefault();
+        }
+    }, {passive: false});
+}
+
+// draggable
+if (!%(draggable)s) {
+    document.querySelectorAll("img").forEach(function(img) {
+        img.setAttribute("draggable", false);
+    })
+
+    document.querySelectorAll("a").forEach(function(a) {
+        a.setAttribute("draggable", false);
+    })
+}
 """
