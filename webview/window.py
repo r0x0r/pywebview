@@ -243,7 +243,7 @@ class Window:
         """
         return self.gui.get_current_url(self.uid)
 
-    @_shown_call
+    @_loaded_call
     def destroy(self):
         """
         Destroy a web view window
