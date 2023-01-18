@@ -124,7 +124,7 @@ class Window:
         if self.localization_override:
             self.localization.update(self.localization_override)
 
-        if needs_server([self.original_url]) and server is None:
+        if is_app(self.original_url) and (server is None or server == http.global_server):
             prefix, common_path, server = http.start_server(urls=[self.original_url], http_port=self._http_port, server=self._server, **self._server_args)
         elif server is None:
             server = http.global_server

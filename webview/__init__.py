@@ -132,9 +132,8 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     has_local_urls = not not [
         w.original_url
         for w in windows
-        if is_app(w.original_url) or is_local_url(w.original_url)
+        if is_local_url(w.original_url)
     ]
-
     # start the global server if it's not running and we need it
     if (http.global_server is None) and \
         (http_server or has_local_urls or (guilib.renderer == 'gtkwebkit2')):
