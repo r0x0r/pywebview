@@ -37,7 +37,6 @@ class BottleServer(object):
         self.js_api_endpoint = None
         self.uid = str(uuid.uuid1())
 
-
     @classmethod
     def start_server(self, urls, http_port):
         from webview import _debug
@@ -66,7 +65,6 @@ class BottleServer(object):
                 else:
                     logger.error('JS callback function is not set for window %s' % body['uid'])
 
-
             @app.route('/')
             @app.route('/<file:path>')
             def asset(file):
@@ -79,7 +77,7 @@ class BottleServer(object):
 
         server.root_path = abspath(common_path) if common_path is not None else None
         server.port = http_port or _get_random_port()
-        server.thread = threading.Thread(target=lambda: bottle.run(app=app, port=server.port, quiet=not _debug), daemon=True)
+        server.thread = threading.Thread(target=lambda: bottle.run(app=app, port=server.port, quiet=not _debug['mode']), daemon=True)
         server.thread.start()
 
         server.running = True
@@ -93,6 +91,7 @@ class BottleServer(object):
 def start_server(urls, http_port=None, server=BottleServer, **server_args):
     server = server if not server is None else BottleServer
     return server.start_server(urls, http_port, **server_args)
+
 
 def start_global_server(http_port=None, urls='.', server=BottleServer, **server_args):
     global global_server
