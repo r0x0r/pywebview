@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.0.1
+
+_Released 19/01/2023_
+
+### 🚀 Improvements
+- [All] Suppress HTTP server logging if not in debug mode.
+
+### 🐞 Bug fixes
+- [All] Fix HTTP server starting twice with a single window. Thanks @robb-brown.
+
 
 ## 4.0
 
