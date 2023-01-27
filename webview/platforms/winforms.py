@@ -184,6 +184,10 @@ class BrowserView:
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
+
+            if len(BrowserView.app_menu_list):
+                self.set_window_menu(BrowserView.app_menu_list)
+
             if is_cef:
                 self.browser = None
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert, self)
@@ -219,9 +223,8 @@ class BrowserView:
                 CEF.focus(self.uid)
 
         def on_shown(self, sender, args):
-            self.shown.set()
-
             if not is_cef:
+                self.shown.set()
                 self.browser.web_view.Focus()
 
         def on_close(self, sender, args):
@@ -364,7 +367,10 @@ class BrowserView:
 
                 self.Controls.Add(top_level_menu)
 
-            self.Invoke(Func[Type](_set_window_menu))
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](_set_window_menu))
+            else:
+                _set_window_menu()
 
         def toggle_fullscreen(self):
             def _toggle():
@@ -529,9 +535,6 @@ def create_window(window):
     def create():
         browser = BrowserView.BrowserForm(window)
         BrowserView.instances[window.uid] = browser
-
-        if len(BrowserView.app_menu_list):
-            browser.set_window_menu(BrowserView.app_menu_list)
 
         if not window.hidden:
             browser.Show()

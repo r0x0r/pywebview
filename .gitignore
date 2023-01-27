@@ -18,3 +18,4 @@ venv*
 .vscode
 .pytest_cache
 __pycache__
+.python-version
