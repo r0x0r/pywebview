@@ -104,8 +104,7 @@ def create_cookie(input):
         cookie[name]['httponly'] = input['httponly']
 
         if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
-            print('samesite')
-            cookie[name]['samesite'] = input['samesite']
+            cookie[name]['samesite'] = input.get('samesite')
 
         return cookie
     elif type(input) == str:
