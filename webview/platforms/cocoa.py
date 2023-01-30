@@ -493,6 +493,14 @@ class BrowserView:
 
         AppHelper.callAfter(_set_title)
 
+    def set_theme(self, theme):
+        if theme == 'light':
+            self.window.setAppearance_(AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameVibrantLight))
+        elif theme == 'dark':
+            self.window.setAppearance_(AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameVibrantDark))
+        elif theme == 'system':
+            self.window.setAppearance_(None)
+
     def toggle_fullscreen(self):
         def toggle():
             if self.is_fullscreen:
@@ -871,6 +879,9 @@ def create_window(window):
     else:
         AppHelper.callAfter(create)
 
+def set_theme(theme, uid):
+    BrowserView.instances[uid].set_theme(theme)
+        
 
 def set_title(title, uid):
     BrowserView.instances[uid].set_title(title)

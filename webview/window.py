@@ -228,7 +228,14 @@ class Window:
         Set a new title of the window
         """
         self.gui.set_title(title, self.uid)
-
+        
+    @_shown_call
+    def set_theme(self, theme):
+        """
+        Set a new theme of the window
+        """
+        self.gui.set_theme(theme, self.uid)
+        
     @_loaded_call
     def get_cookies(self):
         """
