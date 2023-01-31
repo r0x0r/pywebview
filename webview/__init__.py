@@ -121,7 +121,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     original_localization.update(localization)
 
     if threading.current_thread().name != 'MainThread':
-        raise WebViewException('This function must be run from a main thread.')
+        raise WebViewException('pywebview must be run on a main thread.')
 
     if len(windows) == 0:
         raise WebViewException('You must create a window first before calling this function.')
