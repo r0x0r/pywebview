@@ -286,26 +286,26 @@ class BrowserView:
 
                     char = event.characters()
 
-                    if char == "x" and hasSelectedText:  # cut
+                    if char == 'x' and hasSelectedText:  # cut
                         responder.cut_(self)
                         return
-                    elif char == "c" and hasSelectedText:  # copy
+                    elif char == 'c' and hasSelectedText:  # copy
                         responder.copy_(self)
                         return
-                    elif char == "v":  # paste
+                    elif char == 'v':  # paste
                         responder.paste_(self)
                         return
-                    elif char == "a":  # select all
+                    elif char == 'a':  # select all
                         responder.selectAll_(self)
                         return
-                    elif char == "z":  # undo
+                    elif char == 'z':  # undo
                         if responder.undoManager().canUndo():
                             responder.undoManager().undo()
                         return
-                    elif char == "q":  # quit
+                    elif char == 'q':  # quit
                         BrowserView.app.stop_(self)
                         return
-                    elif char == "w":  # close
+                    elif char == 'w':  # close
                         self.window().performClose_(event)
                         return
 
