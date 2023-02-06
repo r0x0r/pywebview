@@ -311,8 +311,6 @@ class BrowserView:
 
             super(BrowserView.WebKitHost, self).keyDown_(event)
 
-            super(BrowserView.WebKitHost, self).keyDown_(event)
-
 
     def __init__(self, window):
         BrowserView.instances[window.uid] = self
