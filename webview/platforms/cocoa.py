@@ -281,30 +281,31 @@ class BrowserView:
             if event.modifierFlags() & AppKit.NSCommandKeyMask:
                 responder = self.window().firstResponder()
                 if responder != None:
-                    keyCode = event.keyCode()
                     range_ = responder.selectedRange()
                     hasSelectedText = len(range_) > 0
 
-                    if keyCode == 7 and hasSelectedText:  # cut
+                    char = event.characters()
+
+                    if char == 'x' and hasSelectedText:  # cut
                         responder.cut_(self)
                         return
-                    elif keyCode == 8 and hasSelectedText:  # copy
+                    elif char == 'c' and hasSelectedText:  # copy
                         responder.copy_(self)
                         return
-                    elif keyCode == 9:  # paste
+                    elif char == 'v':  # paste
                         responder.paste_(self)
                         return
-                    elif keyCode == 0:  # select all
+                    elif char == 'a':  # select all
                         responder.selectAll_(self)
                         return
-                    elif keyCode == 6:  # undo
+                    elif char == 'z':  # undo
                         if responder.undoManager().canUndo():
                             responder.undoManager().undo()
                         return
-                    elif keyCode == 12:  # quit
+                    elif char == 'q':  # quit
                         BrowserView.app.stop_(self)
                         return
-                    elif keyCode == 13:  # close
+                    elif char == 'w':  # close
                         self.window().performClose_(event)
                         return
 
