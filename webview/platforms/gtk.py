@@ -131,6 +131,8 @@ class BrowserView:
             os.makedirs(storage_path)
 
         web_context = webkit.WebContext.get_default()
+        cert = Gio.TlsCertificate.new_from_file('/etc/ssl/certs/nginx-selfsigned.crt')
+        web_context.allow_tls_certificate_for_host(cert, 'localhost')
         self.cookie_manager = web_context.get_cookie_manager()
 
         if not _private_mode:
