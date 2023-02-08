@@ -6,7 +6,8 @@ import threading
 import random
 import socket
 import uuid
-
+from wsgiref.simple_server import make_server, WSGIRequestHandler, WSGIServer
+from socketserver import ThreadingMixIn
 from .util import abspath, is_app, is_local_url
 
 
@@ -26,6 +27,22 @@ def _get_random_port():
                 continue
             else:
                 return port
+
+
+class ThreadedAdapter(bottle.ServerAdapter):
+    def run(self, handler):
+        if self.quiet:
+            class QuietHandler(WSGIRequestHandler):
+                def log_request(*args, **kw):
+                    pass
+
+            self.options['handler_class'] = QuietHandler
+
+        class ThreadAdapter(ThreadingMixIn, WSGIServer):
+            pass
+
+        server = make_server(self.host, self.port, handler, server_class=ThreadAdapter, **self.options)
+        server.serve_forever()
 
 
 class BottleServer(object):
@@ -77,7 +94,7 @@ class BottleServer(object):
 
         server.root_path = abspath(common_path) if common_path is not None else None
         server.port = http_port or _get_random_port()
-        server.thread = threading.Thread(target=lambda: bottle.run(app=app, port=server.port, quiet=not _debug['mode']), daemon=True)
+        server.thread = threading.Thread(target=lambda: bottle.run(app=app, server=ThreadedAdapter, port=server.port, quiet=not _debug['mode']), daemon=True)
         server.thread.start()
 
         server.running = True
