@@ -2,18 +2,21 @@ import bottle
 import json
 import logging
 import os
+import sys
 import threading
 import random
 import ssl
 import socket
 import uuid
-
+from wsgiref.simple_server import make_server, WSGIRequestHandler, WSGIServer
+from socketserver import ThreadingMixIn
 from .util import abspath, is_app, is_local_url
 
 
 logger = logging.getLogger(__name__)
 
 global_server = None
+
 
 def _get_random_port():
     while True:
@@ -27,6 +30,35 @@ def _get_random_port():
                 continue
             else:
                 return port
+
+
+class ThreadedAdapter(bottle.ServerAdapter):
+    def run(self, handler):
+        if self.quiet:
+            class QuietHandler(WSGIRequestHandler):
+                def log_request(*args, **kw):
+                    pass
+
+            self.options['handler_class'] = QuietHandler
+
+        class ThreadAdapter(ThreadingMixIn, WSGIServer):
+            pass
+
+        server = make_server(self.host, self.port, handler, server_class=ThreadAdapter, **self.options)
+        server.serve_forever()
+
+
+class DummyLoggerWriter:
+    def __init__(self):
+        pass
+    def write(self, message):
+        pass
+    def flush(self):
+        pass
+
+if hasattr(sys, '_MEIPASS'): # Pyinstaller logging fix
+    sys.stdout = DummyLoggerWriter()
+    sys.stderr = DummyLoggerWriter()
 
 
 class BottleServer(object):
@@ -84,7 +116,7 @@ class BottleServer(object):
           setattr(server_adapter, 'pywebview_keyfile', keyfile)
           setattr(server_adapter, 'pywebview_certfile', certfile)
         else:
-         server_adapter = 'wsgiref'
+         server_adapter = ThreadedAdapter
         server.thread = threading.Thread(target=lambda: bottle.run(app=app, server=server_adapter, port=server.port, quiet=not _debug['mode']), daemon=True)
         server.thread.start()
 

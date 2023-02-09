@@ -58,7 +58,7 @@ def get_app_root():
     Gets the file root of the application.
     """
 
-    if hasattr(sys, '_MEIPASS'): # Pyifnstaller
+    if hasattr(sys, '_MEIPASS'): # Pyinstaller
         return sys._MEIPASS
 
     if getattr(sys, 'frozen', False): # cx_freeze
