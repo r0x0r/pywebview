@@ -2,6 +2,7 @@ import bottle
 import json
 import logging
 import os
+import sys
 import threading
 import random
 import socket
@@ -14,6 +15,7 @@ from .util import abspath, is_app, is_local_url
 logger = logging.getLogger(__name__)
 
 global_server = None
+
 
 def _get_random_port():
     while True:
@@ -43,6 +45,19 @@ class ThreadedAdapter(bottle.ServerAdapter):
 
         server = make_server(self.host, self.port, handler, server_class=ThreadAdapter, **self.options)
         server.serve_forever()
+
+
+class DummyLoggerWriter:
+    def __init__(self):
+        pass
+    def write(self, message):
+        pass
+    def flush(self):
+        pass
+
+if hasattr(sys, '_MEIPASS'): # Pyinstaller logging fix
+    sys.stdout = DummyLoggerWriter()
+    sys.stderr = DummyLoggerWriter()
 
 
 class BottleServer(object):
