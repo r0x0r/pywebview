@@ -12,9 +12,11 @@ http://github.com/r0x0r/pywebview/
 """
 
 
+import datetime
 import logging
 import os
 import re
+import tempfile
 import threading
 from uuid import uuid4
 from proxy_tools import module_property
@@ -71,7 +73,8 @@ windows = []
 menus = []
 
 def start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False,
-          http_port=None, user_agent=None, private_mode=True, storage_path=None, menu=[], server=http.BottleServer, server_args={}):
+          http_port=None, user_agent=None, private_mode=True, storage_path=None, menu=[], 
+          server=http.BottleServer, server_args={}, ssl=False):
     """
     Start a GUI loop and display previously created windows. This function must
     be called from a main thread.
@@ -127,6 +130,12 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         raise WebViewException('You must create a window first before calling this function.')
 
     guilib = initialize(gui)
+    
+    if ssl:
+      # generate SSL certs and tell the windows to use them
+      keyfile, certfile = generate_ssl_cert()
+      server_args['keyfile'] = keyfile
+      server_args['certfile'] = certfile
 
     urls = [w.original_url for w in windows]
     has_local_urls = not not [
@@ -139,10 +148,14 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         (http_server or has_local_urls or (guilib.renderer == 'gtkwebkit2')):
             if not _private_mode and not http_port:
                 http_port = DEFAULT_HTTP_PORT
-            prefix, common_path, server = http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
+            prefix, common_path, server = http.start_global_server(http_port=http_port, urls=urls, server=server, ssl=ssl, **server_args)
 
     for window in windows:
         window._initialize(guilib)
+
+    if ssl:
+      for w in windows:
+        w.gui.add_tls_cert(certfile)
 
     if len(windows) > 1:
         t = threading.Thread(target=_create_children, args=(windows[1:],))
@@ -159,6 +172,8 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
     guilib.set_app_menu(menu)
     guilib.create_window(windows[0])
+    # keyfile is deleted by the ServerAdapter right after wrap_socket()
+    os.unlink(certfile)
 
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
@@ -216,6 +231,58 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
         guilib.create_window(window)
 
     return window
+    
+def generate_ssl_cert():
+    # https://cryptography.io/en/latest/x509/tutorial/#creating-a-self-signed-certificate
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives import serialization
+    from cryptography import x509
+    from cryptography.x509.oid import NameOID
+    from cryptography.hazmat.primitives import hashes
+    
+    with tempfile.NamedTemporaryFile(prefix='keyfile_', suffix='.pem', delete=False) as f:
+      keyfile = f.name
+      key = rsa.generate_private_key(
+          public_exponent=65537,
+          key_size=2048,
+      )
+      key_pem = key.private_bytes(
+          encoding=serialization.Encoding.PEM,
+          format=serialization.PrivateFormat.TraditionalOpenSSL,
+          encryption_algorithm=serialization.NoEncryption(), #BestAvailableEncryption(b"passphrase"),
+      )
+      f.write(key_pem)
+      
+    
+    with tempfile.NamedTemporaryFile(prefix='certfile_', suffix='.pem', delete=False) as f:
+      certfile = f.name
+      subject = issuer = x509.Name([
+          x509.NameAttribute(NameOID.COUNTRY_NAME, u"US"),
+          x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"California"),
+          x509.NameAttribute(NameOID.LOCALITY_NAME, u"San Francisco"),
+          x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"pywebview"),
+          x509.NameAttribute(NameOID.COMMON_NAME, u"pywebview.flowrl.com"),
+      ])
+      cert = x509.CertificateBuilder().subject_name(
+          subject
+      ).issuer_name(
+          issuer
+      ).public_key(
+          key.public_key()
+      ).serial_number(
+          x509.random_serial_number()
+      ).not_valid_before(
+          datetime.datetime.utcnow()
+      ).not_valid_after(
+          datetime.datetime.utcnow() + datetime.timedelta(days=365)
+      ).add_extension(
+          x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
+          critical=False,
+      ).sign(key, hashes.SHA256())
+      cert_pem = cert.public_bytes(serialization.Encoding.PEM)
+      f.write(cert_pem)
+
+    return keyfile, certfile
 
 def active_window():
     """
