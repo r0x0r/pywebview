@@ -136,6 +136,8 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
       keyfile, certfile = generate_ssl_cert()
       server_args['keyfile'] = keyfile
       server_args['certfile'] = certfile
+    else:
+      keyfile, certfile = None, None
 
     urls = [w.original_url for w in windows]
     has_local_urls = not not [
@@ -173,7 +175,8 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     guilib.set_app_menu(menu)
     guilib.create_window(windows[0])
     # keyfile is deleted by the ServerAdapter right after wrap_socket()
-    os.unlink(certfile)
+    if certfile:
+      os.unlink(certfile)
 
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
