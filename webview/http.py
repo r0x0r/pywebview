@@ -118,6 +118,10 @@ class BottleServer(object):
         server.js_api_endpoint = f'{server.address}js_api/{server.uid}'
 
         return server.address, common_path, server
+    
+    @property
+    def is_running(self):
+        return self.running
 
 
 def start_server(urls, http_port=None, server=BottleServer, **server_args):
