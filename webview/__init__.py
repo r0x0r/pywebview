@@ -156,8 +156,8 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
         window._initialize(guilib)
 
     if ssl:
-      for w in windows:
-        w.gui.add_tls_cert(certfile)
+      for window in windows:
+        window.gui.add_tls_cert(certfile)
 
     if len(windows) > 1:
         t = threading.Thread(target=_create_children, args=(windows[1:],))
@@ -264,7 +264,7 @@ def generate_ssl_cert():
           x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"California"),
           x509.NameAttribute(NameOID.LOCALITY_NAME, u"San Francisco"),
           x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"pywebview"),
-          x509.NameAttribute(NameOID.COMMON_NAME, u"pywebview.flowrl.com"),
+          x509.NameAttribute(NameOID.COMMON_NAME, u"127.0.0.1"),
       ])
       cert = x509.CertificateBuilder().subject_name(
           subject
