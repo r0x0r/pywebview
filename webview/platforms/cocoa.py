@@ -362,7 +362,6 @@ class BrowserView:
         self.window.setFrame_display_(frame, True)
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
-        print('self.webkit', self.webkit.__dict__)
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
