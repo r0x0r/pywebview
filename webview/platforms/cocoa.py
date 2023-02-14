@@ -137,6 +137,11 @@ class BrowserView:
                 handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@')
             handler()
 
+        def webView_didReceiveAuthenticationChallenge_completionHandler_(self, webview, challenge, handler):
+            # this allows any server cert
+            credential = AppKit.NSURLCredential.credentialForTrust_(challenge.protectionSpace().serverTrust())
+            handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
+
         # Display a JavaScript confirm panel containing the specified message
         def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_completionHandler_(self, webview, message, frame, handler):
             i = BrowserView.get_instance('webkit', webview)
@@ -357,6 +362,7 @@ class BrowserView:
         self.window.setFrame_display_(frame, True)
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
+        print('self.webkit', self.webkit.__dict__)
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
@@ -1098,4 +1104,10 @@ def get_size(uid):
 def get_screens():
     screens = [Screen(s.frame().size.width, s.frame().size.height) for s in AppKit.NSScreen.screens()]
     return screens
+
+
+def add_tls_cert(certfile):
+    # does not auth against the certfile
+    # see webView_didReceiveAuthenticationChallenge_completionHandler_
+    pass
 
