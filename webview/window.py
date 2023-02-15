@@ -62,7 +62,7 @@ class EventContainer:
 class Window:
     def __init__(self, uid, title, url, html='', width=800, height=600, x=None, y=None,
                  resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
-                 frameless=False, easy_drag=True, minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
+                 frameless=False, easy_drag=True, take_focus=True, minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
                  js_api=None, text_select=False, transparent=False, zoomable=False, draggable=False, vibrancy=False, localization=None,
                  http_port=None, server=None, server_args={}):
         self.uid = uid
@@ -82,6 +82,7 @@ class Window:
         self.text_select = text_select
         self.frameless = frameless
         self.easy_drag = easy_drag
+        self.take_focus = take_focus
         self.hidden = hidden
         self.on_top = on_top
         self.minimized = minimized
