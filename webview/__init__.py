@@ -163,7 +163,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
 
 def create_window(title, url=None, html=None, js_api=None, width=800, height=600, x=None, y=None,
                   resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
-                  frameless=False, easy_drag=True,
+                  frameless=False, easy_drag=True, take_focus=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
                   transparent=False, text_select=False, zoomable=False, draggable=False, vibrancy=False, localization=None,
                   server=http.BottleServer, server_args={}):
@@ -180,6 +180,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
     :param hidden: Whether the window should be hidden.
     :param frameless: Whether the window should have a frame.
     :param easy_drag: Easy window drag mode when window is frameless.
+    :param take_focus: Whether to activate the window when user opens it. Window can be controlled with mouse but keyboard input will go to another (active) window and not this one.
     :param minimized: Display window minimized
     :param on_top: Keep window above other windows (required OS: Windows)
     :param confirm_close: Display a window close confirmation dialog. Default is False
@@ -199,7 +200,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     window = Window(uid, title, url, html,
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
-                    frameless, easy_drag, minimized, on_top, confirm_close, background_color,
+                    frameless, easy_drag, take_focus, minimized, on_top, confirm_close, background_color,
                     js_api, text_select, transparent, zoomable, draggable, vibrancy, localization,
                     server=server, server_args=server_args)
 
