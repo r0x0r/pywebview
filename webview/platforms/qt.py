@@ -275,6 +275,11 @@ class BrowserView(QMainWindow):
 
         if window.on_top:
             flags = flags | QtCore.Qt.WindowStaysOnTopHint
+            
+        if not window.take_focus:
+            self.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
+            flags = flags | QtCore.Qt.WindowDoesNotAcceptFocus
+            
 
         self.setWindowFlags(flags)
 
