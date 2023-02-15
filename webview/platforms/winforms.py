@@ -21,6 +21,8 @@ from webview.screen import Screen
 from webview.window import FixPoint
 from webview.menu import Menu, MenuAction, MenuSeparator
 
+import win32con, win32gui
+
 import winreg
 import clr
 
@@ -206,6 +208,9 @@ class BrowserView:
             else:
                 self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
+            if not window.take_focus:
+                win32gui.SetWindowLong(self.Handle.ToInt32(), win32con.GWL_EXSTYLE, win32gui.GetWindowLong(self.Handle.ToInt32(), win32con.GWL_EXSTYLE) | win32con.WS_EX_NOACTIVATE)
+                
             self.Activated += self.on_activated
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
@@ -216,6 +221,9 @@ class BrowserView:
             self.localization = window.localization
 
         def on_activated(self, sender, args):
+            if not window.take_focus:
+                win32gui.SetWindowLong(self.Handle.ToInt32(), win32con.GWL_EXSTYLE, win32gui.GetWindowLong(self.Handle.ToInt32(), win32con.GWL_EXSTYLE) | win32con.WS_EX_NOACTIVATE)
+            
             if self.browser:
                 self.browser.web_view.Focus()
 
