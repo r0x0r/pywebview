@@ -386,11 +386,14 @@ class BrowserView:
             self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
             config.setWebsiteDataStore_(self.datastore)
 
-        config.preferences().setValue_forKey_(Foundation.NO, 'backspaceKeyNavigationEnabled')
+        try:
+            config.preferences().setValue_forKey_(False, 'backspaceKeyNavigationEnabled')
+        except KeyError:
+            pass  # backspaceKeyNavigationEnabled does not exist prior to macOS Mojave
         config.preferences().setValue_forKey_(True, 'allowFileAccessFromFileURLs')
 
         if _debug['mode']:
-            config.preferences().setValue_forKey_(Foundation.YES, 'developerExtrasEnabled')
+            config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
         config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
