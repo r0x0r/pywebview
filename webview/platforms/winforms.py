@@ -116,7 +116,7 @@ else:
     logger.debug('Using WinForms / MSHTML')
     renderer = 'mshtml'
 
-if not _private_mode:
+if not _private_mode or _storage_path:
     try:
         app_data = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
         cache_dir = _storage_path or os.path.join(app_data, 'pywebview')
