@@ -337,7 +337,10 @@ class BrowserView:
             self.Invoke(Func[Type](self.Hide))
 
         def show(self):
-            self.Invoke(Func[Type](self.Show))
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](self.Show))
+            else:
+                self.Show()
 
         def set_window_menu(self, menu_list):
             def _set_window_menu():
@@ -521,7 +524,12 @@ def create_window(window):
         browser = BrowserView.BrowserForm(window)
         BrowserView.instances[window.uid] = browser
 
-        if not window.hidden:
+        if window.hidden:
+            browser.Opacity = 0
+            browser.Show()
+            browser.Hide()
+            browser.Opacity = 1
+        else:
             browser.Show()
 
         _main_window_created.set()
