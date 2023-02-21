@@ -1,8 +1,20 @@
+import sys
+import tempfile
+
+
+if sys.platform == 'win32' and ('pythonw.exe' in sys.executable or getattr(sys, 'frozen', False)):
+    # bottle.py versions prior to 0.12.23 (the latest on PyPi as of Feb 2023) require stdout and
+    # stderr to exist, which is not the case on Windows with pythonw.exe or PyInstaller >= 5.8.0
+    if sys.stderr is None:
+        sys.stderr = tempfile.TemporaryFile()
+    if sys.stdout is None:
+        sys.stdout = tempfile.TemporaryFile()
+
+
 import bottle
 import json
 import logging
 import os
-import sys
 import threading
 import random
 import socket
@@ -45,19 +57,6 @@ class ThreadedAdapter(bottle.ServerAdapter):
 
         server = make_server(self.host, self.port, handler, server_class=ThreadAdapter, **self.options)
         server.serve_forever()
-
-
-class DummyLoggerWriter:
-    def __init__(self):
-        pass
-    def write(self, message):
-        pass
-    def flush(self):
-        pass
-
-if hasattr(sys, '_MEIPASS'): # Pyinstaller logging fix
-    sys.stdout = DummyLoggerWriter()
-    sys.stderr = DummyLoggerWriter()
 
 
 class BottleServer(object):
@@ -118,6 +117,10 @@ class BottleServer(object):
         server.js_api_endpoint = f'{server.address}js_api/{server.uid}'
 
         return server.address, common_path, server
+    
+    @property
+    def is_running(self):
+        return self.running
 
 
 def start_server(urls, http_port=None, server=BottleServer, **server_args):
