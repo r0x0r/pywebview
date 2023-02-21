@@ -1,5 +1,24 @@
 # Changelog
 
+## 4.0.2
+
+_Released 21/02/2023_
+
+### 🚀 Improvements
+- [All] HTTP server is now multithreaded. This should prevent stalled requests. #1025
+- [Windows] `webview.start(storage_path)` can now be set in private mode. This can be useful if you do not have write access to EdgeChromium default data directory and get 0x80070005 (E_ACCESSDENIED) error. #1026
+
+### 🐞 Bug fixes
+- [All] Fix `AttributeError: module 'webview.http' has no attribute 'running'` exception occurring when multiple windows are opened. Thanks @YidaozhanYa. #1024
+- [Winforms] Fix on_top not having any effect on Windows. #1036
+- [Winforms] Fix `create_window(hidden=True)` makes the show() command not work #1050
+- [Windows] Fix pyinstaller compatibility on Windows. Thanks @simonrob #1044
+- [CEF] Fix window.get_cookies() throwing KeyError exception. #1021
+- [Cocoa] Fix non-QWERTY keyboard shortcuts. Thanks @max-uho
+- [QT] Fix web inspector preventing to open. #1028
+- [GTK] Fix "ImportError: Requiring namespace 'Soup' version '2.4', but '3.0' is already loaded" Thanks @YidaozhanYa #1041
+
+
 ## 4.0.1
 
 _Released 19/01/2023_
