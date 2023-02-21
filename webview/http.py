@@ -1,3 +1,16 @@
+import sys
+import tempfile
+
+
+if sys.platform == 'win32' and ('pythonw.exe' in sys.executable or getattr(sys, 'frozen', False)):
+    # bottle.py versions prior to 0.12.23 (the latest on PyPi as of Feb 2023) require stdout and
+    # stderr to exist, which is not the case on Windows with pythonw.exe or PyInstaller >= 5.8.0
+    if sys.stderr is None:
+        sys.stderr = tempfile.TemporaryFile()
+    if sys.stdout is None:
+        sys.stdout = tempfile.TemporaryFile()
+
+
 import bottle
 import json
 import logging
@@ -6,13 +19,15 @@ import threading
 import random
 import socket
 import uuid
-
+from wsgiref.simple_server import make_server, WSGIRequestHandler, WSGIServer
+from socketserver import ThreadingMixIn
 from .util import abspath, is_app, is_local_url
 
 
 logger = logging.getLogger(__name__)
 
 global_server = None
+
 
 def _get_random_port():
     while True:
@@ -28,6 +43,22 @@ def _get_random_port():
                 return port
 
 
+class ThreadedAdapter(bottle.ServerAdapter):
+    def run(self, handler):
+        if self.quiet:
+            class QuietHandler(WSGIRequestHandler):
+                def log_request(*args, **kw):
+                    pass
+
+            self.options['handler_class'] = QuietHandler
+
+        class ThreadAdapter(ThreadingMixIn, WSGIServer):
+            pass
+
+        server = make_server(self.host, self.port, handler, server_class=ThreadAdapter, **self.options)
+        server.serve_forever()
+
+
 class BottleServer(object):
     def __init__(self):
         self.root_path='/'
@@ -36,7 +67,6 @@ class BottleServer(object):
         self.js_callback = {}
         self.js_api_endpoint = None
         self.uid = str(uuid.uuid1())
-
 
     @classmethod
     def start_server(self, urls, http_port):
@@ -66,7 +96,6 @@ class BottleServer(object):
                 else:
                     logger.error('JS callback function is not set for window %s' % body['uid'])
 
-
             @app.route('/')
             @app.route('/<file:path>')
             def asset(file):
@@ -79,7 +108,7 @@ class BottleServer(object):
 
         server.root_path = abspath(common_path) if common_path is not None else None
         server.port = http_port or _get_random_port()
-        server.thread = threading.Thread(target=lambda: bottle.run(app=app, port=server.port, quiet=not _debug), daemon=True)
+        server.thread = threading.Thread(target=lambda: bottle.run(app=app, server=ThreadedAdapter, port=server.port, quiet=not _debug['mode']), daemon=True)
         server.thread.start()
 
         server.running = True
@@ -88,11 +117,16 @@ class BottleServer(object):
         server.js_api_endpoint = f'{server.address}js_api/{server.uid}'
 
         return server.address, common_path, server
+    
+    @property
+    def is_running(self):
+        return self.running
 
 
 def start_server(urls, http_port=None, server=BottleServer, **server_args):
     server = server if not server is None else BottleServer
     return server.start_server(urls, http_port, **server_args)
+
 
 def start_global_server(http_port=None, urls='.', server=BottleServer, **server_args):
     global global_server

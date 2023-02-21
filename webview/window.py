@@ -60,9 +60,10 @@ class EventContainer:
 
 
 class Window:
-    def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
-                 min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
-                 background_color, js_api, text_select, transparent, zoomable, draggable, vibrancy, localization,
+    def __init__(self, uid, title, url, html='', width=800, height=600, x=None, y=None,
+                 resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
+                 frameless=False, easy_drag=True, minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
+                 js_api=None, text_select=False, transparent=False, zoomable=False, draggable=False, vibrancy=False, localization=None,
                  http_port=None, server=None, server_args={}):
         self.uid = uid
         self.title = title
@@ -124,7 +125,7 @@ class Window:
         if self.localization_override:
             self.localization.update(self.localization_override)
 
-        if needs_server([self.original_url]) and server is None:
+        if is_app(self.original_url) and (server is None or server == http.global_server):
             prefix, common_path, server = http.start_server(urls=[self.original_url], http_port=self._http_port, server=self._server, **self._server_args)
         elif server is None:
             server = http.global_server

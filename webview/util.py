@@ -58,7 +58,7 @@ def get_app_root():
     Gets the file root of the application.
     """
 
-    if hasattr(sys, '_MEIPASS'): # Pyifnstaller
+    if hasattr(sys, '_MEIPASS'): # Pyinstaller
         return sys._MEIPASS
 
     if getattr(sys, 'frozen', False): # cx_freeze
@@ -104,7 +104,7 @@ def create_cookie(input):
         cookie[name]['httponly'] = input['httponly']
 
         if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
-            cookie[name]['samesite'] = input['samesite']
+            cookie[name]['samesite'] = input.get('samesite')
 
         return cookie
     elif type(input) == str:

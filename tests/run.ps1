@@ -49,7 +49,9 @@ $tests=@(
 #  $tests += "test_http_server.py"
 # }
 
-rm -r __pycache__
+if (Test-Path __pycache__) {
+  Remove-Item -Recurse -Force __pycache__
+}
 
 $errors = 0
 foreach ($test in $tests) {

@@ -116,7 +116,7 @@ else:
     logger.debug('Using WinForms / MSHTML')
     renderer = 'mshtml'
 
-if not _private_mode:
+if not _private_mode or _storage_path:
     try:
         app_data = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
         cache_dir = _storage_path or os.path.join(app_data, 'pywebview')
@@ -174,7 +174,7 @@ class BrowserView:
             self.loaded = window.events.loaded
             self.url = window.real_url
             self.text_select = window.text_select
-            self.on_top = window.on_top
+            self.TopMost = window.on_top
             self.scale_factor = 1
 
             self.is_fullscreen = False
@@ -184,6 +184,10 @@ class BrowserView:
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
+
+            if len(BrowserView.app_menu_list):
+                self.set_window_menu(BrowserView.app_menu_list)
+
             if is_cef:
                 self.browser = None
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert, self)
@@ -219,9 +223,8 @@ class BrowserView:
                 CEF.focus(self.uid)
 
         def on_shown(self, sender, args):
-            self.shown.set()
-
             if not is_cef:
+                self.shown.set()
                 self.browser.web_view.Focus()
 
         def on_close(self, sender, args):
@@ -334,7 +337,10 @@ class BrowserView:
             self.Invoke(Func[Type](self.Hide))
 
         def show(self):
-            self.Invoke(Func[Type](self.Show))
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](self.Show))
+            else:
+                self.Show()
 
         def set_window_menu(self, menu_list):
             def _set_window_menu():
@@ -364,7 +370,10 @@ class BrowserView:
 
                 self.Controls.Add(top_level_menu)
 
-            self.Invoke(Func[Type](_set_window_menu))
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](_set_window_menu))
+            else:
+                _set_window_menu()
 
         def toggle_fullscreen(self):
             def _toggle():
@@ -392,21 +401,6 @@ class BrowserView:
                 self.Invoke(Func[Type](_toggle))
             else:
                 _toggle()
-
-        @property
-        def on_top(self):
-            return self.on_top
-
-        @on_top.setter
-        def on_top(self, on_top):
-            def _set():
-                z_order = -1 if on_top is True else -2
-                SWP_NOSIZE = 0x0001  # Retains the current size
-                windll.user32.SetWindowPos(self.Handle.ToInt32(), z_order, self.Location.X, self.Location.Y, None, None, SWP_NOSIZE)
-            if self.InvokeRequired:
-                self.Invoke(Func[Type](_set))
-            else:
-                _set()
 
         def resize(self, width, height, fix_point):
             x = self.Location.X
@@ -530,10 +524,12 @@ def create_window(window):
         browser = BrowserView.BrowserForm(window)
         BrowserView.instances[window.uid] = browser
 
-        if len(BrowserView.app_menu_list):
-            browser.set_window_menu(BrowserView.app_menu_list)
-
-        if not window.hidden:
+        if window.hidden:
+            browser.Opacity = 0
+            browser.Show()
+            browser.Hide()
+            browser.Opacity = 1
+        else:
             browser.Show()
 
         _main_window_created.set()
@@ -718,7 +714,7 @@ def toggle_fullscreen(uid):
 
 def set_on_top(uid, on_top):
     window = BrowserView.instances[uid]
-    window.on_top = on_top
+    window.TopMost = on_top
 
 
 def resize(width, height, uid, fix_point):

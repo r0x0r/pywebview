@@ -121,7 +121,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     original_localization.update(localization)
 
     if threading.current_thread().name != 'MainThread':
-        raise WebViewException('This function must be run from a main thread.')
+        raise WebViewException('pywebview must be run on a main thread.')
 
     if len(windows) == 0:
         raise WebViewException('You must create a window first before calling this function.')
@@ -132,9 +132,8 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
     has_local_urls = not not [
         w.original_url
         for w in windows
-        if is_app(w.original_url) or is_local_url(w.original_url)
+        if is_local_url(w.original_url)
     ]
-
     # start the global server if it's not running and we need it
     if (http.global_server is None) and \
         (http_server or has_local_urls or (guilib.renderer == 'gtkwebkit2')):
@@ -208,7 +207,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
 
     # This immediately creates the window only if `start` has already been called
     if threading.current_thread().name != 'MainThread' and guilib:
-        if is_app(url) or is_local_url(url) and not http.running:
+        if is_app(url) or is_local_url(url) and not server.is_running:
             url_prefix, common_path, server = http.start_server([url], server=server, **server_args)
         else:
             url_prefix, common_path, server = None, None, None

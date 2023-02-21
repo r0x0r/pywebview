@@ -55,6 +55,7 @@ class EdgeChrome:
         self.js_results = {}
         self.js_result_semaphore = Semaphore(0)
         self.web_view.Dock = WinForms.DockStyle.Fill
+        self.web_view.BringToFront()
         self.web_view.CoreWebView2InitializationCompleted += self.on_webview_ready
         self.web_view.NavigationStarting += self.on_navigation_start
         self.web_view.NavigationCompleted += self.on_navigation_completed

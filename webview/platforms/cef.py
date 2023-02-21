@@ -133,7 +133,6 @@ class Browser:
 
     def resize(self, width, height):
         screen = self.parent.RectangleToScreen(self.parent.ClientRectangle)
-
         height_diff = screen.Top - self.parent.Top + 12
         width_diff = self.parent.Right - screen.Right + 12
 
