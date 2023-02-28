@@ -9,7 +9,8 @@ http://github.com/r0x0r/pywebview/
 import os
 import sys
 import logging
-from threading import Event, Semaphore, Thread
+import threading
+from threading import Event, Semaphore
 import ctypes
 from ctypes import windll
 from platform import machine
@@ -118,7 +119,7 @@ else:
     logger.debug('Using WinForms / MSHTML')
     renderer = 'mshtml'
 
-if not _private_mode:
+if not _private_mode or _storage_path:
     try:
         app_data = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
         cache_dir = _storage_path or os.path.join(app_data, 'pywebview')
@@ -345,7 +346,10 @@ class BrowserView:
             self.Invoke(Func[Type](self.Hide))
 
         def show(self):
-            self.Invoke(Func[Type](self.Show))
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](self.Show))
+            else:
+                self.Show()
 
         def set_window_menu(self, menu_list):
             def _set_window_menu():
@@ -358,7 +362,7 @@ class BrowserView:
                         elif isinstance(menu_line_item, MenuAction):
                             action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
                             # Don't run action function on main thread
-                            action_item.Click += lambda _,__,menu_line_item=menu_line_item : Thread(target=menu_line_item.function).start()
+                            action_item.Click += lambda _,__,menu_line_item=menu_line_item : threading.Thread(target=menu_line_item.function).start()
                             m.DropDownItems.Add(action_item)
                         elif isinstance(menu_line_item, Menu):
                             create_submenu(menu_line_item.title, menu_line_item.items, m)
@@ -529,7 +533,12 @@ def create_window(window):
         browser = BrowserView.BrowserForm(window)
         BrowserView.instances[window.uid] = browser
 
-        if not window.hidden:
+        if window.hidden:
+            browser.Opacity = 0
+            browser.Show()
+            browser.Hide()
+            browser.Opacity = 1
+        else:
             browser.Show()
 
         _main_window_created.set()
