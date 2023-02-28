@@ -141,7 +141,7 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
                 http_port = DEFAULT_HTTP_PORT
             prefix, common_path, server = http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
 
-    for window in windows:
+    for window in windows:            
         window._initialize(guilib)
 
     if len(windows) > 1:
@@ -166,7 +166,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
                   frameless=False, easy_drag=True,
                   minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
                   transparent=False, text_select=False, zoomable=False, draggable=False, vibrancy=False, localization=None,
-                  server=http.BottleServer, server_args={}):
+                  server=http.BottleServer, http_port=None, server_args={}):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -201,7 +201,7 @@ def create_window(title, url=None, html=None, js_api=None, width=800, height=600
                     width, height, x, y, resizable, fullscreen, min_size, hidden,
                     frameless, easy_drag, minimized, on_top, confirm_close, background_color,
                     js_api, text_select, transparent, zoomable, draggable, vibrancy, localization,
-                    server=server, server_args=server_args)
+                    server=server, http_port=http_port, server_args=server_args)
 
     windows.append(window)
 

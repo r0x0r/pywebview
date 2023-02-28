@@ -88,5 +88,5 @@ def third_window():
 if __name__ == '__main__':
     # Master window
     windows.append(webview.create_window('Window #1', html='<h1>First window</h1><p>This one is static HTML and just uses the global server for api calls.</p>'))
-    windows.append(webview.create_window('Window #2', url=app1))
-    webview.start(third_window,debug=True,http_server=True)
+    windows.append(webview.create_window('Window #2', url=app1, http_port=3333))
+    webview.start(third_window,debug=True,http_server=True,http_port=3334)
