@@ -157,7 +157,8 @@ def start(func=None, args=None, localization={}, gui=None, debug=False, http_ser
             t = threading.Thread(target=func)
         t.start()
 
-    guilib.set_app_menu(menu)
+    if menu:
+        guilib.set_app_menu(menu)
     guilib.create_window(windows[0])
 
 
