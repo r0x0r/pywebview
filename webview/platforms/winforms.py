@@ -9,7 +9,8 @@ http://github.com/r0x0r/pywebview/
 import os
 import sys
 import logging
-from threading import Event, Semaphore, Thread
+import threading
+from threading import Event, Semaphore
 import ctypes
 from ctypes import windll
 from platform import machine
@@ -353,7 +354,7 @@ class BrowserView:
                         elif isinstance(menu_line_item, MenuAction):
                             action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
                             # Don't run action function on main thread
-                            action_item.Click += lambda _,__,menu_line_item=menu_line_item : Thread(target=menu_line_item.function).start()
+                            action_item.Click += lambda _,__,menu_line_item=menu_line_item : threading.Thread(target=menu_line_item.function).start()
                             m.DropDownItems.Add(action_item)
                         elif isinstance(menu_line_item, Menu):
                             create_submenu(menu_line_item.title, menu_line_item.items, m)
