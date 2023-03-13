@@ -64,7 +64,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `http_port` - specify a port number for the HTTP server. By default port is randomized.
 * `user_agent` - change user agent string.
 * `private_mode` - Control whether cookies and other persistant objects are stored between session. By default private mode is on and nothing is stored between sessions.
-* `storage_path` - An optional location on hard drive where to store persistant objects. By default `~/.pywebview` is used  on *nix systems and `%APPDATA%\pywebview` on Windows.
+* `storage_path` - An optional location on hard drive where to store persistant objects like cookies and local storage. By default `~/.pywebview` is used on *nix systems and `%APPDATA%\pywebview` on Windows.
 * `menu` - Pass a list of Menu objects to create an application menu. See [this example](/examples/menu.html) for usage details.
 * `server` - A custom WSGI server instance. Defaults to BottleServer.
 * `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server. Cocoa/QT/GTK only.
