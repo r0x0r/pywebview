@@ -581,7 +581,7 @@ def set_title(title, uid):
 
 
 def create_confirmation_dialog(title, message, uid):
-    result = WinForms.MessageBox.Show(title, message, WinForms.MessageBoxButtons.OKCancel)
+    result = WinForms.MessageBox.Show(message, title, WinForms.MessageBoxButtons.OKCancel)
     return result == WinForms.DialogResult.OK
 
 
