@@ -138,6 +138,9 @@ class BrowserView:
             handler()
 
         def webView_didReceiveAuthenticationChallenge_completionHandler_(self, webview, challenge, handler):
+            # Prevent `ObjCPointerWarning: PyObjCPointer created: ... type ^{__SecTrust=}`
+            from Security import SecTrustRef
+            
             # this allows any server cert
             credential = AppKit.NSURLCredential.credentialForTrust_(challenge.protectionSpace().serverTrust())
             handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
