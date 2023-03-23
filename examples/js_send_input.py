@@ -1,4 +1,7 @@
 import webview
+"""
+In this template, the HTML content includes an input field and a button with an onclick event that calls the sendInput function in Javascript.
+"""
 
 # Define the HTML content
 html_content = """
