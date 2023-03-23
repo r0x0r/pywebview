@@ -37,7 +37,6 @@ def update_element():
 # Create the PyWebview window
 window = webview.create_window("PyWebview DOM Update Example", html=html_content)
 
-new_value = "fadfsdfasd"
 # Example usage of update_element function
 
 
