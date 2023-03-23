@@ -1,5 +1,9 @@
 import webview
 
+"""
+In this updated template, the update function in the HTML document takes a value parameter that will be used to update the innerHTML of the content element.
+"""
+
 # Define the HTML content
 html_content = """
 <!DOCTYPE html>
