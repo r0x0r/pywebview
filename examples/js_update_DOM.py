@@ -31,7 +31,7 @@ html_content = """
 
 # Function to update the DOM element
 def update_element():
-    new_value = "new_value"
+    new_value = "new_values from python!"
     # Call the Javascript function to update the DOM element
     window.evaluate_js(f"update('{new_value}')")
 # Create the PyWebview window
