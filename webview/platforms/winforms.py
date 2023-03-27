@@ -186,7 +186,7 @@ class BrowserView:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
 
-            if len(BrowserView.app_menu_list):
+            if BrowserView.app_menu_list:
                 self.set_window_menu(BrowserView.app_menu_list)
 
             if is_cef:
