@@ -99,7 +99,7 @@ class BrowserView:
 
         self.window.set_resizable(window.resizable)
 
-        self.window.set_accept_focus(window.take_focus)
+        self.window.set_accept_focus(window.focus)
         
         # Set window background color
         style_provider = gtk.CssProvider()
