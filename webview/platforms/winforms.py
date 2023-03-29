@@ -776,3 +776,7 @@ def get_size(uid):
 def get_screens():
     screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens]
     return screens
+
+def add_tls_cert(certfile):
+    raise NotImplementedError
+

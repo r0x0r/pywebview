@@ -570,6 +570,12 @@ def toggle_fullscreen(uid):
     glib.idle_add(_toggle_fullscreen)
 
 
+def add_tls_cert(certfile):
+    web_context = webkit.WebContext.get_default()
+    cert = Gio.TlsCertificate.new_from_file(certfile)
+    web_context.allow_tls_certificate_for_host(cert, '127.0.0.1')
+
+
 def set_on_top(uid, top):
     def _set_on_top():
         BrowserView.instances[uid].window.set_keep_above(top)

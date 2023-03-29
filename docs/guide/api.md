@@ -47,7 +47,7 @@ server=http.BottleServer, server_args
 ``` python
 webview.start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False,
               http_port=None, user_agent=None, private_mode=True, storage_path=None, menu=[],
-              server=http.BottleServer, server_args={}):
+              server=http.BottleServer, ssl=False, server_args={}):
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
@@ -64,6 +64,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `storage_path` - An optional location on hard drive where to store persistant objects. By default `~/.pywebview` is used  on *nix systems and `%APPDATA%\pywebview` on Windows.
 * `menu` - Pass a list of Menu objects to create an application menu. See [this example](/examples/menu.html) for usage details.
 * `server` - A custom WSGI server instance. Defaults to BottleServer.
+* `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 
 ### Examples

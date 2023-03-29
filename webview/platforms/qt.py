@@ -42,11 +42,13 @@ from qtpy import PYQT6, PYSIDE6
 try:
     from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage, QWebEngineProfile
     from qtpy.QtWebChannel import QWebChannel
+    from qtpy.QtNetwork import QSslConfiguration, QSslCertificate
     renderer = 'qtwebengine'
     is_webengine = True
 except ImportError:
     from PyQt5 import QtWebKitWidgets
     from PyQt5.QtWebKitWidgets import QWebView, QWebPage
+    from PyQt5.QtNetwork import QSslConfiguration, QSslCertificate
     is_webengine = False
     renderer = 'qtwebkit'
 
@@ -918,3 +920,12 @@ def get_screens():
     screens = [Screen(g.width(), g.height()) for g in geometries]
 
     return screens
+
+def add_tls_cert(certfile):
+    config = QSslConfiguration.defaultConfiguration()
+    certs = config.caCertificates()
+    cert = QSslCertificate.fromPath(certfile)[0]
+    certs.append(cert)
+    config.setCaCertificates(certs)
+    QSslConfiguration.setDefaultConfiguration(config)
+    

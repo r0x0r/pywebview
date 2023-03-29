@@ -23,3 +23,5 @@ jobs:
         stale-pr-label: 'stale'
         exempt-issue-labels: 'future'
         remove-stale-when-updated: true
+        remove-issue-stale-when-updated: true
+        remove-pr-stale-when-updated: true
