@@ -1,20 +1,19 @@
+import os
 import sys
-import tempfile
 
 
 if sys.platform == 'win32' and ('pythonw.exe' in sys.executable or getattr(sys, 'frozen', False)):
     # bottle.py versions prior to 0.12.23 (the latest on PyPi as of Feb 2023) require stdout and
     # stderr to exist, which is not the case on Windows with pythonw.exe or PyInstaller >= 5.8.0
     if sys.stderr is None:
-        sys.stderr = tempfile.TemporaryFile()
+        sys.stderr = open(os.devnull, 'w')
     if sys.stdout is None:
-        sys.stdout = tempfile.TemporaryFile()
+        sys.stdout = open(os.devnull, 'w')
 
 
 import bottle
 import json
 import logging
-import os
 import threading
 import random
 import ssl
