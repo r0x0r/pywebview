@@ -5,7 +5,7 @@ To debug Javascript, set the `debug` parameter of `start` to `True`
 ``` python
 import webview
 
-webview.create_window('https://pywebview.flowrl.com/hello')
+webview.create_window('Woah dude!', 'https://pywebview.flowrl.com/hello')
 webview.start(debug=True)
 ```
 
