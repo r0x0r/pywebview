@@ -120,8 +120,12 @@ else:
 
 if not _private_mode or _storage_path:
     try:
-        app_data = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-        cache_dir = _storage_path or os.path.join(app_data, 'pywebview')
+        data_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+        
+        if not os.access(data_folder, os.W_OK):
+            data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            
+        cache_dir = _storage_path or os.path.join(data_folder, 'pywebview')
 
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
@@ -523,7 +527,7 @@ def setup_app():
 
 def create_window(window):
     def create():
-        browser = BrowserView.BrowserForm(window,cache_dir)
+        browser = BrowserView.BrowserForm(window, cache_dir)
         BrowserView.instances[window.uid] = browser
 
         if window.hidden:
