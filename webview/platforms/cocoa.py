@@ -381,15 +381,15 @@ class BrowserView:
         if _private_mode:
             # nonPersisentDataStore preserves cookies for some unknown reason. For this reason we use default datastore
             # and clear all the cookies beforehand
-            datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
+            self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
 
             def dummy_completion_handler():
                 pass
 
             data_types = WebKit.WKWebsiteDataStore.allWebsiteDataTypes()
             from_start = WebKit.NSDate.dateWithTimeIntervalSince1970_(0)
-            config.setWebsiteDataStore_(datastore)
-            datastore.removeDataOfTypes_modifiedSince_completionHandler_(data_types, from_start, dummy_completion_handler)
+            config.setWebsiteDataStore_(self.datastore)
+            self.datastore.removeDataOfTypes_modifiedSince_completionHandler_(data_types, from_start, dummy_completion_handler)
         else:
             self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
             config.setWebsiteDataStore_(self.datastore)

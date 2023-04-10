@@ -14,6 +14,7 @@ from threading import Event, Semaphore
 import ctypes
 from ctypes import windll
 from platform import machine
+import tempfile
 
 from webview import windows, _private_mode, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.guilib import forced_gui_
@@ -119,15 +120,19 @@ else:
 
 if not _private_mode or _storage_path:
     try:
-        app_data = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-        cache_dir = _storage_path or os.path.join(app_data, 'pywebview')
+        data_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+        
+        if not os.access(data_folder, os.W_OK):
+            data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            
+        cache_dir = _storage_path or os.path.join(data_folder, 'pywebview')
 
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
     except Exception as e:
         logger.exception(f'Cache directory {cache_dir} creation failed')
 else:
-    cache_dir = None
+    cache_dir = tempfile.TemporaryDirectory().name
 
 class BrowserView:
     instances = {}
@@ -135,7 +140,7 @@ class BrowserView:
     app_menu_list = None
 
     class BrowserForm(WinForms.Form):
-        def __init__(self, window):
+        def __init__(self, window, cache_dir):
             super().__init__()
             self.uid = window.uid
             self.pywebview_window = window
@@ -186,7 +191,7 @@ class BrowserView:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
 
-            if len(BrowserView.app_menu_list):
+            if BrowserView.app_menu_list:
                 self.set_window_menu(BrowserView.app_menu_list)
 
             if is_cef:
@@ -528,7 +533,7 @@ def setup_app():
 
 def create_window(window):
     def create():
-        browser = BrowserView.BrowserForm(window)
+        browser = BrowserView.BrowserForm(window, cache_dir)
         BrowserView.instances[window.uid] = browser
 
         if window.hidden:
