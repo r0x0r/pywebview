@@ -213,7 +213,7 @@ class BrowserView:
                 self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
             if not window.focus:
-                windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLong(self.Handle.ToInt32(), -20) | 0x8000000)
+                windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
                 
             self.Activated += self.on_activated
             self.Shown += self.on_shown
@@ -226,7 +226,7 @@ class BrowserView:
 
         def on_activated(self, sender, args):
             if not self.pywebview_window.focus:
-                windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLong(self.Handle.ToInt32(), -20) | 0x8000000)
+                windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
             
             if self.browser:
                 self.browser.web_view.Focus()
