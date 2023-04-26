@@ -140,7 +140,7 @@ class BrowserView:
         def webView_didReceiveAuthenticationChallenge_completionHandler_(self, webview, challenge, handler):
             # Prevent `ObjCPointerWarning: PyObjCPointer created: ... type ^{__SecTrust=}`
             from Security import SecTrustRef
-            
+
             # this allows any server cert
             credential = AppKit.NSURLCredential.credentialForTrust_(challenge.protectionSpace().serverTrust())
             handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
@@ -432,7 +432,7 @@ class BrowserView:
             visualEffectView.setState_(AppKit.NSVisualEffectStateActive)
             visualEffectView.setBlendingMode_(AppKit.NSVisualEffectBlendingModeBehindWindow)
             self.webkit.addSubview_positioned_relativeTo_(visualEffectView, AppKit.NSWindowBelow,  self.webkit)
-    
+
         self.frameless = window.frameless
         self.easy_drag = window.easy_drag
 
@@ -696,7 +696,11 @@ class BrowserView:
         to some menu items if it's available.
         """
 
-        mainMenu = self.app.mainMenu()
+        mainMenu = BrowserView.app.mainMenu()
+
+        if not mainMenu:
+            mainMenu = AppKit.NSMenu.alloc().init()
+            BrowserView.app.setMainMenu_(mainMenu)
 
         # Create an application menu and make it a submenu of the main menu
         mainAppMenuItem = AppKit.NSMenuItem.alloc().init()
@@ -711,7 +715,7 @@ class BrowserView:
 
         # Set the 'Services' menu for the app and create an app menu item
         appServicesMenu = AppKit.NSMenu.alloc().init()
-        self.app.setServicesMenu_(appServicesMenu)
+        BrowserView.app.setServicesMenu_(appServicesMenu)
         servicesMenuItem = appMenu.addItemWithTitle_action_keyEquivalent_(self.localization["cocoa.menu.services"], nil, "")
         servicesMenuItem.setSubmenu_(appServicesMenu)
 
@@ -732,7 +736,11 @@ class BrowserView:
         """
         Create a default View menu that shows 'Enter Full Screen'.
         """
-        mainMenu = self.app.mainMenu()
+        mainMenu = BrowserView.app.mainMenu()
+
+        if not mainMenu:
+            mainMenu = AppKit.NSMenu.alloc().init()
+            BrowserView.app.setMainMenu_(mainMenu)
 
         # Create an View menu and make it a submenu of the main menu
         viewMenu = AppKit.NSMenu.alloc().init()
