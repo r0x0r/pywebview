@@ -1,92 +1,97 @@
-# -*- coding: utf-8 -*-
-
-"""
-(C) 2014-2019 Roman Sirokov and contributors
-Licensed under BSD license
-http://github.com/r0x0r/pywebview/
-"""
-
+import ctypes
+import logging
 import os
 import sys
-import logging
+import tempfile
 import threading
-from threading import Event, Semaphore
-import ctypes
+import winreg
 from ctypes import windll
 from platform import machine
-import tempfile
+from threading import Event, Semaphore
 
-from webview import windows, _private_mode, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
-from webview.guilib import forced_gui_
-from webview.util import parse_file_type, inject_base_uri
-from webview.screen import Screen
-from webview.window import FixPoint
-from webview.menu import Menu, MenuAction, MenuSeparator
-
-import winreg
 import clr
 
-clr.AddReference('System.Windows.Forms')
-clr.AddReference('System.Collections')
-clr.AddReference('System.Threading')
+from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _private_mode, _storage_path, windows
+from webview.guilib import forced_gui_
+from webview.menu import Menu, MenuAction, MenuSeparator
+from webview.screen import Screen
+from webview.util import inject_base_uri, parse_file_type
+from webview.window import FixPoint
+
+clr.AddReference("System.Windows.Forms")
+clr.AddReference("System.Collections")
+clr.AddReference("System.Threading")
 
 import System.Windows.Forms as WinForms
-from System import IntPtr, Int32, Func, Type, Environment
-from System.Threading import Thread, ThreadStart, ApartmentState
-from System.Drawing import Size, Point, Icon, Color, ColorTranslator
+from System import Environment, Func, Int32, IntPtr, Type
+from System.Drawing import Color, ColorTranslator, Icon, Point, Size
+from System.Threading import ApartmentState, Thread, ThreadStart
 
-kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-
-logger = logging.getLogger('pywebview')
-
+kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+logger = logging.getLogger("pywebview")
 settings = {}
 
 
-def _is_new_version(current_version, new_version):
+def _is_new_version(current_version: str, new_version: str) -> bool:
     new_range = new_version.split(".")
     cur_range = current_version.split(".")
-    for index in range(len(new_range)):
+    for index, _ in enumerate(new_range):
         if len(cur_range) > index:
             return int(new_range[index]) >= int(cur_range[index])
 
     return False
 
+
 def _is_chromium():
-    def edge_build(key_type, key, description=''):
+    def edge_build(key_type, key, description=""):
         try:
             windows_key = None
-            if machine() == 'x86' or key_type == 'HKEY_CURRENT_USER':
-                path = rf'Microsoft\EdgeUpdate\Clients\{key}'
+            if machine() == "x86" or key_type == "HKEY_CURRENT_USER":
+                path = rf"Microsoft\EdgeUpdate\Clients\{key}"
             else:
-                path = rf'WOW6432Node\Microsoft\EdgeUpdate\Clients\{key}'
+                path = rf"WOW6432Node\Microsoft\EdgeUpdate\Clients\{key}"
 
-            with winreg.OpenKey(getattr(winreg, key_type), rf'SOFTWARE\{path}') as windows_key:
-                build, _ = winreg.QueryValueEx(windows_key, 'pv')
+            with winreg.OpenKey(getattr(winreg, key_type), rf"SOFTWARE\{path}") as windows_key:
+                build, _ = winreg.QueryValueEx(windows_key, "pv")
                 return str(build)
 
-        except Exception as e:
+        except Exception:
             pass
 
-        return '0'
+        return "0"
 
     try:
-        net_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full')
-        version, _ = winreg.QueryValueEx(net_key, 'Release')
+        net_key = winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full"
+        )
+        version, _ = winreg.QueryValueEx(net_key, "Release")
 
-        if version < 394802: # .NET 4.6.2
+        if version < 394802:  # .NET 4.6.2
             return False
 
         build_versions = [
-            {'key':'{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'description':'Microsoft Edge WebView2 Runtime'},  # runtime
-            {'key':'{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}', 'description':'Microsoft Edge WebView2 Beta'}, # beta
-            {'key':'{0D50BFEC-CD6A-4F9A-964C-C7416E3ACB10}', 'description':'Microsoft Edge WebView2 Developer'}, # dev
-            {'key':'{65C35B14-6C1D-4122-AC46-7148CC9D6497}', 'description':'Microsoft Edge WebView2 Canary'}, # canary
+            {
+                "key": "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
+                "description": "Microsoft Edge WebView2 Runtime",
+            },  # runtime
+            {
+                "key": "{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}",
+                "description": "Microsoft Edge WebView2 Beta",
+            },  # beta
+            {
+                "key": "{0D50BFEC-CD6A-4F9A-964C-C7416E3ACB10}",
+                "description": "Microsoft Edge WebView2 Developer",
+            },  # dev
+            {
+                "key": "{65C35B14-6C1D-4122-AC46-7148CC9D6497}",
+                "description": "Microsoft Edge WebView2 Canary",
+            },  # canary
         ]
 
         for item in build_versions:
-            for key_type in ('HKEY_CURRENT_USER', 'HKEY_LOCAL_MACHINE'):
-                build = edge_build(key_type, item['key'], item['description'])
-                if _is_new_version('86.0.622.0', build): # Webview2 86.0.622.0
+            for key_type in ("HKEY_CURRENT_USER", "HKEY_LOCAL_MACHINE"):
+                build = edge_build(key_type, item["key"], item["description"])
+                if _is_new_version("86.0.622.0", build):  # Webview2 86.0.622.0
                     return True
 
     except Exception as e:
@@ -97,42 +102,48 @@ def _is_chromium():
     return False
 
 
-is_cef = forced_gui_ == 'cef'
-is_chromium = not is_cef and _is_chromium() and forced_gui_ != 'mshtml'
+is_cef = forced_gui_ == "cef"
+is_chromium = not is_cef and _is_chromium() and forced_gui_ != "mshtml"
 
 if is_cef:
     from . import cef as CEF
+
     IWebBrowserInterop = object
 
-    logger.debug('Using WinForms / CEF')
-    renderer = 'cef'
+    logger.debug("Using WinForms / CEF")
+    renderer = "cef"
 elif is_chromium:
     from . import edgechromium as Chromium
+
     IWebBrowserInterop = object
 
-    logger.debug('Using WinForms / Chromium')
-    renderer = 'edgechromium'
+    logger.debug("Using WinForms / Chromium")
+    renderer = "edgechromium"
 else:
     from . import mshtml as IE
-    logger.warning('MSHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium')
-    logger.debug('Using WinForms / MSHTML')
-    renderer = 'mshtml'
+
+    logger.warning(
+        "MSHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium"
+    )
+    logger.debug("Using WinForms / MSHTML")
+    renderer = "mshtml"
 
 if not _private_mode or _storage_path:
     try:
         data_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-        
+
         if not os.access(data_folder, os.W_OK):
             data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-            
-        cache_dir = _storage_path or os.path.join(data_folder, 'pywebview')
+
+        cache_dir = _storage_path or os.path.join(data_folder, "pywebview")
 
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
-    except Exception as e:
-        logger.exception(f'Cache directory {cache_dir} creation failed')
+    except Exception:
+        logger.exception(f"Cache directory {cache_dir} creation failed")
 else:
     cache_dir = tempfile.TemporaryDirectory().name
+
 
 class BrowserView:
     instances = {}
@@ -164,7 +175,7 @@ class BrowserView:
             if window.minimized:
                 self.WindowState = WinForms.FormWindowState.Minimized
 
-            self.old_state =  self.WindowState
+            self.old_state = self.WindowState
 
             # Application icon
             handle = kernel32.GetModuleHandleW(None)
@@ -189,7 +200,7 @@ class BrowserView:
 
             if window.frameless:
                 self.frameless = window.frameless
-                self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
+                self.FormBorderStyle = getattr(WinForms.FormBorderStyle, "None")
 
             if BrowserView.app_menu_list:
                 self.set_window_menu(BrowserView.app_menu_list)
@@ -200,11 +211,13 @@ class BrowserView:
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window, cache_dir)
                 # for chromium edge, need this factor to modify the coordinates
-                self.scale_factor = windll.shcore.GetScaleFactorForDevice(0)/100
+                self.scale_factor = windll.shcore.GetScaleFactorForDevice(0) / 100
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
 
-            if window.transparent and self.browser: # window transparency is supported only with EdgeChromium
+            if (
+                window.transparent and self.browser
+            ):  # window transparency is supported only with EdgeChromium
                 self.BackColor = Color.LimeGreen
                 self.TransparencyKey = Color.LimeGreen
                 self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
@@ -221,19 +234,19 @@ class BrowserView:
 
             self.localization = window.localization
 
-        def on_activated(self, sender, args):
+        def on_activated(self, *_):
             if self.browser:
                 self.browser.web_view.Focus()
 
             if is_cef:
                 CEF.focus(self.uid)
 
-        def on_shown(self, sender, args):
+        def on_shown(self, *_):
             if not is_cef:
                 self.shown.set()
                 self.browser.web_view.Focus()
 
-        def on_close(self, sender, args):
+        def on_close(self, *_):
             def _shutdown():
                 if is_cef:
                     CEF.shutdown()
@@ -259,8 +272,12 @@ class BrowserView:
 
         def on_closing(self, sender, args):
             if self.pywebview_window.confirm_close:
-                result = WinForms.MessageBox.Show(self.localization['global.quitConfirmation'], self.Text,
-                                                WinForms.MessageBoxButtons.OKCancel, WinForms.MessageBoxIcon.Asterisk)
+                result = WinForms.MessageBox.Show(
+                    self.localization["global.quitConfirmation"],
+                    self.Text,
+                    WinForms.MessageBoxButtons.OKCancel,
+                    WinForms.MessageBoxIcon.Asterisk,
+                )
 
                 if result == WinForms.DialogResult.Cancel:
                     args.Cancel = True
@@ -278,7 +295,10 @@ class BrowserView:
             if self.WindowState == WinForms.FormWindowState.Minimized:
                 self.pywebview_window.events.minimized.set()
 
-            if self.WindowState == WinForms.FormWindowState.Normal and self.old_state in (WinForms.FormWindowState.Minimized, WinForms.FormWindowState.Maximized):
+            if self.WindowState == WinForms.FormWindowState.Normal and self.old_state in (
+                WinForms.FormWindowState.Minimized,
+                WinForms.FormWindowState.Maximized,
+            ):
                 self.pywebview_window.events.restored.set()
 
             self.old_state = self.WindowState
@@ -293,7 +313,9 @@ class BrowserView:
 
         def evaluate_js(self, script):
             def _evaluate_js():
-                self.browser.evaluate_js(script, semaphore, js_result) if is_chromium else self.browser.evaluate_js(script)
+                self.browser.evaluate_js(
+                    script, semaphore, js_result
+                ) if is_chromium else self.browser.evaluate_js(script)
 
             semaphore = Semaphore(0)
             js_result = []
@@ -314,7 +336,7 @@ class BrowserView:
 
             cookies = []
             if not is_chromium:
-                logger.error('get_cookies() is not implemented for this platform')
+                logger.error("get_cookies() is not implemented for this platform")
                 return cookies
 
             self.loaded.wait()
@@ -326,10 +348,9 @@ class BrowserView:
 
             return cookies
 
-
         def load_html(self, content, base_uri):
             def _load_html():
-                 self.browser.load_html(content, base_uri)
+                self.browser.load_html(content, base_uri)
 
             self.Invoke(Func[Type](_load_html))
 
@@ -359,7 +380,11 @@ class BrowserView:
                         elif isinstance(menu_line_item, MenuAction):
                             action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
                             # Don't run action function on main thread
-                            action_item.Click += lambda _,__,menu_line_item=menu_line_item : threading.Thread(target=menu_line_item.function).start()
+                            action_item.Click += (
+                                lambda _, __, menu_line_item=menu_line_item: threading.Thread(
+                                    target=menu_line_item.function
+                                ).start()
+                            )
                             m.DropDownItems.Add(action_item)
                         elif isinstance(menu_line_item, Menu):
                             create_submenu(menu_line_item.title, menu_line_item.items, m)
@@ -390,12 +415,19 @@ class BrowserView:
                     self.old_state = self.WindowState
                     self.old_style = self.FormBorderStyle
                     self.old_location = self.Location
-                    self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
+                    self.FormBorderStyle = getattr(WinForms.FormBorderStyle, "None")
                     self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
                     self.WindowState = WinForms.FormWindowState.Maximized
                     self.is_fullscreen = True
-                    windll.user32.SetWindowPos(self.Handle.ToInt32(), None, screen.Bounds.X, screen.Bounds.Y,
-                                            screen.Bounds.Width, screen.Bounds.Height, 64)
+                    windll.user32.SetWindowPos(
+                        self.Handle.ToInt32(),
+                        None,
+                        screen.Bounds.X,
+                        screen.Bounds.Y,
+                        screen.Bounds.Width,
+                        screen.Bounds.Height,
+                        64,
+                    )
                 else:
                     self.Size = self.old_size
                     self.WindowState = self.old_state
@@ -424,13 +456,29 @@ class BrowserView:
             SWP_NOSIZE = 0x0001  # Retains the current size
             SWP_NOZORDER = 0x0004  # Retains the current Z order
             SWP_SHOWWINDOW = 0x0040  # Displays the window
-            if(self.scale_factor != 1):
+            if self.scale_factor != 1:
                 # The coordinates needed to be scaled
                 x_modified = x * self.scale_factor
                 y_modified = y * self.scale_factor
-                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x_modified), int(y_modified), None, None, SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
+                windll.user32.SetWindowPos(
+                    self.Handle.ToInt32(),
+                    None,
+                    int(x_modified),
+                    int(y_modified),
+                    None,
+                    None,
+                    SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW,
+                )
             else:
-                windll.user32.SetWindowPos(self.Handle.ToInt32(), None, int(x), int(y), None, None, SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW)
+                windll.user32.SetWindowPos(
+                    self.Handle.ToInt32(),
+                    None,
+                    int(x),
+                    int(y),
+                    None,
+                    None,
+                    SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW,
+                )
 
         def minimize(self):
             def _minimize():
@@ -486,22 +534,34 @@ def _set_ie_mode():
         return value
 
     try:
-        browser_emulation = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                                           r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION",
-                                           0, winreg.KEY_ALL_ACCESS)
+        browser_emulation = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION",
+            0,
+            winreg.KEY_ALL_ACCESS,
+        )
     except WindowsError:
-        browser_emulation = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER,
-                                               r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION",
-                                               0, winreg.KEY_ALL_ACCESS)
+        browser_emulation = winreg.CreateKeyEx(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION",
+            0,
+            winreg.KEY_ALL_ACCESS,
+        )
 
     try:
-        dpi_support = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                                     r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL",
-                                     0, winreg.KEY_ALL_ACCESS)
+        dpi_support = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL",
+            0,
+            winreg.KEY_ALL_ACCESS,
+        )
     except WindowsError:
-        dpi_support = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER,
-                                               r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL",
-                                               0, winreg.KEY_ALL_ACCESS)
+        dpi_support = winreg.CreateKeyEx(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL",
+            0,
+            winreg.KEY_ALL_ACCESS,
+        )
 
     mode = get_ie_mode()
     executable_name = sys.executable.split("\\")[-1]
@@ -516,6 +576,8 @@ _main_window_created = Event()
 _main_window_created.clear()
 
 _already_set_up_app = False
+
+
 def setup_app():
     # MUST be called before create_window and set_app_menu
     global _already_set_up_app
@@ -524,6 +586,7 @@ def setup_app():
     WinForms.Application.EnableVisualStyles()
     WinForms.Application.SetCompatibleTextRenderingDefault(False)
     _already_set_up_app = True
+
 
 def create_window(window):
     def create():
@@ -540,12 +603,12 @@ def create_window(window):
 
         _main_window_created.set()
 
-        if window.uid == 'master':
+        if window.uid == "master":
             app.Run()
 
     app = WinForms.Application
 
-    if window.uid == 'master':
+    if window.uid == "master":
         if not is_cef and not is_chromium:
             _set_ie_mode()
 
@@ -562,7 +625,7 @@ def create_window(window):
 
     else:
         _main_window_created.wait()
-        i = list(BrowserView.instances.values())[0]     # arbitrary instance
+        i = list(BrowserView.instances.values())[0]  # arbitrary instance
         i.Invoke(Func[Type](create))
 
 
@@ -577,7 +640,7 @@ def set_title(title, uid):
         _set_title()
 
 
-def create_confirmation_dialog(title, message, uid):
+def create_confirmation_dialog(title, message, _):
     result = WinForms.MessageBox.Show(message, title, WinForms.MessageBoxButtons.OKCancel)
     return result == WinForms.DialogResult.OK
 
@@ -586,7 +649,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     window = BrowserView.instances[uid]
 
     if not directory:
-        directory = os.environ['HOMEPATH']
+        directory = os.environ["HOMEPATH"]
 
     try:
         if dialog_type == FOLDER_DIALOG:
@@ -608,9 +671,11 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
             dialog.InitialDirectory = directory
 
             if len(file_types) > 0:
-                dialog.Filter = '|'.join(['{0} ({1})|{1}'.format(*parse_file_type(f)) for f in file_types])
+                dialog.Filter = "|".join(
+                    ["{0} ({1})|{1}".format(*parse_file_type(f)) for f in file_types]
+                )
             else:
-                dialog.Filter = window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
+                dialog.Filter = window.localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
             dialog.RestoreDirectory = True
 
             result = dialog.ShowDialog(window)
@@ -622,9 +687,11 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         elif dialog_type == SAVE_DIALOG:
             dialog = WinForms.SaveFileDialog()
             if len(file_types) > 0:
-                dialog.Filter = '|'.join(['{0} ({1})|{1}'.format(*parse_file_type(f)) for f in file_types])
+                dialog.Filter = "|".join(
+                    ["{0} ({1})|{1}".format(*parse_file_type(f)) for f in file_types]
+                )
             else:
-                dialog.Filter = window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
+                dialog.Filter = window.localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
             dialog.InitialDirectory = directory
             dialog.RestoreDirectory = True
             dialog.FileName = save_filename
@@ -637,25 +704,23 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
         return file_path
     except:
-        logger.exception('Error invoking {0} dialog'.format(dialog_type))
+        logger.exception("Error invoking %s dialog", dialog_type)
         return None
 
 
 def get_cookies(uid):
     if is_cef:
         return CEF.get_cookies(uid)
-    else:
-        window = BrowserView.instances[uid]
-        return window.get_cookies()
+    window = BrowserView.instances[uid]
+    return window.get_cookies()
 
 
 def get_current_url(uid):
     if is_cef:
         return CEF.get_current_url(uid)
-    else:
-        window = BrowserView.instances[uid]
-        window.loaded.wait()
-        return window.browser.url
+    window = BrowserView.instances[uid]
+    window.loaded.wait()
+    return window.browser.url
 
 
 def load_url(url, uid):
@@ -671,9 +736,9 @@ def load_url(url, uid):
 def load_html(content, base_uri, uid):
     if is_cef:
         CEF.load_html(inject_base_uri(content, base_uri), uid)
-        return
     else:
         BrowserView.instances[uid].load_html(content, base_uri)
+
 
 def set_app_menu(app_menu_list):
     """
@@ -687,6 +752,7 @@ def set_app_menu(app_menu_list):
     #     save the app_menu_list and recreate the menu for each window as they
     #     are created.
     BrowserView.app_menu_list = app_menu_list
+
 
 def get_active_window():
     active_window = None
@@ -757,8 +823,7 @@ def destroy_window(uid):
 def evaluate_js(script, uid, result_id=None):
     if is_cef:
         return CEF.evaluate_js(script, result_id, uid)
-    else:
-        return BrowserView.instances[uid].evaluate_js(script)
+    return BrowserView.instances[uid].evaluate_js(script)
 
 
 def get_position(uid):
@@ -774,6 +839,6 @@ def get_screens():
     screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens]
     return screens
 
+
 def add_tls_cert(certfile):
     raise NotImplementedError
-

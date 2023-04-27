@@ -1,8 +1,6 @@
-import webview
+"""This example demonstrates how to get cookies for the current website."""
 
-"""
-This example demonstrates how to get cookies for the current website
-"""
+import webview
 
 
 def get_cookies(window):
@@ -11,7 +9,6 @@ def get_cookies(window):
         print(c.output())
 
 
-
-if __name__ == '__main__':
-    window = webview.create_window('Get cookies', 'https://google.com')
+if __name__ == "__main__":
+    window = webview.create_window("Get cookies", "https://google.com")
     webview.start(get_cookies, window, private_mode=False)

@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+from typing import Callable
+
+
 class Menu:
-    def __init__(self, title, items=[]):
+    def __init__(self, title: str, items: list[str] = []):
         """
         Args:
             title: the menu or submenu title
@@ -8,12 +13,14 @@ class Menu:
         self.title = title
         self.items = items
 
+
 class MenuAction:
-    def __init__(self, title, function, shortcut=None):
+    def __init__(self, title: str, function: Callable[[], None]):
         self.title = title
         self.function = function
         # TODO: support platform-agnostic shortcut
         # self.shortcut = shortcut
+
 
 class MenuSeparator:
     pass

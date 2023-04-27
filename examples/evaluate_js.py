@@ -1,8 +1,6 @@
-import webview
+"""This example demonstrates evaluating JavaScript in a web page."""
 
-"""
-This example demonstrates evaluating JavaScript in a web page.
-"""
+import webview
 
 
 def evaluate_js(window):
@@ -24,6 +22,6 @@ def evaluate_js(window):
     print(result)
 
 
-if __name__ == '__main__':
-    window = webview.create_window('Run custom JavaScript', html='<html><body></body></html>')
+if __name__ == "__main__":
+    window = webview.create_window("Run custom JavaScript", html="<html><body></body></html>")
     webview.start(evaluate_js, window)

@@ -1,5 +1,6 @@
-import webview
 import threading
+
+import webview
 
 """
 This example demonstrates a difference between different link types
@@ -20,6 +21,6 @@ html = """
 """
 
 
-if __name__ == '__main__':
-    window = webview.create_window('Link types', html=html)
+if __name__ == "__main__":
+    window = webview.create_window("Link types", html=html)
     webview.start()

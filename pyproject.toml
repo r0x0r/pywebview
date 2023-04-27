@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pywebview"
+authors = [{ name = "Roman Sirokov", email = "roman@flowrl.com" }]
+description = "Build GUI for your Python program with JavaScript, HTML, and CSS"
+version = "4.0.2"
+keywords = ["gui", "webkit", "html", "web"]
+requires-python = ">=3.7"
+license = { file = "LICENSE" }
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Environment :: MacOS X",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications :: GTK",
+    "Environment :: X11 Applications :: Qt",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: User Interfaces",
+]
+dependencies = [
+    "pythonnet;sys_platform=='win32'",
+    "pyobjc-core;sys_platform=='darwin'",
+    "pyobjc-framework-Cocoa;sys_platform=='darwin'",
+    "pyobjc-framework-WebKit;sys_platform=='darwin'",
+    "QtPy;sys_platform=='openbsd6'",
+    "proxy_tools",
+    "bottle",
+    "typing_extensions",
+]
+
+[project.optional-dependencies]
+cef = ["cefpython3"]
+gtk = ["PyGObject", "PyGObject-stubs"]
+pyside2 = ["QtPy", "PySide2"]
+pyside6 = ["QtPy", "PySide6"]
+qt = ["QtPy", "PyQt5", "pyqtwebengine"]
+
+[project.urls]
+Homepage = "https://pywebview.flowrl.com/"
+Repository = "https://github.com/r0x0r/pywebview"
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+line_length = 100
+
+[tool.setuptools]
+include-package-data = false
+packages = ["webview", "webview.js", "webview.lib"]
+
+[tool.setuptools.package-data]
+"webview.lib" = ["**/*.dll"]

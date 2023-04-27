@@ -1,11 +1,8 @@
+"""This example demonstrates how to create a frameless window with a custom minimum size."""
+
 import webview
 
-"""
-This example demonstrates how to create a frameless window with a custom minimum
-size.
-"""
-
-html="""
+html = """
 <!doctype html>
 <html lang="en">
 	<head>
@@ -72,7 +69,7 @@ html="""
 """
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Create a transparent webview window
-    webview.create_window('Transparent window', html=html, transparent=True, frameless=True)
+    webview.create_window("Transparent window", html=html, transparent=True, frameless=True)
     webview.start()

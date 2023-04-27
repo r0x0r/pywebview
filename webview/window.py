@@ -1,51 +1,64 @@
+from __future__ import annotations
+
 import inspect
 import logging
 import os
+from collections.abc import Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
+from typing import TYPE_CHECKING, Any, Callable, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
 
-import webview.http as http
+from typing_extensions import Concatenate, ParamSpec, TypeAlias
 
+import webview.http as http
 from webview.event import Event
 from webview.localization import original_localization
-from webview.util import base_uri, parse_file_type, is_app, is_local_url, needs_server, escape_string, WebViewException
+from webview.util import (WebViewException, base_uri, escape_string, is_app, is_local_url,
+                          parse_file_type)
+
 from .js import css
 
+if TYPE_CHECKING:
+    from typing import type_check_only
 
-logger = logging.getLogger('pywebview')
+P = ParamSpec("P")
+T = TypeVar("T")
+
+logger = logging.getLogger("pywebview")
 
 
-def _api_call(function, event_type):
+def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
     """
     Decorator to call a pywebview API, checking for _webview_ready and raisings
     appropriate Exceptions on failure.
     """
+
     @wraps(function)
-    def wrapper(*args, **kwargs):
-        event = args[0].events.loaded if event_type == 'loaded' else args[0].events.shown
+    def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
+        event = self.events.loaded if event_type == "loaded" else self.events.shown
 
         try:
             if not event.wait(20):
-                raise WebViewException('Main window failed to start')
+                raise WebViewException("Main window failed to start")
 
-            if args[0].gui is None:
-                raise WebViewException('GUI is not initialized')
+            if self.gui is None:
+                raise WebViewException("GUI is not initialized")
 
-            return function(*args, **kwargs)
-        except NameError as e:
-            raise WebViewException('Create a web view window first, before invoking this function')
+            return function(self, *args, **kwargs)
+        except NameError:
+            raise WebViewException("Create a web view window first, before invoking this function")
 
     return wrapper
 
 
-def _shown_call(function):
-    return _api_call(function, 'shown')
+def _shown_call(function: Callable[P, T]) -> Callable[P, T]:
+    return _api_call(function, "shown")
 
 
-def _loaded_call(function):
-    return _api_call(function, 'loaded')
+def _loaded_call(function: Callable[P, T]) -> Callable[P, T]:
+    return _api_call(function, "loaded")
 
 
 class FixPoint(Flag):
@@ -56,15 +69,49 @@ class FixPoint(Flag):
 
 
 class EventContainer:
-    pass
+    if TYPE_CHECKING:
+
+        @type_check_only
+        def __getattr__(self, __name: str) -> Event:
+            ...
+
+        @type_check_only
+        def __setattr__(self, __name: str, __value: Event) -> None:
+            ...
 
 
 class Window:
-    def __init__(self, uid, title, url, html='', width=800, height=600, x=None, y=None,
-                 resizable=True, fullscreen=False, min_size=(200, 100), hidden=False,
-                 frameless=False, easy_drag=True, minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
-                 js_api=None, text_select=False, transparent=False, zoomable=False, draggable=False, vibrancy=False, localization=None,
-                 http_port=None, server=None, server_args={}):
+    def __init__(
+        self,
+        uid: str,
+        title: str,
+        url: str | None,
+        html: str = "",
+        width: int = 800,
+        height: int = 600,
+        x: int | None = None,
+        y: int | None = None,
+        resizable: bool = True,
+        fullscreen: bool = False,
+        min_size: tuple[int, int] = (200, 100),
+        hidden: bool = False,
+        frameless: bool = False,
+        easy_drag: bool = True,
+        minimized: bool = False,
+        on_top: bool = False,
+        confirm_close: bool = False,
+        background_color: str = "#FFFFFF",
+        js_api: Any = None,
+        text_select: bool = False,
+        transparent: bool = False,
+        zoomable: bool = False,
+        draggable: bool = False,
+        vibrancy: bool = False,
+        localization: Mapping[str, str] | None = None,
+        http_port: int | None = None,
+        server: type[http.ServerType] | None = None,
+        server_args: http.ServerArgs = {},
+    ) -> None:
         self.uid = uid
         self.title = title
         self.original_url = None if html else url  # original URL provided by user
@@ -92,9 +139,9 @@ class Window:
         self.vibrancy = vibrancy
 
         # Server config
-        self._http_port=http_port
-        self._server=server
-        self._server_args=server_args
+        self._http_port = http_port
+        self._server = server
+        self._server_args = server_args
 
         # HTTP server path magic
         self._url_prefix = None
@@ -102,8 +149,8 @@ class Window:
         self._server = None
 
         self._js_api = js_api
-        self._functions = {}
-        self._callbacks = {}
+        self._functions: dict[str, Callable[..., Any]] = {}
+        self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
         self.events = EventContainer()
         self.events.closed = Event()
@@ -118,7 +165,7 @@ class Window:
 
         self.gui = None
 
-    def _initialize(self, gui, server=None):
+    def _initialize(self, gui, server: http.BottleServer | None = None):
         self.gui = gui
 
         self.localization = original_localization.copy()
@@ -126,57 +173,65 @@ class Window:
             self.localization.update(self.localization_override)
 
         if is_app(self.original_url) and (server is None or server == http.global_server):
-            prefix, common_path, server = http.start_server(urls=[self.original_url], http_port=self._http_port, server=self._server, **self._server_args)
+            *_, server = http.start_server(
+                urls=[self.original_url],
+                http_port=self._http_port,
+                server=self._server,
+                **self._server_args,
+            )
         elif server is None:
             server = http.global_server
 
         self._url_prefix = server.address if not server is None else None
         self._common_path = server.common_path if not server is None else None
         self._server = server
-        self.js_api_endpoint = http.global_server.js_api_endpoint if not http.global_server is None else None
+        self.js_api_endpoint = (
+            http.global_server.js_api_endpoint if not http.global_server is None else None
+        )
         self.real_url = self._resolve_url(self.original_url)
 
     @property
-    def width(self):
+    def width(self) -> int:
         self.events.shown.wait(15)
         width, _ = self.gui.get_size(self.uid)
         return width
 
     @property
-    def height(self):
+    def height(self) -> int:
         self.events.shown.wait(15)
         _, height = self.gui.get_size(self.uid)
         return height
 
     @property
-    def x(self):
+    def x(self) -> int:
         self.events.shown.wait(15)
         x, _ = self.gui.get_position(self.uid)
         return x
 
     @property
-    def y(self):
+    def y(self) -> int:
         self.events.shown.wait(15)
         _, y = self.gui.get_position(self.uid)
         return y
 
     @property
-    def on_top(self):
+    def on_top(self) -> bool:
         return self.__on_top
 
     @on_top.setter
-    def on_top(self, on_top):
+    def on_top(self, on_top: bool) -> None:
         self.__on_top = on_top
-        if hasattr(self, 'gui') and self.gui != None:
+        if hasattr(self, "gui") and self.gui != None:
             self.gui.set_on_top(self.uid, on_top)
 
     @_loaded_call
-    def get_elements(self, selector):
+    def get_elements(self, selector: str) -> Any:
         # check for GTK's WebKit2 version
-        if hasattr(self.gui, 'old_webkit') and self.gui.old_webkit:
-            raise NotImplementedError('get_elements requires WebKit2 2.2 or greater')
+        if hasattr(self.gui, "old_webkit") and self.gui.old_webkit:
+            raise NotImplementedError("get_elements requires WebKit2 2.2 or greater")
 
-        code = """
+        code = (
+            """
             var elements = document.querySelectorAll('%s');
             var serializedElements = [];
 
@@ -189,42 +244,45 @@ class Window:
             }
 
             serializedElements;
-        """ % selector
+        """
+            % selector
+        )
 
         return self.evaluate_js(code)
 
     @_shown_call
-    def load_url(self, url):
+    def load_url(self, url: str) -> None:
         """
         Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is
         created with create_window(). Otherwise an exception is thrown.
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if ((self._server is None) or (not self._server.running)) and ((is_app(url) or is_local_url(url))):
+        if ((self._server is None) or (not self._server.running)) and (
+            (is_app(url) or is_local_url(url))
+        ):
             self._url_prefix, self._common_path, self.server = http.start_server([url])
 
         self.real_url = self._resolve_url(url)
         self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
-    def load_html(self, content, base_uri=base_uri()):
+    def load_html(self, content, base_uri: str = base_uri()) -> None:
         """
         Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
         created with create_window(). Otherwise an exception is thrown.
         :param content: Content to load.
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
-        :param uid: uid of the target instance
         """
         self.gui.load_html(content, base_uri, self.uid)
 
     @_loaded_call
-    def load_css(self, stylesheet):
-        code = css.src % stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
+    def load_css(self, stylesheet: str) -> None:
+        code = css.src % stylesheet.replace("\n", "").replace("\r", "").replace('"', "'")
         self.gui.evaluate_js(code, self.uid)
 
     @_shown_call
-    def set_title(self, title):
+    def set_title(self, title: str) -> None:
         """
         Set a new title of the window
         """
@@ -238,45 +296,49 @@ class Window:
         return self.gui.get_cookies(self.uid)
 
     @_loaded_call
-    def get_current_url(self):
+    def get_current_url(self) -> str:
         """
         Get the URL currently loaded in the target webview
         """
         return self.gui.get_current_url(self.uid)
 
     @_loaded_call
-    def destroy(self):
+    def destroy(self) -> None:
         """
         Destroy a web view window
         """
         self.gui.destroy_window(self.uid)
 
     @_shown_call
-    def show(self):
+    def show(self) -> None:
         """
         Show a web view window.
         """
         self.gui.show(self.uid)
 
     @_shown_call
-    def hide(self):
+    def hide(self) -> None:
         """
         Hide a web view window.
         """
         self.gui.hide(self.uid)
 
     @_shown_call
-    def set_window_size(self, width, height):
+    def set_window_size(self, width: int, height: int) -> None:
         """
         Resize window
         :param width: desired width of target window
         :param height: desired height of target window
         """
-        logger.warning('This function is deprecated and will be removed in future releases. Use resize() instead')
+        logger.warning(
+            "This function is deprecated and will be removed in future releases. Use resize() instead"
+        )
         self.resize(width, height)
 
     @_shown_call
-    def resize(self, width, height, fix_point=FixPoint.NORTH | FixPoint.WEST):
+    def resize(
+        self, width: int, height: int, fix_point: FixPoint = FixPoint.NORTH | FixPoint.WEST
+    ) -> None:
         """
         Resize window
         :param width: desired width of target window
@@ -289,28 +351,28 @@ class Window:
         self.gui.resize(width, height, self.uid, fix_point)
 
     @_shown_call
-    def minimize(self):
+    def minimize(self) -> None:
         """
         Minimize window.
         """
         self.gui.minimize(self.uid)
 
     @_shown_call
-    def restore(self):
+    def restore(self) -> None:
         """
         Restore minimized window.
         """
         self.gui.restore(self.uid)
 
     @_shown_call
-    def toggle_fullscreen(self):
+    def toggle_fullscreen(self) -> None:
         """
         Toggle fullscreen mode
         """
         self.gui.toggle_fullscreen(self.uid)
 
     @_shown_call
-    def move(self, x, y):
+    def move(self, x: int, y: int) -> None:
         """
         Move Window
         :param x: desired x coordinate of target window
@@ -319,7 +381,7 @@ class Window:
         self.gui.move(x, y, self.uid)
 
     @_loaded_call
-    def evaluate_js(self, script, callback=None):
+    def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None) -> Any:
         """
         Evaluate given JavaScript code and return the result
         :param script: The JavaScript code to be evaluated
@@ -329,10 +391,12 @@ class Window:
         unique_id = uuid1().hex
         self._callbacks[unique_id] = callback
 
-        if self.gui.renderer == 'cef':
-            sync_eval = 'window.external.return_result(JSON.stringify(value), "{0}");'.format(unique_id,)
+        if self.gui.renderer == "cef":
+            sync_eval = 'window.external.return_result(JSON.stringify(value), "{0}");'.format(
+                unique_id,
+            )
         else:
-            sync_eval = 'JSON.stringify(value);'
+            sync_eval = "JSON.stringify(value);"
 
         if callback:
             escaped_script = """
@@ -343,20 +407,22 @@ class Window:
                     }});
                     "true";
                 }} else {{ {2} }}
-            """.format(escape_string(script), unique_id, sync_eval)
+            """.format(
+                escape_string(script), unique_id, sync_eval
+            )
         else:
-            escaped_script = """
-                var value = eval("{0}");
-                {1};
-            """.format(escape_string(script), sync_eval)
+            escaped_script = f"""
+                var value = eval("{escape_string(script)}");
+                {sync_eval};
+            """
 
-        if self.gui.renderer == 'cef':
+        if self.gui.renderer == "cef":
             return self.gui.evaluate_js(escaped_script, self.uid, unique_id)
         else:
             return self.gui.evaluate_js(escaped_script, self.uid)
 
     @_shown_call
-    def create_confirmation_dialog(self, title, message):
+    def create_confirmation_dialog(self, title: str, message: str) -> bool:
         """
         Create a confirmation dialog
         :param title: Dialog title
@@ -367,7 +433,14 @@ class Window:
         return self.gui.create_confirmation_dialog(title, message, self.uid)
 
     @_shown_call
-    def create_file_dialog(self, dialog_type=10, directory='', allow_multiple=False, save_filename='', file_types=()):
+    def create_file_dialog(
+        self,
+        dialog_type: int = 10,
+        directory: str = "",
+        allow_multiple: bool = False,
+        save_filename: str = "",
+        file_types: Sequence[str] = tuple(),
+    ) -> Sequence[str] | None:
         """
         Create a file dialog
         :param dialog_type: Dialog type: open file (OPEN_DIALOG), save file (SAVE_DIALOG), open folder (OPEN_FOLDER). Default
@@ -379,41 +452,32 @@ class Window:
             filetypes = ('Description (*.extension[;*.extension[;...]])', ...)
         :return: A tuple of selected files, None if cancelled.
         """
-        if type(file_types) != tuple and type(file_types) != list:
-            raise TypeError('file_types must be a tuple of strings')
         for f in file_types:
             parse_file_type(f)
 
         if not os.path.exists(directory):
-            directory = ''
+            directory = ""
 
-        return self.gui.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, self.uid)
+        return self.gui.create_file_dialog(
+            dialog_type, directory, allow_multiple, save_filename, file_types, self.uid
+        )
 
-    def expose(self, *functions):
+    def expose(self, *functions: Callable[..., Any]) -> None:
         if not all(map(callable, functions)):
-            raise TypeError('Parameter must be a function')
+            raise TypeError("Parameter must be a function")
 
-        func_list = []
+        func_list: list[dict[str, Any]] = []
 
         for func in functions:
             name = func.__name__
             self._functions[name] = func
-
-            try:
-                params = list(inspect.getfullargspec(func).args) # Python 3
-            except AttributeError:
-                params = list(inspect.getargspec(func).args)  # Python 2
-
-
-            func_list.append({
-                'func': name,
-                'params': params
-            })
+            params = list(inspect.getfullargspec(func).args)
+            func_list.append({"func": name, "params": params})
 
         if self.events.loaded.is_set():
-            self.evaluate_js('window.pywebview._createApi(%s)' % func_list)
+            self.evaluate_js(f"window.pywebview._createApi({func_list})")
 
-    def _resolve_url(self, url):
+    def _resolve_url(self, url: str) -> str | None:
         if is_app(url):
             return self._url_prefix
         if is_local_url(url) and self._url_prefix and self._common_path is not None:
@@ -421,3 +485,6 @@ class Window:
             return urljoin(self._url_prefix, filename)
         else:
             return url
+
+
+WindowFunc: TypeAlias = Callable[Concatenate[Window, P], T]

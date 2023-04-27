@@ -5,15 +5,12 @@ This example demonstrates how to create a CEF window. Available only on Windows.
 """
 
 # To pass custom settings to CEF, import and update settings dict
-from webview.platforms.cef import settings, browser_settings
-settings.update({
-    'persist_session_cookies': True
-})
+from webview.platforms.cef import browser_settings, settings
 
-browser_settings.update({
-    'dom_paste_disabled': False
-})
+settings.update({"persist_session_cookies": True})
 
-if __name__ == '__main__':
-    webview.create_window('CEF browser', 'https://pywebview.flowrl.com/hello')
-    webview.start(gui='cef')
+browser_settings.update({"dom_paste_disabled": False})
+
+if __name__ == "__main__":
+    webview.create_window("CEF browser", "https://pywebview.flowrl.com/hello")
+    webview.start(gui="cef")

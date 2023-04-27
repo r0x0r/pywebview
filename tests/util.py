@@ -1,24 +1,28 @@
-import threading
-import time
-import json
+import logging
 import os
 import sys
-import logging
+import threading
+import time
 import traceback
-import pytest
+from multiprocessing import Queue
 from uuid import uuid4
-from multiprocessing import Process, Queue
 
-logger = logging.getLogger('pywebview')
+import pytest
+
+logger = logging.getLogger("pywebview")
 
 
-def run_test(webview, window, thread_func=None, param=None, start_args={}, no_destroy=False, destroy_delay=0):
+def run_test(
+    webview, window, thread_func=None, param=None, start_args={}, no_destroy=False, destroy_delay=0
+):
     __tracebackhide__ = True
     try:
         queue = Queue()
 
         time.sleep(2)
-        _create_window(webview, window, thread_func, queue, param, start_args, no_destroy, destroy_delay)
+        _create_window(
+            webview, window, thread_func, queue, param, start_args, no_destroy, destroy_delay
+        )
 
         if not queue.empty():
             e = queue.get()
@@ -29,8 +33,8 @@ def run_test(webview, window, thread_func=None, param=None, start_args={}, no_de
 
 
 def assert_js(window, func_name, expected_result, *func_args):
-    value_id = 'v' + uuid4().hex[:8]
-    func_args = str(func_args).replace(',)', ')')
+    value_id = "v" + uuid4().hex[:8]
+    func_args = str(func_args).replace(",)", ")")
 
     execute_func = """
     window.pywebview.api.{0}{1}.then(function(value) {{
@@ -38,8 +42,10 @@ def assert_js(window, func_name, expected_result, *func_args):
     }}).catch(function() {{
         window.{2} = 'error'
     }})
-    """.format(func_name, func_args, value_id)
-    check_func = 'window.{0}'.format(value_id)
+    """.format(
+        func_name, func_args, value_id
+    )
+    check_func = "window.{0}".format(value_id)
 
     window.evaluate_js(execute_func)
 
@@ -48,7 +54,7 @@ def assert_js(window, func_name, expected_result, *func_args):
 
     while result is None:
         if counter == MAX:
-            raise AssertionError('assert_js timeout')
+            raise AssertionError("assert_js timeout")
         else:
             counter += 1
             time.sleep(0.1)
@@ -57,8 +63,9 @@ def assert_js(window, func_name, expected_result, *func_args):
     assert expected_result == result
 
 
-def _create_window(webview, window, thread_func, queue, thread_param, start_args, no_destroy, destroy_delay):
-
+def _create_window(
+    webview, window, thread_func, queue, thread_param, start_args, no_destroy, destroy_delay
+):
     def thread():
         try:
             if thread_func:
@@ -81,17 +88,18 @@ def _create_window(webview, window, thread_func, queue, thread_param, start_args
 
 
 def get_test_name():
-    return os.environ.get('PYTEST_CURRENT_TEST').split(':')[-1].split(' ')[0]
+    return os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
 
 
-def _destroy_window(webview, window, delay):
+def _destroy_window(_, window, delay):
     def stop():
         event.wait()
         time.sleep(delay)
         window.destroy()
 
-        if sys.platform == 'darwin':
+        if sys.platform == "darwin":
             from .util_cocoa import mouseMoveRelative
+
             time.sleep(1)
             mouseMoveRelative(1, 1)
 
@@ -101,5 +109,3 @@ def _destroy_window(webview, window, delay):
     t.start()
 
     return event
-
-

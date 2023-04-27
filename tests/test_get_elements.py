@@ -1,8 +1,8 @@
 import pytest
-import threading
-from .util import run_test, get_test_name
+
 import webview
 
+from .util import run_test
 
 html = """
   <html>
@@ -14,9 +14,10 @@ html = """
   </html>
 """
 
+
 @pytest.fixture
 def window():
-    return webview.create_window('Get elements test', html=html)
+    return webview.create_window("Get elements test", html=html)
 
 
 def test_single(window):
@@ -33,26 +34,26 @@ def test_none(window):
 
 def single_test(window):
     try:
-        elements = window.get_elements('#heading')
+        elements = window.get_elements("#heading")
         assert len(elements) == 1
-        assert elements[0]['innerHTML'] == 'Heading'
+        assert elements[0]["innerHTML"] == "Heading"
     except NotImplementedError:
         pass
 
 
 def multiple_test(window):
     try:
-        elements = window.get_elements('.content')
+        elements = window.get_elements(".content")
         assert len(elements) == 2
-        assert elements[0]['innerHTML'] == 'Content 1'
-        assert elements[1]['innerHTML'] == 'Content 2'
+        assert elements[0]["innerHTML"] == "Content 1"
+        assert elements[1]["innerHTML"] == "Content 2"
     except NotImplementedError:
         pass
 
 
 def none_test(window):
     try:
-        elements = window.get_elements('.adgdfg')
+        elements = window.get_elements(".adgdfg")
         assert len(elements) == 0
     except NotImplementedError:
         pass

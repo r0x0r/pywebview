@@ -1,23 +1,24 @@
-import webview
+"""This example demonstrates how to minimize and restore window programmatically."""
+
 from time import sleep
 
-"""
-This example demonstrates how to minimize and restore window programmatically
-"""
+import webview
 
 
 def minimize(window):
-    print('Window is started minimized')
+    print("Window is started minimized")
 
     sleep(5)
-    print('Restoring window')
+    print("Restoring window")
     window.restore()
 
     sleep(5)
-    print('Minimizing window')
+    print("Minimizing window")
     window.minimize()
 
 
-if __name__ == '__main__':
-    window = webview.create_window('Minimize window example', html='<h1>Minimize window</h1>', minimized=True)
+if __name__ == "__main__":
+    window = webview.create_window(
+        "Minimize window example", html="<h1>Minimize window</h1>", minimized=True
+    )
     webview.start(minimize, window)

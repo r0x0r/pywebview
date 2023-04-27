@@ -1,5 +1,6 @@
-import webview
 import threading
+
+import webview
 
 """
 This example demonstrates a simple loading animation workflow
@@ -120,6 +121,6 @@ html = """
 """
 
 
-if __name__ == '__main__':
-    window = webview.create_window('Loading Animation', html=html, background_color='#333333')
+if __name__ == "__main__":
+    window = webview.create_window("Loading Animation", html=html, background_color="#333333")
     webview.start()
