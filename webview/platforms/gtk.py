@@ -72,7 +72,6 @@ class BrowserView:
         self.is_fullscreen = False
         self.js_results = {}
 
-        glib.threads_init()
         self.window = gtk.ApplicationWindow(title=window.title, application=_app)
 
         self.shown = window.events.shown
@@ -258,6 +257,12 @@ class BrowserView:
         # for a lack of better solution we check that BrowserView has 'webview_ready' attribute
         if 'shown' in dir(self):
             self.shown.set()
+    
+    def webview_run_javascript(self, js, callback=None):
+        if webkit_ver[0] < 2 or webkit_ver[1] < 40:
+            self.webview.run_javascript(js, callback)
+        else:
+            self.webview.evaluate_javascript(js, len(js), None, None, None, callback, None)
 
     def on_load_finish(self, webview, status):
         # Show the webview if it's not already visible
@@ -266,7 +271,7 @@ class BrowserView:
 
         if status == webkit.LoadEvent.FINISHED:
             if not self.text_select:
-                webview.run_javascript(disable_text_select)
+                self.webview_run_javascript(disable_text_select)
             self._set_js_api()
 
     def on_js_callback(self, js_data):
@@ -297,9 +302,9 @@ class BrowserView:
 
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) == webkit.NavigationPolicyDecision:
-            uri = decision.get_request().get_uri()
+            uri = decision.get_navigation_action().get_request().get_uri()
 
-            if decision.get_frame_name() == '_blank':
+            if decision.get_navigation_action().get_frame_name() == '_blank':
                 webbrowser.open(uri, 2, True)
                 decision.ignore()
 
@@ -478,10 +483,10 @@ class BrowserView:
     def evaluate_js(self, script):
         def _evaluate_js():
             callback = None if old_webkit else _callback
-            self.webview.run_javascript(script, None, callback, None)
+            self.webview_run_javascript(script, callback)
 
         def _callback(webview, task, data):
-            value = webview.run_javascript_finish(task)
+            value = self.webview_run_javascript(task)
             result = value.get_js_value().to_string() if value else None
 
             if unique_id in self.js_results:
@@ -520,7 +525,8 @@ class BrowserView:
 
     def _set_js_api(self):
         def create_bridge():
-            self.webview.run_javascript(parse_api_js(self.js_bridge.window, 'gtk', uid=self.pywebview_window.uid))
+            js = parse_api_js(self.js_bridge.window, 'gtk', uid=self.pywebview_window.uid)
+            self.webview.evaluate_javascript(js, len(js), None, None, None, None, None)
             self.loaded.set()
 
         glib.idle_add(create_bridge)
