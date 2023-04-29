@@ -7,4 +7,4 @@ class Screen:
         return repr(self)
 
     def __repr__(self) -> str:
-        return "(%s, %s)" % (self.width, self.height)
+        return '(%s, %s)' % (self.width, self.height)

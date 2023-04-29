@@ -10,9 +10,9 @@ from webview import _debug, _private_mode, _user_agent
 from webview.js.css import disable_text_select
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, parse_api_js
 
-clr.AddReference("System.Windows.Forms")
-clr.AddReference("System.Collections")
-clr.AddReference("System.Threading")
+clr.AddReference('System.Windows.Forms')
+clr.AddReference('System.Collections')
+clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
 from System import Action, Func, String, Type, Uri
@@ -21,17 +21,17 @@ from System.Drawing import Color
 from System.Globalization import CultureInfo
 from System.Threading.Tasks import Task, TaskScheduler
 
-clr.AddReference(interop_dll_path("Microsoft.Web.WebView2.Core.dll"))
-clr.AddReference(interop_dll_path("Microsoft.Web.WebView2.WinForms.dll"))
+clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
+clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
 from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2Environment
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
-for platform in ("arm64", "x64", "x86"):
-    os.environ["Path"] += ";" + interop_dll_path(platform)
+for platform in ('arm64', 'x64', 'x86'):
+    os.environ['Path'] += ';' + interop_dll_path(platform)
 
 
-logger = logging.getLogger("pywebview")
+logger = logging.getLogger('pywebview')
 
 
 class EdgeChrome:
@@ -66,15 +66,15 @@ class EdgeChrome:
             self.load_url(window.real_url)
         elif window.html:
             self.html = window.html
-            self.load_html(window.html, "")
+            self.load_html(window.html, '')
         else:
             self.html = DEFAULT_HTML
-            self.load_html(DEFAULT_HTML, "")
+            self.load_html(DEFAULT_HTML, '')
 
     def evaluate_js(self, script, semaphore, js_result, callback=None):
         def _callback(result):
             if callback is None:
-                result = None if result is None or result == "" else json.loads(result)
+                result = None if result is None or result == '' else json.loads(result)
                 js_result.append(result)
                 semaphore.release()
             else:
@@ -89,7 +89,7 @@ class EdgeChrome:
                 self.syncContextTaskScheduler,
             )
         except Exception:
-            logger.exception("Error occurred in script")
+            logger.exception('Error occurred in script')
             js_result.append(None)
             semaphore.release()
 
@@ -107,14 +107,14 @@ class EdgeChrome:
                 same_site = None if c.SameSite == 0 else str(c.SameSite).lower()
                 try:
                     data = {
-                        "name": c.Name,
-                        "value": c.Value,
-                        "path": c.Path,
-                        "domain": c.Domain,
-                        "expires": c.Expires.ToString("r", CultureInfo.GetCultureInfo("en-US")),
-                        "secure": c.IsSecure,
-                        "httponly": c.IsHttpOnly,
-                        "samesite": same_site,
+                        'name': c.Name,
+                        'value': c.Value,
+                        'path': c.Path,
+                        'domain': c.Domain,
+                        'expires': c.Expires.ToString('r', CultureInfo.GetCultureInfo('en-US')),
+                        'secure': c.IsSecure,
+                        'httponly': c.IsHttpOnly,
+                        'samesite': same_site,
                     }
 
                     cookie = create_cookie(data)
@@ -150,14 +150,14 @@ class EdgeChrome:
         try:
             return_value = args.get_WebMessageAsJson()
             func_name, func_param, value_id = json.loads(return_value)
-            if func_name == "alert":
+            if func_name == 'alert':
                 WinForms.MessageBox.Show(func_param)
-            elif func_name == "console":
+            elif func_name == 'console':
                 print(func_param)
             else:
                 js_bridge_call(self.pywebview_window, func_name, func_param, value_id)
         except Exception:
-            logger.exception("Exception occurred during on_script_notify")
+            logger.exception('Exception occurred during on_script_notify')
 
     def on_new_window_request(self, _, args):
         args.set_Handled(True)
@@ -166,21 +166,21 @@ class EdgeChrome:
     def on_webview_ready(self, sender, args):
         if not args.IsSuccess:
             logger.error(
-                "WebView2 initialization failed with exception:\n "
+                'WebView2 initialization failed with exception:\n '
                 + str(args.InitializationException)
             )
             return
 
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
         settings = sender.CoreWebView2.Settings
-        settings.AreBrowserAcceleratorKeysEnabled = _debug["mode"]
-        settings.AreDefaultContextMenusEnabled = _debug["mode"]
+        settings.AreBrowserAcceleratorKeysEnabled = _debug['mode']
+        settings.AreDefaultContextMenusEnabled = _debug['mode']
         settings.AreDefaultScriptDialogsEnabled = True
-        settings.AreDevToolsEnabled = _debug["mode"]
+        settings.AreDevToolsEnabled = _debug['mode']
         settings.IsBuiltInErrorPageEnabled = True
         settings.IsScriptEnabled = True
         settings.IsWebMessageEnabled = True
-        settings.IsStatusBarEnabled = _debug["mode"]
+        settings.IsStatusBarEnabled = _debug['mode']
         settings.IsZoomControlEnabled = True
 
         if _user_agent:
@@ -193,7 +193,7 @@ class EdgeChrome:
         if self.html:
             sender.CoreWebView2.NavigateToString(self.html)
 
-        if _debug["mode"]:
+        if _debug['mode']:
             sender.CoreWebView2.OpenDevToolsWindow()
 
     def on_navigation_start(self, sender, args):
@@ -203,7 +203,7 @@ class EdgeChrome:
         url = str(sender.Source)
         self.url = None if self.ishtml else url
 
-        self.web_view.ExecuteScriptAsync(parse_api_js(self.pywebview_window, "chromium"))
+        self.web_view.ExecuteScriptAsync(parse_api_js(self.pywebview_window, 'chromium'))
 
         if not self.pywebview_window.text_select:
             self.web_view.ExecuteScriptAsync(disable_text_select)

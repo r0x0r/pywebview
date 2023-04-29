@@ -36,25 +36,25 @@ def _set_dpi_mode(enabled):
     try:
         dpi_support = winreg.OpenKey(
             winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers",
+            r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
             0,
             winreg.KEY_ALL_ACCESS,
         )
     except WindowsError:
         dpi_support = winreg.CreateKeyEx(
             winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers",
+            r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
             0,
             winreg.KEY_ALL_ACCESS,
         )
 
     try:
-        subprocess_path = os.path.join(sys._MEIPASS, "subprocess.exe")
+        subprocess_path = os.path.join(sys._MEIPASS, 'subprocess.exe')
     except:
-        subprocess_path = os.path.join(os.path.dirname(cef.__file__), "subprocess.exe")
+        subprocess_path = os.path.join(os.path.dirname(cef.__file__), 'subprocess.exe')
 
     if enabled:
-        winreg.SetValueEx(dpi_support, subprocess_path, 0, winreg.REG_SZ, "~HIGHDPIAWARE")
+        winreg.SetValueEx(dpi_support, subprocess_path, 0, winreg.REG_SZ, '~HIGHDPIAWARE')
     else:
         winreg.DeleteValue(dpi_support, subprocess_path)
 
@@ -75,19 +75,19 @@ class JSBridge:
         js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
 
-renderer = "cef"
+renderer = 'cef'
 
 
 class CookieVisitor:
     def Visit(self, cookie, count, total, delete_cookie_out):
         data = {
-            "name": cookie.GetName(),
-            "value": cookie.GetValue(),
-            "path": cookie.GetPath(),
-            "domain": cookie.GetDomain(),
-            "expires": cookie.GetExpires().strftime("%a, %d %b %Y %H:%M:%S GMT"),
-            "secure": cookie.GetSecure(),
-            "httponly": cookie.GetHttpOnly(),
+            'name': cookie.GetName(),
+            'value': cookie.GetValue(),
+            'path': cookie.GetPath(),
+            'domain': cookie.GetDomain(),
+            'expires': cookie.GetExpires().strftime('%a, %d %b %Y %H:%M:%S GMT'),
+            'secure': cookie.GetSecure(),
+            'httponly': cookie.GetHttpOnly(),
         }
 
         cookie = create_cookie(data)
@@ -122,7 +122,7 @@ class Browser:
         self.cookie_visitor = CookieVisitor()
 
         self.browser.GetJavascriptBindings().Rebind()
-        self.browser.ExecuteJavascript(parse_api_js(self.window, "cef"))
+        self.browser.ExecuteJavascript(parse_api_js(self.window, 'cef'))
 
         if not self.text_select:
             self.browser.ExecuteJavascript(disable_text_select)
@@ -198,7 +198,7 @@ class Browser:
     def load_html(self, html):
         self.initialized = False
         self.loaded.clear()
-        self.browser.LoadUrl("data:text/html,{0}".format(html))
+        self.browser.LoadUrl('data:text/html,{0}'.format(html))
 
     def focus(self):
         self.browser.SendFocusEvent(True)
@@ -214,8 +214,8 @@ def find_instance(browser):
 
 class LoadHandler:
     def OnBeforePopup(self, **args):
-        url = args["target_url"]
-        user_gesture = args["user_gesture"]
+        url = args['target_url']
+        user_gesture = args['user_gesture']
 
         if user_gesture:
             webbrowser.open(url)
@@ -231,7 +231,7 @@ class LoadHandler:
             else:
                 instance.initialize()
         else:
-            logger.debug("CEF instance is not found %s " % browser)
+            logger.debug('CEF instance is not found %s ' % browser)
 
 
 def _cef_call(func):
@@ -240,7 +240,7 @@ def _cef_call(func):
         uid = args[-1]
 
         if uid not in instances:
-            logger.error("CEF window with uid {0} does not exist".format(uid))
+            logger.error('CEF window with uid {0} does not exist'.format(uid))
             return
 
         return func(*args, **kwargs)
@@ -252,32 +252,32 @@ def init(window, cache_dir):
     global _initialized
 
     if not _initialized:
-        if sys.platform == "win32":
+        if sys.platform == 'win32':
             _set_dpi_mode(True)
 
         default_settings = {
-            "multi_threaded_message_loop": True,
-            "context_menu": {"enabled": _debug["mode"]},
+            'multi_threaded_message_loop': True,
+            'context_menu': {'enabled': _debug['mode']},
         }
 
-        default_command_line_switches = {"enable-media-stream": ""}
+        default_command_line_switches = {'enable-media-stream': ''}
 
-        if not _debug["mode"]:
-            default_settings["remote_debugging_port"] = -1
+        if not _debug['mode']:
+            default_settings['remote_debugging_port'] = -1
 
         if _user_agent:
-            default_settings["user_agent"] = _user_agent
+            default_settings['user_agent'] = _user_agent
 
         if cache_dir:
-            default_settings["cache_path"] = cache_dir
+            default_settings['cache_path'] = cache_dir
 
-        resource_root = getattr(sys, "_MEIPASS", os.path.dirname(cef.__file__))
+        resource_root = getattr(sys, '_MEIPASS', os.path.dirname(cef.__file__))
 
         default_settings.update(
             {
-                "resources_dir_path": resource_root,
-                "locales_dir_path": os.path.join(resource_root, "locales"),
-                "browser_subprocess_path": os.path.join(resource_root, "subprocess.exe"),
+                'resources_dir_path': resource_root,
+                'locales_dir_path': os.path.join(resource_root, 'locales'),
+                'browser_subprocess_path': os.path.join(resource_root, 'subprocess.exe'),
             }
         )
 
@@ -292,9 +292,9 @@ def init(window, cache_dir):
 def create_browser(window, handle, alert_func, parent):
     def _create():
         real_url = (
-            "data:text/html,{0}".format(window.html)
+            'data:text/html,{0}'.format(window.html)
             if window.html
-            else window.real_url or "data:text/html,{0}".format(DEFAULT_HTML)
+            else window.real_url or 'data:text/html,{0}'.format(DEFAULT_HTML)
         )
 
         default_browser_settings = {}
@@ -306,8 +306,8 @@ def create_browser(window, handle, alert_func, parent):
         browser = Browser(window, handle, cef_browser, parent)
 
         bindings = cef.JavascriptBindings()
-        bindings.SetObject("external", browser.js_bridge)
-        bindings.SetFunction("alert", alert_func)
+        bindings.SetObject('external', browser.js_bridge)
+        bindings.SetFunction('alert', alert_func)
 
         cef_browser.SetJavascriptBindings(bindings)
         cef_browser.SetClientHandler(LoadHandler())
@@ -316,7 +316,7 @@ def create_browser(window, handle, alert_func, parent):
         window.events.shown.set()
         cef_browser.SendFocusEvent(True)
 
-        if _debug["mode"]:
+        if _debug['mode']:
             cef_browser.ShowDevTools()
 
     window_info = cef.WindowInfo()
@@ -359,7 +359,7 @@ def get_current_url(uid):
     instance = instances[uid]
     url = instance.get_current_url()
 
-    if url.startswith("data:text/html,"):
+    if url.startswith('data:text/html,'):
         return None
     else:
         return url
@@ -380,16 +380,16 @@ def close_window(uid):
 
 def shutdown():
     try:
-        if os.path.exists("blob_storage"):
-            shutil.rmtree("blob_storage")
+        if os.path.exists('blob_storage'):
+            shutil.rmtree('blob_storage')
 
-        if os.path.exists("webrtc_event_logs"):
-            shutil.rmtree("webrtc_event_logs")
+        if os.path.exists('webrtc_event_logs'):
+            shutil.rmtree('webrtc_event_logs')
 
-        if os.path.exists("error.log") and not _debug["mode"]:
-            os.remove("error.log")
+        if os.path.exists('error.log') and not _debug['mode']:
+            os.remove('error.log')
 
-        if sys.platform == "win32":
+        if sys.platform == 'win32':
             _set_dpi_mode(False)
 
     except Exception as e:

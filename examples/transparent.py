@@ -69,7 +69,7 @@ html = """
 """
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Create a transparent webview window
-    webview.create_window("Transparent window", html=html, transparent=True, frameless=True)
+    webview.create_window('Transparent window', html=html, transparent=True, frameless=True)
     webview.start()

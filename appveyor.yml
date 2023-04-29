@@ -37,4 +37,3 @@ install:
 test_script:
   - cd tests
   - powershell -File ./run.ps1
-

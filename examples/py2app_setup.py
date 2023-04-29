@@ -18,19 +18,19 @@ def tree(src):
     ]
 
 
-ENTRY_POINT = ["simple_browser.py"]
+ENTRY_POINT = ['simple_browser.py']
 
-DATA_FILES = tree("DATA_FILES_DIR") + tree("DATA_FILE_DIR2")
+DATA_FILES = tree('DATA_FILES_DIR') + tree('DATA_FILE_DIR2')
 OPTIONS = {
-    "argv_emulation": False,
-    "strip": True,
+    'argv_emulation': False,
+    'strip': True,
     #'iconfile': 'icon.icns', # uncomment to include an icon
-    "includes": ["WebKit", "Foundation", "webview"],
+    'includes': ['WebKit', 'Foundation', 'webview'],
 }
 
 setup(
     app=ENTRY_POINT,
     data_files=DATA_FILES,
-    options={"py2app": OPTIONS},
-    setup_requires=["py2app"],
+    options={'py2app': OPTIONS},
+    setup_requires=['py2app'],
 )

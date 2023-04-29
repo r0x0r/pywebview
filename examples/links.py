@@ -21,6 +21,6 @@ html = """
 """
 
 
-if __name__ == "__main__":
-    window = webview.create_window("Link types", html=html)
+if __name__ == '__main__':
+    window = webview.create_window('Link types', html=html)
     webview.start()

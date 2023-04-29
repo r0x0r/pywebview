@@ -18,23 +18,23 @@ from webview.screen import Screen
 from webview.util import inject_base_uri, parse_file_type
 from webview.window import FixPoint
 
-clr.AddReference("System.Windows.Forms")
-clr.AddReference("System.Collections")
-clr.AddReference("System.Threading")
+clr.AddReference('System.Windows.Forms')
+clr.AddReference('System.Collections')
+clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
 from System import Environment, Func, Int32, IntPtr, Type
 from System.Drawing import Color, ColorTranslator, Icon, Point, Size
 from System.Threading import ApartmentState, Thread, ThreadStart
 
-kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-logger = logging.getLogger("pywebview")
+kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+logger = logging.getLogger('pywebview')
 settings = {}
 
 
 def _is_new_version(current_version: str, new_version: str) -> bool:
-    new_range = new_version.split(".")
-    cur_range = current_version.split(".")
+    new_range = new_version.split('.')
+    cur_range = current_version.split('.')
     for index, _ in enumerate(new_range):
         if len(cur_range) > index:
             return int(new_range[index]) >= int(cur_range[index])
@@ -43,55 +43,55 @@ def _is_new_version(current_version: str, new_version: str) -> bool:
 
 
 def _is_chromium():
-    def edge_build(key_type, key, description=""):
+    def edge_build(key_type, key, description=''):
         try:
             windows_key = None
-            if machine() == "x86" or key_type == "HKEY_CURRENT_USER":
-                path = rf"Microsoft\EdgeUpdate\Clients\{key}"
+            if machine() == 'x86' or key_type == 'HKEY_CURRENT_USER':
+                path = rf'Microsoft\EdgeUpdate\Clients\{key}'
             else:
-                path = rf"WOW6432Node\Microsoft\EdgeUpdate\Clients\{key}"
+                path = rf'WOW6432Node\Microsoft\EdgeUpdate\Clients\{key}'
 
-            with winreg.OpenKey(getattr(winreg, key_type), rf"SOFTWARE\{path}") as windows_key:
-                build, _ = winreg.QueryValueEx(windows_key, "pv")
+            with winreg.OpenKey(getattr(winreg, key_type), rf'SOFTWARE\{path}') as windows_key:
+                build, _ = winreg.QueryValueEx(windows_key, 'pv')
                 return str(build)
 
         except Exception:
             pass
 
-        return "0"
+        return '0'
 
     try:
         net_key = winreg.OpenKey(
-            winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full"
+            winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full'
         )
-        version, _ = winreg.QueryValueEx(net_key, "Release")
+        version, _ = winreg.QueryValueEx(net_key, 'Release')
 
         if version < 394802:  # .NET 4.6.2
             return False
 
         build_versions = [
             {
-                "key": "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
-                "description": "Microsoft Edge WebView2 Runtime",
+                'key': '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}',
+                'description': 'Microsoft Edge WebView2 Runtime',
             },  # runtime
             {
-                "key": "{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}",
-                "description": "Microsoft Edge WebView2 Beta",
+                'key': '{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}',
+                'description': 'Microsoft Edge WebView2 Beta',
             },  # beta
             {
-                "key": "{0D50BFEC-CD6A-4F9A-964C-C7416E3ACB10}",
-                "description": "Microsoft Edge WebView2 Developer",
+                'key': '{0D50BFEC-CD6A-4F9A-964C-C7416E3ACB10}',
+                'description': 'Microsoft Edge WebView2 Developer',
             },  # dev
             {
-                "key": "{65C35B14-6C1D-4122-AC46-7148CC9D6497}",
-                "description": "Microsoft Edge WebView2 Canary",
+                'key': '{65C35B14-6C1D-4122-AC46-7148CC9D6497}',
+                'description': 'Microsoft Edge WebView2 Canary',
             },  # canary
         ]
 
         for item in build_versions:
-            for key_type in ("HKEY_CURRENT_USER", "HKEY_LOCAL_MACHINE"):
-                build = edge_build(key_type, item["key"], item["description"])
-                if _is_new_version("86.0.622.0", build):  # Webview2 86.0.622.0
+            for key_type in ('HKEY_CURRENT_USER', 'HKEY_LOCAL_MACHINE'):
+                build = edge_build(key_type, item['key'], item['description'])
+                if _is_new_version('86.0.622.0', build):  # Webview2 86.0.622.0
                     return True
 
     except Exception as e:
@@ -102,31 +102,31 @@ def _is_chromium():
     return False
 
 
-is_cef = forced_gui_ == "cef"
-is_chromium = not is_cef and _is_chromium() and forced_gui_ != "mshtml"
+is_cef = forced_gui_ == 'cef'
+is_chromium = not is_cef and _is_chromium() and forced_gui_ != 'mshtml'
 
 if is_cef:
     from . import cef as CEF
 
     IWebBrowserInterop = object
 
-    logger.debug("Using WinForms / CEF")
-    renderer = "cef"
+    logger.debug('Using WinForms / CEF')
+    renderer = 'cef'
 elif is_chromium:
     from . import edgechromium as Chromium
 
     IWebBrowserInterop = object
 
-    logger.debug("Using WinForms / Chromium")
-    renderer = "edgechromium"
+    logger.debug('Using WinForms / Chromium')
+    renderer = 'edgechromium'
 else:
     from . import mshtml as IE
 
     logger.warning(
-        "MSHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium"
+        'MSHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium'
     )
-    logger.debug("Using WinForms / MSHTML")
-    renderer = "mshtml"
+    logger.debug('Using WinForms / MSHTML')
+    renderer = 'mshtml'
 
 if not _private_mode or _storage_path:
     try:
@@ -135,12 +135,12 @@ if not _private_mode or _storage_path:
         if not os.access(data_folder, os.W_OK):
             data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
 
-        cache_dir = _storage_path or os.path.join(data_folder, "pywebview")
+        cache_dir = _storage_path or os.path.join(data_folder, 'pywebview')
 
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
     except Exception:
-        logger.exception(f"Cache directory {cache_dir} creation failed")
+        logger.exception(f'Cache directory {cache_dir} creation failed')
 else:
     cache_dir = tempfile.TemporaryDirectory().name
 
@@ -200,7 +200,7 @@ class BrowserView:
 
             if window.frameless:
                 self.frameless = window.frameless
-                self.FormBorderStyle = getattr(WinForms.FormBorderStyle, "None")
+                self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
 
             if BrowserView.app_menu_list:
                 self.set_window_menu(BrowserView.app_menu_list)
@@ -273,7 +273,7 @@ class BrowserView:
         def on_closing(self, sender, args):
             if self.pywebview_window.confirm_close:
                 result = WinForms.MessageBox.Show(
-                    self.localization["global.quitConfirmation"],
+                    self.localization['global.quitConfirmation'],
                     self.Text,
                     WinForms.MessageBoxButtons.OKCancel,
                     WinForms.MessageBoxIcon.Asterisk,
@@ -336,7 +336,7 @@ class BrowserView:
 
             cookies = []
             if not is_chromium:
-                logger.error("get_cookies() is not implemented for this platform")
+                logger.error('get_cookies() is not implemented for this platform')
                 return cookies
 
             self.loaded.wait()
@@ -415,7 +415,7 @@ class BrowserView:
                     self.old_state = self.WindowState
                     self.old_style = self.FormBorderStyle
                     self.old_location = self.Location
-                    self.FormBorderStyle = getattr(WinForms.FormBorderStyle, "None")
+                    self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
                     self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
                     self.WindowState = WinForms.FormWindowState.Maximized
                     self.is_fullscreen = True
@@ -512,21 +512,21 @@ def _set_ie_mode():
         Get the installed version of IE
         :return:
         """
-        ie_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"Software\Microsoft\Internet Explorer")
+        ie_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'Software\Microsoft\Internet Explorer')
         try:
-            version, type = winreg.QueryValueEx(ie_key, "svcVersion")
+            version, type = winreg.QueryValueEx(ie_key, 'svcVersion')
         except:
-            version, type = winreg.QueryValueEx(ie_key, "Version")
+            version, type = winreg.QueryValueEx(ie_key, 'Version')
 
         winreg.CloseKey(ie_key)
 
-        if version.startswith("11"):
+        if version.startswith('11'):
             value = 0x2AF9
-        elif version.startswith("10"):
+        elif version.startswith('10'):
             value = 0x2711
-        elif version.startswith("9"):
+        elif version.startswith('9'):
             value = 0x270F
-        elif version.startswith("8"):
+        elif version.startswith('8'):
             value = 0x22B8
         else:
             value = 0x2AF9  # Set IE11 as default
@@ -536,14 +536,14 @@ def _set_ie_mode():
     try:
         browser_emulation = winreg.OpenKey(
             winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION",
+            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
             0,
             winreg.KEY_ALL_ACCESS,
         )
     except WindowsError:
         browser_emulation = winreg.CreateKeyEx(
             winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION",
+            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
             0,
             winreg.KEY_ALL_ACCESS,
         )
@@ -551,20 +551,20 @@ def _set_ie_mode():
     try:
         dpi_support = winreg.OpenKey(
             winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL",
+            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL',
             0,
             winreg.KEY_ALL_ACCESS,
         )
     except WindowsError:
         dpi_support = winreg.CreateKeyEx(
             winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL",
+            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL',
             0,
             winreg.KEY_ALL_ACCESS,
         )
 
     mode = get_ie_mode()
-    executable_name = sys.executable.split("\\")[-1]
+    executable_name = sys.executable.split('\\')[-1]
     winreg.SetValueEx(browser_emulation, executable_name, 0, winreg.REG_DWORD, mode)
     winreg.CloseKey(browser_emulation)
 
@@ -603,12 +603,12 @@ def create_window(window):
 
         _main_window_created.set()
 
-        if window.uid == "master":
+        if window.uid == 'master':
             app.Run()
 
     app = WinForms.Application
 
-    if window.uid == "master":
+    if window.uid == 'master':
         if not is_cef and not is_chromium:
             _set_ie_mode()
 
@@ -649,7 +649,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     window = BrowserView.instances[uid]
 
     if not directory:
-        directory = os.environ["HOMEPATH"]
+        directory = os.environ['HOMEPATH']
 
     try:
         if dialog_type == FOLDER_DIALOG:
@@ -671,11 +671,11 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
             dialog.InitialDirectory = directory
 
             if len(file_types) > 0:
-                dialog.Filter = "|".join(
-                    ["{0} ({1})|{1}".format(*parse_file_type(f)) for f in file_types]
+                dialog.Filter = '|'.join(
+                    ['{0} ({1})|{1}'.format(*parse_file_type(f)) for f in file_types]
                 )
             else:
-                dialog.Filter = window.localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
+                dialog.Filter = window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
             dialog.RestoreDirectory = True
 
             result = dialog.ShowDialog(window)
@@ -687,11 +687,11 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         elif dialog_type == SAVE_DIALOG:
             dialog = WinForms.SaveFileDialog()
             if len(file_types) > 0:
-                dialog.Filter = "|".join(
-                    ["{0} ({1})|{1}".format(*parse_file_type(f)) for f in file_types]
+                dialog.Filter = '|'.join(
+                    ['{0} ({1})|{1}'.format(*parse_file_type(f)) for f in file_types]
                 )
             else:
-                dialog.Filter = window.localization["windows.fileFilter.allFiles"] + " (*.*)|*.*"
+                dialog.Filter = window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
             dialog.InitialDirectory = directory
             dialog.RestoreDirectory = True
             dialog.FileName = save_filename
@@ -704,7 +704,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
         return file_path
     except:
-        logger.exception("Error invoking %s dialog", dialog_type)
+        logger.exception('Error invoking %s dialog', dialog_type)
         return None
 
 

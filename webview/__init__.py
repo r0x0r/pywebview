@@ -35,43 +35,43 @@ from webview.window import Window
 
 __all__ = (
     # Stuff that's here
-    "start",
-    "create_window",
-    "token",
-    "screens",
+    'start',
+    'create_window',
+    'token',
+    'screens',
     # From event
-    "Event",
+    'Event',
     # from util
-    "_TOKEN",
-    "base_uri",
-    "parse_file_type",
-    "escape_string",
-    "escape_line_breaks",
-    "WebViewException",
+    '_TOKEN',
+    'base_uri',
+    'parse_file_type',
+    'escape_string',
+    'escape_line_breaks',
+    'WebViewException',
     # from screen
-    "Screen",
+    'Screen',
     # from window
-    "Window",
+    'Window',
 )
 
-logger = logging.getLogger("pywebview")
+logger = logging.getLogger('pywebview')
 handler = logging.StreamHandler()
-formatter = logging.Formatter("[pywebview] %(message)s")
+formatter = logging.Formatter('[pywebview] %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-log_level = logging.DEBUG if os.environ.get("PYWEBVIEW_LOG") == "debug" else logging.INFO
+log_level = logging.DEBUG if os.environ.get('PYWEBVIEW_LOG') == 'debug' else logging.INFO
 logger.setLevel(log_level)
 
 OPEN_DIALOG = 10
 FOLDER_DIALOG = 20
 SAVE_DIALOG = 30
 
-DRAG_REGION_SELECTOR = ".pywebview-drag-region"
+DRAG_REGION_SELECTOR = '.pywebview-drag-region'
 DEFAULT_HTTP_PORT = 42001
 
 guilib = None
-_debug = {"mode": False}
+_debug = {'mode': False}
 _user_agent = None
 _http_server = False
 _private_mode = True
@@ -86,7 +86,7 @@ def start(
     func: Callable[..., None] | None = None,
     args: Iterable[Any] | None = None,
     localization: dict[str, str] = {},
-    gui: Literal["cef", "qt", "gtk"] | None = None,
+    gui: Literal['cef', 'qt', 'gtk'] | None = None,
     debug: bool = False,
     http_server: bool = False,
     http_port: int | None = None,
@@ -126,12 +126,12 @@ def start(
 
     def _create_children(other_windows):
         if not windows[0].events.shown.wait(10):
-            raise WebViewException("Main window failed to load")
+            raise WebViewException('Main window failed to load')
 
         for window in other_windows:
             guilib.create_window(window)
 
-    _debug["mode"] = debug
+    _debug['mode'] = debug
 
     if debug:
         logger.setLevel(logging.DEBUG)
@@ -146,19 +146,19 @@ def start(
 
     original_localization.update(localization)
 
-    if threading.current_thread().name != "MainThread":
-        raise WebViewException("pywebview must be run on a main thread.")
+    if threading.current_thread().name != 'MainThread':
+        raise WebViewException('pywebview must be run on a main thread.')
 
     if len(windows) == 0:
-        raise WebViewException("You must create a window first before calling this function.")
+        raise WebViewException('You must create a window first before calling this function.')
 
     guilib = initialize(gui)
 
     if ssl:
         # generate SSL certs and tell the windows to use them
         keyfile, certfile = generate_ssl_cert()
-        server_args["keyfile"] = keyfile
-        server_args["certfile"] = certfile
+        server_args['keyfile'] = keyfile
+        server_args['certfile'] = certfile
     else:
         keyfile, certfile = None, None
 
@@ -166,7 +166,7 @@ def start(
     has_local_urls = not not [w.original_url for w in windows if is_local_url(w.original_url)]
     # start the global server if it's not running and we need it
     if (http.global_server is None) and (
-        http_server or has_local_urls or (guilib.renderer == "gtkwebkit2")
+        http_server or has_local_urls or (guilib.renderer == 'gtkwebkit2')
     ):
         if not _private_mode and not http_port:
             http_port = DEFAULT_HTTP_PORT
@@ -187,7 +187,7 @@ def start(
 
     if func:
         if args is not None:
-            if not hasattr(args, "__iter__"):
+            if not hasattr(args, '__iter__'):
                 args = (args,)
             thread = threading.Thread(target=func, args=args)
         else:
@@ -220,7 +220,7 @@ def create_window(
     minimized: bool = False,
     on_top: bool = False,
     confirm_close: bool = False,
-    background_color: str = "#FFFFFF",
+    background_color: str = '#FFFFFF',
     transparent: bool = False,
     text_select: bool = False,
     zoomable: bool = False,
@@ -255,11 +255,11 @@ def create_window(
     :return: window object.
     """
 
-    valid_color = r"^#(?:[0-9a-fA-F]{3}){1,2}$"
+    valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
     if not re.match(valid_color, background_color):
-        raise ValueError("{0} is not a valid hex triplet color".format(background_color))
+        raise ValueError('{0} is not a valid hex triplet color'.format(background_color))
 
-    uid = "master" if len(windows) == 0 else "child_" + uuid4().hex[:8]
+    uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
     window = Window(
         uid,
@@ -295,7 +295,7 @@ def create_window(
     windows.append(window)
 
     # This immediately creates the window only if `start` has already been called
-    if threading.current_thread().name != "MainThread" and guilib:
+    if threading.current_thread().name != 'MainThread' and guilib:
         if is_app(url) or is_local_url(url) and not server.is_running:
             url_prefix, common_path, server = http.start_server([url], server=server, **server_args)
         else:
@@ -314,7 +314,7 @@ def generate_ssl_cert():
     from cryptography.hazmat.primitives.asymmetric import rsa
     from cryptography.x509.oid import NameOID
 
-    with tempfile.NamedTemporaryFile(prefix="keyfile_", suffix=".pem", delete=False) as f:
+    with tempfile.NamedTemporaryFile(prefix='keyfile_', suffix='.pem', delete=False) as f:
         keyfile = f.name
         key = rsa.generate_private_key(
             public_exponent=65537,
@@ -327,15 +327,15 @@ def generate_ssl_cert():
         )
         f.write(key_pem)
 
-    with tempfile.NamedTemporaryFile(prefix="certfile_", suffix=".pem", delete=False) as f:
+    with tempfile.NamedTemporaryFile(prefix='certfile_', suffix='.pem', delete=False) as f:
         certfile = f.name
         subject = issuer = x509.Name(
             [
-                x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
-                x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "California"),
-                x509.NameAttribute(NameOID.LOCALITY_NAME, "San Francisco"),
-                x509.NameAttribute(NameOID.ORGANIZATION_NAME, "pywebview"),
-                x509.NameAttribute(NameOID.COMMON_NAME, "127.0.0.1"),
+                x509.NameAttribute(NameOID.COUNTRY_NAME, 'US'),
+                x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, 'California'),
+                x509.NameAttribute(NameOID.LOCALITY_NAME, 'San Francisco'),
+                x509.NameAttribute(NameOID.ORGANIZATION_NAME, 'pywebview'),
+                x509.NameAttribute(NameOID.COMMON_NAME, '127.0.0.1'),
             ]
         )
         cert = (
@@ -347,7 +347,7 @@ def generate_ssl_cert():
             .not_valid_before(datetime.datetime.utcnow())
             .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
             .add_extension(
-                x509.SubjectAlternativeName([x509.DNSName("localhost")]),
+                x509.SubjectAlternativeName([x509.DNSName('localhost')]),
                 critical=False,
             )
             .sign(key, hashes.SHA256())

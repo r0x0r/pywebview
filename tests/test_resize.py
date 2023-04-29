@@ -7,7 +7,7 @@ from .util import run_test
 
 def test_resize():
     window = webview.create_window(
-        "Set Window Size Test", "https://www.example.org", width=800, height=600
+        'Set Window Size Test', 'https://www.example.org', width=800, height=600
     )
     run_test(webview, window, resize)
 

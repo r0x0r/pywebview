@@ -38,7 +38,7 @@ DEFAULT_HTML = """
     </html>
 """
 
-logger = logging.getLogger("pywebview")
+logger = logging.getLogger('pywebview')
 
 
 class WebViewException(Exception):
@@ -52,7 +52,7 @@ def is_app(url: str | None) -> bool:
 
 def is_local_url(url: str | None) -> bool:
     return not (
-        (is_app(url)) or ((not url) or (url.startswith("http://")) or (url.startswith("https://")))
+        (is_app(url)) or ((not url) or (url.startswith('http://')) or (url.startswith('https://')))
     )
 
 
@@ -65,15 +65,15 @@ def get_app_root() -> str:
     Gets the file root of the application.
     """
 
-    if hasattr(sys, "_MEIPASS"):  # Pyinstaller
+    if hasattr(sys, '_MEIPASS'):  # Pyinstaller
         return sys._MEIPASS
 
-    if getattr(sys, "frozen", False):  # cx_freeze
+    if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
 
-    if "pytest" in sys.modules:
+    if 'pytest' in sys.modules:
         for arg in reversed(sys.argv):
-            path = os.path.realpath(arg.split("::")[0])
+            path = os.path.realpath(arg.split('::')[0])
             if os.path.exists(path):
                 return path if os.path.isdir(path) else os.path.dirname(path)
 
@@ -90,35 +90,35 @@ def abspath(path: str) -> str:
     return os.path.normpath(path)
 
 
-def base_uri(relative_path: str = "") -> str:
+def base_uri(relative_path: str = '') -> str:
     """Get absolute path to resource, works for dev and for PyInstaller"""
     base_path = get_app_root()
     if not os.path.exists(base_path):
-        raise ValueError(f"Path {base_path} does not exist")
+        raise ValueError(f'Path {base_path} does not exist')
 
-    return f"file://{os.path.join(base_path, relative_path)}"
+    return f'file://{os.path.join(base_path, relative_path)}'
 
 
 def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
     if isinstance(type, dict):
         cookie = SimpleCookie[str]()
-        name = input_["name"]
-        cookie[name] = input_["value"]
-        cookie[name]["path"] = input_["path"]
-        cookie[name]["domain"] = input_["domain"]
-        cookie[name]["expires"] = input_["expires"]
-        cookie[name]["secure"] = input_["secure"]
-        cookie[name]["httponly"] = input_["httponly"]
+        name = input_['name']
+        cookie[name] = input_['value']
+        cookie[name]['path'] = input_['path']
+        cookie[name]['domain'] = input_['domain']
+        cookie[name]['expires'] = input_['expires']
+        cookie[name]['secure'] = input_['secure']
+        cookie[name]['httponly'] = input_['httponly']
 
         if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
-            cookie[name]["samesite"] = input_.get("samesite")
+            cookie[name]['samesite'] = input_.get('samesite')
 
         return cookie
 
     if isinstance(input_, str):
         return SimpleCookie(input_)
 
-    raise WebViewException("Unknown input to create_cookie")
+    raise WebViewException('Unknown input to create_cookie')
 
 
 def parse_file_type(file_type: str):
@@ -126,15 +126,15 @@ def parse_file_type(file_type: str):
     :param file_type: file type string 'description (*.file_extension1;*.file_extension2)' as required by file filter in create_file_dialog
     :return: (description, file extensions) tuple
     """
-    valid_file_filter = r"^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*\.\w+)*)\)$"
+    valid_file_filter = r'^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*\.\w+)*)\)$'
     match = re.search(valid_file_filter, file_type)
 
     if match:
         return match.group(1).rstrip(), match.group(2)
-    raise ValueError(f"{file_type} is not a valid file filter")
+    raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def parse_api_js(window: Window, platform: str, uid: str = ""):
+def parse_api_js(window: Window, platform: str, uid: str = ''):
     def get_args(func: object):
         params = list(inspect.getfullargspec(func).args)
         return params
@@ -144,7 +144,7 @@ def parse_api_js(window: Window, platform: str, uid: str = ""):
             functions = {
                 name: get_args(getattr(window._js_api, name))[1:]
                 for name in dir(window._js_api)
-                if inspect.ismethod(getattr(window._js_api, name)) and not name.startswith("_")
+                if inspect.ismethod(getattr(window._js_api, name)) and not name.startswith('_')
             }
         else:
             functions = {}
@@ -157,7 +157,7 @@ def parse_api_js(window: Window, platform: str, uid: str = ""):
         functions.update(expose_functions)
         functions = functions.items()
 
-        return [{"func": name, "params": params} for name, params in functions]
+        return [{'func': name, 'params': params} for name, params in functions]
 
     try:
         func_list = generate_func()
@@ -170,18 +170,18 @@ def parse_api_js(window: Window, platform: str, uid: str = ""):
         + event.src
         + api.src
         % {
-            "token": _TOKEN,
-            "platform": platform,
-            "uid": uid,
-            "func_list": func_list,
-            "js_api_endpoint": window.js_api_endpoint,
+            'token': _TOKEN,
+            'platform': platform,
+            'uid': uid,
+            'func_list': func_list,
+            'js_api_endpoint': window.js_api_endpoint,
         }
         + dom.src
         + drag.src
         % {
-            "drag_selector": webview.DRAG_REGION_SELECTOR,
-            "zoomable": str(window.zoomable).lower(),
-            "draggable": str(window.draggable).lower(),
+            'drag_selector': webview.DRAG_REGION_SELECTOR,
+            'zoomable': str(window.zoomable).lower(),
+            'draggable': str(window.draggable).lower(),
         }
     )
     return js_code
@@ -191,28 +191,28 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
     def _call():
         try:
             result = func(*func_params.values())
-            result = json.dumps(result).replace("\\", "\\\\").replace("'", "\\'")
+            result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{value: \'{result}\'}}'
         except Exception as e:
             print(traceback.format_exc())
-            error = {"message": str(e), "name": type(e).__name__, "stack": traceback.format_exc()}
-            result = json.dumps(error).replace("\\", "\\\\").replace("'", "\\'")
+            error = {'message': str(e), 'name': type(e).__name__, 'stack': traceback.format_exc()}
+            result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{isError: true, value: \'{result}\'}}'
 
         window.evaluate_js(code)
 
-    if func_name == "moveWindow":
+    if func_name == 'moveWindow':
         window.move(*param)
         return
 
-    if func_name == "asyncCallback":
+    if func_name == 'asyncCallback':
         value = json.loads(param) if param is not None else None
 
         if callable(window._callbacks[value_id]):
             window._callbacks[value_id](value)
         else:
             logger.error(
-                "Async function executed and callback is not callable. Returned value {0}".format(
+                'Async function executed and callback is not callable. Returned value {0}'.format(
                     value
                 )
             )
@@ -228,41 +228,41 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
             thread = Thread(target=_call)
             thread.start()
         except Exception:
-            logger.exception("Error occurred while evaluating function %s", func_name)
+            logger.exception('Error occurred while evaluating function %s', func_name)
     else:
-        logger.error("Function %s() does not exist", func_name)
+        logger.error('Function %s() does not exist', func_name)
 
 
 def escape_string(string: str) -> str:
     return (
-        string.replace("\\", "\\\\").replace('"', r"\"").replace("\n", r"\n").replace("\r", r"\r")
+        string.replace('\\', '\\\\').replace('"', r"\"").replace('\n', r'\n').replace('\r', r'\r')
     )
 
 
 def escape_line_breaks(string: str) -> str:
-    return string.replace("\\n", "\\\\n").replace("\\r", "\\\\r")
+    return string.replace('\\n', '\\\\n').replace('\\r', '\\\\r')
 
 
 def inject_base_uri(content: str, base_uri: str) -> str:
-    pattern = r"<%s(?:[\s]+[^>]*|)>"
+    pattern = r'<%s(?:[\s]+[^>]*|)>'
     base_tag = f'<base href="{base_uri}">'
 
-    match = re.search(pattern % "base", content)
+    match = re.search(pattern % 'base', content)
 
     if match:
         return content
 
-    match = re.search(pattern % "head", content)
+    match = re.search(pattern % 'head', content)
     if match:
         tag = match.group()
         return content.replace(tag, tag + base_tag)
 
-    match = re.search(pattern % "html", content)
+    match = re.search(pattern % 'html', content)
     if match:
         tag = match.group()
         return content.replace(tag, tag + base_tag)
 
-    match = re.search(pattern % "body", content)
+    match = re.search(pattern % 'body', content)
     if match:
         tag = match.group()
         return content.replace(tag, base_tag + tag)
@@ -271,15 +271,15 @@ def inject_base_uri(content: str, base_uri: str) -> str:
 
 
 def interop_dll_path(dll_name: str) -> str:
-    if dll_name == "WebBrowserInterop.dll":
+    if dll_name == 'WebBrowserInterop.dll':
         dll_name = (
-            "WebBrowserInterop.x64.dll"
-            if architecture()[0] == "64bit"
-            else "WebBrowserInterop.x86.dll"
+            'WebBrowserInterop.x64.dll'
+            if architecture()[0] == '64bit'
+            else 'WebBrowserInterop.x86.dll'
         )
 
     # Unfrozen path
-    dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "lib", dll_name)
+    dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', dll_name)
     if os.path.exists(dll_path):
         return dll_path
 
@@ -290,10 +290,10 @@ def interop_dll_path(dll_name: str) -> str:
 
     try:
         # Frozen path packed as onefile
-        if hasattr(sys, "_MEIPASS"):  # Pyinstaller
+        if hasattr(sys, '_MEIPASS'):  # Pyinstaller
             dll_path = os.path.join(sys._MEIPASS, dll_name)
 
-        elif getattr(sys, "frozen", False):  # cx_freeze
+        elif getattr(sys, 'frozen', False):  # cx_freeze
             dll_path = os.path.join(sys.executable, dll_name)
 
         if os.path.exists(dll_path):
@@ -301,4 +301,4 @@ def interop_dll_path(dll_name: str) -> str:
     except Exception:
         pass
 
-    raise FileNotFoundError(f"Cannot find {dll_name}")
+    raise FileNotFoundError(f'Cannot find {dll_name}')

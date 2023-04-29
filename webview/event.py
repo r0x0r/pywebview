@@ -7,7 +7,7 @@ from typing import Any, Callable
 
 from typing_extensions import Self
 
-logger = logging.getLogger("pywebview")
+logger = logging.getLogger('pywebview')
 
 
 class Event:

@@ -4,13 +4,13 @@ import os
 import sys
 from typing import TypeVar, cast
 
-if sys.platform == "win32" and ("pythonw.exe" in sys.executable or getattr(sys, "frozen", False)):
+if sys.platform == 'win32' and ('pythonw.exe' in sys.executable or getattr(sys, 'frozen', False)):
     # bottle.py versions prior to 0.12.23 (the latest on PyPi as of Feb 2023) require stdout and
     # stderr to exist, which is not the case on Windows with pythonw.exe or PyInstaller >= 5.8.0
     if sys.stderr is None:  # type: ignore
-        sys.stderr = open(os.devnull, "w")
+        sys.stderr = open(os.devnull, 'w')
     if sys.stdout is None:  # type: ignore
-        sys.stdout = open(os.devnull, "w")
+        sys.stdout = open(os.devnull, 'w')
 
 
 import json
@@ -29,8 +29,8 @@ from typing_extensions import TypedDict, Unpack
 
 from .util import abspath, is_app, is_local_url
 
-WRHT_co = TypeVar("WRHT_co", bound=WSGIRequestHandler, covariant=True)
-WST_co = TypeVar("WST_co", bound=WSGIServer, covariant=True)
+WRHT_co = TypeVar('WRHT_co', bound=WSGIRequestHandler, covariant=True)
+WST_co = TypeVar('WST_co', bound=WSGIServer, covariant=True)
 
 logger = logging.getLogger(__name__)
 global_server = None
@@ -42,9 +42,9 @@ def _get_random_port() -> int:
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             try:
-                sock.bind(("localhost", port))
+                sock.bind(('localhost', port))
             except OSError:
-                logger.warning("Port %s is in use" % port)
+                logger.warning('Port %s is in use' % port)
                 continue
             else:
                 return port
@@ -58,7 +58,7 @@ class ThreadedAdapter(bottle.ServerAdapter):
                 def log_request(*args, **_):
                     pass
 
-            self.options["handler_class"] = QuietHandler
+            self.options['handler_class'] = QuietHandler
 
         class ThreadAdapter(ThreadingMixIn, WSGIServer):
             pass
@@ -71,7 +71,7 @@ class ThreadedAdapter(bottle.ServerAdapter):
 
 class BottleServer:
     def __init__(self) -> None:
-        self.root_path = "/"
+        self.root_path = '/'
         self.running = False
         self.address = None
         self.js_callback = {}
@@ -89,7 +89,7 @@ class BottleServer:
 
         if len(apps) > 0:
             app = apps[0]
-            common_path = "."
+            common_path = '.'
         else:
             local_urls = [u for u in urls if is_local_url(u)]
             common_path = (
@@ -98,30 +98,30 @@ class BottleServer:
             server.root_path = abspath(common_path) if common_path is not None else None
             app = bottle.Bottle()
 
-            @app.post(f"/js_api/{server.uid}")
+            @app.post(f'/js_api/{server.uid}')
             def js_api():
-                bottle.response.headers["Access-Control-Allow-Origin"] = "*"
+                bottle.response.headers['Access-Control-Allow-Origin'] = '*'
                 bottle.response.headers[
-                    "Access-Control-Allow-Methods"
-                ] = "PUT, GET, POST, DELETE, OPTIONS"
+                    'Access-Control-Allow-Methods'
+                ] = 'PUT, GET, POST, DELETE, OPTIONS'
                 bottle.response.headers[
-                    "Access-Control-Allow-Headers"
-                ] = "Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token"
+                    'Access-Control-Allow-Headers'
+                ] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
 
-                body = json.loads(bottle.request.body.read().decode("utf-8"))
-                if body["uid"] in server.js_callback:
-                    return json.dumps(server.js_callback[body["uid"]](body))
+                body = json.loads(bottle.request.body.read().decode('utf-8'))
+                if body['uid'] in server.js_callback:
+                    return json.dumps(server.js_callback[body['uid']](body))
                 else:
-                    logger.error("JS callback function is not set for window %s" % body["uid"])
+                    logger.error('JS callback function is not set for window %s' % body['uid'])
 
-            @app.route("/")
-            @app.route("/<file:path>")
+            @app.route('/')
+            @app.route('/<file:path>')
             def asset(file):
                 if not server.root_path:
-                    return ""
-                bottle.response.set_header("Cache-Control", "no-cache, no-store, must-revalidate")
-                bottle.response.set_header("Pragma", "no-cache")
-                bottle.response.set_header("Expires", 0)
+                    return ''
+                bottle.response.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                bottle.response.set_header('Pragma', 'no-cache')
+                bottle.response.set_header('Expires', 0)
                 return bottle.static_file(file, root=server.root_path)
 
         server.root_path = abspath(common_path) if common_path is not None else None
@@ -129,23 +129,23 @@ class BottleServer:
         if keyfile and certfile:
             server_adapter = SSLWSGIRefServer()
             server_adapter.port = server.port
-            setattr(server_adapter, "pywebview_keyfile", keyfile)
-            setattr(server_adapter, "pywebview_certfile", certfile)
+            setattr(server_adapter, 'pywebview_keyfile', keyfile)
+            setattr(server_adapter, 'pywebview_certfile', certfile)
         else:
             server_adapter = ThreadedAdapter
         server.thread = threading.Thread(
             target=lambda: bottle.run(
-                app=app, server=server_adapter, port=server.port, quiet=not _debug["mode"]
+                app=app, server=server_adapter, port=server.port, quiet=not _debug['mode']
             ),
             daemon=True,
         )
         server.thread.start()
 
         server.running = True
-        protocol = "https" if keyfile and certfile else "http"
-        server.address = f"{protocol}://127.0.0.1:{server.port}/"
+        protocol = 'https' if keyfile and certfile else 'http'
+        server.address = f'{protocol}://127.0.0.1:{server.port}/'
         cls.common_path = common_path
-        server.js_api_endpoint = f"{server.address}js_api/{server.uid}"
+        server.js_api_endpoint = f'{server.address}js_api/{server.uid}'
 
         return server.address, common_path, server
 
@@ -154,7 +154,7 @@ class BottleServer:
         return self.running
 
 
-ServerType = TypeVar("ServerType", bound=BottleServer, covariant=True)
+ServerType = TypeVar('ServerType', bound=BottleServer, covariant=True)
 
 
 class SSLWSGIRefServer(bottle.ServerAdapter):
@@ -170,10 +170,10 @@ class SSLWSGIRefServer(bottle.ServerAdapter):
                 if not self.quiet:
                     return WSGIRequestHandler.log_request(*args, **kw)
 
-        handler_cls = cast(WRHT_co, self.options.get("handler_class", FixedHandler))
-        server_cls = cast(WST_co, self.options.get("server_class", WSGIServer))
+        handler_cls = cast(WRHT_co, self.options.get('handler_class', FixedHandler))
+        server_cls = cast(WST_co, self.options.get('server_class', WSGIServer))
 
-        if ":" in self.host:  # Fix wsgiref for IPv6 addresses.
+        if ':' in self.host:  # Fix wsgiref for IPv6 addresses.
             if server_cls.address_family == socket.AF_INET:
 
                 class server_cls(server_cls):
@@ -211,7 +211,7 @@ def start_server(
 
 def start_global_server(
     http_port: int | None = None,
-    urls: list[str] = ["."],
+    urls: list[str] = ['.'],
     server: type[ServerType] = BottleServer,
     **server_args: Unpack[ServerArgs],
 ) -> tuple[str, str | None, BottleServer]:

@@ -4,52 +4,52 @@ import webview
 
 
 def on_closed():
-    print("pywebview window is closed")
+    print('pywebview window is closed')
 
 
 def on_closing():
-    print("pywebview window is closing")
+    print('pywebview window is closing')
 
 
 def on_shown():
-    print("pywebview window shown")
+    print('pywebview window shown')
 
 
 def on_minimized():
-    print("pywebview window minimized")
+    print('pywebview window minimized')
 
 
 def on_restored():
-    print("pywebview window restored")
+    print('pywebview window restored')
 
 
 def on_maximized():
-    print("pywebview window maximized")
+    print('pywebview window maximized')
 
 
 def on_resized(width, height):
     print(
-        "pywebview window is resized. new dimensions are {width} x {height}".format(
+        'pywebview window is resized. new dimensions are {width} x {height}'.format(
             width=width, height=height
         )
     )
 
 
 def on_loaded():
-    print("DOM is ready")
+    print('DOM is ready')
 
     # unsubscribe event listener
     webview.windows[0].events.loaded -= on_loaded
-    webview.windows[0].load_url("https://pywebview.flowrl.com/hello")
+    webview.windows[0].load_url('https://pywebview.flowrl.com/hello')
 
 
 def on_moved(x, y):
-    print("pywebview window is moved. new coordinates are x: {x}, y: {y}".format(x=x, y=y))
+    print('pywebview window is moved. new coordinates are x: {x}, y: {y}'.format(x=x, y=y))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     window = webview.create_window(
-        "Simple browser", "https://pywebview.flowrl.com/", confirm_close=True
+        'Simple browser', 'https://pywebview.flowrl.com/', confirm_close=True
     )
 
     window.events.closed += on_closed

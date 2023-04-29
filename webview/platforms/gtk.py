@@ -15,14 +15,14 @@ from webview.screen import Screen
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_js
 from webview.window import FixPoint, Window
 
-logger = logging.getLogger("pywebview")
+logger = logging.getLogger('pywebview')
 
 import gi
 
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-gi.require_version("WebKit2", "4.0")
-gi.require_version("Soup", "2.4")
+gi.require_version('Gtk', '3.0')
+gi.require_version('Gdk', '3.0')
+gi.require_version('WebKit2', '4.0')
+gi.require_version('Soup', '2.4')
 
 from gi.repository import Gdk, Gio
 from gi.repository import GLib as glib
@@ -35,7 +35,7 @@ from gi.repository import WebKit2 as webkit
 webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
 old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
 
-renderer = "gtkwebkit2"
+renderer = 'gtkwebkit2'
 
 settings = {}
 
@@ -52,7 +52,7 @@ class BrowserView:
             self.uid = uuid1().hex[:8]
 
         def call(self, func_name: str, param: Any, value_id: str):
-            if param == "undefined":
+            if param == 'undefined':
                 param = None
             return js_bridge_call(self.window, func_name, param, value_id)
 
@@ -97,7 +97,7 @@ class BrowserView:
         # Set window background color
         style_provider = gtk.CssProvider()
         style_provider.load_from_data(
-            "GtkWindow {{ background-color: {}; }}".format(window.background_color).encode()
+            'GtkWindow {{ background-color: {}; }}'.format(window.background_color).encode()
         )
         gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(), style_provider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
@@ -107,18 +107,18 @@ class BrowserView:
         self.window.add(scrolled_window)
 
         if window.confirm_close:
-            self.window.connect("delete-event", self.on_destroy)
+            self.window.connect('delete-event', self.on_destroy)
         else:
-            self.window.connect("delete-event", self.close_window)
+            self.window.connect('delete-event', self.close_window)
 
-        self.window.connect("window-state-event", self.on_window_state_change)
-        self.window.connect("size-allocate", self.on_window_resize)
-        self.window.connect("configure-event", self.on_window_configure)
+        self.window.connect('window-state-event', self.on_window_state_change)
+        self.window.connect('size-allocate', self.on_window_resize)
+        self.window.connect('configure-event', self.on_window_configure)
 
         self.js_bridge = BrowserView.JSBridge(window)
         self.text_select = window.text_select
 
-        storage_path = _storage_path or os.path.join(os.path.expanduser("~"), ".pywebview")
+        storage_path = _storage_path or os.path.join(os.path.expanduser('~'), '.pywebview')
 
         if not os.path.exists(storage_path):
             os.makedirs(storage_path)
@@ -128,19 +128,19 @@ class BrowserView:
 
         if not _private_mode:
             self.cookie_manager.set_persistent_storage(
-                os.path.join(storage_path, "cookies"), webkit.CookiePersistentStorage.SQLITE
+                os.path.join(storage_path, 'cookies'), webkit.CookiePersistentStorage.SQLITE
             )
 
         self.webview = webkit.WebView()
 
-        self.webview.connect("notify::visible", self.on_webview_ready)
-        self.webview.connect("load_changed", self.on_load_finish)
-        self.webview.connect("decide-policy", self.on_navigation)
+        self.webview.connect('notify::visible', self.on_webview_ready)
+        self.webview.connect('load_changed', self.on_load_finish)
+        self.webview.connect('decide-policy', self.on_navigation)
 
         http.global_server.js_callback[window.uid] = self.on_js_callback
 
         webkit_settings = self.webview.get_settings().props
-        user_agent = settings.get("user_agent") or _user_agent
+        user_agent = settings.get('user_agent') or _user_agent
         if user_agent:
             webkit_settings.user_agent = user_agent
 
@@ -154,9 +154,9 @@ class BrowserView:
             self.window.set_decorated(False)
             if window.easy_drag:
                 self.move_progress = False
-                self.webview.connect("button-release-event", self.on_mouse_release)
-                self.webview.connect("button-press-event", self.on_mouse_press)
-                self.window.connect("motion-notify-event", self.on_mouse_move)
+                self.webview.connect('button-release-event', self.on_mouse_release)
+                self.webview.connect('button-press-event', self.on_mouse_press)
+                self.window.connect('motion-notify-event', self.on_mouse_move)
 
         if window.on_top:
             self.window.set_keep_above(True)
@@ -169,11 +169,11 @@ class BrowserView:
             wvbg.alpha = 0.0
             self.webview.set_background_color(wvbg)
 
-        if _debug["mode"]:
+        if _debug['mode']:
             webkit_settings.enable_developer_extras = True
             self.webview.get_inspector().show()
         else:
-            self.webview.connect("context-menu", lambda a, b, c, d: True)  # Disable context menu
+            self.webview.connect('context-menu', lambda a, b, c, d: True)  # Disable context menu
 
         if _private_mode:
             webkit_settings.enable_html5_database = False
@@ -185,9 +185,9 @@ class BrowserView:
         if window.real_url is not None:
             self.webview.load_uri(window.real_url)
         elif window.html:
-            self.webview.load_html(window.html, "")
+            self.webview.load_html(window.html, '')
         else:
-            self.webview.load_html(DEFAULT_HTML, "")
+            self.webview.load_html(DEFAULT_HTML, '')
 
         if window.fullscreen:
             self.toggle_fullscreen()
@@ -199,7 +199,7 @@ class BrowserView:
             return
 
         for res in self.js_results.values():
-            res["semaphore"].release()
+            res['semaphore'].release()
 
         self.window.destroy()
         del BrowserView.instances[self.uid]
@@ -215,7 +215,7 @@ class BrowserView:
             flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
             type=gtk.MessageType.QUESTION,
             buttons=gtk.ButtonsType.OK_CANCEL,
-            message_format=self.localization["global.quitConfirmation"],
+            message_format=self.localization['global.quitConfirmation'],
         )
         result = dialog.run()
         if result == gtk.ResponseType.OK:
@@ -255,7 +255,7 @@ class BrowserView:
     def on_webview_ready(self, arg1, arg2):
         # in webkit2 notify:visible fires after the window was closed and BrowserView object destroyed.
         # for a lack of better solution we check that BrowserView has 'webview_ready' attribute
-        if "shown" in dir(self):
+        if 'shown' in dir(self):
             self.shown.set()
 
     def on_load_finish(self, webview, status):
@@ -270,21 +270,21 @@ class BrowserView:
 
     def on_js_callback(self, js_data):
         try:
-            if "type" not in js_data:
+            if 'type' not in js_data:
                 return
 
-            elif js_data["type"] == "eval" and old_webkit:  # return result of evaluate_js
-                unique_id = js_data["uid"]
-                result = js_data["result"] if "result" in js_data else None
+            elif js_data['type'] == 'eval' and old_webkit:  # return result of evaluate_js
+                unique_id = js_data['uid']
+                result = js_data['result'] if 'result' in js_data else None
 
                 js = self.js_results[unique_id]
-                js["result"] = result
-                js["semaphore"].release()
+                js['result'] = result
+                js['semaphore'].release()
 
-            elif js_data["type"] == "invoke":  # invoke js api's function
-                func_name = js_data["function"]
-                value_id = js_data["id"]
-                param = js_data["param"] if "param" in js_data else None
+            elif js_data['type'] == 'invoke':  # invoke js api's function
+                func_name = js_data['function']
+                value_id = js_data['id']
+                param = js_data['param'] if 'param' in js_data else None
                 return_val = self.js_bridge.call(func_name, param, value_id)
 
                 # Give back the return value to JS as a string
@@ -298,7 +298,7 @@ class BrowserView:
         if type(decision) == webkit.NavigationPolicyDecision:
             uri = decision.get_request().get_uri()
 
-            if decision.get_frame_name() == "_blank":
+            if decision.get_frame_name() == '_blank':
                 webbrowser.open(uri, 2, True)
                 decision.ignore()
 
@@ -329,7 +329,7 @@ class BrowserView:
         glib.idle_add(self.window.hide)
 
     def destroy(self):
-        self.window.emit("delete-event", Gdk.Event())
+        self.window.emit('delete-event', Gdk.Event())
 
     def set_title(self, title):
         self.window.set_title(title)
@@ -394,19 +394,19 @@ class BrowserView:
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if dialog_type == FOLDER_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
-            title = self.localization["linux.openFolder"]
+            title = self.localization['linux.openFolder']
             button = gtk.STOCK_OPEN
         elif dialog_type == OPEN_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.OPEN
             if allow_multiple:
-                title = self.localization["linux.openFiles"]
+                title = self.localization['linux.openFiles']
             else:
-                title = self.localization["linux.openFile"]
+                title = self.localization['linux.openFile']
 
             button = gtk.STOCK_OPEN
         elif dialog_type == SAVE_DIALOG:
             gtk_dialog_type = gtk.FileChooserAction.SAVE
-            title = self.localization["global.saveFile"]
+            title = self.localization['global.saveFile']
             button = gtk.STOCK_SAVE
 
         dialog = gtk.FileChooserDialog(
@@ -443,7 +443,7 @@ class BrowserView:
 
             f = gtk.FileFilter()
             f.set_name(description)
-            for e in extensions.split(";"):
+            for e in extensions.split(';'):
                 f.add_pattern(e)
 
             dialog.add_filter(f)
@@ -473,7 +473,7 @@ class BrowserView:
     def get_current_url(self):
         self.loaded.wait()
         uri = self.webview.get_uri()
-        return uri if uri != "about:blank" else None
+        return uri if uri != 'about:blank' else None
 
     def load_url(self, url):
         self.loaded.clear()
@@ -493,13 +493,13 @@ class BrowserView:
             result = value.get_js_value().to_string() if value else None
 
             if unique_id in self.js_results:
-                self.js_results[unique_id]["result"] = result
+                self.js_results[unique_id]['result'] = result
 
             result_semaphore.release()
 
         unique_id = uuid1().hex
         result_semaphore = Semaphore(0)
-        self.js_results[unique_id] = {"semaphore": result_semaphore, "result": None}
+        self.js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
 
         if old_webkit:
             script = """
@@ -510,21 +510,21 @@ class BrowserView:
                         "result": %(script)s
                     })
                 })""" % {
-                "js_api_endpoint": http.js_api_endpoint,
-                "unique_id": unique_id,
-                "script": script,
+                'js_api_endpoint': http.js_api_endpoint,
+                'unique_id': unique_id,
+                'script': script,
             }
 
         self.loaded.wait()
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
 
-        result = self.js_results[unique_id]["result"]
+        result = self.js_results[unique_id]['result']
         result = (
             None
-            if result == "undefined" or result == "null" or result is None
+            if result == 'undefined' or result == 'null' or result is None
             else result
-            if result == ""
+            if result == ''
             else json.loads(result)
         )
 
@@ -535,7 +535,7 @@ class BrowserView:
     def _set_js_api(self):
         def create_bridge():
             self.webview.run_javascript(
-                parse_api_js(self.js_bridge.window, "gtk", uid=self.pywebview_window.uid)
+                parse_api_js(self.js_bridge.window, 'gtk', uid=self.pywebview_window.uid)
             )
             self.loaded.set()
 
@@ -559,8 +559,8 @@ def create_window(window):
     def create_master_callback(app):
         create()
 
-    if window.uid == "master":
-        _app.connect("activate", create_master_callback)
+    if window.uid == 'master':
+        _app.connect('activate', create_master_callback)
         _app.run()
     else:
         # _app will already have been activated by this point
@@ -591,7 +591,7 @@ def toggle_fullscreen(uid):
 def add_tls_cert(certfile):
     web_context = webkit.WebContext.get_default()
     cert = Gio.TlsCertificate.new_from_file(certfile)
-    web_context.allow_tls_certificate_for_host(cert, "127.0.0.1")
+    web_context.allow_tls_certificate_for_host(cert, '127.0.0.1')
 
 
 def set_on_top(uid, top):
@@ -638,7 +638,7 @@ def get_cookies(uid):
 
 def get_current_url(uid):
     def _get_current_url():
-        result["url"] = BrowserView.instances[uid].get_current_url()
+        result['url'] = BrowserView.instances[uid].get_current_url()
         semaphore.release()
 
     result = {}
@@ -647,7 +647,7 @@ def get_current_url(uid):
     glib.idle_add(_get_current_url)
     semaphore.acquire()
 
-    return result["url"]
+    return result['url']
 
 
 def load_url(url, uid):
@@ -697,25 +697,25 @@ def set_app_menu(app_menu_list):
         # Don't run action function on main thread
         Thread(target=function).start()
 
-    def create_submenu(title, line_items, supermenu, action_prepend=""):
+    def create_submenu(title, line_items, supermenu, action_prepend=''):
         m = Gio.Menu.new()
         current_section = Gio.Menu.new()
-        action_prepend = "{}_{}".format(action_prepend, title)
+        action_prepend = '{}_{}'.format(action_prepend, title)
         for menu_line_item in line_items:
             if isinstance(menu_line_item, MenuSeparator):
                 m.append_section(None, current_section)
                 current_section = Gio.Menu.new()
             elif isinstance(menu_line_item, MenuAction):
-                action_label = "{}_{}".format(action_prepend, menu_line_item.title).replace(
-                    " ", "_"
+                action_label = '{}_{}'.format(action_prepend, menu_line_item.title).replace(
+                    ' ', '_'
                 )
                 while action_label in _app_actions.keys():
-                    action_label += "_"
+                    action_label += '_'
                 _app_actions[action_label] = menu_line_item.function
                 new_action = Gio.SimpleAction.new(action_label, None)
-                new_action.connect("activate", action_callback)
+                new_action.connect('activate', action_callback)
                 _app.add_action(new_action)
-                current_section.append(menu_line_item.title, "app." + action_label)
+                current_section.append(menu_line_item.title, 'app.' + action_label)
             elif isinstance(menu_line_item, Menu):
                 create_submenu(
                     menu_line_item.title,
@@ -738,7 +738,7 @@ def set_app_menu(app_menu_list):
     def set_menubar(app):
         app.set_menubar(menubar)
 
-    _app.connect("startup", set_menubar)
+    _app.connect('startup', set_menubar)
 
 
 def get_active_window():
@@ -785,7 +785,7 @@ def evaluate_js(script, uid):
 
 def get_position(uid):
     def _get_position():
-        result["position"] = BrowserView.instances[uid].window.get_position()
+        result['position'] = BrowserView.instances[uid].window.get_position()
         semaphore.release()
 
     result = {}
@@ -794,12 +794,12 @@ def get_position(uid):
     glib.idle_add(_get_position)
     semaphore.acquire()
 
-    return result["position"]
+    return result['position']
 
 
 def get_size(uid):
     def _get_size():
-        result["size"] = BrowserView.instances[uid].window.get_size()
+        result['size'] = BrowserView.instances[uid].window.get_size()
         semaphore.release()
 
     result = {}
@@ -808,7 +808,7 @@ def get_size(uid):
     glib.idle_add(_get_size)
     semaphore.acquire()
 
-    return result["size"]
+    return result['size']
 
 
 def get_screens():

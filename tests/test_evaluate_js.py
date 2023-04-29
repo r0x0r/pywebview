@@ -7,7 +7,7 @@ from .util import run_test
 
 @pytest.fixture
 def window():
-    return webview.create_window("Evaluate JS test")
+    return webview.create_window('Evaluate JS test')
 
 
 def test_mixed(window):
@@ -69,7 +69,7 @@ def array_test(window):
     getValue()
     """
     )
-    assert result == [None, 1, "two", 3.00001, {"four": True}]
+    assert result == [None, 1, 'two', 3.00001, {'four': True}]
 
 
 def object_test(window):
@@ -82,7 +82,7 @@ def object_test(window):
     getValue()
     """
     )
-    assert result == {"1": 2, "test": True, "obj": {"2": False, "3": 3.1}}
+    assert result == {'1': 2, 'test': True, 'obj': {'2': False, '3': 3.1}}
 
 
 def string_test(window):
@@ -95,7 +95,7 @@ def string_test(window):
     getValue()
     """
     )
-    assert result == "this is only a test"
+    assert result == 'this is only a test'
 
 
 def int_test(window):

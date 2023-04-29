@@ -10,9 +10,9 @@ from typing_extensions import Literal, TypeAlias
 
 from webview.util import WebViewException
 
-GUIType: TypeAlias = Literal["qt", "gtk", "cef", "mshtml", "edgechromium"]
+GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'mshtml', 'edgechromium']
 
-logger = logging.getLogger("pywebview")
+logger = logging.getLogger('pywebview')
 guilib: ModuleType | None = None
 forced_gui_: GUIType | None = None
 
@@ -24,10 +24,10 @@ def initialize(forced_gui: GUIType | None = None):
         try:
             import webview.platforms.gtk as guilib
 
-            logger.debug("Using GTK")
+            logger.debug('Using GTK')
             return True
         except (ImportError, ValueError):
-            logger.exception("GTK cannot be loaded")
+            logger.exception('GTK cannot be loaded')
             return False
 
     def import_qt():
@@ -38,7 +38,7 @@ def initialize(forced_gui: GUIType | None = None):
 
             return True
         except ImportError:
-            logger.exception("QT cannot be loaded")
+            logger.exception('QT cannot be loaded')
             return False
 
     def import_cocoa():
@@ -49,7 +49,7 @@ def initialize(forced_gui: GUIType | None = None):
 
             return True
         except ImportError:
-            logger.exception("PyObjC cannot be loaded")
+            logger.exception('PyObjC cannot be loaded')
 
             return False
 
@@ -61,7 +61,7 @@ def initialize(forced_gui: GUIType | None = None):
 
             return True
         except ImportError:
-            logger.exception("pythonnet cannot be loaded")
+            logger.exception('pythonnet cannot be loaded')
             return False
 
     def try_import(guis: list[Callable[[], Any]]) -> bool:
@@ -76,51 +76,51 @@ def initialize(forced_gui: GUIType | None = None):
     global forced_gui_
 
     if not forced_gui:
-        forced_gui = "qt" if "KDE_FULL_SESSION" in os.environ else None
+        forced_gui = 'qt' if 'KDE_FULL_SESSION' in os.environ else None
         forced_gui = cast(
             GUIType,
-            os.environ["PYWEBVIEW_GUI"].lower()
-            if "PYWEBVIEW_GUI" in os.environ
-            and os.environ["PYWEBVIEW_GUI"].lower()
-            in ["qt", "gtk", "cef", "mshtml", "edgechromium"]
+            os.environ['PYWEBVIEW_GUI'].lower()
+            if 'PYWEBVIEW_GUI' in os.environ
+            and os.environ['PYWEBVIEW_GUI'].lower()
+            in ['qt', 'gtk', 'cef', 'mshtml', 'edgechromium']
             else forced_gui,
         )
 
     forced_gui_ = forced_gui
 
-    if platform.system() == "Darwin":
-        if forced_gui == "qt":
+    if platform.system() == 'Darwin':
+        if forced_gui == 'qt':
             guis = [import_qt, import_cocoa]
         else:
             guis = [import_cocoa, import_qt]
 
         if not try_import(guis):
             raise WebViewException(
-                "You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use pywebview."
+                'You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use pywebview.'
             )
 
-    elif platform.system() == "Linux" or platform.system() == "OpenBSD":
-        if forced_gui == "qt":
+    elif platform.system() == 'Linux' or platform.system() == 'OpenBSD':
+        if forced_gui == 'qt':
             guis = [import_qt, import_gtk]
         else:
             guis = [import_gtk, import_qt]
 
         if not try_import(guis):
             raise WebViewException(
-                "You must have either QT or GTK with Python extensions installed in order to use pywebview."
+                'You must have either QT or GTK with Python extensions installed in order to use pywebview.'
             )
 
-    elif platform.system() == "Windows":
-        if forced_gui == "qt":
+    elif platform.system() == 'Windows':
+        if forced_gui == 'qt':
             guis = [import_qt]
         else:
             guis = [import_winforms]
 
         if not try_import(guis):
-            raise WebViewException("You must have pythonnet installed in order to use pywebview.")
+            raise WebViewException('You must have pythonnet installed in order to use pywebview.')
     else:
         raise WebViewException(
-            "Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported."
+            'Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.'
         )
 
     guilib.setup_app()

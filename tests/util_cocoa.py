@@ -35,5 +35,5 @@ def mouseclick(posx, posy):
     mouseEvent(kCGEventLeftMouseUp, posx, posy)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     mouseMoveRelative(100, 100)

@@ -8,6 +8,6 @@ def read_cookies(window):
     print(window.get_cookies())
 
 
-if __name__ == "__main__":
-    window = webview.create_window("Cookie example", "assets/cookies.html")
+if __name__ == '__main__':
+    window = webview.create_window('Cookie example', 'assets/cookies.html')
     webview.start(read_cookies, window, private_mode=False)

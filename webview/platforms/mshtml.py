@@ -12,16 +12,16 @@ from webview.js.css import disable_text_select
 from webview.util import (DEFAULT_HTML, inject_base_uri, interop_dll_path, js_bridge_call,
                           parse_api_js)
 
-clr.AddReference("System.Windows.Forms")
-clr.AddReference("System.Collections")
-clr.AddReference("System.Threading")
+clr.AddReference('System.Windows.Forms')
+clr.AddReference('System.Collections')
+clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
 
-clr.AddReference(interop_dll_path("WebBrowserInterop.dll"))
+clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
 from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 
-logger = logging.getLogger("pywebview")
+logger = logging.getLogger('pywebview')
 settings = {}
 
 
@@ -29,7 +29,7 @@ class MSHTML:
     alert = None
 
     class JSBridge(IWebBrowserInterop):
-        __namespace__ = "MSHTML.JSBridge"
+        __namespace__ = 'MSHTML.JSBridge'
         window = None
 
         def call(self, func_name, param, value_id):
@@ -45,18 +45,18 @@ class MSHTML:
         self.pywebview_window = window
         self.web_view = WebBrowserEx()
         self.web_view.Dock = WinForms.DockStyle.Fill
-        self.web_view.ScriptErrorsSuppressed = not _debug["mode"]
-        self.web_view.IsWebBrowserContextMenuEnabled = _debug["mode"]
+        self.web_view.ScriptErrorsSuppressed = not _debug['mode']
+        self.web_view.IsWebBrowserContextMenuEnabled = _debug['mode']
         self.web_view.WebBrowserShortcutsEnabled = False
         self.web_view.DpiAware = True
         MSHTML.alert = alert
 
-        user_agent = _user_agent or settings.get("user_agent")
+        user_agent = _user_agent or settings.get('user_agent')
         if user_agent:
             self.web_view.ChangeUserAgent(user_agent)
 
-        self.web_view.ScriptErrorsSuppressed = not _debug["mode"]
-        self.web_view.IsWebBrowserContextMenuEnabled = _debug["mode"]
+        self.web_view.ScriptErrorsSuppressed = not _debug['mode']
+        self.web_view.IsWebBrowserContextMenuEnabled = _debug['mode']
 
         self.js_result_semaphore = Semaphore(0)
         self.js_bridge = MSHTML.JSBridge()
@@ -67,7 +67,7 @@ class MSHTML:
         # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
         # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
         # for the default background color.
-        if window.background_color != "#FFFFFF":
+        if window.background_color != '#FFFFFF':
             self.web_view.Visible = False
             self.first_load = True
         else:
@@ -91,8 +91,8 @@ class MSHTML:
         form.Controls.Add(self.web_view)
 
     def evaluate_js(self, script):
-        result = self.web_view.Document.InvokeScript("eval", (script,))
-        self.js_result = None if result is None or result == "null" else json.loads(result)  ##
+        result = self.web_view.Document.InvokeScript('eval', (script,))
+        self.js_result = None if result is None or result == 'null' else json.loads(result)  ##
         self.js_result_semaphore.release()
 
     def load_html(self, content, base_uri):
@@ -106,17 +106,17 @@ class MSHTML:
         if args.KeyCode == WinForms.Keys.Back:
             self.cancel_back = True
         elif args.KeyCode == WinForms.Keys.Delete:
-            self.web_view.Document.ExecCommand("Delete", False, None)
+            self.web_view.Document.ExecCommand('Delete', False, None)
         elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.C:
-            self.web_view.Document.ExecCommand("Copy", False, None)
+            self.web_view.Document.ExecCommand('Copy', False, None)
         elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.X:
-            self.web_view.Document.ExecCommand("Cut", False, None)
+            self.web_view.Document.ExecCommand('Cut', False, None)
         elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.V:
-            self.web_view.Document.ExecCommand("Paste", False, None)
+            self.web_view.Document.ExecCommand('Paste', False, None)
         elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.Z:
-            self.web_view.Document.ExecCommand("Undo", False, None)
+            self.web_view.Document.ExecCommand('Undo', False, None)
         elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.A:
-            self.web_view.Document.ExecCommand("selectAll", False, None)
+            self.web_view.Document.ExecCommand('selectAll', False, None)
 
     def on_new_window(self, sender, args):
         args.Cancel = True
@@ -132,13 +132,13 @@ class MSHTML:
 
     def on_document_completed(self, _, args):
         document = self.web_view.Document
-        document.InvokeScript("eval", (alert.src,))
+        document.InvokeScript('eval', (alert.src,))
 
-        if _debug["mode"]:
+        if _debug['mode']:
             document.InvokeScript(
-                "eval",
+                'eval',
                 (
-                    "window.console = { log: function(msg) { window.external.console(JSON.stringify(msg)) }}",
+                    'window.console = { log: function(msg) { window.external.console(JSON.stringify(msg)) }}',
                 ),
             )
 
@@ -146,12 +146,12 @@ class MSHTML:
             self.web_view.Visible = True
             self.first_load = False
 
-        self.url = None if args.Url.AbsoluteUri == "about:blank" else str(args.Url.AbsoluteUri)
+        self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)
 
-        document.InvokeScript("eval", (parse_api_js(self.pywebview_window, "mshtml"),))
+        document.InvokeScript('eval', (parse_api_js(self.pywebview_window, 'mshtml'),))
 
         if not self.pywebview_window.text_select:
-            document.InvokeScript("eval", (disable_text_select,))
+            document.InvokeScript('eval', (disable_text_select,))
         self.pywebview_window.events.loaded.set()
 
         if self.pywebview_window.easy_drag:

@@ -426,4 +426,3 @@ The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_S
 
 
 [Example](/examples/js_api.html)
-

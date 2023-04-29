@@ -23,9 +23,9 @@ html = """
 </body>
 """
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     window = webview.create_window(
-        "API example",
+        'API example',
         html=html,
         frameless=True,
         easy_drag=False,

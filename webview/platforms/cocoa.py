@@ -26,19 +26,19 @@ settings = {}
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
-info["NSAppTransportSecurity"] = {"NSAllowsArbitraryLoads": Foundation.YES}
-info["NSRequiresAquaSystemAppearance"] = Foundation.NO  # Enable dark mode support for Mojave
+info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
+info['NSRequiresAquaSystemAppearance'] = Foundation.NO  # Enable dark mode support for Mojave
 
 # Dynamic library required by BrowserView.pyobjc_method_signature()
 _objc_so = ctypes.cdll.LoadLibrary(_objc.__file__)
 
 # Bridgesupport metadata for [WKWebView evaluateJavaScript:completionHandler:]
 _eval_js_metadata = {
-    "arguments": {
+    'arguments': {
         3: {
-            "callable": {
-                "retval": {"type": b"v"},
-                "arguments": {0: {"type": b"^v"}, 1: {"type": b"@"}, 2: {"type": b"@"}},
+            'callable': {
+                'retval': {'type': b'v'},
+                'arguments': {0: {'type': b'^v'}, 1: {'type': b'@'}, 2: {'type': b'@'}},
             }
         }
     }
@@ -55,10 +55,10 @@ try:
 except AttributeError:
     NSWindowTitleHidden = 1
 
-logger = logging.getLogger("pywebview")
-logger.debug("Using Cocoa")
+logger = logging.getLogger('pywebview')
+logger.debug('Using Cocoa')
 
-renderer = "wkwebview"
+renderer = 'wkwebview'
 
 
 class BrowserView:
@@ -74,12 +74,12 @@ class BrowserView:
 
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
-            i = BrowserView.get_instance("window", window)
+            i = BrowserView.get_instance('window', window)
             return BrowserView.should_close(i.pywebview_window)
 
         def windowWillClose_(self, notification):
             # Delete the closed instance from the dict
-            i = BrowserView.get_instance("window", notification.object())
+            i = BrowserView.get_instance('window', notification.object())
             del BrowserView.instances[i.uid]
 
             if i.pywebview_window in windows:
@@ -91,28 +91,28 @@ class BrowserView:
                 BrowserView.app.stop_(self)
 
         def windowDidResize_(self, notification):
-            i = BrowserView.get_instance("window", notification.object())
+            i = BrowserView.get_instance('window', notification.object())
             size = i.window.frame().size
             i.pywebview_window.events.resized.set(size.width, size.height)
 
         def windowDidMiniaturize_(self, notification):
-            i = BrowserView.get_instance("window", notification.object())
+            i = BrowserView.get_instance('window', notification.object())
             i.pywebview_window.events.minimized.set()
 
         def windowDidDeminiaturize_(self, notification):
-            i = BrowserView.get_instance("window", notification.object())
+            i = BrowserView.get_instance('window', notification.object())
             i.pywebview_window.events.restored.set()
 
         def windowDidEnterFullScreen_(self, notification):
-            i = BrowserView.get_instance("window", notification.object())
+            i = BrowserView.get_instance('window', notification.object())
             i.pywebview_window.events.maximized.set()
 
         def windowDidExitFullScreen_(self, notification):
-            i = BrowserView.get_instance("window", notification.object())
+            i = BrowserView.get_instance('window', notification.object())
             i.pywebview_window.events.restored.set()
 
         def windowDidMove_(self, notification):
-            i = BrowserView.get_instance("window", notification.object())
+            i = BrowserView.get_instance('window', notification.object())
             frame = i.window.frame()
             screen = i.window.screen().frame()
             flipped_y = screen.size.height - frame.size.height - frame.origin.y
@@ -143,7 +143,7 @@ class BrowserView:
             alert.runModal()
 
             if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b"v@")
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@')
             handler()
 
         def webView_didReceiveAuthenticationChallenge_completionHandler_(
@@ -162,9 +162,9 @@ class BrowserView:
         def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_completionHandler_(
             self, webview, message, frame, handler
         ):
-            i = BrowserView.get_instance("webkit", webview)
-            ok = i.localization["global.ok"]
-            cancel = i.localization["global.cancel"]
+            i = BrowserView.get_instance('webkit', webview)
+            ok = i.localization['global.ok']
+            cancel = i.localization['global.cancel']
 
             # TODO returning confirmation result does not work currently
             result = BrowserView.display_confirmation_dialog(ok, cancel, message)
@@ -176,11 +176,11 @@ class BrowserView:
         ):
             i = list(BrowserView.instances.values())[0]
             files = i.create_file_dialog(
-                OPEN_DIALOG, "", param.allowsMultipleSelection(), "", [], main_thread=True
+                OPEN_DIALOG, '', param.allowsMultipleSelection(), '', [], main_thread=True
             )
 
             if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b"v@@")
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@@')
 
             if files:
                 urls = [Foundation.NSURL.fileURLWithPath_(BrowserView.quote(i)) for i in files]
@@ -192,7 +192,7 @@ class BrowserView:
         def webView_createWebViewWithConfiguration_forNavigationAction_windowFeatures_(
             self, webview, config, action, features
         ):
-            if action.navigationType() == getattr(WebKit, "WKNavigationTypeLinkActivated", 0):
+            if action.navigationType() == getattr(WebKit, 'WKNavigationTypeLinkActivated', 0):
                 webbrowser.open(action.request().URL().absoluteString(), 2, True)
             return nil
 
@@ -204,31 +204,31 @@ class BrowserView:
             event = AppKit.NSApp.currentEvent()
 
             if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b"v@i")
+                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@i')
 
             """ Disable back navigation on pressing the Delete key: """
             # Check if the requested navigation action is Back/Forward
-            if action.navigationType() == getattr(WebKit, "WKNavigationTypeBackForward", 2):
+            if action.navigationType() == getattr(WebKit, 'WKNavigationTypeBackForward', 2):
                 # Check if the event is a Delete key press (keyCode = 51)
                 if event and event.type() == AppKit.NSKeyDown and event.keyCode() == 51:
                     # If so, ignore the request and return
-                    handler(getattr(WebKit, "WKNavigationActionPolicyCancel", 0))
+                    handler(getattr(WebKit, 'WKNavigationActionPolicyCancel', 0))
                     return
 
             # Normal navigation, allow
-            handler(getattr(WebKit, "WKNavigationActionPolicyAllow", 1))
+            handler(getattr(WebKit, 'WKNavigationActionPolicyAllow', 1))
 
         # Show the webview when it finishes loading
         def webView_didFinishNavigation_(self, webview, nav):
             # Add the webview to the window if it's not yet the contentView
-            i = BrowserView.get_instance("webkit", webview)
+            i = BrowserView.get_instance('webkit', webview)
 
             if i:
                 if not webview.window():
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                script = parse_api_js(i.js_bridge.window, "cocoa")
+                script = parse_api_js(i.js_bridge.window, 'cocoa')
                 i.webkit.evaluateJavaScript_completionHandler_(script, lambda a, b: None)
 
                 if not i.text_select:
@@ -243,8 +243,8 @@ class BrowserView:
 
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):
-            if message.body() == "print":
-                i = BrowserView.get_instance("_browserDelegate", self)
+            if message.body() == 'print':
+                i = BrowserView.get_instance('_browserDelegate', self)
                 BrowserView.print_webview(i.webkit)
 
     class FileFilterChooser(AppKit.NSPopUpButton):
@@ -253,7 +253,7 @@ class BrowserView:
             self.filter = file_filter
 
             self.addItemsWithTitles_([i[0] for i in self.filter])
-            self.setAction_("onChange:")
+            self.setAction_('onChange:')
             self.setTarget_(self)
             return self
 
@@ -263,13 +263,13 @@ class BrowserView:
 
     class WebKitHost(WebKit.WKWebView):
         def mouseDown_(self, event):
-            i = BrowserView.get_instance("webkit", self)
+            i = BrowserView.get_instance('webkit', self)
             window = self.window()
 
             if i.frameless and i.easy_drag:
                 windowFrame = window.frame()
                 if windowFrame is None:
-                    raise RuntimeError("Failed to obtain screen")
+                    raise RuntimeError('Failed to obtain screen')
 
                 self.initialLocation = window.convertBaseToScreen_(event.locationInWindow())
                 self.initialLocation.x -= windowFrame.origin.x
@@ -278,17 +278,17 @@ class BrowserView:
             super(BrowserView.WebKitHost, self).mouseDown_(event)
 
         def mouseDragged_(self, event):
-            i = BrowserView.get_instance("webkit", self)
+            i = BrowserView.get_instance('webkit', self)
             window = self.window()
 
             if i.frameless and i.easy_drag:
                 screenFrame = AppKit.NSScreen.mainScreen().frame()
                 if screenFrame is None:
-                    raise RuntimeError("Failed to obtain screen")
+                    raise RuntimeError('Failed to obtain screen')
 
                 windowFrame = window.frame()
                 if windowFrame is None:
-                    raise RuntimeError("Failed to obtain frame")
+                    raise RuntimeError('Failed to obtain frame')
 
                 currentLocation = window.convertBaseToScreen_(
                     window.mouseLocationOutsideOfEventStream()
@@ -305,15 +305,15 @@ class BrowserView:
                     )
                 window.setFrameOrigin_(newOrigin)
 
-            if event.modifierFlags() & getattr(AppKit, "NSEventModifierFlagControl", 1 << 18):
-                i = BrowserView.get_instance("webkit", self)
-                if not _debug["mode"]:
+            if event.modifierFlags() & getattr(AppKit, 'NSEventModifierFlagControl', 1 << 18):
+                i = BrowserView.get_instance('webkit', self)
+                if not _debug['mode']:
                     return
 
             super(BrowserView.WebKitHost, self).mouseDown_(event)
 
         def willOpenMenu_withEvent_(self, menu, event):
-            if not _debug["mode"]:
+            if not _debug['mode']:
                 menu.removeAllItems()
 
         def keyDown_(self, event):
@@ -325,26 +325,26 @@ class BrowserView:
 
                     char = event.characters()
 
-                    if char == "x" and hasSelectedText:  # cut
+                    if char == 'x' and hasSelectedText:  # cut
                         responder.cut_(self)
                         return
-                    elif char == "c" and hasSelectedText:  # copy
+                    elif char == 'c' and hasSelectedText:  # copy
                         responder.copy_(self)
                         return
-                    elif char == "v":  # paste
+                    elif char == 'v':  # paste
                         responder.paste_(self)
                         return
-                    elif char == "a":  # select all
+                    elif char == 'a':  # select all
                         responder.selectAll_(self)
                         return
-                    elif char == "z":  # undo
+                    elif char == 'z':  # undo
                         if responder.undoManager().canUndo():
                             responder.undoManager().undo()
                         return
-                    elif char == "q":  # quit
+                    elif char == 'q':  # quit
                         BrowserView.app.stop_(self)
                         return
-                    elif char == "w":  # close
+                    elif char == 'w':  # close
                         self.window().performClose_(event)
                         return
 
@@ -420,7 +420,7 @@ class BrowserView:
 
         config = self.webkit.configuration()
         config.userContentController().addScriptMessageHandler_name_(
-            self._browserDelegate, "browserDelegate"
+            self._browserDelegate, 'browserDelegate'
         )
 
         if _private_mode:
@@ -442,18 +442,18 @@ class BrowserView:
             config.setWebsiteDataStore_(self.datastore)
 
         try:
-            config.preferences().setValue_forKey_(False, "backspaceKeyNavigationEnabled")
+            config.preferences().setValue_forKey_(False, 'backspaceKeyNavigationEnabled')
         except KeyError:
             pass  # backspaceKeyNavigationEnabled does not exist prior to macOS Mojave
-        config.preferences().setValue_forKey_(True, "allowFileAccessFromFileURLs")
+        config.preferences().setValue_forKey_(True, 'allowFileAccessFromFileURLs')
 
-        if _debug["mode"]:
-            config.preferences().setValue_forKey_(True, "developerExtrasEnabled")
+        if _debug['mode']:
+            config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
-        config.userContentController().addScriptMessageHandler_name_(self.js_bridge, "jsBridge")
+        config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
-        user_agent = settings.get("user_agent") or _user_agent
+        user_agent = settings.get('user_agent') or _user_agent
         if user_agent:
             self.webkit.setCustomUserAgent_(user_agent)
 
@@ -468,7 +468,7 @@ class BrowserView:
             self.window.setBackgroundColor_(
                 BrowserView.nscolor_from_hex(window.background_color, 0)
             )
-            self.webkit.setValue_forKey_(True, "drawsTransparentBackground")
+            self.webkit.setValue_forKey_(True, 'drawsTransparentBackground')
         else:
             self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color))
 
@@ -506,19 +506,19 @@ class BrowserView:
             self.window.setLevel_(AppKit.NSStatusWindowLevel)
 
         try:
-            self.webkit.evaluateJavaScript_completionHandler_("", lambda a, b: None)
+            self.webkit.evaluateJavaScript_completionHandler_('', lambda a, b: None)
         except TypeError:
             registerMetaDataForSelector(
-                b"WKWebView", b"evaluateJavaScript:completionHandler:", _eval_js_metadata
+                b'WKWebView', b'evaluateJavaScript:completionHandler:', _eval_js_metadata
             )
 
         if window.real_url:
             self.url = window.real_url
             self.load_url(window.real_url)
         elif window.html:
-            self.load_html(window.html, "")
+            self.load_html(window.html, '')
         else:
-            self.load_html(DEFAULT_HTML, "")
+            self.load_html(DEFAULT_HTML, '')
         if window.fullscreen:
             self.toggle_fullscreen()
         self.shown.set()
@@ -608,19 +608,19 @@ class BrowserView:
     def get_cookies(self):
         def handler(cookies):
             for c in cookies:
-                domain = c.domain()[1:] if c.domain().startswith(".") else c.domain()
+                domain = c.domain()[1:] if c.domain().startswith('.') else c.domain()
                 if domain not in self.url:
                     continue
 
                 data = {
-                    "name": c.name(),
-                    "value": c.value(),
-                    "path": c.path(),
-                    "domain": c.domain(),
-                    "expires": c.expiresDate(),
-                    "secure": c.isSecure(),
-                    "httponly": c.isHTTPOnly(),
-                    "samesite": c.SameSitePolicy(),
+                    'name': c.name(),
+                    'value': c.value(),
+                    'path': c.path(),
+                    'domain': c.domain(),
+                    'expires': c.expiresDate(),
+                    'secure': c.isSecure(),
+                    'httponly': c.isHTTPOnly(),
+                    'samesite': c.SameSitePolicy(),
                 }
 
                 cookie = create_cookie(data)
@@ -643,7 +643,7 @@ class BrowserView:
         AppHelper.callAfter(get)
 
         self._current_url_semaphore.acquire()
-        return None if self._current_url == "about:blank" else self._current_url
+        return None if self._current_url == 'about:blank' else self._current_url
 
     def load_url(self, url):
         def load(url):
@@ -691,7 +691,7 @@ class BrowserView:
                 save_filename = args[2]
 
                 save_dlg = AppKit.NSSavePanel.savePanel()
-                save_dlg.setTitle_(self.localization["global.saveFile"])
+                save_dlg.setTitle_(self.localization['global.saveFile'])
 
                 if directory:  # set initial directory
                     save_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
@@ -766,9 +766,9 @@ class BrowserView:
         mainAppMenuItem.setSubmenu_(appMenu)
 
         appMenu.addItemWithTitle_action_keyEquivalent_(
-            self._append_app_name(self.localization["cocoa.menu.about"]),
-            "orderFrontStandardAboutPanel:",
-            "",
+            self._append_app_name(self.localization['cocoa.menu.about']),
+            'orderFrontStandardAboutPanel:',
+            '',
         )
 
         appMenu.addItem_(AppKit.NSMenuItem.separatorItem())
@@ -777,7 +777,7 @@ class BrowserView:
         appServicesMenu = AppKit.NSMenu.alloc().init()
         self.app.setServicesMenu_(appServicesMenu)
         servicesMenuItem = appMenu.addItemWithTitle_action_keyEquivalent_(
-            self.localization["cocoa.menu.services"], nil, ""
+            self.localization['cocoa.menu.services'], nil, ''
         )
         servicesMenuItem.setSubmenu_(appServicesMenu)
 
@@ -785,23 +785,23 @@ class BrowserView:
 
         # Append the 'Hide', 'Hide Others', and 'Show All' menu items
         appMenu.addItemWithTitle_action_keyEquivalent_(
-            self._append_app_name(self.localization["cocoa.menu.hide"]), "hide:", "h"
+            self._append_app_name(self.localization['cocoa.menu.hide']), 'hide:', 'h'
         )
         hideOthersMenuItem = appMenu.addItemWithTitle_action_keyEquivalent_(
-            self.localization["cocoa.menu.hideOthers"], "hideOtherApplications:", "h"
+            self.localization['cocoa.menu.hideOthers'], 'hideOtherApplications:', 'h'
         )
         hideOthersMenuItem.setKeyEquivalentModifierMask_(
             AppKit.NSAlternateKeyMask | AppKit.NSCommandKeyMask
         )
         appMenu.addItemWithTitle_action_keyEquivalent_(
-            self.localization["cocoa.menu.showAll"], "unhideAllApplications:", ""
+            self.localization['cocoa.menu.showAll'], 'unhideAllApplications:', ''
         )
 
         appMenu.addItem_(AppKit.NSMenuItem.separatorItem())
 
         # Append a 'Quit' menu item
         appMenu.addItemWithTitle_action_keyEquivalent_(
-            self._append_app_name(self.localization["cocoa.menu.quit"]), "terminate:", "q"
+            self._append_app_name(self.localization['cocoa.menu.quit']), 'terminate:', 'q'
         )
 
     def _add_view_menu(self):
@@ -812,7 +812,7 @@ class BrowserView:
 
         # Create an View menu and make it a submenu of the main menu
         viewMenu = AppKit.NSMenu.alloc().init()
-        viewMenu.setTitle_(self.localization["cocoa.menu.view"])
+        viewMenu.setTitle_(self.localization['cocoa.menu.view'])
         viewMenuItem = AppKit.NSMenuItem.alloc().init()
         viewMenuItem.setSubmenu_(viewMenu)
         # Make the view menu the first item after the application menu
@@ -820,7 +820,7 @@ class BrowserView:
 
         # TODO: localization of the Enter fullscreen string has no effect
         fullScreenMenuItem = viewMenu.addItemWithTitle_action_keyEquivalent_(
-            self.localization["cocoa.menu.fullscreen"], "toggleFullScreen:", "f"
+            self.localization['cocoa.menu.fullscreen'], 'toggleFullScreen:', 'f'
         )
         fullScreenMenuItem.setKeyEquivalentModifierMask_(
             AppKit.NSControlKeyMask | AppKit.NSCommandKeyMask
@@ -835,8 +835,8 @@ class BrowserView:
         :return: String with app name appended, or unchanged string
         :rtype: str
         """
-        if "CFBundleName" in info:
-            val += " {}".format(info["CFBundleName"])
+        if 'CFBundleName' in info:
+            val += ' {}'.format(info['CFBundleName'])
         return val
 
     @staticmethod
@@ -849,7 +849,7 @@ class BrowserView:
 
         hex_string = hex_string[1:]  # Remove leading hash
         if len(hex_string) == 3:
-            hex_string = "".join([c * 2 for c in hex_string])  # 3-digit to 6-digit
+            hex_string = ''.join([c * 2 for c in hex_string])  # 3-digit to 6-digit
 
         hex_int = int(hex_string, 16)
         rgb = (
@@ -892,9 +892,9 @@ class BrowserView:
 
     @staticmethod
     def should_close(window):
-        quit = window.localization["global.quit"]
-        cancel = window.localization["global.cancel"]
-        msg = window.localization["global.quitConfirmation"]
+        quit = window.localization['global.quit']
+        cancel = window.localization['global.cancel']
+        msg = window.localization['global.quitConfirmation']
 
         if not window.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
             should_cancel = window.events.closing.set()
@@ -958,7 +958,7 @@ class BrowserView:
 
     @staticmethod
     def quote(string):
-        return string.replace(" ", "%20")
+        return string.replace(' ', '%20')
 
 
 def setup_app():
@@ -973,7 +973,7 @@ def create_window(window):
         browser = BrowserView(window)
         browser.first_show()
 
-    if window.uid == "master":
+    if window.uid == 'master':
         create()
     else:
         AppHelper.callAfter(create)
@@ -988,8 +988,8 @@ def create_confirmation_dialog(title, message, uid):
         nonlocal result
 
         i = BrowserView.instances[uid]
-        ok = i.localization["global.ok"]
-        cancel = i.localization["global.cancel"]
+        ok = i.localization['global.ok']
+        cancel = i.localization['global.cancel']
 
         result = BrowserView.display_confirmation_dialog(ok, cancel, message)
         semaphore.release()
@@ -1009,7 +1009,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     # Parse file_types to obtain allowed file extensions
     for s in file_types:
         description, extensions = parse_file_type(s)
-        file_extensions = [i.lstrip("*.") for i in extensions.split(";") if i != "*.*"]
+        file_extensions = [i.lstrip('*.') for i in extensions.split(';') if i != '*.*']
         file_filter.append([description, file_extensions or None])
 
     i = BrowserView.instances[uid]
@@ -1059,7 +1059,7 @@ def set_app_menu(app_menu_list):
     class InternalAction:
         def __init__(self, parent: InternalMenu, title: str, action: callable, command=None):
             self.action = action
-            s = selector(self._call_action, signature=b"v@:")
+            s = selector(self._call_action, signature=b'v@:')
             if command:
                 item = parent.m.addItemWithTitle_action_keyEquivalent_(title, s, command)
             else:
@@ -1163,7 +1163,7 @@ def get_position(uid):
         screen_frame = AppKit.NSScreen.mainScreen().frame()
 
         if screen_frame is None:
-            raise RuntimeError("Failed to obtain screen")
+            raise RuntimeError('Failed to obtain screen')
 
         window = BrowserView.instances[uid].window
         frame = window.frame()

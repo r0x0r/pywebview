@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import pytest
 
-logger = logging.getLogger("pywebview")
+logger = logging.getLogger('pywebview')
 
 
 def run_test(
@@ -33,8 +33,8 @@ def run_test(
 
 
 def assert_js(window, func_name, expected_result, *func_args):
-    value_id = "v" + uuid4().hex[:8]
-    func_args = str(func_args).replace(",)", ")")
+    value_id = 'v' + uuid4().hex[:8]
+    func_args = str(func_args).replace(',)', ')')
 
     execute_func = """
     window.pywebview.api.{0}{1}.then(function(value) {{
@@ -45,7 +45,7 @@ def assert_js(window, func_name, expected_result, *func_args):
     """.format(
         func_name, func_args, value_id
     )
-    check_func = "window.{0}".format(value_id)
+    check_func = 'window.{0}'.format(value_id)
 
     window.evaluate_js(execute_func)
 
@@ -54,7 +54,7 @@ def assert_js(window, func_name, expected_result, *func_args):
 
     while result is None:
         if counter == MAX:
-            raise AssertionError("assert_js timeout")
+            raise AssertionError('assert_js timeout')
         else:
             counter += 1
             time.sleep(0.1)
@@ -88,7 +88,7 @@ def _create_window(
 
 
 def get_test_name():
-    return os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
+    return os.environ.get('PYTEST_CURRENT_TEST').split(':')[-1].split(' ')[0]
 
 
 def _destroy_window(_, window, delay):
@@ -97,7 +97,7 @@ def _destroy_window(_, window, delay):
         time.sleep(delay)
         window.destroy()
 
-        if sys.platform == "darwin":
+        if sys.platform == 'darwin':
             from .util_cocoa import mouseMoveRelative
 
             time.sleep(1)

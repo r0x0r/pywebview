@@ -2,6 +2,6 @@
 
 import webview
 
-if __name__ == "__main__":
-    webview.create_window("My first HTML5 application", "assets/index.html", text_select=True)
+if __name__ == '__main__':
+    webview.create_window('My first HTML5 application', 'assets/index.html', text_select=True)
     webview.start(http_server=True, debug=True)

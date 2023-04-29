@@ -23,10 +23,10 @@ from .js import css
 if TYPE_CHECKING:
     from typing import type_check_only
 
-P = ParamSpec("P")
-T = TypeVar("T")
+P = ParamSpec('P')
+T = TypeVar('T')
 
-logger = logging.getLogger("pywebview")
+logger = logging.getLogger('pywebview')
 
 
 def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
@@ -37,28 +37,28 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
 
     @wraps(function)
     def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
-        event = self.events.loaded if event_type == "loaded" else self.events.shown
+        event = self.events.loaded if event_type == 'loaded' else self.events.shown
 
         try:
             if not event.wait(20):
-                raise WebViewException("Main window failed to start")
+                raise WebViewException('Main window failed to start')
 
             if self.gui is None:
-                raise WebViewException("GUI is not initialized")
+                raise WebViewException('GUI is not initialized')
 
             return function(self, *args, **kwargs)
         except NameError:
-            raise WebViewException("Create a web view window first, before invoking this function")
+            raise WebViewException('Create a web view window first, before invoking this function')
 
     return wrapper
 
 
 def _shown_call(function: Callable[P, T]) -> Callable[P, T]:
-    return _api_call(function, "shown")
+    return _api_call(function, 'shown')
 
 
 def _loaded_call(function: Callable[P, T]) -> Callable[P, T]:
-    return _api_call(function, "loaded")
+    return _api_call(function, 'loaded')
 
 
 class FixPoint(Flag):
@@ -86,7 +86,7 @@ class Window:
         uid: str,
         title: str,
         url: str | None,
-        html: str = "",
+        html: str = '',
         width: int = 800,
         height: int = 600,
         x: int | None = None,
@@ -100,7 +100,7 @@ class Window:
         minimized: bool = False,
         on_top: bool = False,
         confirm_close: bool = False,
-        background_color: str = "#FFFFFF",
+        background_color: str = '#FFFFFF',
         js_api: Any = None,
         text_select: bool = False,
         transparent: bool = False,
@@ -221,14 +221,14 @@ class Window:
     @on_top.setter
     def on_top(self, on_top: bool) -> None:
         self.__on_top = on_top
-        if hasattr(self, "gui") and self.gui != None:
+        if hasattr(self, 'gui') and self.gui != None:
             self.gui.set_on_top(self.uid, on_top)
 
     @_loaded_call
     def get_elements(self, selector: str) -> Any:
         # check for GTK's WebKit2 version
-        if hasattr(self.gui, "old_webkit") and self.gui.old_webkit:
-            raise NotImplementedError("get_elements requires WebKit2 2.2 or greater")
+        if hasattr(self.gui, 'old_webkit') and self.gui.old_webkit:
+            raise NotImplementedError('get_elements requires WebKit2 2.2 or greater')
 
         code = (
             """
@@ -278,7 +278,7 @@ class Window:
 
     @_loaded_call
     def load_css(self, stylesheet: str) -> None:
-        code = css.src % stylesheet.replace("\n", "").replace("\r", "").replace('"', "'")
+        code = css.src % stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
         self.gui.evaluate_js(code, self.uid)
 
     @_shown_call
@@ -331,7 +331,7 @@ class Window:
         :param height: desired height of target window
         """
         logger.warning(
-            "This function is deprecated and will be removed in future releases. Use resize() instead"
+            'This function is deprecated and will be removed in future releases. Use resize() instead'
         )
         self.resize(width, height)
 
@@ -391,12 +391,12 @@ class Window:
         unique_id = uuid1().hex
         self._callbacks[unique_id] = callback
 
-        if self.gui.renderer == "cef":
+        if self.gui.renderer == 'cef':
             sync_eval = 'window.external.return_result(JSON.stringify(value), "{0}");'.format(
                 unique_id,
             )
         else:
-            sync_eval = "JSON.stringify(value);"
+            sync_eval = 'JSON.stringify(value);'
 
         if callback:
             escaped_script = """
@@ -416,7 +416,7 @@ class Window:
                 {sync_eval};
             """
 
-        if self.gui.renderer == "cef":
+        if self.gui.renderer == 'cef':
             return self.gui.evaluate_js(escaped_script, self.uid, unique_id)
         else:
             return self.gui.evaluate_js(escaped_script, self.uid)
@@ -436,9 +436,9 @@ class Window:
     def create_file_dialog(
         self,
         dialog_type: int = 10,
-        directory: str = "",
+        directory: str = '',
         allow_multiple: bool = False,
-        save_filename: str = "",
+        save_filename: str = '',
         file_types: Sequence[str] = tuple(),
     ) -> Sequence[str] | None:
         """
@@ -456,7 +456,7 @@ class Window:
             parse_file_type(f)
 
         if not os.path.exists(directory):
-            directory = ""
+            directory = ''
 
         return self.gui.create_file_dialog(
             dialog_type, directory, allow_multiple, save_filename, file_types, self.uid
@@ -464,7 +464,7 @@ class Window:
 
     def expose(self, *functions: Callable[..., Any]) -> None:
         if not all(map(callable, functions)):
-            raise TypeError("Parameter must be a function")
+            raise TypeError('Parameter must be a function')
 
         func_list: list[dict[str, Any]] = []
 
@@ -472,10 +472,10 @@ class Window:
             name = func.__name__
             self._functions[name] = func
             params = list(inspect.getfullargspec(func).args)
-            func_list.append({"func": name, "params": params})
+            func_list.append({'func': name, 'params': params})
 
         if self.events.loaded.is_set():
-            self.evaluate_js(f"window.pywebview._createApi({func_list})")
+            self.evaluate_js(f'window.pywebview._createApi({func_list})')
 
     def _resolve_url(self, url: str) -> str | None:
         if is_app(url):
