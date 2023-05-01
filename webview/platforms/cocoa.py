@@ -137,6 +137,14 @@ class BrowserView:
                 handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@')
             handler()
 
+        def webView_didReceiveAuthenticationChallenge_completionHandler_(self, webview, challenge, handler):
+            # Prevent `ObjCPointerWarning: PyObjCPointer created: ... type ^{__SecTrust=}`
+            from Security import SecTrustRef
+
+            # this allows any server cert
+            credential = AppKit.NSURLCredential.credentialForTrust_(challenge.protectionSpace().serverTrust())
+            handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
+
         # Display a JavaScript confirm panel containing the specified message
         def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_completionHandler_(self, webview, message, frame, handler):
             i = BrowserView.get_instance('webkit', webview)
@@ -373,15 +381,15 @@ class BrowserView:
         if _private_mode:
             # nonPersisentDataStore preserves cookies for some unknown reason. For this reason we use default datastore
             # and clear all the cookies beforehand
-            datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
+            self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
 
             def dummy_completion_handler():
                 pass
 
             data_types = WebKit.WKWebsiteDataStore.allWebsiteDataTypes()
             from_start = WebKit.NSDate.dateWithTimeIntervalSince1970_(0)
-            config.setWebsiteDataStore_(datastore)
-            datastore.removeDataOfTypes_modifiedSince_completionHandler_(data_types, from_start, dummy_completion_handler)
+            config.setWebsiteDataStore_(self.datastore)
+            self.datastore.removeDataOfTypes_modifiedSince_completionHandler_(data_types, from_start, dummy_completion_handler)
         else:
             self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
             config.setWebsiteDataStore_(self.datastore)
@@ -424,7 +432,7 @@ class BrowserView:
             visualEffectView.setState_(AppKit.NSVisualEffectStateActive)
             visualEffectView.setBlendingMode_(AppKit.NSVisualEffectBlendingModeBehindWindow)
             self.webkit.addSubview_positioned_relativeTo_(visualEffectView, AppKit.NSWindowBelow,  self.webkit)
-    
+
         self.frameless = window.frameless
         self.easy_drag = window.easy_drag
 
@@ -688,7 +696,11 @@ class BrowserView:
         to some menu items if it's available.
         """
 
-        mainMenu = self.app.mainMenu()
+        mainMenu = BrowserView.app.mainMenu()
+
+        if not mainMenu:
+            mainMenu = AppKit.NSMenu.alloc().init()
+            BrowserView.app.setMainMenu_(mainMenu)
 
         # Create an application menu and make it a submenu of the main menu
         mainAppMenuItem = AppKit.NSMenuItem.alloc().init()
@@ -703,7 +715,7 @@ class BrowserView:
 
         # Set the 'Services' menu for the app and create an app menu item
         appServicesMenu = AppKit.NSMenu.alloc().init()
-        self.app.setServicesMenu_(appServicesMenu)
+        BrowserView.app.setServicesMenu_(appServicesMenu)
         servicesMenuItem = appMenu.addItemWithTitle_action_keyEquivalent_(self.localization["cocoa.menu.services"], nil, "")
         servicesMenuItem.setSubmenu_(appServicesMenu)
 
@@ -724,7 +736,11 @@ class BrowserView:
         """
         Create a default View menu that shows 'Enter Full Screen'.
         """
-        mainMenu = self.app.mainMenu()
+        mainMenu = BrowserView.app.mainMenu()
+
+        if not mainMenu:
+            mainMenu = AppKit.NSMenu.alloc().init()
+            BrowserView.app.setMainMenu_(mainMenu)
 
         # Create an View menu and make it a submenu of the main menu
         viewMenu = AppKit.NSMenu.alloc().init()
@@ -1101,4 +1117,10 @@ def get_size(uid):
 def get_screens():
     screens = [Screen(s.frame().size.width, s.frame().size.height) for s in AppKit.NSScreen.screens()]
     return screens
+
+
+def add_tls_cert(certfile):
+    # does not auth against the certfile
+    # see webView_didReceiveAuthenticationChallenge_completionHandler_
+    pass
 
