@@ -267,7 +267,7 @@ class Window:
         self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
-    def load_html(self, content, base_uri: str = base_uri()) -> None:
+    def load_html(self, content: str, base_uri: str = base_uri()) -> None:
         """
         Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
         created with create_window(). Otherwise an exception is thrown.
@@ -296,7 +296,7 @@ class Window:
         return self.gui.get_cookies(self.uid)
 
     @_loaded_call
-    def get_current_url(self) -> str:
+    def get_current_url(self) -> str | None:
         """
         Get the URL currently loaded in the target webview
         """

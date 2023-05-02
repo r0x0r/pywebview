@@ -4,8 +4,8 @@ import ctypes
 import json
 import logging
 import webbrowser
+from collections.abc import Callable
 from threading import Semaphore, Thread
-from typing import Callable
 
 import AppKit
 import Foundation

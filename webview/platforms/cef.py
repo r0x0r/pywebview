@@ -248,7 +248,7 @@ def _cef_call(func):
     return wrapper
 
 
-def init(window, cache_dir):
+def init(_, cache_dir):
     global _initialized
 
     if not _initialized:

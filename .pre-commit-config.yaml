@@ -9,3 +9,4 @@ repos:
       - id: double-quote-string-fixer
       - id: end-of-file-fixer
       - id: trailing-whitespace
+exclude: ^docs/\.vuepress/public/

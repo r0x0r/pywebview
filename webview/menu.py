@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 
 class Menu:
-    def __init__(self, title: str, items: list[str] = []):
+    def __init__(self, title: str, items: list[str] = []) -> None:
         """
         Args:
             title: the menu or submenu title
@@ -15,7 +15,7 @@ class Menu:
 
 
 class MenuAction:
-    def __init__(self, title: str, function: Callable[[], None]):
+    def __init__(self, title: str, function: Callable[[], None]) -> None:
         self.title = title
         self.function = function
         # TODO: support platform-agnostic shortcut

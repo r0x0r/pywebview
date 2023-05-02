@@ -21,11 +21,10 @@ from typing import Any, Callable
 from uuid import uuid4
 
 from proxy_tools import module_property
-from typing_extensions import Literal
 
 import webview.http as http
 from webview.event import Event
-from webview.guilib import initialize
+from webview.guilib import initialize, GUIType
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
@@ -86,7 +85,7 @@ def start(
     func: Callable[..., None] | None = None,
     args: Iterable[Any] | None = None,
     localization: dict[str, str] = {},
-    gui: Literal['cef', 'qt', 'gtk'] | None = None,
+    gui: GUIType | None = None,
     debug: bool = False,
     http_server: bool = False,
     http_port: int | None = None,
@@ -107,8 +106,8 @@ def start(
         values.
     :param localization: A dictionary with localized strings. Default strings
         and their keys are defined in localization.py.
-    :param gui: Force a specific GUI. Allowed values are ``cef``, ``qt``, or
-        ``gtk`` depending on a platform.
+    :param gui: Force a specific GUI. Allowed values are ``cef``, ``qt``,
+        ``gtk``, ``mshtml`` or ``edgechromium`` depending on a platform.
     :param debug: Enable debug mode. Default is False.
     :param http_server: Enable built-in HTTP server. If enabled, local files
         will be served using a local HTTP server on a random port. For each

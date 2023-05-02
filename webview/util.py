@@ -100,7 +100,7 @@ def base_uri(relative_path: str = '') -> str:
 
 
 def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
-    if isinstance(type, dict):
+    if isinstance(input_, dict):
         cookie = SimpleCookie[str]()
         name = input_['name']
         cookie[name] = input_['value']
@@ -121,7 +121,7 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
     raise WebViewException('Unknown input to create_cookie')
 
 
-def parse_file_type(file_type: str):
+def parse_file_type(file_type: str) -> tuple[str, str]:
     """
     :param file_type: file type string 'description (*.file_extension1;*.file_extension2)' as required by file filter in create_file_dialog
     :return: (description, file extensions) tuple
@@ -134,7 +134,7 @@ def parse_file_type(file_type: str):
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def parse_api_js(window: Window, platform: str, uid: str = ''):
+def parse_api_js(window: Window, platform: str, uid: str = '') -> str:
     def get_args(func: object):
         params = list(inspect.getfullargspec(func).args)
         return params
