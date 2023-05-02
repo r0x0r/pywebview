@@ -6,8 +6,9 @@ This example demonstrates how to expose Python functions to the Javascript domai
 
 
 class ApiClass:
-    def lol():
-        print('LOL')
+    class Nested:
+        def lol():
+            print('LOL')
 
     def wtf():
         print('WTF')
@@ -21,7 +22,7 @@ class ApiClass:
 def expose(window):
     window.expose_class(ApiClass)  # expose a function during the runtime
 
-    window.evaluate_js('pywebview.api.ApiClass.lol()')
+    window.evaluate_js('pywebview.api.ApiClass.Nested.lol()')
     window.evaluate_js('pywebview.api.ApiClass.wtf()')
     window.evaluate_js('pywebview.api.ApiClass.echo(1, 2, 3)')
 

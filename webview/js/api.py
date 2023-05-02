@@ -95,8 +95,6 @@ window.pywebview = {
 }
 window.pywebview._createApi(%(func_list)s);
 
-
-
 if (window.pywebview.platform == 'qtwebengine') {
     new QWebChannel(qt.webChannelTransport, function(channel) {
         window.pywebview._QWebChannel = channel;
