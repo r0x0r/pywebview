@@ -35,7 +35,8 @@ def _api_call(function, event_type):
 
             return function(*args, **kwargs)
         except NameError as e:
-            raise WebViewException('Create a web view window first, before invoking this function')
+            raise WebViewException(
+                'Create a web view window first, before invoking this function')
 
     return wrapper
 
@@ -92,9 +93,9 @@ class Window:
         self.vibrancy = vibrancy
 
         # Server config
-        self._http_port=http_port
-        self._server=server
-        self._server_args=server_args
+        self._http_port = http_port
+        self._server = server
+        self._server_args = server_args
 
         # HTTP server path magic
         self._url_prefix = None
@@ -126,7 +127,8 @@ class Window:
             self.localization.update(self.localization_override)
 
         if is_app(self.original_url) and (server is None or server == http.global_server):
-            prefix, common_path, server = http.start_server(urls=[self.original_url], http_port=self._http_port, server=self._server, **self._server_args)
+            prefix, common_path, server = http.start_server(
+                urls=[self.original_url], http_port=self._http_port, server=self._server, **self._server_args)
         elif server is None:
             server = http.global_server
 
@@ -174,7 +176,8 @@ class Window:
     def get_elements(self, selector):
         # check for GTK's WebKit2 version
         if hasattr(self.gui, 'old_webkit') and self.gui.old_webkit:
-            raise NotImplementedError('get_elements requires WebKit2 2.2 or greater')
+            raise NotImplementedError(
+                'get_elements requires WebKit2 2.2 or greater')
 
         code = """
             var elements = document.querySelectorAll('%s');
@@ -202,7 +205,8 @@ class Window:
         :param uid: uid of the target instance
         """
         if ((self._server is None) or (not self._server.running)) and ((is_app(url) or is_local_url(url))):
-            self._url_prefix, self._common_path, self.server = http.start_server([url])
+            self._url_prefix, self._common_path, self.server = http.start_server([
+                                                                                 url])
 
         self.real_url = self._resolve_url(url)
         self.gui.load_url(self.real_url, self.uid)
@@ -220,7 +224,8 @@ class Window:
 
     @_loaded_call
     def load_css(self, stylesheet):
-        code = css.src % stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
+        code = css.src % stylesheet.replace(
+            '\n', '').replace('\r', '').replace('"', "'")
         self.gui.evaluate_js(code, self.uid)
 
     @_shown_call
@@ -272,7 +277,8 @@ class Window:
         :param width: desired width of target window
         :param height: desired height of target window
         """
-        logger.warning('This function is deprecated and will be removed in future releases. Use resize() instead')
+        logger.warning(
+            'This function is deprecated and will be removed in future releases. Use resize() instead')
         self.resize(width, height)
 
     @_shown_call
@@ -330,7 +336,8 @@ class Window:
         self._callbacks[unique_id] = callback
 
         if self.gui.renderer == 'cef':
-            sync_eval = 'window.external.return_result(JSON.stringify(value), "{0}");'.format(unique_id,)
+            sync_eval = 'window.external.return_result(JSON.stringify(value), "{0}");'.format(
+                unique_id,)
         else:
             sync_eval = 'JSON.stringify(value);'
 
@@ -400,16 +407,44 @@ class Window:
             self._functions[name] = func
 
             try:
-                params = list(inspect.getfullargspec(func).args) # Python 3
+                params = list(inspect.getfullargspec(func).args)  # Python 3
             except AttributeError:
                 params = list(inspect.getargspec(func).args)  # Python 2
-
 
             func_list.append({
                 'func': name,
                 'params': params
             })
 
+        if self.events.loaded.is_set():
+            self.evaluate_js('window.pywebview._createApi(%s)' % func_list)
+
+    def expose_class(self, cls):
+        if not inspect.isclass(cls):
+            raise TypeError('Parameter must be a class')
+
+        def get_methods(cls, prefix=cls.__name__):
+            func_list = []
+            for name, func in cls.__dict__.items():
+                if inspect.isclass(func):
+                    full_name = prefix + "." + name
+                    func_list.extend(get_methods(func, prefix=full_name))
+                elif callable(func) and not name.startswith('__'):
+                    full_name = prefix + "." + name
+                    self._functions[full_name] = func
+                    try:
+                        params = list(inspect.getfullargspec(
+                            func).args)  # Python 3
+                    except AttributeError:
+                        params = list(inspect.getargspec(
+                            func).args)  # Python 2
+                    func_list.append({
+                        'func': full_name,
+                        'params': params
+                    })
+            return func_list
+
+        func_list = get_methods(cls)
         if self.events.loaded.is_set():
             self.evaluate_js('window.pywebview._createApi(%s)' % func_list)
 
