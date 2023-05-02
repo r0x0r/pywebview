@@ -1,7 +1,7 @@
 import webview
 
 """
-This example demonstrates how to expose Python functions to the Javascript domain.
+This example demonstrates how to expose Python class to the Javascript domain.
 """
 
 
