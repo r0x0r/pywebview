@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pywebview"
 authors = [{ name = "Roman Sirokov", email = "roman@flowrl.com" }]
 description = "Build GUI for your Python program with JavaScript, HTML, and CSS"
-version = "4.0.2"
+version = "4.1"
 keywords = ["gui", "webkit", "html", "web"]
 requires-python = ">=3.7"
 license = { file = "LICENSE" }
