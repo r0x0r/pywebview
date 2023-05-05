@@ -20,3 +20,4 @@ venv*
 __pycache__
 .python-version
 .venv/
+_version.py

@@ -1,12 +1,11 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "setuptools_scm[toml]"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pywebview"
 authors = [{ name = "Roman Sirokov", email = "roman@flowrl.com" }]
 description = "Build GUI for your Python program with JavaScript, HTML, and CSS"
-version = "4.1"
 keywords = ["gui", "webkit", "html", "web"]
 requires-python = ">=3.7"
 license = { file = "LICENSE" }
@@ -39,6 +38,7 @@ dependencies = [
     "bottle",
     "typing_extensions",
 ]
+dynamic = ["version"]
 
 [project.optional-dependencies]
 cef = ["cefpython3"]
@@ -63,3 +63,6 @@ packages = ["webview", "webview.js", "webview.lib"]
 
 [tool.setuptools.package-data]
 "webview.lib" = ["**/*.dll"]
+
+[tool.setuptools_scm]
+write_to = "webview/_version.py"
