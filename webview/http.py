@@ -20,9 +20,13 @@ import socket
 import ssl
 import threading
 import uuid
+
 from socketserver import ThreadingMixIn
+from typing import TYPE_CHECKING
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
-from wsgiref.types import WSGIApplication
+
+if TYPE_CHECKING:
+    from wsgiref.types import WSGIApplication
 
 import bottle
 from typing_extensions import TypedDict, Unpack

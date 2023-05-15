@@ -1,4 +1,6 @@
-original_localization: dict[str, str] = {
+from typing import Dict
+
+original_localization: Dict[str, str] = {
     'global.quitConfirmation': 'Do you really want to quit?',
     'global.ok': 'OK',
     'global.quit': 'Quit',
