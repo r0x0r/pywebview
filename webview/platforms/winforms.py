@@ -350,6 +350,15 @@ class BrowserView:
 
         def set_window_menu(self, menu_list):
             def _set_window_menu():
+                def create_action_item(menu_line_item):
+                    action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
+                    def on_click(_sender, _args, menu_line_item=menu_line_item):
+                        # Don't run action function on main thread
+                        from threading import Thread
+                        Thread(target=menu_line_item.function).start()
+                    action_item.Click += on_click
+                    return action_item
+
                 def create_submenu(title, line_items, supermenu=None):
                     m = WinForms.ToolStripMenuItem(title)
                     for menu_line_item in line_items:
@@ -357,10 +366,7 @@ class BrowserView:
                             m.DropDownItems.Add(WinForms.ToolStripSeparator())
                             continue
                         elif isinstance(menu_line_item, MenuAction):
-                            action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
-                            # Don't run action function on main thread
-                            action_item.Click += lambda _,__,menu_line_item=menu_line_item : threading.Thread(target=menu_line_item.function).start()
-                            m.DropDownItems.Add(action_item)
+                            m.DropDownItems.Add(create_action_item(menu_line_item))
                         elif isinstance(menu_line_item, Menu):
                             create_submenu(menu_line_item.title, menu_line_item.items, m)
 
@@ -372,7 +378,10 @@ class BrowserView:
                 top_level_menu = WinForms.MenuStrip()
 
                 for menu in menu_list:
-                    top_level_menu.Items.Add(create_submenu(menu.title, menu.items))
+                    if isinstance(menu, Menu):
+                        top_level_menu.Items.Add(create_submenu(menu.title, menu.items))
+                    elif isinstance(menu, MenuAction):
+                        top_level_menu.Items.Add(create_action_item(menu))
 
                 self.Controls.Add(top_level_menu)
 
