@@ -19,3 +19,5 @@ venv*
 .pytest_cache
 __pycache__
 .python-version
+.venv/
+_version.py

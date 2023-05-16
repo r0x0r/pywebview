@@ -60,4 +60,3 @@ foreach ($test in $tests) {
 }
 
 exit $errors
-

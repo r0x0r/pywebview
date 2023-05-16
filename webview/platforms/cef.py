@@ -4,19 +4,18 @@ import os
 import shutil
 import sys
 import webbrowser
-
+from copy import copy
 from ctypes import windll
 from functools import wraps
 from threading import Event
-from cefpython3 import cefpython as cef
-from copy import copy
 from time import sleep
 
-from webview.js.css import disable_text_select
-from webview.js import dom
-from webview import _debug, _user_agent
-from webview.util import create_cookie, parse_api_js, default_html, js_bridge_call
+from cefpython3 import cefpython as cef
 
+from webview import _debug, _user_agent
+from webview.js import dom
+from webview.js.css import disable_text_select
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_js
 
 sys.excepthook = cef.ExceptHook
 instances = {}
@@ -31,18 +30,23 @@ command_line_switches = {}
 
 
 def _set_dpi_mode(enabled):
-    """
-    """
+    """ """
     import winreg  # Python 3
 
     try:
-        dpi_support = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                                     r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
-                                     0, winreg.KEY_ALL_ACCESS)
+        dpi_support = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
+            0,
+            winreg.KEY_ALL_ACCESS,
+        )
     except WindowsError:
-        dpi_support = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER,
-                                         r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
-                                         0, winreg.KEY_ALL_ACCESS)
+        dpi_support = winreg.CreateKeyEx(
+            winreg.HKEY_CURRENT_USER,
+            r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
+            0,
+            winreg.KEY_ALL_ACCESS,
+        )
 
     try:
         subprocess_path = os.path.join(sys._MEIPASS, 'subprocess.exe')
@@ -73,7 +77,8 @@ class JSBridge:
 
 renderer = 'cef'
 
-class CookieVisitor(object):
+
+class CookieVisitor:
     def Visit(self, cookie, count, total, delete_cookie_out):
         data = {
             'name': cookie.GetName(),
@@ -82,7 +87,7 @@ class CookieVisitor(object):
             'domain': cookie.GetDomain(),
             'expires': cookie.GetExpires().strftime('%a, %d %b %Y %H:%M:%S GMT'),
             'secure': cookie.GetSecure(),
-            'httponly': cookie.GetHttpOnly()
+            'httponly': cookie.GetHttpOnly(),
         }
 
         cookie = create_cookie(data)
@@ -136,9 +141,15 @@ class Browser:
         height_diff = screen.Top - self.parent.Top + 12
         width_diff = self.parent.Right - screen.Right + 12
 
-        windll.user32.SetWindowPos(self.inner_hwnd, 0, 0, 0,
-                                   width - width_diff, height - height_diff,
-                                   0x0002 | 0x0004 | 0x0010)
+        windll.user32.SetWindowPos(
+            self.inner_hwnd,
+            0,
+            0,
+            0,
+            width - width_diff,
+            height - height_diff,
+            0x0002 | 0x0004 | 0x0010,
+        )
         self.browser.NotifyMoveOrResizeStarted()
 
     def evaluate_js(self, code, unique_id):
@@ -152,7 +163,9 @@ class Browser:
                 console.error(e.stack);
                 window.external.return_result(null, '{1}');
             }}
-        """.format(code, unique_id)
+        """.format(
+            code, unique_id
+        )
 
         result = self.browser.ExecuteJavascript(eval_script)
         self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
@@ -199,7 +212,7 @@ def find_instance(browser):
     return None
 
 
-class LoadHandler(object):
+class LoadHandler:
     def OnBeforePopup(self, **args):
         url = args['target_url']
         user_gesture = args['user_gesture']
@@ -235,7 +248,7 @@ def _cef_call(func):
     return wrapper
 
 
-def init(window, cache_dir):
+def init(_, cache_dir):
     global _initialized
 
     if not _initialized:
@@ -244,14 +257,10 @@ def init(window, cache_dir):
 
         default_settings = {
             'multi_threaded_message_loop': True,
-            'context_menu': {
-                'enabled': _debug['mode']
-            }
+            'context_menu': {'enabled': _debug['mode']},
         }
 
-        default_command_line_switches = {
-            "enable-media-stream": ""
-        }
+        default_command_line_switches = {'enable-media-stream': ''}
 
         if not _debug['mode']:
             default_settings['remote_debugging_port'] = -1
@@ -264,11 +273,13 @@ def init(window, cache_dir):
 
         resource_root = getattr(sys, '_MEIPASS', os.path.dirname(cef.__file__))
 
-        default_settings.update({
-            'resources_dir_path': resource_root,
-            'locales_dir_path': os.path.join(resource_root, 'locales'),
-            'browser_subprocess_path': os.path.join(resource_root, 'subprocess.exe'),
-        })
+        default_settings.update(
+            {
+                'resources_dir_path': resource_root,
+                'locales_dir_path': os.path.join(resource_root, 'locales'),
+                'browser_subprocess_path': os.path.join(resource_root, 'subprocess.exe'),
+            }
+        )
 
         all_settings = dict(default_settings, **settings)
         all_command_line_switches = dict(default_command_line_switches, **command_line_switches)
@@ -280,12 +291,18 @@ def init(window, cache_dir):
 
 def create_browser(window, handle, alert_func, parent):
     def _create():
-        real_url = 'data:text/html,{0}'.format(window.html) if window.html else window.real_url or 'data:text/html,{0}'.format(default_html)
+        real_url = (
+            'data:text/html,{0}'.format(window.html)
+            if window.html
+            else window.real_url or 'data:text/html,{0}'.format(DEFAULT_HTML)
+        )
 
         default_browser_settings = {}
         all_browser_settings = dict(default_browser_settings, **browser_settings)
 
-        cef_browser = cef.CreateBrowserSync(window_info=window_info, settings=all_browser_settings, url=real_url)
+        cef_browser = cef.CreateBrowserSync(
+            window_info=window_info, settings=all_browser_settings, url=real_url
+        )
         browser = Browser(window, handle, cef_browser, parent)
 
         bindings = cef.JavascriptBindings()

@@ -1,8 +1,6 @@
-import webview
+"""This example demonstrates evaluating JavaScript in a web page."""
 
-"""
-This example demonstrates evaluating JavaScript in a web page.
-"""
+import webview
 
 
 def evaluate_js(window):

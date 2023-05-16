@@ -1,8 +1,2 @@
-include webview/lib/WebBrowserInterop.x64.dll
-include webview/lib/WebBrowserInterop.x86.dll
-include webview/lib/arm64/WebView2Loader.dll
-include webview/lib/x64/WebView2Loader.dll
-include webview/lib/x86/WebView2Loader.dll
-include webview/lib/Microsoft.Web.WebView2.Core.dll
+graft windows_interop
 include webview/lib/Microsoft.Web.WebView2.LICENSE.md
-include webview/lib/Microsoft.Web.WebView2.WinForms.dll

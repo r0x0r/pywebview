@@ -1,10 +1,8 @@
-import webview
-import threading
+"""This example demonstrates how to toggle fullscreen mode programmatically."""
+
 import time
 
-"""
-This example demonstrates how to toggle fullscreen mode programmatically.
-"""
+import webview
 
 
 def toggle_fullscreen(window):

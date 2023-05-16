@@ -1,10 +1,8 @@
-import webview
-import threading
+"""This example demonstrates how to change a window title."""
+
 import time
 
-"""
-This example demonstrates how to change a window title.
-"""
+import webview
 
 
 def change_title(window):
