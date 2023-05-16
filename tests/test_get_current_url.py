@@ -1,5 +1,7 @@
 import webview
+
 from .util import run_test
+
 
 def test_current_url():
     window = webview.create_window('Get Current URL test', 'https://example.org')
@@ -14,6 +16,6 @@ def test_no_url():
 def current_url_test(window):
     assert window.get_current_url() == 'https://example.org/'
 
+
 def no_url_test(window):
     assert window.get_current_url() is None
-

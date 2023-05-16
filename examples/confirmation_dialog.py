@@ -1,8 +1,6 @@
-import webview
+"""This example demonstrates creating a text dialog."""
 
-"""
-This example demonstrates creating a text dialog.
-"""
+import webview
 
 
 def open_confirmation_dialog(window):
@@ -14,5 +12,7 @@ def open_confirmation_dialog(window):
 
 
 if __name__ == '__main__':
-    window = webview.create_window('Confirmation dialog example', 'https://pywebview.flowrl.com/hello')
+    window = webview.create_window(
+        'Confirmation dialog example', 'https://pywebview.flowrl.com/hello'
+    )
     webview.start(open_confirmation_dialog, window)

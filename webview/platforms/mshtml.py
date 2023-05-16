@@ -1,44 +1,29 @@
-# -*- coding: utf-8 -*-
-
-"""
-(C) 2014-2019 Roman Sirokov and contributors
-Licensed under BSD license
-
-http://github.com/r0x0r/pywebview/
-"""
-
-import os
-import sys
-import logging
 import json
-import shutil
-import tempfile
+import logging
 import webbrowser
-from threading import Event, Semaphore
 from ctypes import windll
-
-from webview import _debug, _user_agent
-from webview.util import parse_api_js, interop_dll_path, inject_base_uri, default_html, js_bridge_call
-from webview.js import alert
-from webview.js.css import disable_text_select
+from threading import Semaphore
 
 import clr
+
+from webview import _debug, _user_agent
+from webview.js import alert
+from webview.js.css import disable_text_select
+from webview.util import (DEFAULT_HTML, inject_base_uri, interop_dll_path, js_bridge_call,
+                          parse_api_js)
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import IntPtr, Int32, Func, Type, Environment, Uri
-from System.Drawing import Size, Point, Icon, Color, ColorTranslator, SizeF
 
 clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
 from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 
-
 logger = logging.getLogger('pywebview')
-
 settings = {}
+
 
 class MSHTML:
     alert = None
@@ -100,14 +85,14 @@ class MSHTML:
         elif window.html:
             self.web_view.DocumentText = window.html
         else:
-            self.web_view.DocumentText = default_html
+            self.web_view.DocumentText = DEFAULT_HTML
 
         self.form = form
         form.Controls.Add(self.web_view)
 
     def evaluate_js(self, script):
         result = self.web_view.Document.InvokeScript('eval', (script,))
-        self.js_result = None if result is None or result == 'null' else json.loads(result) ##
+        self.js_result = None if result is None or result == 'null' else json.loads(result)  ##
         self.js_result_semaphore.release()
 
     def load_html(self, content, base_uri):
@@ -117,7 +102,7 @@ class MSHTML:
     def load_url(self, url):
         self.web_view.Navigate(url)
 
-    def on_preview_keydown(self, sender, args):
+    def on_preview_keydown(self, _, args):
         if args.KeyCode == WinForms.Keys.Back:
             self.cancel_back = True
         elif args.KeyCode == WinForms.Keys.Delete:
@@ -137,20 +122,25 @@ class MSHTML:
         args.Cancel = True
         webbrowser.open(args.Url)
 
-    def on_download_complete(self, sender, args):
+    def on_download_complete(self, *_):
         pass
 
-    def on_navigating(self, sender, args):
+    def on_navigating(self, _, args):
         if self.cancel_back:
             args.Cancel = True
             self.cancel_back = False
 
-    def on_document_completed(self, sender, args):
+    def on_document_completed(self, _, args):
         document = self.web_view.Document
         document.InvokeScript('eval', (alert.src,))
 
         if _debug['mode']:
-            document.InvokeScript('eval', ('window.console = { log: function(msg) { window.external.console(JSON.stringify(msg)) }}',))
+            document.InvokeScript(
+                'eval',
+                (
+                    'window.console = { log: function(msg) { window.external.console(JSON.stringify(msg)) }}',
+                ),
+            )
 
         if self.first_load:
             self.web_view.Visible = True
@@ -167,7 +157,12 @@ class MSHTML:
         if self.pywebview_window.easy_drag:
             document.MouseMove += self.on_mouse_move
 
-    def on_mouse_move(self, sender, e):
+    def on_mouse_move(self, _, e):
         if e.MouseButtonsPressed == WinForms.MouseButtons.Left:
             WebBrowserEx.ReleaseCapture()
-            windll.user32.SendMessageW(self.form.Handle.ToInt32(), WebBrowserEx.WM_NCLBUTTONDOWN, WebBrowserEx.HT_CAPTION, 6)
+            windll.user32.SendMessageW(
+                self.form.Handle.ToInt32(),
+                WebBrowserEx.WM_NCLBUTTONDOWN,
+                WebBrowserEx.HT_CAPTION,
+                6,
+            )

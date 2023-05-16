@@ -1,10 +1,14 @@
-import webview
-from .util import run_test
 from time import sleep
+
+import webview
+
+from .util import run_test
 
 
 def test_resize():
-    window = webview.create_window('Set Window Size Test', 'https://www.example.org', width=800, height=600)
+    window = webview.create_window(
+        'Set Window Size Test', 'https://www.example.org', width=800, height=600
+    )
     run_test(webview, window, resize)
 
 

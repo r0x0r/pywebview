@@ -1,47 +1,38 @@
-# -*- coding: utf-8 -*-
-
-"""
-(C) 2014-2022 Roman Sirokov and contributors
-Licensed under BSD license
-
-http://github.com/r0x0r/pywebview/
-"""
-
-import os
-import logging
 import json
+import logging
+import os
 import webbrowser
 from threading import Semaphore
 
-from webview import _debug, _user_agent, _private_mode
-from webview.util import create_cookie, parse_api_js, interop_dll_path, default_html, js_bridge_call
-from webview.js.css import disable_text_select
-
 import clr
 
+from webview import _debug, _private_mode, _user_agent
+from webview.js.css import disable_text_select
+from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, parse_api_js
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import String, Action, Func, Type, Uri
+from System import Action, Func, String, Type, Uri
 from System.Collections.Generic import List
+from System.Drawing import Color
 from System.Globalization import CultureInfo
 from System.Threading.Tasks import Task, TaskScheduler
-from System.Drawing import Color
 
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
 from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2Environment
-from Microsoft.Web.WebView2.WinForms import WebView2, CoreWebView2CreationProperties
+from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
 for platform in ('arm64', 'x64', 'x86'):
     os.environ['Path'] += ';' + interop_dll_path(platform)
 
 
 logger = logging.getLogger('pywebview')
+
 
 class EdgeChrome:
     def __init__(self, form, window, cache_dir):
@@ -77,9 +68,8 @@ class EdgeChrome:
             self.html = window.html
             self.load_html(window.html, '')
         else:
-            self.html = default_html
-            self.load_html(default_html, '')
-
+            self.html = DEFAULT_HTML
+            self.load_html(DEFAULT_HTML, '')
 
     def evaluate_js(self, script, semaphore, js_result, callback=None):
         def _callback(result):
@@ -95,10 +85,10 @@ class EdgeChrome:
 
         try:
             self.web_view.ExecuteScriptAsync(script).ContinueWith(
-                Action[Task[String]](lambda task: _callback(json.loads(task.Result))
-            ),
-            self.syncContextTaskScheduler)
-        except Exception as e:
+                Action[Task[String]](lambda task: _callback(json.loads(task.Result))),
+                self.syncContextTaskScheduler,
+            )
+        except Exception:
             logger.exception('Error occurred in script')
             js_result.append(None)
             semaphore.release()
@@ -124,7 +114,7 @@ class EdgeChrome:
                         'expires': c.Expires.ToString('r', CultureInfo.GetCultureInfo('en-US')),
                         'secure': c.IsSecure,
                         'httponly': c.IsHttpOnly,
-                        'samesite': same_site
+                        'samesite': same_site,
                     }
 
                     cookie = create_cookie(data)
@@ -136,17 +126,17 @@ class EdgeChrome:
 
         _cookies = []
         self.web_view.CoreWebView2.CookieManager.GetCookiesAsync(self.url).ContinueWith(
-            Action[Task[List[CoreWebView2Cookie]]](_callback), self.syncContextTaskScheduler)
-
+            Action[Task[List[CoreWebView2Cookie]]](_callback), self.syncContextTaskScheduler
+        )
 
     def get_current_url(self):
         return self.url
 
-    def load_html(self, content, base_uri):
+    def load_html(self, content, _):
         self.html = content
         self.ishtml = True
         self.pywebview_window.events.loaded.clear()
-        
+
         if self.web_view.CoreWebView2:
             self.web_view.CoreWebView2.NavigateToString(self.html)
         else:
@@ -166,7 +156,7 @@ class EdgeChrome:
                 print(func_param)
             else:
                 js_bridge_call(self.pywebview_window, func_name, func_param, value_id)
-        except Exception as e:
+        except Exception:
             logger.exception('Exception occurred during on_script_notify')
 
     def on_new_window_request(self, _, args):
@@ -175,7 +165,10 @@ class EdgeChrome:
 
     def on_webview_ready(self, sender, args):
         if not args.IsSuccess:
-            logger.error('WebView2 initialization failed with exception:\n ' + str(args.InitializationException))
+            logger.error(
+                'WebView2 initialization failed with exception:\n '
+                + str(args.InitializationException)
+            )
             return
 
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
@@ -203,11 +196,10 @@ class EdgeChrome:
         if _debug['mode']:
             sender.CoreWebView2.OpenDevToolsWindow()
 
-
     def on_navigation_start(self, sender, args):
         pass
 
-    def on_navigation_completed(self, sender, args):
+    def on_navigation_completed(self, sender, _):
         url = str(sender.Source)
         self.url = None if self.ishtml else url
 

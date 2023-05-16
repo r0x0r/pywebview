@@ -1,8 +1,6 @@
-import webview
+"""This example demonstrates how to get the current url loaded in the webview."""
 
-"""
-This example demonstrates how to get the current url loaded in the webview.
-"""
+import webview
 
 
 def get_current_url(window):

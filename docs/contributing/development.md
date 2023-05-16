@@ -6,7 +6,7 @@ Before you get busy coding a new feature, create an issue and discuss the detail
 
 This guide assumes you have a [GitHub](https://github.com) account, as well as [Python 3](https://python.org), [virtualenv](https://virtualenv.pypa.io/en/stable/) and [Git](https://git-scm.com) installed. The guide is written for Bash, for Windows you can use for example Bash bundled with Git.
 
-* [Fork](https://github.com/r0x0r/pywebview/fork) _pywebview_ 
+* [Fork](https://github.com/r0x0r/pywebview/fork) _pywebview_
 * Clone your forked repository
 
 ``` bash
@@ -30,7 +30,7 @@ python examples/simple_browser.py
 
 ## Development work-flow
 
-* Create and checkout a new branch 
+* Create and checkout a new branch
 ``` bash
 git checkout -b new-branch master
 ```
@@ -55,7 +55,7 @@ git push -u origin new-branch
 
 ## Testing
 
-pywebview uses [pytest](https://docs.pytest.org/en/latest/) for testing. 
+pywebview uses [pytest](https://docs.pytest.org/en/latest/) for testing.
 
 To run all the tests in the project root directory
 
@@ -73,7 +73,7 @@ pytest tests/test_simple_browser.py
 
 ## Learning
 
-### Windows 
+### Windows
 * [Windows Forms documentation](https://docs.microsoft.com/en-us/dotnet/framework/winforms/)
 * [Windows Forms API](https://docs.microsoft.com/en-us/dotnet/api/system.windows.forms)
 
@@ -82,7 +82,7 @@ pytest tests/test_simple_browser.py
 * [AppKit](https://developer.apple.com/documentation/appkit)
 * [WebKit](https://developer.apple.com/documentation/webkit)
 
-### Linux 
+### Linux
 * [PyGObject API reference](https://lazka.github.io/pgi-docs/)
 
 ### Qt

@@ -1,10 +1,15 @@
 import pytest
+
 import webview
-from .util import run_test, assert_js
+
+from .util import assert_js, run_test
+
 
 @pytest.fixture
 def window():
-    return webview.create_window('Main window', html='<html><body><h1>Master window</h1></body></html>')
+    return webview.create_window(
+        'Main window', html='<html><body><h1>Master window</h1></body></html>'
+    )
 
 
 def test_bg_color():
@@ -24,12 +29,17 @@ def test_load_url(window):
 def test_evaluate_js(window):
     run_test(webview, window, evaluate_js)
 
+
 def test_js_bridge():
     class Api1:
         def test1(self):
             return 1
 
-    window = webview.create_window('Multi-window js bridge test', html='<html><body><h1>Master window</h1></body></html>', js_api=Api1())
+    window = webview.create_window(
+        'Multi-window js bridge test',
+        html='<html><body><h1>Master window</h1></body></html>',
+        js_api=Api1(),
+    )
     run_test(webview, window, js_bridge)
 
 
@@ -58,31 +68,37 @@ def js_bridge(window):
 def evaluate_js(window):
     child_window = webview.create_window('Window #2', 'https://pywebview.flowrl.com')
     assert child_window.uid != 'MainWindow'
-    result1 = window.evaluate_js("""
+    result1 = window.evaluate_js(
+        """
         document.body.style.backgroundColor = '#212121';
         // comment
         function test() {
             return 2 + 5;
         }
         test();
-    """)
+    """
+    )
 
     assert result1 == 7
 
-    result2 = child_window.evaluate_js("""
+    result2 = child_window.evaluate_js(
+        """
         document.body.style.backgroundColor = '#212121';
         // comment
         function test() {
             return 2 + 2;
         }
         test();
-    """)
+    """
+    )
     assert result2 == 4
     child_window.destroy()
 
 
 def load_html(window):
-    child_window = webview.create_window('Window #2', html='<body style="background: red;"><h1>Master Window</h1></body>')
+    child_window = webview.create_window(
+        'Window #2', html='<body style="background: red;"><h1>Master Window</h1></body>'
+    )
     assert child_window != 'MainWindow'
     child_window.destroy()
 
@@ -92,6 +108,3 @@ def load_url(window):
     assert child_window != 'MainWindow'
     child_window.load_url('https://woot.fi')
     child_window.destroy()
-
-
-
