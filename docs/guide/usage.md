@@ -70,8 +70,3 @@ pass
 # Make Python and Javascript talk with each other
 
 You can think of custom logic as a backend that communicates with frontend code in the HTML/JS realm. Now how would you make two to communicate with each other? _pywebview_ offers a two way JS-Python bridge that lets you both execute Javascript from Python (via `evaluate_js`) and Python code from Javascript (via `js_api` and `expose`). See [interdomain communication](/guide/interdomain.md) for details. Another way is to run a Python web server (like Flask or Bottle) in custom logic and make frontend code make API calls to it. That would be identical to a typical web application. This approach is suitable, for example, for porting an existing web application to a desktop application. See [Architecture](/guide/architecture.md) for more information on both approaches.
-
-
-
-
-

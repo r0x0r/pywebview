@@ -1,8 +1,8 @@
 import pytest
-import threading
-from .util import run_test, get_test_name
+
 import webview
 
+from .util import run_test
 
 html = """
   <html>
@@ -13,6 +13,7 @@ html = """
     </body>
   </html>
 """
+
 
 @pytest.fixture
 def window():

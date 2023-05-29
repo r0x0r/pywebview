@@ -1,4 +1,5 @@
 import webview
+
 from .util import run_test
 
 
@@ -9,6 +10,3 @@ def test_url_load():
 
 def url_load(window):
     window.load_url('https://pywebview.flowrl.com')
-
-
-

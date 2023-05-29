@@ -3,22 +3,15 @@ Cocoa window cannot be destroyed programmatically, until it finishes processing 
 So we need to simulate a mouse movement in order to generate an event.
 """
 
-from Quartz.CoreGraphics import CGEventCreateMouseEvent
-from Quartz.CoreGraphics import CGEventCreate
-from Quartz.CoreGraphics import CGEventGetLocation
-from Quartz.CoreGraphics import CFRelease
-from Quartz.CoreGraphics import CGEventPost
-from Quartz.CoreGraphics import kCGEventMouseMoved
-from Quartz.CoreGraphics import kCGEventLeftMouseDown
-from Quartz.CoreGraphics import kCGEventLeftMouseUp
-from Quartz.CoreGraphics import kCGMouseButtonLeft
-from Quartz.CoreGraphics import kCGHIDEventTap
+from Quartz.CoreGraphics import (CGEventCreate, CGEventCreateMouseEvent, CGEventGetLocation,
+                                 CGEventPost, kCGEventLeftMouseDown, kCGEventLeftMouseUp,
+                                 kCGEventMouseMoved, kCGHIDEventTap, kCGMouseButtonLeft)
 
 
 def mousePos():
     event = CGEventCreate(None)
     pointer = CGEventGetLocation(event)
-    #CFRelease(event)
+    # CFRelease(event)
     return pointer.x, pointer.y
 
 

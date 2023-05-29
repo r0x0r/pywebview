@@ -35,4 +35,3 @@ See an example [serverless application](https://github.com/r0x0r/pywebview/tree/
 
 **Cons**
 * Debugging has to be done inside the application using provided debugging tools
-

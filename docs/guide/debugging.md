@@ -13,4 +13,3 @@ This will enable web inspector on macOS, GTK and QT (QTWebEngine only). To open 
 
 
 There is no way to attach an external debugger to MSHTML. The `debug` flag enables Javascript error reporting and right-click context menu on Windows.
-

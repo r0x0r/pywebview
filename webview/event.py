@@ -1,18 +1,22 @@
+from __future__ import annotations
+
 import inspect
-import multiprocessing
-import threading
 import logging
+import threading
+from typing import Any, Callable
+
+from typing_extensions import Self
 
 logger = logging.getLogger('pywebview')
 
 
 class Event:
-    def __init__(self, should_lock=False):
-        self._items = []
+    def __init__(self, should_lock: bool = False) -> None:
+        self._items: list[Callable[..., Any]] = []
         self._should_lock = should_lock
         self._event = threading.Event()
 
-    def set(self, *args, **kwargs):
+    def set(self, *args: Any, **kwargs: Any) -> bool:
         def execute():
             for func in self._items:
                 try:
@@ -29,7 +33,7 @@ class Event:
                 semaphore.release()
 
         semaphore = threading.Semaphore(0)
-        return_values = set()
+        return_values: set[Any] = set()
 
         if len(self._items):
             t = threading.Thread(target=execute)
@@ -43,27 +47,27 @@ class Event:
 
         return len(false_values) != 0
 
-    def is_set(self):
+    def is_set(self) -> bool:
         return self._event.is_set()
 
-    def wait(self, timeout=0):
+    def wait(self, timeout: float = 0) -> bool:
         return self._event.wait(timeout)
 
-    def clear(self):
+    def clear(self) -> None:
         return self._event.clear()
 
-    def __add__(self, item):
+    def __add__(self, item: Callable[..., Any]) -> Self:
         self._items.append(item)
         return self
 
-    def __sub__(self, item):
+    def __sub__(self, item: Callable[..., Any]) -> Self:
         self._items.remove(item)
         return self
 
-    def __iadd__(self, item):
+    def __iadd__(self, item: Callable[..., Any]) -> Self:
         self._items.append(item)
         return self
 
-    def __isub__(self, item):
+    def __isub__(self, item: Callable[..., Any]) -> Self:
         self._items.remove(item)
         return self

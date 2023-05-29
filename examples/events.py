@@ -1,8 +1,7 @@
+"""This example demonstrates how to handle pywebview events."""
+
 import webview
-import time
-"""
-This example demonstrates how to handle pywebview events.
-"""
+
 
 def on_closed():
     print('pywebview window is closed')
@@ -29,7 +28,11 @@ def on_maximized():
 
 
 def on_resized(width, height):
-    print('pywebview window is resized. new dimensions are {width} x {height}'.format(width=width, height=height))
+    print(
+        'pywebview window is resized. new dimensions are {width} x {height}'.format(
+            width=width, height=height
+        )
+    )
 
 
 def on_loaded():
@@ -45,7 +48,9 @@ def on_moved(x, y):
 
 
 if __name__ == '__main__':
-    window = webview.create_window('Simple browser', 'https://pywebview.flowrl.com/', confirm_close=True)
+    window = webview.create_window(
+        'Simple browser', 'https://pywebview.flowrl.com/', confirm_close=True
+    )
 
     window.events.closed += on_closed
     window.events.closing += on_closing

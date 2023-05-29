@@ -10,5 +10,5 @@ def initialize():
 
 def do_stuff():
     # do whatever you need to do
-    response = "This is response from Python backend"
+    response = 'This is response from Python backend'
     return response

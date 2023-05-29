@@ -1,10 +1,12 @@
 import webview
+
 from .util import run_test
 
 
 def test_token():
     window = webview.create_window('Token test')
     run_test(webview, window, token_test)
+
 
 def test_persistance():
     window = webview.create_window('Token persistence test')
@@ -28,5 +30,3 @@ def persistance_test(window):
     window.load_url('https://example.org')
     token3 = window.evaluate_js('pywebview.token')
     assert token1 == token2 == token3
-
-

@@ -1,10 +1,8 @@
-import webview
-import threading
+"""This example demonstrates how to toggle hide and show window programmatically."""
+
 import time
 
-"""
-This example demonstrates how to toggle hide and show window programmatically.
-"""
+import webview
 
 
 def hide_show(window):
@@ -24,5 +22,7 @@ def hide_show(window):
 
 
 if __name__ == '__main__':
-    window = webview.create_window('Hide / show window', 'https://pywebview.flowrl.com/hello', hidden=True)
+    window = webview.create_window(
+        'Hide / show window', 'https://pywebview.flowrl.com/hello', hidden=True
+    )
     webview.start(hide_show, window)

@@ -38,7 +38,7 @@ def on_loaded():
     print('DOM is ready')
 
     # unsubscribe event listener
-    webview.windows[0].loaded -= on_loaded
+    webview.windows[0].events.loaded -= on_loaded
     webview.windows[0].load_url('https://pywebview.flowrl.com/hello')
 
 

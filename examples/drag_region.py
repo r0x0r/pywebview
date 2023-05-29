@@ -1,12 +1,12 @@
-import webview
-
-'''
+"""
 This example demonstrates a user-provided "drag region" to move a frameless window
 around, whilst maintaining normal mouse down/move events elsewhere. This roughly
 replicates `-webkit-drag-region`.
-'''
+"""
 
-html = '''
+import webview
+
+html = """
 <head>
     <style type="text/css">
         .pywebview-drag-region {
@@ -21,8 +21,7 @@ html = '''
 <body>
     <div class="pywebview-drag-region">Drag me!</div>
 </body>
-'''
-
+"""
 
 if __name__ == '__main__':
     window = webview.create_window(
