@@ -27,7 +27,7 @@ clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2Environment
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
-for platform in ('arm64', 'x64', 'x86'):
+for platform in ('win-arm64', 'win-x64', 'win-x86'):
     os.environ['Path'] += ';' + interop_dll_path(platform)
 
 

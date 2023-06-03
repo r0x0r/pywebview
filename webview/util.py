@@ -279,7 +279,13 @@ def interop_dll_path(dll_name: str) -> str:
         )
 
     # Unfrozen path
-    dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', dll_name)
+    dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "lib", dll_name)
+    if os.path.exists(dll_path):
+        return dll_path
+
+    dll_path = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "lib", "runtimes", dll_name, "native"
+    )
     if os.path.exists(dll_path):
         return dll_path
 
