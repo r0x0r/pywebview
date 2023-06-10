@@ -33,6 +33,7 @@ dependencies = [
     "pyobjc-core;sys_platform=='darwin'",
     "pyobjc-framework-Cocoa;sys_platform=='darwin'",
     "pyobjc-framework-WebKit;sys_platform=='darwin'",
+    "pyobjc-framework-security;sys_platform=='darwin'",
     "QtPy;sys_platform=='openbsd6'",
     "proxy_tools",
     "bottle",
