@@ -283,6 +283,12 @@ def interop_dll_path(dll_name: str) -> str:
     if os.path.exists(dll_path):
         return dll_path
 
+    dll_path = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), 'lib', 'runtimes', dll_name, 'native'
+    )
+    if os.path.exists(dll_path):
+        return dll_path
+
     # Frozen path, dll in the same dir as the executable
     dll_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), dll_name)
     if os.path.exists(dll_path):
