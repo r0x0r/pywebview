@@ -221,10 +221,7 @@ class BrowserView:
 
         # Show the webview when it finishes loading
         def webView_didFinishNavigation_(self, webview, nav):
-            # Add the webview to the window if it's not yet the contentView
-            i = BrowserView.get_instance('webkit', webview)
-
-            if i:
+            if i := BrowserView.get_instance('webkit', webview):
                 if not webview.window():
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
@@ -565,11 +562,7 @@ class BrowserView:
 
     def toggle_fullscreen(self):
         def toggle():
-            if self.is_fullscreen:
-                window_behaviour = 1 << 2  # NSWindowCollectionBehaviorManaged
-            else:
-                window_behaviour = 1 << 7  # NSWindowCollectionBehaviorFullScreenPrimary
-
+            window_behaviour = 1 << 2 if self.is_fullscreen else 1 << 7
             self.window.setCollectionBehavior_(window_behaviour)
             self.window.toggleFullScreen_(None)
 
@@ -843,7 +836,7 @@ class BrowserView:
         :rtype: str
         """
         if 'CFBundleName' in info:
-            val += ' {}'.format(info['CFBundleName'])
+            val += f" {info['CFBundleName']}"
         return val
 
     @staticmethod
@@ -903,14 +896,14 @@ class BrowserView:
         cancel = window.localization['global.cancel']
         msg = window.localization['global.quitConfirmation']
 
-        if not window.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
-            should_cancel = window.events.closing.set()
-            if should_cancel:
-                return Foundation.NO
-            else:
-                return Foundation.YES
-        else:
+        if window.confirm_close and not BrowserView.display_confirmation_dialog(
+            quit, cancel, msg
+        ):
             return Foundation.NO
+        if should_cancel := window.events.closing.set():
+            return Foundation.NO
+        else:
+            return Foundation.YES
 
     @staticmethod
     def print_webview(webview):
@@ -1106,11 +1099,15 @@ def get_active_window():
 
     active_window_number = active_window.windowNumber()
 
-    for uid, browser_view_instance in BrowserView.instances.items():
-        if browser_view_instance.window.windowNumber() == active_window_number:
-            return browser_view_instance.pywebview_window
-
-    return None
+    return next(
+        (
+            browser_view_instance.pywebview_window
+            for uid, browser_view_instance in BrowserView.instances.items()
+            if browser_view_instance.window.windowNumber()
+            == active_window_number
+        ),
+        None,
+    )
 
 
 def destroy_window(uid):
@@ -1210,10 +1207,10 @@ def get_size(uid):
 
 
 def get_screens():
-    screens = [
-        Screen(s.frame().size.width, s.frame().size.height) for s in AppKit.NSScreen.screens()
+    return [
+        Screen(s.frame().size.width, s.frame().size.height)
+        for s in AppKit.NSScreen.screens()
     ]
-    return screens
 
 
 def add_tls_cert(certfile):

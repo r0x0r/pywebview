@@ -140,8 +140,7 @@ class BrowserView:
         http.global_server.js_callback[window.uid] = self.on_js_callback
 
         webkit_settings = self.webview.get_settings().props
-        user_agent = settings.get('user_agent') or _user_agent
-        if user_agent:
+        if user_agent := settings.get('user_agent') or _user_agent:
             webkit_settings.user_agent = user_agent
 
         webkit_settings.enable_media_stream = True
@@ -193,9 +192,7 @@ class BrowserView:
             self.toggle_fullscreen()
 
     def close_window(self, *data):
-        should_cancel = self.pywebview_window.events.closing.set()
-
-        if should_cancel:
+        if should_cancel := self.pywebview_window.events.closing.set():
             return
 
         for res in self.js_results.values():
@@ -285,12 +282,7 @@ class BrowserView:
                 func_name = js_data['function']
                 value_id = js_data['id']
                 param = js_data['param'] if 'param' in js_data else None
-                return_val = self.js_bridge.call(func_name, param, value_id)
-
-                # Give back the return value to JS as a string
-                # code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
-                return return_val
-
+                return self.js_bridge.call(func_name, param, value_id)
         except json.JSONDecodeError:  # Python 3
             return
 
@@ -386,10 +378,7 @@ class BrowserView:
         )
         response = dialog.run()
         dialog.destroy()
-        if response == gtk.ResponseType.OK:
-            return True
-
-        return False
+        return response == gtk.ResponseType.OK
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
         if dialog_type == FOLDER_DIALOG:
@@ -632,8 +621,7 @@ def restore(uid):
 
 
 def get_cookies(uid):
-    cookies = BrowserView.instances[uid].get_cookies()
-    return cookies
+    return BrowserView.instances[uid].get_cookies()
 
 
 def get_current_url(uid):
@@ -715,7 +703,7 @@ def set_app_menu(app_menu_list):
                 new_action = Gio.SimpleAction.new(action_label, None)
                 new_action.connect('activate', action_callback)
                 _app.add_action(new_action)
-                current_section.append(menu_line_item.title, 'app.' + action_label)
+                current_section.append(menu_line_item.title, f'app.{action_label}')
             elif isinstance(menu_line_item, Menu):
                 create_submenu(
                     menu_line_item.title,
@@ -750,11 +738,14 @@ def get_active_window():
 
     active_window_number = active_window.get_id()
 
-    for uid, browser_view_instance in BrowserView.instances.items():
-        if browser_view_instance.window.get_id() == active_window_number:
-            return browser_view_instance.pywebview_window
-
-    return None
+    return next(
+        (
+            browser_view_instance.pywebview_window
+            for uid, browser_view_instance in BrowserView.instances.items()
+            if browser_view_instance.window.get_id() == active_window_number
+        ),
+        None,
+    )
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
@@ -815,9 +806,7 @@ def get_screens():
     screen = Gdk.Screen.get_default()
     n = screen.get_n_monitors()
     geometries = [screen.get_monitor_geometry(i) for i in range(n)]
-    screens = [Screen(geom.width, geom.height) for geom in geometries]
-
-    return screens
+    return [Screen(geom.width, geom.height) for geom in geometries]
 
 
 def configure_transparency(c):

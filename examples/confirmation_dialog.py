@@ -4,8 +4,9 @@ import webview
 
 
 def open_confirmation_dialog(window):
-    result = window.create_confirmation_dialog('Question', 'Are you ok with this?')
-    if result:
+    if result := window.create_confirmation_dialog(
+        'Question', 'Are you ok with this?'
+    ):
         print('User clicked OK')
     else:
         print('User clicked Cancel')

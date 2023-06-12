@@ -205,19 +205,22 @@ class Browser:
 
 
 def find_instance(browser):
-    for instance in instances.values():
-        if instance.browser is browser:
-            return instance
-
-    return None
+    return next(
+        (
+            instance
+            for instance in instances.values()
+            if instance.browser is browser
+        ),
+        None,
+    )
 
 
 class LoadHandler:
     def OnBeforePopup(self, **args):
-        url = args['target_url']
         user_gesture = args['user_gesture']
 
         if user_gesture:
+            url = args['target_url']
             webbrowser.open(url)
 
         return True
@@ -225,13 +228,13 @@ class LoadHandler:
     def OnLoadingStateChange(self, browser, is_loading, **_):
         instance = find_instance(browser)
 
-        if instance is not None:
-            if is_loading:
-                instance.initialized = False
-            else:
-                instance.initialize()
+        if instance is None:
+            logger.debug(f'CEF instance is not found {browser} ')
+
+        elif is_loading:
+            instance.initialized = False
         else:
-            logger.debug('CEF instance is not found %s ' % browser)
+            instance.initialize()
 
 
 def _cef_call(func):
@@ -273,13 +276,13 @@ def init(_, cache_dir):
 
         resource_root = getattr(sys, '_MEIPASS', os.path.dirname(cef.__file__))
 
-        default_settings.update(
-            {
-                'resources_dir_path': resource_root,
-                'locales_dir_path': os.path.join(resource_root, 'locales'),
-                'browser_subprocess_path': os.path.join(resource_root, 'subprocess.exe'),
-            }
-        )
+        default_settings |= {
+            'resources_dir_path': resource_root,
+            'locales_dir_path': os.path.join(resource_root, 'locales'),
+            'browser_subprocess_path': os.path.join(
+                resource_root, 'subprocess.exe'
+            ),
+        }
 
         all_settings = dict(default_settings, **settings)
         all_command_line_switches = dict(default_command_line_switches, **command_line_switches)
@@ -359,10 +362,7 @@ def get_current_url(uid):
     instance = instances[uid]
     url = instance.get_current_url()
 
-    if url.startswith('data:text/html,'):
-        return None
-    else:
-        return url
+    return None if url.startswith('data:text/html,') else url
 
 
 @_cef_call

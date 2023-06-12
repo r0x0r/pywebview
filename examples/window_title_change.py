@@ -9,7 +9,7 @@ def change_title(window):
     """changes title every 3 seconds"""
     for i in range(1, 100):
         time.sleep(3)
-        window.set_title('New Title #{}'.format(i))
+        window.set_title(f'New Title #{i}')
 
 
 if __name__ == '__main__':

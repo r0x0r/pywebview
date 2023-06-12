@@ -113,16 +113,14 @@ class Api:
         self.cancel_heavy_stuff_flag = False
 
     def init(self):
-        response = {'message': 'Hello from Python {0}'.format(sys.version)}
-        return response
+        return {'message': 'Hello from Python {0}'.format(sys.version)}
 
     def getRandomNumber(self):
-        response = {
+        return {
             'message': 'Here is a random number courtesy of randint: {0}'.format(
                 random.randint(0, 100000000)
             )
         }
-        return response
 
     def doHeavyStuff(self):
         time.sleep(0.1)  # sleep to prevent from the ui thread from freezing for a moment
@@ -147,8 +145,7 @@ class Api:
         self.cancel_heavy_stuff_flag = True
 
     def sayHelloTo(self, name):
-        response = {'message': 'Hello {0}!'.format(name)}
-        return response
+        return {'message': 'Hello {0}!'.format(name)}
 
     def error(self):
         raise Exception('This is a Python exception')

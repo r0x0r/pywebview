@@ -35,11 +35,14 @@ settings = {}
 def _is_new_version(current_version: str, new_version: str) -> bool:
     new_range = new_version.split('.')
     cur_range = current_version.split('.')
-    for index, _ in enumerate(new_range):
-        if len(cur_range) > index:
-            return int(new_range[index]) >= int(cur_range[index])
-
-    return False
+    return next(
+        (
+            int(new_range[index]) >= int(cur_range[index])
+            for index, _ in enumerate(new_range)
+            if len(cur_range) > index
+        ),
+        False,
+    )
 
 
 def _is_chromium():
@@ -703,11 +706,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
             dialog.FileName = save_filename
 
             result = dialog.ShowDialog(window)
-            if result == WinForms.DialogResult.OK:
-                file_path = dialog.FileName
-            else:
-                file_path = None
-
+            file_path = dialog.FileName if result == WinForms.DialogResult.OK else None
         return file_path
     except:
         logger.exception('Error invoking %s dialog', dialog_type)
@@ -842,8 +841,10 @@ def get_size(uid):
 
 
 def get_screens():
-    screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens]
-    return screens
+    return [
+        Screen(s.Bounds.Width, s.Bounds.Height)
+        for s in WinForms.Screen.AllScreens
+    ]
 
 
 def add_tls_cert(certfile):

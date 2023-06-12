@@ -258,7 +258,7 @@ def create_window(
     if not re.match(valid_color, background_color):
         raise ValueError('{0} is not a valid hex triplet color'.format(background_color))
 
-    uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
+    uid = 'master' if len(windows) == 0 else f'child_{uuid4().hex[:8]}'
 
     window = Window(
         uid,
@@ -363,13 +363,10 @@ def active_window() -> Window | None:
 
     :return: window object or None
     """
-    if guilib:
-        return guilib.get_active_window()
-    return None
+    return guilib.get_active_window() if guilib else None
 
 
 @module_property
 def screens() -> list[Screen]:
     guilib = initialize()
-    screens = guilib.get_screens()
-    return screens
+    return guilib.get_screens()

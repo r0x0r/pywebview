@@ -64,12 +64,12 @@ def hello():
                         <tr>
                             <td>Global Server</td>
                             <td>{serverDescription(webview.http.global_server)}</td>
-                            <td>{webview.http.global_server.address if not webview.http.global_server is None else 'None'}</td>
+                            <td>{webview.http.global_server.address if webview.http.global_server is not None else 'None'}</td>
                         </tr>
                         <tr>
                             <td>First Window</td>
                             <td>{serverDescription(windows[0]._server)}</td>
-                            <td>{windows[0]._server.address if not windows[0]._server is None else 'None'}</td>
+                            <td>{windows[0]._server.address if windows[0]._server is not None else 'None'}</td>
                         </tr>
                         <tr>
                             <td>Second Window</td>

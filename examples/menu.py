@@ -5,14 +5,12 @@ import webview.menu as wm
 
 
 def change_active_window_content():
-    active_window = webview.active_window()
-    if active_window:
+    if active_window := webview.active_window():
         active_window.load_html('<h1>You changed this window!</h1>')
 
 
 def click_me():
-    active_window = webview.active_window()
-    if active_window:
+    if active_window := webview.active_window():
         active_window.load_html('<h1>You clicked me!</h1>')
 
 
@@ -21,8 +19,7 @@ def do_nothing():
 
 
 def say_this_is_window_2():
-    active_window = webview.active_window()
-    if active_window:
+    if active_window := webview.active_window():
         active_window.load_html('<h1>This is window 2</h2>')
 
 

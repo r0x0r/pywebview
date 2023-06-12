@@ -5,7 +5,7 @@ import webview
 
 def display_screen_info():
     screens = webview.screens
-    print('Available screens are: ' + str(screens))
+    print(f'Available screens are: {str(screens)}')
 
 
 if __name__ == '__main__':
