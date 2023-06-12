@@ -28,7 +28,7 @@ from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2Environm
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
-    os.environ['Path'] += ';' + interop_dll_path(platform)
+    os.environ['Path'] += f';{interop_dll_path(platform)}'
 
 
 logger = logging.getLogger('pywebview')

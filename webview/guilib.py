@@ -99,7 +99,7 @@ def initialize(forced_gui: GUIType | None = None):
                 'You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use pywebview.'
             )
 
-    elif platform.system() == 'Linux' or platform.system() == 'OpenBSD':
+    elif platform.system() in ['Linux', 'OpenBSD']:
         if forced_gui == 'qt':
             guis = [import_qt, import_gtk]
         else:
@@ -111,11 +111,7 @@ def initialize(forced_gui: GUIType | None = None):
             )
 
     elif platform.system() == 'Windows':
-        if forced_gui == 'qt':
-            guis = [import_qt]
-        else:
-            guis = [import_winforms]
-
+        guis = [import_qt] if forced_gui == 'qt' else [import_winforms]
         if not try_import(guis):
             raise WebViewException('You must have pythonnet installed in order to use pywebview.')
     else:

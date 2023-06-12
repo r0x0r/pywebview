@@ -33,7 +33,7 @@ def run_test(
 
 
 def assert_js(window, func_name, expected_result, *func_args):
-    value_id = 'v' + uuid4().hex[:8]
+    value_id = f'v{uuid4().hex[:8]}'
     func_args = str(func_args).replace(',)', ')')
 
     execute_func = """
@@ -55,10 +55,9 @@ def assert_js(window, func_name, expected_result, *func_args):
     while result is None:
         if counter == MAX:
             raise AssertionError('assert_js timeout')
-        else:
-            counter += 1
-            time.sleep(0.1)
-            result = window.evaluate_js(check_func)
+        counter += 1
+        time.sleep(0.1)
+        result = window.evaluate_js(check_func)
 
     assert expected_result == result
 

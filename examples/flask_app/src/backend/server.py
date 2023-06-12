@@ -53,13 +53,13 @@ def initialize():
     """
     can_start = app.initialize()
 
-    if can_start:
-        response = {
+    response = (
+        {
             'status': 'ok',
         }
-    else:
-        response = {'status': 'error'}
-
+        if can_start
+        else {'status': 'error'}
+    )
     return jsonify(response)
 
 
@@ -102,9 +102,7 @@ def open_url():
 @server.route('/do/stuff', methods=['POST'])
 @verify_token
 def do_stuff():
-    result = app.do_stuff()
-
-    if result:
+    if result := app.do_stuff():
         response = {'status': 'ok', 'result': result}
     else:
         response = {'status': 'error'}

@@ -51,8 +51,7 @@ class MSHTML:
         self.web_view.DpiAware = True
         MSHTML.alert = alert
 
-        user_agent = _user_agent or settings.get('user_agent')
-        if user_agent:
+        if user_agent := _user_agent or settings.get('user_agent'):
             self.web_view.ChangeUserAgent(user_agent)
 
         self.web_view.ScriptErrorsSuppressed = not _debug['mode']

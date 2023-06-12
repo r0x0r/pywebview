@@ -127,10 +127,8 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     :return: (description, file extensions) tuple
     """
     valid_file_filter = r'^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*\.\w+)*)\)$'
-    match = re.search(valid_file_filter, file_type)
-
-    if match:
-        return match.group(1).rstrip(), match.group(2)
+    if match := re.search(valid_file_filter, file_type):
+        return match[1].rstrip(), match[2]
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
@@ -247,23 +245,18 @@ def inject_base_uri(content: str, base_uri: str) -> str:
     pattern = r'<%s(?:[\s]+[^>]*|)>'
     base_tag = f'<base href="{base_uri}">'
 
-    match = re.search(pattern % 'base', content)
-
-    if match:
+    if match := re.search(pattern % 'base', content):
         return content
 
-    match = re.search(pattern % 'head', content)
-    if match:
+    if match := re.search(pattern % 'head', content):
         tag = match.group()
         return content.replace(tag, tag + base_tag)
 
-    match = re.search(pattern % 'html', content)
-    if match:
+    if match := re.search(pattern % 'html', content):
         tag = match.group()
         return content.replace(tag, tag + base_tag)
 
-    match = re.search(pattern % 'body', content)
-    if match:
+    if match := re.search(pattern % 'body', content):
         tag = match.group()
         return content.replace(tag, base_tag + tag)
 

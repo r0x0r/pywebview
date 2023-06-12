@@ -48,7 +48,7 @@ def _get_random_port() -> int:
             try:
                 sock.bind(('localhost', port))
             except OSError:
-                logger.warning('Port %s is in use' % port)
+                logger.warning(f'Port {port} is in use')
                 continue
             else:
                 return port
@@ -58,9 +58,13 @@ class ThreadedAdapter(bottle.ServerAdapter):
     def run(self, handler: WSGIApplication) -> None:
         if self.quiet:
 
+
+
+
             class QuietHandler(WSGIRequestHandler):
-                def log_request(*args, **_):
+                def log_request(self, **_):
                     pass
+
 
             self.options['handler_class'] = QuietHandler
 
@@ -91,13 +95,15 @@ class BottleServer:
         apps = [u for u in urls if is_app(u)]
         server = cls()
 
-        if len(apps) > 0:
+        if apps:
             app = apps[0]
             common_path = '.'
         else:
             local_urls = [u for u in urls if is_local_url(u)]
             common_path = (
-                os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else None
+                os.path.dirname(os.path.commonpath(local_urls))
+                if local_urls
+                else None
             )
             server.root_path = abspath(common_path) if common_path is not None else None
             app = bottle.Bottle()
@@ -116,7 +122,7 @@ class BottleServer:
                 if body['uid'] in server.js_callback:
                     return json.dumps(server.js_callback[body['uid']](body))
                 else:
-                    logger.error('JS callback function is not set for window %s' % body['uid'])
+                    logger.error(f"JS callback function is not set for window {body['uid']}")
 
             @app.route('/')
             @app.route('/<file:path>')

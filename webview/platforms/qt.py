@@ -24,7 +24,7 @@ settings = {}
 
 from qtpy import QtCore
 
-logger.debug('Using Qt %s' % QtCore.__version__)
+logger.debug(f'Using Qt {QtCore.__version__}')
 
 from qtpy import PYQT6, PYSIDE6
 from qtpy.QtGui import QColor, QScreen
@@ -52,7 +52,7 @@ _main_window_created.clear()
 
 # suppress invalid style override error message on some Linux distros
 os.environ['QT_STYLE_OVERRIDE'] = ''
-_qt6 = True if PYQT6 or PYSIDE6 else False
+_qt6 = bool(PYQT6 or PYSIDE6)
 _profile_storage_path = _storage_path or os.path.join(os.path.expanduser('~'), '.pywebview')
 
 
@@ -135,14 +135,14 @@ class BrowserView(QMainWindow):
 
         # Create a new webview window pointing at the Remote debugger server
         def show_inspector(self):
-            uid = self.parent().uid + '-inspector'
+            uid = f'{self.parent().uid}-inspector'
             try:
                 # If inspector already exists, bring it to the front
                 BrowserView.instances[uid].raise_()
                 BrowserView.instances[uid].activateWindow()
             except KeyError:
-                title = 'Web Inspector - {}'.format(self.parent().title)
-                url = 'http://localhost:{}'.format(BrowserView.inspector_port)
+                title = f'Web Inspector - {self.parent().title}'
+                url = f'http://localhost:{BrowserView.inspector_port}'
                 print(url)
                 window = Window('web_inspector', title, url, '', 700, 500)
                 window.localization = self.parent().localization
@@ -218,8 +218,7 @@ class BrowserView(QMainWindow):
                 return True
 
         def userAgentForUrl(self, url):
-            user_agent = settings.get('user_agent') or _user_agent
-            if user_agent:
+            if user_agent := settings.get('user_agent') or _user_agent:
                 return user_agent
             else:
                 return super().userAgentForUrl(url)
