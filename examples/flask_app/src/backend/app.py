@@ -9,4 +9,5 @@ def initialize():
 
 
 def do_stuff():
+    # do whatever you need to do
     return 'This is response from Python backend'
