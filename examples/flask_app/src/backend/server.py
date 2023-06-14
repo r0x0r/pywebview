@@ -52,14 +52,10 @@ def initialize():
     :return:
     """
     can_start = app.initialize()
-
-    response = (
-        {
-            'status': 'ok',
-        }
-        if can_start
-        else {'status': 'error'}
-    )
+    if can_start:
+        response={'status':'ok'}
+    else:
+        response={'status':'error'}
     return jsonify(response)
 
 
