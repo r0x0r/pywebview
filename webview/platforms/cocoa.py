@@ -72,6 +72,10 @@ class BrowserView:
                 i.closing.set()
             return Foundation.YES
 
+    class WindowHost(AppKit.NSWindow):
+        def canBecomeKeyWindow(self):
+            return self.focus
+
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
@@ -392,12 +396,13 @@ class BrowserView:
         # The allocated resources are retained because we would explicitly delete
         # this instance when its window is closed
         self.window = (
-            AppKit.NSWindow.alloc()
+            BrowserView.WindowHost.alloc()
             .initWithContentRect_styleMask_backing_defer_(
                 rect, window_mask, AppKit.NSBackingStoreBuffered, False
             )
             .retain()
         )
+        self.window.focus = window.focus
         self.window.setTitle_(window.title)
         self.window.setMinSize_(AppKit.NSSize(window.min_size[0], window.min_size[1]))
         self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
