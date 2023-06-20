@@ -225,6 +225,9 @@ class BrowserView:
             else:
                 self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
+            if not window.focus:
+                windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
+                
             self.Activated += self.on_activated
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
@@ -235,10 +238,12 @@ class BrowserView:
             self.localization = window.localization
 
         def on_activated(self, *_):
-            if self.browser:
+            if not self.pywebview_window.focus:
+                windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
+            elif self.browser:
                 self.browser.web_view.Focus()
 
-            if is_cef:
+            if is_cef and self.pywebview_window.focus:
                 CEF.focus(self.uid)
 
         def on_shown(self, *_):

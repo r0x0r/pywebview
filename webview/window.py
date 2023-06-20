@@ -97,6 +97,7 @@ class Window:
         hidden: bool = False,
         frameless: bool = False,
         easy_drag: bool = True,
+        focus: bool = True,
         minimized: bool = False,
         on_top: bool = False,
         confirm_close: bool = False,
@@ -129,6 +130,7 @@ class Window:
         self.text_select = text_select
         self.frameless = frameless
         self.easy_drag = easy_drag
+        self.focus = focus
         self.hidden = hidden
         self.on_top = on_top
         self.minimized = minimized
