@@ -1,6 +1,8 @@
 from concurrent.futures.thread import ThreadPoolExecutor
+
 import webview
-from .util import run_test, assert_js
+
+from .util import assert_js, run_test
 
 
 def test_js_bridge():
@@ -8,10 +10,12 @@ def test_js_bridge():
     window = webview.create_window('JSBridge test', js_api=api)
     run_test(webview, window, js_bridge)
 
+
 def test_exception():
     api = Api()
     window = webview.create_window('JSBridge test', js_api=api)
     run_test(webview, window, exception)
+
 
 # This test randomly fails on Windows
 def test_concurrent():
@@ -62,7 +66,7 @@ def js_bridge(window):
     assert_js(window, 'get_string', 'test')
     assert_js(window, 'get_object', {'key1': 'value', 'key2': 420})
     assert_js(window, 'get_objectlike_string', '{"key1": "value", "key2": 420}')
-    assert_js(window, 'get_single_quote', 'te\'st')
+    assert_js(window, 'get_single_quote', "te'st")
     assert_js(window, 'get_double_quote', 'te"st')
     assert_js(window, 'echo', 'test', 'test')
     assert_js(window, 'multiple', [1, 2, 3], 1, 2, 3)

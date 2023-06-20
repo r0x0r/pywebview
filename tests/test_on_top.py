@@ -1,9 +1,10 @@
 import webview
+
 from .util import run_test
 
 
 def test_on_top():
-    window = webview.create_window("Toggle on_top test", "https://www.example.org")
+    window = webview.create_window('Toggle on_top test', 'https://www.example.org')
     run_test(webview, window, on_top)
 
 

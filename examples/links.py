@@ -1,5 +1,6 @@
-import webview
 import threading
+
+import webview
 
 """
 This example demonstrates a difference between different link types

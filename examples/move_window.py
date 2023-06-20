@@ -1,9 +1,8 @@
-import webview
+"""This example demonstrates how to move window programmatically."""
+
 from time import sleep
 
-"""
-This example demonstrates how to move window programmatically
-"""
+import webview
 
 
 def move(window):

@@ -37,5 +37,3 @@ A simple todo application that uses serverless architecture. Communication betwe
 [Flask-based application](https://github.com/r0x0r/pywebview/tree/docs/examples/flask_app)
 
 In this example communication between frontend and backend is facilitated by a Flask server.
-
-

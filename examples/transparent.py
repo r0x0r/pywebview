@@ -1,11 +1,8 @@
+"""This example demonstrates how to create a frameless window with a custom minimum size."""
+
 import webview
 
-"""
-This example demonstrates how to create a frameless window with a custom minimum
-size.
-"""
-
-html="""
+html = """
 <!doctype html>
 <html lang="en">
 	<head>

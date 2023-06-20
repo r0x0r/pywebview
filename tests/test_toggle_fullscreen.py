@@ -1,4 +1,5 @@
 import webview
+
 from .util import run_test
 
 
@@ -9,7 +10,3 @@ def test_toggle_fullscreen():
 
 def toggle_fullscreen(window):
     window.toggle_fullscreen()
-
-
-
-

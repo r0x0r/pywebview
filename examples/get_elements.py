@@ -1,9 +1,6 @@
-import webview
-from time import sleep
+"""This example demonstrates how to retrieve a DOM element."""
 
-"""
-This example demonstrates how to retrieve a DOM element
-"""
+import webview
 
 
 def get_elements(window):

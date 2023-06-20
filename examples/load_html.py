@@ -1,5 +1,6 @@
-import webview
 from time import sleep
+
+import webview
 
 """
 This example demonstrates how to load HTML in a web view window

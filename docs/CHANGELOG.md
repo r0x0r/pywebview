@@ -1,5 +1,29 @@
 # Changelog
 
+## 4.1
+
+_Released 02/05/2023_
+
+### ⚡ Features
+
+- [Cocoa/QT/GTK] SSL support for built-in http server  `webview.start(ssl=True)`. Thanks @keredson
+
+### 🚀 Improvements
+
+- [All] JS API exceptions are now printed both in Python and Javascript consoles.
+- [All] Hide menu bar when there is no menu. Thanks @Joffreybvn
+
+
+### 🐞 Bug fixes
+
+- [All] Fix bug where http_port was not being forwarded to the actual window #1060. Thanks @robb-brown
+- [All] Switch from tempfile to os.devnull to fix PyInstaller issue. Thanks @simonrob
+- [Cocoa] Fix getting cookies in cocoa. Thanks @eerimoq
+- [Cocoa] Fix exception occurring when main menu for application cannot be obtained.
+- [Windows] A more robust logic for setting user data directory. Thanks @al-eax
+- [Windows] Fix exception when executing a menu function
+- [Windows] Fix the title and message of the confirmation dialog. Thanks @zhengxiaoyao0716
+
 ## 4.0.2
 
 _Released 21/02/2023_

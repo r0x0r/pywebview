@@ -1,6 +1,6 @@
-from concurrent.futures.thread import ThreadPoolExecutor
 import webview
-from .util import run_test, assert_js
+
+from .util import assert_js, run_test
 
 
 def test_expose_single():

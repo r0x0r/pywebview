@@ -21,7 +21,6 @@ _pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/).
 ``` bash
 pip install pywebview
 ```
-- _Currently only python version 3.8 or older supported on Windows._
 - _On Linux you need additional libraries. Refer to the [installation](https://pywebview.flowrl.com/guide/installation.html) page for details._
 
 
@@ -69,4 +68,3 @@ Support this project with your organization. Your logo will show up here with a 
 <a href="https://opencollective.com/pywebview/organization/7/website"><img src="https://opencollective.com/pywebview/organization/7/avatar.svg"></a>
 <a href="https://opencollective.com/pywebview/organization/8/website"><img src="https://opencollective.com/pywebview/organization/8/avatar.svg"></a>
 <a href="https://opencollective.com/pywebview/organization/9/website"><img src="https://opencollective.com/pywebview/organization/9/avatar.svg"></a>
-

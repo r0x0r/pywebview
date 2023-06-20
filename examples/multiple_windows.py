@@ -1,9 +1,6 @@
-import webview
-import threading
+"""This example demonstrates how to create and manage multiple windows."""
 
-"""
-This example demonstrates how to create and manage multiple windows
-"""
+import webview
 
 
 def third_window():
