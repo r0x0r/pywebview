@@ -3,17 +3,15 @@ environment:
     - PYTHON: "C:\\Python37-x64"
       PYTHON_VERSION: "3.7.x"
       PYTHON_ARCH: "64"
-      image: Visual Studio 2022
       APPVEYOR_BAKE_IMAGE: webview2-visualstudio2022
-      install:
-        - choco install webview2-runtime
+      image: Visual Studio 2022
+      install: choco install webview2-runtime
 
     - PYTHON: "C:\\Python37-x64"
       PYTHON_VERSION: "3.7.x"
       PYTHON_ARCH: "64"
       PYWEBVIEW_GUI: "cef"
       image: Visual Studio 2022
-      APPVEYOR_BAKE_IMAGE: webview2-visualstudio2022
 
 build: off
 
