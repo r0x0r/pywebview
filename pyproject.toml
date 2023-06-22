@@ -60,7 +60,7 @@ line_length = 100
 
 [tool.setuptools]
 include-package-data = false
-packages = ["webview", "webview.js", "webview.lib"]
+packages = ["webview", "webview.js", "webview.lib", "webview.platforms"]
 
 [tool.setuptools.package-data]
 "webview.lib" = ["**/*.dll"]

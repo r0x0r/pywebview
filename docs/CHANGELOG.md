@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.2.1
+
+_Released 22/06/2023_
+
+- [All] Fix installation
+
 ## 4.2
 
 _Released 22/06/2023_
