@@ -24,7 +24,7 @@ clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
 from System import Environment, Func, Int32, IntPtr, Type
-from System.Drawing import Color, ColorTranslator, Icon, Point, Size
+from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF
 from System.Threading import ApartmentState, Thread, ThreadStart
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
@@ -167,6 +167,7 @@ class BrowserView:
                 self.StartPosition = WinForms.FormStartPosition.CenterScreen
 
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
+            self.AutoScaleDimensions = SizeF(96.0, 96.0)
 
             if not window.resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
@@ -227,7 +228,7 @@ class BrowserView:
 
             if not window.focus:
                 windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
-                
+
             self.Activated += self.on_activated
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
