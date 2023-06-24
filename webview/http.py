@@ -210,6 +210,7 @@ def start_server(
     server: type[ServerType] = BottleServer,
     **server_args: Unpack[ServerArgs],
 ) -> tuple[str, str | None, BottleServer]:
+    server = server if not server is None else BottleServer
     return server.start_server(urls, http_port, **server_args)
 
 
