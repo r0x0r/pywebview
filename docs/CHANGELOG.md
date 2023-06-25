@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.2.2
+
+_Released 25/06/2023_
+
+- [All] Fix 'NoneType' object has no attribute 'start_server'. #1159
+
 ## 4.2.1
 
 _Released 22/06/2023_
