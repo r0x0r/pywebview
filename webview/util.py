@@ -21,7 +21,7 @@ from uuid import uuid4
 
 import webview
 
-from .js import api, dom, drag, event, npo
+from .js import api, dom, mouse, event, npo
 
 if TYPE_CHECKING:
     from .window import Window
@@ -177,11 +177,12 @@ def parse_api_js(window: Window, platform: str, uid: str = '') -> str:
             'js_api_endpoint': window.js_api_endpoint,
         }
         + dom.src
-        + drag.src
+        + mouse.src
         % {
             'drag_selector': webview.DRAG_REGION_SELECTOR,
             'zoomable': str(window.zoomable).lower(),
             'draggable': str(window.draggable).lower(),
+            'easy_drag': str(platform == 'chromium' and window.easy_drag).lower(),
         }
     )
     return js_code

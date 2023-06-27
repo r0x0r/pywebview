@@ -1,3 +1,3 @@
-from . import alert, api, css, dom, drag, npo
+from . import alert, api, css, dom, mouse, npo
 
-__all__ = ['alert', 'api', 'npo', 'css', 'dom', 'drag']
+__all__ = ['alert', 'api', 'npo', 'css', 'dom', 'mouse']
