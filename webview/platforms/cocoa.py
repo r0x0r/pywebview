@@ -374,6 +374,7 @@ class BrowserView:
         self.is_fullscreen = False
         self.hidden = window.hidden
         self.minimized = window.minimized
+        self.maximized = window.maximized
         self.localization = window.localization
 
         rect = AppKit.NSMakeRect(0.0, 0.0, window.initial_width, window.initial_height)
@@ -535,7 +536,9 @@ class BrowserView:
         else:
             self.hidden = False
 
-        if self.minimized:
+        if self.maximized:
+            self.maximize()
+        elif self.minimized:
             self.minimize()
 
         if not BrowserView.app.isRunning():

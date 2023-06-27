@@ -173,7 +173,9 @@ class BrowserView:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
                 self.MaximizeBox = False
 
-            if window.minimized:
+            if window.maximized:
+                self.WindowState = WinForms.FormWindowState.Maxnimized
+            elif window.minimized:
                 self.WindowState = WinForms.FormWindowState.Minimized
 
             self.old_state = self.WindowState
