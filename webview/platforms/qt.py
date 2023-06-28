@@ -791,7 +791,6 @@ def create_window(window):
         _main_window_created.set()
 
         if window.maximized:
-            browser.showNormal()
             browser.showMaximized()
         elif window.minimized:
             # showMinimized does not work on start without showNormal first
