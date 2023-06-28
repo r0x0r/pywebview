@@ -174,7 +174,7 @@ class BrowserView:
                 self.MaximizeBox = False
 
             if window.maximized:
-                self.WindowState = WinForms.FormWindowState.Maxnimized
+                self.WindowState = WinForms.FormWindowState.Maximized
             elif window.minimized:
                 self.WindowState = WinForms.FormWindowState.Minimized
 

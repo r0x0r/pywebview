@@ -526,7 +526,7 @@ class BrowserView:
             self.load_html(window.html, '')
         else:
             self.load_html(DEFAULT_HTML, '')
-        if window.fullscreen:
+        if window.fullscreen or window.maximized:
             self.toggle_fullscreen()
         self.shown.set()
 
