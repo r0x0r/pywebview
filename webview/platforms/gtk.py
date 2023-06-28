@@ -84,7 +84,9 @@ class BrowserView:
         else:
             self.window.set_size_request(window.initial_width, window.initial_height)
 
-        if window.minimized:
+        if window.maximized:
+            self.window.maximize()
+        elif window.minimized:
             self.window.iconify()
 
         if window.initial_x is not None and window.initial_y is not None:
@@ -95,7 +97,7 @@ class BrowserView:
         self.window.set_resizable(window.resizable)
 
         self.window.set_accept_focus(window.focus)
-        
+
         # Set window background color
         style_provider = gtk.CssProvider()
         style_provider.load_from_data(

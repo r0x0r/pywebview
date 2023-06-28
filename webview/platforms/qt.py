@@ -277,11 +277,11 @@ class BrowserView(QMainWindow):
 
         if window.on_top:
             flags = flags | QtCore.Qt.WindowStaysOnTopHint
-            
+
         if not window.focus:
             self.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
             flags = flags | QtCore.Qt.WindowDoesNotAcceptFocus
-            
+
 
         self.setWindowFlags(flags)
 
@@ -790,7 +790,9 @@ def create_window(window):
 
         _main_window_created.set()
 
-        if window.minimized:
+        if window.maximized:
+            browser.showMaximized()
+        elif window.minimized:
             # showMinimized does not work on start without showNormal first
             # looks like a bug in QT
             browser.showNormal()
