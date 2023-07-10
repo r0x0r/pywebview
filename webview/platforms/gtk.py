@@ -6,7 +6,6 @@ from threading import Semaphore, Thread
 from typing import Any
 from uuid import uuid1
 
-import webview.http as http
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _debug, _private_mode, _storage_path,
                      _user_agent, parse_file_type, windows)
 from webview.js.css import disable_text_select
@@ -29,11 +28,6 @@ from gi.repository import GLib as glib
 from gi.repository import Gtk as gtk
 from gi.repository import Soup
 from gi.repository import WebKit2 as webkit
-
-# version of WebKit2 older than 2.2 does not support returning a result of javascript, so we
-# have to resort fetching a result via window title
-webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
-old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
 
 renderer = 'gtkwebkit2'
 
@@ -95,7 +89,6 @@ class BrowserView:
             self.window.set_position(gtk.WindowPosition.CENTER)
 
         self.window.set_resizable(window.resizable)
-
         self.window.set_accept_focus(window.focus)
 
         # Set window background color
@@ -135,13 +128,14 @@ class BrowserView:
                 os.path.join(storage_path, 'cookies'), webkit.CookiePersistentStorage.SQLITE
             )
 
-        self.webview = webkit.WebView()
+        self.manager = webkit.UserContentManager()
+        self.manager.register_script_message_handler('jsBridge')
+        self.manager.connect('script-message-received', self.on_js_bridge_call)
 
+        self.webview = webkit.WebView().new_with_user_content_manager(self.manager)
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('decide-policy', self.on_navigation)
-
-        http.global_server.js_callback[window.uid] = self.on_js_callback
 
         webkit_settings = self.webview.get_settings().props
         user_agent = settings.get('user_agent') or _user_agent
@@ -247,6 +241,10 @@ class BrowserView:
             else:
                 self.pywebview_window.events.restored.set()
 
+    def on_js_bridge_call(self, manager, message):
+        func_name, param, value_id = json.loads(message.get_js_value().to_string())
+        js_bridge_call(self.pywebview_window, func_name, param, value_id)
+
     def on_window_resize(self, window, allocation):
         if allocation.width != self._last_width or allocation.height != self._last_height:
             self._last_width = allocation.width
@@ -271,32 +269,6 @@ class BrowserView:
             if not self.text_select:
                 webview.run_javascript(disable_text_select)
             self._set_js_api()
-
-    def on_js_callback(self, js_data):
-        try:
-            if 'type' not in js_data:
-                return
-
-            elif js_data['type'] == 'eval' and old_webkit:  # return result of evaluate_js
-                unique_id = js_data['uid']
-                result = js_data['result'] if 'result' in js_data else None
-
-                js = self.js_results[unique_id]
-                js['result'] = result
-                js['semaphore'].release()
-
-            elif js_data['type'] == 'invoke':  # invoke js api's function
-                func_name = js_data['function']
-                value_id = js_data['id']
-                param = js_data['param'] if 'param' in js_data else None
-                return_val = self.js_bridge.call(func_name, param, value_id)
-
-                # Give back the return value to JS as a string
-                # code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
-                return return_val
-
-        except json.JSONDecodeError:  # Python 3
-            return
 
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) == webkit.NavigationPolicyDecision:
@@ -489,8 +461,7 @@ class BrowserView:
 
     def evaluate_js(self, script):
         def _evaluate_js():
-            callback = None if old_webkit else _callback
-            self.webview.run_javascript(script, None, callback, None)
+            self.webview.run_javascript(script, None, _callback, None)
 
         def _callback(webview, task, data):
             value = webview.run_javascript_finish(task)
@@ -504,20 +475,6 @@ class BrowserView:
         unique_id = uuid1().hex
         result_semaphore = Semaphore(0)
         self.js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
-
-        if old_webkit:
-            script = """
-                fetch("%(js_api_endpoint)s", {
-                    body: "JSON.stringify({
-                        "type": "eval",
-                        "uid": "%(unique_id)s",
-                        "result": %(script)s
-                    })
-                })""" % {
-                'js_api_endpoint': http.js_api_endpoint,
-                'unique_id': unique_id,
-                'script': script,
-            }
 
         self.loaded.wait()
         glib.idle_add(_evaluate_js)

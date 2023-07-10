@@ -164,9 +164,7 @@ def start(
     urls = [w.original_url for w in windows]
     has_local_urls = not not [w.original_url for w in windows if is_local_url(w.original_url)]
     # start the global server if it's not running and we need it
-    if (http.global_server is None) and (
-        http_server or has_local_urls or (guilib.renderer == 'gtkwebkit2')
-    ):
+    if (http.global_server is None) and (http_server or has_local_urls):
         if not _private_mode and not http_port:
             http_port = DEFAULT_HTTP_PORT
         *_, server = http.start_global_server(
