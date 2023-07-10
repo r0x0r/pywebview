@@ -15,6 +15,7 @@ from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
+os.environ['EGL_LOG_LEVEL'] = 'fatal'
 
 import gi
 
@@ -30,6 +31,7 @@ from gi.repository import Soup
 from gi.repository import WebKit2 as webkit
 
 renderer = 'gtkwebkit2'
+webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
 
 settings = {}
 
@@ -61,7 +63,6 @@ class BrowserView:
         self.is_fullscreen = False
         self.js_results = {}
 
-        glib.threads_init()
         self.window = gtk.ApplicationWindow(title=window.title, application=_app)
 
         self.shown = window.events.shown
@@ -272,7 +273,7 @@ class BrowserView:
 
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) == webkit.NavigationPolicyDecision:
-            uri = decision.get_request().get_uri()
+            uri = decision.get_navigation_action().get_request().get_uri()
 
             if decision.get_frame_name() == '_blank':
                 webbrowser.open(uri, 2, True)
