@@ -12,6 +12,7 @@ src = """
 
     function onMouseUp() {
         window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
     }
 
     function onMouseDown(ev) {
