@@ -217,7 +217,7 @@ class BrowserView:
             windows.remove(self.pywebview_window)
 
         self.pywebview_window.events.closed.set()
-        
+
         return False
 
     def on_window_state_change(self, window, window_state):
