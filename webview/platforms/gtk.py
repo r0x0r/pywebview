@@ -521,6 +521,7 @@ def create_window(window):
     if window.uid == 'master':
         _app.connect('activate', create_master_callback)
         _app.run()
+        _app = None
     else:
         # _app will already have been activated by this point
         glib.idle_add(create)
