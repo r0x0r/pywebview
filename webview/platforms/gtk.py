@@ -104,10 +104,7 @@ class BrowserView:
         scrolled_window = gtk.ScrolledWindow()
         self.window.add(scrolled_window)
 
-        if window.confirm_close:
-            self.window.connect('delete-event', self.on_destroy)
-        else:
-            self.window.connect('delete-event', self.close_window)
+        self.window.connect('delete-event', self.close_window)
 
         self.window.connect('window-state-event', self.on_window_state_change)
         self.window.connect('size-allocate', self.on_window_resize)
@@ -196,6 +193,19 @@ class BrowserView:
 
         if should_cancel:
             return True
+        
+        if self.pywebview_window.confirm_close:
+            dialog = gtk.MessageDialog(
+                parent=self.window,
+                flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+                type=gtk.MessageType.QUESTION,
+                buttons=gtk.ButtonsType.OK_CANCEL,
+                message_format=self.localization['global.quitConfirmation'],
+            )
+            result = dialog.run()
+            dialog.destroy()
+            if result == gtk.ResponseType.CANCEL:
+                return True
 
         for res in self.js_results.values():
             res['semaphore'].release()
@@ -209,22 +219,6 @@ class BrowserView:
         self.pywebview_window.events.closed.set()
 
         return False
-
-    def on_destroy(self, widget=None, *data):
-        dialog = gtk.MessageDialog(
-            parent=self.window,
-            flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
-            type=gtk.MessageType.QUESTION,
-            buttons=gtk.ButtonsType.OK_CANCEL,
-            message_format=self.localization['global.quitConfirmation'],
-        )
-        result = dialog.run()
-        should_cancel = True
-        if result == gtk.ResponseType.OK:
-            should_cancel = self.close_window()
-
-        dialog.destroy()
-        return should_cancel
 
     def on_window_state_change(self, window, window_state):
         if window_state.changed_mask == Gdk.WindowState.ICONIFIED:
