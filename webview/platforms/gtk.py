@@ -195,7 +195,7 @@ class BrowserView:
         should_cancel = self.pywebview_window.events.closing.set()
 
         if should_cancel:
-            return
+            return True
 
         for res in self.js_results.values():
             res['semaphore'].release()
@@ -208,6 +208,8 @@ class BrowserView:
 
         self.pywebview_window.events.closed.set()
 
+        return False
+
     def on_destroy(self, widget=None, *data):
         dialog = gtk.MessageDialog(
             parent=self.window,
@@ -217,11 +219,12 @@ class BrowserView:
             message_format=self.localization['global.quitConfirmation'],
         )
         result = dialog.run()
+        should_cancel = True
         if result == gtk.ResponseType.OK:
-            self.close_window()
+            should_cancel = self.close_window()
 
         dialog.destroy()
-        return True
+        return should_cancel
 
     def on_window_state_change(self, window, window_state):
         if window_state.changed_mask == Gdk.WindowState.ICONIFIED:
