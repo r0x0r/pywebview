@@ -11,14 +11,9 @@ An example of serverless app architecture
 
 class Api:
 
-    def __init__(self):
-        self.cancel_heavy_stuff_flag = False
+    # Your method`s
 
-    def closeWindow(self):
-        window.destroy()
-
-    def minimizeBtn(self):
-        window.minimize()
+    pass
 
 async def web():
     api = Api()
@@ -37,10 +32,9 @@ async def start():
     # Give some time for the server to start before launching the webview
     await asyncio.sleep(2)
 
-    await web()
-
     # Terminate the server process after closing the webview
     server_process.terminate()
 
 if __name__ == '__main__':
+
     asyncio.run(start())
