@@ -230,10 +230,6 @@ class Window:
 
     @_loaded_call
     def get_elements(self, selector: str) -> Any:
-        # check for GTK's WebKit2 version
-        if hasattr(self.gui, 'old_webkit') and self.gui.old_webkit:
-            raise NotImplementedError('get_elements requires WebKit2 2.2 or greater')
-
         code = (
             """
             var elements = document.querySelectorAll('%s');
