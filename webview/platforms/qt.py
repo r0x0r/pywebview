@@ -237,7 +237,6 @@ class BrowserView(QMainWindow):
         self.js_bridge.window = window
 
         self.is_fullscreen = False
-        self.confirm_close = window.confirm_close
         self.text_select = window.text_select
 
         self._file_name_semaphore = Semaphore(0)
@@ -456,7 +455,13 @@ class BrowserView(QMainWindow):
         self.show()
 
     def closeEvent(self, event):
-        if self.confirm_close:
+        should_cancel = self.pywebview_window.events.closing.set()
+
+        if should_cancel:
+            event.ignore()
+            return
+
+        if self.pywebview_window.confirm_close:
             reply = QMessageBox.question(
                 self,
                 self.title,
@@ -468,12 +473,6 @@ class BrowserView(QMainWindow):
             if reply == QMessageBox.No:
                 event.ignore()
                 return
-
-        should_cancel = self.pywebview_window.events.closing.set()
-
-        if should_cancel:
-            event.ignore()
-            return
 
         event.accept()
         BrowserView.instances[self.uid].close()

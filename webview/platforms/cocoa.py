@@ -911,14 +911,12 @@ class BrowserView:
         cancel = window.localization['global.cancel']
         msg = window.localization['global.quitConfirmation']
 
-        if not window.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
-            should_cancel = window.events.closing.set()
-            if should_cancel:
-                return Foundation.NO
-            else:
-                return Foundation.YES
-        else:
+        should_cancel = window.events.closing.set()
+        if should_cancel:
             return Foundation.NO
+        if not window.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
+            return Foundation.YES
+        return Foundation.NO
 
     @staticmethod
     def print_webview(webview):

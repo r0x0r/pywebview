@@ -279,22 +279,21 @@ class BrowserView:
                 self.Invoke(Func[Type](_shutdown))
 
         def on_closing(self, sender, args):
-            if self.pywebview_window.confirm_close:
-                result = WinForms.MessageBox.Show(
-                    self.localization['global.quitConfirmation'],
-                    self.Text,
-                    WinForms.MessageBoxButtons.OKCancel,
-                    WinForms.MessageBoxIcon.Asterisk,
-                )
-
-                if result == WinForms.DialogResult.Cancel:
-                    args.Cancel = True
+            should_cancel = self.closing.set()
+            if should_cancel:
+                args.Cancel = True
 
             if not args.Cancel:
-                should_cancel = self.closing.set()
+                if self.pywebview_window.confirm_close:
+                    result = WinForms.MessageBox.Show(
+                        self.localization['global.quitConfirmation'],
+                        self.Text,
+                        WinForms.MessageBoxButtons.OKCancel,
+                        WinForms.MessageBoxIcon.Asterisk,
+                    )
 
-                if should_cancel:
-                    args.Cancel = True
+                    if result == WinForms.DialogResult.Cancel:
+                        args.Cancel = True
 
         def on_resize(self, sender, args):
             if self.WindowState == WinForms.FormWindowState.Maximized:
