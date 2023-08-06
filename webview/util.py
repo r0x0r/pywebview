@@ -309,3 +309,14 @@ def interop_dll_path(dll_name: str) -> str:
         pass
 
     raise FileNotFoundError(f'Cannot find {dll_name}')
+
+
+def environ_append(key: str, *values: str, sep=' ') -> None:
+    '''Append values to an environment variable, separated by sep'''
+    values = list(values)
+    
+    existing = os.environ.get(key, '')
+    if existing:
+        values = [existing] + values
+
+    os.environ[key] = sep.join(values)
