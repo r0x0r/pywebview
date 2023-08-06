@@ -17,6 +17,7 @@ from webview.event import Event
 from webview.localization import original_localization
 from webview.util import (WebViewException, base_uri, escape_string, is_app, is_local_url,
                           parse_file_type)
+from .screen import Screen
 
 from .js import css
 
@@ -113,6 +114,7 @@ class Window:
         http_port: int | None = None,
         server: type[http.ServerType] | None = None,
         server_args: http.ServerArgs = {},
+        screen: Screen = None
     ) -> None:
         self.uid = uid
         self.title = title
@@ -141,6 +143,7 @@ class Window:
         self.draggable = draggable
         self.localization_override = localization
         self.vibrancy = vibrancy
+        self.screen = screen
 
         # Server config
         self._http_port = http_port
