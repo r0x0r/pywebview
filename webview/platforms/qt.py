@@ -15,7 +15,7 @@ from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _debug, _private_m
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_js
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_js, environ_append
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
@@ -46,6 +46,17 @@ except ImportError:
 
     is_webengine = False
     renderer = 'qtwebkit'
+
+if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos']:
+    # I don't know why, but it's a common solution for #890 (White screen displayed)
+    # such as: 
+    # - https://github.com/LCA-ActivityBrowser/activity-browser/pull/954/files
+    # - https://bugs.archlinux.org/task/73957
+    # - https://www.google.com/search?q=arch+rstudio+no+sandbox
+    # And sometimes it needs two "--no-sandbox" flags
+
+    environ_append("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox", "--no-sandbox")
+    logger.debug("Enable --no-sandbox flag for arch/manjaro/nixos")
 
 _main_window_created = Event()
 _main_window_created.clear()
@@ -297,9 +308,11 @@ class BrowserView(QMainWindow):
         self.view = BrowserView.WebView(self)
 
         if is_webengine:
-            os.environ[
-                'QTWEBENGINE_CHROMIUM_FLAGS'
-            ] = '--use-fake-ui-for-media-stream --enable-features=AutoplayIgnoreWebAudio'
+            environ_append(
+                'QTWEBENGINE_CHROMIUM_FLAGS', 
+                '--use-fake-ui-for-media-stream', 
+                '--enable-features=AutoplayIgnoreWebAudio', 
+            )
 
         if _debug['mode'] and is_webengine:
             # Initialise Remote debugging (need to be done only once)
