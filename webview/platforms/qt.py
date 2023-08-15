@@ -10,8 +10,7 @@ from copy import copy, deepcopy
 from threading import Event, Semaphore, Thread
 from uuid import uuid1
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _debug, _private_mode, _storage_path,
-                     _user_agent, windows)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows)
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -64,7 +63,7 @@ _main_window_created.clear()
 # suppress invalid style override error message on some Linux distros
 os.environ['QT_STYLE_OVERRIDE'] = ''
 _qt6 = True if PYQT6 or PYSIDE6 else False
-_profile_storage_path = _storage_path or os.path.join(os.path.expanduser('~'), '.pywebview')
+_profile_settings['storage_path'] = _settings['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
 
 
 class BrowserView(QMainWindow):
@@ -229,7 +228,7 @@ class BrowserView(QMainWindow):
                 return True
 
         def userAgentForUrl(self, url):
-            user_agent = settings.get('user_agent') or _user_agent
+            user_agent = settings.get('user_agent') or _settings['user_agent']
             if user_agent:
                 return user_agent
             else:
@@ -314,7 +313,7 @@ class BrowserView(QMainWindow):
                 '--enable-features=AutoplayIgnoreWebAudio', 
             )
 
-        if _debug['mode'] and is_webengine:
+        if _settings['debug'] and is_webengine:
             # Initialise Remote debugging (need to be done only once)
             if not BrowserView.inspector_port:
                 BrowserView.inspector_port = BrowserView._get_debug_port()
@@ -325,19 +324,19 @@ class BrowserView(QMainWindow):
             )  # disable right click context menu
 
         if is_webengine:
-            if _private_mode:
+            if _settings['private_mode']:
                 self.profile = QWebEngineProfile()
             else:
                 self.profile = QWebEngineProfile('pywebview')
-                self.profile.setPersistentStoragePath(_profile_storage_path)
+                self.profile.setPersistentStoragePath(_profile_settings['storage_path'])
                 self.cookies = {}
                 cookie_store = self.profile.cookieStore()
                 cookie_store.cookieAdded.connect(self.on_cookie_added)
                 cookie_store.cookieRemoved.connect(self.on_cookie_removed)
 
                 self.view.setPage(BrowserView.WebPage(self.view, profile=self.profile))
-        elif not is_webengine and not _private_mode:
-            logger.warning('qtwebkit does not support _private_mode=False')
+        elif not is_webengine and not _settings['private_mode']:
+            logger.warning('qtwebkit does not support _settings['private_mode']=False')
 
         self.view.page().loadFinished.connect(self.on_load_finished)
         self.setCentralWidget(self.view)
@@ -613,7 +612,7 @@ class BrowserView(QMainWindow):
             except:  # QT < 5.6
                 self.view.page().mainFrame().evaluateJavaScript(script)
 
-        if _debug['mode']:
+        if _settings['debug']:
             self.view.show_inspector()
 
     def set_title(self, title):

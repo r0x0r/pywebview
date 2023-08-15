@@ -1,12 +1,14 @@
 import json
 import logging
+import sys
 import webbrowser
+import winreg
 from ctypes import windll
 from threading import Semaphore
 
 import clr
 
-from webview import _debug, _user_agent
+from webview import _settings
 from webview.js import alert
 from webview.js.css import disable_text_select
 from webview.util import (DEFAULT_HTML, inject_base_uri, interop_dll_path, js_bridge_call,
@@ -23,6 +25,81 @@ from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 
 logger = logging.getLogger('pywebview')
 settings = {}
+
+
+def _set_ie_mode():
+    """
+    By default hosted IE control emulates IE7 regardless which version of IE is installed. To fix this, a proper value
+    must be set for the executable.
+    See http://msdn.microsoft.com/en-us/library/ee330730%28v=vs.85%29.aspx#browser_emulation for details on this
+    behaviour.
+    """
+
+    import winreg
+
+    def get_ie_mode():
+        """
+        Get the installed version of IE
+        :return:
+        """
+        ie_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'Software\Microsoft\Internet Explorer')
+        try:
+            version, type = winreg.QueryValueEx(ie_key, 'svcVersion')
+        except:
+            version, type = winreg.QueryValueEx(ie_key, 'Version')
+
+        winreg.CloseKey(ie_key)
+
+        if version.startswith('11'):
+            value = 0x2AF9
+        elif version.startswith('10'):
+            value = 0x2711
+        elif version.startswith('9'):
+            value = 0x270F
+        elif version.startswith('8'):
+            value = 0x22B8
+        else:
+            value = 0x2AF9  # Set IE11 as default
+
+        return value
+
+    try:
+        browser_emulation = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
+            0,
+            winreg.KEY_ALL_ACCESS,
+        )
+    except WindowsError:
+        browser_emulation = winreg.CreateKeyEx(
+            winreg.HKEY_CURRENT_USER,
+            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
+            0,
+            winreg.KEY_ALL_ACCESS,
+        )
+
+    try:
+        dpi_support = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL',
+            0,
+            winreg.KEY_ALL_ACCESS,
+        )
+    except WindowsError:
+        dpi_support = winreg.CreateKeyEx(
+            winreg.HKEY_CURRENT_USER,
+            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL',
+            0,
+            winreg.KEY_ALL_ACCESS,
+        )
+
+    mode = get_ie_mode()
+    executable_name = sys.executable.split('\\')[-1]
+    winreg.SetValueEx(browser_emulation, executable_name, 0, winreg.REG_DWORD, mode)
+    winreg.CloseKey(browser_emulation)
+
+    winreg.SetValueEx(dpi_support, executable_name, 0, winreg.REG_DWORD, 1)
+    winreg.CloseKey(dpi_support)
 
 
 class MSHTML:
@@ -45,18 +122,18 @@ class MSHTML:
         self.pywebview_window = window
         self.web_view = WebBrowserEx()
         self.web_view.Dock = WinForms.DockStyle.Fill
-        self.web_view.ScriptErrorsSuppressed = not _debug['mode']
-        self.web_view.IsWebBrowserContextMenuEnabled = _debug['mode']
+        self.web_view.ScriptErrorsSuppressed = not _settings['debug']
+        self.web_view.IsWebBrowserContextMenuEnabled = _settings['debug']
         self.web_view.WebBrowserShortcutsEnabled = False
         self.web_view.DpiAware = True
         MSHTML.alert = alert
 
-        user_agent = _user_agent or settings.get('user_agent')
+        user_agent = _settings['user_agent'] or settings.get('user_agent')
         if user_agent:
             self.web_view.ChangeUserAgent(user_agent)
 
-        self.web_view.ScriptErrorsSuppressed = not _debug['mode']
-        self.web_view.IsWebBrowserContextMenuEnabled = _debug['mode']
+        self.web_view.ScriptErrorsSuppressed = not _settings['debug']
+        self.web_view.IsWebBrowserContextMenuEnabled = _settings['debug']
 
         self.js_result_semaphore = Semaphore(0)
         self.js_bridge = MSHTML.JSBridge()
@@ -134,7 +211,7 @@ class MSHTML:
         document = self.web_view.Document
         document.InvokeScript('eval', (alert.src,))
 
-        if _debug['mode']:
+        if _settings['debug']:
             document.InvokeScript(
                 'eval',
                 (
