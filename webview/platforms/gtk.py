@@ -6,8 +6,8 @@ from threading import Semaphore, Thread
 from typing import Any
 from uuid import uuid1
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _debug, _private_mode, _storage_path,
-                     _user_agent, parse_file_type, windows)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings,
+                     parse_file_type, windows)
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -121,7 +121,7 @@ class BrowserView:
         self.js_bridge = BrowserView.JSBridge(window)
         self.text_select = window.text_select
 
-        storage_path = _storage_path or os.path.join(os.path.expanduser('~'), '.pywebview')
+        storage_path = _settings['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
 
         if not os.path.exists(storage_path):
             os.makedirs(storage_path)
@@ -129,7 +129,7 @@ class BrowserView:
         web_context = webkit.WebContext.get_default()
         self.cookie_manager = web_context.get_cookie_manager()
 
-        if not _private_mode:
+        if not _settings['private_mode']:
             self.cookie_manager.set_persistent_storage(
                 os.path.join(storage_path, 'cookies'), webkit.CookiePersistentStorage.SQLITE
             )
@@ -144,7 +144,7 @@ class BrowserView:
         self.webview.connect('decide-policy', self.on_navigation)
 
         webkit_settings = self.webview.get_settings().props
-        user_agent = settings.get('user_agent') or _user_agent
+        user_agent = settings.get('user_agent') or _settings['user_agent']
         if user_agent:
             webkit_settings.user_agent = user_agent
 
@@ -173,13 +173,13 @@ class BrowserView:
             wvbg.alpha = 0.0
             self.webview.set_background_color(wvbg)
 
-        if _debug['mode']:
+        if _settings['debug']:
             webkit_settings.enable_developer_extras = True
             self.webview.get_inspector().show()
         else:
             self.webview.connect('context-menu', lambda a, b, c, d: True)  # Disable context menu
 
-        if _private_mode:
+        if _settings['private_mode']:
             webkit_settings.enable_html5_database = False
             webkit_settings.enable_html5_local_storage = False
 

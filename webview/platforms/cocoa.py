@@ -13,8 +13,7 @@ import WebKit
 from objc import _objc, nil, registerMetaDataForSelector, selector, super
 from PyObjCTools import AppHelper
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _debug, _private_mode, _user_agent,
-                     parse_file_type, windows)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows)
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -312,13 +311,13 @@ class BrowserView:
 
             if event.modifierFlags() & getattr(AppKit, 'NSEventModifierFlagControl', 1 << 18):
                 i = BrowserView.get_instance('webkit', self)
-                if not _debug['mode']:
+                if not _settings['debug']:
                     return
 
             super(BrowserView.WebKitHost, self).mouseDown_(event)
 
         def willOpenMenu_withEvent_(self, menu, event):
-            if not _debug['mode']:
+            if not _settings['debug']:
                 menu.removeAllItems()
 
         def keyDown_(self, event):
@@ -435,7 +434,7 @@ class BrowserView:
             self._browserDelegate, 'browserDelegate'
         )
 
-        if _private_mode:
+        if _settings['private_mode']:
             # nonPersisentDataStore preserves cookies for some unknown reason. For this reason we use default datastore
             # and clear all the cookies beforehand
             self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
@@ -459,13 +458,13 @@ class BrowserView:
             pass  # backspaceKeyNavigationEnabled does not exist prior to macOS Mojave
         config.preferences().setValue_forKey_(True, 'allowFileAccessFromFileURLs')
 
-        if _debug['mode']:
+        if _settings['debug']:
             config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
         config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
-        user_agent = settings.get('user_agent') or _user_agent
+        user_agent = settings.get('user_agent') or _settings['user_agent']
         if user_agent:
             self.webkit.setCustomUserAgent_(user_agent)
 
@@ -994,8 +993,6 @@ def setup_app():
 
 
 def create_window(window):
-    global _debug
-
     def create():
         browser = BrowserView(window)
         browser.first_show()

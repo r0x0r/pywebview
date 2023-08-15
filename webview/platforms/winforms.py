@@ -11,7 +11,7 @@ from threading import Event, Semaphore
 
 import clr
 
-from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _private_mode, _storage_path, windows
+from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -29,8 +29,7 @@ from System.Threading import ApartmentState, Thread, ThreadStart
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 logger = logging.getLogger('pywebview')
-settings = {}
-
+cache_dir = None
 
 def _is_new_version(current_version: str, new_version: str) -> bool:
     new_range = new_version.split('.')
@@ -126,23 +125,8 @@ else:
         'MSHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium'
     )
     logger.debug('Using WinForms / MSHTML')
+    IE._set_ie_mode()
     renderer = 'mshtml'
-
-if not _private_mode or _storage_path:
-    try:
-        data_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-
-        if not os.access(data_folder, os.W_OK):
-            data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-
-        cache_dir = _storage_path or os.path.join(data_folder, 'pywebview')
-
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir)
-    except Exception:
-        logger.exception(f'Cache directory {cache_dir} creation failed')
-else:
-    cache_dir = tempfile.TemporaryDirectory().name
 
 
 class BrowserView:
@@ -510,85 +494,29 @@ class BrowserView:
         WinForms.MessageBox.Show(str(message))
 
 
-def _set_ie_mode():
-    """
-    By default hosted IE control emulates IE7 regardless which version of IE is installed. To fix this, a proper value
-    must be set for the executable.
-    See http://msdn.microsoft.com/en-us/library/ee330730%28v=vs.85%29.aspx#browser_emulation for details on this
-    behaviour.
-    """
-
-    import winreg
-
-    def get_ie_mode():
-        """
-        Get the installed version of IE
-        :return:
-        """
-        ie_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'Software\Microsoft\Internet Explorer')
-        try:
-            version, type = winreg.QueryValueEx(ie_key, 'svcVersion')
-        except:
-            version, type = winreg.QueryValueEx(ie_key, 'Version')
-
-        winreg.CloseKey(ie_key)
-
-        if version.startswith('11'):
-            value = 0x2AF9
-        elif version.startswith('10'):
-            value = 0x2711
-        elif version.startswith('9'):
-            value = 0x270F
-        elif version.startswith('8'):
-            value = 0x22B8
-        else:
-            value = 0x2AF9  # Set IE11 as default
-
-        return value
-
-    try:
-        browser_emulation = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
-            0,
-            winreg.KEY_ALL_ACCESS,
-        )
-    except WindowsError:
-        browser_emulation = winreg.CreateKeyEx(
-            winreg.HKEY_CURRENT_USER,
-            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
-            0,
-            winreg.KEY_ALL_ACCESS,
-        )
-
-    try:
-        dpi_support = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL',
-            0,
-            winreg.KEY_ALL_ACCESS,
-        )
-    except WindowsError:
-        dpi_support = winreg.CreateKeyEx(
-            winreg.HKEY_CURRENT_USER,
-            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL',
-            0,
-            winreg.KEY_ALL_ACCESS,
-        )
-
-    mode = get_ie_mode()
-    executable_name = sys.executable.split('\\')[-1]
-    winreg.SetValueEx(browser_emulation, executable_name, 0, winreg.REG_DWORD, mode)
-    winreg.CloseKey(browser_emulation)
-
-    winreg.SetValueEx(dpi_support, executable_name, 0, winreg.REG_DWORD, 1)
-    winreg.CloseKey(dpi_support)
-
-
 _main_window_created = Event()
 _main_window_created.clear()
 
 _already_set_up_app = False
+
+def init_storage():
+    global cache_dir
+
+    if not _settings['private_mode'] or _settings['storage_path']:
+        try:
+            data_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+
+            if not os.access(data_folder, os.W_OK):
+                data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+
+            cache_dir = _settings['storage_path'] or os.path.join(data_folder, 'pywebview')
+
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
+        except Exception:
+            logger.exception(f'Cache directory {cache_dir} creation failed')
+    else:
+        cache_dir = tempfile.TemporaryDirectory().name
 
 
 def setup_app():
@@ -596,6 +524,7 @@ def setup_app():
     global _already_set_up_app
     if _already_set_up_app:
         return
+
     WinForms.Application.EnableVisualStyles()
     WinForms.Application.SetCompatibleTextRenderingDefault(False)
     _already_set_up_app = True
@@ -622,8 +551,8 @@ def create_window(window):
     app = WinForms.Application
 
     if window.uid == 'master':
-        if not is_cef and not is_chromium:
-            _set_ie_mode()
+        if is_chromium:
+            init_storage()
 
         if sys.getwindowsversion().major >= 6:
             windll.user32.SetProcessDPIAware()
