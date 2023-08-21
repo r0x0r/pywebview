@@ -49,7 +49,7 @@ except ImportError:
 
 if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos']:
     # I don't know why, but it's a common solution for #890 (White screen displayed)
-    # such as: 
+    # such as:
     # - https://github.com/LCA-ActivityBrowser/activity-browser/pull/954/files
     # - https://bugs.archlinux.org/task/73957
     # - https://www.google.com/search?q=arch+rstudio+no+sandbox
@@ -258,6 +258,17 @@ class BrowserView(QMainWindow):
 
         self.localization = window.localization
 
+        if window.screen:
+            if _qt6:
+                self.screen = QScreen.availableGeometry(window.screen.frame)
+            else:
+                self.screen = window.screen.frame.geometry()
+        else:
+            if _qt6:
+                self.screen = QScreen.availableGeometry(QApplication.primaryScreen())
+            else:
+                self.screen = QApplication.primaryScreen().availableGeometry()
+
         self._js_results = {}
         self._current_url = None
         self._file_name = None
@@ -309,9 +320,9 @@ class BrowserView(QMainWindow):
 
         if is_webengine:
             environ_append(
-                'QTWEBENGINE_CHROMIUM_FLAGS', 
-                '--use-fake-ui-for-media-stream', 
-                '--enable-features=AutoplayIgnoreWebAudio', 
+                'QTWEBENGINE_CHROMIUM_FLAGS',
+                '--use-fake-ui-for-media-stream',
+                '--enable-features=AutoplayIgnoreWebAudio',
             )
 
         if _debug['mode'] and is_webengine:
@@ -377,17 +388,11 @@ class BrowserView(QMainWindow):
             self.view.setHtml(DEFAULT_HTML, QtCore.QUrl(''))
 
         if window.initial_x is not None and window.initial_y is not None:
-            self.move(window.initial_x, window.initial_y)
+            self.move(self.screen.x()+window.initial_x, self.screen.y()+window.initial_y)
         else:
-            if _qt6:
-                center = (
-                    QScreen.availableGeometry(QApplication.primaryScreen()).center()
-                    - self.rect().center()
-                )
-                self.move(center.x(), center.y() - 16)
-            else:
-                center = QApplication.desktop().availableGeometry().center() - self.rect().center()
-                self.move(center.x(), center.y())
+            offset = -16 if _qt6 else 0
+            center = self.screen.center() - self.rect().center()
+            self.move(center.x(), center.y()+offset)
 
         if not window.minimized:
             self.activateWindow()
@@ -967,9 +972,7 @@ def get_size(uid):
 def get_screens():
     global _app
     _app = QApplication.instance() or QApplication(sys.argv)
-
-    geometries = [s.geometry() for s in _app.screens()]
-    screens = [Screen(g.width(), g.height()) for g in geometries]
+    screens = [Screen(s.geometry().width(), s.geometry().height(), s) for s in _app.screens()]
 
     return screens
 

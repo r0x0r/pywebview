@@ -73,6 +73,11 @@ class BrowserView:
         self._last_width = window.initial_width
         self._last_height = window.initial_height
 
+        if window.screen:
+            self.screen = window.screen.frame
+        else:
+            self.screen = Gdk.Screen.get_default().get_monitor_geometry(0)
+
         if window.resizable:
             self.window.set_size_request(window.min_size[0], window.min_size[1])
             self.window.resize(window.initial_width, window.initial_height)
@@ -87,7 +92,10 @@ class BrowserView:
         if window.initial_x is not None and window.initial_y is not None:
             self.move(window.initial_x, window.initial_y)
         else:
-            self.window.set_position(gtk.WindowPosition.CENTER)
+            window_width, window_height = self.window.get_size()
+            x = (self.screen.width - window_width) // 2
+            y = (self.screen.height - window_height) // 2
+            self.move(x, y)
 
         self.window.set_resizable(window.resizable)
         self.window.set_accept_focus(window.focus)
@@ -193,7 +201,7 @@ class BrowserView:
 
         if should_cancel:
             return True
-        
+
         if self.pywebview_window.confirm_close:
             dialog = gtk.MessageDialog(
                 parent=self.window,
@@ -337,7 +345,7 @@ class BrowserView:
         self.window.resize(width, height)
 
     def move(self, x, y):
-        self.window.move(x, y)
+        self.window.move(self.screen.x+x, self.screen.y+y)
 
     def minimize(self):
         glib.idle_add(self.window.iconify)
@@ -775,7 +783,7 @@ def get_screens():
     screen = Gdk.Screen.get_default()
     n = screen.get_n_monitors()
     geometries = [screen.get_monitor_geometry(i) for i in range(n)]
-    screens = [Screen(geom.width, geom.height) for geom in geometries]
+    screens = [Screen(geom.width, geom.height, geom) for geom in geometries]
 
     return screens
 
