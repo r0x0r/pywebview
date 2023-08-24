@@ -5,7 +5,7 @@
 
 ### Description
 
-  Describe your issue in details. Please provide a stand-alone code example that would demonstrate the nature of the issue.
+  Describe your issue in details. Provide a stand-alone code example that would demonstrate the problem.
 
 ### Practicalities
 
