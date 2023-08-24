@@ -100,7 +100,6 @@ def _is_chromium():
 
     return False
 
-
 is_cef = forced_gui_ == 'cef'
 is_chromium = not is_cef and _is_chromium() and forced_gui_ != 'mshtml'
 
@@ -147,6 +146,14 @@ class BrowserView:
             if window.initial_x is not None and window.initial_y is not None:
                 self.StartPosition = WinForms.FormStartPosition.Manual
                 self.Location = Point(window.initial_x, window.initial_y)
+            elif window.screen:
+                self.StartPosition = WinForms.FormStartPosition.Manual
+                x = (
+                    window.screen.frame.X + (window.screen.width / 2) + window.initial_width / 2
+                    if window.screen.frame.X >= 0 
+                    else window.screen.frame.X - window.screen.width / 2 
+                )
+                self.Location = Point(int(x), int(window.screen.frame.Y + window.screen.height / 2))
             else:
                 self.StartPosition = WinForms.FormStartPosition.CenterScreen
 
@@ -205,8 +212,8 @@ class BrowserView:
             if (
                 window.transparent and self.browser
             ):  # window transparency is supported only with EdgeChromium
-                self.BackColor = Color.LimeGreen
-                self.TransparencyKey = Color.LimeGreen
+                self.BackColor = Color.FromArgb(255,255,0,0)
+                self.TransparencyKey = Color.FromArgb(255,255,0,0)
                 self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
                 self.browser.DefaultBackgroundColor = Color.Transparent
             else:
@@ -778,7 +785,7 @@ def get_size(uid):
 
 
 def get_screens():
-    screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens]
+    screens = [Screen(s.Bounds.Width, s.Bounds.Height, s.WorkingArea.Location) for s in WinForms.Screen.AllScreens]
     return screens
 
 
