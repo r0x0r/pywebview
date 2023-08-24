@@ -10,12 +10,11 @@ from copy import copy, deepcopy
 from threading import Event, Semaphore, Thread
 from uuid import uuid1
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _debug, _private_mode, _storage_path,
-                     _user_agent, windows)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows)
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_js
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_js, environ_append
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
@@ -47,13 +46,24 @@ except ImportError:
     is_webengine = False
     renderer = 'qtwebkit'
 
+if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos']:
+    # I don't know why, but it's a common solution for #890 (White screen displayed)
+    # such as: 
+    # - https://github.com/LCA-ActivityBrowser/activity-browser/pull/954/files
+    # - https://bugs.archlinux.org/task/73957
+    # - https://www.google.com/search?q=arch+rstudio+no+sandbox
+    # And sometimes it needs two "--no-sandbox" flags
+
+    environ_append("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox", "--no-sandbox")
+    logger.debug("Enable --no-sandbox flag for arch/manjaro/nixos")
+
 _main_window_created = Event()
 _main_window_created.clear()
 
 # suppress invalid style override error message on some Linux distros
 os.environ['QT_STYLE_OVERRIDE'] = ''
 _qt6 = True if PYQT6 or PYSIDE6 else False
-_profile_storage_path = _storage_path or os.path.join(os.path.expanduser('~'), '.pywebview')
+_profile_settings['storage_path'] = _settings['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
 
 
 class BrowserView(QMainWindow):
@@ -218,7 +228,7 @@ class BrowserView(QMainWindow):
                 return True
 
         def userAgentForUrl(self, url):
-            user_agent = settings.get('user_agent') or _user_agent
+            user_agent = settings.get('user_agent') or _settings['user_agent']
             if user_agent:
                 return user_agent
             else:
@@ -237,7 +247,6 @@ class BrowserView(QMainWindow):
         self.js_bridge.window = window
 
         self.is_fullscreen = False
-        self.confirm_close = window.confirm_close
         self.text_select = window.text_select
 
         self._file_name_semaphore = Semaphore(0)
@@ -278,6 +287,11 @@ class BrowserView(QMainWindow):
         if window.on_top:
             flags = flags | QtCore.Qt.WindowStaysOnTopHint
 
+        if not window.focus:
+            self.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
+            flags = flags | QtCore.Qt.WindowDoesNotAcceptFocus
+
+
         self.setWindowFlags(flags)
 
         self.transparent = window.transparent
@@ -293,11 +307,13 @@ class BrowserView(QMainWindow):
         self.view = BrowserView.WebView(self)
 
         if is_webengine:
-            os.environ[
-                'QTWEBENGINE_CHROMIUM_FLAGS'
-            ] = '--use-fake-ui-for-media-stream --enable-features=AutoplayIgnoreWebAudio'
+            environ_append(
+                'QTWEBENGINE_CHROMIUM_FLAGS', 
+                '--use-fake-ui-for-media-stream', 
+                '--enable-features=AutoplayIgnoreWebAudio', 
+            )
 
-        if _debug['mode'] and is_webengine:
+        if _settings['debug'] and is_webengine:
             # Initialise Remote debugging (need to be done only once)
             if not BrowserView.inspector_port:
                 BrowserView.inspector_port = BrowserView._get_debug_port()
@@ -308,19 +324,19 @@ class BrowserView(QMainWindow):
             )  # disable right click context menu
 
         if is_webengine:
-            if _private_mode:
+            if _settings['private_mode']:
                 self.profile = QWebEngineProfile()
             else:
                 self.profile = QWebEngineProfile('pywebview')
-                self.profile.setPersistentStoragePath(_profile_storage_path)
+                self.profile.setPersistentStoragePath(_profile_settings['storage_path'])
                 self.cookies = {}
                 cookie_store = self.profile.cookieStore()
                 cookie_store.cookieAdded.connect(self.on_cookie_added)
                 cookie_store.cookieRemoved.connect(self.on_cookie_removed)
 
                 self.view.setPage(BrowserView.WebPage(self.view, profile=self.profile))
-        elif not is_webengine and not _private_mode:
-            logger.warning('qtwebkit does not support _private_mode=False')
+        elif not is_webengine and not _settings['private_mode']:
+            logger.warning('qtwebkit does not support _settings['private_mode']=False')
 
         self.view.page().loadFinished.connect(self.on_load_finished)
         self.setCentralWidget(self.view)
@@ -451,7 +467,13 @@ class BrowserView(QMainWindow):
         self.show()
 
     def closeEvent(self, event):
-        if self.confirm_close:
+        should_cancel = self.pywebview_window.events.closing.set()
+
+        if should_cancel:
+            event.ignore()
+            return
+
+        if self.pywebview_window.confirm_close:
             reply = QMessageBox.question(
                 self,
                 self.title,
@@ -463,12 +485,6 @@ class BrowserView(QMainWindow):
             if reply == QMessageBox.No:
                 event.ignore()
                 return
-
-        should_cancel = self.pywebview_window.events.closing.set()
-
-        if should_cancel:
-            event.ignore()
-            return
 
         event.accept()
         BrowserView.instances[self.uid].close()
@@ -596,7 +612,7 @@ class BrowserView(QMainWindow):
             except:  # QT < 5.6
                 self.view.page().mainFrame().evaluateJavaScript(script)
 
-        if _debug['mode']:
+        if _settings['debug']:
             self.view.show_inspector()
 
     def set_title(self, title):
@@ -785,7 +801,9 @@ def create_window(window):
 
         _main_window_created.set()
 
-        if window.minimized:
+        if window.maximized:
+            browser.showMaximized()
+        elif window.minimized:
             # showMinimized does not work on start without showNormal first
             # looks like a bug in QT
             browser.showNormal()

@@ -6,7 +6,7 @@ from threading import Semaphore
 
 import clr
 
-from webview import _debug, _private_mode, _user_agent
+from webview import _settings
 from webview.js.css import disable_text_select
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, parse_api_js
 
@@ -27,7 +27,7 @@ clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2Environment
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
-for platform in ('arm64', 'x64', 'x86'):
+for platform in ('win-arm64', 'win-x64', 'win-x86'):
     os.environ['Path'] += ';' + interop_dll_path(platform)
 
 
@@ -40,7 +40,8 @@ class EdgeChrome:
         self.web_view = WebView2()
         props = CoreWebView2CreationProperties()
         props.UserDataFolder = cache_dir
-        props.set_IsInPrivateModeEnabled(_private_mode)
+        props.set_IsInPrivateModeEnabled(_settings['private_mode'])
+        props.AdditionalBrowserArguments = '--disable-features=ElasticOverscroll'
         self.web_view.CreationProperties = props
 
         form.Controls.Add(self.web_view)
@@ -173,27 +174,27 @@ class EdgeChrome:
 
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
         settings = sender.CoreWebView2.Settings
-        settings.AreBrowserAcceleratorKeysEnabled = _debug['mode']
-        settings.AreDefaultContextMenusEnabled = _debug['mode']
+        settings.AreBrowserAcceleratorKeysEnabled = _settings['debug']
+        settings.AreDefaultContextMenusEnabled = _settings['debug']
         settings.AreDefaultScriptDialogsEnabled = True
-        settings.AreDevToolsEnabled = _debug['mode']
+        settings.AreDevToolsEnabled = _settings['debug']
         settings.IsBuiltInErrorPageEnabled = True
         settings.IsScriptEnabled = True
         settings.IsWebMessageEnabled = True
-        settings.IsStatusBarEnabled = _debug['mode']
+        settings.IsStatusBarEnabled = _settings['debug']
         settings.IsZoomControlEnabled = True
 
-        if _user_agent:
-            settings.UserAgent = _user_agent
+        if _settings['user_agent']:
+            settings.UserAgent = _settings['user_agent']
 
-        if _private_mode:
+        if _settings['private_mode']:
             # cookies persist even if UserDataFolder is in memory. We have to delete cookies manually.
             sender.CoreWebView2.CookieManager.DeleteAllCookies()
 
         if self.html:
             sender.CoreWebView2.NavigateToString(self.html)
 
-        if _debug['mode']:
+        if _settings['debug']:
             sender.CoreWebView2.OpenDevToolsWindow()
 
     def on_navigation_start(self, sender, args):

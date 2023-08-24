@@ -54,6 +54,7 @@ module.exports = {
       '/examples/': [
         'cef',
         'change_url',
+        'close_confirm',
         'confirmation_dialog',
         'cookies',
         'css_load',
@@ -61,6 +62,8 @@ module.exports = {
         'debug',
         'destroy_window',
         'events',
+        'expose',
+        'focus',
         'frameless',
         'fullscreen',
         'get_elements',

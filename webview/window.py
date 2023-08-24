@@ -97,7 +97,9 @@ class Window:
         hidden: bool = False,
         frameless: bool = False,
         easy_drag: bool = True,
+        focus: bool = True,
         minimized: bool = False,
+        maximized: bool = False,
         on_top: bool = False,
         confirm_close: bool = False,
         background_color: str = '#FFFFFF',
@@ -129,9 +131,11 @@ class Window:
         self.text_select = text_select
         self.frameless = frameless
         self.easy_drag = easy_drag
+        self.focus = focus
         self.hidden = hidden
         self.on_top = on_top
         self.minimized = minimized
+        self.maximized = maximized
         self.transparent = transparent
         self.zoomable = zoomable
         self.draggable = draggable
@@ -226,10 +230,6 @@ class Window:
 
     @_loaded_call
     def get_elements(self, selector: str) -> Any:
-        # check for GTK's WebKit2 version
-        if hasattr(self.gui, 'old_webkit') and self.gui.old_webkit:
-            raise NotImplementedError('get_elements requires WebKit2 2.2 or greater')
-
         code = (
             """
             var elements = document.querySelectorAll('%s');

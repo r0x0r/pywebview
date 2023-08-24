@@ -21,7 +21,7 @@ from uuid import uuid4
 
 import webview
 
-from .js import api, dom, drag, event, npo
+from .js import api, dom, mouse, event, npo
 
 if TYPE_CHECKING:
     from .window import Window
@@ -177,11 +177,12 @@ def parse_api_js(window: Window, platform: str, uid: str = '') -> str:
             'js_api_endpoint': window.js_api_endpoint,
         }
         + dom.src
-        + drag.src
+        + mouse.src
         % {
             'drag_selector': webview.DRAG_REGION_SELECTOR,
             'zoomable': str(window.zoomable).lower(),
             'draggable': str(window.draggable).lower(),
+            'easy_drag': str(platform == 'chromium' and window.easy_drag).lower(),
         }
     )
     return js_code
@@ -283,6 +284,12 @@ def interop_dll_path(dll_name: str) -> str:
     if os.path.exists(dll_path):
         return dll_path
 
+    dll_path = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), 'lib', 'runtimes', dll_name, 'native'
+    )
+    if os.path.exists(dll_path):
+        return dll_path
+
     # Frozen path, dll in the same dir as the executable
     dll_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), dll_name)
     if os.path.exists(dll_path):
@@ -302,3 +309,14 @@ def interop_dll_path(dll_name: str) -> str:
         pass
 
     raise FileNotFoundError(f'Cannot find {dll_name}')
+
+
+def environ_append(key: str, *values: str, sep=' ') -> None:
+    '''Append values to an environment variable, separated by sep'''
+    values = list(values)
+    
+    existing = os.environ.get(key, '')
+    if existing:
+        values = [existing] + values
+
+    os.environ[key] = sep.join(values)

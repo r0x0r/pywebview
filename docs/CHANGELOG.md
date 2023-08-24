@@ -1,5 +1,36 @@
 # Changelog
 
+## 4.2.2
+
+_Released 25/06/2023_
+
+- [All] Fix 'NoneType' object has no attribute 'start_server'. #1159
+
+## 4.2.1
+
+_Released 22/06/2023_
+
+- [All] Fix installation
+
+## 4.2
+
+_Released 22/06/2023_
+
+### ⚡ Features
+
+- [All] `webview.create_window(focus=False)` to create a non-focusable window. Thanks @mi4code #1030.
+
+### 🚀 Improvements
+
+- [All] Modernization of project infrastructure + typing. Thanks @demberto.
+- [Winforms] Top level menu item support. Thanks @zhengxiaoyao0716.
+- [Winforms] Disable touchpad elastic overscroll. Thanks @firai.
+
+### 🐞 Bug fixes
+
+- [Winforms] Unable to load DLL 'WebView2Loader.dll': The specified module could not be found. Thanks @kawana77b #1078
+- [Cocoa] Fix missing pip dependency `pyobjc-framework-security`.
+
 ## 4.1
 
 _Released 02/05/2023_

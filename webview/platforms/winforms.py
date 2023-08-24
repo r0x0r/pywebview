@@ -11,7 +11,7 @@ from threading import Event, Semaphore
 
 import clr
 
-from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _private_mode, _storage_path, windows
+from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -24,13 +24,12 @@ clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
 from System import Environment, Func, Int32, IntPtr, Type
-from System.Drawing import Color, ColorTranslator, Icon, Point, Size
+from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF
 from System.Threading import ApartmentState, Thread, ThreadStart
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 logger = logging.getLogger('pywebview')
-settings = {}
-
+cache_dir = None
 
 def _is_new_version(current_version: str, new_version: str) -> bool:
     new_range = new_version.split('.')
@@ -126,23 +125,8 @@ else:
         'MSHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium'
     )
     logger.debug('Using WinForms / MSHTML')
+    IE._set_ie_mode()
     renderer = 'mshtml'
-
-if not _private_mode or _storage_path:
-    try:
-        data_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-
-        if not os.access(data_folder, os.W_OK):
-            data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-
-        cache_dir = _storage_path or os.path.join(data_folder, 'pywebview')
-
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir)
-    except Exception:
-        logger.exception(f'Cache directory {cache_dir} creation failed')
-else:
-    cache_dir = tempfile.TemporaryDirectory().name
 
 
 class BrowserView:
@@ -166,13 +150,16 @@ class BrowserView:
             else:
                 self.StartPosition = WinForms.FormStartPosition.CenterScreen
 
+            self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
             if not window.resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
                 self.MaximizeBox = False
 
-            if window.minimized:
+            if window.maximized:
+                self.WindowState = WinForms.FormWindowState.Maximized
+            elif window.minimized:
                 self.WindowState = WinForms.FormWindowState.Minimized
 
             self.old_state = self.WindowState
@@ -225,6 +212,9 @@ class BrowserView:
             else:
                 self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
+            if not window.focus:
+                windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
+
             self.Activated += self.on_activated
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
@@ -235,10 +225,12 @@ class BrowserView:
             self.localization = window.localization
 
         def on_activated(self, *_):
-            if self.browser:
+            if not self.pywebview_window.focus:
+                windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
+            elif self.browser:
                 self.browser.web_view.Focus()
 
-            if is_cef:
+            if is_cef and self.pywebview_window.focus:
                 CEF.focus(self.uid)
 
         def on_shown(self, *_):
@@ -271,22 +263,21 @@ class BrowserView:
                 self.Invoke(Func[Type](_shutdown))
 
         def on_closing(self, sender, args):
-            if self.pywebview_window.confirm_close:
-                result = WinForms.MessageBox.Show(
-                    self.localization['global.quitConfirmation'],
-                    self.Text,
-                    WinForms.MessageBoxButtons.OKCancel,
-                    WinForms.MessageBoxIcon.Asterisk,
-                )
-
-                if result == WinForms.DialogResult.Cancel:
-                    args.Cancel = True
+            should_cancel = self.closing.set()
+            if should_cancel:
+                args.Cancel = True
 
             if not args.Cancel:
-                should_cancel = self.closing.set()
+                if self.pywebview_window.confirm_close:
+                    result = WinForms.MessageBox.Show(
+                        self.localization['global.quitConfirmation'],
+                        self.Text,
+                        WinForms.MessageBoxButtons.OKCancel,
+                        WinForms.MessageBoxIcon.Asterisk,
+                    )
 
-                if should_cancel:
-                    args.Cancel = True
+                    if result == WinForms.DialogResult.Cancel:
+                        args.Cancel = True
 
         def on_resize(self, sender, args):
             if self.WindowState == WinForms.FormWindowState.Maximized:
@@ -371,6 +362,16 @@ class BrowserView:
 
         def set_window_menu(self, menu_list):
             def _set_window_menu():
+                def create_action_item(menu_line_item):
+                    action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
+                    # Don't run action function on main thread
+                    action_item.Click += (
+                        lambda _, __, menu_line_item=menu_line_item: threading.Thread(
+                            target=menu_line_item.function
+                        ).start()
+                    )
+                    return action_item
+
                 def create_submenu(title, line_items, supermenu=None):
                     m = WinForms.ToolStripMenuItem(title)
                     for menu_line_item in line_items:
@@ -378,14 +379,7 @@ class BrowserView:
                             m.DropDownItems.Add(WinForms.ToolStripSeparator())
                             continue
                         elif isinstance(menu_line_item, MenuAction):
-                            action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
-                            # Don't run action function on main thread
-                            action_item.Click += (
-                                lambda _, __, menu_line_item=menu_line_item: threading.Thread(
-                                    target=menu_line_item.function
-                                ).start()
-                            )
-                            m.DropDownItems.Add(action_item)
+                            m.DropDownItems.Add(create_action_item(menu_line_item))
                         elif isinstance(menu_line_item, Menu):
                             create_submenu(menu_line_item.title, menu_line_item.items, m)
 
@@ -397,7 +391,10 @@ class BrowserView:
                 top_level_menu = WinForms.MenuStrip()
 
                 for menu in menu_list:
-                    top_level_menu.Items.Add(create_submenu(menu.title, menu.items))
+                    if isinstance(menu, Menu):
+                        top_level_menu.Items.Add(create_submenu(menu.title, menu.items))
+                    elif isinstance(menu, MenuAction):
+                        top_level_menu.Items.Add(create_action_item(menu))
 
                 self.Controls.Add(top_level_menu)
 
@@ -497,85 +494,29 @@ class BrowserView:
         WinForms.MessageBox.Show(str(message))
 
 
-def _set_ie_mode():
-    """
-    By default hosted IE control emulates IE7 regardless which version of IE is installed. To fix this, a proper value
-    must be set for the executable.
-    See http://msdn.microsoft.com/en-us/library/ee330730%28v=vs.85%29.aspx#browser_emulation for details on this
-    behaviour.
-    """
-
-    import winreg
-
-    def get_ie_mode():
-        """
-        Get the installed version of IE
-        :return:
-        """
-        ie_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'Software\Microsoft\Internet Explorer')
-        try:
-            version, type = winreg.QueryValueEx(ie_key, 'svcVersion')
-        except:
-            version, type = winreg.QueryValueEx(ie_key, 'Version')
-
-        winreg.CloseKey(ie_key)
-
-        if version.startswith('11'):
-            value = 0x2AF9
-        elif version.startswith('10'):
-            value = 0x2711
-        elif version.startswith('9'):
-            value = 0x270F
-        elif version.startswith('8'):
-            value = 0x22B8
-        else:
-            value = 0x2AF9  # Set IE11 as default
-
-        return value
-
-    try:
-        browser_emulation = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
-            0,
-            winreg.KEY_ALL_ACCESS,
-        )
-    except WindowsError:
-        browser_emulation = winreg.CreateKeyEx(
-            winreg.HKEY_CURRENT_USER,
-            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
-            0,
-            winreg.KEY_ALL_ACCESS,
-        )
-
-    try:
-        dpi_support = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL',
-            0,
-            winreg.KEY_ALL_ACCESS,
-        )
-    except WindowsError:
-        dpi_support = winreg.CreateKeyEx(
-            winreg.HKEY_CURRENT_USER,
-            r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL',
-            0,
-            winreg.KEY_ALL_ACCESS,
-        )
-
-    mode = get_ie_mode()
-    executable_name = sys.executable.split('\\')[-1]
-    winreg.SetValueEx(browser_emulation, executable_name, 0, winreg.REG_DWORD, mode)
-    winreg.CloseKey(browser_emulation)
-
-    winreg.SetValueEx(dpi_support, executable_name, 0, winreg.REG_DWORD, 1)
-    winreg.CloseKey(dpi_support)
-
-
 _main_window_created = Event()
 _main_window_created.clear()
 
 _already_set_up_app = False
+
+def init_storage():
+    global cache_dir
+
+    if not _settings['private_mode'] or _settings['storage_path']:
+        try:
+            data_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+
+            if not os.access(data_folder, os.W_OK):
+                data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+
+            cache_dir = _settings['storage_path'] or os.path.join(data_folder, 'pywebview')
+
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
+        except Exception:
+            logger.exception(f'Cache directory {cache_dir} creation failed')
+    else:
+        cache_dir = tempfile.TemporaryDirectory().name
 
 
 def setup_app():
@@ -583,6 +524,7 @@ def setup_app():
     global _already_set_up_app
     if _already_set_up_app:
         return
+
     WinForms.Application.EnableVisualStyles()
     WinForms.Application.SetCompatibleTextRenderingDefault(False)
     _already_set_up_app = True
@@ -609,8 +551,8 @@ def create_window(window):
     app = WinForms.Application
 
     if window.uid == 'master':
-        if not is_cef and not is_chromium:
-            _set_ie_mode()
+        if is_chromium:
+            init_storage()
 
         if sys.getwindowsversion().major >= 6:
             windll.user32.SetProcessDPIAware()

@@ -86,7 +86,7 @@ class BottleServer:
     def start_server(
         cls, urls: list[str], http_port: int | None, keyfile: None = None, certfile: None = None
     ) -> tuple[str, str | None, BottleServer]:
-        from webview import _debug
+        from webview import _settings
 
         apps = [u for u in urls if is_app(u)]
         server = cls()
@@ -139,7 +139,7 @@ class BottleServer:
             server_adapter = ThreadedAdapter
         server.thread = threading.Thread(
             target=lambda: bottle.run(
-                app=app, server=server_adapter, port=server.port, quiet=not _debug['mode']
+                app=app, server=server_adapter, port=server.port, quiet=not _settings['debug']
             ),
             daemon=True,
         )
@@ -210,6 +210,7 @@ def start_server(
     server: type[ServerType] = BottleServer,
     **server_args: Unpack[ServerArgs],
 ) -> tuple[str, str | None, BottleServer]:
+    server = server if not server is None else BottleServer
     return server.start_server(urls, http_port, **server_args)
 
 

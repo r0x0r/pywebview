@@ -70,11 +70,13 @@ DRAG_REGION_SELECTOR = '.pywebview-drag-region'
 DEFAULT_HTTP_PORT = 42001
 
 guilib = None
-_debug = {'mode': False}
-_user_agent = None
-_http_server = False
-_private_mode = True
-_storage_path = None
+_settings = {
+    'debug': False,
+    'storage_path': None,
+    'private_mode': True,
+    'user_agent': None,
+    'http_server': False
+}
 
 token = _TOKEN
 windows: list[Window] = []
@@ -121,7 +123,7 @@ def start(
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     """
-    global guilib, _debug, _http_server, _user_agent, _private_mode, _storage_path
+    global guilib
 
     def _create_children(other_windows):
         if not windows[0].events.shown.wait(10):
@@ -130,18 +132,17 @@ def start(
         for window in other_windows:
             guilib.create_window(window)
 
-    _debug['mode'] = debug
+    _settings['debug'] = debug
+    _settings['user_agent'] = user_agent
+    _settings['http_server'] = http_server
+    _settings['private_mode'] = private_mode
+    _settings['storage_path'] = storage_path
 
     if debug:
         logger.setLevel(logging.DEBUG)
 
-    _user_agent = user_agent
-    _http_server = http_server
-    _private_mode = private_mode
-    _storage_path = storage_path
-
-    if _storage_path and _private_mode and not os.path.exists(_storage_path):
-        os.makedirs(_storage_path)
+    if _settings['storage_path'] and _settings['private_mode'] and not os.path.exists(_settings['storage_path']):
+        os.makedirs(_settings['storage_path'])
 
     original_localization.update(localization)
 
@@ -164,10 +165,8 @@ def start(
     urls = [w.original_url for w in windows]
     has_local_urls = not not [w.original_url for w in windows if is_local_url(w.original_url)]
     # start the global server if it's not running and we need it
-    if (http.global_server is None) and (
-        http_server or has_local_urls or (guilib.renderer == 'gtkwebkit2')
-    ):
-        if not _private_mode and not http_port:
+    if (http.global_server is None) and (http_server or has_local_urls):
+        if not _settings['private_mode'] and not http_port:
             http_port = DEFAULT_HTTP_PORT
         *_, server = http.start_global_server(
             http_port=http_port, urls=urls, server=server, **server_args
@@ -216,7 +215,9 @@ def create_window(
     hidden: bool = False,
     frameless: bool = False,
     easy_drag: bool = True,
+    focus: bool = True,
     minimized: bool = False,
+    maximized: bool = False,
     on_top: bool = False,
     confirm_close: bool = False,
     background_color: str = '#FFFFFF',
@@ -243,6 +244,7 @@ def create_window(
     :param hidden: Whether the window should be hidden.
     :param frameless: Whether the window should have a frame.
     :param easy_drag: Easy window drag mode when window is frameless.
+    :param focus: Whether to activate the window when user opens it. Window can be controlled with mouse but keyboard input will go to another (active) window and not this one.
     :param minimized: Display window minimized
     :param on_top: Keep window above other windows (required OS: Windows)
     :param confirm_close: Display a window close confirmation dialog. Default is False
@@ -275,7 +277,9 @@ def create_window(
         hidden,
         frameless,
         easy_drag,
+        focus,
         minimized,
+        maximized,
         on_top,
         confirm_close,
         background_color,

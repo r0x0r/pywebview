@@ -32,6 +32,7 @@ window.pywebview = {
                 case 'chromium':
                     return window.chrome.webview.postMessage([funcName, params, id]);
                 case 'cocoa':
+                case 'gtk':
                     return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params, id]));
                 case 'qtwebengine':
                     if (!window.pywebview._QWebChannel) {
@@ -42,11 +43,6 @@ window.pywebview = {
                         window.pywebview._QWebChannel.objects.external.call(funcName, JSON.stringify(params), id);
                     }
                     break;
-                case 'gtk':
-                    return fetch('%(js_api_endpoint)s', {
-                        method: 'POST',
-                        body: JSON.stringify({"type": "invoke", "uid": "%(uid)s", "function": funcName, "param": params, "id": id})
-                    })
             }
         }
     },

@@ -30,4 +30,4 @@ if __name__ == '__main__':
         frameless=True,
         easy_drag=False,
     )
-    webview.start(debug=True)
+    webview.start()

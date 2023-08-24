@@ -33,6 +33,7 @@ dependencies = [
     "pyobjc-core;sys_platform=='darwin'",
     "pyobjc-framework-Cocoa;sys_platform=='darwin'",
     "pyobjc-framework-WebKit;sys_platform=='darwin'",
+    "pyobjc-framework-security;sys_platform=='darwin'",
     "QtPy;sys_platform=='openbsd6'",
     "proxy_tools",
     "bottle",
@@ -59,7 +60,7 @@ line_length = 100
 
 [tool.setuptools]
 include-package-data = false
-packages = ["webview", "webview.js", "webview.lib"]
+packages = ["webview", "webview.js", "webview.lib", "webview.platforms"]
 
 [tool.setuptools.package-data]
 "webview.lib" = ["**/*.dll"]

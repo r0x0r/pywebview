@@ -1,4 +1,5 @@
 src = """
+
 (function() {
     var initialX = 0;
     var initialY = 0;
@@ -11,6 +12,7 @@ src = """
 
     function onMouseUp() {
         window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
     }
 
     function onMouseDown(ev) {
@@ -21,9 +23,14 @@ src = """
     }
 
     var dragBlocks = document.querySelectorAll('%(drag_selector)s');
-    for(var i=0; i < dragBlocks.length; i++) {
+    for (var i=0; i < dragBlocks.length; i++) {
         dragBlocks[i].addEventListener('mousedown', onMouseDown);
     }
+        // easy drag for edge chromium
+    if (%(easy_drag)s) {
+        window.addEventListener('mousedown', onMouseDown);
+    }
+
 })();
 
 // zoomable

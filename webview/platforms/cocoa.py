@@ -13,8 +13,7 @@ import WebKit
 from objc import _objc, nil, registerMetaDataForSelector, selector, super
 from PyObjCTools import AppHelper
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _debug, _private_mode, _user_agent,
-                     parse_file_type, windows)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows)
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -71,6 +70,10 @@ class BrowserView:
             for i in BrowserView.instances.values():
                 i.closing.set()
             return Foundation.YES
+
+    class WindowHost(AppKit.NSWindow):
+        def canBecomeKeyWindow(self):
+            return self.focus
 
     class WindowDelegate(AppKit.NSObject):
         def windowShouldClose_(self, window):
@@ -308,13 +311,13 @@ class BrowserView:
 
             if event.modifierFlags() & getattr(AppKit, 'NSEventModifierFlagControl', 1 << 18):
                 i = BrowserView.get_instance('webkit', self)
-                if not _debug['mode']:
+                if not _settings['debug']:
                     return
 
             super(BrowserView.WebKitHost, self).mouseDown_(event)
 
         def willOpenMenu_withEvent_(self, menu, event):
-            if not _debug['mode']:
+            if not _settings['debug']:
                 menu.removeAllItems()
 
         def keyDown_(self, event):
@@ -370,6 +373,7 @@ class BrowserView:
         self.is_fullscreen = False
         self.hidden = window.hidden
         self.minimized = window.minimized
+        self.maximized = window.maximized
         self.localization = window.localization
 
         rect = AppKit.NSMakeRect(0.0, 0.0, window.initial_width, window.initial_height)
@@ -392,12 +396,13 @@ class BrowserView:
         # The allocated resources are retained because we would explicitly delete
         # this instance when its window is closed
         self.window = (
-            AppKit.NSWindow.alloc()
+            BrowserView.WindowHost.alloc()
             .initWithContentRect_styleMask_backing_defer_(
                 rect, window_mask, AppKit.NSBackingStoreBuffered, False
             )
             .retain()
         )
+        self.window.focus = window.focus
         self.window.setTitle_(window.title)
         self.window.setMinSize_(AppKit.NSSize(window.min_size[0], window.min_size[1]))
         self.window.setAnimationBehavior_(AppKit.NSWindowAnimationBehaviorDocumentWindow)
@@ -424,7 +429,7 @@ class BrowserView:
             self._browserDelegate, 'browserDelegate'
         )
 
-        if _private_mode:
+        if _settings['private_mode']:
             # nonPersisentDataStore preserves cookies for some unknown reason. For this reason we use default datastore
             # and clear all the cookies beforehand
             self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
@@ -448,13 +453,13 @@ class BrowserView:
             pass  # backspaceKeyNavigationEnabled does not exist prior to macOS Mojave
         config.preferences().setValue_forKey_(True, 'allowFileAccessFromFileURLs')
 
-        if _debug['mode']:
+        if _settings['debug']:
             config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
         config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
-        user_agent = settings.get('user_agent') or _user_agent
+        user_agent = settings.get('user_agent') or _settings['user_agent']
         if user_agent:
             self.webkit.setCustomUserAgent_(user_agent)
 
@@ -520,7 +525,7 @@ class BrowserView:
             self.load_html(window.html, '')
         else:
             self.load_html(DEFAULT_HTML, '')
-        if window.fullscreen:
+        if window.fullscreen or window.maximized:
             self.toggle_fullscreen()
         self.shown.set()
 
@@ -530,7 +535,9 @@ class BrowserView:
         else:
             self.hidden = False
 
-        if self.minimized:
+        if self.maximized:
+            self.maximize()
+        elif self.minimized:
             self.minimize()
 
         if not BrowserView.app.isRunning():
@@ -903,14 +910,12 @@ class BrowserView:
         cancel = window.localization['global.cancel']
         msg = window.localization['global.quitConfirmation']
 
-        if not window.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
-            should_cancel = window.events.closing.set()
-            if should_cancel:
-                return Foundation.NO
-            else:
-                return Foundation.YES
-        else:
+        should_cancel = window.events.closing.set()
+        if should_cancel:
             return Foundation.NO
+        if not window.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
+            return Foundation.YES
+        return Foundation.NO
 
     @staticmethod
     def print_webview(webview):
@@ -974,8 +979,6 @@ def setup_app():
 
 
 def create_window(window):
-    global _debug
-
     def create():
         browser = BrowserView(window)
         browser.first_show()

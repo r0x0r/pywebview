@@ -6,9 +6,8 @@ from threading import Semaphore, Thread
 from typing import Any
 from uuid import uuid1
 
-import webview.http as http
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _debug, _private_mode, _storage_path,
-                     _user_agent, parse_file_type, windows)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings,
+                     parse_file_type, windows)
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -16,6 +15,7 @@ from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
+os.environ['EGL_LOG_LEVEL'] = 'fatal'
 
 import gi
 
@@ -30,12 +30,8 @@ from gi.repository import Gtk as gtk
 from gi.repository import Soup
 from gi.repository import WebKit2 as webkit
 
-# version of WebKit2 older than 2.2 does not support returning a result of javascript, so we
-# have to resort fetching a result via window title
-webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
-old_webkit = webkit_ver[0] < 2 or webkit_ver[1] < 22
-
 renderer = 'gtkwebkit2'
+webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
 
 settings = {}
 
@@ -67,7 +63,6 @@ class BrowserView:
         self.is_fullscreen = False
         self.js_results = {}
 
-        glib.threads_init()
         self.window = gtk.ApplicationWindow(title=window.title, application=_app)
 
         self.shown = window.events.shown
@@ -84,7 +79,9 @@ class BrowserView:
         else:
             self.window.set_size_request(window.initial_width, window.initial_height)
 
-        if window.minimized:
+        if window.maximized:
+            self.window.maximize()
+        elif window.minimized:
             self.window.iconify()
 
         if window.initial_x is not None and window.initial_y is not None:
@@ -93,6 +90,7 @@ class BrowserView:
             self.window.set_position(gtk.WindowPosition.CENTER)
 
         self.window.set_resizable(window.resizable)
+        self.window.set_accept_focus(window.focus)
 
         # Set window background color
         style_provider = gtk.CssProvider()
@@ -106,10 +104,7 @@ class BrowserView:
         scrolled_window = gtk.ScrolledWindow()
         self.window.add(scrolled_window)
 
-        if window.confirm_close:
-            self.window.connect('delete-event', self.on_destroy)
-        else:
-            self.window.connect('delete-event', self.close_window)
+        self.window.connect('delete-event', self.close_window)
 
         self.window.connect('window-state-event', self.on_window_state_change)
         self.window.connect('size-allocate', self.on_window_resize)
@@ -118,7 +113,7 @@ class BrowserView:
         self.js_bridge = BrowserView.JSBridge(window)
         self.text_select = window.text_select
 
-        storage_path = _storage_path or os.path.join(os.path.expanduser('~'), '.pywebview')
+        storage_path = _settings['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
 
         if not os.path.exists(storage_path):
             os.makedirs(storage_path)
@@ -126,21 +121,22 @@ class BrowserView:
         web_context = webkit.WebContext.get_default()
         self.cookie_manager = web_context.get_cookie_manager()
 
-        if not _private_mode:
+        if not _settings['private_mode']:
             self.cookie_manager.set_persistent_storage(
                 os.path.join(storage_path, 'cookies'), webkit.CookiePersistentStorage.SQLITE
             )
 
-        self.webview = webkit.WebView()
+        self.manager = webkit.UserContentManager()
+        self.manager.register_script_message_handler('jsBridge')
+        self.manager.connect('script-message-received', self.on_js_bridge_call)
 
+        self.webview = webkit.WebView().new_with_user_content_manager(self.manager)
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('decide-policy', self.on_navigation)
 
-        http.global_server.js_callback[window.uid] = self.on_js_callback
-
         webkit_settings = self.webview.get_settings().props
-        user_agent = settings.get('user_agent') or _user_agent
+        user_agent = settings.get('user_agent') or _settings['user_agent']
         if user_agent:
             webkit_settings.user_agent = user_agent
 
@@ -169,13 +165,13 @@ class BrowserView:
             wvbg.alpha = 0.0
             self.webview.set_background_color(wvbg)
 
-        if _debug['mode']:
+        if _settings['debug']:
             webkit_settings.enable_developer_extras = True
             self.webview.get_inspector().show()
         else:
             self.webview.connect('context-menu', lambda a, b, c, d: True)  # Disable context menu
 
-        if _private_mode:
+        if _settings['private_mode']:
             webkit_settings.enable_html5_database = False
             webkit_settings.enable_html5_local_storage = False
 
@@ -196,7 +192,20 @@ class BrowserView:
         should_cancel = self.pywebview_window.events.closing.set()
 
         if should_cancel:
-            return
+            return True
+
+        if self.pywebview_window.confirm_close:
+            dialog = gtk.MessageDialog(
+                parent=self.window,
+                flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+                type=gtk.MessageType.QUESTION,
+                buttons=gtk.ButtonsType.OK_CANCEL,
+                message_format=self.localization['global.quitConfirmation'],
+            )
+            result = dialog.run()
+            dialog.destroy()
+            if result == gtk.ResponseType.CANCEL:
+                return True
 
         for res in self.js_results.values():
             res['semaphore'].release()
@@ -209,20 +218,7 @@ class BrowserView:
 
         self.pywebview_window.events.closed.set()
 
-    def on_destroy(self, widget=None, *data):
-        dialog = gtk.MessageDialog(
-            parent=self.window,
-            flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
-            type=gtk.MessageType.QUESTION,
-            buttons=gtk.ButtonsType.OK_CANCEL,
-            message_format=self.localization['global.quitConfirmation'],
-        )
-        result = dialog.run()
-        if result == gtk.ResponseType.OK:
-            self.close_window()
-
-        dialog.destroy()
-        return True
+        return False
 
     def on_window_state_change(self, window, window_state):
         if window_state.changed_mask == Gdk.WindowState.ICONIFIED:
@@ -242,6 +238,10 @@ class BrowserView:
                 self.pywebview_window.events.maximized.set()
             else:
                 self.pywebview_window.events.restored.set()
+
+    def on_js_bridge_call(self, manager, message):
+        func_name, param, value_id = json.loads(message.get_js_value().to_string())
+        js_bridge_call(self.pywebview_window, func_name, param, value_id)
 
     def on_window_resize(self, window, allocation):
         if allocation.width != self._last_width or allocation.height != self._last_height:
@@ -268,35 +268,9 @@ class BrowserView:
                 webview.run_javascript(disable_text_select)
             self._set_js_api()
 
-    def on_js_callback(self, js_data):
-        try:
-            if 'type' not in js_data:
-                return
-
-            elif js_data['type'] == 'eval' and old_webkit:  # return result of evaluate_js
-                unique_id = js_data['uid']
-                result = js_data['result'] if 'result' in js_data else None
-
-                js = self.js_results[unique_id]
-                js['result'] = result
-                js['semaphore'].release()
-
-            elif js_data['type'] == 'invoke':  # invoke js api's function
-                func_name = js_data['function']
-                value_id = js_data['id']
-                param = js_data['param'] if 'param' in js_data else None
-                return_val = self.js_bridge.call(func_name, param, value_id)
-
-                # Give back the return value to JS as a string
-                # code = 'pywebview._bridge.return_val = "{0}";'.format(escape_string(str(return_val)))
-                return return_val
-
-        except json.JSONDecodeError:  # Python 3
-            return
-
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) == webkit.NavigationPolicyDecision:
-            uri = decision.get_request().get_uri()
+            uri = decision.get_navigation_action().get_request().get_uri()
 
             if decision.get_frame_name() == '_blank':
                 webbrowser.open(uri, 2, True)
@@ -427,7 +401,7 @@ class BrowserView:
 
         if response == gtk.ResponseType.OK:
             if dialog_type == SAVE_DIALOG:
-                file_name = dialog.get_filename()
+                file_name = (dialog.get_filename(),)
             else:
                 file_name = dialog.get_filenames()
         else:
@@ -485,8 +459,7 @@ class BrowserView:
 
     def evaluate_js(self, script):
         def _evaluate_js():
-            callback = None if old_webkit else _callback
-            self.webview.run_javascript(script, None, callback, None)
+            self.webview.run_javascript(script, None, _callback, None)
 
         def _callback(webview, task, data):
             value = webview.run_javascript_finish(task)
@@ -500,20 +473,6 @@ class BrowserView:
         unique_id = uuid1().hex
         result_semaphore = Semaphore(0)
         self.js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
-
-        if old_webkit:
-            script = """
-                fetch("%(js_api_endpoint)s", {
-                    body: "JSON.stringify({
-                        "type": "eval",
-                        "uid": "%(unique_id)s",
-                        "result": %(script)s
-                    })
-                })""" % {
-                'js_api_endpoint': http.js_api_endpoint,
-                'unique_id': unique_id,
-                'script': script,
-            }
 
         self.loaded.wait()
         glib.idle_add(_evaluate_js)
@@ -562,6 +521,7 @@ def create_window(window):
     if window.uid == 'master':
         _app.connect('activate', create_master_callback)
         _app.run()
+        _app = None
     else:
         # _app will already have been activated by this point
         glib.idle_add(create)
