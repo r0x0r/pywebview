@@ -2,11 +2,11 @@ import webview
 
 from .util import run_test
 
-_new_title = "New title"
+_new_title = 'New title'
 
 
 def test_set_title():
-    window = webview.create_window("Set title test", html="https://www.example.org")
+    window = webview.create_window('Set title test', 'https://www.example.org')
     run_test(webview, window, set_title)
 
 
