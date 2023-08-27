@@ -143,22 +143,26 @@ class BrowserView:
             self.Size = Size(window.initial_width, window.initial_height)
             self.MinimumSize = Size(window.min_size[0], window.min_size[1])
 
+            self.AutoScaleDimensions = SizeF(96.0, 96.0)
+            self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
+            # for chromium edge, need this factor to modify the coordinates
+            self.scale_factor = windll.shcore.GetScaleFactorForDevice(0) / 100 if is_chromium else 1
+
             if window.initial_x is not None and window.initial_y is not None:
                 self.StartPosition = WinForms.FormStartPosition.Manual
                 self.Location = Point(window.initial_x, window.initial_y)
             elif window.screen:
                 self.StartPosition = WinForms.FormStartPosition.Manual
-                x = (
-                    window.screen.frame.X + (window.screen.width / 2) + window.initial_width / 2
-                    if window.screen.frame.X >= 0 
-                    else window.screen.frame.X - window.screen.width / 2 
+                x = int(
+                    window.screen.frame.X * self.scale_factor + (window.screen.width - window.initial_width) * self.scale_factor / 2
+                    if window.screen.frame.X >= 0
+                    else window.screen.frame.X * self.scale_factor - window.screen.width * self.scale_factor / 2
                 )
-                self.Location = Point(int(x), int(window.screen.frame.Y + window.screen.height / 2))
+
+                y = int(window.screen.frame.Y * self.scale_factor + (window.screen.height - window.initial_height) * self.scale_factor / 2)
+                self.Location = Point(x, y)
             else:
                 self.StartPosition = WinForms.FormStartPosition.CenterScreen
-
-            self.AutoScaleDimensions = SizeF(96.0, 96.0)
-            self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
 
             if not window.resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
@@ -186,7 +190,6 @@ class BrowserView:
             self.url = window.real_url
             self.text_select = window.text_select
             self.TopMost = window.on_top
-            self.scale_factor = 1
 
             self.is_fullscreen = False
             if window.fullscreen:
@@ -204,8 +207,6 @@ class BrowserView:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert, self)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window, cache_dir)
-                # for chromium edge, need this factor to modify the coordinates
-                self.scale_factor = windll.shcore.GetScaleFactorForDevice(0) / 100
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
 
@@ -785,7 +786,7 @@ def get_size(uid):
 
 
 def get_screens():
-    screens = [Screen(s.Bounds.Width, s.Bounds.Height, s.WorkingArea.Location) for s in WinForms.Screen.AllScreens]
+    screens = [Screen(s.Bounds.Width, s.Bounds.Height, s.WorkingArea) for s in WinForms.Screen.AllScreens]
     return screens
 
 
