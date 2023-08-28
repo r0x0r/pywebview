@@ -230,6 +230,7 @@ def create_window(
     server: type[http.ServerType] = http.BottleServer,
     http_port: int | None = None,
     server_args: http.ServerArgs = {},
+    screen: Screen = None,
 ) -> Window:
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
@@ -253,6 +254,7 @@ def create_window(
     :param transparent: Don't draw window background.
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
+    :param screen: Screen to display the window upon.
     :return: window object.
     """
 
@@ -293,6 +295,7 @@ def create_window(
         server=server,
         http_port=http_port,
         server_args=server_args,
+        screen=screen,
     )
 
     windows.append(window)

@@ -6,14 +6,13 @@ Get available display information using `webview.screens`
 ``` python
 import webview
 
-def display_screen_info():
+
+if __name__ == '__main__':
     screens = webview.screens
     print('Available screens are: ' + str(screens))
 
+    for i, screen in enumerate(screens):
+        webview.create_window('', html=f'placed on the monitor {i+1}', screen=screen)
 
-if __name__ == '__main__':
-    display_screen_info() # display screen info before starting app
-
-    window = webview.create_window('Simple browser', 'https://pywebview.flowrl.com/hello')
-    webview.start(display_screen_info)
+    webview.start()
 ```

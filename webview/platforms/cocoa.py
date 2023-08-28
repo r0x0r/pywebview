@@ -286,7 +286,7 @@ class BrowserView:
             window = self.window()
 
             if i.frameless and i.easy_drag:
-                screenFrame = AppKit.NSScreen.mainScreen().frame()
+                screenFrame = i.screen
                 if screenFrame is None:
                     raise RuntimeError('Failed to obtain screen')
 
@@ -376,6 +376,11 @@ class BrowserView:
         self.maximized = window.maximized
         self.localization = window.localization
 
+        if window.screen:
+            self.screen = window.screen.frame
+        else:
+            self.screen = AppKit.NSScreen.mainScreen().frame()
+
         rect = AppKit.NSMakeRect(0.0, 0.0, window.initial_width, window.initial_height)
         window_mask = (
             AppKit.NSTitledWindowMask
@@ -463,10 +468,12 @@ class BrowserView:
         if user_agent:
             self.webkit.setCustomUserAgent_(user_agent)
 
+        self.window.setFrameOrigin_(self.screen.origin)
+
         if window.initial_x is not None and window.initial_y is not None:
             self.move(window.initial_x, window.initial_y)
         else:
-            self.window.center()
+            self.center()
 
         if window.transparent:
             self.window.setOpaque_(False)
@@ -609,9 +616,16 @@ class BrowserView:
         self.window.deminiaturize_(self)
 
     def move(self, x, y):
-        screen = self.window.screen().frame()
-        flipped_y = screen.size.height - y
-        self.window.setFrameTopLeftPoint_(AppKit.NSPoint(x, flipped_y))
+        flipped_y = self.screen.size.height - y
+        self.window.setFrameTopLeftPoint_(AppKit.NSPoint(self.screen.origin.x + x, self.screen.origin.y + flipped_y))
+
+    def center(self):
+        window_frame = self.window.frame()
+
+        window_frame.origin.x = self.screen.origin.x + (self.screen.size.width - window_frame.size.width) / 2
+        window_frame.origin.y = self.screen.origin.y + (self.screen.size.height - window_frame.size.height) / 2
+
+        self.window.setFrameOrigin_(window_frame.origin)
 
     def get_cookies(self):
         def handler(cookies):
@@ -1170,12 +1184,13 @@ def evaluate_js(script, uid):
 
 def get_position(uid):
     def _position(coordinates):
-        screen_frame = AppKit.NSScreen.mainScreen().frame()
+        instance = BrowserView.instances[uid]
+        screen_frame = instance.screen
 
         if screen_frame is None:
             raise RuntimeError('Failed to obtain screen')
 
-        window = BrowserView.instances[uid].window
+        window = instance.window
         frame = window.frame()
         coordinates[0] = int(frame.origin.x)
         coordinates[1] = int(screen_frame.size.height - frame.origin.y - frame.size.height)
@@ -1214,7 +1229,7 @@ def get_size(uid):
 
 def get_screens():
     screens = [
-        Screen(s.frame().size.width, s.frame().size.height) for s in AppKit.NSScreen.screens()
+        Screen(s.frame().size.width, s.frame().size.height, s.frame()) for s in AppKit.NSScreen.screens()
     ]
     return screens
 
