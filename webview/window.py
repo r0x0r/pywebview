@@ -117,7 +117,7 @@ class Window:
         screen: Screen = None
     ) -> None:
         self.uid = uid
-        self.title = title
+        self._title = title
         self.original_url = None if html else url  # original URL provided by user
         self.real_url = None
         self.html = html
@@ -208,6 +208,16 @@ class Window:
         self.events.shown.wait(15)
         _, height = self.gui.get_size(self.uid)
         return height
+
+    @property
+    def title(self) -> str:
+        return self._title
+
+    @title.setter
+    def title(self, title: str) -> None:
+        self.events.loaded.wait(15)
+        self._title = title
+        self.gui.set_title(title, self.uid)
 
     @property
     def x(self) -> int:
