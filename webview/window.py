@@ -299,6 +299,7 @@ class Window:
         """
         Set a new title of the window
         """
+        self._title = title
         self.gui.set_title(title, self.uid)
 
     @_loaded_call
