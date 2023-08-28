@@ -68,7 +68,7 @@ window.pywebview = {
                     resolve(JSON.parse(value));
                 }
             }
-         }, 100)
+         }, 1)
     },
 
     _returnValues: {},
