@@ -12,12 +12,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          ref: master
 
       - name: Merge master into docs
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@example.com"
-          
+
           # Assuming 'master' is the default branch and 'docs' is the target branch
           git checkout docs
           git merge master --no-edit
