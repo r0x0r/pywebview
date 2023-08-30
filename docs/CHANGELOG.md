@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.3.1
+
+_Released 30/08/2023_
+
+### 🐞 Bug fixes
+
+- [Cocoa] Add missing maximized implementation
+
 ## 4.3
 
 _Released 30/08/2023_
