@@ -209,6 +209,7 @@ def create_window(
     height: int = 600,
     x: int | None = None,
     y: int | None = None,
+    screen: Screen = None,
     resizable: bool = True,
     fullscreen: bool = False,
     min_size: tuple[int, int] = (200, 100),
@@ -230,7 +231,6 @@ def create_window(
     server: type[http.ServerType] = http.BottleServer,
     http_port: int | None = None,
     server_args: http.ServerArgs = {},
-    screen: Screen = None,
 ) -> Window:
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
@@ -239,6 +239,7 @@ def create_window(
     :param url: URL to load
     :param width: window width. Default is 800px
     :param height: window height. Default is 600px
+    :param screen: Screen to display the window on.
     :param resizable: True if window can be resized, False otherwise. Default is True
     :param fullscreen: True if start in fullscreen mode. Default is False
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
@@ -247,6 +248,7 @@ def create_window(
     :param easy_drag: Easy window drag mode when window is frameless.
     :param focus: Whether to activate the window when user opens it. Window can be controlled with mouse but keyboard input will go to another (active) window and not this one.
     :param minimized: Display window minimized
+    :param maximized: Display window maximized
     :param on_top: Keep window above other windows (required OS: Windows)
     :param confirm_close: Display a window close confirmation dialog. Default is False
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
@@ -254,7 +256,6 @@ def create_window(
     :param transparent: Don't draw window background.
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
-    :param screen: Screen to display the window upon.
     :return: window object.
     """
 
