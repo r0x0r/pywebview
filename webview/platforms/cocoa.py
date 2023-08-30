@@ -532,7 +532,7 @@ class BrowserView:
             self.load_html(window.html, '')
         else:
             self.load_html(DEFAULT_HTML, '')
-        if window.fullscreen or window.maximized:
+        if window.fullscreen:
             self.toggle_fullscreen()
         self.shown.set()
 
@@ -594,20 +594,29 @@ class BrowserView:
         def _resize():
             frame = self.window.frame()
 
-            if fix_point & FixPoint.EAST:
+            if fix_point and fix_point & FixPoint.EAST:
                 # Keep the right of the window in the same place
                 frame.origin.x += frame.size.width - width
 
-            if fix_point & FixPoint.NORTH:
+            if fix_point and fix_point & FixPoint.NORTH:
                 # Keep the top of the window in the same place
                 frame.origin.y += frame.size.height - height
 
             frame.size.width = width
             frame.size.height = height
 
+            if not fix_point:
+                frame.origin.x = 0
+                frame.origin.y = 0
+
             self.window.setFrame_display_(frame, True)
 
         AppHelper.callAfter(_resize)
+
+    def maximize(self):
+        width = self.screen.size.width
+        height = self.screen.size.height
+        self.resize(width, height, None)
 
     def minimize(self):
         self.window.miniaturize_(self)
