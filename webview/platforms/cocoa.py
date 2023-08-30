@@ -605,7 +605,7 @@ class BrowserView:
             frame.size.width = width
             frame.size.height = height
 
-            if not fix_point:
+            if not fix_point: # used in maximized
                 frame.origin.x = 0
                 frame.origin.y = 0
 
