@@ -1,0 +1,25 @@
+name: Merge Master to Docs on Release
+
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: docs
+
+      - name: Merge master into docs
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@example.com"
+
+          git fetch origin master --depth 1
+          git merge master --no-edit
+          git push origin docs

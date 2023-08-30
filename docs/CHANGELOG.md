@@ -1,5 +1,40 @@
 # Changelog
 
+## 4.3.1
+
+_Released 30/08/2023_
+
+### 🐞 Bug fixes
+
+- [Cocoa] Add missing maximized implementation
+
+## 4.3
+
+_Released 30/08/2023_
+
+### ⚡ Features
+
+- [All] `webview.create_window(maximized=False)` Create a window in a maximized state. Thanks @vsajip
+- [All] `webview.create_window(screen=screen_instance)` Create a window on a specific monitor, where `screen` is a screen returned by `window.screens`. Thanks @louisnw01
+- [All] Window title can be obtained / set via `window.title`.
+
+### 🚀 Improvements
+
+- [All] Window closing event fired after closing confirmation #1178. Thanks @p4bl0-
+- [All] Improve performance of JS API calls by removing the initial delay of 100ms.
+- [GTK] Native JS Bridge. HTTP server based JS bridge is removed.
+- [GTK] Remove support for Webkit older than 2.2
+
+### 🐞 Bug fixes
+
+- [All] Easy drag memory leak #1176
+- [Winforms] Easy drag support #1125
+- [Winforms] Incorrect DPI scaling
+- [Winforms] Private mode not working if `webview.screens` is returned before `webview.start` #1193
+- [QT] Add no sandbox for arch/manjaro/nixos to avoid white screen problem #890. Thanks @myuanz
+- [GTK] Closing event handlers cancellation. Thanks @p4bl0-
+- [GTK] SEGFAULT on second `webview.start()` call #1063. Thanks @PercentBoat4164
+
 ## 4.2.2
 
 _Released 25/06/2023_
@@ -44,8 +79,7 @@ _Released 02/05/2023_
 - [All] JS API exceptions are now printed both in Python and Javascript consoles.
 - [All] Hide menu bar when there is no menu. Thanks @Joffreybvn
 
-
-### 🐞 Bug fixes
+### ⚡ Features
 
 - [All] Fix bug where http_port was not being forwarded to the actual window #1060. Thanks @robb-brown
 - [All] Switch from tempfile to os.devnull to fix PyInstaller issue. Thanks @simonrob

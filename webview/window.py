@@ -17,6 +17,7 @@ from webview.event import Event
 from webview.localization import original_localization
 from webview.util import (WebViewException, base_uri, escape_string, is_app, is_local_url,
                           parse_file_type)
+from .screen import Screen
 
 from .js import css
 
@@ -113,9 +114,10 @@ class Window:
         http_port: int | None = None,
         server: type[http.ServerType] | None = None,
         server_args: http.ServerArgs = {},
+        screen: Screen = None
     ) -> None:
         self.uid = uid
-        self.title = title
+        self._title = title
         self.original_url = None if html else url  # original URL provided by user
         self.real_url = None
         self.html = html
@@ -141,6 +143,7 @@ class Window:
         self.draggable = draggable
         self.localization_override = localization
         self.vibrancy = vibrancy
+        self.screen = screen
 
         # Server config
         self._http_port = http_port
@@ -205,6 +208,16 @@ class Window:
         self.events.shown.wait(15)
         _, height = self.gui.get_size(self.uid)
         return height
+
+    @property
+    def title(self) -> str:
+        return self._title
+
+    @title.setter
+    def title(self, title: str) -> None:
+        self.events.loaded.wait(15)
+        self._title = title
+        self.gui.set_title(title, self.uid)
 
     @property
     def x(self) -> int:
@@ -286,6 +299,7 @@ class Window:
         """
         Set a new title of the window
         """
+        self._title = title
         self.gui.set_title(title, self.uid)
 
     @_loaded_call

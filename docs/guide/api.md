@@ -5,9 +5,9 @@
 
 ``` python
 webview.create_window(title, url=None, html=None, js_api=None, width=800, height=600,
-                      x=None, y=None, resizable=True, fullscreen=False, min_size=(200, 100),
+                      x=None, y=None, screen=None, resizable=True, fullscreen=False, min_size=(200, 100),
                       hidden=False, frameless=False, easy_drag=True, focus=True,
-                      minimized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
+                      minimized=False, maximized=False, on_top=False, confirm_close=False, background_color='#FFFFFF',
                       transparent=False, text_select=False, zoomable=False, draggable=False,
                       server=http.BottleServer, server_args={}, localization=None)
 ```
@@ -22,6 +22,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `height` - Window height. Default is 600px.
 * `x` - Window x coordinate. Default is centered.
 * `y` - Window y coordinate. Default is centered.
+* `screen` - Screen to display window on. `screen` is a screen instance returned by `webview.screens`.
 * `resizable` - Whether window can be resized. Default is True
 * `fullscreen` - Start in fullscreen mode. Default is False
 * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
@@ -29,7 +30,8 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `frameless` - Create a frameless window. Default is False.
 * `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/guide/api.html#drag-area) for details.
 * `focus` - Create a non-focusable window if False. Default is True.
-* `minimized` - Start in minimized mode
+* `minimized` - Display window minimized
+* `maximized` - Display window maximized
 * `on_top` - Set window to be always on top of other windows. Default is False.
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
@@ -135,6 +137,13 @@ Get display width.
 # Window object
 
 Represents a window that hosts webview. `window` object is returned by `create_window` function.
+
+## window.title
+``` python
+window.title
+```
+
+Get or set title of the window
 
 ## window.on_top
 
