@@ -182,9 +182,10 @@ def parse_api_js(window: Window, platform: str, uid: str = '') -> str:
             'drag_selector': webview.DRAG_REGION_SELECTOR,
             'zoomable': str(window.zoomable).lower(),
             'draggable': str(window.draggable).lower(),
-            'easy_drag': str(platform == 'chromium' and window.easy_drag).lower(),
+            'easy_drag': str(platform == 'chromium' and window.easy_drag and window.frameless).lower(),
         }
     )
+    
     return js_code
 
 
