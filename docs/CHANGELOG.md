@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.3.2
+
+_Released 01/09/2023_
+
+### 🐞 Bug fixes
+
+- [Winforms] Fix `easy_drag` from being always enabled.
+
 ## 4.3.1
 
 _Released 30/08/2023_
