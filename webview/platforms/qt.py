@@ -63,7 +63,7 @@ _main_window_created.clear()
 # suppress invalid style override error message on some Linux distros
 os.environ['QT_STYLE_OVERRIDE'] = ''
 _qt6 = True if PYQT6 or PYSIDE6 else False
-_profile_settings['storage_path'] = _settings['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
+_profile_storage_path = _settings['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
 
 
 class BrowserView(QMainWindow):
@@ -339,7 +339,7 @@ class BrowserView(QMainWindow):
                 self.profile = QWebEngineProfile()
             else:
                 self.profile = QWebEngineProfile('pywebview')
-                self.profile.setPersistentStoragePath(_profile_settings['storage_path'])
+                self.profile.setPersistentStoragePath(_profile_storage_path)
                 self.cookies = {}
                 cookie_store = self.profile.cookieStore()
                 cookie_store.cookieAdded.connect(self.on_cookie_added)
@@ -347,7 +347,7 @@ class BrowserView(QMainWindow):
 
                 self.view.setPage(BrowserView.WebPage(self.view, profile=self.profile))
         elif not is_webengine and not _settings['private_mode']:
-            logger.warning('qtwebkit does not support _settings['private_mode']=False')
+            logger.warning('qtwebkit does not support private_mode')
 
         self.view.page().loadFinished.connect(self.on_load_finished)
         self.setCentralWidget(self.view)
