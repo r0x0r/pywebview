@@ -21,10 +21,10 @@ from uuid import uuid4
 
 import webview
 
-from .js import api, dom, mouse, event, npo
+from webview.js import api, dom, mouse, event, npo
 
 if TYPE_CHECKING:
-    from .window import Window
+    from webview.window import Window
 
 _TOKEN = uuid4().hex
 
@@ -185,7 +185,7 @@ def parse_api_js(window: Window, platform: str, uid: str = '') -> str:
             'easy_drag': str(platform == 'chromium' and window.easy_drag and window.frameless).lower(),
         }
     )
-    
+
     return js_code
 
 
@@ -315,7 +315,7 @@ def interop_dll_path(dll_name: str) -> str:
 def environ_append(key: str, *values: str, sep=' ') -> None:
     '''Append values to an environment variable, separated by sep'''
     values = list(values)
-    
+
     existing = os.environ.get(key, '')
     if existing:
         values = [existing] + values

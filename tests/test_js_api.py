@@ -8,7 +8,7 @@ from .util import assert_js, run_test
 def test_js_bridge():
     api = Api()
     window = webview.create_window('JSBridge test', js_api=api)
-    run_test(webview, window, js_bridge)
+    run_test(webview, window, js_bridge, start_args={'debug': True})
 
 
 def test_exception():
@@ -37,11 +37,17 @@ class Api:
     def get_string(self):
         return 'test'
 
+    def get_boolean(self):
+        return True
+
     def get_object(self):
         return {'key1': 'value', 'key2': 420}
 
     def get_objectlike_string(self):
         return '{"key1": "value", "key2": 420}'
+
+    def get_array(self):
+        return [1, 2, 3]
 
     def get_single_quote(self):
         return "te'st"
@@ -63,9 +69,11 @@ def js_bridge(window):
     window.load_html('<html><body>TEST</body></html>')
     assert_js(window, 'get_int', 420)
     assert_js(window, 'get_float', 3.141)
+    assert_js(window, 'get_boolean', True)
     assert_js(window, 'get_string', 'test')
     assert_js(window, 'get_object', {'key1': 'value', 'key2': 420})
     assert_js(window, 'get_objectlike_string', '{"key1": "value", "key2": 420}')
+    assert_js(window, 'get_array', [1, 2, 3])
     assert_js(window, 'get_single_quote', "te'st")
     assert_js(window, 'get_double_quote', 'te"st')
     assert_js(window, 'echo', 'test', 'test')
