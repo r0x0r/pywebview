@@ -170,9 +170,8 @@ class BrowserView:
             ok = i.localization['global.ok']
             cancel = i.localization['global.cancel']
 
-            # TODO returning confirmation result does not work currently
             result = BrowserView.display_confirmation_dialog(ok, cancel, message)
-            handler(Foundation.YES)
+            handler(result)
 
         # Display an open panel for <input type="file"> element
         def webView_runOpenPanelWithParameters_initiatedByFrame_completionHandler_(
