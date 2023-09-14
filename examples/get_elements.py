@@ -6,9 +6,9 @@ import webview
 def get_elements(window):
     heading = window.get_elements('#heading')
     content = window.get_elements('.content')
-    print('Heading:\n %s ' % heading[0]['outerHTML'])
-    print('Content 1:\n %s ' % content[0]['outerHTML'])
-    print('Content 2:\n %s ' % content[1]['outerHTML'])
+    print('Heading:\n %s ' % heading[0].node['outerHTML'])
+    print('Content 1:\n %s ' % content[0].node['outerHTML'])
+    print('Content 2:\n %s ' % content[1].node['outerHTML'])
 
 
 if __name__ == '__main__':

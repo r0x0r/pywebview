@@ -36,7 +36,7 @@ def single_test(window):
     try:
         elements = window.get_elements('#heading')
         assert len(elements) == 1
-        assert elements[0]['innerHTML'] == 'Heading'
+        assert elements[0].node['innerHTML'] == 'Heading'
     except NotImplementedError:
         pass
 
@@ -45,8 +45,8 @@ def multiple_test(window):
     try:
         elements = window.get_elements('.content')
         assert len(elements) == 2
-        assert elements[0]['innerHTML'] == 'Content 1'
-        assert elements[1]['innerHTML'] == 'Content 2'
+        assert elements[0].node['innerHTML'] == 'Content 1'
+        assert elements[1].node['innerHTML'] == 'Content 2'
     except NotImplementedError:
         pass
 

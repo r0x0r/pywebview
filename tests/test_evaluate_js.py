@@ -7,7 +7,7 @@ from .util import run_test
 
 @pytest.fixture
 def window():
-    return webview.create_window('Evaluate JS test')
+    return webview.create_window('Evaluate JS test', html='<html><body><div id="node">TEST</div></body></html>')
 
 
 def test_mixed(window):
@@ -44,6 +44,19 @@ def test_null(window):
 
 def test_nan(window):
     run_test(webview, window, nan_test)
+
+
+def test_body(window):
+    run_test(webview, window, body_test)
+
+
+def test_document(window):
+    run_test(webview, window, document_test)
+
+
+def test_node(window):
+    run_test(webview, window, node_test)
+
 
 
 def mixed_test(window):
@@ -161,3 +174,22 @@ def nan_test(window):
     """
     )
     assert result is None
+
+
+def body_test(window):
+    result = window.evaluate_js('document.body')
+
+    assert result['nodeName'] == 'BODY'
+
+
+def document_test(window):
+    result = window.evaluate_js('document')
+
+    assert result['nodeName'] == '#document'
+
+
+def node_test(window):
+    node = window.evaluate_js('document.querySelector("#node")')
+
+    assert node['id'] == 'node'
+    assert node['innerText'] == 'TEST'

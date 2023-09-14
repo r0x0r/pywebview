@@ -7,7 +7,7 @@ src = """
     function onMouseMove(ev) {
         var x = ev.screenX - initialX;
         var y = ev.screenY - initialY;
-        window.pywebview._bridge.call('moveWindow', [x, y], 'move');
+        window.pywebview._bridge.call('pywebviewMoveWindow', [x, y], 'move');
     }
 
     function onMouseUp() {

@@ -10,16 +10,18 @@ from typing import TYPE_CHECKING, Any, Callable, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
 
-from typing_extensions import Concatenate, ParamSpec, TypeAlias
+from typing_extensions import Any, Concatenate, ParamSpec, TypeAlias
+from webview.dom import DOM
 
 import webview.http as http
 from webview.event import Event
 from webview.localization import original_localization
 from webview.util import (WebViewException, base_uri, escape_string, is_app, is_local_url,
                           parse_file_type)
-from .screen import Screen
+from webview.element import Element
+from webview.screen import Screen
 
-from .js import css
+from webview.js import css
 
 if TYPE_CHECKING:
     from typing import type_check_only
@@ -145,6 +147,8 @@ class Window:
         self.vibrancy = vibrancy
         self.screen = screen
 
+        self.dom = DOM(self)
+
         # Server config
         self._http_port = http_port
         self._server = server
@@ -249,19 +253,35 @@ class Window:
             var serializedElements = [];
 
             for (var i = 0; i < elements.length; i++) {
+                var pywebviewId = elements[i].getAttribute('data-pywebview-id') || Math.random().toString(36).substr(2, 11);
+                if (!elements[i].hasAttribute('data-pywebview-id')) {
+                    elements[i].setAttribute('data-pywebview-id', pywebviewId);
+                }
                 var node = pywebview.domJSON.toJSON(elements[i], {
                     metadata: false,
                     serialProperties: true
                 });
+                node._pywebviewId = pywebviewId;
                 serializedElements.push(node);
             }
 
             serializedElements;
-        """
-            % selector
+        """ % (selector,)
         )
 
-        return self.evaluate_js(code)
+        dom_elements = self.evaluate_js(code)
+        elements = []
+
+        for e in dom_elements:
+            node_id = e['_pywebviewId']
+            print(f'{selector} - {node_id}')
+
+            if node_id not in self.dom._elements:
+                element = Element(self, e)
+                self.dom._elements[node_id] = element
+                elements.append(element)
+
+        return elements
 
     @_shown_call
     def load_url(self, url: str) -> None:
@@ -406,18 +426,18 @@ class Window:
         self._callbacks[unique_id] = callback
 
         if self.gui.renderer == 'cef':
-            sync_eval = 'window.external.return_result(JSON.stringify(value), "{0}");'.format(
+            sync_eval = 'window.external.return_result(pywebview._stringify(value), "{0}");'.format(
                 unique_id,
             )
         else:
-            sync_eval = 'JSON.stringify(value);'
+            sync_eval = 'pywebview._stringify(value);'
 
         if callback:
             escaped_script = """
                 var value = eval("{0}");
                 if (pywebview._isPromise(value)) {{
                     value.then(function evaluate_async(result) {{
-                        pywebview._asyncCallback(JSON.stringify(result), "{1}")
+                        pywebview._asyncCallback(pywebview._stringify(result), "{1}")
                     }});
                     "true";
                 }} else {{ {2} }}

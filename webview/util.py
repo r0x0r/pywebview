@@ -203,11 +203,23 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
 
         window.evaluate_js(code)
 
-    if func_name == 'moveWindow':
+    if func_name == 'pywebviewMoveWindow':
         window.move(*param)
         return
 
-    if func_name == 'asyncCallback':
+    if func_name == 'pywebviewEventHandler':
+        event = param['event']
+        node_id = param['nodeId']
+        element = window.dom._elements.get(node_id)
+
+        if element:
+            for handler in element._event_handlers.get(event['type'], []):
+                thread = Thread(target=handler, args=(event,))
+                thread.start()
+
+        return
+
+    if func_name == 'pywebviewAsyncCallback':
         value = json.loads(param) if param is not None else None
 
         if callable(window._callbacks[value_id]):
