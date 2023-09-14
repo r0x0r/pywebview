@@ -28,19 +28,19 @@ window.pywebview = {
                 case 'mshtml':
                 case 'cef':
                 case 'qtwebkit':
-                    return window.external.call(funcName, pywebview._stringify(params), id);
+                    return window.external.call(funcName, JSON.stringify(params), id);
                 case 'chromium':
                     return window.chrome.webview.postMessage([funcName, params, id]);
                 case 'cocoa':
                 case 'gtk':
-                    return window.webkit.messageHandlers.jsBridge.postMessage(pywebview._stringify({funcName, params, id}));
+                    return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params, id]));
                 case 'qtwebengine':
                     if (!window.pywebview._QWebChannel) {
                         setTimeout(function() {
-                            window.pywebview._QWebChannel.objects.external.call(funcName, pywebview._stringify(params), id);
+                            window.pywebview._QWebChannel.objects.external.call(funcName, JSON.stringify(params), id);
                         }, 100)
                     } else {
-                        window.pywebview._QWebChannel.objects.external.call(funcName, pywebview._stringify(params), id);
+                        window.pywebview._QWebChannel.objects.external.call(funcName, JSON.stringify(params), id);
                     }
                     break;
             }
@@ -77,41 +77,6 @@ window.pywebview = {
     },
     _isPromise: function (obj) {
         return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
-    },
-
-    _stringify: function(obj, depth=0, visited=new WeakSet()) {
-        try {
-            if (obj instanceof Node) return pywebview.domJSON.toJSON(obj, { metadata: false });
-            if (obj instanceof Window) return 'Window';
-            if (typeof obj === 'function') return 'function';
-            if (typeof obj === 'boolean' || typeof obj === 'number' || typeof obj === 'string') return obj;
-
-            if (visited.has(obj)) {
-                return '[Circular Reference]';
-            }
-
-            if (typeof obj === 'object' && obj !== null) {
-                visited.add(obj);
-
-                if (Array.isArray(obj)) {
-                    const arr = obj.map(value => pywebview._stringify(value, depth + 1, visited));
-                    visited.delete(obj);
-                    return depth ? arr : JSON.stringify(arr);
-                }
-
-                const newObj = {};
-                for (const key in obj) {
-                    newObj[key] = pywebview._stringify(obj[key], depth + 1, visited);
-                }
-                visited.delete(obj);
-                return depth ? newObj : JSON.stringify(newObj);
-            }
-
-            return JSON.stringify(obj);
-        } catch (e) {
-            console.error(e)
-            return e.toString();
-        }
     }
 }
 window.pywebview._createApi(%(func_list)s);
