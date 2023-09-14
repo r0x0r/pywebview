@@ -30,7 +30,7 @@ window.pywebview = {
                 case 'qtwebkit':
                     return window.external.call(funcName, pywebview._stringify(params), id);
                 case 'chromium':
-                    return window.chrome.webview.postMessage([funcName, params, id]);
+                    return window.chrome.webview.postMessage([funcName, pywebview._stringify(params), id]);
                 case 'cocoa':
                 case 'gtk':
                     return window.webkit.messageHandlers.jsBridge.postMessage(pywebview._stringify({funcName, params, id}));
@@ -70,48 +70,51 @@ window.pywebview = {
             }
          }, 1)
     },
-
+    _eventHandlers: {},
     _returnValues: {},
     _asyncCallback: function(result, id) {
-        window.pywebview._bridge.call('asyncCallback', result, id)
+        window.pywebview._bridge.call('pywebviewAsyncCallback', result, id)
     },
     _isPromise: function (obj) {
         return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
     },
 
-    _stringify: function(obj, depth=0, visited=new WeakSet()) {
-        try {
-            if (obj instanceof Node) return pywebview.domJSON.toJSON(obj, { metadata: false });
-            if (obj instanceof Window) return 'Window';
-            if (typeof obj === 'function') return 'function';
-            if (typeof obj === 'boolean' || typeof obj === 'number' || typeof obj === 'string') return obj;
+    _stringify: function stringify(obj) {
+        function serialize(obj, depth=0, visited=new WeakSet()) {
+            try {
+                if (obj instanceof Node) return pywebview.domJSON.toJSON(obj, { metadata: false, serialProperties: true });
+                if (obj instanceof Window) return 'Window';
+                if (typeof obj === 'function') return 'function';
 
-            if (visited.has(obj)) {
-                return '[Circular Reference]';
-            }
+                if (visited.has(obj)) {
+                    return '[Circular Reference]';
+                }
 
-            if (typeof obj === 'object' && obj !== null) {
-                visited.add(obj);
+                if (typeof obj === 'object' && obj !== null) {
+                    visited.add(obj);
 
-                if (Array.isArray(obj)) {
-                    const arr = obj.map(value => pywebview._stringify(value, depth + 1, visited));
+                    if (Array.isArray(obj)) {
+                        const arr = obj.map(value => serialize(value, depth + 1, visited));
+                        visited.delete(obj);
+                        return arr;
+                    }
+
+                    const newObj = {};
+                    for (const key in obj) {
+                        newObj[key] = serialize(obj[key], depth + 1, visited);
+                    }
                     visited.delete(obj);
-                    return depth ? arr : JSON.stringify(arr);
+                    return newObj;
                 }
 
-                const newObj = {};
-                for (const key in obj) {
-                    newObj[key] = pywebview._stringify(obj[key], depth + 1, visited);
-                }
-                visited.delete(obj);
-                return depth ? newObj : JSON.stringify(newObj);
+                return obj;
+            } catch (e) {
+                console.error(e)
+                return e.toString();
             }
-
-            return JSON.stringify(obj);
-        } catch (e) {
-            console.error(e)
-            return e.toString();
         }
+
+        return JSON.stringify(serialize(obj));
     }
 }
 window.pywebview._createApi(%(func_list)s);
