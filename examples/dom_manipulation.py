@@ -12,34 +12,48 @@ def random_color():
 
     return f'rgb({red}, {green}, {blue})'
 
-def create_rectangle(window, container):
-    color = random_color()
-    rectangle = window.dom.create_element(f'<div class="rectangle" style="background-color: {color};"></div>', container)
-    rectangles.append(rectangle)
-
-
-def remove_rectangle(_):
-    if len(rectangles) > 0:
-        rectangles.pop().remove()
-
-
-def change_color(rectangle):
-    rectangle.style = { 'background-color': random_color() }
-
-
 def bind(window):
-    container = window.dom.get_element('.container')
-    rectangle = window.dom.get_element('#rectangle')
+    def create_rectangle(_):
+        color = random_color()
+        rectangle = window.dom.create_element(f'<div class="rectangle" style="background-color: {color};"></div>', container)
+        rectangles.append(rectangle)
+
+        disabled = None if len(rectangles) > 0 else True
+        remove_button.attributes = { 'disabled': disabled }
+        empty_button.attributes = { 'disabled': disabled }
+
+    def remove_rectangle(_):
+        if len(rectangles) > 0:
+            rectangles.pop().remove()
+
+        disabled = None if len(rectangles) > 0 else True
+        remove_button.attributes = { 'disabled': disabled }
+        empty_button.attributes = { 'disabled': disabled }
+
+    def empty_container(_):
+        container.empty()
+        rectangles.clear()
+
+        remove_button.attributes = { 'disabled': True }
+        empty_button.attributes = { 'disabled': True }
+
+    def change_color(_):
+        circle.style = { 'background-color': random_color() }
+
+    container = window.dom.get_element('#rectangles')
+    circle = window.dom.get_element('#circle')
 
     toggle_button = window.dom.get_element('#toggle-button')
     remove_button = window.dom.get_element('#remove-button')
+    empty_button = window.dom.get_element('#empty-button')
     add_button = window.dom.get_element('#add-button')
     color_button = window.dom.get_element('#color-button')
 
-    toggle_button.events.click += lambda e: rectangle.toggle()
+    toggle_button.events.click += lambda e: circle.toggle()
     remove_button.events.click += remove_rectangle
-    add_button.events.click += lambda e: create_rectangle(window, container)
-    color_button.events.click += lambda e: change_color(rectangle)
+    empty_button.events.click += empty_container
+    add_button.events.click += create_rectangle
+    color_button.events.click += change_color
 
 
 
@@ -65,6 +79,10 @@ if __name__ == '__main__':
                         margin: 0.5rem;
                     }
 
+                    .circle {
+                        border-radius: 50px;
+                    }
+
                     .container {
                         display: flex;
                         flex-wrap: wrap;
@@ -72,14 +90,14 @@ if __name__ == '__main__':
                 </style>
                 </head>
                 <body>
-                    <button id="toggle-button">Toggle rectangle</button>
+                    <button id="toggle-button">Toggle circle</button>
                     <button id="color-button">Change color</button>
-                    <button id="remove-button">Remove rectangle</button>
                     <button id="add-button">Add rectangle</button>
-                    <div class="container">
-                        <div id="rectangle" class="rectangle" style="background-color: red;">
-
-                        </div>
+                    <button id="remove-button" disabled>Remove rectangle</button>
+                    <button id="empty-button" disabled>Remove all</button>
+                    <div>
+                        <div id="circle" class="rectangle circle" style="background-color: red;"></div>
+                        <div id="rectangles" class="container"></div>
                     </div>
                 </body>
             </html>
