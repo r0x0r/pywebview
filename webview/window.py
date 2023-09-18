@@ -6,25 +6,23 @@ import os
 from collections.abc import Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
 
 from typing_extensions import Any, Concatenate, ParamSpec, TypeAlias
-from webview.dom import DOM
 
 import webview.http as http
-from webview.event import Event
+from webview.event import Event, EventContainer
 from webview.localization import original_localization
 from webview.util import (WebViewException, base_uri, escape_string, is_app, is_local_url,
                           parse_file_type)
-from webview.element import Element
+from webview.dom.dom import DOM
+from webview.dom.element import Element
 from webview.screen import Screen
 
 from webview.js import css
 
-if TYPE_CHECKING:
-    from typing import type_check_only
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -69,18 +67,6 @@ class FixPoint(Flag):
     WEST = auto()
     EAST = auto()
     SOUTH = auto()
-
-
-class EventContainer:
-    if TYPE_CHECKING:
-
-        @type_check_only
-        def __getattr__(self, __name: str) -> Event:
-            ...
-
-        @type_check_only
-        def __setattr__(self, __name: str, __value: Event) -> None:
-            ...
 
 
 class Window:
@@ -147,8 +133,6 @@ class Window:
         self.vibrancy = vibrancy
         self.screen = screen
 
-        self.dom = DOM(self)
-
         # Server config
         self._http_port = http_port
         self._server = server
@@ -200,6 +184,8 @@ class Window:
             http.global_server.js_api_endpoint if not http.global_server is None else None
         )
         self.real_url = self._resolve_url(self.original_url)
+        self.dom = DOM(self)
+
 
     @property
     def width(self) -> int:
@@ -246,42 +232,11 @@ class Window:
             self.gui.set_on_top(self.uid, on_top)
 
     @_loaded_call
-    def get_elements(self, selector: str) -> Any:
-        code = (
-            """
-            var elements = document.querySelectorAll('%s');
-            var serializedElements = [];
-
-            for (var i = 0; i < elements.length; i++) {
-                var pywebviewId = elements[i].getAttribute('data-pywebview-id') || Math.random().toString(36).substr(2, 11);
-                if (!elements[i].hasAttribute('data-pywebview-id')) {
-                    elements[i].setAttribute('data-pywebview-id', pywebviewId);
-                }
-                var node = pywebview.domJSON.toJSON(elements[i], {
-                    metadata: false,
-                    serialProperties: true
-                });
-                node._pywebviewId = pywebviewId;
-                serializedElements.push(node);
-            }
-
-            serializedElements;
-        """ % (selector,)
+    def get_elements(self, selector: str) -> list[Element]:
+        logger.warning(
+            'This function is deprecated and will be removed in future releases. Use window.dom.get_elements() instead'
         )
-
-        dom_elements = self.evaluate_js(code)
-        elements = []
-
-        for e in dom_elements:
-            node_id = e['_pywebviewId']
-            print(f'{selector} - {node_id}')
-
-            if node_id not in self.dom._elements:
-                element = Element(self, e)
-                self.dom._elements[node_id] = element
-                elements.append(element)
-
-        return elements
+        return self.dom.get_elements(selector)
 
     @_shown_call
     def load_url(self, url: str) -> None:

@@ -15,7 +15,7 @@ from cefpython3 import cefpython as cef
 from webview import _settings
 from webview.js import dom
 from webview.js.css import disable_text_select
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_js
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
 
 sys.excepthook = cef.ExceptHook
 instances = {}
@@ -122,7 +122,7 @@ class Browser:
         self.cookie_visitor = CookieVisitor()
 
         self.browser.GetJavascriptBindings().Rebind()
-        self.browser.ExecuteJavascript(parse_api_js(self.window, 'cef'))
+        self.browser.ExecuteJavascript(inject_pywebview(self.window, 'cef'))
 
         if not self.text_select:
             self.browser.ExecuteJavascript(disable_text_select)

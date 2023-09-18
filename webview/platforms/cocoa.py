@@ -17,7 +17,7 @@ from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_f
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_js
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
 from webview.window import FixPoint
 
 settings = {}
@@ -232,7 +232,7 @@ class BrowserView:
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                script = parse_api_js(i.js_bridge.window, 'cocoa')
+                script = inject_pywebview(i.js_bridge.window, 'cocoa')
                 i.webkit.evaluateJavaScript_completionHandler_(script, lambda a, b: None)
 
                 if not i.text_select:

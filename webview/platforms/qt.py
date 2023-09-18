@@ -14,7 +14,7 @@ from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_js, environ_append
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, environ_append
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
@@ -724,7 +724,7 @@ class BrowserView(QMainWindow):
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
         code = 'qtwebengine' if is_webengine else 'qtwebkit'
-        script = parse_api_js(self.js_bridge.window, code)
+        script = inject_pywebview(self.js_bridge.window, code)
 
         if is_webengine:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')

@@ -12,7 +12,7 @@ from webview import _settings
 from webview.js import alert
 from webview.js.css import disable_text_select
 from webview.util import (DEFAULT_HTML, inject_base_uri, interop_dll_path, js_bridge_call,
-                          parse_api_js)
+                          inject_pywebview)
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
@@ -225,7 +225,7 @@ class MSHTML:
 
         self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)
 
-        document.InvokeScript('eval', (parse_api_js(self.pywebview_window, 'mshtml'),))
+        document.InvokeScript('eval', (inject_pywebview(self.pywebview_window, 'mshtml'),))
 
         if not self.pywebview_window.text_select:
             document.InvokeScript('eval', (disable_text_select,))

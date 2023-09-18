@@ -134,7 +134,7 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def parse_api_js(window: Window, platform: str, uid: str = '') -> str:
+def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
     def get_args(func: object):
         params = list(inspect.getfullargspec(func).args)
         return params
@@ -253,6 +253,10 @@ def escape_string(string: str) -> str:
     )
 
 
+def escape_quotes(string: str) -> str:
+    return string.replace('"', r"\"").replace("'", r"\'")
+
+
 def escape_line_breaks(string: str) -> str:
     return string.replace('\\n', '\\\\n').replace('\\r', '\\\\r')
 
@@ -333,3 +337,9 @@ def environ_append(key: str, *values: str, sep=' ') -> None:
         values = [existing] + values
 
     os.environ[key] = sep.join(values)
+
+
+def css_to_camel(css_case_string):
+    words = css_case_string.split('-')
+    camel_case_string = words[0] + ''.join(word.capitalize() for word in words[1:])
+    return camel_case_string

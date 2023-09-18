@@ -115,7 +115,35 @@ window.pywebview = {
         }
 
         return JSON.stringify(serialize(obj));
-    }
+    },
+
+    _getNodeId: function (element) {
+        if (!element) {
+            return null;
+        }
+        var pywebviewId = element.getAttribute('data-pywebview-id') || Math.random().toString(36).substr(2, 11);
+        if (!element.hasAttribute('data-pywebview-id')) {
+            element.setAttribute('data-pywebview-id', pywebviewId);
+        }
+        return pywebviewId;
+    },
+
+    _processElements: function (elements) {
+        var serializedElements = [];
+
+        for (var i = 0; i < elements.length; i++) {
+            var pywebviewId = window.pywebview._getNodeId(elements[i]);
+            var node = pywebview.domJSON.toJSON(elements[i], {
+                metadata: false,
+                serialProperties: true,
+                deep: false
+            });
+            node._pywebviewId = pywebviewId;
+            serializedElements.push(node);
+        }
+
+        return serializedElements;
+    },
 }
 window.pywebview._createApi(%(func_list)s);
 

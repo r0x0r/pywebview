@@ -11,10 +11,10 @@ def input_handler(e):
     print(e['target']['value'])
 
 
-def remove_handlers(document, button, input):
-    document.off('scroll', scroll_handler)
-    button.off('click', click_handler)
-    input.off('input', input_handler)
+def remove_handlers(scroll_event, click_event, input_event):
+    scroll_event -= scroll_handler
+    click_event -= click_handler
+    input_event -= input_handler
 
 
 def scroll_handler(window):
@@ -23,16 +23,16 @@ def scroll_handler(window):
 
 
 def bind(window):
-    window.dom.document.on('scroll', lambda e: scroll_handler(window))
+    window.dom.document.events.scroll += lambda e: scroll_handler(window)
 
-    button = window.get_elements('#button')[0]
-    button.on('click', click_handler)
+    button = window.dom.get_element('#button')
+    button.events.click += click_handler
 
-    input = window.get_elements('#input')[0]
-    input.on('input', input_handler)
+    input = window.dom.get_element('#input')
+    input.events.input += input_handler
 
-    remove_events = window.get_elements('#remove')[0]
-    remove_events.on('click', lambda e: remove_handlers(window.dom.document, button, input))
+    remove_events = window.dom.get_element('#remove')
+    remove_events.on('click', lambda e: remove_handlers(window.dom.document.events.scroll, button.events.click, input.events.input))
 
 
 if __name__ == '__main__':

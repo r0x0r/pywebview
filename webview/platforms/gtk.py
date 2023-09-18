@@ -11,7 +11,7 @@ from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings,
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, parse_api_js
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
@@ -502,7 +502,7 @@ class BrowserView:
     def _set_js_api(self):
         def create_bridge():
             self.webview.run_javascript(
-                parse_api_js(self.js_bridge.window, 'gtk', uid=self.pywebview_window.uid)
+                inject_pywebview(self.js_bridge.window, 'gtk', uid=self.pywebview_window.uid)
             )
             self.loaded.set()
 

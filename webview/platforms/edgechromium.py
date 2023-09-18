@@ -8,7 +8,7 @@ import clr
 
 from webview import _settings
 from webview.js.css import disable_text_select
-from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, parse_api_js
+from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
@@ -204,7 +204,7 @@ class EdgeChrome:
         url = str(sender.Source)
         self.url = None if self.ishtml else url
 
-        self.web_view.ExecuteScriptAsync(parse_api_js(self.pywebview_window, 'chromium'))
+        self.web_view.ExecuteScriptAsync(inject_pywebview(self.pywebview_window, 'chromium'))
 
         if not self.pywebview_window.text_select:
             self.web_view.ExecuteScriptAsync(disable_text_select)
