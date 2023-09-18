@@ -1,8 +1,10 @@
+import json
 import logging
+
 from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
-from webview.util import css_to_camel
+from webview.util import css_to_camel, escape_quotes
 
 
 from webview.event import EventContainer
@@ -94,6 +96,9 @@ class Element:
             var attributes = {self._query_string}.attributes;
             var result = {{}};
             for (var i = 0; i < attributes.length; i++) {{
+                if ([attributes[i].name === 'data-pywebview-id') {{
+                    continue;
+                }}
                 result[attributes[i].name] = attributes[i].value;
             }}
             result
@@ -103,8 +108,24 @@ class Element:
     @_check_exists
     @_ignore_window_document
     def attributes(self, attributes: Dict[str, Any]) -> None:
-        for name, value in attributes.items():
-            self.__window.evaluate_js(f"{self._query_string}.setAttribute('{name}', '{value}')")
+        converted_attributes = json.dumps({
+            escape_quotes(key): escape_quotes(value) for key, value in attributes.items()
+        })
+
+        self.__window.evaluate_js(f"""
+            var attributes = JSON.parse('{converted_attributes}');
+            var element = {self._query_string};
+
+            for (var key in attributes) {{
+                if (key === 'data-pywebview-id') {{
+                    continue;
+                }} else if (attributes[key] === null || attributes[key] === undefined) {{
+                    element.removeAttribute(key);
+                }} else {{
+                    element.setAttribute(key, attributes[key]);
+                }}
+            }};
+        """)
 
     @property
     @_check_exists
@@ -131,10 +152,10 @@ class Element:
     @_check_exists
     @_ignore_window_document
     def style(self, style: Dict[str, Any]) -> None:
-        converted_style = {css_to_camel(key): value for key, value in style.items()}
+        converted_style = json.dumps({css_to_camel(key): value for key, value in style.items()})
         self.__window.evaluate_js(f"""
             var element = {self._query_string};
-            var styles = {converted_style};
+            var styles = JSON.parse('{converted_style}');
 
             for (var key in styles) {{
                 element.style[key] = styles[key];

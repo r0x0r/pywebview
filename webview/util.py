@@ -254,7 +254,10 @@ def escape_string(string: str) -> str:
 
 
 def escape_quotes(string: str) -> str:
-    return string.replace('"', r"\"").replace("'", r"\'")
+    if isinstance(string, str):
+        return string.replace('"', r"\"").replace("'", r"\'")
+    else:
+        return string
 
 
 def escape_line_breaks(string: str) -> str:

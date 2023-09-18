@@ -35,11 +35,9 @@ class DOM:
             pywebview._getNodeId(element);
         """)
 
-        element = Element(self.__window, node_id)
+        return Element(self.__window, node_id)
 
-        return element
-
-    def get_element(self, selector: str) -> Optional[str]:
+    def get_element(self, selector: str) -> Optional[Element]:
         node_id = self.__window.evaluate_js(f"""
             var element = document.querySelector('{selector}');
             pywebview._getNodeId(element);
