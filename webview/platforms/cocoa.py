@@ -5,7 +5,7 @@ import json
 import logging
 import webbrowser
 from collections.abc import Callable
-from threading import Semaphore, Thread
+from threading import Semaphore, Thread, main_thread
 
 import AppKit
 import Foundation
@@ -19,6 +19,8 @@ from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
 from webview.window import FixPoint
+
+
 
 settings = {}
 
@@ -1007,6 +1009,7 @@ def create_window(window):
         browser.first_show()
 
     if window.uid == 'master':
+        main_thread().pydev_do_not_trace = True # vs code debugger hang fix
         create()
     else:
         AppHelper.callAfter(create)
