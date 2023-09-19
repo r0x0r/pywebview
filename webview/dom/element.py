@@ -62,11 +62,6 @@ class Element:
 
     @property
     @_check_exists
-    def node(self) -> Dict[str, Any]:
-        return self.__window.evaluate_js(f"pywebview._processElements([{self._query_string}])[0]")
-
-    @property
-    @_check_exists
     @_ignore_window_document
     def id(self) -> Optional[str]:
         return self.__window.evaluate_js(f"{self._query_string}.id")
@@ -126,6 +121,10 @@ class Element:
                 }}
             }};
         """)
+
+    @_check_exists
+    def node(self) -> Dict[str, Any]:
+        return self.__window.evaluate_js(f"pywebview._processElements([{self._query_string}])[0]")
 
     @property
     @_check_exists

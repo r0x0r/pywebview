@@ -151,6 +151,7 @@ class EdgeChrome:
         try:
             return_value = args.get_WebMessageAsJson()
             func_name, func_param, value_id = json.loads(return_value)
+            func_param = json.loads(func_param)
             if func_name == 'alert':
                 WinForms.MessageBox.Show(func_param)
             elif func_name == 'console':
