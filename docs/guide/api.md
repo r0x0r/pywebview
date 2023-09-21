@@ -306,6 +306,8 @@ window.load_url(url)
 ```
 
 Load a new URL.
+if url is a local path file, abspath recommended. 
+Otherwise, relative path would load fail after freezing the app
 
 [Example](/examples/change_url.html)
 
