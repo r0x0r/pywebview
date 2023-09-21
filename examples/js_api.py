@@ -157,4 +157,4 @@ class Api:
 if __name__ == '__main__':
     api = Api()
     window = webview.create_window('API example', html=html, js_api=api)
-    webview.start()
+    webview.start(debug=True)

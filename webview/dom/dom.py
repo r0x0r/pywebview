@@ -25,19 +25,21 @@ class DOM:
         return Element(self.__window, 'window')
 
     def create_element(self, html: str, parent: Optional[Element]=None) -> Element:
-        parent_selector = parent._query_string if parent else 'document.body'
+        self.__window.events.loaded.wait()
+        parent_command = parent._query_command if parent else 'var element = document.body'
         node_id = self.__window.evaluate_js(f"""
-            var parent = {parent_selector};
+            {parent_command};
             var template = document.createElement('template');
             template.innerHTML = '{escape_quotes(html)}'.trim();
-            var element = template.content.firstChild;
-            parent.appendChild(element);
-            pywebview._getNodeId(element);
+            var child = template.content.firstChild;
+            element.appendChild(child);
+            pywebview._getNodeId(child);
         """)
 
         return Element(self.__window, node_id)
 
     def get_element(self, selector: str) -> Optional[Element]:
+        self.__window.events.loaded.wait()
         node_id = self.__window.evaluate_js(f"""
             var element = document.querySelector('{selector}');
             pywebview._getNodeId(element);
@@ -46,6 +48,7 @@ class DOM:
         return Element(self.__window, node_id) if node_id else None
 
     def get_elements(self, selector: str) -> list[Element]:
+        self.__window.events.loaded.wait()
         code = f"""
             var elements = document.querySelectorAll('{selector}');
             nodeIds = [];

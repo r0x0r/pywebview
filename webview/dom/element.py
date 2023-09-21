@@ -4,26 +4,13 @@ import logging
 from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
-from webview.util import css_to_camel, escape_quotes
+from webview.util import JavascriptException, css_to_camel, escape_quotes
 
 
 from webview.event import EventContainer
 
 logger = logging.getLogger('pywebview')
 
-
-"""
-class DOMEventContainer:
-    if TYPE_CHECKING:
-
-        @type_check_only
-        def __getattr__(self, __name: str) -> DOMEvent:
-            ...
-
-        @type_check_only
-        def __setattr__(self, __name: str, __value: DOMEvent) -> None:
-            ...
-"""
 
 def _ignore_window_document(func):
     @wraps(func)
@@ -40,9 +27,17 @@ def _check_exists(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not args[0]._exists:
-            logger.warning('Element has been removed')
+            logger.warning(f'Element with id {args[0]._node_id} has been removed')
             return
-        return func(*args, **kwargs)
+
+        try:
+            return func(*args, **kwargs)
+        except JavascriptException as e:
+            if e.args[0].get('cause') == 'ELEMENT_NOT_FOUND':
+                logger.warning(f'Element with id {args[0]._node_id} has been removed')
+            else:
+                logger.exception(e)
+            return
 
     return wrapper
 
@@ -52,7 +47,21 @@ class Element:
         self.__window = window
         self.events = EventContainer()
         self._node_id = node_id
-        self._query_string = f"document.querySelector('[data-pywebview-id=\"{self._node_id}\"]')"
+        self._query_command = rf"""
+            var element;
+
+            if ('{self._node_id}' === 'document') {{
+                element = document;
+            }} else if ('{self._node_id}' === 'window') {{
+                element = window;
+            }} else {{
+                element = document.querySelector('[data-pywebview-id=\"{self._node_id}\"]');
+            }}
+
+            if (!element) {{
+                throw new Error('Element with pywebview-id {self._node_id} not found', {{ cause: 'ELEMENT_NOT_FOUND' }});
+            }}
+        """.replace('\n', '')
         self._event_handlers = defaultdict(list)
         self._event_handler_ids = {}
         self._exists = True
@@ -63,35 +72,42 @@ class Element:
     @property
     @_check_exists
     @_ignore_window_document
+    def tag(self) -> str:
+        return self.__window.evaluate_js(f"{self._query_command}; element.tagName").lower()
+
+    @property
+    @_check_exists
+    @_ignore_window_document
     def id(self) -> Optional[str]:
-        return self.__window.evaluate_js(f"{self._query_string}.id")
+        return self.__window.evaluate_js(f"{self._query_command}; element.id")
 
     @id.setter
     @_check_exists
     @_ignore_window_document
     def id(self, id: str) -> None:
-        self.__window.evaluate_js(f"{self._query_string}.id = '{id}'")
+        self.__window.evaluate_js(f"{self._query_command}; element.id = '{id}'")
 
     @property
     @_check_exists
     @_ignore_window_document
     def classes(self) -> Iterable:
-        return self.__window.evaluate_js(f"{self._query_string}.className").split(' ')
+        return self.__window.evaluate_js(f"{self._query_command}; element.className").split(' ')
 
     @classes.setter
     def classes(self, classes: Iterable) -> None:
         classes = ' '.join(set(classes))
-        self.__window.evaluate_js(f"{self._query_string}.className = '{classes}'")
+        self.__window.evaluate_js(f"{self._query_command}; element.className = '{classes}'")
 
     @property
     @_check_exists
     @_ignore_window_document
     def attributes(self) -> Dict[str, Any]:
         return self.__window.evaluate_js(f"""
-            var attributes = {self._query_string}.attributes;
+            {self._query_command};
+            var attributes = element.attributes;
             var result = {{}};
             for (var i = 0; i < attributes.length; i++) {{
-                if ([attributes[i].name === 'data-pywebview-id') {{
+                if (attributes[i].name === 'data-pywebview-id') {{
                     continue;
                 }}
                 result[attributes[i].name] = attributes[i].value;
@@ -108,8 +124,8 @@ class Element:
         })
 
         self.__window.evaluate_js(f"""
+            {self._query_command};
             var attributes = JSON.parse('{converted_attributes}');
-            var element = {self._query_string};
 
             for (var key in attributes) {{
                 if (key === 'data-pywebview-id') {{
@@ -124,14 +140,14 @@ class Element:
 
     @_check_exists
     def node(self) -> Dict[str, Any]:
-        return self.__window.evaluate_js(f"pywebview._processElements([{self._query_string}])[0]")
+        return self.__window.evaluate_js(f"{self._query_command}; pywebview._processElements([element])[0]")
 
     @property
     @_check_exists
     @_ignore_window_document
     def style(self) -> Dict[str, Any]:
         return self.__window.evaluate_js(f"""
-            var element = {self._query_string};
+            {self._query_command};
             var styles = window.getComputedStyle(element);
             var computedStyles = {{}};
 
@@ -153,7 +169,7 @@ class Element:
     def style(self, style: Dict[str, Any]) -> None:
         converted_style = json.dumps({css_to_camel(key): value for key, value in style.items()})
         self.__window.evaluate_js(f"""
-            var element = {self._query_string};
+            {self._query_command};
             var styles = JSON.parse('{converted_style}');
 
             for (var key in styles) {{
@@ -164,9 +180,83 @@ class Element:
     @property
     @_check_exists
     @_ignore_window_document
+    def tabindex(self) -> int:
+        return self.__window.evaluate_js(f"{self._query_command}; element.tabIndex")
+
+    @tabindex.setter
+    @_check_exists
+    @_ignore_window_document
+    def tabindex(self, tab_index: int) -> None:
+        self.__window.evaluate_js(f"{self._query_command}; element.tabIndex = {tab_index}")
+
+    @property
+    @_check_exists
+    @_ignore_window_document
+    def text(self) -> str:
+        return self.__window.evaluate_js(f"{self._query_command}; element.textContent")
+
+    @text.setter
+    @_check_exists
+    @_ignore_window_document
+    def text(self, text: str) -> None:
+        self.__window.evaluate_js(f"{self._query_command}; element.textContent = '{text}'")
+
+    @property
+    @_check_exists
+    @_ignore_window_document
+    def value(self) -> str:
+        return self.__window.evaluate_js(f"{self._query_command}; element.value")
+
+    @property
+    @_check_exists
+    @_ignore_window_document
+    def visible(self) -> bool:
+        return self.__window.evaluate_js(f"{self._query_command}; element.offsetParent !== null")
+
+    @property
+    @_check_exists
+    @_ignore_window_document
+    def focused(self) -> bool:
+        return self.__window.evaluate_js(f"{self._query_command}; document.activeElement === element")
+
+    @value.setter
+    @_check_exists
+    @_ignore_window_document
+    def value(self, value: str) -> None:
+        self.__window.evaluate_js(f"{self._query_command}; if ('value' in element) {{ element.value = '{value}' }}")
+
+    @_check_exists
+    @_ignore_window_document
+    def add_class(self, class_name: str) -> None:
+        self.__window.evaluate_js(f"{self._query_command}; element.classList.add('{class_name}')")
+
+    @_check_exists
+    @_ignore_window_document
+    def remove_class(self, class_name: str) -> None:
+        self.__window.evaluate_js(f"{self._query_command}; element.classList.remove('{class_name}')")
+
+    @_check_exists
+    @_ignore_window_document
+    def toggle_class(self, class_name: str) -> None:
+        self.__window.evaluate_js(f"{self._query_command}; element.classList.toggle('{class_name}')")
+
+    @_check_exists
+    @_ignore_window_document
+    def blur(self) -> None:
+        self.__window.evaluate_js(f"{self._query_command}; element.blur()")
+
+    @_check_exists
+    @_ignore_window_document
+    def focus(self) -> None:
+        self.__window.evaluate_js(f"{self._query_command}; element.focus()")
+
+    @property
+    @_check_exists
+    @_ignore_window_document
     def children(self) -> list['Element']:
         children = self.__window.evaluate_js(f"""
-            var children = {self._query_string}.children;
+            {self._query_command};
+            var children = element.children;
             var nodeIds = []
             for (var i = 0; i < children.length; i++) {{
                 var nodeId = pywebview._getNodeId(children[i]);
@@ -182,7 +272,8 @@ class Element:
     @_ignore_window_document
     def parent(self) -> Union['Element', None]:
         node_id = self.__window.evaluate_js(f"""
-            var parent = {self._query_string}.parentElement;
+            {self._query_command};
+            var parent = element.parentElement;
             parent ? pywebview._getNodeId(parent) : null
         """)
         return Element(self.__window, node_id) if node_id else None
@@ -192,7 +283,8 @@ class Element:
     @_ignore_window_document
     def next(self) -> Union['Element', None]:
         node_id = self.__window.evaluate_js(f"""
-            var nextSibling = {self._query_string}.nextElementSibling;
+            {self._query_command};
+            var nextSibling = element.nextElementSibling;
             nextSibling ? pywebview._getNodeId(nextSibling) : null
         """)
         return Element(self.__window, node_id) if node_id else None
@@ -202,7 +294,8 @@ class Element:
     @_ignore_window_document
     def previous(self) -> Union['Element', None]:
         node_id = self.__window.evaluate_js(f"""
-            var previousSibling = {self._query_string}.previousElementSibling;
+            {self._query_command};
+            var previousSibling = element.previousElementSibling;
             previousSibling ? pywebview._getNodeId(previousSibling) : null
         """)
         return Element(self.__window, node_id) if node_id else None
@@ -210,27 +303,32 @@ class Element:
     @_check_exists
     @_ignore_window_document
     def hide(self) -> None:
-        self.__original_display = self.__window.evaluate_js(f"{self._query_string}.style.display")
-        self.__window.evaluate_js(f"{self._query_string}.style.display = 'none'")
+        self.__original_display = self.__window.evaluate_js(f"{self._query_command}; element.style.display")
+        self.__window.evaluate_js(f"{self._query_command}; element.style.display = 'none'")
 
     @_check_exists
     @_ignore_window_document
     def show(self) -> None:
-        current_display = self.__window.evaluate_js(f"{self._query_string}.style.display")
+        current_display = self.__window.evaluate_js(f"{self._query_command}; element.style.display")
 
         if current_display == 'none':
             display = self.__original_display or 'block'
-            self.__window.evaluate_js(f"{self._query_string}.style.display = '{display}'")
+            self.__window.evaluate_js(f"{self._query_command}; element.style.display = '{display}'")
+
+    @_check_exists
+    @_ignore_window_document
+    def append(self, html: str) -> 'Element':
+        return self.__window.dom.create_element(html, self)
 
     @_check_exists
     @_ignore_window_document
     def empty(self) -> None:
-        self.__window.evaluate_js(f"{self._query_string}.innerHTML = ''")
+        self.__window.evaluate_js(f"{self._query_command}; element.innerHTML = ''")
 
     @_check_exists
     @_ignore_window_document
     def remove(self) -> None:
-        self.__window.evaluate_js(f"{self._query_string}.remove()")
+        self.__window.evaluate_js(f"{self._query_command}; element.remove()")
 
         if self._node_id in self.__window.dom._elements:
             self.__window.dom._elements.pop(self._node_id)
@@ -249,7 +347,7 @@ class Element:
     @_check_exists
     @_ignore_window_document
     def toggle(self) -> None:
-        current_display = self.__window.evaluate_js(f"{self._query_string}.style.display")
+        current_display = self.__window.evaluate_js(f"{self._query_command}; element.style.display")
 
         if current_display == 'none':
             self.show()
@@ -262,7 +360,7 @@ class Element:
             self.__window.dom._elements[self._node_id] = self
 
         handler_id = self.__window.evaluate_js(f"""
-            var element = '{self._node_id}' === 'document' ? document : document.querySelector('[data-pywebview-id="{self._node_id}"]')
+            {self._query_command};
             var handlerId = null
 
             if (element) {{
@@ -276,9 +374,7 @@ class Element:
             handlerId;
         """)
 
-        if not handler_id:
-            raise ValueError(f'Element with pywebview-id {self._node_id} not found')
-        else:
+        if handler_id:
             self._event_handlers[event].append(callback)
             self._event_handler_ids[callback] = handler_id
 
@@ -290,8 +386,7 @@ class Element:
             return
 
         self.__window.evaluate_js(f"""
-            var nodeId = '{self._node_id}';
-            var element = nodeId === 'document' ? document : document.querySelector('[data-pywebview-id="{self._node_id}"]');
+            {self._query_command};
             var callback = pywebview._eventHandlers['{handler_id}'];
             if (element) {{
                 element.removeEventListener('{event}', callback);
@@ -311,12 +406,7 @@ class Element:
         from webview.dom.event import DOMEvent
 
         events = self.__window.evaluate_js(f"""
-            var mapping = {{
-                'document': document,
-                'window': window,
-            }}
-
-            var element = mapping['{self._node_id}'] || document.querySelector('[data-pywebview-id="{self._node_id}"]');
+            {self._query_command};
             Object
                 .getOwnPropertyNames(element)
                 .concat(

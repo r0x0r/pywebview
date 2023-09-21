@@ -15,7 +15,7 @@ from typing_extensions import Any, Concatenate, ParamSpec, TypeAlias
 import webview.http as http
 from webview.event import Event, EventContainer
 from webview.localization import original_localization
-from webview.util import (WebViewException, base_uri, escape_string, is_app, is_local_url,
+from webview.util import (JavascriptException, WebViewException, base_uri, escape_string, is_app, is_local_url,
                           parse_file_type)
 from webview.dom.dom import DOM
 from webview.dom.element import Element
@@ -158,6 +158,7 @@ class Window:
         self.events.resized = Event()
         self.events.moved = Event()
 
+        self.dom = DOM(self)
         self.gui = None
 
     def _initialize(self, gui, server: http.BottleServer | None = None):
@@ -184,7 +185,7 @@ class Window:
             http.global_server.js_api_endpoint if not http.global_server is None else None
         )
         self.real_url = self._resolve_url(self.original_url)
-        self.dom = DOM(self)
+
 
 
     @property
@@ -393,6 +394,8 @@ class Window:
                 if (pywebview._isPromise(value)) {{
                     value.then(function evaluate_async(result) {{
                         pywebview._asyncCallback(pywebview._stringify(result), "{1}")
+                    }}).catch(function evaluate_async(error) {{
+                        pywebview._asyncCallback(pywebview._stringify(error), "{1}")
                     }});
                     "true";
                 }} else {{ {2} }}
@@ -401,14 +404,31 @@ class Window:
             )
         else:
             escaped_script = f"""
-                var value = eval("{escape_string(script)}");
+                var value;
+                try {{
+                    value = eval("{escape_string(script)}");
+                }} catch (e) {{
+                    debugger;
+                    value = {{
+                        name: e.name,
+                        pywebviewJavascriptError420: true,
+                    }}
+                    keys = Object.getOwnPropertyNames(e);
+                    keys.forEach(function(key) {{ value[key] = e[key] }})
+                }}
                 {sync_eval};
             """
 
         if self.gui.renderer == 'cef':
-            return self.gui.evaluate_js(escaped_script, self.uid, unique_id)
+            result = self.gui.evaluate_js(escaped_script, self.uid, unique_id)
         else:
-            return self.gui.evaluate_js(escaped_script, self.uid)
+            result = self.gui.evaluate_js(escaped_script, self.uid)
+
+        if isinstance(result, dict) and result.get('pywebviewJavascriptError420'):
+            del result['pywebviewJavascriptError420']
+            raise JavascriptException(result)
+        else:
+            return result
 
     @_shown_call
     def create_confirmation_dialog(self, title: str, message: str) -> bool:

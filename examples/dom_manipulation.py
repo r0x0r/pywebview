@@ -40,21 +40,25 @@ def bind(window):
     def change_color(_):
         circle.style = { 'background-color': random_color() }
 
+    def toggle_class(_):
+        circle.toggle_class('circle')
+
     container = window.dom.get_element('#rectangles')
     circle = window.dom.get_element('#circle')
 
     toggle_button = window.dom.get_element('#toggle-button')
+    toggle_class_button = window.dom.get_element('#toggle-class-button')
     remove_button = window.dom.get_element('#remove-button')
     empty_button = window.dom.get_element('#empty-button')
     add_button = window.dom.get_element('#add-button')
     color_button = window.dom.get_element('#color-button')
 
     toggle_button.events.click += lambda e: circle.toggle()
+    toggle_class_button.events.click += toggle_class
     remove_button.events.click += remove_rectangle
     empty_button.events.click += empty_container
     add_button.events.click += create_rectangle
     color_button.events.click += change_color
-
 
 
 if __name__ == '__main__':
@@ -77,6 +81,7 @@ if __name__ == '__main__':
                         justify-content: center;
                         align-items: center;
                         margin: 0.5rem;
+                        border-radius: 5px;
                     }
 
                     .circle {
@@ -91,6 +96,7 @@ if __name__ == '__main__':
                 </head>
                 <body>
                     <button id="toggle-button">Toggle circle</button>
+                    <button id="toggle-class-button">Toggle class</button>
                     <button id="color-button">Change color</button>
                     <button id="add-button">Add rectangle</button>
                     <button id="remove-button" disabled>Remove rectangle</button>

@@ -44,6 +44,8 @@ logger = logging.getLogger('pywebview')
 class WebViewException(Exception):
     pass
 
+class JavascriptException(Exception):
+    pass
 
 def is_app(url: str | None) -> bool:
     """Returns true if 'url' is a WSGI or ASGI app."""
