@@ -417,7 +417,7 @@ class BrowserView(QMainWindow):
     def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         if dialog_type == FOLDER_DIALOG:
             self._file_name = QFileDialog.getExistingDirectory(
-                self, self.localization['linux.openFolder'], options=QFileDialog.ShowDirsOnly
+                self, self.localization['linux.openFolder'], directory, options=QFileDialog.ShowDirsOnly
             )
         elif dialog_type == OPEN_DIALOG:
             if allow_multiple:
