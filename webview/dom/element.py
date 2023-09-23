@@ -296,18 +296,23 @@ class Element:
 
     @_exists
     @_ignore_window_document
-    def copy(self, target: Union[str, 'Element']=None, mode=ManipulationMode.LastChild) -> 'Element':
+    def copy(self, target: Union[str, 'Element']=None, mode=ManipulationMode.LastChild, id: str=None) -> 'Element':
         if isinstance(target, str):
             target = self._window.dom.get_element(target)
         elif target is None:
             target = self.parent
+
+        if id:
+            id_command = f'newElement.id = "{id}"'
+        else:
+            id_command = f'newElement.removeAttribute("{id}")'
 
         node_id = self._window.evaluate_js(f"""
             {self._query_command};
             var target = document.querySelector('[data-pywebview-id=\"{target._node_id}\"]');
             var newElement = element.cloneNode(true);
             newElement.removeAttribute('data-pywebview-id');
-            newElement.removeAttribute('id');
+            {id_command};
 
             var nodeId = pywebview._getNodeId(newElement);
             pywebview._insertNode(newElement, target, '{mode.value}')
