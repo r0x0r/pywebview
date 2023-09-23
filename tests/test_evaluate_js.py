@@ -58,6 +58,9 @@ def test_node(window):
     run_test(webview, window, node_test)
 
 
+def test_exception(window):
+    run_test(webview, window, exception_test)
+
 
 def mixed_test(window):
     result = window.evaluate_js(
@@ -193,3 +196,7 @@ def node_test(window):
 
     assert node['id'] == 'node'
     assert node['innerText'] == 'TEST'
+
+def exception_test(window):
+    with pytest.raises(webview.util.JavascriptException):
+        window.evaluate_js('eklmn')

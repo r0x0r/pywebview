@@ -128,6 +128,20 @@ window.pywebview = {
         return pywebviewId;
     },
 
+    _insertNode: function (node, parent, mode) {
+        if (mode === 'LAST_CHILD') {
+            parent.appendChild(node);
+        } else if (mode === 'FIRST_CHILD') {
+            parent.insertBefore(node, parent.firstChild);
+        } else if (mode === 'BEFORE') {
+            parent.parentNode.insertBefore(node, parent);
+        } else if (mode === 'AFTER') {
+            parent.parentNode.insertBefore(node, parent.nextSibling);
+        } else if (mode === 'REPLACE') {
+            parent.parentNode.replaceChild(node, parent);
+        }
+    },
+
     _processElements: function (elements) {
         var serializedElements = [];
 

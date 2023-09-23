@@ -21,7 +21,7 @@ from uuid import uuid4
 
 import webview
 
-from webview.js import api, dom, mouse, event, npo
+from webview.js import api, dom_json, mouse, event, npo
 
 if TYPE_CHECKING:
     from webview.window import Window
@@ -178,7 +178,7 @@ def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
             'func_list': func_list,
             'js_api_endpoint': window.js_api_endpoint,
         }
-        + dom.src
+        + dom_json.src
         + mouse.src
         % {
             'drag_selector': webview.DRAG_REGION_SELECTOR,

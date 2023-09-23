@@ -32,6 +32,10 @@ def test_classes(window):
     run_test(webview, window, classes_test)
 
 
+def test_attributes(window):
+    run_test(webview, window, attributes_test)
+
+
 def test_style(window):
     run_test(webview, window, style_test)
 
@@ -43,12 +47,16 @@ def test_traversal(window):
 def test_visibility(window):
     run_test(webview, window, visibility_test)
 
+
 def test_focus(window):
     run_test(webview, window, focus_test)
+
 
 def test_manipulation(window):
     run_test(webview, window, manipulation_test)
 
+def test_manipulation_modes(window):
+    run_test(webview, window, manipulation_mode_test)
 
 def test_events(window):
     run_test(webview, window, events_test)
@@ -59,7 +67,6 @@ def element_test(window):
 
     assert child1.id == 'child1'
     assert child1.tag == 'div'
-    assert child1.attributes == {'class': 'test', 'id': 'child1', 'data-id': 'blz', 'tabindex': '3'}
     assert child1.tabindex == 3
     assert child1.text == 'DUDE'
 
@@ -75,23 +82,50 @@ def element_test(window):
     assert input.value == 'tisok'
 
 
-
-
 def classes_test(window):
     child1 = window.dom.get_element('#child1')
-    assert child1.classes == ['test']
+    assert list(child1.classes) == ['test']
 
-    child1.add_class('test2')
-    assert child1.classes == ['test', 'test2']
+    child1.classes.append('test2')
+    assert list(child1.classes) == ['test', 'test2']
 
-    child1.toggle_class('test')
-    assert child1.classes == ['test2']
+    child1.classes.toggle('test')
+    assert list(child1.classes) == ['test2']
 
-    child1.toggle_class('test')
-    assert child1.classes == ['test2', 'test']
+    child1.classes.toggle('test')
+    assert list(child1.classes) == ['test2', 'test']
 
     child1.classes = ['woah']
-    assert child1.classes == ['woah']
+    assert list(child1.classes) == ['woah']
+
+    child1.classes.clear()
+    assert len(child1.classes) == 0
+
+
+def attributes_test(window):
+    child1 = window.dom.get_element('#child1')
+
+    assert dict(child1.attributes) == {'class': 'test', 'id': 'child1', 'data-id': 'blz', 'tabindex': '3'}
+
+    assert child1.attributes['class'] == 'test'
+    assert set(child1.attributes.keys()) == {'class', 'id', 'data-id', 'tabindex'}
+    assert set(child1.attributes.values()) == {'test', 'child1', 'blz', '3'}
+    assert set(child1.attributes.items()) == {('class', 'test'), ('id', 'child1'), ('data-id', 'blz'), ('tabindex', '3')}
+    assert child1.attributes.get('class') == 'test'
+    assert child1.attributes.get('class2') == None
+    assert child1.attributes['class2'] == None
+
+    del child1.attributes['class']
+    assert dict(child1.attributes) == {'id': 'child1', 'data-id': 'blz', 'tabindex': '3'}
+
+    child1.attributes['data-test'] = 'test2'
+    assert dict(child1.attributes) == {'id': 'child1', 'data-id': 'blz', 'tabindex': '3', 'data-test': 'test2'}
+
+    child1.attributes = {'data-test': 'test3'}
+    assert child1.attributes['data-test'] == 'test3'
+
+    child1.attributes.clear()
+    assert dict(child1.attributes) == {}
 
 
 def style_test(window):
@@ -99,10 +133,14 @@ def style_test(window):
     assert child3.style['display'] == 'none'
     assert child3.style['background-color'] == 'rgb(255, 0, 0)'
 
-    child3.style = { 'display': 'block' }
-    child3.style = { 'background-color': 'rgb(0, 0, 255)' }
-    assert child3.style['display'] == 'block'
+    child3.style['display'] = 'flex'
+    child3.style['background-color'] = 'rgb(0, 0, 255)'
+    assert child3.style['display'] == 'flex'
     assert child3.style['background-color'] == 'rgb(0, 0, 255)'
+
+    child3.style.clear()
+    assert child3.style['display'] == 'block'
+    assert child3.style['background-color'] == 'rgba(0, 0, 0, 0)'
 
 
 def visibility_test(window):
@@ -136,7 +174,6 @@ def focus_test(window):
 def traversal_test(window):
     child2 = window.dom.get_element('#child2')
 
-
     assert child2.parent.id == 'container'
     assert child2.next.id == 'child3'
     assert child2.previous.id == 'child1'
@@ -151,6 +188,7 @@ def traversal_test(window):
 
 def manipulation_test(window):
     container = window.dom.get_element('#container')
+    container2 = window.dom.get_element('#container2')
     assert len(container.children) == 3
 
     container.empty()
@@ -160,15 +198,53 @@ def manipulation_test(window):
     assert len(container.children) == 1
     assert container.children[0].id == 'child1'
 
-    child2 = window.dom.create_element('<div id="child2"></div>', container)
+    child2 = window.dom.create_element('<div id="child2" class="child-class">CHILD</div>', container)
     assert len(container.children) == 2
     assert container.children[1].id == 'child2'
     assert child2.parent.id == 'container'
     assert child2.id == 'child2'
 
+    child3 = child2.copy(container2)
+    assert len(container2.children) == 3
+    assert container2.children[2].text == 'CHILD'
+    assert list(child3.classes) == ['child-class']
+    assert child3.id == ''
+    assert child2._node_id != child3._node_id
+
+    child4 = child2.copy()
+    child4.parent.id = 'container'
+    assert len(container.children) == 3
+
+    child4.move(container2)
+    assert len(container.children) == 2
+    assert len(container2.children) == 4
+
     container.children[0].remove()
     assert len(container.children) == 1
     assert container.children[0].id == 'child2'
+
+
+def manipulation_mode_test(window):
+    child1 = window.dom.get_element('#child1')
+    child2 = window.dom.get_element('#child2')
+    child3 = window.dom.get_element('#child3')
+    container2 = window.dom.get_element('#container2')
+
+    child1.move(container2, mode=webview.dom.ManipulationMode.FirstChild)
+    assert container2.children[0].id == 'child1'
+
+    child2.move(container2, mode=webview.dom.ManipulationMode.LastChild)
+    assert container2.children[-1].id == 'child2'
+
+    child3.move(child1, mode=webview.dom.ManipulationMode.Before)
+    assert container2.children[0].id == 'child3'
+
+    child1.move(child2, mode=webview.dom.ManipulationMode.After)
+    assert container2.children[-1].id == 'child1'
+
+    child2.move(container2, mode=webview.dom.ManipulationMode.Replace)
+    assert window.dom.get_element('#container2') == None
+    assert child2.parent.tag == 'body'
 
 
 def events_test(window):

@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import Optional, Union
+from webview.dom import ManipulationMode
 from webview.dom.element import Element
 from webview.util import escape_quotes
 
@@ -24,16 +25,23 @@ class DOM:
     def window(self) -> Element:
         return Element(self.__window, 'window')
 
-    def create_element(self, html: str, parent: Optional[Element]=None) -> Element:
+    def create_element(self, html: str, parent: Union[Element, str]=None, mode=ManipulationMode.LastChild) -> Element:
         self.__window.events.loaded.wait()
-        parent_command = parent._query_command if parent else 'var element = document.body'
+
+        if isinstance(parent, Element):
+            parent_command = parent._query_command
+        elif isinstance(parent, str):
+            parent_command = f'var element = document.querySelector("{parent}");'
+        else:
+            parent_command = 'var element = document.body;'
+
         node_id = self.__window.evaluate_js(f"""
             {parent_command};
             var template = document.createElement('template');
             template.innerHTML = '{escape_quotes(html)}'.trim();
-            var child = template.content.firstChild;
-            element.appendChild(child);
-            pywebview._getNodeId(child);
+            var newElement = template.content.firstChild;
+            pywebview._insertNode(newElement, element, '{mode.value}')
+            pywebview._getNodeId(newElement);
         """)
 
         return Element(self.__window, node_id)

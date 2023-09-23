@@ -13,7 +13,7 @@ from time import sleep
 from cefpython3 import cefpython as cef
 
 from webview import _settings
-from webview.js import dom
+from webview.js import dom_json
 from webview.js.css import disable_text_select
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
 
@@ -127,7 +127,7 @@ class Browser:
         if not self.text_select:
             self.browser.ExecuteJavascript(disable_text_select)
 
-        self.browser.ExecuteJavascript(dom.src)
+        self.browser.ExecuteJavascript(dom_json.src)
 
         sleep(0.1)  # wait for window.pywebview to load
         self.initialized = True
