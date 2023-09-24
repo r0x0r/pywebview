@@ -1,16 +1,14 @@
-import json
 import logging
 
 from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, Dict, Iterable, Optional, Union
+
 from webview.dom import ManipulationMode
 from webview.dom.classlist import ClassList
 from webview.dom.propsdict import DOMPropType, PropsDict
-from webview.util import JavascriptException
-
-
 from webview.event import EventContainer
+from webview.util import JavascriptException
 
 logger = logging.getLogger('pywebview')
 
