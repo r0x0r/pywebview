@@ -1,4 +1,4 @@
-"""This example demonstrates how to create a frameless window with a custom minimum size."""
+"""Create a transparent frameless window with custom chrome."""
 
 import webview
 

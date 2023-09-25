@@ -1,4 +1,4 @@
-"""This example demonstrates evaluating JavaScript in a web page."""
+"""Run Javascript code from Python."""
 
 import webview
 

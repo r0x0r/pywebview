@@ -1,11 +1,12 @@
-"""This example demonstrates how to use cookies and local storage."""
+"""A cookies and local storage example."""
 
 import webview
 
 
 def read_cookies(window):
-    # set a cookie in the application window for this object not to be empty
-    print(window.get_cookies())
+    cookies = window.get_cookies()
+    for c in cookies:
+        print(c.output())
 
 
 if __name__ == '__main__':

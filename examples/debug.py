@@ -1,6 +1,5 @@
 """
-This example demonstrates how to enable debugging of webview content. To open
-up debugging console, right click on an element and select Inspect.
+A debug window example that opens DevTools.
 """
 
 import webview

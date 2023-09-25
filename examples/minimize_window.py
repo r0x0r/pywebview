@@ -1,4 +1,4 @@
-"""This example demonstrates how to minimize and restore window programmatically."""
+"""Minimize and restore window programmatically"""
 
 from time import sleep
 

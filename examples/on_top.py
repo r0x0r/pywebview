@@ -1,7 +1,6 @@
-"""This example demonstrates how to create a topmost webview window."""
+"""Create a window that stays on top of other windows."""
 
 import time
-
 import webview
 
 

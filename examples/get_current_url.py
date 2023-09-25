@@ -1,4 +1,4 @@
-"""This example demonstrates how to get the current url loaded in the webview."""
+"""Print current URL after page is loaded."""
 
 import webview
 

@@ -1,10 +1,7 @@
-# Async Javascript evaluation
-
-``` python
 import webview
 
 """
-This example demonstrates how to evaluate async JavaScript
+Run asynchronous Javascript code and invoke a callback.
 """
 
 def callback(result):
@@ -23,5 +20,5 @@ def evaluate_js_async(window):
 
 if __name__ == '__main__':
     window = webview.create_window('Run async Javascript', html='<html><body></body></html>')
-    webview.start(evaluate_js_async, window, debug=True)
-```
+    webview.start(evaluate_js_async, window)
+

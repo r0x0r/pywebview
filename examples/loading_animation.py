@@ -3,7 +3,7 @@ import threading
 import webview
 
 """
-This example demonstrates a simple loading animation workflow
+Create a loading animation that is displayed before application is loaded.
 """
 
 

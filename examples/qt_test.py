@@ -1,6 +1,5 @@
 """
-This example demonstrates how to create a pywebview windows using QT
-(normally GTK is preferred)
+Create a pywebview windows using QT (normally GTK is preferred)
 """
 
 import webview

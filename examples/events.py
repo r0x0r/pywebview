@@ -1,4 +1,4 @@
-"""This example demonstrates how to handle pywebview events."""
+"""Subscribe and unsubscribe to pywebview events."""
 
 import webview
 

@@ -1,7 +1,6 @@
-"""This example demonstrates how to toggle fullscreen mode programmatically."""
+"""Switch application window to a full-screen mode after five seconds.."""
 
 import time
-
 import webview
 
 

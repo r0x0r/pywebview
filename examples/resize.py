@@ -1,7 +1,6 @@
-"""This example demonstrates how to resize window programmatically."""
+"""Resize window."""
 
 from time import sleep
-
 import webview
 
 

@@ -1,4 +1,4 @@
-"""This example demonstrates creating a text dialog."""
+"""A window with a confirmation dialog."""
 
 import webview
 

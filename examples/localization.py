@@ -1,4 +1,4 @@
-"""This example demonstrates how to localize GUI strings used by pywebview."""
+"""Localize system text string used by pywebview. For a full list of used string, refer to the `webview/localization.py` file."""
 
 import webview
 

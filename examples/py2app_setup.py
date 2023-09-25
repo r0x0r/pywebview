@@ -1,9 +1,9 @@
 """
-This is an example of py2app setup.py script for freezing your pywebview
+An example of py2app setup.py script for freezing your pywebview
 application
 
 Usage:
-    python setup.py py2app
+    `python setup.py py2app`
 """
 
 import os

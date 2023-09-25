@@ -1,5 +1,5 @@
 """
-This example demonstrates running pywebview alongside with pystray to display a system tray icon.
+Run pywebview alongside with pystray to display a system tray icon.
 """
 
 import multiprocessing

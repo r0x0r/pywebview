@@ -1,4 +1,4 @@
-"""This example demonstrates how to change a window title."""
+"""Change window title every three seconds."""
 
 import time
 

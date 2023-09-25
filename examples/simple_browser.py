@@ -1,4 +1,4 @@
-"""This example demonstrates how to create a webview window."""
+"""The most basic example of creating a webview window."""
 
 import webview
 

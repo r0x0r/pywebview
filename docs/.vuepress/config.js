@@ -1,3 +1,8 @@
+const dirTree = require('directory-tree');
+const path = require('path');
+
+const examples = dirTree(path.join(__dirname, '../examples'), {extensions:/\.md/});
+
 module.exports = {
   title: 'pywebview',
   description: 'Build GUI for your Python program with JavaScript, HTML, and CSS',
@@ -10,6 +15,7 @@ module.exports = {
       }
     }
   },
+  port: 8082,
   themeConfig: {
     repo: 'r0x0r/pywebview',
     docsDir: 'docs',
@@ -51,46 +57,9 @@ module.exports = {
           ]
         }
       ],
-      '/examples/': [
-        'cef',
-        'change_url',
-        'close_confirm',
-        'confirmation_dialog',
-        'cookies',
-        'css_load',
-        'close_confirm',
-        'debug',
-        'destroy_window',
-        'events',
-        'expose',
-        'focus',
-        'frameless',
-        'fullscreen',
-        'get_elements',
-        'get_current_url',
-        'hide_window',
-        'html_load',
-        'js_evaluate',
-        'js_evaluate_async',
-        'js_api',
-        'loading_animation',
-        'links',
-        'localization',
-        'menu',
-        'min_size',
-        'minimize_window',
-        'move_window',
-        'multiple_windows',
-        'open_file_dialog',
-        'open_url',
-        'resize_window',
-        'save_file_dialog',
-        'screens',
-        'toggle_fullscreen',
-        'user_agent',
-        'vibrancy',
-        'window_title_change'
-      ],
+      '/examples/': examples.children
+        .filter(file => path.parse(file.name).name !== 'README')
+        .map(file => path.parse(file.name).name),
 
       '/contributing/': [
         'development',

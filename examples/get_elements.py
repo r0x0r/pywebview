@@ -1,4 +1,4 @@
-"""This example demonstrates how to retrieve a DOM element."""
+"""Get DOM elements using selectors."""
 
 import webview
 

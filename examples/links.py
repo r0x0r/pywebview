@@ -3,7 +3,7 @@ import threading
 import webview
 
 """
-This example demonstrates a difference between different link types
+Demonstrate a difference between different link types
 """
 
 

@@ -1,4 +1,4 @@
-"""This example demonstrates how to expose Python functions to the Javascript domain."""
+"""Exposing Python functions to the Javascript domain."""
 
 import webview
 
