@@ -3,7 +3,7 @@ from time import sleep
 import webview
 
 """
-This example demonstrates how to load HTML in a web view window
+Loading new HTML after the window is created
 """
 
 

@@ -1,4 +1,4 @@
-"""This example demonstrates how to create a full-screen webview window."""
+"""Create a fullscreen window."""
 
 import webview
 

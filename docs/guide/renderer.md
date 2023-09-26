@@ -2,7 +2,6 @@
 
 The following renderers are used on each platform
 
-
 | Platform | Code         | Renderer | Provider                                          | Browser compatibility |
 |----------|--------------|----------|---------------------------------------------------|-----------------------|
 | GTK      | gtk          | WebKit   | WebKit2 (minimum version >2.2)                    |                       |
@@ -30,7 +29,6 @@ webview.start(gui='cef')
 ```
 
 If you wish to pass custom settings to CEF, refer to [this example](/examples/cef.html)
-
 
 To force QT on Linux systems
 

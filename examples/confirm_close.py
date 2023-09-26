@@ -1,4 +1,4 @@
-"""This example demonstrates a webview window with a quit confirmation dialog."""
+"""A window with a quit confirmation dialog."""
 
 import webview
 

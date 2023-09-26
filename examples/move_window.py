@@ -1,4 +1,4 @@
-"""This example demonstrates how to move window programmatically."""
+"""Set window coordinates and move window after its creation."""
 
 from time import sleep
 

@@ -1,4 +1,4 @@
-"""This example demonstrates how to create and manage multiple windows."""
+"""Create multiple windows."""
 
 import webview
 

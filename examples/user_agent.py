@@ -1,6 +1,5 @@
 """
-This example demonstrates how to change the user-agent of a window.
-EdgeHTML is not supported.
+Change the user-agent of a window.
 """
 
 import webview

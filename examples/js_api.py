@@ -6,8 +6,7 @@ import time
 import webview
 
 """
-This example demonstrates how to create a pywebview api without using a web
-server
+Create an application without a HTTP server. The application uses Javascript API object to communicate between Python and Javascript.
 """
 
 html = """
@@ -156,5 +155,5 @@ class Api:
 
 if __name__ == '__main__':
     api = Api()
-    window = webview.create_window('API example', html=html, js_api=api)
-    webview.start(debug=True)
+    window = webview.create_window('JS API example', html=html, js_api=api)
+    webview.start()

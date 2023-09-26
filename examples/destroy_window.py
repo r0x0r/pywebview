@@ -1,6 +1,5 @@
 """
-This example demonstrates how a webview window is created and destroyed
-programmatically after 5 seconds.
+Programmatically destroy created window after five seconds.
 """
 
 import time

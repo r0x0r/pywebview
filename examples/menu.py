@@ -1,4 +1,4 @@
-"""This example demonstrates how to create an application menu."""
+"""Create an application menu."""
 
 import webview
 import webview.menu as wm

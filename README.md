@@ -34,8 +34,11 @@ webview.start()
 Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.com/guide), [examples](https://pywebview.flowrl.com/examples) or [contributing](https://pywebview.flowrl.com/contributing). If React is your thing, get started right away with [React boilerplate](https://github.com/r0x0r/pywebview-react-boilerplate).
 
 
+# Contribution
 
-# Contributors
+### Consulting services
+
+If your company is looking for support with _pywebview_ or needs a hand with full-stack development, the author of _pywebview_ is available for hire. As a VAT-registered professional, I specialize in a wide range of technologies, including JavaScript/TypeScript, React/Vue, Python, GIS, SQL databases, API integration, CI/CD pipelines and cloud solutions. For inquiries about availability and pricing details, reach out to roman@maumau.fi. 
 
 ### Code Contributors
 

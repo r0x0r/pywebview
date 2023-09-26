@@ -1,4 +1,4 @@
-"""This example demonstrates how to create a webview window with a custom minimum size."""
+"""Set minimum window dimensions."""
 
 import webview
 

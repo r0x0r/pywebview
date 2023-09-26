@@ -1,6 +1,5 @@
 """
-This example demonstrates how to create multiple windows, some of which have their
-own servers, both before and after start is called.
+Create multiple windows, some of which have their own servers, both before and after `webview.start()` is called.
 """
 
 import bottle
