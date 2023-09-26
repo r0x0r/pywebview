@@ -45,20 +45,12 @@ function generateExamples(directoryPath, outputDirectory) {
     fs.mkdirSync(outputDirectory);
   }
 
-  fs.readdir(directoryPath, (err, files) => {
-    if (err) {
-      console.error(`Error reading directory: ${directoryPath}`);
-      return;
+  fs.readdirSync(directoryPath).forEach(file => {
+    const filePath = path.join(directoryPath, file);
+
+    if (file.endsWith('.py')) {
+      convertToMarkdown(filePath, outputDirectory);
     }
-
-
-    files.forEach((file) => {
-      const filePath = path.join(directoryPath, file);
-
-      if (file.endsWith('.py')) {
-        convertToMarkdown(filePath, outputDirectory);
-      }
-    });
   });
 }
 
