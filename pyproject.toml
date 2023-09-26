@@ -47,6 +47,7 @@ gtk = ["PyGObject", "PyGObject-stubs"]
 pyside2 = ["QtPy", "PySide2"]
 pyside6 = ["QtPy", "PySide6"]
 qt = ["QtPy", "PyQt5", "pyqtwebengine"]
+android = ["kivy", "jnius"]
 
 [project.urls]
 Homepage = "https://pywebview.flowrl.com/"

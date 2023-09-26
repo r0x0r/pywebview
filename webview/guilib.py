@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import platform
+import sys
 from types import ModuleType
 from typing import Any, Callable, cast
 
@@ -10,7 +11,7 @@ from typing_extensions import Literal, TypeAlias
 
 from webview.util import WebViewException
 
-GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'mshtml', 'edgechromium']
+GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android']
 
 logger = logging.getLogger('pywebview')
 guilib: ModuleType | None = None
@@ -18,6 +19,17 @@ forced_gui_: GUIType | None = None
 
 
 def initialize(forced_gui: GUIType | None = None):
+    def import_android():
+        global guilib
+
+        try:
+            import webview.platforms.android as guilib
+            logger.debug('Using Kivy')
+            return True
+        except (ImportError, ValueError):
+            logger.exception('Kivy cannot be loaded')
+            return False
+
     def import_gtk():
         global guilib
 
@@ -98,6 +110,9 @@ def initialize(forced_gui: GUIType | None = None):
             raise WebViewException(
                 'You must have either PyObjC (for Cocoa support) or Qt with Python bindings installed in order to use pywebview.'
             )
+
+    elif hasattr(sys, 'getandroidapilevel'):
+        try_import([import_android])
 
     elif platform.system() == 'Linux' or platform.system() == 'OpenBSD':
         if forced_gui == 'qt':
