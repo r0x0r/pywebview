@@ -28,19 +28,19 @@ window.pywebview = {
                 case 'mshtml':
                 case 'cef':
                 case 'qtwebkit':
-                    return window.external.call(funcName, JSON.stringify(params), id);
+                    return window.external.call(funcName, pywebview._stringify(params), id);
                 case 'chromium':
                     return window.chrome.webview.postMessage([funcName, pywebview._stringify(params), id]);
                 case 'cocoa':
                 case 'gtk':
-                    return window.webkit.messageHandlers.jsBridge.postMessage(JSON.stringify([funcName, params, id]));
+                    return window.webkit.messageHandlers.jsBridge.postMessage(pywebview._stringify({funcName, params, id}));
                 case 'qtwebengine':
                     if (!window.pywebview._QWebChannel) {
                         setTimeout(function() {
-                            window.pywebview._QWebChannel.objects.external.call(funcName, JSON.stringify(params), id);
+                            window.pywebview._QWebChannel.objects.external.call(funcName, pywebview._stringify(params), id);
                         }, 100)
                     } else {
-                        window.pywebview._QWebChannel.objects.external.call(funcName, JSON.stringify(params), id);
+                        window.pywebview._QWebChannel.objects.external.call(funcName, pywebview._stringify(params), id);
                     }
                     break;
             }

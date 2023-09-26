@@ -248,8 +248,8 @@ class BrowserView:
                 self.pywebview_window.events.restored.set()
 
     def on_js_bridge_call(self, manager, message):
-        func_name, param, value_id = json.loads(message.get_js_value().to_string())
-        js_bridge_call(self.pywebview_window, func_name, param, value_id)
+        body = json.loads(message.get_js_value().to_string())
+        js_bridge_call(self.pywebview_window, body['funcName'], body['params'], body['id'])
 
     def on_window_resize(self, window, allocation):
         if allocation.width != self._last_width or allocation.height != self._last_height:

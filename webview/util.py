@@ -24,7 +24,7 @@ import webview
 from webview.js import api, dom_json, mouse, event, npo
 
 if TYPE_CHECKING:
-    from .window import Window
+    from webview.window import Window
 
 _TOKEN = uuid4().hex
 
