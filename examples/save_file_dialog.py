@@ -1,4 +1,4 @@
-"""This example demonstrates creating a save file dialog."""
+"""Create a save file dialog after a delay."""
 
 import webview
 

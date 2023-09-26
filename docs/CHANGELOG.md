@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.3.3
+
+_Released 08/09/2023_
+
+### 🐞 Bug fixes
+
+- [QT] Fix QT implementation
+
 ## 4.3.2
 
 _Released 01/09/2023_

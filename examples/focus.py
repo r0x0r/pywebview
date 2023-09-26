@@ -1,7 +1,7 @@
 import webview
 
 """
-This example demonstrates a non-focusable window, which can be useful for onscreen floating tools.
+Create a non-focusable window that can be useful for onscreen floating tools.
 """
 
 if __name__ == '__main__':

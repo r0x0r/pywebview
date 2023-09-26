@@ -1,6 +1,5 @@
 """
-This example demonstrates how to set vibrancy (macos).
-window set transparent and html set background to transparent
+This example demonstrates how to set vibrancy on macOS.
 """
 
 import webview

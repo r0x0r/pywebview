@@ -1,4 +1,4 @@
-"""This example demonstrates how to obtain available display information using webview.screens"""
+"""Get available display information using `webview.screens`"""
 
 import webview
 

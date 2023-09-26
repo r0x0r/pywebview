@@ -1,7 +1,7 @@
 import webview
 
 """
-This example demonstrates how to load CSS in a web view window
+Loading custom CSS in a webview window
 """
 
 

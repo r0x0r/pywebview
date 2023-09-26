@@ -1,4 +1,4 @@
-"""This example demonstrates creating an open file dialog."""
+"""Create an open file dialog after page content is loaded."""
 
 import webview
 

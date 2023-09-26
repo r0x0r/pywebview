@@ -1,4 +1,4 @@
-"""This example demonstrates how to toggle hide and show window programmatically."""
+"""Programmatically hide and show window."""
 
 import time
 

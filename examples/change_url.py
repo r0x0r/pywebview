@@ -1,5 +1,5 @@
 """
-This example demonstrates how a webview window is created and URL is changed after 10 seconds.
+Change URL ten seconds after the first URL is loaded.
 """
 
 import time

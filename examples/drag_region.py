@@ -1,5 +1,5 @@
 """
-This example demonstrates a user-provided "drag region" to move a frameless window
+A user-provided "drag region" to move a frameless window
 around, whilst maintaining normal mouse down/move events elsewhere. This roughly
 replicates `-webkit-drag-region`.
 """
