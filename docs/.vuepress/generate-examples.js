@@ -1,12 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-const sourceDirectory = '../examples';
-const outputDirectory = './examples';
-
-if (!fs.existsSync(outputDirectory)) {
-  fs.mkdirSync(outputDirectory);
-}
 
 function extractDescriptionFromPythonCode(code) {
   const match = code.match(/(['"]{3}[\s\S]*?['"]{3})/);
@@ -28,7 +22,7 @@ function removeCommentsFromPythonCode(code) {
 }
 
 
-function convertToMarkdown(filePath) {
+function convertToMarkdown(filePath, outputDirectory) {
   try {
     const pythonCode = fs.readFileSync(filePath, 'utf8');
     const description = extractDescriptionFromPythonCode(pythonCode);
@@ -46,7 +40,11 @@ function convertToMarkdown(filePath) {
   }
 }
 
-function scanDirectory(directoryPath) {
+function generateExamples(directoryPath, outputDirectory) {
+  if (!fs.existsSync(outputDirectory)) {
+    fs.mkdirSync(outputDirectory);
+  }
+
   fs.readdir(directoryPath, (err, files) => {
     if (err) {
       console.error(`Error reading directory: ${directoryPath}`);
@@ -57,10 +55,15 @@ function scanDirectory(directoryPath) {
       const filePath = path.join(directoryPath, file);
 
       if (file.endsWith('.py')) {
-        convertToMarkdown(filePath);
+        convertToMarkdown(filePath, outputDirectory);
       }
     });
   });
 }
 
-scanDirectory(sourceDirectory);
+
+module.exports = {
+  generateExamples
+}
+
+

@@ -1,8 +1,7 @@
 {
   "scripts": {
-    "docs:dev": "npm run generate-examples && vuepress dev .",
-    "docs:build": "npm run generate-examples && NODE_ENV=production vuepress build .",
-    "generate-examples": "node generate-examples.js"
+    "docs:dev": "vuepress dev .",
+    "docs:build": "NODE_ENV=production vuepress build ."
   },
   "devDependencies": {
     "@vuepress/plugin-medium-zoom": "1.9.10",
