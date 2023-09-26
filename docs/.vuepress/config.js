@@ -4,7 +4,6 @@ const { generateExamples } = require('./generate-examples');
 
 generateExamples(path.join(__dirname, '../../examples'), path.join(__dirname, '../examples'));
 const examples = dirTree(path.join(__dirname, '../examples'), {extensions:/\.md/});
-console.log(examples.children);
 
 module.exports = {
   title: 'pywebview',
