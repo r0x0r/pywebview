@@ -55,6 +55,8 @@ class Element:
                 element = document;
             }} else if ('{self._node_id}' === 'window') {{
                 element = window;
+            }} else if ('{self._node_id}' === 'body') {{
+                element = document.body;
             }} else {{
                 element = document.querySelector('[data-pywebview-id=\"{self._node_id}\"]');
             }}
