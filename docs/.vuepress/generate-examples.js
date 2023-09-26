@@ -51,8 +51,11 @@ function generateExamples(directoryPath, outputDirectory) {
       return;
     }
 
+    console.log(`Directory ${directoryPath} contains ${files.length} files`)
+
     files.forEach((file) => {
       const filePath = path.join(directoryPath, file);
+      console.log(`Processing ${filePath}`);
 
       if (file.endsWith('.py')) {
         convertToMarkdown(filePath, outputDirectory);
