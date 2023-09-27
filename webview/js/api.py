@@ -146,7 +146,15 @@ window.pywebview = {
         var serializedElements = [];
 
         for (var i = 0; i < elements.length; i++) {
-            var pywebviewId = window.pywebview._getNodeId(elements[i]);
+            var pywebviewId;
+            if (elements[i] === window) {
+                pywebviewId = 'window';
+            } else if (elements[i] === document) {
+                pywebviewId = 'document';
+            } else {
+                pywebviewId = window.pywebview._getNodeId(elements[i]);
+            }
+
             var node = pywebview.domJSON.toJSON(elements[i], {
                 metadata: false,
                 serialProperties: true,
