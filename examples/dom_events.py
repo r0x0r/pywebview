@@ -1,6 +1,7 @@
 """This example demonstrates how to expose Python functions to the Javascript domain."""
 
 import webview
+from webview.dom import DOMEventHandler
 
 
 def click_handler(e):
@@ -22,6 +23,10 @@ def scroll_handler(window):
     print(f'Scroll position {scroll_top}')
 
 
+def link_handler(e):
+    print(f"Link target is {e['target']['href']}")
+
+
 def bind(window):
     window.dom.document.events.scroll += lambda e: scroll_handler(window)
 
@@ -33,6 +38,9 @@ def bind(window):
 
     remove_events = window.dom.get_element('#remove')
     remove_events.on('click', lambda e: remove_handlers(window.dom.document.events.scroll, button.events.click, input.events.input))
+
+    link = window.dom.get_element('#link')
+    link.events.click += DOMEventHandler(link_handler, prevent_default=True)
 
 
 if __name__ == '__main__':
@@ -53,6 +61,7 @@ if __name__ == '__main__':
                     <div>
                         <input id="input" placeholder="Enter text">
                         <button id="button">Click me</button>
+                        <a id="link" href="https://pywebview.flowrl.com">Click me</a>
                     </div>
                     <button id="remove" style="margin-top: 1rem;">Remove events</button>
                 </body>
