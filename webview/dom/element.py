@@ -4,7 +4,7 @@ from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, Dict, Iterable, Optional, Union
 
-from webview.dom import ManipulationMode
+from webview.dom import DOMEventHandler, ManipulationMode
 from webview.dom.classlist import ClassList
 from webview.dom.propsdict import DOMPropType, PropsDict
 from webview.event import EventContainer
@@ -340,9 +340,17 @@ class Element:
         return self
 
     @_exists
-    def on(self, event: str, callback: Callable) -> None:
+    def on(self, event: str, callback: Union[Callable, DOMEventHandler]) -> None:
         if self._node_id not in self._window.dom._elements:
             self._window.dom._elements[self._node_id] = self
+
+        if isinstance(callback, DOMEventHandler):
+            prevent_default = 'e.preventDefault();' if callback.prevent_default else ''
+            stop_propagation = 'e.stopPropagation();' if callback.stop_propagation else ''
+            callback = callback.callback
+        else:
+            prevent_default = ''
+            stop_propagation = ''
 
         handler_id = self._window.evaluate_js(f"""
             {self._query_command};
@@ -351,6 +359,8 @@ class Element:
             if (element) {{
                 handlerId = Math.random().toString(36).substr(2, 11);
                 pywebview._eventHandlers[handlerId] = function(e) {{
+                    {prevent_default}
+                    {stop_propagation}
                     window.pywebview._bridge.call('pywebviewEventHandler', {{ event: e, nodeId: '{self._node_id}' }}, 'eventHandler');
                 }}
 
