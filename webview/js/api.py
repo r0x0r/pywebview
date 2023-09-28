@@ -30,6 +30,10 @@ window.pywebview = {
                 case 'qtwebkit':
                     return window.external.call(funcName, pywebview._stringify(params), id);
                 case 'chromium':
+                    // Full file path support for WebView2
+                    if (params.event instanceof Event && params.event.type === 'drop' && params.event.dataTransfer.files) {
+                        chrome.webview.postMessageWithAdditionalObjects('FilesDropped', params.event.dataTransfer.files);
+                    }
                     return window.chrome.webview.postMessage([funcName, pywebview._stringify(params), id]);
                 case 'cocoa':
                 case 'gtk':

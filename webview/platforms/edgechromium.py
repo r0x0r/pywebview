@@ -7,6 +7,7 @@ from threading import Semaphore
 import clr
 
 from webview import _settings
+from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
@@ -150,6 +151,20 @@ class EdgeChrome:
     def on_script_notify(self, _, args):
         try:
             return_value = args.get_WebMessageAsJson()
+
+            if return_value == '"FilesDropped"':
+                if _dnd_state['num_listeners'] == 0:
+                    return
+                
+                files = {
+                    os.path.basename(file.Path): file.Path
+                    for file
+                    in list(args.get_AdditionalObjects())
+                    if 'CoreWebView2File' in str(type(file))
+                }
+                _dnd_state['paths'].update(files)
+                return
+
             func_name, func_param, value_id = json.loads(return_value)
             func_param = json.loads(func_param)
             if func_name == 'alert':
