@@ -33,3 +33,8 @@ class DOMEventHandler:
     def stop_immediate_propagation(self):
         return self.__stop_immediate_propagation
 
+
+_dnd_state = {
+    'num_listeners': 0,
+    'paths': {}
+}

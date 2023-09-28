@@ -2,12 +2,13 @@ import json
 import logging
 import os
 import webbrowser
-from threading import Semaphore, Thread
+from threading import Semaphore, Thread, main_thread
 from typing import Any
 from uuid import uuid1
 
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings,
                      parse_file_type, windows)
+from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -142,6 +143,7 @@ class BrowserView:
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('decide-policy', self.on_navigation)
+        self.webview.connect('drag-data-received', self.on_drag_data)
 
         webkit_settings = self.webview.get_settings().props
         user_agent = settings.get('user_agent') or _settings['user_agent']
@@ -225,6 +227,18 @@ class BrowserView:
             windows.remove(self.pywebview_window)
 
         self.pywebview_window.events.closed.set()
+
+        return False
+
+    def on_drag_data(self, widget, drag_context, x, y, data, info, time):
+        if _dnd_state['num_listeners'] > 0 and data.get_text():
+            objects = {
+                os.path.basename(value): value.replace('file://', '')
+                for value
+                in data.get_text().split('\n')
+                if value.startswith('file://')
+            }
+            _dnd_state['paths'].update(objects)
 
         return False
 
@@ -527,6 +541,7 @@ def create_window(window):
         create()
 
     if window.uid == 'master':
+        main_thread().pydev_do_not_trace = True # vs code debugger hang fix
         _app.connect('activate', create_master_callback)
         _app.run()
         _app = None

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import ctypes
 import json
 import logging
@@ -14,6 +15,7 @@ from objc import _objc, nil, registerMetaDataForSelector, selector, super
 from PyObjCTools import AppHelper
 
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows)
+from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -267,6 +269,25 @@ class BrowserView:
             self.window().setAllowedFileTypes_(self.filter[option][1])
 
     class WebKitHost(WebKit.WKWebView):
+        def performDragOperation_(self, sender):
+            if sender.draggingSource() is None and _dnd_state['num_listeners'] > 0:
+                pboard = sender.draggingPasteboard()
+                classes = [AppKit.NSURL]
+                options = {
+                    AppKit.NSPasteboardURLReadingFileURLsOnlyKey: AppKit.NSNumber.numberWithBool_(True)
+                }
+                urls = pboard.readObjectsForClasses_options_(classes, options) or []
+                files = {
+                    os.path.basename(url.filePathURL().absoluteString()): url.filePathURL().absoluteString().replace('file://', '')
+                    for url
+                    in urls
+                    if url.filePathURL().absoluteString().startswith('file://')
+                }
+
+                _dnd_state['paths'].update(files)
+
+            return super(BrowserView.WebKitHost, self).performDragOperation_(sender)
+
         def mouseDown_(self, event):
             i = BrowserView.get_instance('webkit', self)
             window = self.window()

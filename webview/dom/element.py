@@ -6,6 +6,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Union
 
 from webview.dom import DOMEventHandler, ManipulationMode
 from webview.dom.classlist import ClassList
+from webview.dom import _dnd_state
 from webview.dom.propsdict import DOMPropType, PropsDict
 from webview.event import EventContainer
 from webview.util import JavascriptException
@@ -373,6 +374,9 @@ class Element:
             self._event_handlers[event].append(callback)
             self._event_handler_ids[callback] = handler_id
 
+        if event == 'drop':
+            _dnd_state['num_listeners'] += 1
+
     @_exists
     def off(self, event: str, callback: Callable) -> None:
         handler_id = self._event_handler_ids.get(callback)
@@ -395,6 +399,9 @@ class Element:
         for handler in self._event_handlers[event]:
             if handler == callback:
                 self._event_handlers[event].remove(handler)
+
+        if event['type'] == 'drop':
+            _dnd_state['num_listeners'] = max(0, _dnd_state['num_listeners'] - 1)
 
     @_exists
     def __generate_events(self):

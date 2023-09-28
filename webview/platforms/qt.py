@@ -11,6 +11,7 @@ from threading import Event, Semaphore, Thread
 from uuid import uuid1
 
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows)
+from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -142,6 +143,30 @@ class BrowserView(QMainWindow):
                 menu.addAction(inspect_element)
 
             menu.exec_(event.globalPos())
+
+        def dragEnterEvent(self, e):
+            if e.mimeData().hasUrls and _dnd_state['num_listeners'] > 0:
+                e.acceptProposedAction()
+
+            return super().dragEnterEvent(e)
+
+        def dragMoveEvent(self, e):
+            if e.mimeData().hasUrls and _dnd_state['num_listeners'] > 0:
+                e.acceptProposedAction()
+
+            return super().dragMoveEvent(e)
+
+        def dropEvent(self, e):
+            if e.mimeData().hasUrls and _dnd_state['num_listeners'] > 0:
+                files = {
+                    os.path.basename(value.toString()): value.toString().replace('file://', '')
+                    for value
+                    in e.mimeData().urls()
+                    if value.toString().startswith('file://')
+                }
+                _dnd_state['paths'].update(files)
+
+            return super().dropEvent(e)
 
         # Create a new webview window pointing at the Remote debugger server
         def show_inspector(self):
@@ -304,6 +329,7 @@ class BrowserView(QMainWindow):
 
 
         self.setWindowFlags(flags)
+        self.setAcceptDrops(True)
 
         self.transparent = window.transparent
         if self.transparent:

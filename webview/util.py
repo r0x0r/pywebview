@@ -22,6 +22,7 @@ from uuid import uuid4
 import webview
 
 from webview.js import api, dom_json, mouse, event, npo
+from webview.dom import _dnd_state
 
 if TYPE_CHECKING:
     from webview.window import Window
@@ -213,11 +214,23 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         event = param['event']
         node_id = param['nodeId']
         element = window.dom._elements.get(node_id)
+        if not element:
+            return
 
-        if element:
-            for handler in element._event_handlers.get(event['type'], []):
-                thread = Thread(target=handler, args=(event,))
-                thread.start()
+        if event['type'] == 'drop':
+            files = event['dataTransfer']['files']
+            for i in range(files['length']):
+                file = files[str(i)]
+                path = _dnd_state['paths'].get(file['name'])
+                if not path:
+                    continue
+
+                file['pywebviewFullPath'] = path
+                del _dnd_state['paths'][file['name']]
+
+        for handler in element._event_handlers.get(event['type'], []):
+            thread = Thread(target=handler, args=(event,))
+            thread.start()
 
         return
 
