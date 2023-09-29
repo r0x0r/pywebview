@@ -195,7 +195,7 @@ def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
     def _call():
         try:
-            result = func(*func_params.values())
+            result = func(*func_params)
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{value: \'{result}\'}}'
         except Exception as e:
