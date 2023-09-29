@@ -84,11 +84,18 @@ window.pywebview = {
     },
 
     _stringify: function stringify(obj) {
+        function tryConvertToArray(obj) {
+            try {
+                return Array.prototype.slice.call(obj);
+            } catch (e) {
+                return obj;
+            }
+        }
+
         function serialize(obj, depth=0, visited=new WeakSet()) {
             try {
                 if (obj instanceof Node) return pywebview.domJSON.toJSON(obj, { metadata: false, serialProperties: true });
                 if (obj instanceof Window) return 'Window';
-                if (typeof obj === 'function') return 'function';
 
                 if (visited.has(obj)) {
                     return '[Circular Reference]';
@@ -96,6 +103,10 @@ window.pywebview = {
 
                 if (typeof obj === 'object' && obj !== null) {
                     visited.add(obj);
+
+                    if (obj.length !== undefined) {
+                        obj = tryConvertToArray(obj);
+                    }
 
                     if (Array.isArray(obj)) {
                         const arr = obj.map(value => serialize(value, depth + 1, visited));
@@ -105,6 +116,9 @@ window.pywebview = {
 
                     const newObj = {};
                     for (const key in obj) {
+                        if (typeof obj === 'function') {
+                            continue;
+                        }
                         newObj[key] = serialize(obj[key], depth + 1, visited);
                     }
                     visited.delete(obj);

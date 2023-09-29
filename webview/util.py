@@ -218,9 +218,8 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
             return
 
         if event['type'] == 'drop':
-            files = event['dataTransfer']['files']
-            for i in range(files['length']):
-                file = files[str(i)]
+            files = event['dataTransfer'].get('files', [])
+            for file in files:
                 path = _dnd_state['paths'].get(file['name'])
                 if not path:
                     continue

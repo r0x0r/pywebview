@@ -9,13 +9,12 @@ def on_drag(e):
 
 def on_drop(e):
     files = e['dataTransfer']['files']
-    if files['length'] == 0:
+    if len(files) == 0:
         return
 
     print(f'Event: {e["type"]}. Dropped files:')
 
-    for i in range(files['length']):
-        file = files[str(i)]
+    for file in files:
         print(file.get('pywebviewFullPath'))
 
 
@@ -35,4 +34,4 @@ if __name__ == '__main__':
             </html>
         '''
     )
-    webview.start(bind, window)
+    webview.start(bind, window, debug=True)
