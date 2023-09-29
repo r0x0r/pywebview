@@ -36,5 +36,5 @@ class DOMEventHandler:
 
 _dnd_state = {
     'num_listeners': 0,
-    'paths': {}
+    'paths': []
 }

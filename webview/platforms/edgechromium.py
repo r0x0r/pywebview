@@ -151,13 +151,13 @@ class EdgeChrome:
                 if _dnd_state['num_listeners'] == 0:
                     return
 
-                files = {
-                    os.path.basename(file.Path): file.Path
+                files = [
+                    (os.path.basename(file.Path), file.Path)
                     for file
                     in list(args.get_AdditionalObjects())
                     if 'CoreWebView2File' in str(type(file))
-                }
-                _dnd_state['paths'].update(files)
+                ]
+                _dnd_state['paths'] += files
                 return
 
             func_name, func_param, value_id = json.loads(return_value)

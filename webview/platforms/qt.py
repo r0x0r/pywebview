@@ -158,13 +158,13 @@ class BrowserView(QMainWindow):
 
         def dropEvent(self, e):
             if e.mimeData().hasUrls and _dnd_state['num_listeners'] > 0:
-                files = {
-                    os.path.basename(value.toString()): value.toString().replace('file://', '')
+                files = [
+                    (os.path.basename(value.toString()), value.toString().replace('file://', ''))
                     for value
                     in e.mimeData().urls()
                     if value.toString().startswith('file://')
-                }
-                _dnd_state['paths'].update(files)
+                ]
+                _dnd_state['paths'] += files
 
             return super().dropEvent(e)
 

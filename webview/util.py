@@ -220,12 +220,12 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         if event['type'] == 'drop':
             files = event['dataTransfer'].get('files', [])
             for file in files:
-                path = _dnd_state['paths'].get(file['name'])
-                if not path:
+                path = [item for item in _dnd_state['paths'] if item[0] == file['name']]
+                if len(path) == 0:
                     continue
 
-                file['pywebviewFullPath'] = path
-                del _dnd_state['paths'][file['name']]
+                file['pywebviewFullPath'] = path[0][1]
+                _dnd_state['paths'].remove(path[0])
 
         for handler in element._event_handlers.get(event['type'], []):
             thread = Thread(target=handler, args=(event,))

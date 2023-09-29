@@ -232,13 +232,13 @@ class BrowserView:
 
     def on_drag_data(self, widget, drag_context, x, y, data, info, time):
         if _dnd_state['num_listeners'] > 0 and data.get_text():
-            objects = {
-                os.path.basename(value): value.replace('file://', '')
+            files = [
+                (os.path.basename(value), value.replace('file://', ''))
                 for value
                 in data.get_text().split('\n')
                 if value.startswith('file://')
-            }
-            _dnd_state['paths'].update(objects)
+            ]
+            _dnd_state['paths'] += files
 
         return False
 

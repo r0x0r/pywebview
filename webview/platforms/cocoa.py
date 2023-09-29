@@ -277,14 +277,14 @@ class BrowserView:
                     AppKit.NSPasteboardURLReadingFileURLsOnlyKey: AppKit.NSNumber.numberWithBool_(True)
                 }
                 urls = pboard.readObjectsForClasses_options_(classes, options) or []
-                files = {
-                    os.path.basename(url.filePathURL().absoluteString()): url.filePathURL().absoluteString().replace('file://', '')
+                files = [
+                    (os.path.basename(url.filePathURL().absoluteString()), url.filePathURL().absoluteString().replace('file://', ''))
                     for url
                     in urls
                     if url.filePathURL().absoluteString().startswith('file://')
-                }
+                ]
 
-                _dnd_state['paths'].update(files)
+                _dnd_state['paths'] += files
 
             return super(BrowserView.WebKitHost, self).performDragOperation_(sender)
 
