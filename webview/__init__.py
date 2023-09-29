@@ -83,6 +83,11 @@ token = _TOKEN
 windows: list[Window] = []
 menus: list[Menu] = []
 
+APP_FLAGS = {
+    'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
+    'OPEN_DEVTOOLS_IN_DEBUG': True,
+}
+
 
 def start(
     func: Callable[..., None] | None = None,

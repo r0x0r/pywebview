@@ -14,7 +14,7 @@ import WebKit
 from objc import _objc, nil, registerMetaDataForSelector, selector, super
 from PyObjCTools import AppHelper
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows, APP_FLAGS)
 from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
@@ -200,7 +200,11 @@ class BrowserView:
             self, webview, config, action, features
         ):
             if action.navigationType() == getattr(WebKit, 'WKNavigationTypeLinkActivated', 0):
-                webbrowser.open(action.request().URL().absoluteString(), 2, True)
+
+                if APP_FLAGS['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
+                    webbrowser.open(action.request().URL().absoluteString(), 2, True)
+                else:
+                    webview.loadRequest_(action.request())
             return nil
 
         # WKNavigationDelegate method, invoked when a navigation decision needs to be made
@@ -480,7 +484,7 @@ class BrowserView:
             pass  # backspaceKeyNavigationEnabled does not exist prior to macOS Mojave
         config.preferences().setValue_forKey_(True, 'allowFileAccessFromFileURLs')
 
-        if _settings['debug']:
+        if _settings['debug'] and APP_FLAGS['OPEN_DEVTOOLS_IN_DEBUG']:
             config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)

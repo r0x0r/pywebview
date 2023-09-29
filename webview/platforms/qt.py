@@ -10,7 +10,7 @@ from copy import copy, deepcopy
 from threading import Event, Semaphore, Thread
 from uuid import uuid1
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows, APP_FLAGS)
 from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
@@ -55,7 +55,7 @@ if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos'
     # - https://www.google.com/search?q=arch+rstudio+no+sandbox
     # And sometimes it needs two "--no-sandbox" flags
 
-    environ_append("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox", "--no-sandbox")
+    environ_append("QTWEBENGINE_CHROMIUM_APP_FLAGS", "--no-sandbox", "--no-sandbox")
     logger.debug("Enable --no-sandbox flag for arch/manjaro/nixos")
 
 _main_window_created = Event()
@@ -209,23 +209,28 @@ class BrowserView(QMainWindow):
 
     # New-window-requests handler for Qt 5.5+ only
     class NavigationHandler(QWebPage):
-        def __init__(self, parent=None):
-            super(BrowserView.NavigationHandler, self).__init__(parent)
+        def __init__(self, page, parent):
+            self.parent = parent
+            super(BrowserView.NavigationHandler, self).__init__(page)
 
         def acceptNavigationRequest(self, url, type, is_main_frame):
-            webbrowser.open(url.toString(), 2, True)
-            return False
+            if APP_FLAGS['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
+                webbrowser.open(url.toString(), 2, True)
+                return False
+            else:
+                self.parent.load_url(url.toString())
+                return True
 
     class WebPage(QWebPage):
         def __init__(self, parent=None, profile=None):
             if is_webengine and profile:
-                super(BrowserView.WebPage, self).__init__(profile, parent)
+                super(BrowserView.WebPage, self).__init__(profile, parent.view)
             else:
-                super(BrowserView.WebPage, self).__init__(parent)
+                super(BrowserView.WebPage, self).__init__(parent.view)
 
             if is_webengine:
                 self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
-                self.nav_handler = BrowserView.NavigationHandler(self)
+                self.nav_handler = BrowserView.NavigationHandler(self, parent)
             else:
                 self.nav_handler = None
 
@@ -345,7 +350,7 @@ class BrowserView(QMainWindow):
 
         if is_webengine:
             environ_append(
-                'QTWEBENGINE_CHROMIUM_FLAGS',
+                'QTWEBENGINE_CHROMIUM_APP_FLAGS',
                 '--use-fake-ui-for-media-stream',
                 '--enable-features=AutoplayIgnoreWebAudio',
             )
@@ -371,7 +376,7 @@ class BrowserView(QMainWindow):
                 cookie_store.cookieAdded.connect(self.on_cookie_added)
                 cookie_store.cookieRemoved.connect(self.on_cookie_removed)
 
-                self.view.setPage(BrowserView.WebPage(self.view, profile=self.profile))
+            self.view.setPage(BrowserView.WebPage(self, profile=self.profile))
         elif not is_webengine and not _settings['private_mode']:
             logger.warning('qtwebkit does not support private_mode')
 
@@ -643,7 +648,7 @@ class BrowserView(QMainWindow):
             except:  # QT < 5.6
                 self.view.page().mainFrame().evaluateJavaScript(script)
 
-        if _settings['debug']:
+        if _settings['debug'] and APP_FLAGS['OPEN_DEVTOOLS_IN_DEBUG']:
             self.view.show_inspector()
 
     def set_title(self, title):

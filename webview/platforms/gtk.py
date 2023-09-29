@@ -6,7 +6,7 @@ from threading import Semaphore, Thread, main_thread
 from typing import Any
 from uuid import uuid1
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings,
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, APP_FLAGS,
                      parse_file_type, windows)
 from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
@@ -177,7 +177,9 @@ class BrowserView:
 
         if _settings['debug']:
             webkit_settings.enable_developer_extras = True
-            self.webview.get_inspector().show()
+
+            if APP_FLAGS['OPEN_DEVTOOLS_IN_DEBUG']:
+                self.webview.get_inspector().show()
         else:
             self.webview.connect('context-menu', lambda a, b, c, d: True)  # Disable context menu
 
@@ -295,8 +297,13 @@ class BrowserView:
             uri = decision.get_navigation_action().get_request().get_uri()
 
             if decision.get_frame_name() == '_blank':
-                webbrowser.open(uri, 2, True)
-                decision.ignore()
+
+                if APP_FLAGS['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
+                    webbrowser.open(uri, 2, True)
+                    decision.ignore()
+                else:
+                    self.load_url(uri)
+
 
     def on_mouse_release(self, sender, event):
         self.move_progress = False

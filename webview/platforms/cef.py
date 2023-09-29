@@ -12,7 +12,7 @@ from time import sleep
 
 from cefpython3 import cefpython as cef
 
-from webview import _settings
+from webview import _settings, APP_FLAGS
 from webview.js import dom_json
 from webview.js.css import disable_text_select
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
@@ -316,7 +316,7 @@ def create_browser(window, handle, alert_func, parent):
         window.events.shown.set()
         cef_browser.SendFocusEvent(True)
 
-        if _settings['debug']:
+        if _settings['debug'] and APP_FLAGS['OPEN_DEVTOOLS_IN_DEBUG']:
             cef_browser.ShowDevTools()
 
     window_info = cef.WindowInfo()
