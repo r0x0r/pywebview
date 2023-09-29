@@ -6,7 +6,7 @@ from threading import Semaphore
 
 import clr
 
-from webview import _settings, APP_FLAGS
+from webview import _settings, settings
 from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
@@ -174,7 +174,7 @@ class EdgeChrome:
     def on_new_window_request(self, sender, args):
         args.set_Handled(True)
 
-        if APP_FLAGS['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
+        if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
             webbrowser.open(str(args.get_Uri()))
         else:
             self.load_url(str(args.get_Uri()))
@@ -216,7 +216,7 @@ class EdgeChrome:
             self.html = self.pywebview_window.html
             self.load_html(self.pywebview_window.html, '')
 
-        if _settings['debug'] and APP_FLAGS['OPEN_DEVTOOLS_IN_DEBUG']:
+        if _settings['debug'] and settings['OPEN_DEVTOOLS_IN_DEBUG']:
             sender.CoreWebView2.OpenDevToolsWindow()
 
     def on_navigation_start(self, sender, args):

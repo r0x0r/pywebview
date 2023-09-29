@@ -17,8 +17,9 @@ html = """
 
 
 if __name__ == '__main__':
-    webview.FLAGS['OPEN_EXTERNAL_LINKS_IN_BROWSER'] = False
-    webview.FLAGS['OPEN_DEVTOOLS_IN_DEBUG'] = False
+    print(webview.settings)
+    webview.settings['OPEN_EXTERNAL_LINKS_IN_BROWSER'] = False
+    webview.settings['OPEN_DEVTOOLS_IN_DEBUG'] = False
 
     window = webview.create_window('Application flags', html=html)
     webview.start(debug=True)

@@ -69,6 +69,11 @@ SAVE_DIALOG = 30
 DRAG_REGION_SELECTOR = '.pywebview-drag-region'
 DEFAULT_HTTP_PORT = 42001
 
+settings = {
+    'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
+    'OPEN_DEVTOOLS_IN_DEBUG': True,
+}
+
 guilib = None
 _settings = {
     'debug': False,
@@ -83,10 +88,6 @@ token = _TOKEN
 windows: list[Window] = []
 menus: list[Menu] = []
 
-APP_FLAGS = {
-    'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
-    'OPEN_DEVTOOLS_IN_DEBUG': True,
-}
 
 
 def start(
