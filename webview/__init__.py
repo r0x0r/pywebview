@@ -75,7 +75,8 @@ _settings = {
     'storage_path': None,
     'private_mode': True,
     'user_agent': None,
-    'http_server': False
+    'http_server': False,
+    'ssl': False
 }
 
 token = _TOKEN
@@ -159,6 +160,7 @@ def start(
         keyfile, certfile = generate_ssl_cert()
         server_args['keyfile'] = keyfile
         server_args['certfile'] = certfile
+        _settings['ssl'] = True
     else:
         keyfile, certfile = None, None
 

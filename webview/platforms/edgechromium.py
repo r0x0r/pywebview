@@ -25,7 +25,7 @@ from System.Threading.Tasks import Task, TaskScheduler
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
-from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2Environment
+from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
@@ -62,16 +62,8 @@ class EdgeChrome:
 
         self.url = None
         self.ishtml = False
-        self.html = None
-
-        if window.real_url:
-            self.load_url(window.real_url)
-        elif window.html:
-            self.html = window.html
-            self.load_html(window.html, '')
-        else:
-            self.html = DEFAULT_HTML
-            self.load_html(DEFAULT_HTML, '')
+        self.html = DEFAULT_HTML
+        self.web_view.EnsureCoreWebView2Async(None)
 
     def evaluate_js(self, script, semaphore, js_result, callback=None):
         def _callback(result):
@@ -148,6 +140,9 @@ class EdgeChrome:
         self.ishtml = False
         self.web_view.Source = Uri(url)
 
+    def on_certificate_error(self, _, args):
+        args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
+
     def on_script_notify(self, _, args):
         try:
             return_value = args.get_WebMessageAsJson()
@@ -155,7 +150,7 @@ class EdgeChrome:
             if return_value == '"FilesDropped"':
                 if _dnd_state['num_listeners'] == 0:
                     return
-                
+
                 files = {
                     os.path.basename(file.Path): file.Path
                     for file
@@ -189,6 +184,10 @@ class EdgeChrome:
             return
 
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
+
+        if _settings['ssl']:
+            sender.CoreWebView2.ServerCertificateErrorDetected += self.on_certificate_error
+
         settings = sender.CoreWebView2.Settings
         settings.AreBrowserAcceleratorKeysEnabled = _settings['debug']
         settings.AreDefaultContextMenusEnabled = _settings['debug']
@@ -207,8 +206,11 @@ class EdgeChrome:
             # cookies persist even if UserDataFolder is in memory. We have to delete cookies manually.
             sender.CoreWebView2.CookieManager.DeleteAllCookies()
 
-        if self.html:
-            sender.CoreWebView2.NavigateToString(self.html)
+        if self.pywebview_window.real_url:
+            self.load_url(self.pywebview_window.real_url)
+        elif self.pywebview_window.html:
+            self.html = self.pywebview_window.html
+            self.load_html(self.pywebview_window.html, '')
 
         if _settings['debug']:
             sender.CoreWebView2.OpenDevToolsWindow()

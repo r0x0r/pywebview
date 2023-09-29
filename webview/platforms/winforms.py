@@ -790,5 +790,5 @@ def get_screens():
     return screens
 
 
-def add_tls_cert(certfile):
-    raise NotImplementedError
+def add_tls_cert(_):
+    return
