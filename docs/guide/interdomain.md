@@ -11,7 +11,7 @@ You must escape \n and \r among other escape sequences if they present in Javasc
 Invoking Python functions from Javascript can be done with two different approaches.
 
 - by exposing an instance of a Python class to the `js_api` of `create_window`. All the callable methods  of the class will be exposed to the JS domain as `pywebview.api.method_name` with correct parameter signatures. Method name must not start with an underscore. See an [example](/examples/js_api.html).
-- by passing your function(s) to window object's `expose(func)`. This will expose a function or functions to the JS domain as `pywebview.api.func_name`. Unlike JS API, `expose` allows to expose functions also at the runtime. If there is a name clash between JS API and functions exposed this way, the latter takes precedence. See an [example](/examples/expose.html).
+- by passing your function(s) to window object's `expose(func)`. This will expose a function or functions to the JS domain as `pywebview.api.func_name`. Unlike JS API, `expose` can expose functions dynamically at runtime. If there is a name clash between JS API and functions exposed this way, the latter takes precedence. See an [example](/examples/expose.html).
 
 Exposed function returns a promise that is resolved to its result value. Exceptions are rejected and encapsulated inside a Javascript `Error` object. Stacktrace is available via `error.stack`. Functions are executed in separate threads and are not thread-safe.
 
