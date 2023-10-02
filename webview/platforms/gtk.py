@@ -34,8 +34,6 @@ from gi.repository import WebKit2 as webkit
 renderer = 'gtkwebkit2'
 webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
 
-settings = {}
-
 _app = None
 _app_actions = {}  # action_label: function
 
@@ -144,6 +142,9 @@ class BrowserView:
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('decide-policy', self.on_navigation)
         self.webview.connect('drag-data-received', self.on_drag_data)
+
+        if settings['ALLOW_DOWNLOADS']:
+            web_context.connect('download-started', self.on_download_started)
 
         webkit_settings = self.webview.get_settings().props
         user_agent = settings.get('user_agent') or _settings['user_agent']
@@ -292,6 +293,24 @@ class BrowserView:
                 webview.run_javascript(disable_text_select)
             self._set_js_api()
 
+    def on_download_started(self, session, download):
+        download.connect('decide-destination', self.on_download_decide_destination)
+
+    def on_download_decide_destination(self, download, suggested_filename):
+        destination = self.create_file_dialog(
+            SAVE_DIALOG,
+            glib.get_user_special_dir(glib.UserDirectory.DIRECTORY_DOWNLOAD),
+            False,
+            suggested_filename,
+            (),
+        )
+
+        if destination:
+            destination_uri = glib.filename_to_uri(destination[0])
+            download.set_destination(destination_uri)
+        else:
+            download.cancel()
+
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) == webkit.NavigationPolicyDecision:
             uri = decision.get_navigation_action().get_request().get_uri()
@@ -303,7 +322,12 @@ class BrowserView:
                     decision.ignore()
                 else:
                     self.load_url(uri)
-
+        elif type(decision) == webkit.ResponsePolicyDecision:
+            if not decision.is_mime_type_supported():
+                self._download_filename = decision.get_response().get_suggested_filename()
+                decision.download()
+            else:
+                decision.use()
 
     def on_mouse_release(self, sender, event):
         self.move_progress = False

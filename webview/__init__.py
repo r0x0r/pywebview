@@ -70,6 +70,7 @@ DRAG_REGION_SELECTOR = '.pywebview-drag-region'
 DEFAULT_HTTP_PORT = 42001
 
 settings = {
+    'ALLOW_DOWNLOADS': False,
     'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
     'OPEN_DEVTOOLS_IN_DEBUG': True,
 }

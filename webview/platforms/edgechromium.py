@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import webbrowser
+import winreg
 from threading import Semaphore
 
 import clr
@@ -45,6 +46,7 @@ class EdgeChrome:
         props.AdditionalBrowserArguments = '--disable-features=ElasticOverscroll'
         self.web_view.CreationProperties = props
 
+        self.form = form
         form.Controls.Add(self.web_view)
 
         self.js_results = {}
@@ -192,6 +194,8 @@ class EdgeChrome:
         if _settings['ssl']:
             sender.CoreWebView2.ServerCertificateErrorDetected += self.on_certificate_error
 
+        sender.CoreWebView2.DownloadStarting += self.on_download_starting
+
         settings = sender.CoreWebView2.Settings
         settings.AreBrowserAcceleratorKeysEnabled = _settings['debug']
         settings.AreDefaultContextMenusEnabled = _settings['debug']
@@ -218,6 +222,29 @@ class EdgeChrome:
 
         if _settings['debug'] and settings['OPEN_DEVTOOLS_IN_DEBUG']:
             sender.CoreWebView2.OpenDevToolsWindow()
+
+    def on_download_starting(self, sender, args):
+        if not settings['ALLOW_DOWNLOADS']:
+            args.Cancel = True
+            return
+
+        dialog = WinForms.SaveFileDialog()
+
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders') as windows_key:
+                dialog.InitialDirectory = winreg.QueryValueEx(windows_key, '{374DE290-123F-4565-9164-39C4925E467B}')[0]
+        except Exception as e:
+            logger.exception(e)
+
+        dialog.Filter = self.pywebview_window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
+        dialog.RestoreDirectory = True
+        dialog.FileName = os.path.basename(args.ResultFilePath)
+
+        result = dialog.ShowDialog(self.form)
+        if result == WinForms.DialogResult.OK:
+            args.ResultFilePath = dialog.FileName
+        else:
+            args.Cancel = True
 
     def on_navigation_start(self, sender, args):
         pass

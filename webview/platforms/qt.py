@@ -381,6 +381,10 @@ class BrowserView(QMainWindow):
             logger.warning('qtwebkit does not support private_mode')
 
         self.view.page().loadFinished.connect(self.on_load_finished)
+
+        if settings['ALLOW_DOWNLOADS']:
+            self.view.page().profile().downloadRequested.connect(self.on_download_requested)
+
         self.setCentralWidget(self.view)
 
         self.create_window_trigger.connect(BrowserView.on_create_window)
@@ -650,6 +654,16 @@ class BrowserView(QMainWindow):
 
         if _settings['debug'] and settings['OPEN_DEVTOOLS_IN_DEBUG']:
             self.view.show_inspector()
+
+    def on_download_requested(self, download):
+        old_path = download.url().path()
+        suffix = QtCore.QFileInfo(old_path).suffix()
+        path, _ = QFileDialog.getSaveFileName(
+            self, self.localization['global.saveFile'], old_path, "*." + suffix
+        )
+        if path:
+            download.setPath(path)
+            download.accept()
 
     def set_title(self, title):
         self.set_title_trigger.emit(title)

@@ -23,7 +23,6 @@ from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pyw
 from webview.window import FixPoint
 
 
-
 settings = {}
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
@@ -138,6 +137,7 @@ class BrowserView:
             js_bridge_call(self.window, body['funcName'], body['params'], body['id'])
 
     class BrowserDelegate(AppKit.NSObject):
+
         # Display a JavaScript alert panel containing the specified message
         def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_completionHandler_(
             self, webview, message, frame, handler
@@ -228,6 +228,49 @@ class BrowserView:
 
             # Normal navigation, allow
             handler(getattr(WebKit, 'WKNavigationActionPolicyAllow', 1))
+
+        def webView_decidePolicyForNavigationResponse_decisionHandler_(self, webview, navigationResponse, decisionHandler):
+            if navigationResponse.canShowMIMEType():
+                decisionHandler(WebKit.WKNavigationResponsePolicyAllow)
+            elif webview_settings['ALLOW_DOWNLOADS']:
+                decisionHandler(WebKit.WKNavigationResponsePolicyCancel)
+
+                save_filename = navigationResponse.response().suggestedFilename()
+
+                save_dlg = AppKit.NSSavePanel.savePanel()
+                save_dlg.setTitle_(webview.pywebview_window.localization['global.saveFile'])
+                directory = Foundation.NSSearchPathForDirectoriesInDomains(Foundation.NSDownloadsDirectory, Foundation.NSUserDomainMask, True)[0]
+                save_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
+
+                if save_filename:  # set file name
+                    save_dlg.setNameFieldStringValue_(save_filename)
+
+                if save_dlg.runModal() == AppKit.NSFileHandlingPanelOKButton:
+                    self._file_name = save_dlg.filename()
+                else:
+                    self._file_name = None
+
+                dataTask = Foundation.NSURLSession.sharedSession().downloadTaskWithURL_completionHandler_(
+                    navigationResponse.response().URL(), self.download_completionHandler_error_
+                )
+                dataTask.resume()
+            else:
+                decisionHandler(WebKit.WKNavigationResponsePolicyCancel)
+
+        def download_completionHandler_error_(self, temporaryLocation, response, error):
+            if error is not None:
+                logger.error('Download error:', error)
+            else:
+                if temporaryLocation is not None:
+                    destinationURL = Foundation.NSURL.fileURLWithPath_(self._file_name)
+                    fileManager = Foundation.NSFileManager.defaultManager()
+                    try:
+                        fileManager.moveItemAtURL_toURL_error_(
+                            temporaryLocation, destinationURL, None
+                        )
+                    except Foundation.NSError as moveError:
+                        logger.exception(moveError)
+
 
         # Show the webview when it finishes loading
         def webView_didFinishNavigation_(self, webview, nav):
@@ -445,6 +488,7 @@ class BrowserView:
         self.window.setFrame_display_(frame, True)
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
+        self.webkit.pywebview_window = window
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()

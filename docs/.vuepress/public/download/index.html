@@ -1,0 +1,49 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Pywebview download test</title>
+  <meta name="description" content="pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window.">
+  <meta name="author" content="Roman Sirokov">
+
+  <link rel="stylesheet" href="/hello/tachyon.css">
+</head>
+
+<body class="bg-white near-black tc avenir fw1">
+  <div class="fl w-100 center">
+    <div class="center">
+      <img src="/logo.png" alt="pywebview" class="pv3" style="width: 200px"/>
+
+      <div class="mb5">
+        <a href="https://pywebview.flowrl.com/" class="green dim f4 link" target="_blank">Documentation</a>
+        <span class="ph2 near-white">•</span>
+        <a href="https://github.com/r0x0r/pywebview/" class="green dim f4 link" target="_blank">GitHub</a>
+        <span class="ph2 near-white">•</span>
+        <a href="https://github.com/r0x0r/pywebview/issues" class="green dim f4 link" target="_blank">Report a bug</a>
+      </div>
+
+      <h1 class="fw4">Test download</h1>
+    </div>
+
+    <p class="f3">
+       <a class="f6 link dim ph3 pv2 mb2 dib white bg-dark-green" href="/download/test-data.bin">Download file</a>
+    </p>
+  </div>
+
+  <script>
+    document.querySelector('#user-agent').innerText = navigator.userAgent;
+  </script>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-12494025-17"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-12494025-17');
+  </script>
+
+</body>
+</html>
