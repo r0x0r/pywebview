@@ -205,6 +205,7 @@ class EdgeChrome:
         settings.IsScriptEnabled = True
         settings.IsWebMessageEnabled = True
         settings.IsStatusBarEnabled = _settings['debug']
+        settings.IsSwipeNavigationEnabled = False
         settings.IsZoomControlEnabled = True
 
         if _settings['user_agent']:

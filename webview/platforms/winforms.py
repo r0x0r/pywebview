@@ -413,32 +413,37 @@ class BrowserView:
 
         def toggle_fullscreen(self):
             def _toggle():
-                screen = WinForms.Screen.FromControl(self)
-
                 if not self.is_fullscreen:
                     self.old_size = self.Size
                     self.old_state = self.WindowState
                     self.old_style = self.FormBorderStyle
                     self.old_location = self.Location
+                    self.old_screen = WinForms.Screen.FromControl(self)
                     self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
-                    self.Bounds = WinForms.Screen.PrimaryScreen.Bounds
+                    self.Bounds = WinForms.Screen.FromControl(self).Bounds
                     self.WindowState = WinForms.FormWindowState.Maximized
                     self.is_fullscreen = True
                     windll.user32.SetWindowPos(
                         self.Handle.ToInt32(),
                         None,
-                        screen.Bounds.X,
-                        screen.Bounds.Y,
-                        screen.Bounds.Width,
-                        screen.Bounds.Height,
+                        self.old_screen.Bounds.X,
+                        self.old_screen.Bounds.Y,
+                        self.old_screen.Bounds.Width,
+                        self.old_screen.Bounds.Height,
                         64,
                     )
                 else:
-                    self.Size = self.old_size
-                    self.WindowState = self.old_state
+                    self.WindowState = WinForms.FormWindowState.Normal
                     self.FormBorderStyle = self.old_style
-                    self.Location = self.old_location
                     self.is_fullscreen = False
+                    valid_location = any(screen == self.old_screen for screen in WinForms.Screen.AllScreens)
+
+                    if not valid_location:
+                        self.Size = self.old_size
+                        self.CenterToScreen()
+                    else:
+                        self.Location = self.old_location
+                        self.Size = self.old_size
 
             if self.InvokeRequired:
                 self.Invoke(Func[Type](_toggle))
