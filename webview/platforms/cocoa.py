@@ -186,7 +186,7 @@ class BrowserView:
                 handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@@')
 
             if files:
-                urls = [Foundation.NSURL.fileURLWithPath_(BrowserView.quote(i)) for i in files]
+                urls = [Foundation.NSURL.fileURLWithPath_(i) for i in files]
                 handler(urls)
             else:
                 handler(nil)
