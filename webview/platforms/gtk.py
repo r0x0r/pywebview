@@ -2,12 +2,13 @@ import json
 import logging
 import os
 import webbrowser
-from threading import Semaphore, Thread
+from threading import Semaphore, Thread, main_thread
 from typing import Any
 from uuid import uuid1
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings,
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, settings,
                      parse_file_type, windows)
+from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -32,8 +33,6 @@ from gi.repository import WebKit2 as webkit
 
 renderer = 'gtkwebkit2'
 webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
-
-settings = {}
 
 _app = None
 _app_actions = {}  # action_label: function
@@ -142,6 +141,10 @@ class BrowserView:
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('decide-policy', self.on_navigation)
+        self.webview.connect('drag-data-received', self.on_drag_data)
+
+        if settings['ALLOW_DOWNLOADS']:
+            web_context.connect('download-started', self.on_download_started)
 
         webkit_settings = self.webview.get_settings().props
         user_agent = settings.get('user_agent') or _settings['user_agent']
@@ -175,7 +178,9 @@ class BrowserView:
 
         if _settings['debug']:
             webkit_settings.enable_developer_extras = True
-            self.webview.get_inspector().show()
+
+            if settings['OPEN_DEVTOOLS_IN_DEBUG']:
+                self.webview.get_inspector().show()
         else:
             self.webview.connect('context-menu', lambda a, b, c, d: True)  # Disable context menu
 
@@ -228,6 +233,18 @@ class BrowserView:
 
         return False
 
+    def on_drag_data(self, widget, drag_context, x, y, data, info, time):
+        if _dnd_state['num_listeners'] > 0 and data.get_text():
+            files = [
+                (os.path.basename(value), value.replace('file://', ''))
+                for value
+                in data.get_text().split('\n')
+                if value.startswith('file://')
+            ]
+            _dnd_state['paths'] += files
+
+        return False
+
     def on_window_state_change(self, window, window_state):
         if window_state.changed_mask == Gdk.WindowState.ICONIFIED:
             if (
@@ -248,8 +265,8 @@ class BrowserView:
                 self.pywebview_window.events.restored.set()
 
     def on_js_bridge_call(self, manager, message):
-        func_name, param, value_id = json.loads(message.get_js_value().to_string())
-        js_bridge_call(self.pywebview_window, func_name, param, value_id)
+        body = json.loads(message.get_js_value().to_string())
+        js_bridge_call(self.pywebview_window, body['funcName'], body['params'], body['id'])
 
     def on_window_resize(self, window, allocation):
         if allocation.width != self._last_width or allocation.height != self._last_height:
@@ -276,13 +293,41 @@ class BrowserView:
                 webview.run_javascript(disable_text_select)
             self._set_js_api()
 
+    def on_download_started(self, session, download):
+        download.connect('decide-destination', self.on_download_decide_destination)
+
+    def on_download_decide_destination(self, download, suggested_filename):
+        destination = self.create_file_dialog(
+            SAVE_DIALOG,
+            glib.get_user_special_dir(glib.UserDirectory.DIRECTORY_DOWNLOAD),
+            False,
+            suggested_filename,
+            (),
+        )
+
+        if destination:
+            destination_uri = glib.filename_to_uri(destination[0])
+            download.set_destination(destination_uri)
+        else:
+            download.cancel()
+
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) == webkit.NavigationPolicyDecision:
             uri = decision.get_navigation_action().get_request().get_uri()
 
             if decision.get_frame_name() == '_blank':
-                webbrowser.open(uri, 2, True)
-                decision.ignore()
+
+                if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
+                    webbrowser.open(uri, 2, True)
+                    decision.ignore()
+                else:
+                    self.load_url(uri)
+        elif type(decision) == webkit.ResponsePolicyDecision:
+            if not decision.is_mime_type_supported():
+                self._download_filename = decision.get_response().get_suggested_filename()
+                decision.download()
+            else:
+                decision.use()
 
     def on_mouse_release(self, sender, event):
         self.move_progress = False
@@ -527,6 +572,7 @@ def create_window(window):
         create()
 
     if window.uid == 'master':
+        main_thread().pydev_do_not_trace = True # vs code debugger hang fix
         _app.connect('activate', create_master_callback)
         _app.run()
         _app = None

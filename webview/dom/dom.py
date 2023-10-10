@@ -15,15 +15,15 @@ class DOM:
 
     @property
     def body(self) -> Element:
-        return Element(self.__window, 'body')
+        self._elements.get('body', Element(self.__window, 'body'))
 
     @property
     def document(self) -> Element:
-        return Element(self.__window, 'document')
+        return self._elements.get('document', Element(self.__window, 'document'))
 
     @property
     def window(self) -> Element:
-        return Element(self.__window, 'window')
+        return self._elements.get('window', Element(self.__window, 'window'))
 
     def create_element(self, html: str, parent: Union[Element, str]=None, mode=ManipulationMode.LastChild) -> Element:
         self.__window.events.loaded.wait()

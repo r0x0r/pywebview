@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import ctypes
 import json
 import logging
@@ -13,13 +14,13 @@ import WebKit
 from objc import _objc, nil, registerMetaDataForSelector, selector, super
 from PyObjCTools import AppHelper
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows, settings as webview_settings)
+from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
 from webview.window import FixPoint
-
 
 
 settings = {}
@@ -130,12 +131,13 @@ class BrowserView:
             return self
 
         def userContentController_didReceiveScriptMessage_(self, controller, message):
-            func_name, param, value_id = json.loads(message.body())
-            if param is WebKit.WebUndefined.undefined():
-                param = None
-            js_bridge_call(self.window, func_name, param, value_id)
+            body = json.loads(message.body())
+            if body['params'] is WebKit.WebUndefined.undefined():
+                body['params'] = None
+            js_bridge_call(self.window, body['funcName'], body['params'], body['id'])
 
     class BrowserDelegate(AppKit.NSObject):
+
         # Display a JavaScript alert panel containing the specified message
         def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_completionHandler_(
             self, webview, message, frame, handler
@@ -198,7 +200,11 @@ class BrowserView:
             self, webview, config, action, features
         ):
             if action.navigationType() == getattr(WebKit, 'WKNavigationTypeLinkActivated', 0):
-                webbrowser.open(action.request().URL().absoluteString(), 2, True)
+
+                if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
+                    webbrowser.open(action.request().URL().absoluteString(), 2, True)
+                else:
+                    webview.loadRequest_(action.request())
             return nil
 
         # WKNavigationDelegate method, invoked when a navigation decision needs to be made
@@ -222,6 +228,49 @@ class BrowserView:
 
             # Normal navigation, allow
             handler(getattr(WebKit, 'WKNavigationActionPolicyAllow', 1))
+
+        def webView_decidePolicyForNavigationResponse_decisionHandler_(self, webview, navigationResponse, decisionHandler):
+            if navigationResponse.canShowMIMEType():
+                decisionHandler(WebKit.WKNavigationResponsePolicyAllow)
+            elif webview_settings['ALLOW_DOWNLOADS']:
+                decisionHandler(WebKit.WKNavigationResponsePolicyCancel)
+
+                save_filename = navigationResponse.response().suggestedFilename()
+
+                save_dlg = AppKit.NSSavePanel.savePanel()
+                save_dlg.setTitle_(webview.pywebview_window.localization['global.saveFile'])
+                directory = Foundation.NSSearchPathForDirectoriesInDomains(Foundation.NSDownloadsDirectory, Foundation.NSUserDomainMask, True)[0]
+                save_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
+
+                if save_filename:  # set file name
+                    save_dlg.setNameFieldStringValue_(save_filename)
+
+                if save_dlg.runModal() == AppKit.NSFileHandlingPanelOKButton:
+                    self._file_name = save_dlg.filename()
+                else:
+                    self._file_name = None
+
+                dataTask = Foundation.NSURLSession.sharedSession().downloadTaskWithURL_completionHandler_(
+                    navigationResponse.response().URL(), self.download_completionHandler_error_
+                )
+                dataTask.resume()
+            else:
+                decisionHandler(WebKit.WKNavigationResponsePolicyCancel)
+
+        def download_completionHandler_error_(self, temporaryLocation, response, error):
+            if error is not None:
+                logger.error('Download error:', error)
+            else:
+                if temporaryLocation is not None:
+                    destinationURL = Foundation.NSURL.fileURLWithPath_(self._file_name)
+                    fileManager = Foundation.NSFileManager.defaultManager()
+                    try:
+                        fileManager.moveItemAtURL_toURL_error_(
+                            temporaryLocation, destinationURL, None
+                        )
+                    except Foundation.NSError as moveError:
+                        logger.exception(moveError)
+
 
         # Show the webview when it finishes loading
         def webView_didFinishNavigation_(self, webview, nav):
@@ -267,6 +316,25 @@ class BrowserView:
             self.window().setAllowedFileTypes_(self.filter[option][1])
 
     class WebKitHost(WebKit.WKWebView):
+        def performDragOperation_(self, sender):
+            if sender.draggingSource() is None and _dnd_state['num_listeners'] > 0:
+                pboard = sender.draggingPasteboard()
+                classes = [AppKit.NSURL]
+                options = {
+                    AppKit.NSPasteboardURLReadingFileURLsOnlyKey: AppKit.NSNumber.numberWithBool_(True)
+                }
+                urls = pboard.readObjectsForClasses_options_(classes, options) or []
+                files = [
+                    (os.path.basename(url.filePathURL().absoluteString()), url.filePathURL().absoluteString().replace('file://', ''))
+                    for url
+                    in urls
+                    if url.filePathURL().absoluteString().startswith('file://')
+                ]
+
+                _dnd_state['paths'] += files
+
+            return super(BrowserView.WebKitHost, self).performDragOperation_(sender)
+
         def mouseDown_(self, event):
             i = BrowserView.get_instance('webkit', self)
             window = self.window()
@@ -420,6 +488,7 @@ class BrowserView:
         self.window.setFrame_display_(frame, True)
 
         self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
+        self.webkit.pywebview_window = window
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
@@ -459,7 +528,7 @@ class BrowserView:
             pass  # backspaceKeyNavigationEnabled does not exist prior to macOS Mojave
         config.preferences().setValue_forKey_(True, 'allowFileAccessFromFileURLs')
 
-        if _settings['debug']:
+        if _settings['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)

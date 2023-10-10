@@ -2,11 +2,13 @@ import json
 import logging
 import os
 import webbrowser
+import winreg
 from threading import Semaphore
 
 import clr
 
-from webview import _settings
+from webview import _settings, settings
+from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
@@ -24,7 +26,7 @@ from System.Threading.Tasks import Task, TaskScheduler
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
-from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2Environment
+from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
@@ -44,6 +46,7 @@ class EdgeChrome:
         props.AdditionalBrowserArguments = '--disable-features=ElasticOverscroll'
         self.web_view.CreationProperties = props
 
+        self.form = form
         form.Controls.Add(self.web_view)
 
         self.js_results = {}
@@ -61,16 +64,8 @@ class EdgeChrome:
 
         self.url = None
         self.ishtml = False
-        self.html = None
-
-        if window.real_url:
-            self.load_url(window.real_url)
-        elif window.html:
-            self.html = window.html
-            self.load_html(window.html, '')
-        else:
-            self.html = DEFAULT_HTML
-            self.load_html(DEFAULT_HTML, '')
+        self.html = DEFAULT_HTML
+        self.web_view.EnsureCoreWebView2Async(None)
 
     def evaluate_js(self, script, semaphore, js_result, callback=None):
         def _callback(result):
@@ -147,9 +142,26 @@ class EdgeChrome:
         self.ishtml = False
         self.web_view.Source = Uri(url)
 
+    def on_certificate_error(self, _, args):
+        args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
+
     def on_script_notify(self, _, args):
         try:
             return_value = args.get_WebMessageAsJson()
+
+            if return_value == '"FilesDropped"':
+                if _dnd_state['num_listeners'] == 0:
+                    return
+
+                files = [
+                    (os.path.basename(file.Path), file.Path)
+                    for file
+                    in list(args.get_AdditionalObjects())
+                    if 'CoreWebView2File' in str(type(file))
+                ]
+                _dnd_state['paths'] += files
+                return
+
             func_name, func_param, value_id = json.loads(return_value)
             func_param = json.loads(func_param)
             if func_name == 'alert':
@@ -161,9 +173,13 @@ class EdgeChrome:
         except Exception:
             logger.exception('Exception occurred during on_script_notify')
 
-    def on_new_window_request(self, _, args):
+    def on_new_window_request(self, sender, args):
         args.set_Handled(True)
-        webbrowser.open(str(args.get_Uri()))
+
+        if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
+            webbrowser.open(str(args.get_Uri()))
+        else:
+            self.load_url(str(args.get_Uri()))
 
     def on_webview_ready(self, sender, args):
         if not args.IsSuccess:
@@ -174,6 +190,12 @@ class EdgeChrome:
             return
 
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
+
+        if _settings['ssl']:
+            sender.CoreWebView2.ServerCertificateErrorDetected += self.on_certificate_error
+
+        sender.CoreWebView2.DownloadStarting += self.on_download_starting
+
         settings = sender.CoreWebView2.Settings
         settings.AreBrowserAcceleratorKeysEnabled = _settings['debug']
         settings.AreDefaultContextMenusEnabled = _settings['debug']
@@ -183,6 +205,7 @@ class EdgeChrome:
         settings.IsScriptEnabled = True
         settings.IsWebMessageEnabled = True
         settings.IsStatusBarEnabled = _settings['debug']
+        settings.IsSwipeNavigationEnabled = False
         settings.IsZoomControlEnabled = True
 
         if _settings['user_agent']:
@@ -192,11 +215,37 @@ class EdgeChrome:
             # cookies persist even if UserDataFolder is in memory. We have to delete cookies manually.
             sender.CoreWebView2.CookieManager.DeleteAllCookies()
 
-        if self.html:
-            sender.CoreWebView2.NavigateToString(self.html)
+        if self.pywebview_window.real_url:
+            self.load_url(self.pywebview_window.real_url)
+        elif self.pywebview_window.html:
+            self.html = self.pywebview_window.html
+            self.load_html(self.pywebview_window.html, '')
 
-        if _settings['debug']:
+        if _settings['debug'] and settings['OPEN_DEVTOOLS_IN_DEBUG']:
             sender.CoreWebView2.OpenDevToolsWindow()
+
+    def on_download_starting(self, sender, args):
+        if not settings['ALLOW_DOWNLOADS']:
+            args.Cancel = True
+            return
+
+        dialog = WinForms.SaveFileDialog()
+
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders') as windows_key:
+                dialog.InitialDirectory = winreg.QueryValueEx(windows_key, '{374DE290-123F-4565-9164-39C4925E467B}')[0]
+        except Exception as e:
+            logger.exception(e)
+
+        dialog.Filter = self.pywebview_window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
+        dialog.RestoreDirectory = True
+        dialog.FileName = os.path.basename(args.ResultFilePath)
+
+        result = dialog.ShowDialog(self.form)
+        if result == WinForms.DialogResult.OK:
+            args.ResultFilePath = dialog.FileName
+        else:
+            args.Cancel = True
 
     def on_navigation_start(self, sender, args):
         pass

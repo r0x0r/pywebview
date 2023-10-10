@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, Optional, Union
 from webview.util import css_to_camel, escape_quotes
 
 

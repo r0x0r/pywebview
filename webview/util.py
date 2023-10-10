@@ -22,9 +22,10 @@ from uuid import uuid4
 import webview
 
 from webview.js import api, dom_json, mouse, event, npo
+from webview.dom import _dnd_state
 
 if TYPE_CHECKING:
-    from .window import Window
+    from webview.window import Window
 
 _TOKEN = uuid4().hex
 
@@ -197,7 +198,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
     print("js_bridge_call", func_name)
     def _call():
         try:
-            result = func(*func_params.values())
+            result = func(*func_params)
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{value: \'{result}\'}}'
         except Exception as e:
@@ -217,13 +218,23 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         event = param['event']
         node_id = param['nodeId']
         element = window.dom._elements.get(node_id)
-        print(event)
-        if element:
-            for handler in element._event_handlers.get(event['type'], []):
-                print("handler")
-                thread = Thread(target=handler, args=(event,))
-                thread.start()
-                print('thread started')
+
+        if not element:
+            return
+
+        if event['type'] == 'drop':
+            files = event['dataTransfer'].get('files', [])
+            for file in files:
+                path = [item for item in _dnd_state['paths'] if item[0] == file['name']]
+                if len(path) == 0:
+                    continue
+
+                file['pywebviewFullPath'] = path[0][1]
+                _dnd_state['paths'].remove(path[0])
+
+        for handler in element._event_handlers.get(event['type'], []):
+            thread = Thread(target=handler, args=(event,))
+            thread.start()
 
         return
 

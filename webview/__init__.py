@@ -69,18 +69,26 @@ SAVE_DIALOG = 30
 DRAG_REGION_SELECTOR = '.pywebview-drag-region'
 DEFAULT_HTTP_PORT = 42001
 
+settings = {
+    'ALLOW_DOWNLOADS': False,
+    'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
+    'OPEN_DEVTOOLS_IN_DEBUG': True,
+}
+
 guilib = None
 _settings = {
     'debug': False,
     'storage_path': None,
     'private_mode': True,
     'user_agent': None,
-    'http_server': False
+    'http_server': False,
+    'ssl': False
 }
 
 token = _TOKEN
 windows: list[Window] = []
 menus: list[Menu] = []
+
 
 
 def start(
@@ -159,6 +167,7 @@ def start(
         keyfile, certfile = generate_ssl_cert()
         server_args['keyfile'] = keyfile
         server_args['certfile'] = certfile
+        _settings['ssl'] = True
     else:
         keyfile, certfile = None, None
 
