@@ -18,8 +18,8 @@ html = """
 <style>
     #response-container {
         display: none;
-        padding: 3rem;
-        margin: 3rem 5rem;
+        padding: 1rem;
+        margin: 3rem 5%;
         font-size: 120%;
         border: 5px dashed #ccc;
     }

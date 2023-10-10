@@ -385,6 +385,8 @@ class Window:
             sync_eval = 'window.external.return_result(pywebview._stringify(value), "{0}");'.format(
                 unique_id,
             )
+        elif self.gui.renderer == 'android-webkit':
+            sync_eval = 'return pywebview._stringify(value);'
         else:
             sync_eval = 'pywebview._stringify(value);'
 
@@ -408,7 +410,6 @@ class Window:
                 try {{
                     value = eval("{escape_string(script)}");
                 }} catch (e) {{
-                    debugger;
                     value = {{
                         name: e.name,
                         pywebviewJavascriptError420: true,
@@ -421,6 +422,13 @@ class Window:
 
         if self.gui.renderer == 'cef':
             result = self.gui.evaluate_js(escaped_script, self.uid, unique_id)
+        elif self.gui.renderer == 'android-webkit':
+            escaped_script = f"""
+                (function() {{
+                    {escaped_script}
+                }})()
+            """
+            result = self.gui.evaluate_js(escaped_script, self.uid)
         else:
             result = self.gui.evaluate_js(escaped_script, self.uid)
 

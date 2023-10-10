@@ -28,7 +28,8 @@ window.pywebview = {
                 case 'mshtml':
                 case 'cef':
                 case 'qtwebkit':
-                    return window.external.call(funcName, JSON.stringify(params), id);
+                case 'android-webkit':
+                    return window.external.call(funcName, pywebview._stringify(params), id);
                 case 'chromium':
                     return window.chrome.webview.postMessage([funcName, pywebview._stringify(params), id]);
                 case 'cocoa':

@@ -24,3 +24,4 @@ _version.py
 docs/examples
 /main.py
 .buildozer
+*.apk

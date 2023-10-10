@@ -79,6 +79,9 @@ def get_app_root() -> str:
             if os.path.exists(path):
                 return path if os.path.isdir(path) else os.path.dirname(path)
 
+    if hasattr(sys, 'getandroidapilevel'):
+        return os.getenv('ANDROID_APP_PATH')
+
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
@@ -187,11 +190,11 @@ def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
             'easy_drag': str(platform == 'chromium' and window.easy_drag and window.frameless).lower(),
         }
     )
-
     return js_code
 
 
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
+    print("js_bridge_call", func_name)
     def _call():
         try:
             result = func(*func_params.values())
@@ -210,14 +213,17 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         return
 
     if func_name == 'pywebviewEventHandler':
+        print("pywebviewEventHandler")
         event = param['event']
         node_id = param['nodeId']
         element = window.dom._elements.get(node_id)
-
+        print(event)
         if element:
             for handler in element._event_handlers.get(event['type'], []):
+                print("handler")
                 thread = Thread(target=handler, args=(event,))
                 thread.start()
+                print('thread started')
 
         return
 

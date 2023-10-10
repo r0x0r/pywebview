@@ -317,6 +317,7 @@ def create_window(
 def generate_ssl_cert():
     # https://cryptography.io/en/latest/x509/tutorial/#creating-a-self-signed-certificate
     from cryptography import x509
+    from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import rsa
     from cryptography.x509.oid import NameOID
@@ -326,6 +327,7 @@ def generate_ssl_cert():
         key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048,
+            backend=default_backend()
         )
         key_pem = key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -357,7 +359,7 @@ def generate_ssl_cert():
                 x509.SubjectAlternativeName([x509.DNSName('localhost')]),
                 critical=False,
             )
-            .sign(key, hashes.SHA256())
+            .sign(key, hashes.SHA256(), backend=default_backend())
         )
         cert_pem = cert.public_bytes(serialization.Encoding.PEM)
         f.write(cert_pem)
