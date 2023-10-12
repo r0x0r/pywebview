@@ -42,7 +42,7 @@ If your company is looking for support with _pywebview_ or needs a hand with ful
 
 ### Code Contributors
 
-This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
+This project exists thanks to all the people who contribute. [[Contribute](docs/contributing/README.md)].
 <a href="https://github.com/r0x0r/pywebview/graphs/contributors"><img src="https://opencollective.com/pywebview/contributors.svg?width=890&button=false" /></a>
 
 ### Financial Contributors
