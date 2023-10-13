@@ -22,6 +22,7 @@ html = """
         margin: 3rem 5%;
         font-size: 120%;
         border: 5px dashed #ccc;
+        word-wrap: break-word;
     }
 
     label {

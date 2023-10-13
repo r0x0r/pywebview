@@ -28,7 +28,6 @@
     var localStorageContainer = document.getElementById('localstorage')
 
     window.addEventListener('pywebviewready', showCookies)
-
     function setCookies() {
       localStorage.setItem('pywebview', 'Local storage is set')
       document.cookie = 'pywebview=Cookies are set; expires=Thu, 18  Dec 2033 12:00:00 UTC;'

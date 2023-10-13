@@ -25,3 +25,5 @@ docs/examples
 /main.py
 .buildozer
 *.apk
+.gradle
+gradle*

@@ -1,0 +1,27 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+// plugins {
+//     // Apply the foojay-resolver plugin to allow automatic download of JDKs
+//     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
+// }
+
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url 'https://maven.google.com'
+        }
+    }
+}
+
+rootProject.name = 'pywebview-android'
+include('src')

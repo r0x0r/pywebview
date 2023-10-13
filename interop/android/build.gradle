@@ -1,0 +1,34 @@
+plugins {
+     id 'com.android.library' version '8.1.2' apply true
+}
+// apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 31
+
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 31
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'lib/src/main/java'
+    }
+
+    namespace "com.pywebview"
+}
+
+task androidSourcesJar(type: Jar) {
+    getArchiveClassifier().set('sources')
+    from android.sourceSets.main.java.srcDirs
+}
+
+artifacts {
+    archives androidSourcesJar
+}

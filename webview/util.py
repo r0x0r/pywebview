@@ -195,7 +195,6 @@ def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
 
 
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
-    print("js_bridge_call", func_name)
     def _call():
         try:
             result = func(*func_params)
@@ -214,7 +213,6 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         return
 
     if func_name == 'pywebviewEventHandler':
-        print("pywebviewEventHandler")
         event = param['event']
         node_id = param['nodeId']
         element = window.dom._elements.get(node_id)
