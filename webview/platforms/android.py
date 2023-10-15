@@ -209,6 +209,7 @@ class BrowserView(Widget):
             self.dialog = None
 
         def quit(dialog, which):
+            self.window.closed.set()
             self.dialog = None
             app.stop()
 
@@ -230,10 +231,18 @@ class BrowserView(Widget):
     def _back_pressed(self):
         if self.webview.canGoBack():
             self.webview.goBack()
-        elif self.window.confirm_close:
+            return
+        should_cancel = self.window.closing.set()
+
+        if should_cancel:
+            return
+
+        if self.window.confirm_close:
             self._quit_confirmation()
         else:
             app.pause()
+            self.window.closed.set()
+
 
         return True
 
