@@ -88,6 +88,15 @@ class BrowserView:
             if i.pywebview_window in windows:
                 windows.remove(i.pywebview_window)
 
+            i.webkit.setNavigationDelegate_(None)
+            i.webkit.setUIDelegate_(None)
+
+            # this seems to be a bug in WkWebView, so we need to load blank html
+            # see https://stackoverflow.com/questions/27410413/wkwebview-embed-video-keeps-playing-sound-after-release
+            i.webkit.loadHTMLString_baseURL_('', None)
+            i.webkit.removeFromSuperview()
+            i.webkit = None
+
             i.closed.set()
 
             if BrowserView.instances == {}:
