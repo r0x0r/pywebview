@@ -107,31 +107,40 @@ class BrowserView:
 
         def windowDidResize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            size = i.window.frame().size
-            i.pywebview_window.events.resized.set(size.width, size.height)
+
+            if i:
+                size = i.window.frame().size
+                i.pywebview_window.events.resized.set(size.width, size.height)
 
         def windowDidMiniaturize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.events.minimized.set()
+
+            if i:
+                i.pywebview_window.events.minimized.set()
 
         def windowDidDeminiaturize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.events.restored.set()
+
+            if i:
+                i.pywebview_window.events.restored.set()
 
         def windowDidEnterFullScreen_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.events.maximized.set()
+            if i:
+                i.pywebview_window.events.maximized.set()
 
         def windowDidExitFullScreen_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.events.restored.set()
+            if i:
+                i.pywebview_window.events.restored.set()
 
         def windowDidMove_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            frame = i.window.frame()
-            screen = i.window.screen().frame()
-            flipped_y = screen.size.height - frame.size.height - frame.origin.y
-            i.pywebview_window.events.moved.set(frame.origin.x, flipped_y)
+            if i:
+                frame = i.window.frame()
+                screen = i.window.screen().frame()
+                flipped_y = screen.size.height - frame.size.height - frame.origin.y
+                i.pywebview_window.events.moved.set(frame.origin.x, flipped_y)
 
     class JSBridge(AppKit.NSObject):
         def initWithObject_(self, window):
