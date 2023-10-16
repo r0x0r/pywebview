@@ -7,7 +7,7 @@ actionLink: /guide/
 footer: BSD Licensed | Copyright © 2014–present Roman Sirokov
 ---
 <div class='center version'>
-Current version: <strong>4.3.3</strong><br/>
+Current version: <strong>5.0</strong><br/>
 <a href='/changelog.html'>What's new</a>
 </div>
 
@@ -40,6 +40,12 @@ Explore [documentation](/guide) or [examples](/examples). If React is your thing
 # Support the project
 
 If you find _pywebview_ useful, please support it.
+
+<div class="center spc-m spc-bottom">
+    <a href="https://github.com/sponsors/r0x0r"  target="_blank">
+        <img src="/github-sponsors.png" alt="Become a sponsor"></img>
+    </a>
+</div>
 
 <div class="center spc-m spc-bottom">
     <a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button">

@@ -1,5 +1,41 @@
 # Changelog
 
+## 5.0
+
+_Released xx/xx/2023_
+
+### ⚡ Features
+
+- Android support. _pywebview_ can now be used on Android devices with help of [buildozer](https://buildozer.readthedocs.io/en/latest/) in producing APK. #377
+- DOM manipulation, traversal and events. _pywebview_  provides a set of functions for mutating DOM nodes and traversing DOM, as well as you can subscribe to DOM events directly in Python. #1218
+- Application settings `webview.settings`. You can now override default behaviour of _pywebview_ by modifying this dictionary. Currently application settings include ````
+webview.settings = {
+    'ALLOW_DOWNLOADS': False, # Allow file downloads
+    'OPEN_EXTERNAL_LINKS_IN_BROWSER': True, # Open target=_blank links in an external browser
+    'OPEN_DEVTOOLS_IN_DEBUG': True, # Automatically open devtools when `start(debug=True)`.
+}
+```
+- Support for file downloads. To enable file downloads, set `webview.settings['ALLOW_DOWNLOADS'] = True`. Disabled by default.
+- Full path support for file drag n drop. To get a full path of the dragged file, _pywebview_ introduces `event['domTransfer']['files'][0]['pywebviewFullPath']` value in the `drop` event caught on the Python side. To subscribe to the event you use `window.dom.document.events.drop += on_drop`.
+
+### 🚀 Improvements
+
+- [All] A more powerful JS data serializer capable of handling different data types and detecting circular references #1217
+- [ALL] BREAKING: `window.get_elements` returns a list of instances of a new `Element` object.
+- [All] BREAKING: `evaluate_js` throws a `JavascriptException` if executed codes raises an error
+- [Windows] WebView2 control updated to 1.0.2045.28
+- [Windows] Disabled swipe navigation.
+- [Windows] Add SSL support for local HTTP server.
+- [GTK] WebKit updated to 4.1. Thanks @starnight.
+
+### 🐞 Bug fixes
+
+- [All] Do not start http server for `file://` urls. Thanks @glorpen
+- [Cocoa] Fix uploading files with spaces in their names.
+- [Cocoa] Fix return value of confirmation dialog.
+- [Windows] Fix fullscreen issues with multiple monitors.
+- [QT] Set the inital directory for open folder dialog. Thanks @justincui
+
 ## 4.3.3
 
 _Released 08/09/2023_

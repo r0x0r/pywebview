@@ -90,7 +90,6 @@ windows: list[Window] = []
 menus: list[Menu] = []
 
 
-
 def start(
     func: Callable[..., None] | None = None,
     args: Iterable[Any] | None = None,
@@ -130,6 +129,7 @@ def start(
     :param menu: List of menus to be included in the app menu
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
+    :param ssl: Enable SSL for local HTTP server. Default is False.
     """
     global guilib
 
