@@ -66,6 +66,8 @@ renderer = 'wkwebview'
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
+    app.setActivationPolicy_(0)
+
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
 
     class AppDelegate(AppKit.NSObject):
