@@ -35,6 +35,7 @@ dependencies = [
     "pyobjc-framework-WebKit;sys_platform=='darwin'",
     "pyobjc-framework-security;sys_platform=='darwin'",
     "QtPy;sys_platform=='openbsd6'",
+    "importlib_resources; python_version < '3.7'",
     "proxy_tools",
     "bottle",
     "typing_extensions",

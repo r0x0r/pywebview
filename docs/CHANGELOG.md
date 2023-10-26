@@ -24,17 +24,28 @@ webview.settings = {
 - [ALL] BREAKING: `window.get_elements` returns a list of instances of a new `Element` object.
 - [All] BREAKING: `evaluate_js` throws a `JavascriptException` if executed codes raises an error
 - [Windows] WebView2 control updated to 1.0.2045.28
-- [Windows] Disabled swipe navigation.
 - [Windows] Add SSL support for local HTTP server.
-- [GTK] WebKit updated to 4.1. Thanks @starnight.
+
+
+## 4.4
+
+_Released 26/10/2023_
 
 ### 🐞 Bug fixes
 
-- [All] Do not start http server for `file://` urls. Thanks @glorpen
-- [Cocoa] Fix uploading files with spaces in their names.
-- [Cocoa] Fix return value of confirmation dialog.
-- [Windows] Fix fullscreen issues with multiple monitors.
-- [QT] Set the inital directory for open folder dialog. Thanks @justincui
+- [Cocoa] Window not retaining focus on keystrokes. #1187
+- [Cocoa] App crashing when closing fullscreen window. #1236
+- [Cocoa] Video keeps playing after closing window. #1235
+- [Cocoa] Uploaded file is empty if filename contains a space. #1231
+- [Cocoa] Return value of confirmation dialog created by `window.confirm`. #976
+- [Windows] Fullscreen application disappearing after disconnecting extended display. #1229
+
+### 🚀 Improvements
+
+- [All] Don't start http server for file:// urls. Thanks @glorpen
+- [GTK] Bump WebKit2 to 4.1. Thanks @starnight
+- [Windows] Disable swipe navigation #1230
+- [Windows] Window is changed to fullscreen on the current monitor in a multi-monitor setup.
 
 ## 4.3.3
 
