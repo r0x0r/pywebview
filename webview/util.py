@@ -51,9 +51,8 @@ def is_app(url: str | None) -> bool:
 
 
 def is_local_url(url: str | None) -> bool:
-    return not (
-        (is_app(url)) or ((not url) or (url.startswith('http://')) or (url.startswith('https://')))
-    )
+    return not ((is_app(url)) or (
+            (not url) or (url.startswith('http://')) or (url.startswith('https://')) or url.startswith('file://')))
 
 
 def needs_server(urls: list[str]) -> bool:

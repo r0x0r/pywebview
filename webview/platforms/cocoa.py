@@ -63,6 +63,8 @@ renderer = 'wkwebview'
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
+    app.setActivationPolicy_(0)
+
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
 
     class AppDelegate(AppKit.NSObject):
@@ -88,6 +90,15 @@ class BrowserView:
             if i.pywebview_window in windows:
                 windows.remove(i.pywebview_window)
 
+            i.webkit.setNavigationDelegate_(None)
+            i.webkit.setUIDelegate_(None)
+
+            # this seems to be a bug in WkWebView, so we need to load blank html
+            # see https://stackoverflow.com/questions/27410413/wkwebview-embed-video-keeps-playing-sound-after-release
+            i.webkit.loadHTMLString_baseURL_('', None)
+            i.webkit.removeFromSuperview()
+            i.webkit = None
+
             i.closed.set()
 
             if BrowserView.instances == {}:
@@ -95,31 +106,40 @@ class BrowserView:
 
         def windowDidResize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            size = i.window.frame().size
-            i.pywebview_window.events.resized.set(size.width, size.height)
+
+            if i:
+                size = i.window.frame().size
+                i.pywebview_window.events.resized.set(size.width, size.height)
 
         def windowDidMiniaturize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.events.minimized.set()
+
+            if i:
+                i.pywebview_window.events.minimized.set()
 
         def windowDidDeminiaturize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.events.restored.set()
+
+            if i:
+                i.pywebview_window.events.restored.set()
 
         def windowDidEnterFullScreen_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.events.maximized.set()
+            if i:
+                i.pywebview_window.events.maximized.set()
 
         def windowDidExitFullScreen_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            i.pywebview_window.events.restored.set()
+            if i:
+                i.pywebview_window.events.restored.set()
 
         def windowDidMove_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
-            frame = i.window.frame()
-            screen = i.window.screen().frame()
-            flipped_y = screen.size.height - frame.size.height - frame.origin.y
-            i.pywebview_window.events.moved.set(frame.origin.x, flipped_y)
+            if i:
+                frame = i.window.frame()
+                screen = i.window.screen().frame()
+                flipped_y = screen.size.height - frame.size.height - frame.origin.y
+                i.pywebview_window.events.moved.set(frame.origin.x, flipped_y)
 
     class JSBridge(AppKit.NSObject):
         def initWithObject_(self, window):
@@ -186,7 +206,7 @@ class BrowserView:
                 handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@@')
 
             if files:
-                urls = [Foundation.NSURL.fileURLWithPath_(BrowserView.quote(i)) for i in files]
+                urls = [Foundation.NSURL.fileURLWithPath_(i) for i in files]
                 handler(urls)
             else:
                 handler(nil)
