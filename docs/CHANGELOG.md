@@ -1,5 +1,25 @@
 # Changelog
 
+## 4.4
+
+_Released 26/10/2023_
+
+### 🐞 Bug fixes
+
+- [Cocoa] Window not retaining focus on keystrokes. #1187
+- [Cocoa] App crashing when closing fullscreen window. #1236
+- [Cocoa] Video keeps playing after closing window. #1235
+- [Cocoa] Uploaded file is empty if filename contains a space. #1231
+- [Cocoa] Return value of confirmation dialog created by `window.confirm`. #976
+- [Windows] Fullscreen application disappearing after disconnecting extended display. #1229
+
+### 🚀 Improvements
+
+- [All] Don't start http server for file:// urls. Thanks @glorpen
+- [GTK] Bump WebKit2 to 4.1. Thanks @starnight
+- [Windows] Disable swipe navigation #1230
+- [Windows] Window is changed to fullscreen on the current monitor in a multi-monitor setup.
+
 ## 4.3.3
 
 _Released 08/09/2023_
