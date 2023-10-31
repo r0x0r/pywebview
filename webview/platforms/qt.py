@@ -20,8 +20,6 @@ from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
 
-settings = {}
-
 from qtpy import QtCore
 
 logger.debug('Using Qt %s' % QtCore.__version__)
