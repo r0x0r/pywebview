@@ -1,5 +1,14 @@
 # Changelog
 
+
+## 4.4.1
+
+_Released 31/10/2023_
+
+### 🐞 Bug fixes
+
+- `GTK` Fallback for Webkit4.0 if 4.1 not found.
+
 ## 4.4
 
 _Released 26/10/2023_
