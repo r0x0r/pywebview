@@ -1,7 +1,7 @@
 image:
-  - Visual Studio 2022
   - Ubuntu2004
   - macos
+  - Visual Studio 2022
 for:
   -
     matrix:
@@ -26,7 +26,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
+        - image: Ubuntu2004
     environment:
       PYWEBVIEW_GUI: qt
     install:
@@ -39,7 +39,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu
+        - image: Ubuntu2004
     environment:
       PYWEBVIEW_GUI: qt
     install:
@@ -54,7 +54,7 @@ for:
       only:
         - image: macos
     install:
-      - pip3 install pyobjc pytest proxy_tools bottle six
+      - pip3 install --user pyobjc pytest proxy_tools bottle six
     test_script:
       - cd tests
       - ./run.sh
