@@ -22,3 +22,6 @@ __pycache__
 .venv/
 _version.py
 docs/examples
+.buildozer
+.gradle
+gradle

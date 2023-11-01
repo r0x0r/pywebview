@@ -13,7 +13,6 @@ environment:
       image: Visual Studio 2022
       APPVEYOR_BAKE_IMAGE: pywebview-visualstudio2022
 
-
 build: off
 
 install:
@@ -23,7 +22,7 @@ install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
   # Check that we have the expected version and architecture for Python
-  - "choco install webview2-runtime"
+  - "choco install webview2-runtime --ignore-checksums"
   - "python --version"
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
 
@@ -35,7 +34,8 @@ install:
   # compiled extensions and are not provided as pre-built wheel packages,
   # pip will build them from source using the MSVC compiler matching the
   # target Python version and architecture
-  - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\" six proxy_tools .[cef]"
+  - "%CMD_IN_ENV% pip install -r requirements.txt"
+  - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\" six .[cef]"
 
 
 test_script:
