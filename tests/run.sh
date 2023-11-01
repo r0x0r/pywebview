@@ -13,6 +13,7 @@ pywebviewtest() {
 
 # cd ..
 echo Starting tests...
+ls
 for test in $(python3 -m pytest --collect-only -q | grep ^test_); do
 echo $test
   pywebviewtest $test ${PYTEST_OPTIONS}
