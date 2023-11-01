@@ -1,37 +1,28 @@
-environment:
-  matrix:
-    - PYTHON: "C:\\Python37-x64"
+image:
+  - Visual Studio 2022
+  - Ubuntu
+for:
+  -
+    matrix:
+      only:
+        - image: Visual Studio 2022
+    environment:
+      PYTHON: "C:\\Python37-x64"
       PYTHON_VERSION: "3.7.x"
       PYTHON_ARCH: "64"
       APPVEYOR_BAKE_IMAGE: pywebview-visualstudio2022
-      image: Visual Studio 2022
-      install:
-        - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-        - "choco install webview2-runtime --ignore-checksums"
-        - "python --version"
-        - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
+    install:
+      - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+      - "choco install webview2-runtime --ignore-checksums"
+      - "python --version"
+      - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
 
-        - "%CMD_IN_ENV% pip install -r requirements.txt"
-        - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\" six pythonnet bottle .[cef]"
-      test_script:
-        - cd tests
-        - powershell -File ./run.ps1
+      - "%CMD_IN_ENV% pip install -r requirements.txt"
+      - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\" six pythonnet bottle .[cef]"
+    test_script:
+      - cd tests
+      - powershell -File ./run.ps1
 
-    - PYTHON: "C:\\Python37-x64"
-      PYTHON_VERSION: "3.7.x"
-      PYTHON_ARCH: "64"
-      PYWEBVIEW_GUI: "cef"
-      image: Visual Studio 2022
-      APPVEYOR_BAKE_IMAGE: pywebview-visualstudio2022
-      install:
-        - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-        - "choco install webview2-runtime --ignore-checksums"
-        - "python --version"
-        - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
-        - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\" six pythonnet bottle .[cef]"
-      test_script:
-        - cd tests
-        - powershell -File ./run.ps1
 
 build: off
 
