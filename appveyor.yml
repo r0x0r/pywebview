@@ -33,6 +33,8 @@ for:
         - image: Ubuntu2004
     environment:
       PYWEBVIEW_GUI: qt
+      DISPLAY: "0.0"
+      QT_QPA_PLATFORM: offscreen
     install:
       - sudo apt-get update -q
       - sudo apt-get install --no-install-recommends -y xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest python3-six
