@@ -60,7 +60,7 @@ for:
       only:
         - image: macos
     install:
-      - python3 -m pip3 install --user pyobjc pytest proxy_tools bottle six typing_extensions
+      - python3 -m pip install --user pyobjc pytest proxy_tools bottle six typing_extensions
     test_script:
       - cd tests
       - ./run.sh
