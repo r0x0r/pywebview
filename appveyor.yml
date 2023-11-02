@@ -1,5 +1,6 @@
 image:
   - Ubuntu2004
+  - Ubuntu2004
   - macos
   - Visual Studio 2022
 for:
@@ -35,7 +36,7 @@ for:
     install:
       - sudo apt-get update -q
       - sudo apt-get install --no-install-recommends -y xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest python3-six
-      - python3 -m pip install proxy_tools pytest bottle typing_extensions PyQt5 pyqtwebengine
+      - python3 -m pip install proxy_tools pytest bottle typing_extensions QtPy PyQt5 pyqtwebengine
     test_script:
       - cd tests
       - ./run.sh
