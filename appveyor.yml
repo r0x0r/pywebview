@@ -28,11 +28,11 @@ for:
       only:
         - image: Ubuntu2004
     environment:
-      PYWEBVIEW_GUI: qt
+      PYWEBVIEW_GUI: gtk
     install:
       - sudo apt-get update -q
       - sudo apt-get install --no-install-recommends -y xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest python3-six
-      - pip install  proxy_tools pytest bottle
+      - pip install proxy_tools pytest bottle typing_extensions
     test_script:
       - cd tests
       - ./run.sh
@@ -45,7 +45,7 @@ for:
     install:
       - sudo apt-get update -q
       - sudo apt-get install --no-install-recommends -y xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.1 python3-gi python3-gi-cairo python3-pep8 pyflakes3 python3-pytest python3-six
-      - pip install  proxy_tools pytest bottle
+      - pip install proxy_tools pytest bottle typing_extensions
     test_script:
       - cd tests
       - ./run.sh
@@ -54,7 +54,7 @@ for:
       only:
         - image: macos
     install:
-      - pip3 install --user pyobjc pytest proxy_tools bottle six
+      - pip3 install --user pyobjc pytest proxy_tools bottle six typing_extensions
     test_script:
       - cd tests
       - ./run.sh
