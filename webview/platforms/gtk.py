@@ -159,6 +159,7 @@ class BrowserView:
         webkit_settings.enable_webaudio = True
         webkit_settings.enable_webgl = True
         webkit_settings.javascript_can_access_clipboard = True
+        webkit_settings.allow_file_access_from_file_urls = True
 
         if window.frameless:
             self.window.set_decorated(False)
