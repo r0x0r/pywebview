@@ -43,7 +43,11 @@ class EdgeChrome:
         props = CoreWebView2CreationProperties()
         props.UserDataFolder = cache_dir
         props.set_IsInPrivateModeEnabled(_settings['private_mode'])
-        props.AdditionalBrowserArguments = '--disable-features=ElasticOverscroll --allow-file-access-from-files'
+        props.AdditionalBrowserArguments = '--disable-features=ElasticOverscroll'
+
+        if settings['ALLOW_FILE_URLS']:
+            props.AdditionalBrowserArguments += ' --allow-file-access-from-files'
+
         self.web_view.CreationProperties = props
 
         self.form = form

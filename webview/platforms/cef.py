@@ -22,10 +22,7 @@ instances = {}
 
 logger = logging.getLogger(__name__)
 
-settings = {}
-
 browser_settings = {}
-
 command_line_switches = {}
 
 
@@ -260,7 +257,9 @@ def init(_, cache_dir):
             'context_menu': {'enabled': _settings['debug']},
         }
 
-        default_command_line_switches = {'enable-media-stream': ''}
+        default_command_line_switches = {
+            'enable-media-stream': '',
+        }
 
         if not _settings['debug']:
             default_settings['remote_debugging_port'] = -1
@@ -270,6 +269,9 @@ def init(_, cache_dir):
 
         if cache_dir:
             default_settings['cache_path'] = cache_dir
+
+        if settings['ALLOW_FILE_URLS']:
+            default_command_line_switches['allow-file-access-from-files'] = ''
 
         resource_root = getattr(sys, '_MEIPASS', os.path.dirname(cef.__file__))
 

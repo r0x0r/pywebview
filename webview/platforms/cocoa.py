@@ -546,7 +546,8 @@ class BrowserView:
             config.preferences().setValue_forKey_(False, 'backspaceKeyNavigationEnabled')
         except KeyError:
             pass  # backspaceKeyNavigationEnabled does not exist prior to macOS Mojave
-        config.preferences().setValue_forKey_(True, 'allowFileAccessFromFileURLs')
+
+        config.preferences().setValue_forKey_(settings['ALLOW_FILE_URLS'], 'allowFileAccessFromFileURLs')
 
         if _settings['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')

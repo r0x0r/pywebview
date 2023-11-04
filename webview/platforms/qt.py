@@ -380,7 +380,7 @@ class BrowserView(QMainWindow):
 
         if is_webengine:
             self.profile.settings().setAttribute(
-                QWebEngineSettings.LocalContentCanAccessFileUrls, True)
+                QWebEngineSettings.LocalContentCanAccessFileUrls, settings['ALLOW_FILE_URLS'])
 
         self.view.page().loadFinished.connect(self.on_load_finished)
 

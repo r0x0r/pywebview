@@ -71,6 +71,7 @@ DEFAULT_HTTP_PORT = 42001
 
 settings = {
     'ALLOW_DOWNLOADS': False,
+    'ALLOW_FILE_URLS': True,
     'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
     'OPEN_DEVTOOLS_IN_DEBUG': True,
 }
