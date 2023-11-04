@@ -32,7 +32,7 @@ try:
     from qtpy.QtNetwork import QSslCertificate, QSslConfiguration
     from qtpy.QtWebChannel import QWebChannel
     from qtpy.QtWebEngineWidgets import QWebEnginePage as QWebPage
-    from qtpy.QtWebEngineWidgets import QWebEngineProfile
+    from qtpy.QtWebEngineWidgets import QWebEngineProfile, QWebEngineSettings
     from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView
 
     renderer = 'qtwebengine'
@@ -377,6 +377,10 @@ class BrowserView(QMainWindow):
             self.view.setPage(BrowserView.WebPage(self, profile=self.profile))
         elif not is_webengine and not _settings['private_mode']:
             logger.warning('qtwebkit does not support private_mode')
+
+        if is_webengine:
+            self.profile.settings().setAttribute(
+                QWebEngineSettings.LocalContentCanAccessFileUrls, True)
 
         self.view.page().loadFinished.connect(self.on_load_finished)
 

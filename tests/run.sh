@@ -3,16 +3,18 @@ PYTHONPATH=..
 PYWEBVIEW_LOG='debug'
 PYTEST_OPTIONS='-s --disable-pytest-warnings -r w'
 
-cd "${0%/*}"
-rm -r __pycache__ || true
+# cd "${0%/*}"
+# rm -r __pycache__ || true
 
 exitcode=0
 pywebviewtest() {
-  pytest "$@" || exitcode=$?
+  python3 -m pytest "$@" || exitcode=$?
 }
 
-cd ..
-for test in $(pytest --collect-only -q | grep tests/); do
+# cd ..
+echo Starting tests...
+for test in $(ls test_*); do
+echo $test
   pywebviewtest $test ${PYTEST_OPTIONS}
 done
 

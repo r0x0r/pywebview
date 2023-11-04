@@ -22,8 +22,14 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
-gi.require_version('WebKit2', '4.1')
-gi.require_version('Soup', '3.0')
+
+try:
+    gi.require_version('WebKit2', '4.1')
+    gi.require_version('Soup', '3.0')
+except ValueError:
+    logger.debug('WebKit2 4.1 not found. Using 4.0.')
+    gi.require_version('WebKit2', '4.1')
+    gi.require_version('Soup', '3.0')
 
 from gi.repository import Gdk, Gio
 from gi.repository import GLib as glib
@@ -156,6 +162,7 @@ class BrowserView:
         webkit_settings.enable_webaudio = True
         webkit_settings.enable_webgl = True
         webkit_settings.javascript_can_access_clipboard = True
+        webkit_settings.allow_file_access_from_file_urls = True
 
         if window.frameless:
             self.window.set_decorated(False)
