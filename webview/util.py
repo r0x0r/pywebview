@@ -358,7 +358,11 @@ def environ_append(key: str, *values: str, sep=' ') -> None:
     os.environ[key] = sep.join(values)
 
 
-def css_to_camel(css_case_string):
+def css_to_camel(css_case_string: str) -> str:
     words = css_case_string.split('-')
     camel_case_string = words[0] + ''.join(word.capitalize() for word in words[1:])
     return camel_case_string
+
+
+def android_jar_path() -> str:
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', 'android.jar')

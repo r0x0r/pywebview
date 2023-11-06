@@ -8,11 +8,6 @@ from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
 
-# TODO: Including JAR in such a way does not work
-import jnius_config
-class_path = os.path.join(os.path.dirname(__file__), '..', 'lib', 'android.jar')
-jnius_config.set_classpath('.', class_path)
-
 from jnius import autoclass, cast, java_method, PythonJavaClass
 from android.runnable import Runnable, run_on_ui_thread
 
