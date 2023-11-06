@@ -4,6 +4,7 @@ The following renderers are used on each platform
 
 | Platform | Code         | Renderer | Provider                                          | Browser compatibility |
 |----------|--------------|----------|---------------------------------------------------|-----------------------|
+| Android  |              | WebKit   |                                                   | Ever-green Chromium   |
 | GTK      | gtk          | WebKit   | WebKit2 (minimum version >2.2)                    |                       |
 | macOS    |              | WebKit   | WebKit.WKWebView (bundled with OS)                |                       |
 | QT       | qt           | WebKit   | QtWebEngine / QtWebKit                            |                       |
@@ -18,7 +19,7 @@ To change a default renderer set either `PYWEBVIEW_GUI` environment variable or 
 For example to use CEF on Windows
 
 ``` bash
-PYWEBVIEW_GUI=cef
+export PYWEBVIEW_GUI=cef
 ```
 
 or
@@ -33,7 +34,7 @@ If you wish to pass custom settings to CEF, refer to [this example](/examples/ce
 To force QT on Linux systems
 
 ``` bash
-PYWEBVIEW_GUI=qt
+export PYWEBVIEW_GUI=qt
 ```
 
 or
@@ -43,8 +44,7 @@ import webview
 webview.start(gui='qt')
 ```
 
-
-# Known issues and limitations
+## Known issues and limitations
 
 ## QtWebKit
 

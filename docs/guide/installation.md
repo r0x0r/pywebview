@@ -16,7 +16,6 @@ To install _pywebview_ with CEF (available on Windows) use
 pip install pywebview[cef]
 ```
 
-
 ## Dependencies
 
 ### Windows
@@ -37,11 +36,10 @@ pip install cefpython3
 
 [pyobjc](https://pythonhosted.org/pyobjc/)
 
-`PyObjC` comes presintalled with the Python bundled in macOS. For a stand-alone Python installation you have to install it separately.
-You can also use QT5 in macOS
+`PyObjC` comes preinstalled with the Python bundled in macOS. For a stand-alone Python installation you have to install it separately.
+You can also use `PyQt5` or `PyQt6` in macOS.
 
 ### Linux
-
 
 `pip install pywebview[qt]` should take of QT dependencies. If it does not work or you would like to use GTK, you may try these recipes.
 
@@ -53,14 +51,14 @@ sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.1
 
 For other distributions, consult the [PyGObject documentation](https://pygobject.readthedocs.io/en/latest/getting_started.html)
 
-
-Note that WebKit2 version 2.22 or greater is required for certain features to work correctly. If your distribution ships with an older version, you may need to install it manually from a backport.
+Note that WebKit2 version 2.22 or greater is required.
 
 <br/><br/>
 
 [PySide2](https://doc.qt.io/qtforpython-5/) is used with QT. `pywebview` supports both QtWebChannel (newer and preferred) and QtWebKit implementations. Use QtWebChannel, unless it is not available on your system.
 
 To install QT via pip
+
 ``` bash
 pip install qtpy pyside2
 ```
@@ -80,5 +78,5 @@ sudo apt install python3-pyqt5 python3-pyqt5.qtwebkit python-pyqt5 python-pyqt5.
 <br/>
 
 ::: warning
-Starting from Ubuntu Disco Dingo _pywebview_ can be installed via `apt` on Debian based system as `python-pywebview`. This package features an old version of _pywebview_ that is API incompatible with the current version. If you choose to install it, you can find documentation [here](/2.4)
+Starting from Ubuntu Disco Dingo _pywebview_ can be installed via `apt` on Debian based system as `python3-webview`. Ubuntu's distribution lags a few versions behind (latest is 3.3.5 on mantic). If you wish to stay up-to-date, consider installing via  `pip`.
 :::

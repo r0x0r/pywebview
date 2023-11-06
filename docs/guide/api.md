@@ -73,7 +73,8 @@ Start a GUI loop and display previously created windows. This function must be c
 * `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server. Cocoa/QT/GTK only.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 
-### Examples
+#### Examples
+
 * [Simple window](/examples/open_url.html)
 * [Multi-window](/examples/multiple_windows.html)
 
@@ -85,8 +86,31 @@ webview.screens
 
 Return a list of available displays (as `Screen` objects) with the primary display as the first element of the list.
 
-### Examples
+#### Examples
+
 * [Simple window](/examples/screens.html)
+
+## webview.settings
+
+``` python
+webview.settings = {
+  'ALLOW_DOWNLOADS': False,
+  'ALLOW_FILE_URLS': True,
+  'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
+  'OPEN_DEVTOOLS_IN_DEBUG': True
+}
+```
+
+Additional options that override default behaviour of _pywebview_ to address popular feature requests.
+
+* `ALLOW_DOWNLOADS` Allow file downloads. Disabled by default.
+* `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
+* `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
+
+#### Examples
+
+* [File downloads](/examples/downloads.html)
+
 
 ## webview.token
 
@@ -96,7 +120,9 @@ webview.token
 
 A CSRF token property unique to the session. The same token is exposed as `window.pywebview.token`. See [Security](/guide/security.md) for usage details.
 
-# webview.dom.DOMEventHandler
+## webview.dom
+
+### webview.dom.DOMEventHandler
 
 ``` python
 DOMEventHandler(callback, prevent_default=False, stop_propagation=False, stop_immediate_propagation=False)
@@ -104,13 +130,13 @@ DOMEventHandler(callback, prevent_default=False, stop_propagation=False, stop_im
 
 A container for an event handler used to control propagation or default behaviour of the event.
 
-### Examples
+#### Examples
 
 ``` python
 element.events.click += DOMEventHandler(on_click, prevent_default=True, stop_propagation=True, stop_immediate_propagation=True)
 ```
 
-# webview.dom.ManipulationMode
+### webview.dom.ManipulationMode
 
 Enum that sets the position of a manipulated DOM element. Possible values are:
 
@@ -122,14 +148,14 @@ Enum that sets the position of a manipulated DOM element. Possible values are:
 
 Used by `element.append`, `element.copy`, `element.move` and `window.dom.create_element` functions.
 
+## webview.Element
 
-# webview.Element
 
-## element.attributes
+### element.attributes
 
 Get or modify element's attributes. `attributes` is a `PropsDict` dict-like object that implements most of dict functions. To add an attribute, you can simply assign a value to a key in `attributes`. Similarly, to remove an attribute, you can set its value to None.
 
-### Examples
+##### Examples
 
 ``` python
 element.attributes['id'] = 'container-id' # set element's id
@@ -138,7 +164,7 @@ element.attributes['id'] = None # remove element's id
 del element.attributes['data-flag'] # remove element's data-flag attribute
 ```
 
-## element.classes
+### element.classes
 
 ``` python
 element.classes
@@ -146,7 +172,7 @@ element.classes
 
 Get or set element's classes. `classes` is a `ClassList` list-like object that implements a subset of list functions like `append`, `remove` and `clear`. Additionally it has a `toggle` function for toggling a class.
 
-### Examples
+##### Examples
 
 ``` python
 element.classes = ['container', 'red', 'dotted'] # overwrite element's classes
@@ -155,7 +181,7 @@ element.classes.add('blue') # add blue class
 element.classes.toggle('dotted')
 ```
 
-## element.append
+### element.append
 
 ``` python
 element.append(html, mode=ManipulationMode.LastChild)
@@ -163,7 +189,7 @@ element.append(html, mode=ManipulationMode.LastChild)
 
 Insert html content to the element as a last child. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
 
-## element.blur
+### element.blur
 
 ``` python
 element.blur()
@@ -171,7 +197,7 @@ element.blur()
 
 Blur element.
 
-## element.children
+### element.children
 
 ``` python
 element.children
@@ -179,55 +205,7 @@ element.children
 
 Get element's children elements. Returns a list of `Element` objects.
 
-## element.empty
-
-``` python
-element.empty()
-```
-
-Empty element by removing all its children.
-
-## element.events
-
-``` python
-element.events
-```
-
-A container object of element's all DOM events, ie `events.click`, `event.keydown`. This container is dynamically populated and its contents depend on the events a node has. To subscribe to a DOM event, use the `+=` syntax, e.g. `element.events.click += callback`. Similarly to remove an event listener use `-=`, eg. `element.events.click -= callback`. Callback can be either a function or an instance of `DOMEventHandler` if you need to control propagation of the event.
-
-## element.focus
-
-``` python
-element.focus()
-```
-
-Focus element.
-
-## element.focused
-
-``` python
-element.focused
-```
-
-Get whether the element is focused.
-
-## element.hide
-
-``` python
-element.hide()
-```
-
-Hide element by setting `display: none`.
-
-## element.id
-
-``` python
-element.id
-```
-
-Get or set element's id. None if id is not set.
-
-## element.copy
+### element.copy
 
 ``` python
 element.copy(target=None, mode=ManipulationMode.LastChild, id=None)
@@ -235,7 +213,55 @@ element.copy(target=None, mode=ManipulationMode.LastChild, id=None)
 
 Create a new copy of the element. `target` can be either another `Element` or a DOM selector string. If target is omitted, a copy is created in the current element's parent. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values. The id parameter is stripped from the copy. Optionally you can set the id of the copy by specifying the `id` parameter.
 
-## element.move
+### element.empty
+
+``` python
+element.empty()
+```
+
+Empty element by removing all its children.
+
+### element.events
+
+``` python
+element.events
+```
+
+A container object of element's all DOM events, ie `events.click`, `event.keydown`. This container is dynamically populated and its contents depend on the events a node has. To subscribe to a DOM event, use the `+=` syntax, e.g. `element.events.click += callback`. Similarly to remove an event listener use `-=`, eg. `element.events.click -= callback`. Callback can be either a function or an instance of `DOMEventHandler` if you need to control propagation of the event.
+
+### element.focus
+
+``` python
+element.focus()
+```
+
+Focus element.
+
+### element.focused
+
+``` python
+element.focused
+```
+
+Get whether the element is focused.
+
+### element.hide
+
+``` python
+element.hide()
+```
+
+Hide element by setting `display: none`.
+
+### element.id
+
+``` python
+element.id
+```
+
+Get or set element's id. None if id is not set.
+
+### element.move
 
 ``` python
 element.move(target, mode=ManipulationMode.LastChild)
@@ -243,11 +269,11 @@ element.move(target, mode=ManipulationMode.LastChild)
 
 Move element to the `target` that can be either another `Element` or a DOM selector string.  To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
 
-### Example
+#### Examples
 
 [DOM Manipulation](/examples/dom_manipulation.html)
 
-## element.next
+### element.next
 
 ``` python
 element.next
@@ -255,7 +281,7 @@ element.next
 
 Get element's next sibling. None if no sibling is present.
 
-## element.off
+### element.off
 
 ``` python
 element.off(event, callback)
@@ -263,7 +289,7 @@ element.off(event, callback)
 
 Remove an event listener. Identical to `element.event.event_name -= callback`.
 
-### Examples
+#### Examples
 
 ``` python
 # these two are identical
@@ -273,7 +299,7 @@ element.events.click -= callback_func
 
 [DOM Events](/examples/dom_events.html)
 
-## element.on
+### element.on
 
 ``` python
 element.on(event, callback)
@@ -281,7 +307,7 @@ element.on(event, callback)
 
 Add an event listener to a DOM event. Callback can be either a function or an instance of `DOMEventHandler` if you need to control propagation of the event. Identical to `element.event.event_name += callback`.
 
-### Examples
+#### Examples
 
 ```
 # these two are identical
@@ -291,7 +317,7 @@ element.events.click += callback_func
 
 [DOM Events](/examples/dom_events.html)
 
-## element.parent
+### element.parent
 
 ``` python
 element.parent
@@ -299,7 +325,7 @@ element.parent
 
 Get element's parent `Element` or None if root element is reached.
 
-## element.previous
+### element.previous
 
 ``` python
 element.previous
@@ -307,7 +333,7 @@ element.previous
 
 Get element's previous sibling. None if no sibling is present.
 
-## element.remove
+### element.remove
 
 ``` python
 element.remove()
@@ -318,7 +344,7 @@ Remove element from DOM. `Element` object is not destroyed, but marked as remove
 [DOM Manipulation](/examples/dom_manipulation.html)
 
 
-## element.show
+### element.show
 
 ``` python
 element.show()
@@ -329,11 +355,11 @@ Show hidden element. If element was hidden with `element.hide()`, a previous dis
 [DOM Manipulation](/examples/dom_manipulation.html)
 
 
-## element.style
+### element.style
 
 Get or modify element's styles. `style` is a `PropsDict` dict-like object that implements most of dict functions. To add a style declraration, you can simply assign a value to a key in `attributes`. Similarly, to reset a declaration, you can set its value to None.
 
-### Examples
+#### Examples
 
 ``` python
 element.style['width'] = '100px' # set element's width to 100px
@@ -342,7 +368,7 @@ element.style['width'] = None # reset width to auto
 del element.attributes['display'] # reset display property to block
 ```
 
-## element.tabindex
+### element.tabindex
 
 ``` python
 element.tabindex
@@ -350,7 +376,7 @@ element.tabindex
 
 Get or set element's tabindex.
 
-## element.tag
+### element.tag
 
 ``` python
 element.tag
@@ -358,7 +384,7 @@ element.tag
 
 Get element's tag name.
 
-## element.text
+### element.text
 
 ``` python
 element.text
@@ -366,7 +392,7 @@ element.text
 
 Get or set element's text content.
 
-## element.toggle
+### element.toggle
 
 ``` python
 element.toggle()
@@ -374,7 +400,7 @@ element.toggle()
 
 Toggle element's visibility.
 
-## element.value
+### element.value
 
 ``` python
 element.value
@@ -382,7 +408,7 @@ element.value
 
 Get or set element's value. Applicable only to input elements that have a value.
 
-## element.visible
+### element.visible
 
 ``` python
 element.visible
@@ -390,33 +416,32 @@ element.visible
 
 Get whether the element is visible.
 
-
-# webview.Menu
+## webview.Menu
 
 Used to create an application menu. See [this example](/examples/menu.html) for usage details.
 
 
-## menu.Menu
+### menu.Menu
 
 `Menu(title, items=[])`.
 Instantiate to create a menu that can be either top level menu or a nested menu. `title` is the title of the menu and `items` is a list of actions, separators or other menus.
 
-## menu.MenuAction
+### menu.MenuAction
 
 `MenuAction(title, function)`
 Instantiate to create a menu item. `title` is the name of the item and function is a callback that should be called when menu action is clicked.
 
-## menu.MenuSeparator
+### menu.MenuSeparator
 
 `MenuSeparator(title, function)`
 Instantiate to create a menu separator.
 
 
-# webview.Screen
+## webview.Screen
 
 Represents a display found on the system.
 
-## screen.height
+### screen.height
 
 ``` python
 screen.height
@@ -424,7 +449,7 @@ screen.height
 
 Get display height.
 
-## screen.width
+### screen.width
 
 ``` python
 screen.width
@@ -432,11 +457,11 @@ screen.width
 
 Get display width.
 
-# webview.Window
+## webview.Window
 
 Represents a window that hosts webview. `window` object is returned by `create_window` function.
 
-## window.title
+### window.title
 
 ``` python
 window.title
@@ -444,7 +469,7 @@ window.title
 
 Get or set title of the window.
 
-## window.on_top
+### window.on_top
 
 ``` python
 window.on_top
@@ -452,7 +477,7 @@ window.on_top
 
 Get or set whether the window is always on top.
 
-## window.x
+### window.x
 
 ``` python
 window.x
@@ -460,7 +485,7 @@ window.x
 
 Get X coordinate of the top-left corrner of the window.
 
-## window.y
+### window.y
 
 ``` python
 window.y
@@ -468,7 +493,7 @@ window.y
 
 Get Y coordinate of the top-left corrner of the window.
 
-## window.width
+### window.width
 
 ``` python
 window.width
@@ -476,7 +501,7 @@ window.width
 
 Get width of the window
 
-## window.height
+### window.height
 
 ``` python
 window.height
@@ -484,7 +509,7 @@ window.height
 
 Get height of the window
 
-## window.create_confirmation_dialog
+### window.create\_confirmation\_dialog
 
 ``` python
 window.create_confirmation_dialog(title, message)
@@ -492,7 +517,7 @@ window.create_confirmation_dialog(title, message)
 
 Create a confirmation (Ok / Cancel) dialog.
 
-## window.create_file_dialog
+### window.create\_file\_dialog
 
 ``` python
 window.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=())
@@ -509,12 +534,12 @@ Return a tuple of selected files, None if cancelled.
 
 If the argument is not specified, then the `"All files (*.*)"` mask is used by default. The 'All files' string can be changed in the localization dictionary.
 
-### Examples
+#### Examples
 
 * [Open-file dialog](/examples/open_file_dialog.html)
 * [Save-file dialog](/examples/save_file_dialog.html)
 
-## window.destroy
+### window.destroy
 
 ``` python
 window.destroy()
@@ -524,52 +549,7 @@ Destroy the window.
 
 [Example](/examples/destroy_window.html)
 
-## window.dom.body
-
-``` python
-window.body
-```
-
-Get document's body as an `Element` object
-
-## window.dom.create_element
-
-``` python
-window.create_element(html, parent=None, mode=ManipulationMode.LastChild)
-```
-
-Insert html content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omited, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
-
-## window.dom.document
-
-``` python
-window.document
-```
-
-Get `window.document` of the loaded page as an `Element` object
-
-## window.dom.get_element
-
-``` python
-window.get_element(selector)
-```
-
-Get a first `Element` matching the selector. None if not found.
-
-## window.dom.get_elements
-
-``` python
-window.get_elements(selector)
-```
-
-Get a list of `Element` objects matching the selector.
-
-## window.dom.window
-
-Get DOM document's window `window` as an `Element` object
-
-
-## window.evaluate_js
+### window.evaluate_js
 
 ``` python
 window.evaluate_js(script, callback=None)
@@ -578,13 +558,13 @@ window.evaluate_js(script, callback=None)
 Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None. `JavascriptException` is thrown if executed codes raises an error .
 You must escape \n and \r among other escape sequences if they present in Javascript code. Otherwise they get parsed by Python. r'strings' is a recommended way to load Javascript.
 
-## window.expose
+### window.expose
 
 Expose a Python function or functions to JS API. Functions are exposed as `window.pywebview.api.func_name`
 
 [Example](/examples/expose.html)
 
-## window.get_cookies
+### window.get_cookies
 
 ``` python
 window.get_cookies()
@@ -593,7 +573,7 @@ window.get_cookies()
 Return a list of all the cookies set for the current website (as [SimpleCookie](https://docs.python.org/3/library/http.cookies.html)).
 
 
-## window.get_current_url
+### window.get_current_url
 
 ``` python
 window.get_current_url()
@@ -603,17 +583,17 @@ Return the current URL. None if no url is loaded.
 
 [Example](/examples/get_current_url.html)
 
-## window.get_elements
+### window.get_elements
 
 ``` python
 window.get_elements(selector)
 ```
 
-Deprecated. Use `window.dom.get_elements` instead.
+*DEPRECATED*. Use `window.dom.get_elements` instead.
 
 [Example](/examples/get_elements.html)
 
-## window.hide
+### window.hide
 
 ``` python
 window.hide()
@@ -624,7 +604,7 @@ Hide the window.
 [Example](/examples/show_hide.html)
 
 
-## window.load_css
+### window.load_css
 
 ``` python
 window.load_css(css)
@@ -635,7 +615,7 @@ Load CSS as a string.
 [Example](/examples/css_load.html)
 
 
-## window.load_html
+### window.load_html
 
 ``` python
 window.load_html(content, base_uri=base_uri())
@@ -645,7 +625,7 @@ Load HTML code. Base URL for resolving relative URLs is set to the directory the
 
 [Example](/examples/html_load.html)
 
-## window.load_url
+### window.load_url
 
 ``` python
 window.load_url(url)
@@ -655,7 +635,7 @@ Load a new URL.
 
 [Example](/examples/change_url.html)
 
-## window.minimize
+### window.minimize
 
 ``` python
 window.minimize()
@@ -665,7 +645,7 @@ Minimize window.
 
 [Example](/examples/minimize.html)
 
-## window.move
+### window.move
 
 ``` python
 window.move(x, y)
@@ -675,7 +655,7 @@ Move window to a new position.
 
 [Example](/examples/move_window.html)
 
-## window.resize
+### window.resize
 
 ``` python
 window.resize(width, height, fix_point=FixPoint.NORTH | FixPoint.WEST)
@@ -686,7 +666,7 @@ Resize window. Optional parameter fix_point specifies in respect to which point 
 [Example](/examples/minimize.html)
 
 
-## window.restore
+### window.restore
 
 ``` python
 window.restore()
@@ -696,17 +676,17 @@ Restore minimized window.
 
 [Example](/examples/minimize.html)
 
-## window.set_title
+### window.set_title
 
 ``` python
 window.set_title(title)
 ```
 
-DEPRECATED. Use `window.title` instead. Change the title of the window.
+*DEPRECATED*. Use `window.title` instead. Change the title of the window.
 
 [Example](/examples/window_title_change.html)
 
-## window.show
+### window.show
 
 ``` python
 window.show()
@@ -716,7 +696,7 @@ Show the window if it is hidden. Has no effect otherwise
 
 [Example](/examples/show_hide.html)
 
-## window.toggle_fullscreen
+### window.toggle_fullscreen
 
 ``` python
 window.toggle_fullscreen()
@@ -726,65 +706,111 @@ Toggle fullscreen mode on the active monitor.
 
 [Example](/examples/toggle_fullscreen.html)
 
-# pywebview events
+
+### window.dom.body
+
+``` python
+window.body
+```
+
+Get document's body as an `Element` object
+
+### window.dom.create_element
+
+``` python
+window.create_element(html, parent=None, mode=ManipulationMode.LastChild)
+```
+
+Insert html content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omited, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
+
+### window.dom.document
+
+``` python
+window.document
+```
+
+Get `window.document` of the loaded page as an `Element` object
+
+### window.dom.get_element
+
+``` python
+window.get_element(selector)
+```
+
+Get a first `Element` matching the selector. None if not found.
+
+### window.dom.get_elements
+
+``` python
+window.get_elements(selector)
+```
+
+Get a list of `Element` objects matching the selector.
+
+### window.dom.window
+
+Get DOM document's window `window` as an `Element` object
+
+
+## Window events
 
 Window object exposes a number of lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g. `window.events.loaded += func`. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, `window.events.loaded -= func`.
 
-## window.events.closed
+### window.events.closed
 
 Event fired just before pywebview window is closed.
 
 [Example](/examples/events.html)
 
-## window.events.closing
+### window.events.closing
 
 Event fired when pywebview window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled.
 
 [Example](/examples/events.html)
 
-## window.events.loaded
+### window.events.loaded
 
 Event fired when DOM is ready.
 
 [Example](/examples/events.html)
 
-## window.events.minimized
+### window.events.minimized
 
 Event fired when window is minimized.
 
 [Example](/examples/events.html)
 
-## window.events.restore
+### window.events.restore
 
 Event fired when window is restored.
 
 [Example](/examples/events.html)
 
-## window.events.maximized
+### window.events.maximized
 
 Event fired when window is maximized (fullscreen on macOS)
 
-## window.events.resized
+### window.events.resized
 
 Event fired when pywebview window is resized. Event handler can either have no or accept (width, height) arguments.
 
 [Example](/examples/events.html)
 
-## window.events.shown
+### window.events.shown
 
 Event fired when pywebview window is shown.
 
 [Example](/examples/events.html)
 
 
-# DOM events
+## DOM events
 
 _pywebview_ exposes a `window.pywebviewready` DOM event that is fired after `window.pywebview` is created.
 
 [Example](/examples/js_api.html)
 
 
-# Drag area
+## Drag area
 
 With a frameless _pywebview_ window, A window can be moved or dragged by adding a special class called `pywebview-drag-region` in your html
 ```html
