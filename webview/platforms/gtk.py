@@ -160,7 +160,8 @@ class BrowserView:
         webkit_settings.enable_webgl = True
         webkit_settings.javascript_can_access_clipboard = True
         webkit_settings.allow_file_access_from_file_urls = True
-
+        webkit_settings.set_media_playback_requires_user_gesture = False
+        
         if window.frameless:
             self.window.set_decorated(False)
             if window.easy_drag:
