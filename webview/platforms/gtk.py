@@ -280,14 +280,14 @@ class BrowserView:
 
         if status == webkit.LoadEvent.FINISHED:
             if not self.text_select:
-                webview.run_javascript(disable_text_select)
+                webview.evaluate_javascript(disable_text_select, length=-1)
             self._set_js_api()
 
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) == webkit.NavigationPolicyDecision:
             uri = decision.get_navigation_action().get_request().get_uri()
 
-            if decision.get_frame_name() == '_blank':
+            if decision.get_navigation_action() == '_blank':
                 webbrowser.open(uri, 2, True)
                 decision.ignore()
 
@@ -474,11 +474,16 @@ class BrowserView:
 
     def evaluate_js(self, script):
         def _evaluate_js():
-            self.webview.run_javascript(script, None, _callback, None)
+            self.webview.evaluate_javascript(
+                script=script,
+                length=-1,
+                callback=_callback,
+                user_data=None
+            )
 
         def _callback(webview, task, data):
-            value = webview.run_javascript_finish(task)
-            result = value.get_js_value().to_string() if value else None
+            value = webview.evaluate_javascript_finish(task)
+            result = value.to_string() if value else None
 
             if unique_id in self.js_results:
                 self.js_results[unique_id]['result'] = result
@@ -508,8 +513,9 @@ class BrowserView:
 
     def _set_js_api(self):
         def create_bridge():
-            self.webview.run_javascript(
-                parse_api_js(self.js_bridge.window, 'gtk', uid=self.pywebview_window.uid)
+            self.webview.evaluate_javascript(
+                script=parse_api_js(self.js_bridge.window, 'gtk', uid=self.pywebview_window.uid),
+                length=-1
             )
             self.loaded.set()
 
