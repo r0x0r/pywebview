@@ -112,6 +112,7 @@ class Window:
         vibrancy: bool = False,
         localization: Mapping[str, str] | None = None,
         http_port: int | None = None,
+        http_host: str | None = None,
         server: type[http.ServerType] | None = None,
         server_args: http.ServerArgs = {},
         screen: Screen = None
@@ -147,6 +148,7 @@ class Window:
 
         # Server config
         self._http_port = http_port
+        self._http_host = http_host
         self._server = server
         self._server_args = server_args
 
@@ -183,6 +185,7 @@ class Window:
             *_, server = http.start_server(
                 urls=[self.original_url],
                 http_port=self._http_port,
+                http_host=self._http_host,
                 server=self._server,
                 **self._server_args,
             )

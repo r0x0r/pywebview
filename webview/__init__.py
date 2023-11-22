@@ -232,6 +232,7 @@ def create_window(
     vibrancy: bool = False,
     localization: Mapping[str, str] | None = None,
     server: type[http.ServerType] = http.BottleServer,
+    http_host: str | None = None,
     http_port: int | None = None,
     server_args: http.ServerArgs = {},
 ) -> Window:
@@ -259,6 +260,8 @@ def create_window(
     :param transparent: Don't draw window background.
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
+    :param http_host: HTTP host for BottleServer
+    :param http_port: HTTP port for BottleServer
     :return: window object.
     """
 
@@ -298,6 +301,7 @@ def create_window(
         localization,
         server=server,
         http_port=http_port,
+        http_host=http_host,
         server_args=server_args,
         screen=screen,
     )
