@@ -146,7 +146,11 @@ class BottleServer:
             server_adapter = ThreadedAdapter
         server.thread = threading.Thread(
             target=lambda: bottle.run(
-                app=app, server=server_adapter, port=server.port, quiet=not _settings['debug']
+                app=app,
+                server=server_adapter,
+                host=server.host,
+                port=server.port,
+                quiet=not _settings['debug']
             ),
             daemon=True,
         )
