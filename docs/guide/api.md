@@ -49,7 +49,7 @@ server=http.BottleServer, server_args
 
 ``` python
 webview.start(func=None, args=None, localization={}, gui=None, debug=False, http_server=False,
-              http_port=None, user_agent=None, private_mode=True, storage_path=None, menu=[],
+              http_port=None, http_host=None, user_agent=None, private_mode=True, storage_path=None, menu=[],
               server=http.BottleServer, ssl=False, server_args={}):
 ```
 
@@ -62,6 +62,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server. If enabled, local files will be served using a local HTTP server on a random port. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `http_port` - specify a port number for the HTTP server. By default port is randomized.
+* `http_host` - specify a host for the HTTP server. By default host is `127.0.0.1`.
 * `user_agent` - change user agent string.
 * `private_mode` - Control whether cookies and other persistant objects are stored between session. By default private mode is on and nothing is stored between sessions.
 * `storage_path` - An optional location on hard drive where to store persistant objects like cookies and local storage. By default `~/.pywebview` is used on *nix systems and `%APPDATA%\pywebview` on Windows.
