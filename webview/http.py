@@ -135,6 +135,8 @@ class BottleServer:
 
         server.root_path = abspath(common_path) if common_path is not None else None
         server.port = http_port or _get_random_port()
+        server.host = http_host or "127.0.0.1"
+
         if keyfile and certfile:
             server_adapter = SSLWSGIRefServer()
             server_adapter.port = server.port
@@ -152,9 +154,8 @@ class BottleServer:
 
         server.running = True
         protocol = 'https' if keyfile and certfile else 'http'
-        http_host = http_host or "127.0.0.1"
 
-        server.address = f'{protocol}://{http_host}:{server.port}/'
+        server.address = f'{protocol}://{server.host}:{server.port}/'
         cls.common_path = common_path
         server.js_api_endpoint = f'{server.address}js_api/{server.uid}'
 
