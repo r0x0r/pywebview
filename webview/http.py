@@ -84,7 +84,12 @@ class BottleServer:
 
     @classmethod
     def start_server(
-        cls, urls: list[str], http_port: int | None, keyfile: None = None, certfile: None = None
+        cls,
+        urls: list[str],
+        http_port: int | None,
+        http_host: str | None = None,
+        keyfile: None = None,
+        certfile: None = None,
     ) -> tuple[str, str | None, BottleServer]:
         from webview import _settings
 
@@ -147,7 +152,9 @@ class BottleServer:
 
         server.running = True
         protocol = 'https' if keyfile and certfile else 'http'
-        server.address = f'{protocol}://127.0.0.1:{server.port}/'
+        http_host = http_host or "127.0.0.1"
+
+        server.address = f'{protocol}://{http_host}:{server.port}/'
         cls.common_path = common_path
         server.js_api_endpoint = f'{server.address}js_api/{server.uid}'
 
@@ -207,21 +214,23 @@ class ServerArgs(TypedDict, total=False):
 def start_server(
     urls: list[str],
     http_port: int | None = None,
+    http_host: str | None = None,
     server: type[ServerType] = BottleServer,
     **server_args: Unpack[ServerArgs],
 ) -> tuple[str, str | None, BottleServer]:
     server = server if not server is None else BottleServer
-    return server.start_server(urls, http_port, **server_args)
+    return server.start_server(urls=urls, http_port=http_port, http_host=http_host, **server_args)
 
 
 def start_global_server(
     http_port: int | None = None,
+    http_host: str | None = None,
     urls: list[str] = ['.'],
     server: type[ServerType] = BottleServer,
     **server_args: Unpack[ServerArgs],
 ) -> tuple[str, str | None, BottleServer]:
     global global_server
     address, common_path, global_server = start_server(
-        urls=urls, http_port=http_port, server=server, **server_args
+        urls=urls, http_port=http_port, http_host=http_host, server=server, **server_args
     )
     return address, common_path, global_server

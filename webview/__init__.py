@@ -91,6 +91,7 @@ def start(
     debug: bool = False,
     http_server: bool = False,
     http_port: int | None = None,
+    http_host: str | None = None,
     user_agent: str | None = None,
     private_mode: bool = True,
     storage_path: str | None = None,
@@ -122,6 +123,8 @@ def start(
     :param menu: List of menus to be included in the app menu
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
+    :param http_host: HTTP host for BottleServer
+    :param http_port: HTTP port for BottleServer
     """
     global guilib
 
@@ -169,7 +172,7 @@ def start(
         if not _settings['private_mode'] and not http_port:
             http_port = DEFAULT_HTTP_PORT
         *_, server = http.start_global_server(
-            http_port=http_port, urls=urls, server=server, **server_args
+            http_port=http_port, http_host=http_host, urls=urls, server=server, **server_args
         )
 
     for window in windows:
