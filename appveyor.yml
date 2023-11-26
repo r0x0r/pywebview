@@ -1,6 +1,6 @@
 image:
   - Ubuntu2004
-  - Ubuntu2004
+  - Ubuntu2204
   - macos
   - Visual Studio 2022
 for:
@@ -49,7 +49,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu2004
+        - image: Ubuntu2204
     environment:
       PYWEBVIEW_GUI: gtk
     install:
