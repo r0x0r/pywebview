@@ -1,13 +1,14 @@
-image:
-  - Ubuntu2004
-  - Ubuntu2004
+configuration:
+  - qt
+  - gtk
   - macos
   - Visual Studio 2022
 for:
   -
     matrix:
       only:
-        - image: Visual Studio 2022
+        - configuration: Visual Studio 2022
+    image: Visual Studio 2022
     cache:
       - C:\ProgramData\chocolatey\bin -> appveyor.yml
       - C:\ProgramData\chocolatey\lib -> appveyor.yml
@@ -30,7 +31,8 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu2004
+        - configuration: qt
+    image: Ubuntu2004
     environment:
       PYWEBVIEW_GUI: qt
       DISPLAY: "0.0"
@@ -49,7 +51,8 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu2004
+        - configuration: gtk
+    image: Ubuntu2004
     environment:
       PYWEBVIEW_GUI: gtk
     install:
@@ -66,7 +69,8 @@ for:
   -
     matrix:
       only:
-        - image: macos
+        - configuration: macos
+    image: macos
     install:
       - python3 -m pip install --user pyobjc pytest proxy_tools bottle six typing_extensions
     test_script:
