@@ -33,7 +33,7 @@ for:
         - image: Ubuntu2004
     environment:
       PYWEBVIEW_GUI: qt
-      DISPLAY: "0.0"
+      DISPLAY: :99
       QT_QPA_PLATFORM: offscreen
     install:
       - sudo apt-get update -q
