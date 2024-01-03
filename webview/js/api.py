@@ -5,21 +5,28 @@ window.pywebview = {
     api: {},
 
     _createApi: function(funcList) {
-        for (var i = 0; i < funcList.length; i++) {
-            var funcName = funcList[i].func;
-            var params = funcList[i].params;
+        funcList.forEach(({ func: funcName, params }) => {
+            // Create nested structure and assign function
+            const funcHierarchy = funcName.split('.');
+            const functionName = funcHierarchy.pop();
+            const nestedObject = funcHierarchy.reduce((obj, prop) => {
+                return obj[prop] = obj[prop] || {};
+            }, window.pywebview.api);
 
-            var funcBody =
-                "var __id = (Math.random() + '').substring(2); " +
-                "var promise = new Promise(function(resolve, reject) { " +
-                    "window.pywebview._checkValue('" + funcName + "', resolve, reject, __id); " +
-                "}); " +
-                "window.pywebview._bridge.call('" + funcName + "', arguments, __id); " +
-                "return promise;"
+            // Define the function body
+            const funcBody = `
+                var __id = (Math.random() + '').substring(2);
+                var promise = new Promise(function(resolve, reject) {
+                    window.pywebview._checkValue('${funcName}', resolve, reject, __id);
+                });
+                window.pywebview._bridge.call('${funcName}', arguments, __id);
+                return promise;
+            `;
 
-            window.pywebview.api[funcName] = new Function(params, funcBody)
-            window.pywebview._returnValues[funcName] = {}
-        }
+            // Assign the new function
+            nestedObject[functionName] = new Function(params, funcBody);
+            window.pywebview._returnValues[funcName] = {};
+        });
     },
 
     _bridge: {

@@ -138,15 +138,24 @@ def parse_api_js(window: Window, platform: str, uid: str = '') -> str:
         params = list(inspect.getfullargspec(func).args)
         return params
 
-    def generate_func():
-        if window._js_api:
-            functions = {
-                name: get_args(getattr(window._js_api, name))[1:]
-                for name in dir(window._js_api)
-                if inspect.ismethod(getattr(window._js_api, name)) and not name.startswith('_')
-            }
-        else:
+    def get_functions(obj: object, base_name: str = '', functions: dict[str, object] = None):
+        if functions is None:
             functions = {}
+        for name in dir(obj):
+            if name.startswith('_'):
+                continue
+            attr = getattr(obj, name)
+            if inspect.ismethod(attr):
+                full_name = f"{base_name}.{name}" if base_name else name
+                functions[full_name] = get_args(attr)[1:]
+            # If the attribute is a class or a non-callable object, make a recursive call
+            elif inspect.isclass(attr) or (isinstance(attr, object) and not callable(attr)):
+                get_functions(attr, f"{base_name}.{name}" if base_name else name, functions)
+
+        return functions
+
+    def generate_func():
+        functions = get_functions(window._js_api)
 
         if len(window._functions) > 0:
             expose_functions = {name: get_args(f) for name, f in window._functions.items()}
@@ -154,9 +163,8 @@ def parse_api_js(window: Window, platform: str, uid: str = '') -> str:
             expose_functions = {}
 
         functions.update(expose_functions)
-        functions = functions.items()
 
-        return [{'func': name, 'params': params} for name, params in functions]
+        return [{'func': name, 'params': params} for name, params in functions.items()]
 
     try:
         func_list = generate_func()
@@ -184,7 +192,7 @@ def parse_api_js(window: Window, platform: str, uid: str = '') -> str:
             'easy_drag': str(platform == 'chromium' and window.easy_drag and window.frameless).lower(),
         }
     )
-    
+
     return js_code
 
 
@@ -201,6 +209,14 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{isError: true, value: \'{result}\'}}'
 
         window.evaluate_js(code)
+
+    def get_nested_attribute(obj: object, attr_str: str):
+        attributes = attr_str.split('.')
+        for attr in attributes:
+            obj = getattr(obj, attr, None)
+            if obj is None:
+                return None
+        return obj
 
     if func_name == 'moveWindow':
         window.move(*param)
@@ -221,7 +237,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         del window._callbacks[value_id]
         return
 
-    func = window._functions.get(func_name) or getattr(window._js_api, func_name, None)
+    func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
 
     if func is not None:
         try:
@@ -314,7 +330,7 @@ def interop_dll_path(dll_name: str) -> str:
 def environ_append(key: str, *values: str, sep=' ') -> None:
     '''Append values to an environment variable, separated by sep'''
     values = list(values)
-    
+
     existing = os.environ.get(key, '')
     if existing:
         values = [existing] + values
