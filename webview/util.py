@@ -149,7 +149,7 @@ def parse_api_js(window: Window, platform: str, uid: str = '') -> str:
                 full_name = f"{base_name}.{name}" if base_name else name
                 functions[full_name] = get_args(attr)[1:]
             # If the attribute is a class or a non-callable object, make a recursive call
-            elif inspect.isclass(attr) or (isinstance(attr, object) and not callable(attr)):
+            elif inspect.isclass(attr) or (isinstance(attr, object) and not callable(attr) and hasattr(attr, "__module__")):
                 get_functions(attr, f"{base_name}.{name}" if base_name else name, functions)
 
         return functions
