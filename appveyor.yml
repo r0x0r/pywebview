@@ -1,6 +1,6 @@
 image:
   - Ubuntu2004
-  - Ubuntu2004
+  - Ubuntu2204
   - macos
   - Visual Studio 2022
 for:
@@ -33,7 +33,7 @@ for:
         - image: Ubuntu2004
     environment:
       PYWEBVIEW_GUI: qt
-      DISPLAY: "0.0"
+      DISPLAY: :99
       QT_QPA_PLATFORM: offscreen
     install:
       - sudo apt-get update -q
@@ -49,12 +49,13 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu2004
+        - image: Ubuntu2204
     environment:
       PYWEBVIEW_GUI: gtk
+      DISPLAY: :99
     install:
       - sudo apt-get update -q
-      - sudo apt-get install --no-install-recommends -y xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.1 python3-gi python3-gi-cairo python3-pep8 pyflakes3 python3-pytest python3-six
+      - sudo apt-get install --no-install-recommends -y xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes3 python3-pytest python3-six
       - python3 -m pip install proxy_tools pytest bottle typing_extensions pygobject
     before_test:
       - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset && sleep 3;

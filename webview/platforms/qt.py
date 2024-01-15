@@ -45,7 +45,7 @@ except ImportError:
     is_webengine = False
     renderer = 'qtwebkit'
 
-if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos']:
+if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos','rhel']:
     # I don't know why, but it's a common solution for #890 (White screen displayed)
     # such as:
     # - https://github.com/LCA-ActivityBrowser/activity-browser/pull/954/files

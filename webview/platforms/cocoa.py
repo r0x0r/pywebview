@@ -76,6 +76,9 @@ class BrowserView:
                 i.closing.set()
             return Foundation.YES
 
+        def applicationSupportsSecureRestorableState_(self, app):
+            return Foundation.YES
+    
     class WindowHost(AppKit.NSWindow):
         def canBecomeKeyWindow(self):
             return self.focus

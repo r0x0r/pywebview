@@ -28,8 +28,8 @@ try:
     gi.require_version('Soup', '3.0')
 except ValueError:
     logger.debug('WebKit2 4.1 not found. Using 4.0.')
-    gi.require_version('WebKit2', '4.1')
-    gi.require_version('Soup', '3.0')
+    gi.require_version('WebKit2', '4.0')
+    gi.require_version('Soup', '2.4')
 
 from gi.repository import Gdk, Gio
 from gi.repository import GLib as glib

@@ -106,5 +106,5 @@ def load_html(window):
 def load_url(window):
     child_window = webview.create_window('Window #2')
     assert child_window != 'MainWindow'
-    child_window.load_url('https://woot.fi')
+    child_window.load_url('https://pywebview.flowrl.com')
     child_window.destroy()
