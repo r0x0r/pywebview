@@ -5,7 +5,8 @@ window.pywebview = {
     api: {},
 
     _createApi: function(funcList) {
-        funcList.forEach(function (element) {
+        for(var i = 0; i < funcList.length; i++) {
+            var element = funcList[i];
             var funcName = element.func;
             var params = element.params;
 
@@ -31,7 +32,7 @@ window.pywebview = {
             // Assign the new function
             nestedObject[functionName] = new Function(params, funcBody);
             window.pywebview._returnValues[funcName] = {};
-        });
+        };
     },
 
     _bridge: {
