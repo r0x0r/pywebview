@@ -24,9 +24,20 @@ def test_concurrent():
     run_test(webview, window, concurrent)
 
 
+class NestedApi:
+    @classmethod
+    def get_int(cls):
+        return 422
+
+    def get_int_instance(self):
+        return 423
+
 class Api:
     class ApiTestException(Exception):
         pass
+
+    nested = NestedApi
+    nested_instance = NestedApi()
 
     def get_int(self):
         return 420
@@ -70,6 +81,8 @@ def js_bridge(window):
     assert_js(window, 'get_double_quote', 'te"st')
     assert_js(window, 'echo', 'test', 'test')
     assert_js(window, 'multiple', [1, 2, 3], 1, 2, 3)
+    assert_js(window, 'nested.get_int', 422)
+    assert_js(window, 'nested_instance.get_int_instance', 423)
 
 
 def exception(window):

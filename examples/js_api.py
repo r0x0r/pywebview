@@ -73,7 +73,7 @@ html = """
     function doHeavyStuff() {
         var btn = document.getElementById('heavy-stuff-btn')
 
-        pywebview.api.doHeavyStuff().then(function(response) {
+        pywebview.api.heavy_stuff.doHeavyStuff().then(function(response) {
             showResponse(response)
             btn.onclick = doHeavyStuff
             btn.innerText = 'Perform a heavy operation'
@@ -85,7 +85,7 @@ html = """
     }
 
     function cancelHeavyStuff() {
-        pywebview.api.cancelHeavyStuff()
+        pywebview.api.heavy_stuff.cancelHeavyStuff()
     }
 
     function getRandomNumber() {
@@ -107,21 +107,9 @@ html = """
 """
 
 
-class Api:
+class HeavyStuffAPI:
     def __init__(self):
         self.cancel_heavy_stuff_flag = False
-
-    def init(self):
-        response = {'message': 'Hello from Python {0}'.format(sys.version)}
-        return response
-
-    def getRandomNumber(self):
-        response = {
-            'message': 'Here is a random number courtesy of randint: {0}'.format(
-                random.randint(0, 100000000)
-            )
-        }
-        return response
 
     def doHeavyStuff(self):
         time.sleep(0.1)  # sleep to prevent from the ui thread from freezing for a moment
@@ -145,6 +133,23 @@ class Api:
         time.sleep(0.1)
         self.cancel_heavy_stuff_flag = True
 
+
+
+class Api:
+    heavy_stuff = HeavyStuffAPI()
+
+    def init(self):
+        response = {'message': 'Hello from Python {0}'.format(sys.version)}
+        return response
+
+    def getRandomNumber(self):
+        response = {
+            'message': 'Here is a random number courtesy of randint: {0}'.format(
+                random.randint(0, 100000000)
+            )
+        }
+        return response
+
     def sayHelloTo(self, name):
         response = {'message': 'Hello {0}!'.format(name)}
         return response
@@ -156,4 +161,4 @@ class Api:
 if __name__ == '__main__':
     api = Api()
     window = webview.create_window('JS API example', html=html, js_api=api)
-    webview.start()
+    webview.start(debug=True)
