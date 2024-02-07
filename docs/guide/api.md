@@ -441,4 +441,4 @@ With a frameless _pywebview_ window, A window can be moved or dragged by adding 
 The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
 
 
-[Example](/examples/js_api.html)
+[Example](/examples/drag_region.html)
