@@ -171,8 +171,8 @@ class BrowserView(QMainWindow):
             uid = self.parent().uid + '-inspector'
             try:
                 # If inspector already exists, bring it to the front
-                BrowserView.instances[uid].raise_()
-                BrowserView.instances[uid].activateWindow()
+                BrowserView.instances.get(uid).raise_()
+                BrowserView.instances.get(uid).activateWindow()
             except KeyError:
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
@@ -256,7 +256,7 @@ class BrowserView(QMainWindow):
                 return True
 
         def userAgentForUrl(self, url):
-            user_agent = settings.get('user_agent') or _settings['user_agent']
+            user_agent = _settings['user_agent']
             if user_agent:
                 return user_agent
             else:
@@ -353,7 +353,7 @@ class BrowserView(QMainWindow):
                 '--enable-features=AutoplayIgnoreWebAudio',
             )
 
-        user_agent = settings.get('user_agent') or _settings['user_agent']
+        user_agent = _settings['user_agent']
         if user_agent and is_webengine:
             self.view.page().profile().setHttpUserAgent(user_agent)
 
@@ -880,23 +880,33 @@ def create_window(window):
 
 
 def set_title(title, uid):
-    BrowserView.instances[uid].set_title(title)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.set_title(title)
 
 
 def get_cookies(uid):
-    return BrowserView.instances[uid].get_cookies()
+    i = BrowserView.instances.get(uid)
+    if i:
+        return i.get_cookies()
 
 
 def get_current_url(uid):
-    return BrowserView.instances[uid].get_current_url()
+    i = BrowserView.instances.get(uid)
+    if i:
+        return i.get_current_url()
 
 
 def load_url(url, uid):
-    BrowserView.instances[uid].load_url(url)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.load_url(url)
 
 
 def load_html(content, base_uri, uid):
-    BrowserView.instances[uid].load_html(content, base_uri)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.load_html(content, base_uri)
 
 
 def set_app_menu(app_menu_list):
@@ -957,43 +967,63 @@ def get_active_window():
 
 
 def destroy_window(uid):
-    BrowserView.instances[uid].destroy_()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.destroy_()
 
 
 def hide(uid):
-    BrowserView.instances[uid].hide_()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.hide_()
 
 
 def show(uid):
-    BrowserView.instances[uid].show_()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.show_()
 
 
 def minimize(uid):
-    BrowserView.instances[uid].minimize()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.minimize()
 
 
 def restore(uid):
-    BrowserView.instances[uid].restore()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.restore()
 
 
 def toggle_fullscreen(uid):
-    BrowserView.instances[uid].toggle_fullscreen()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.toggle_fullscreen()
 
 
 def set_on_top(uid, top):
-    BrowserView.instances[uid].set_on_top(top)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.set_on_top(top)
 
 
 def resize(width, height, uid, fix_point):
-    BrowserView.instances[uid].resize_(width, height, fix_point)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.resize_(width, height, fix_point)
 
 
 def move(x, y, uid):
-    BrowserView.instances[uid].move_window(x, y)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.move_window(x, y)
 
 
 def create_confirmation_dialog(title, message, uid):
-    return BrowserView.instances[uid].create_confirmation_dialog(title, message)
+    i = BrowserView.instances.get(uid)
+    if i:
+        return i.create_confirmation_dialog(title, message)
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
@@ -1001,22 +1031,33 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     file_types = [s.replace(';', ' ') for s in file_types]
     file_filter = ';;'.join(file_types)
 
-    i = BrowserView.instances[uid]
-    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
+    i = BrowserView.instances.get(uid)
+    if i:
+        return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
 def evaluate_js(script, uid):
-    return BrowserView.instances[uid].evaluate_js(script)
+    i = BrowserView.instances.get(uid)
+    if i:
+        return i.evaluate_js(script)
 
 
 def get_position(uid):
-    position = BrowserView.instances[uid].pos()
-    return position.x(), position.y()
+    i = BrowserView.instances.get(uid)
+    if i:
+        position = i.pos()
+        return position.x(), position.y()
+    else:
+        return None, None
 
 
 def get_size(uid):
-    window = BrowserView.instances[uid]
-    return window.width(), window.height()
+    i = BrowserView.instances.get(uid)
+    if i:
+        window = i.get(uid)
+        return window.width(), window.height()
+    else:
+        return None, None
 
 
 def get_screens():

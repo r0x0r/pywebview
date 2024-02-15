@@ -23,8 +23,6 @@ from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pyw
 from webview.window import FixPoint
 
 
-settings = {}
-
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
@@ -78,7 +76,7 @@ class BrowserView:
 
         def applicationSupportsSecureRestorableState_(self, app):
             return Foundation.YES
-    
+
     class WindowHost(AppKit.NSWindow):
         def canBecomeKeyWindow(self):
             return self.focus
@@ -224,7 +222,7 @@ class BrowserView:
         ):
             if action.navigationType() == getattr(WebKit, 'WKNavigationTypeLinkActivated', 0):
 
-                if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
+                if webview_settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
                     webbrowser.open(action.request().URL().absoluteString(), 2, True)
                 else:
                     webview.loadRequest_(action.request())
@@ -550,7 +548,7 @@ class BrowserView:
         except KeyError:
             pass  # backspaceKeyNavigationEnabled does not exist prior to macOS Mojave
 
-        config.preferences().setValue_forKey_(settings['ALLOW_FILE_URLS'], 'allowFileAccessFromFileURLs')
+        config.preferences().setValue_forKey_(webview_settings['ALLOW_FILE_URLS'], 'allowFileAccessFromFileURLs')
 
         if _settings['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')
@@ -558,7 +556,7 @@ class BrowserView:
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
         config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
-        user_agent = settings.get('user_agent') or _settings['user_agent']
+        user_agent = webview_settings.get('user_agent') or _settings['user_agent']
         if user_agent:
             self.webkit.setCustomUserAgent_(user_agent)
 
@@ -1108,14 +1106,16 @@ def create_window(window):
 
 
 def set_title(title, uid):
-    BrowserView.instances[uid].set_title(title)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.set_title(title)
 
 
 def create_confirmation_dialog(title, message, uid):
     def _confirm():
         nonlocal result
 
-        i = BrowserView.instances[uid]
+        i = BrowserView.instances.get(uid)
         ok = i.localization['global.ok']
         cancel = i.localization['global.cancel']
 
@@ -1140,16 +1140,20 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         file_extensions = [i.lstrip('*.') for i in extensions.split(';') if i != '*.*']
         file_filter.append([description, file_extensions or None])
 
-    i = BrowserView.instances[uid]
+    i = BrowserView.instances.get(uid)
     return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
 def load_url(url, uid):
-    BrowserView.instances[uid].load_url(url)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.load_url(url)
 
 
 def load_html(content, base_uri, uid):
-    BrowserView.instances[uid].load_html(content, base_uri)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.load_html(content, base_uri)
 
 
 def set_app_menu(app_menu_list):
@@ -1235,66 +1239,89 @@ def get_active_window():
 
 
 def destroy_window(uid):
-    BrowserView.instances[uid].destroy()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.destroy()
 
 
 def hide(uid):
-    BrowserView.instances[uid].hide()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.hide()
 
 
 def show(uid):
-    BrowserView.instances[uid].show()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.show()
 
 
 def toggle_fullscreen(uid):
-    BrowserView.instances[uid].toggle_fullscreen()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.toggle_fullscreen()
 
 
 def set_on_top(uid, top):
     def _set_on_top():
         level = AppKit.NSStatusWindowLevel if top else AppKit.NSNormalWindowLevel
-        BrowserView.instances[uid].window.setLevel_(level)
+        i.window.setLevel_(level)
 
-    AppHelper.callAfter(_set_on_top)
+    i = BrowserView.instances.get(uid)
+    if i:
+        AppHelper.callAfter(_set_on_top)
 
 
 def resize(width, height, uid, fix_point):
-    BrowserView.instances[uid].resize(width, height, fix_point)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.resize(width, height, fix_point)
 
 
 def minimize(uid):
-    BrowserView.instances[uid].minimize()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.minimize()
 
 
 def restore(uid):
-    BrowserView.instances[uid].restore()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.restore()
 
 
 def move(x, y, uid):
-    AppHelper.callAfter(BrowserView.instances[uid].move, x, y)
+    i = BrowserView.instances.get(uid)
+    if i:
+        AppHelper.callAfter(i.move, x, y)
 
 
 def get_current_url(uid):
-    return BrowserView.instances[uid].get_current_url()
+    i = BrowserView.instances.get(uid)
+    if i:
+        return i.get_current_url()
 
 
 def get_cookies(uid):
-    return BrowserView.instances[uid].get_cookies()
+    i = BrowserView.instances.get(uid)
+    if i:
+        return i.get_cookies()
 
 
 def evaluate_js(script, uid):
-    return BrowserView.instances[uid].evaluate_js(script)
+    i = BrowserView.instances.get(uid)
+    if i:
+        return i.evaluate_js(script)
 
 
 def get_position(uid):
     def _position(coordinates):
-        instance = BrowserView.instances[uid]
-        screen_frame = instance.screen
+        screen_frame = i.screen
 
         if screen_frame is None:
             raise RuntimeError('Failed to obtain screen')
 
-        window = instance.window
+        window = i.window
         frame = window.frame()
         coordinates[0] = int(frame.origin.x)
         coordinates[1] = int(screen_frame.size.height - frame.origin.y - frame.size.height)
@@ -1302,6 +1329,10 @@ def get_position(uid):
 
     coordinates = [None, None]
     semaphore = Semaphore(0)
+
+    i = BrowserView.instances.get(uid)
+    if not i:
+        return None, None
 
     try:
         _position(coordinates)
@@ -1314,13 +1345,17 @@ def get_position(uid):
 
 def get_size(uid):
     def _size(dimensions):
-        size = BrowserView.instances[uid].window.frame().size
+        size = i.window.frame().size
         dimensions[0] = size.width
         dimensions[1] = size.height
         semaphore.release()
 
     dimensions = [None, None]
     semaphore = Semaphore(0)
+
+    i = BrowserView.instances.get(uid)
+    if not i:
+        return None, None
 
     try:
         _size(dimensions)

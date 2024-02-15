@@ -586,11 +586,14 @@ def create_window(window):
 
 def set_title(title, uid):
     def _set_title():
-        window.Text = title
+        i.Text = title
 
-    window = BrowserView.instances[uid]
-    if window.InvokeRequired:
-        window.Invoke(Func[Type](_set_title))
+    i = BrowserView.instances.get(uid)
+
+    if not i:
+        return
+    elif i.InvokeRequired:
+        i.Invoke(Func[Type](_set_title))
     else:
         _set_title()
 
@@ -601,7 +604,10 @@ def create_confirmation_dialog(title, message, _):
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
-    window = BrowserView.instances[uid]
+    i = BrowserView.instances.get(uid)
+
+    if not i:
+        return
 
     if not directory:
         directory = os.environ['HOMEPATH']
@@ -614,7 +620,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
             if directory:
                 dialog.SelectedPath = directory
 
-            result = dialog.ShowDialog(window)
+            result = dialog.ShowDialog(i)
             if result == WinForms.DialogResult.OK:
                 file_path = (dialog.SelectedPath,)
             else:
@@ -630,10 +636,10 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
                     ['{0} ({1})|{1}'.format(*parse_file_type(f)) for f in file_types]
                 )
             else:
-                dialog.Filter = window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
+                dialog.Filter = i.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
             dialog.RestoreDirectory = True
 
-            result = dialog.ShowDialog(window)
+            result = dialog.ShowDialog(i)
             if result == WinForms.DialogResult.OK:
                 file_path = tuple(dialog.FileNames)
             else:
@@ -646,12 +652,12 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
                     ['{0} ({1})|{1}'.format(*parse_file_type(f)) for f in file_types]
                 )
             else:
-                dialog.Filter = window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
+                dialog.Filter = i.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
             dialog.InitialDirectory = directory
             dialog.RestoreDirectory = True
             dialog.FileName = save_filename
 
-            result = dialog.ShowDialog(window)
+            result = dialog.ShowDialog(i)
             if result == WinForms.DialogResult.OK:
                 file_path = dialog.FileName
             else:
@@ -666,33 +672,41 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 def get_cookies(uid):
     if is_cef:
         return CEF.get_cookies(uid)
-    window = BrowserView.instances[uid]
-    return window.get_cookies()
+    i = BrowserView.instances.get(uid)
+
+    if i:
+        return i.get_cookies()
 
 
 def get_current_url(uid):
     if is_cef:
         return CEF.get_current_url(uid)
-    window = BrowserView.instances[uid]
-    window.loaded.wait()
-    return window.browser.url
+
+    i = BrowserView.instances.get(uid)
+    if i:
+        return i.browser.url
 
 
 def load_url(url, uid):
-    window = BrowserView.instances[uid]
-    window.loaded.clear()
+    i = BrowserView.instances.get(uid)
+    if not i:
+        return
+
+    i.loaded.clear()
 
     if is_cef:
         CEF.load_url(url, uid)
     else:
-        window.load_url(url)
+        i.load_url(url)
 
 
 def load_html(content, base_uri, uid):
+    i = BrowserView.instances.get(uid)
+
     if is_cef:
         CEF.load_html(inject_base_uri(content, base_uri), uid)
-    else:
-        BrowserView.instances[uid].load_html(content, base_uri)
+    elif i:
+        i.load_html(content, base_uri)
 
 
 def set_app_menu(app_menu_list):
@@ -725,69 +739,86 @@ def get_active_window():
 
 
 def show(uid):
-    window = BrowserView.instances[uid]
-    window.show()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.show()
 
 
 def hide(uid):
-    window = BrowserView.instances[uid]
-    window.hide()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.hide()
 
 
 def toggle_fullscreen(uid):
-    window = BrowserView.instances[uid]
-    window.toggle_fullscreen()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.toggle_fullscreen()
 
 
 def set_on_top(uid, on_top):
-    window = BrowserView.instances[uid]
-    window.TopMost = on_top
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.TopMost = on_top
 
 
 def resize(width, height, uid, fix_point):
-    window = BrowserView.instances[uid]
-    window.resize(width, height, fix_point)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.resize(width, height, fix_point)
 
 
 def move(x, y, uid):
-    window = BrowserView.instances[uid]
-    window.move(x, y)
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.move(x, y)
 
 
 def minimize(uid):
-    window = BrowserView.instances[uid]
-    window.minimize()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.minimize()
 
 
 def restore(uid):
-    window = BrowserView.instances[uid]
-    window.restore()
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.restore()
 
 
 def destroy_window(uid):
     def _close():
-        window.Close()
+        i.Close()
 
-    window = BrowserView.instances[uid]
-    window.Invoke(Func[Type](_close))
+    i = BrowserView.instances.get(uid)
+    if not i:
+        return
 
+    i.Invoke(Func[Type](_close))
     if not is_cef:
-        window.browser.js_result_semaphore.release()
+        i.browser.js_result_semaphore.release()
 
 
 def evaluate_js(script, uid, result_id=None):
     if is_cef:
         return CEF.evaluate_js(script, result_id, uid)
-    return BrowserView.instances[uid].evaluate_js(script)
+
+    i = BrowserView.instances.get(uid)
+    if i:
+        return i.evaluate_js(script)
 
 
 def get_position(uid):
-    return BrowserView.instances[uid].Left, BrowserView.instances[uid].Top
+    i = BrowserView.instances.get(uid)
+    if i:
+        return i.Left, i.Top
 
 
 def get_size(uid):
-    size = BrowserView.instances[uid].Size
-    return size.Width, size.Height
+    i = BrowserView.instances.get(uid)
+    if i:
+        size = i.Size
+        return size.Width, size.Height
 
 
 def get_screens():

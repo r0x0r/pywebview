@@ -590,23 +590,29 @@ def create_window(window):
 
 def set_title(title, uid):
     def _set_title():
-        BrowserView.instances[uid].set_title(title)
+        i.set_title(title)
 
-    glib.idle_add(_set_title)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(_set_title)
 
 
 def destroy_window(uid):
     def _destroy_window():
-        BrowserView.instances[uid].close_window()
+        i.close_window()
 
-    glib.idle_add(_destroy_window)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(_destroy_window)
 
 
 def toggle_fullscreen(uid):
     def _toggle_fullscreen():
-        BrowserView.instances[uid].toggle_fullscreen()
+        i.toggle_fullscreen()
 
-    glib.idle_add(_toggle_fullscreen)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(_toggle_fullscreen)
 
 
 def add_tls_cert(certfile):
@@ -617,53 +623,73 @@ def add_tls_cert(certfile):
 
 def set_on_top(uid, top):
     def _set_on_top():
-        BrowserView.instances[uid].window.set_keep_above(top)
+        i.window.set_keep_above(top)
 
-    glib.idle_add(_set_on_top)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(_set_on_top)
 
 
 def resize(width, height, uid, fix_point):
     def _resize():
-        BrowserView.instances[uid].resize(width, height, fix_point)
+        i.resize(width, height, fix_point)
 
-    glib.idle_add(_resize)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(_resize)
 
 
 def move(x, y, uid):
     def _move():
-        BrowserView.instances[uid].move(x, y)
+        i.move(x, y)
 
-    glib.idle_add(_move)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(_move)
 
 
 def hide(uid):
-    glib.idle_add(BrowserView.instances[uid].hide)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(i.hide)
 
 
 def show(uid):
-    glib.idle_add(BrowserView.instances[uid].show)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(i.show)
 
 
 def minimize(uid):
-    glib.idle_add(BrowserView.instances[uid].minimize)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(i.minimize)
 
 
 def restore(uid):
-    glib.idle_add(BrowserView.instances[uid].restore)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(i.restore)
 
 
 def get_cookies(uid):
-    cookies = BrowserView.instances[uid].get_cookies()
-    return cookies
+    i = BrowserView.instances.get(uid)
+    if i:
+        cookies = i.get_cookies()
+        return cookies
 
 
 def get_current_url(uid):
     def _get_current_url():
-        result['url'] = BrowserView.instances[uid].get_current_url()
+        result['url'] = i.get_current_url()
         semaphore.release()
 
     result = {}
     semaphore = Semaphore(0)
+
+    i = BrowserView.instances.get(uid)
+    if not i:
+        return
 
     glib.idle_add(_get_current_url)
     semaphore.acquire()
@@ -673,30 +699,35 @@ def get_current_url(uid):
 
 def load_url(url, uid):
     def _load_url():
-        BrowserView.instances[uid].load_url(url)
+        i.load_url(url)
 
-    glib.idle_add(_load_url)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(_load_url)
 
 
 def load_html(content, base_uri, uid):
     def _load_html():
-        BrowserView.instances[uid].load_html(content, base_uri)
+        i.load_html(content, base_uri)
 
-    glib.idle_add(_load_html)
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(_load_html)
 
 
 def create_confirmation_dialog(title, message, uid):
-    i = BrowserView.instances[uid]
-    result_semaphore = Semaphore(0)
-    result = -1
-
     def _create():
         nonlocal result
         result = i.create_confirmation_dialog(title, message)
         result_semaphore.release()
 
-    glib.idle_add(_create)
-    result_semaphore.acquire()
+    i = BrowserView.instances.get(uid)
+    result_semaphore = Semaphore(0)
+    result = -1
+
+    if i:
+        glib.idle_add(_create)
+        result_semaphore.acquire()
 
     return result
 
@@ -779,7 +810,7 @@ def get_active_window():
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
-    i = BrowserView.instances[uid]
+    i = BrowserView.instances.get(uid)
     file_name_semaphore = Semaphore(0)
     file_names = []
 
@@ -801,13 +832,20 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 
 def evaluate_js(script, uid):
-    return BrowserView.instances[uid].evaluate_js(script)
+    i = BrowserView.instances.get(uid)
+
+    if i:
+        return i.evaluate_js(script)
 
 
 def get_position(uid):
     def _get_position():
-        result['position'] = BrowserView.instances[uid].window.get_position()
+        result['position'] = i.window.get_position()
         semaphore.release()
+
+    i = BrowserView.instances.get(uid)
+    if not i:
+        return
 
     result = {}
     semaphore = Semaphore(0)
@@ -820,8 +858,12 @@ def get_position(uid):
 
 def get_size(uid):
     def _get_size():
-        result['size'] = BrowserView.instances[uid].window.get_size()
+        result['size'] = i.window.get_size()
         semaphore.release()
+
+    i = BrowserView.instances.get(uid)
+    if not i:
+        return
 
     result = {}
     semaphore = Semaphore(0)
