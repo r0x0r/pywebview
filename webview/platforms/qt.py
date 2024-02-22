@@ -7,6 +7,7 @@ import sys
 import typing as t
 import webbrowser
 from copy import copy, deepcopy
+from functools import partial
 from threading import Event, Semaphore, Thread
 from uuid import uuid1
 
@@ -917,6 +918,8 @@ def set_app_menu(app_menu_list):
     Args:
         app_menu_list ([webview.menu.Menu])
     """
+    def run_action(func):
+        Thread(target=func).start()
 
     def create_submenu(title, line_items, supermenu):
         m = supermenu.addMenu(title)
@@ -927,7 +930,7 @@ def set_app_menu(app_menu_list):
             elif isinstance(menu_line_item, MenuAction):
                 new_action = QAction(menu_line_item.title)
                 func = copy(menu_line_item.function)
-                new_action.triggered.connect(lambda: Thread(target=func).start())
+                new_action.triggered.connect(partial(run_action, func))
                 m.addAction(new_action)
                 BrowserView.global_menubar_other_objects.append(new_action)
             elif isinstance(menu_line_item, Menu):
