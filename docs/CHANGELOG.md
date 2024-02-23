@@ -2,13 +2,13 @@
 
 ## 5.0
 
-_Released xx/xx/2023_
+_Released xx/xx/2024_
 
 ### ⚡ Features
 
 - Android support. _pywebview_ can now be used on Android devices with help of [buildozer](https://buildozer.readthedocs.io/en/latest/) in producing APK. #377
 - DOM manipulation, traversal and events. _pywebview_  provides a set of functions for mutating DOM nodes and traversing DOM, as well as you can subscribe to DOM events directly in Python. #1218
-- Application settings `webview.settings`. You can now override default behaviour of _pywebview_ by modifying this dictionary. Currently application settings include ````
+- Application settings `webview.settings`. You can now override default behaviour of _pywebview_ by modifying this dictionary. Currently configurable settings include ````
 webview.settings = {
     'ALLOW_DOWNLOADS': False, # Allow file downloads
     'ALLOW_FILE_URLS': True, # Allow access to file:// urls
@@ -26,8 +26,16 @@ webview.settings = {
 - [All] BREAKING: `evaluate_js` throws a `JavascriptException` if executed codes raises an error
 - [Windows] WebView2 control updated to 1.0.2045.28
 - [Windows] Add SSL support for local HTTP server.
--
+- Nested API support. See `examples/js_api.py` for details. Thanks @AlecHaring
 
+### 🐞 Bug fixes
+- `Cocoa` Suppress secure coding is not enabled for restorable state warning. Thanks @awesomo4000
+- `EdgeChromium` Background color not available in webview2. Thanks @Vanthys
+- `EdgeChromium` Multiple focus events on window show. Thanks @yllhwa
+- `GTK` Fallback for Webkit4.0 if 4.1 not found. Thanks @starnight.
+- `QT` Fix user agent string. #1256 Thanks @TransparentLC.
+- `QT` Solve the blank main window issue on RHEL9. Thanks @justincui #1266
+- `QT` Submenu actions firing incorrectly #1318
 
 ## 4.4.1
 
@@ -201,7 +209,7 @@ _Released 18/01/2023_
 - EdgeHTML support is removed.
 
 ### ⚡ Features
-- `All` Local homegrown HTTP server is replaced with `bottle.py`(https://bottlepy.org). Thanks @robb-brown for WSGI support.
+- `All` Local homegrown HTTP server is replaced with [bottle.py](https://bottlepy.org). Thanks @robb-brown for WSGI support.
 - `All` Native application menu support. See `examples/menu.py` for usage example. Thanks @sardination
 - `All` `webview.start(private_mode=True, storage_path=None)` Private mode and persistant storage support in a non-private mode. Private mode is enabled by default.
 - `All` `webview.create_window(zoomable=False)` Enable / disable zooming on webpage. Disabled by default.
@@ -320,15 +328,15 @@ _Released 02/08/2021_
 
 _Released 04/12/2020_
 
-- `New` `Windows` WebView2 Chromium support. Thanks `sbbosco`(https://github.com/sbbosco). `#521`(https://github.com/r0x0r/pywebview/issues/521).
-- `Fix` `All` Exception with HTML checkboxes and `get_elements`. `#622`(https://github.com/r0x0r/pywebview/issues/622).
-- `Fix` `All` pystray compatibility. Thanks `AlexCovizzi`(https://github.com/AlexCovizzi). `#486`(https://github.com/r0x0r/pywebview/issues/486).
-- `Fix` `All` expose methods instead of all callables for JS API objects. Thanks `jgentil`(https://github.com/jgentil). `#629`(https://github.com/r0x0r/pywebview/issues/629).
-- `Fix` `EdgeHTML` Make returning results of `evaluate_js` more robust. Thanks `sbbosco`(https://github.com/sbbosco).
-- `Fix` `QT` KDE_FULL_SESSION not being used. Thanks `Maltzur`(https://github.com/Maltzur).
+- `New` `Windows` WebView2 Chromium support. Thanks [sbbosco](https://github.com/sbbosco). [#521](https://github.com/r0x0r/pywebview/issues/521).
+- `Fix` `All` Exception with HTML checkboxes and `get_elements`. [#622](https://github.com/r0x0r/pywebview/issues/622).
+- `Fix` `All` pystray compatibility. Thanks [AlexCovizzi](https://github.com/AlexCovizzi). [#486](https://github.com/r0x0r/pywebview/issues/486).
+- `Fix` `All` expose methods instead of all callables for JS API objects. Thanks [jgentil](https://github.com/jgentil). [#629](https://github.com/r0x0r/pywebview/issues/629).
+- `Fix` `EdgeHTML` Make returning results of `evaluate_js` more robust. Thanks [sbbosco](https://github.com/sbbosco).
+- `Fix` `QT` KDE_FULL_SESSION not being used. Thanks [Maltzur](https://github.com/Maltzur).
 - `Fix` `Cocoa` Unicode filenames for input files.
-- `Improvement` `Cocoa` Only install the specific `pyobjc` packages required. Thanks `Fizzadar`(https://github.com/fizzadar).
-- `Improvement` `Cocoa` Add support for default document navigation and window handling shortcut keys . Thanks `ikhmyz`(https://github.com/ikhmyz) and `Fizzadar`(https://github.com/fizzadar)
+- `Improvement` `Cocoa` Only install the specific `pyobjc` packages required. Thanks [Fizzadar](https://github.com/fizzadar).
+- `Improvement` `Cocoa` Add support for default document navigation and window handling shortcut keys . Thanks [ikhmyz](https://github.com/ikhmyz) and [Fizzadar](https://github.com/fizzadar)
 
 ## 3.3.5
 
@@ -342,28 +350,28 @@ _Released 26/09/2020_
 _Released 18/09/2020_
 
 - `Fix` `EdgeHTML` Fix content not displaying with local URLs or local HTTP server
-- `Fix` `Cocoa` Fixes arrow keys not responding in text input fields. Thanks `awesomo4000`(https://github.com/awesomo4000)
+- `Fix` `Cocoa` Fixes arrow keys not responding in text input fields. Thanks [awesomo4000](https://github.com/awesomo4000)
 
 ## 3.3.3
 
 _Released 08/08/2020_
 
-- `Fix` `Cocoa` Save dialog not working `#578`(https://github.com/r0x0r/pywebview/issues/578).
-- `Fix` `Cocoa` Error sound being played when pressing keys on macOS `#566`(https://github.com/r0x0r/pywebview/issues/566).
+- `Fix` `Cocoa` Save dialog not working [#578](https://github.com/r0x0r/pywebview/issues/578).
+- `Fix` `Cocoa` Error sound being played when pressing keys on macOS [#566](https://github.com/r0x0r/pywebview/issues/566).
 
 ## 3.3.2
 
 _Released 28/07/2020_
 
-- `Fix` `All` Load html triggers error - resolve_url() missing 1 required positional argument: 'should_serve' `#562`(https://github.com/r0x0r/pywebview/issues/562).
-- `Fix` `Cocoa/GTK` Access window size on closing `#573`(https://github.com/r0x0r/pywebview/issues/573).
+- `Fix` `All` Load html triggers error - resolve_url() missing 1 required positional argument: 'should_serve' [#562](https://github.com/r0x0r/pywebview/issues/562).
+- `Fix` `Cocoa/GTK` Access window size on closing [#573](https://github.com/r0x0r/pywebview/issues/573).
 - `Fix` `GTK` Save file dialog now returns a string instead of a tuple.
 
 ## 3.3.1
 
 _Released 01/07/2020_
 
-- `Fix` `WinForms` TypeError : 'str' value cannot be converted to System.Drawing.Color `#560`(https://github.com/r0x0r/pywebview/issues/560).
+- `Fix` `WinForms` TypeError : 'str' value cannot be converted to System.Drawing.Color [#560](https://github.com/r0x0r/pywebview/issues/560).
 
 
 ## 3.3: Detroit Edition
@@ -375,10 +383,10 @@ _Released 29/06/2020_
 - `New` `All` Allow _pywebview_ window to be on top of other windows.
 - `New` `All` Custom window drag region using CSS classes. Thanks `@Fizzadar`(https://github.com/Fizzadar).
 - `New` `All` Custom user-agent support. Thanks `@tognee`(https://github.com/tognee).
-- `Fix` `All` Python function not triggered using JS `#458`(https://github.com/r0x0r/pywebview/issues/458).
-- `Fix` `All` window methods do not work in `loaded` event `#528`(https://github.com/r0x0r/pywebview/issues/528).
+- `Fix` `All` Python function not triggered using JS [#458](https://github.com/r0x0r/pywebview/issues/458).
+- `Fix` `All` window methods do not work in `loaded` event [#528](https://github.com/r0x0r/pywebview/issues/528).
 - `Fix` `Cocoa` Caption bar and window control buttons are now hidden in frameless mode.
-- `Fix` `CEF` CEF window resize hang `#484`(https://github.com/r0x0r/pywebview/issues/484).
+- `Fix` `CEF` CEF window resize hang [#484](https://github.com/r0x0r/pywebview/issues/484).
 - `Fix` `MSHTML` Fix easy drag in frameless mode.
 - `Fix` `EdgeHTML` Do not show admin prompt for non-local URLs.
 - `Fix` `GTK` Fix threading issues with recentish versions of PyGObject
@@ -396,7 +404,7 @@ _Released 24/01/2020_
 - `Improvement` `All` Random port assigned by the built-in HTTP server can be retrieved via `webview.http_server.port`
 - `Improvement` `QT` Microphone/webcam are enabled by default. Thanks `@dtcooper`(https://github.com/dtcooper)
 - `Improvement` `QT` Default debugger port is changed to 8228. Thanks `@melvinkcx`(https://github.com/melvinkcx)
-- `Improvement` `CEF` Ability to pass custom CEF settings via ` webview.platforms.cef.settings`. See `example`(/examples/cef.md) for details.
+- `Improvement` `CEF` Ability to pass custom CEF settings via ` webview.platforms.cef.settings`. See [example](/examples/cef.md) for details.
 - `Fix` `All` Built-in HTTP server is properly restarted when using `window.load_url`
 - `Fix` `Cocoa` New window position is correctly calculated when using `window.move`
 - `Fix` `EdgeHTML` `window.alert` fix

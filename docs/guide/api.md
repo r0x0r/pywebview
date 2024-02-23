@@ -63,7 +63,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
 * `gui` - force a specific GUI. Allowed values are `cef`, `qt` or `gtk` depending on a platform. See [Renderer](/guide/renderer.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
-* `http_server` - enable built-in HTTP server. If enabled, local files will be served using a local HTTP server on a random port. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
+* `http_server` - enable built-in HTTP server for absolute local paths. For relative paths HTTP server is started automatically and cannot be disabled. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `http_port` - specify a port number for the HTTP server. By default port is randomized.
 * `user_agent` - change user agent string.
 * `private_mode` - Control whether cookies and other persistant objects are stored between session. By default private mode is on and nothing is stored between sessions.
@@ -104,6 +104,7 @@ webview.settings = {
 Additional options that override default behaviour of _pywebview_ to address popular feature requests.
 
 * `ALLOW_DOWNLOADS` Allow file downloads. Disabled by default.
+* `ALLOW_FILE_URLS` Enable `file://` urls. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
 
