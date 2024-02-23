@@ -62,6 +62,7 @@ class EdgeChrome:
         self.web_view.NavigationCompleted += self.on_navigation_completed
         self.web_view.WebMessageReceived += self.on_script_notify
         self.syncContextTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext()
+        self.web_view.DefaultBackgroundColor = Color.FromArgb(255, int(window.background_color.lstrip("#")[0:2], 16), int(window.background_color.lstrip("#")[2:4], 16), int(window.background_color.lstrip("#")[4:6], 16))
 
         if window.transparent:
             self.web_view.DefaultBackgroundColor = Color.Transparent
