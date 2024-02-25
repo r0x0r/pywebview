@@ -65,7 +65,7 @@ include-package-data = false
 packages = ["webview", "webview.js", "webview.lib", "webview.platforms"]
 
 [tool.setuptools.package-data]
-"webview.lib" = ["**/*.dll"]
+"webview.lib" = ["**/*.dll", "**/*.jar"]
 
 [tool.setuptools_scm]
 write_to = "webview/_version.py"

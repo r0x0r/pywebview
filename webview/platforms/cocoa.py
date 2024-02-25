@@ -1278,6 +1278,12 @@ def resize(width, height, uid, fix_point):
         i.resize(width, height, fix_point)
 
 
+def maximize(uid):
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.maximize()
+
+
 def minimize(uid):
     i = BrowserView.instances.get(uid)
     if i:

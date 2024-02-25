@@ -399,6 +399,9 @@ class BrowserView:
     def move(self, x, y):
         self.window.move(self.screen.x+x, self.screen.y+y)
 
+    def maximize(self):
+        glib.idle_add(self.window.maximize)
+
     def minimize(self):
         glib.idle_add(self.window.iconify)
 
@@ -658,6 +661,12 @@ def show(uid):
     i = BrowserView.instances.get(uid)
     if i:
         glib.idle_add(i.show)
+
+
+def maximize(uid):
+    i = BrowserView.instances.get(uid)
+    if i:
+        glib.idle_add(i.maximize)
 
 
 def minimize(uid):

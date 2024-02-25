@@ -8,8 +8,8 @@ from webview.dom import DOMEventHandler, ManipulationMode
 from webview.dom.classlist import ClassList
 from webview.dom import _dnd_state
 from webview.dom.propsdict import DOMPropType, PropsDict
+from webview.errors import JavascriptException
 from webview.event import EventContainer
-from webview.util import JavascriptException
 
 logger = logging.getLogger('pywebview')
 

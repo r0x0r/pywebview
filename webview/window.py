@@ -13,10 +13,10 @@ from uuid import uuid1
 from typing_extensions import Any, Concatenate, ParamSpec, TypeAlias
 
 import webview.http as http
+from webview.errors import JavascriptException, WebViewException
 from webview.event import Event, EventContainer
 from webview.localization import original_localization
-from webview.util import (JavascriptException, WebViewException, base_uri, escape_string, is_app, is_local_url,
-                          parse_file_type)
+from webview.util import (base_uri, escape_string, is_app, is_local_url, parse_file_type)
 from webview.dom.dom import DOM
 from webview.dom.element import Element
 from webview.screen import Screen
@@ -339,6 +339,13 @@ class Window:
             Example: FixPoint.NORTH | FixPoint.WEST
         """
         self.gui.resize(width, height, self.uid, fix_point)
+
+    @_shown_call
+    def maximize(self) -> None:
+        """
+        Minimize window.
+        """
+        self.gui.maximize(self.uid)
 
     @_shown_call
     def minimize(self) -> None:

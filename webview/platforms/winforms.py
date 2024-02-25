@@ -488,6 +488,12 @@ class BrowserView:
                     SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW,
                 )
 
+        def maximize(self):
+            def _maximize():
+                self.WindowState = WinForms.FormWindowState.Maximized
+
+            self.Invoke(Func[Type](_maximize))
+
         def minimize(self):
             def _minimize():
                 self.WindowState = WinForms.FormWindowState.Minimized
@@ -770,6 +776,12 @@ def move(x, y, uid):
     i = BrowserView.instances.get(uid)
     if i:
         i.move(x, y)
+
+
+def maximize(uid):
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.maximize()
 
 
 def minimize(uid):

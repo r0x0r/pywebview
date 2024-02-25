@@ -23,12 +23,13 @@ from uuid import uuid4
 from proxy_tools import module_property
 
 import webview.http as http
+from webview.errors import JavascriptException, WebViewException
 from webview.event import Event
 from webview.guilib import initialize, GUIType
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import (_TOKEN, WebViewException, base_uri, escape_line_breaks, escape_string,
+from webview.util import (_TOKEN, base_uri, escape_line_breaks, escape_string,
                           is_app, is_local_url, parse_file_type)
 from webview.window import Window
 
@@ -46,6 +47,7 @@ __all__ = (
     'parse_file_type',
     'escape_string',
     'escape_line_breaks',
+    'JavascriptException',
     'WebViewException',
     # from screen
     'Screen',
@@ -393,3 +395,4 @@ def screens() -> list[Screen]:
     guilib = initialize()
     screens = guilib.get_screens()
     return screens
+

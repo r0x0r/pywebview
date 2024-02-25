@@ -1,7 +1,7 @@
 """Run Javascript code from Python."""
 
 import webview
-from webview.util import JavascriptException
+from webview.errors import JavascriptException
 
 
 def evaluate_js(window):

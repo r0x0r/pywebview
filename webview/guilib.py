@@ -9,7 +9,7 @@ from typing import Any, Callable, cast
 
 from typing_extensions import Literal, TypeAlias
 
-from webview.util import WebViewException
+from webview import WebViewException
 
 GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android']
 

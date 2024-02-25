@@ -198,5 +198,5 @@ def node_test(window):
     assert node['innerText'] == 'TEST'
 
 def exception_test(window):
-    with pytest.raises(webview.util.JavascriptException):
+    with pytest.raises(webview.errors.JavascriptException):
         window.evaluate_js('eklmn')

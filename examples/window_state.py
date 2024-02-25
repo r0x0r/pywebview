@@ -1,4 +1,4 @@
-"""Minimize and restore window programmatically"""
+"""Minimize, restore and maximize window programmatically"""
 
 from time import sleep
 
@@ -11,6 +11,10 @@ def minimize(window):
     sleep(5)
     print('Restoring window')
     window.restore()
+
+    sleep(5)
+    print('Maximizing window')
+    window.maximize()
 
     sleep(5)
     print('Minimizing window')
