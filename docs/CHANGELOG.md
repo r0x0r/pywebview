@@ -18,12 +18,13 @@ webview.settings = {
 ```
 - Support for file downloads. To enable file downloads, set `webview.settings['ALLOW_DOWNLOADS'] = True`. Disabled by default.
 - Full path support for file drag n drop. To get a full path of the dragged file, _pywebview_ introduces `event['domTransfer']['files'][0]['pywebviewFullPath']` value in the `drop` event caught on the Python side. To subscribe to the event you use `window.dom.document.events.drop += on_drop`.
+- `window.maximize()` - maximize window.
 
 ### 🚀 Improvements
 
 - [All] A more powerful JS data serializer capable of handling different data types and detecting circular references #1217
 - [ALL] BREAKING: `window.get_elements` returns a list of instances of a new `Element` object.
-- [All] BREAKING: `evaluate_js` throws a `JavascriptException` if executed codes raises an error
+- [All] BREAKING: `evaluate_js` throws a `webview.errors.JavascriptException` if executed codes raises an error
 - [Windows] WebView2 control updated to 1.0.2045.28
 - [Windows] Add SSL support for local HTTP server.
 - Nested API support. See `examples/js_api.py` for details. Thanks @AlecHaring

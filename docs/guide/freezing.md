@@ -6,10 +6,10 @@ pywebview is designed to be built with [buildozer](https://buildozer.readthedocs
 
 ``` spec
 requirements = python3,kivy,pywebview
-android.add_jars = <PATH_TO_ANDROID_JAR>
+android.add_jars = <path_to_pywebview-android.jar>
 ```
 
-You have to include `pywebview-android.jar` with your bundled application. `pywebview-android.jar` is shipped with `pywebview` and can be found under `site-packages/pywebview/lib`. To get `<PATH_TO_ANDROID_JAR>` type
+You have to include `pywebview-android.jar` with your bundled application. `pywebview-android.jar` is shipped with `pywebview` and can be found under `site-packages/pywebview/lib`. To get `<path_to_pywebview-android.jar>` type
 
 ``` python
 from webview import util

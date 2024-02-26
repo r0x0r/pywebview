@@ -80,3 +80,7 @@ sudo apt install python3-pyqt5 python3-pyqt5.qtwebkit python-pyqt5 python-pyqt5.
 ::: warning
 Starting from Ubuntu Disco Dingo _pywebview_ can be installed via `apt` on Debian based system as `python3-webview`. Ubuntu's distribution lags a few versions behind (latest is 3.3.5 on mantic). If you wish to stay up-to-date, consider installing via  `pip`.
 :::
+
+### Android
+
+For Android development, refer to Kivy's [packaging instructions for Android](https://kivy.org/doc/stable-1.10.1/guide/packaging-android.html).

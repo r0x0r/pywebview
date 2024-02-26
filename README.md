@@ -6,7 +6,7 @@ https://pywebview.flowrl.com
 </p>
 
 
-_pywebview_ is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. You can use pywebview either with a lightweight web framework like [Flask](http://flask.pocoo.org/) or [Bottle](http://bottlepy.org/docs/dev/index.html) or on its own with a two way bridge between Python and DOM.
+_pywebview_ is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. You can use pywebview either with a lightweight web framework like [Flask](http://flask.pocoo.org/) or on its own with a two way bridge between Python and DOM.
 
 _pywebview_ uses native GUI for creating a web component window: WinForms on Windows, Cocoa on macOS and QT or GTK on Linux. If you choose to freeze your application, pywebview does not bundle a heavy GUI toolkit or web renderer with it keeping the executable size small. _pywebview_ is compatible with Python 3.
 
@@ -38,7 +38,7 @@ Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.
 
 ### Consulting services
 
-If your company is looking for support with _pywebview_ or needs a hand with full-stack development, the author of _pywebview_ is available for hire. As a VAT-registered EU based professional, I specialize in a wide range of technologies, including JavaScript/TypeScript, React/Vue, Python, GIS, SQL databases, API integration, CI/CD pipelines and cloud solutions. For inquiries about availability and pricing details, reach out to roman@maumau.fi. 
+If your company is looking for support with _pywebview_ or needs a hand with full-stack development, the author of _pywebview_ is available for hire. As a VAT-registered EU based professional, I specialize in a wide range of technologies, including JavaScript/TypeScript, React/Vue, Python, GIS, SQL databases, API integration, CI/CD pipelines and cloud solutions. For inquiries about availability and pricing details, reach out to roman@maumau.fi.
 
 ### Code Contributors
 

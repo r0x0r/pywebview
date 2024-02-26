@@ -34,7 +34,7 @@ module.exports = {
       { text: '2.x', link: 'https://pywebview.flowrl.com/2.4' },
       { text: '3.x', link: 'https://pywebview.flowrl.com/3.7' },
     ],
-    sidebarDepth: 2,
+    sidebarDepth: 0,
     displayAllHeaders: true,
     sidebar: {
       '/guide/': [
@@ -53,11 +53,12 @@ module.exports = {
             '/guide/api',
             '/guide/architecture',
             '/guide/debugging',
+            '/guide/dom',
             '/guide/interdomain',
             '/guide/freezing',
             '/guide/security',
-            '/guide/virtualenv',
-            '/guide/renderer',
+            '/guide/troubleshooting',
+            '/guide/web_engine',
           ]
         }
       ],

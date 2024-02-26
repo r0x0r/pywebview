@@ -11,36 +11,30 @@ window = webview.create_window('Woah dude!', 'https://pywebview.flowrl.com')
 webview.start()
 ```
 
-The `create_window` function returns a `Window` object instance. You may create as many windows as you wish. Windows created after the GUI loop is started are shown immediately. All the opened windows are stored as a list in `webview.windows`. The windows are stored in a creation order.
-
-The `create_window` second argument `url` can point to a remote or a local path. Alternatively, you can load HTML by setting the `html` parameter.
+The `create_window` function creates a new window and returns a `Window` object instance. Windows created before `webview.start()` are shown as soon as the GUI loop is started. Windows created after the GUI loop is started are shown immediately. You may create as many windows as you wish. All the opened windows are stored as a list in `webview.windows`. The windows are stored in a creation order.
 
 ``` python
 import webview
 
-webview.create_window('Woah dude!', html='<h1>Woah dude!<h1>')
+first_window = webview.create_window('Woah dude!', 'https://pywebview.flowrl.com')
+second_window = webview.create_window('Second window', 'https://woot.fi')
 webview.start()
 ```
 
-Note that if both `url` and `html` are set, `html` takes precedence.
-
-_pywebview_ gives a choice of several web renderers. To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `cef` or `qt`). See [Renderer](/guide/renderer.md) for details.
+_pywebview_ gives a choice of using several web renderers. To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `cef` or `qt`). See [Renderer](/guide/renderer.md) for details.
 
 ## HTTP server
 
-_pywebview_ includes a built-in WSGI-compatible HTTP server that relies on the bottle.py framework. To initiate the HTTP server, specify the URL as a local relative path to the HTML file, which will serve as the entry point. For local relative URLs, the HTTP server will start automatically.
+_pywebview_ uses internally [bottle.py](https://bottlepy.org) HTTP server for serving static files. Relative local paths are served with a built-in HTTP server. The entrypoint directory serves as a HTTP server root with everything under the directory and its directories shared. You may want to enable SSL for the server by setting `webview.start(ssl=True)`.
 
 ``` python
 import webview
 
-# this will start the built-in HTTP server
-webview.create_window('Woah dude!', 'index.html')
-webview.start()
+webview.create_window('Woah dude!', html='src/index.html')
+webview.start(ssl=True)
 ```
 
-Enabling SSL for your local HTTP server is a wise step to safeguard local traffic from potential eavesdropping. To accomplish this, simply start the application with the `ssl` paramater set to True `webview.start(ssl=True)`.
-
-If you wish to use an external WSGI compatible HTTP server with _pywebview_, you can pass a server object as an URL, ie. `http_server` parameter does not need to be set in this case.
+If you wish to use an external WSGI compatible HTTP server, you can pass a server application object as an URL.
 
 ``` python
 from flask import Flask
@@ -61,9 +55,22 @@ webview.create_window('Woah dude!', '/home/pywebview/project/index.html')
 webview.start()
 ```
 
+### Loading HTML
+
+Alternatively, you can load HTML by setting the `html` parameter or with `window.load_html` function. A limitation of this approach is that but file system does not exist in the context of the loaded page. Images and other assets can be loaded only inline using Base64.
+
+``` python
+import webview
+
+webview.create_window('Woah dude!', html='<h1>Woah dude!<h1>')
+webview.start()
+```
+
 ## Threading model
 
-`webview.start` starts a GUI loop and blocks further code from execution until last window is destroyed. With the GUI loop being blocking, you must execute your backend logic in a separate thread or a process. You can execute your backend code by passing your function as the first parameter `func` to the `start` function. The second parameter sets the function's arguments. This approach launches a thread behind the scenes and is identical to starting a thread manually.
+`webview.start` starts a GUI loop and blocks further code from execution until last window is destroyed. With the GUI loop being blocking, you must execute your backend logic in a separate thread or a process. You can execute your backend code by passing your function to `webview.start(func, (params,))`. This will launch a separate thread and is identical to starting a thread manually.
+
+JS API functions, menu action functions are executed in their own threads.
 
 ``` python
 import webview
@@ -98,4 +105,20 @@ pass
 
 ## Communication between Javascript and Python
 
-Traditionally frontend and backend talk with each other by making requests to REST API provided by HTTP server. While this is a certainly an option, _pywebview_ also provides two-way communication between Javascript and Python domains. To execute Javascript code from Python you may use `window.evaluate_js` or skip Javascript altogether by using built-in [DOM functions](/guide/dom.html). To invoke Python functions from Javascript you can expose Python functions to Javascript via `js_api` and `window.expose`. Exposed functions are visible in Javascript as `window.pywebview.api.funcName`. See [interdomain communication](/guide/interdomain.md) for details.
+You can both run Javascript code from Python and vice versa. To run Javascript from Python, use `window.evaluate_js(code)`. The function returns result of the last line in the Javascript code. If code returns a promise, you can resolve it by passing a callback function `window.evaluate_js(code, callback)`. If Javascript throws an error, `window.evaluate_js` raises a `webview.errors.JavascriptException`.
+
+To run Python from Javascript, you need to expose your API class with `webview.create_window(url, js_api=api_instance)`. Class member functions will be available in Javascript domain as `window.pywebview.api.funcName`. You may  expose single functions with `window.expose(func)` also during the runtime. See [interdomain communication](/guide/interdomain.md) for details.
+
+``` python
+import webview
+
+class Api():
+  def log(self, value):
+    print(value)
+
+webview.create_window("Test", html="<button onclick='pywebview.api.log(\"Woah dude!\")'>Click me</button>", js_api=Api())
+webview.start()
+```
+
+Or alternatively you may use a more traditional approach with REST API paired with a WSGI server for interdomain communication. See [Flask app](https://github.com/r0x0r/pywebview/tree/master/examples/flask_app) for an example.
+

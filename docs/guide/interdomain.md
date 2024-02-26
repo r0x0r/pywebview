@@ -2,7 +2,10 @@
 
 ## Run Javascript from Python
 
-`window.evaluate_js(code, callback=None)` allows you to execute arbitrary Javascript code with a last value returned synchronously. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. If executed Javascript code results in an error, the error is rethrown as a `webview.util.JavasctipException` in Python.
+`window.evaluate_js(code, callback=None)` allows you to execute arbitrary Javascript code with a last value returned synchronously. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. If executed Javascript code results in an error, the error is rethrown as a `webview.util.JavascriptException` in Python.
+
+[Example](/examples/evaluate_js.html).
+
 
 ## Run Python from Javascript
 

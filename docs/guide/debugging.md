@@ -13,5 +13,4 @@ This will enable web inspector on macOS, GTK and QT (QTWebEngine only). To open 
 
 Debugging Python code on Android is not possible apart from printing message to `logcat`. Use `adb -s <DEVICE_NAME> logcat | grep python` for displaying log messages related to Python. Frontend code can be debugged with WebView remote debugging. Refer to [this guide](https://developer.chrome.com/docs/devtools/remote-debugging/webviews/) for details.
 
-
 There is no way to attach an external debugger to MSHTML. The `debug` flag enables Javascript error reporting and right-click context menu.

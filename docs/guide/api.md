@@ -19,7 +19,7 @@ Create a new _pywebview_ window and returns its instance. Window is not shown un
 * `title` - Window title
 * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point. Alternatively a WSGI server object can be passed to start a local web server.
 * `html` - HTML code to load. If both URL and HTML are specified, HTML takes precedence.
-* `js_api` - Expose a python object to the DOM of the current `pywebview` window. Methods of  the `js_api` object can be executed from Javascript by calling `window.pywebview.api.<methodname>(<parameters>)`. Please note that the calling Javascript function receives a promise that will contain the return value of the python function. Only basic Python objects (like int, str, dict, ...) can be returned to Javascript.
+* `js_api` - Expose a python object to the Javascript domain of the current `pywebview` window. Methods of the `js_api` object can be invoked from Javascript by calling `window.pywebview.api.<methodname>(<parameters>)` functions. Exposed function return a promise that return once function returns. Only basic Python objects (like int, str, dict, ...) can be returned to Javascript.
 * `width` - Window width. Default is 800px.
 * `height` - Window height. Default is 600px.
 * `x` - Window x coordinate. Default is centered.
@@ -151,7 +151,6 @@ Used by `element.append`, `element.copy`, `element.move` and `window.dom.create_
 
 ## webview.Element
 
-
 ### element.attributes
 
 Get or modify element's attributes. `attributes` is a `PropsDict` dict-like object that implements most of dict functions. To add an attribute, you can simply assign a value to a key in `attributes`. Similarly, to remove an attribute, you can set its value to None.
@@ -185,7 +184,7 @@ element.classes.toggle('dotted')
 ### element.append
 
 ``` python
-element.append(html, mode=ManipulationMode.LastChild)
+element.append(html, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
 Insert html content to the element as a last child. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
@@ -209,7 +208,7 @@ Get element's children elements. Returns a list of `Element` objects.
 ### element.copy
 
 ``` python
-element.copy(target=None, mode=ManipulationMode.LastChild, id=None)
+element.copy(target=None, mode=webview.dom.ManipulationMode.LastChild, id=None)
 ```
 
 Create a new copy of the element. `target` can be either another `Element` or a DOM selector string. If target is omitted, a copy is created in the current element's parent. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values. The id parameter is stripped from the copy. Optionally you can set the id of the copy by specifying the `id` parameter.
@@ -265,7 +264,7 @@ Get or set element's id. None if id is not set.
 ### element.move
 
 ``` python
-element.move(target, mode=ManipulationMode.LastChild)
+element.move(target, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
 Move element to the `target` that can be either another `Element` or a DOM selector string.  To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
@@ -421,7 +420,6 @@ Get whether the element is visible.
 
 Used to create an application menu. See [this example](/examples/menu.html) for usage details.
 
-
 ### menu.Menu
 
 `Menu(title, items=[])`.
@@ -556,8 +554,8 @@ Destroy the window.
 window.evaluate_js(script, callback=None)
 ```
 
-Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Note that due implementation limitations the string 'null' will be evaluated to None. `JavascriptException` is thrown if executed codes raises an error .
-You must escape \n and \r among other escape sequences if they present in Javascript code. Otherwise they get parsed by Python. r'strings' is a recommended way to load Javascript.
+Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Functions are omitted and circular references are converted to the `[Circular Reference]` string literal. `webview.error.JavascriptException` is thrown if executed codes raises an error.
+r-strings is a recommended way to load Javascript.
 
 ### window.expose
 
@@ -572,7 +570,6 @@ window.get_cookies()
 ```
 
 Return a list of all the cookies set for the current website (as [SimpleCookie](https://docs.python.org/3/library/http.cookies.html)).
-
 
 ### window.get_current_url
 
@@ -636,6 +633,16 @@ Load a new URL.
 
 [Example](/examples/change_url.html)
 
+### window.maximize
+
+``` python
+window.maximize()
+```
+
+Maximize window.
+
+[Example](/examples/window_state.html)
+
 ### window.minimize
 
 ``` python
@@ -644,7 +651,7 @@ window.minimize()
 
 Minimize window.
 
-[Example](/examples/minimize.html)
+[Example](/examples/window_state.html)
 
 ### window.move
 
@@ -719,7 +726,7 @@ Get document's body as an `Element` object
 ### window.dom.create_element
 
 ``` python
-window.create_element(html, parent=None, mode=ManipulationMode.LastChild)
+window.create_element(html, parent=None, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
 Insert html content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omited, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
@@ -735,7 +742,7 @@ Get `window.document` of the loaded page as an `Element` object
 ### window.dom.get_element
 
 ``` python
-window.get_element(selector)
+window.get_element(selector: str)
 ```
 
 Get a first `Element` matching the selector. None if not found.
@@ -743,7 +750,7 @@ Get a first `Element` matching the selector. None if not found.
 ### window.dom.get_elements
 
 ``` python
-window.get_elements(selector)
+window.get_elements(selector: str)
 ```
 
 Get a list of `Element` objects matching the selector.
