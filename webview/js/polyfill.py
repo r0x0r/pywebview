@@ -1,6 +1,7 @@
-# IE 11 CustomEvent polyfill
 
-src = r"""
+src = """
+// IE 11 CustomEvent polyfill
+
 (function () {
   if ( typeof window.CustomEvent === "function" ) return false; //If not IE
 

@@ -21,8 +21,9 @@ from uuid import uuid4
 
 import webview
 
-from webview.js import api, dom_json, mouse, event, npo
+from webview.js import api, dom_json, events, npo, polyfill
 from webview.dom import _dnd_state
+from webview.errors import WebViewException
 
 if TYPE_CHECKING:
     from webview.window import Window
@@ -174,7 +175,7 @@ def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
 
     js_code = (
         npo.src
-        + event.src
+        + polyfill.src
         + api.src
         % {
             'token': _TOKEN,
@@ -184,7 +185,7 @@ def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
             'js_api_endpoint': window.js_api_endpoint,
         }
         + dom_json.src
-        + mouse.src
+        + events.src
         % {
             'drag_selector': webview.DRAG_REGION_SELECTOR,
             'zoomable': str(window.zoomable).lower(),
