@@ -59,7 +59,7 @@ class Element:
             }} else if ('{self._node_id}' === 'body') {{
                 element = document.body;
             }} else {{
-                element = document.querySelector('[data-pywebview-id=\"{self._node_id}\"]');
+                element = document.querySelector('[data-pywebview-id="{self._node_id}"]');
             }}
 
             if (!element) {{
@@ -119,7 +119,7 @@ class Element:
     @property
     @_exists
     def node(self) -> Dict[str, Any]:
-        return self._window.evaluate_js(f"{self._query_command}; pywebview._processElements([element])[0]")
+        return self._window.evaluate_js(f"{self._query_command}; var r2 = pywebview._processElements([element])[0]; console.log(element); console.log(r2); r2")
 
     @property
     @_exists
@@ -306,7 +306,7 @@ class Element:
         if id:
             id_command = f'newElement.id = "{id}"'
         else:
-            id_command = f'newElement.removeAttribute("{id}")'
+            id_command = 'newElement.removeAttribute("id")'
 
         node_id = self._window.evaluate_js(f"""
             {self._query_command};
@@ -400,7 +400,7 @@ class Element:
             if handler == callback:
                 self._event_handlers[event].remove(handler)
 
-        if event['type'] == 'drop':
+        if event == 'drop':
             _dnd_state['num_listeners'] = max(0, _dnd_state['num_listeners'] - 1)
 
     @_exists

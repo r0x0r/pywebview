@@ -106,6 +106,15 @@ window.pywebview = {
             }
         }
 
+        function isArrayLike(a) {
+            return (
+                a != null &&
+                typeof(a[Symbol.iterator]) === 'function' &&
+                typeof(a.length) === 'number' &&
+                typeof(a) !== 'string'
+            )
+        }
+
         function serialize(obj, depth=0, visited=new WeakSet()) {
             try {
                 if (obj instanceof Node) return pywebview.domJSON.toJSON(obj, { metadata: false, serialProperties: true });
@@ -118,7 +127,7 @@ window.pywebview = {
                 if (typeof obj === 'object' && obj !== null) {
                     visited.add(obj);
 
-                    if (obj.length !== undefined) {
+                    if (isArrayLike(obj)) {
                         obj = tryConvertToArray(obj);
                     }
 
@@ -192,6 +201,7 @@ window.pywebview = {
                 serialProperties: true,
                 deep: false
             });
+
             node._pywebviewId = pywebviewId;
             serializedElements.push(node);
         }

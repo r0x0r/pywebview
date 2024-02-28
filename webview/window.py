@@ -421,7 +421,7 @@ class Window:
                         name: e.name,
                         pywebviewJavascriptError420: true,
                     }}
-                    keys = Object.getOwnPropertyNames(e);
+                    var keys = Object.getOwnPropertyNames(e);
                     keys.forEach(function(key) {{ value[key] = e[key] }})
                 }}
                 {sync_eval};

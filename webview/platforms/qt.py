@@ -1071,8 +1071,7 @@ def get_position(uid):
 def get_size(uid):
     i = BrowserView.instances.get(uid)
     if i:
-        window = i.get(uid)
-        return window.width(), window.height()
+        return i.width(), i.height()
     else:
         return None, None
 

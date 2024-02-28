@@ -3,6 +3,7 @@
 import webview
 from webview.dom import DOMEventHandler
 
+window = None
 
 def click_handler(e):
     print(e)
@@ -18,7 +19,7 @@ def remove_handlers(scroll_event, click_event, input_event):
     input_event -= input_handler
 
 
-def scroll_handler(window):
+def scroll_handler(e):
     scroll_top = window.dom.window.node['scrollY']
     print(f'Scroll position {scroll_top}')
 
@@ -28,7 +29,7 @@ def link_handler(e):
 
 
 def bind(window):
-    window.dom.document.events.scroll += lambda e: scroll_handler(window)
+    window.dom.document.events.scroll += scroll_handler
 
     button = window.dom.get_element('#button')
     button.events.click += click_handler

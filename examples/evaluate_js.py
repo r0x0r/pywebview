@@ -25,7 +25,7 @@ def evaluate_js(window):
     try:
         result = window.evaluate_js('syntaxerror#$%#$')
     except JavascriptException as e:
-        print(e)
+        print('Javascript exception occured: ', e)
 
 
 if __name__ == '__main__':
