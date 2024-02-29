@@ -237,6 +237,7 @@ def create_window(
     program logic must be executed in a separate thread.
     :param title: Window title
     :param url: URL to load
+    :param html: HTML content to load
     :param width: window width. Default is 800px
     :param height: window height. Default is 600px
     :param screen: Screen to display the window on.
