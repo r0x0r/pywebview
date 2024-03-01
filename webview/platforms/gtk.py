@@ -81,7 +81,9 @@ class BrowserView:
         if window.screen:
             self.screen = window.screen.frame
         else:
-            self.screen = Gdk.Screen.get_default().get_monitor_geometry(0)
+            display = Gdk.Display.get_default()
+            monitor = Gdk.Display.get_monitor(display, 0)
+            self.screen = Gdk.Monitor.get_geometry(monitor)
 
         if window.resizable:
             self.window.set_size_request(window.min_size[0], window.min_size[1])
@@ -902,9 +904,10 @@ def get_size(uid):
 
 
 def get_screens():
-    screen = Gdk.Screen.get_default()
-    n = screen.get_n_monitors()
-    geometries = [screen.get_monitor_geometry(i) for i in range(n)]
+    display = Gdk.Display.get_default()
+    n = display.get_n_monitors()
+    monitors = [Gdk.Display.get_monitor(display, i) for i in range(n)]
+    geometries = [Gdk.Monitor.get_geometry(m) for m in monitors]
     screens = [Screen(geom.width, geom.height, geom) for geom in geometries]
 
     return screens
