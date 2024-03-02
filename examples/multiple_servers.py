@@ -100,4 +100,4 @@ if __name__ == '__main__':
         )
     )
     windows.append(webview.create_window('Window #2', url=app1, http_port=3333))
-    webview.start(third_window, debug=True, http_server=True, http_port=3334)
+    webview.start(third_window, http_server=True, http_port=3334)

@@ -69,4 +69,4 @@ if __name__ == '__main__':
             </html>
         '''
     )
-    webview.start(bind, window, debug=True)
+    webview.start(bind, window)

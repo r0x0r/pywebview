@@ -22,4 +22,4 @@ if __name__ == '__main__':
     webview.settings['OPEN_DEVTOOLS_IN_DEBUG'] = False
 
     window = webview.create_window('Application flags', html=html)
-    webview.start(debug=True)
+    webview.start()

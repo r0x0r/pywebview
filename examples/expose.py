@@ -31,4 +31,4 @@ if __name__ == '__main__':
     )
     window.expose(lol, wtf)  # expose functions beforehand
 
-    webview.start(expose, window, debug=True)
+    webview.start(expose, window)

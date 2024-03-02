@@ -22,4 +22,4 @@ if __name__ == '__main__':
       </html>
     """
     window = webview.create_window('Get elements example', html=html)
-    webview.start(get_elements, window, debug=True)
+    webview.start(get_elements, window)
