@@ -1,2 +1,8 @@
 graft windows_interop
 include webview/lib/Microsoft.Web.WebView2.LICENSE.md
+exclude docs/**/*
+exclude examples/**/*
+exclude tests/**/*
+exclude logo/**/*
+exclude appveyor.yml
+exclude interop/**/*

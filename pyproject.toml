@@ -54,6 +54,17 @@ android = ["kivy", "jnius"]
 Homepage = "https://pywebview.flowrl.com/"
 Repository = "https://github.com/r0x0r/pywebview"
 
+[tool.build-system]
+exclude = [
+    "docs/*",
+    "tests/*",
+    "examples/*",
+    ".github/*",
+    "logo/*",
+    "appveyor.yml",
+    ".*"
+]
+
 [tool.black]
 line-length = 100
 
