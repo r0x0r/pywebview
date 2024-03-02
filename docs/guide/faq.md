@@ -15,4 +15,4 @@ virtualenv pywebview_env -p python3
 
 ## Frozen executable is too big
 
-Big executable size is caused by packager picking up unnecessary dependencies. For example if you have `PyQt` installed but use Winforms on Windows, Pyinstaller will bundle both frameworks. To avoid this in Pyinstaller, use `--exclude-module` option to explicitly omit the module.
+Big executable size is caused by packager picking up unnecessary dependencies. For example if you have `PyQt` installed but use Winforms on Windows, Pyinstaller will bundle both frameworks. To avoid this in Pyinstausingller, use `--exclude-module` option to explicitly omit the module.

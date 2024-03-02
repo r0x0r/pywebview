@@ -8,7 +8,9 @@ _Released xx/xx/2024_
 
 - Android support. _pywebview_ can now be used on Android devices with help of [buildozer](https://buildozer.readthedocs.io/en/latest/) in producing APK. #377
 - DOM manipulation, traversal and events. _pywebview_  provides a set of functions for mutating DOM nodes and traversing DOM, as well as you can subscribe to DOM events directly in Python. #1218
-- Application settings `webview.settings`. You can now override default behaviour of _pywebview_ by modifying this dictionary. Currently configurable settings include ````
+- Application settings `webview.settings`. You can now override default behaviour of _pywebview_ by modifying this dictionary. Currently configurable settings include.
+
+``` python
 webview.settings = {
     'ALLOW_DOWNLOADS': False, # Allow file downloads
     'ALLOW_FILE_URLS': True, # Allow access to file:// urls

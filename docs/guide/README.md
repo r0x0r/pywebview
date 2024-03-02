@@ -8,6 +8,9 @@ If you choose to freeze your application, you do not need to bundle a heavy GUI 
 
 _pywebview_ is a BSD licensed open source project. It is an independent project with no corporate backing. If you find _pywebview_ useful, consider supporting it. More donation options are outlined on the [Donating](/contributing/donating.html) page.
 
+_pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/).
+
+
 <div class='spc-l spc-bottom center'>
 	<a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button">
 		<img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/>
@@ -20,4 +23,3 @@ _pywebview_ is a BSD licensed open source project. It is an independent project 
 	</a>
 </div>
 
-_pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/).

@@ -54,10 +54,10 @@ module.exports = {
             '/guide/architecture',
             '/guide/debugging',
             '/guide/dom',
+            '/guide/faq',
             '/guide/interdomain',
             '/guide/freezing',
             '/guide/security',
-            '/guide/troubleshooting',
             '/guide/web_engine',
           ]
         }
