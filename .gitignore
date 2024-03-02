@@ -27,3 +27,4 @@ docs/examples
 *.apk
 .gradle
 gradle*
+.pypirc
