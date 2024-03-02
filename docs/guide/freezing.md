@@ -9,7 +9,7 @@ requirements = python3,kivy,pywebview
 android.add_jars = <path_to_pywebview-android.jar>
 ```
 
-You have to include `pywebview-android.jar` with your bundled application. `pywebview-android.jar` is shipped with `pywebview` and can be found under `site-packages/pywebview/lib`. To get `<path_to_pywebview-android.jar>` type
+`pywebview-android.jar` is shipped with `pywebview` and can be found under `site-packages/pywebview/lib`. To get its full path type
 
 ``` python
 from webview import util

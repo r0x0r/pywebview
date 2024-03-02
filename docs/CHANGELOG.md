@@ -2,7 +2,7 @@
 
 ## 5.0
 
-_Released xx/xx/2024_
+_Released 02/03/2024_
 
 ### ⚡ Features
 
@@ -18,6 +18,7 @@ webview.settings = {
     'OPEN_DEVTOOLS_IN_DEBUG': True, # Automatically open devtools when `start(debug=True)`.
 }
 ```
+
 - Support for file downloads. To enable file downloads, set `webview.settings['ALLOW_DOWNLOADS'] = True`. Disabled by default.
 - Full path support for file drag n drop. To get a full path of the dragged file, _pywebview_ introduces `event['domTransfer']['files'][0]['pywebviewFullPath']` value in the `drop` event caught on the Python side. To subscribe to the event you use `window.dom.document.events.drop += on_drop`.
 - `window.maximize()` - maximize window.
@@ -25,11 +26,12 @@ webview.settings = {
 ### 🚀 Improvements
 
 - [All] A more powerful JS data serializer capable of handling different data types and detecting circular references #1217
+- [All] Nested JS API support. See `examples/js_api.py` for details. Thanks @AlecHaring
 - [ALL] BREAKING: `window.get_elements` returns a list of instances of a new `Element` object.
 - [All] BREAKING: `evaluate_js` throws a `webview.errors.JavascriptException` if executed codes raises an error
 - [Windows] WebView2 control updated to 1.0.2045.28
 - [Windows] Add SSL support for local HTTP server.
-- Nested API support. See `examples/js_api.py` for details. Thanks @AlecHaring
+- [GTK] Update deprecated code
 
 ### 🐞 Bug fixes
 - `Cocoa` Suppress secure coding is not enabled for restorable state warning. Thanks @awesomo4000
