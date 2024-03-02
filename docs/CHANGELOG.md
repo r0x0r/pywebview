@@ -1,6 +1,6 @@
 # Changelog
 
-## 5.0
+## 5.0.1
 
 _Released 02/03/2024_
 
@@ -25,13 +25,13 @@ webview.settings = {
 
 ### 🚀 Improvements
 
-- [All] A more powerful JS data serializer capable of handling different data types and detecting circular references #1217
-- [All] Nested JS API support. See `examples/js_api.py` for details. Thanks @AlecHaring
-- [ALL] BREAKING: `window.get_elements` returns a list of instances of a new `Element` object.
-- [All] BREAKING: `evaluate_js` throws a `webview.errors.JavascriptException` if executed codes raises an error
-- [Windows] WebView2 control updated to 1.0.2045.28
-- [Windows] Add SSL support for local HTTP server.
-- [GTK] Update deprecated code
+- `All` A more powerful JS data serializer capable of handling different data types and detecting circular references #1217
+- `All` Nested JS API support. See `examples/js_api.py` for details. Thanks @AlecHaring
+- `All` BREAKING: `window.get_elements` returns a list of instances of a new `Element` object.
+- `All` BREAKING: `evaluate_js` throws a `webview.errors.JavascriptException` if executed codes raises an error
+- `Windows` WebView2 control updated to 1.0.2045.28
+- `Windows` Add SSL support for local HTTP server.
+- `GTK` Update deprecated code
 
 ### 🐞 Bug fixes
 - `Cocoa` Suppress secure coding is not enabled for restorable state warning. Thanks @awesomo4000
