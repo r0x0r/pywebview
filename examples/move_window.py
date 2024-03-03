@@ -15,5 +15,5 @@ def move(window):
 
 
 if __name__ == '__main__':
-    window = webview.create_window('Move window example', html='<h1>Move window</h1>', x=0, y=0)
+    window = webview.create_window('Move window example', html='<h1>Move window</h1>', x=300, y=300)
     webview.start(move, window)

@@ -21,8 +21,8 @@ def xy(window):
 
 
 def move_window(window):
-    window.move(100, 100)
+    window.move(300, 300)
     sleep(1)
 
-    assert window.x == 100
-    assert window.y == 100
+    assert window.x == 300
+    assert window.y == 300
