@@ -173,8 +173,8 @@ class BrowserView(QMainWindow):
             uid = self.parent().uid + '-inspector'
             try:
                 # If inspector already exists, bring it to the front
-                BrowserView.instances.get(uid).raise_()
-                BrowserView.instances.get(uid).activateWindow()
+                BrowserView.instances[uid].raise_()
+                BrowserView.instances[uid].activateWindow()
             except KeyError:
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
@@ -289,14 +289,14 @@ class BrowserView(QMainWindow):
 
         if window.screen:
             if _qt6:
-                self.screen = QScreen.availableGeometry(window.screen.frame)
+                self.screen = QScreen.geometry(window.screen.frame)
             else:
                 self.screen = window.screen.frame.geometry()
         else:
             if _qt6:
-                self.screen = QScreen.availableGeometry(QApplication.primaryScreen())
+                self.screen = QScreen.geometry(QApplication.primaryScreen())
             else:
-                self.screen = QApplication.primaryScreen().availableGeometry()
+                self.screen = QApplication.primaryScreen().geometry()
 
         self._js_results = {}
         self._current_url = None
@@ -536,8 +536,9 @@ class BrowserView(QMainWindow):
                 return
 
         event.accept()
-        BrowserView.instances[self.uid].close()
+
         del BrowserView.instances[self.uid]
+        self.close()
 
         if self.pywebview_window in windows:
             windows.remove(self.pywebview_window)
@@ -1062,7 +1063,7 @@ def evaluate_js(script, uid):
 def get_position(uid):
     i = BrowserView.instances.get(uid)
     if i:
-        position = i.pos()
+        position = i.geometry()
         return position.x(), position.y()
     else:
         return None, None
