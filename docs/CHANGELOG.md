@@ -1,5 +1,19 @@
 # Changelog
 
+## 5.0.2
+
+_Released 03/03/2024_
+
+### 🚀 Improvements
+
+- `QT` window position is returned in coordinates excluding the window frame to be in line with provided coordinates.
+
+### 🐞 Bug fixes
+
+- `EdgeChromium` CoreWebView2Settings exception in debug mode. #1323
+- `QT` Crashing when closing additional windows #525
+- `QT` DevTools failing to focus on open
+
 ## 5.0.1
 
 _Released 02/03/2024_
@@ -34,6 +48,7 @@ webview.settings = {
 - `GTK` Update deprecated code
 
 ### 🐞 Bug fixes
+
 - `Cocoa` Suppress secure coding is not enabled for restorable state warning. Thanks @awesomo4000
 - `EdgeChromium` Background color not available in webview2. Thanks @Vanthys
 - `EdgeChromium` Multiple focus events on window show. Thanks @yllhwa
