@@ -7,7 +7,7 @@ from threading import Semaphore
 
 import clr
 
-from webview import _settings, settings
+from webview import _settings, settings as webview_settings
 from webview.dom import _dnd_state
 from webview.js.css import disable_text_select
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
@@ -45,7 +45,7 @@ class EdgeChrome:
         props.set_IsInPrivateModeEnabled(_settings['private_mode'])
         props.AdditionalBrowserArguments = '--disable-features=ElasticOverscroll'
 
-        if settings['ALLOW_FILE_URLS']:
+        if webview_settings['ALLOW_FILE_URLS']:
             props.AdditionalBrowserArguments += ' --allow-file-access-from-files'
 
         self.web_view.CreationProperties = props
@@ -181,7 +181,7 @@ class EdgeChrome:
     def on_new_window_request(self, sender, args):
         args.set_Handled(True)
 
-        if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
+        if webview_settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
             webbrowser.open(str(args.get_Uri()))
         else:
             self.load_url(str(args.get_Uri()))
@@ -226,11 +226,11 @@ class EdgeChrome:
             self.html = self.pywebview_window.html
             self.load_html(self.pywebview_window.html, '')
 
-        if _settings['debug'] and settings['OPEN_DEVTOOLS_IN_DEBUG']:
+        if _settings['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             sender.CoreWebView2.OpenDevToolsWindow()
 
     def on_download_starting(self, sender, args):
-        if not settings['ALLOW_DOWNLOADS']:
+        if not webview_settings['ALLOW_DOWNLOADS']:
             args.Cancel = True
             return
 
