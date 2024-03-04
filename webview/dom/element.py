@@ -2,7 +2,7 @@ import logging
 
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from webview.dom import DOMEventHandler, ManipulationMode
 from webview.dom.classlist import ClassList
@@ -194,7 +194,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def children(self) -> list['Element']:
+    def children(self) -> List['Element']:
         children = self._window.evaluate_js(f"""
             {self._query_command};
             var children = element.children;

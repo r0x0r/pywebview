@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import List, Optional, Union
 from webview.dom import ManipulationMode
 from webview.dom.element import Element
 from webview.util import escape_quotes
@@ -55,7 +55,7 @@ class DOM:
 
         return Element(self.__window, node_id) if node_id else None
 
-    def get_elements(self, selector: str) -> list[Element]:
+    def get_elements(self, selector: str) -> List[Element]:
         self.__window.events.loaded.wait()
         code = f"""
             var elements = document.querySelectorAll('{selector}');
