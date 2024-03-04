@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.0.4
+
+_Released 04/03/2024_
+
+### 🐞 Bug fixes
+
+- `All` Python 3.7 compatibility
+
 ## 5.0.3
 
 _Released 03/03/2024_
