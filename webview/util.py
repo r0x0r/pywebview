@@ -135,23 +135,35 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
 
 
 def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
+    """"
+    Injects a global window.pywebview object
+    """
+    exposed_objects = set()
+
     def get_args(func: object):
         params = list(inspect.getfullargspec(func).args)
         return params
 
+
     def get_functions(obj: object, base_name: str = '', functions: dict[str, object] = None):
+        if obj in exposed_objects:
+            return functions
+        else:
+            exposed_objects.add(obj)
+
         if functions is None:
             functions = {}
         for name in dir(obj):
+            full_name = f"{base_name}.{name}" if base_name else name
+
             if name.startswith('_'):
                 continue
             attr = getattr(obj, name)
             if inspect.ismethod(attr):
-                full_name = f"{base_name}.{name}" if base_name else name
                 functions[full_name] = get_args(attr)[1:]
             # If the attribute is a class or a non-callable object, make a recursive call
             elif inspect.isclass(attr) or (isinstance(attr, object) and not callable(attr) and hasattr(attr, "__module__")):
-                get_functions(attr, f"{base_name}.{name}" if base_name else name, functions)
+                get_functions(attr, full_name, functions)
 
         return functions
 
