@@ -135,9 +135,13 @@ class HeavyStuffAPI:
         self.cancel_heavy_stuff_flag = True
 
 
+class NotExposedApi:
+    def notExposedMethod(self):
+        return 'This method is not exposed'
 
 class Api:
     heavy_stuff = HeavyStuffAPI()
+    _this_wont_be_exposed = NotExposedApi()
 
     def init(self):
         response = {'message': 'Hello from Python {0}'.format(sys.version)}
