@@ -283,7 +283,7 @@ def init(_, cache_dir):
             }
         )
 
-        all_settings = dict(default_settings, **settings)
+        all_settings = dict(default_settings, **browser_settings)
         all_command_line_switches = dict(default_command_line_switches, **command_line_switches)
         cef.Initialize(settings=all_settings, commandLineSwitches=all_command_line_switches)
         cef.DpiAware.EnableHighDpiSupport()
