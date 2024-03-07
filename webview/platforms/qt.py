@@ -54,7 +54,7 @@ if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos'
     # - https://www.google.com/search?q=arch+rstudio+no+sandbox
     # And sometimes it needs two "--no-sandbox" flags
 
-    environ_append("QTWEBENGINE_CHROMIUM_settings", "--no-sandbox", "--no-sandbox")
+    environ_append("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox", "--no-sandbox")
     logger.debug("Enable --no-sandbox flag for arch/manjaro/nixos")
 
 _main_window_created = Event()
@@ -223,6 +223,7 @@ class BrowserView(QMainWindow):
 
     class WebPage(QWebPage):
         def __init__(self, parent=None, profile=None):
+            print(profile)
             if is_webengine and profile:
                 super(BrowserView.WebPage, self).__init__(profile, parent.view)
             else:
