@@ -1,5 +1,17 @@
 # Changelog
 
+## 5.0.5
+
+_Released 07/03/2024_
+
+### 🐞 Bug fixes
+
+- `All` Prevent infinite recursion in nested JS API #1327
+- `CEF` Crash due incorrect settings #1330
+- `QT` WebEnginePage not deleted after window is closed #1328
+- `QT` Blank screen on certain Linux systems #1325
+
+
 ## 5.0.4
 
 _Released 04/03/2024_
