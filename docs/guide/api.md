@@ -14,7 +14,7 @@ webview.create_window(title, url=None, html=None, js_api=None, width=800, height
                       localization=None)
 ```
 
-Create a new _pywebview_ window and returns its instance. Window is not shown until the GUI loop is started. If the function is invoked during the GUI loop, the window is displayed immediately.
+Create a new _pywebview_ window and returns its instance. Can be used to create multiple windows (except Android). Window is not shown until the GUI loop is started. If the function is invoked during the GUI loop, the window is displayed immediately.
 
 * `title` - Window title
 * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point. Alternatively a WSGI server object can be passed to start a local web server.
