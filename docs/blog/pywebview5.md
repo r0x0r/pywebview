@@ -1,4 +1,4 @@
-<img src='./pywebview3.png' alt='pywebview 3.0' style='max-width: 300px; margin: 50px auto; display: block'/>
+<img src='/logo-no-text.png' alt='pywebview' style='max-width: 150px; margin: 50px auto 20px auto; display: block'/>
 
 
 # 5.0 has landed
