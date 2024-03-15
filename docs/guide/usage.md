@@ -67,7 +67,7 @@ _pywebview_ uses internally [bottle.py](https://bottlepy.org) HTTP server for se
 ``` python
 import webview
 
-webview.create_window('Woah dude!', html='src/index.html')
+webview.create_window('Woah dude!', 'src/index.html')
 webview.start(ssl=True)
 ```
 
