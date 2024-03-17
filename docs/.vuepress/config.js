@@ -34,7 +34,7 @@ module.exports = {
       { text: '2.x', link: 'https://pywebview.flowrl.com/2.4' },
       { text: '3.x', link: 'https://pywebview.flowrl.com/3.7' },
     ],
-    sidebarDepth: 0,
+    //sidebarDepth: 1,
     displayAllHeaders: true,
     sidebar: {
       '/guide/': [
