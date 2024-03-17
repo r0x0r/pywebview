@@ -148,15 +148,15 @@ class Window:
         self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
         self.events = EventContainer()
-        self.events.closed = Event()
-        self.events.closing = Event(True)
-        self.events.loaded = Event()
-        self.events.shown = Event()
-        self.events.minimized = Event()
-        self.events.maximized = Event()
-        self.events.restored = Event()
-        self.events.resized = Event()
-        self.events.moved = Event()
+        self.events.closed = Event(self)
+        self.events.closing = Event(self, True)
+        self.events.loaded = Event(self)
+        self.events.shown = Event(self)
+        self.events.minimized = Event(self)
+        self.events.maximized = Event(self)
+        self.events.restored = Event(self)
+        self.events.resized = Event(self)
+        self.events.moved = Event(self)
 
         self.dom = DOM(self)
         self.gui = None

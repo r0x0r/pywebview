@@ -35,12 +35,13 @@ def on_resized(width, height):
     )
 
 
-def on_loaded():
+# you can supply optional window argument to access the window object event was triggered on
+def on_loaded(window):
     print('DOM is ready')
 
     # unsubscribe event listener
-    webview.windows[0].events.loaded -= on_loaded
-    webview.windows[0].load_url('https://pywebview.flowrl.com/hello')
+    window.events.loaded -= on_loaded
+    window.load_url('https://pywebview.flowrl.com/hello')
 
 
 def on_moved(x, y):
