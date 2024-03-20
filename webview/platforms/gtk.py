@@ -117,6 +117,7 @@ class BrowserView:
         )
 
         scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
         self.window.add(scrolled_window)
 
         self.window.connect('delete-event', self.close_window)
