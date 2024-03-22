@@ -86,6 +86,7 @@ class Window:
         hidden: bool = False,
         frameless: bool = False,
         easy_drag: bool = True,
+        shadow: bool = True,
         focus: bool = True,
         minimized: bool = False,
         maximized: bool = False,
@@ -121,6 +122,7 @@ class Window:
         self.text_select = text_select
         self.frameless = frameless
         self.easy_drag = easy_drag
+        self.shadow = shadow
         self.focus = focus
         self.hidden = hidden
         self.on_top = on_top
