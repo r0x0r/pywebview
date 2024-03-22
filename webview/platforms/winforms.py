@@ -6,6 +6,7 @@ import tempfile
 import threading
 import winreg
 from ctypes import windll
+from ctypes import wintypes
 from platform import machine
 from threading import Event, Semaphore
 
@@ -128,6 +129,29 @@ else:
     renderer = 'mshtml'
 
 
+def DwmSetWindowAttribute(hwnd, attr, value, size=4):
+    DwmSetWindowAttribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
+    DwmSetWindowAttribute.argtypes = [wintypes.HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+    return DwmSetWindowAttribute(hwnd, attr, ctypes.byref(ctypes.c_int(value)), size)
+
+
+def ExtendFrameIntoClientArea(hwnd):
+    class _MARGINS(ctypes.Structure):
+        _fields_ = [("cxLeftWidth", ctypes.c_int),
+                    ("cxRightWidth", ctypes.c_int),
+                    ("cyTopHeight", ctypes.c_int),
+                    ("cyBottomHeight", ctypes.c_int)
+                    ]
+
+    DwmExtendFrameIntoClientArea = ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea
+    m = _MARGINS()
+    m.cxLeftWidth = 1
+    m.cxRightWidth = 1
+    m.cyTopHeight = 1
+    m.cyBottomHeight = 1
+    return DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(m))
+
+
 class BrowserView:
     instances = {}
 
@@ -194,6 +218,11 @@ class BrowserView:
             self.is_fullscreen = False
             if window.fullscreen:
                 self.toggle_fullscreen()
+
+            if window.shadow:
+                # Should do this before set frameless
+                ExtendFrameIntoClientArea(self.Handle.ToInt32())
+                DwmSetWindowAttribute(self.Handle.ToInt32(), 2, 2, 4)
 
             if window.frameless:
                 self.frameless = window.frameless
