@@ -94,6 +94,9 @@ class EdgeChrome:
             js_result.append(None)
             semaphore.release()
 
+    def clear_cookies(self):
+        self.web_view.CoreWebView2.CookieManager.DeleteAllCookies()
+
     def get_cookies(self, cookies, semaphore):
         def _callback(task):
             for c in task.Result:

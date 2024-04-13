@@ -174,6 +174,11 @@ class Browser:
 
         return result
 
+    def clear_cookies(self):
+        self.loaded.wait()
+        self.cookie_manager.DeleteCookies('', '')
+        self.cookie_manager.FlushStore()
+
     def get_cookies(self):
         self.loaded.wait()
         self.cookie_visitor.cookies = []
@@ -237,7 +242,7 @@ def _cef_call(func):
         uid = args[-1]
 
         if uid not in instances:
-            logger.error('CEF window with uid {0} does not exist'.format(uid))
+            logger.error(f'CEF window with uid {uid} does not exist with {func}')
             return
 
         return func(*args, **kwargs)
@@ -348,6 +353,12 @@ def load_url(url, uid):
 def evaluate_js(code, result, uid):
     instance = instances[uid]
     return instance.evaluate_js(code, result)
+
+
+@_cef_call
+def clear_cookies(uid):
+    instance = instances[uid]
+    return instance.clear_cookies()
 
 
 @_cef_call
