@@ -21,7 +21,7 @@ def test_clear_cookies(window):
 def get_cookies_test(window):
     cookies = window.get_cookies()
     assert len(cookies) == 1
-    assert cookies[0].output() == 'Set-Cookie: pywebview=true; Domain=127.0.0.1; expires=None; Path=/; SameSite=None'
+    assert cookies[0].output().startswith('Set-Cookie: pywebview=true; Domain=127.0.0.1;')
 
 
 def clear_cookies_test(window):

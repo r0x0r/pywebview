@@ -22,7 +22,7 @@ def test_expose_runtime():
 
 def test_override():
     api = Api()
-    window = webview.create_window('JSBridge test', js_api=api)
+    window = webview.create_window('JSBridge test', html='<html><body>TEST</body></html>', js_api=api)
     window.expose(get_int)
     run_test(webview, window, expose_override)
 
