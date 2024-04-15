@@ -524,11 +524,11 @@ class BrowserView:
         config.userContentController().addScriptMessageHandler_name_(
             self._browserDelegate, 'browserDelegate'
         )
+        self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
 
         if _settings['private_mode']:
             # nonPersisentDataStore preserves cookies for some unknown reason. For this reason we use default datastore
             # and clear all the cookies beforehand
-            self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
 
             def dummy_completion_handler():
                 pass
@@ -540,7 +540,6 @@ class BrowserView:
                 data_types, from_start, dummy_completion_handler
             )
         else:
-            self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
             config.setWebsiteDataStore_(self.datastore)
 
         try:
@@ -727,6 +726,16 @@ class BrowserView:
         window_frame.origin.y = self.screen.origin.y + (self.screen.size.height - window_frame.size.height) / 2
 
         self.window.setFrameOrigin_(window_frame.origin)
+
+    def clear_cookies(self):
+        def clear():
+            self.datastore.removeDataOfTypes_modifiedSince_completionHandler_(
+                WebKit.WKWebsiteDataStore.allWebsiteDataTypes(),
+                Foundation.NSDate.dateWithTimeIntervalSince1970_(0),
+                lambda: None,
+            )
+
+        AppHelper.callAfter(clear)
 
     def get_cookies(self):
         def handler(cookies):
@@ -1306,6 +1315,12 @@ def get_current_url(uid):
     i = BrowserView.instances.get(uid)
     if i:
         return i.get_current_url()
+
+
+def clear_cookies(uid):
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.clear_cookies()
 
 
 def get_cookies(uid):

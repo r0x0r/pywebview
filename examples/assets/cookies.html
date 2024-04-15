@@ -21,8 +21,9 @@
 <p>Cookies: <span id='cookies'></span></p>
 <p>Local storage: <span id='localstorage'></span></p>
 
-
 <button onClick="setCookies()">Set cookies</button><br/>
+<button onClick="showCookies()">Read cookies</button><br/>
+<button onClick="clearCookies()">Clear cookies</button>
 <script>
     var cookieContainer = document.getElementById('cookies')
     var localStorageContainer = document.getElementById('localstorage')
@@ -38,6 +39,10 @@
     function showCookies() {
       cookieContainer.innerHTML = document.cookie
       localStorageContainer.innerHTML = localStorage.getItem('pywebview')
+    }
+
+    function clearCookies() {
+      pywebview.api.clearCookies().then(showCookies)
     }
 </script>
 </body>

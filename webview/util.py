@@ -69,6 +69,11 @@ def get_app_root() -> str:
         return os.path.dirname(sys.executable)
 
     if 'pytest' in sys.modules:
+        root_dir = [arg.split('=')[1] for arg in sys.argv if arg.startswith('--rootdir')]
+
+        if root_dir:
+            return root_dir[0]
+
         for arg in reversed(sys.argv):
             path = os.path.realpath(arg.split('::')[0])
             if os.path.exists(path):

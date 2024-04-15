@@ -223,7 +223,6 @@ class BrowserView(QMainWindow):
 
     class WebPage(QWebPage):
         def __init__(self, parent=None, profile=None):
-            print(profile)
             if is_webengine and profile:
                 super(BrowserView.WebPage, self).__init__(profile, parent.view)
             else:
@@ -686,6 +685,10 @@ class BrowserView(QMainWindow):
     def get_cookies(self):
         return list(self.cookies.values())
 
+    def clear_cookies(self):
+        self.cookies = {}
+        self.profile.cookieStore().deleteAllCookies()
+
     def get_current_url(self):
         self.loaded.wait()
         self.current_url_trigger.emit()
@@ -895,6 +898,12 @@ def set_title(title, uid):
     i = BrowserView.instances.get(uid)
     if i:
         i.set_title(title)
+
+
+def clear_cookies(uid):
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.clear_cookies()
 
 
 def get_cookies(uid):

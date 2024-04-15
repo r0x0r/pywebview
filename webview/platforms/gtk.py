@@ -307,7 +307,7 @@ class BrowserView:
                     source_uri=None,
                     cancellable=None,
                     callback=None)
-                
+
             self._set_js_api()
 
     def on_download_started(self, session, download):
@@ -494,6 +494,12 @@ class BrowserView:
 
             dialog.add_filter(f)
 
+    def clear_cookies(self):
+        def _clear_cookies():
+            self.cookie_manager.delete_all_cookies()
+
+        glib.idle_add(_clear_cookies)
+
     def get_cookies(self):
         def _get_cookies():
             self.cookie_manager.get_cookies(self.webview.get_uri(), None, callback, None)
@@ -579,7 +585,7 @@ class BrowserView:
                     source_uri=None,
                     cancellable=None,
                     callback=None)
-    
+
             self.loaded.set()
 
         glib.idle_add(create_bridge)
@@ -700,6 +706,12 @@ def restore(uid):
     i = BrowserView.instances.get(uid)
     if i:
         glib.idle_add(i.restore)
+
+
+def clear_cookies(uid):
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.clear_cookies()
 
 
 def get_cookies(uid):

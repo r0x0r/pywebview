@@ -122,7 +122,7 @@ else:
     from . import mshtml as IE
 
     logger.warning(
-        'MSHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium'
+        'MSHTML is deprecated. See https://pywebview.flowrl.com/guide/web_engine.html on details how to use Edge Chromium'
     )
     logger.debug('Using WinForms / MSHTML')
     IE._set_ie_mode()
@@ -265,9 +265,6 @@ class BrowserView:
             if not self.pywebview_window.focus:
                 windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
 
-            if is_cef and self.pywebview_window.focus:
-                CEF.focus(self.uid)
-
         def on_shown(self, *_):
             if not is_cef:
                 self.shown.set()
@@ -355,6 +352,16 @@ class BrowserView:
                 return result
 
             return self.browser.js_result
+
+        def clear_cookies(self):
+            def _clear_cookies():
+                self.browser.clear_cookies()
+
+            if not is_chromium:
+                logger.error('clear_cookies() is not implemented for this platform')
+                return
+
+            self.Invoke(Func[Type](_clear_cookies))
 
         def get_cookies(self):
             def _get_cookies():
@@ -700,6 +707,15 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     except:
         logger.exception('Error invoking %s dialog', dialog_type)
         return None
+
+
+def clear_cookies(uid):
+    if is_cef:
+        CEF.clear_cookies(uid)
+    i = BrowserView.instances.get(uid)
+
+    if i:
+        i.clear_cookies()
 
 
 def get_cookies(uid):
