@@ -8,9 +8,9 @@ for:
     matrix:
       only:
         - image: Visual Studio 2022
-    cache:
-      - C:\ProgramData\chocolatey\bin -> appveyor.yml
-      - C:\ProgramData\chocolatey\lib -> appveyor.yml
+    # cache:
+    #   - C:\ProgramData\chocolatey\bin -> appveyor.yml
+    #   - C:\ProgramData\chocolatey\lib -> appveyor.yml
     environment:
       PYTHON: "C:\\Python37-x64"
       PYTHON_VERSION: "3.7.x"
