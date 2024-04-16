@@ -71,6 +71,7 @@ def _create_window(
 ):
     def thread():
         try:
+            move_mouse_cocoa()
             if thread_func:
                 thread_func(window)
 
@@ -94,17 +95,21 @@ def get_test_name():
     return os.environ.get('PYTEST_CURRENT_TEST').split(':')[-1].split(' ')[0]
 
 
+def move_mouse_cocoa():
+    if sys.platform == 'darwin':
+        from .util_cocoa import mouseMoveRelative
+
+        time.sleep(1)
+        mouseMoveRelative(1, 1)
+
+
 def _destroy_window(_, window, delay):
     def stop():
         event.wait()
         time.sleep(delay)
         window.destroy()
 
-        if sys.platform == 'darwin':
-            from .util_cocoa import mouseMoveRelative
-
-            time.sleep(1)
-            mouseMoveRelative(1, 1)
+        move_mouse_cocoa()
 
     event = threading.Event()
     event.clear()

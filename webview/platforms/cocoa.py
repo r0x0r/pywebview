@@ -630,8 +630,6 @@ class BrowserView:
     def first_show(self):
         if not self.hidden:
             self.window.makeKeyAndOrderFront_(self.window)
-        else:
-            self.hidden = False
 
         if self.maximized:
             self.maximize()
@@ -650,6 +648,7 @@ class BrowserView:
     def show(self):
         def _show():
             self.window.makeKeyAndOrderFront_(self.window)
+            BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
 
         AppHelper.callAfter(_show)
 
