@@ -369,16 +369,18 @@ class BrowserView(QMainWindow):
                 QtCore.Qt.NoContextMenu
             )  # disable right click context menu
 
+        self.cookies = {}
+
         if is_webengine:
             if _settings['private_mode']:
                 self.profile = QWebEngineProfile()
             else:
                 self.profile = QWebEngineProfile('pywebview')
                 self.profile.setPersistentStoragePath(_profile_storage_path)
-                self.cookies = {}
-                cookie_store = self.profile.cookieStore()
-                cookie_store.cookieAdded.connect(self.on_cookie_added)
-                cookie_store.cookieRemoved.connect(self.on_cookie_removed)
+                
+            cookie_store = self.profile.cookieStore()
+            cookie_store.cookieAdded.connect(self.on_cookie_added)
+            cookie_store.cookieRemoved.connect(self.on_cookie_removed)
 
             self.view.setPage(BrowserView.WebPage(self, profile=self.profile))
         elif not is_webengine and not _settings['private_mode']:
