@@ -25,3 +25,4 @@ Use [py2app](https://py2app.readthedocs.io/en/latest/). For a reference setup.py
 ## Windows / Linux
 
 Use [pyinstaller](https://www.pyinstaller.org/). Pyinstaller picks all the dependencies found in `pywebview`, even if you don't use them. So for example if you have `PyQt` installed, but use `EdgeChromium` renderer on Windows, pyinstaller will bundle `PyQT` all the same. To prevent that you might want to add unwanted dependencies to `excludes` in your spec file.
+You can also use [nuitka](http://nuitka.net/). Nuitka does the same, although it is a bit more configurable, and you have to use `--exclude-module` to exclude unwanted dependencies.
