@@ -8,7 +8,7 @@ from .util import assert_js, run_test
 def test_js_bridge():
     api = Api()
     window = webview.create_window('JSBridge test', html='<html><body>TEST</body></html>', js_api=api)
-    run_test(webview, window, js_bridge, debug=True)
+    run_test(webview, window, js_bridge)
 
 
 def test_exception():
