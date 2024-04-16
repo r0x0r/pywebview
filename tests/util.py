@@ -71,6 +71,7 @@ def _create_window(
 ):
     def thread():
         try:
+            take_screenshot()
             move_mouse_cocoa()
             if thread_func:
                 thread_func(window)
@@ -102,6 +103,13 @@ def move_mouse_cocoa():
         time.sleep(1)
         mouseMoveRelative(1, 1)
 
+
+def take_screenshot():
+    if sys.platform == 'darwin':
+        from subprocess import Popen
+        from datetime import datetime
+
+        Popen(['screencapture', '-x', f'/tmp/screenshot-{datetime.now().timestamp()}.png']).wait()
 
 def _destroy_window(_, window, delay):
     def stop():
