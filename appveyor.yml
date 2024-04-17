@@ -78,9 +78,5 @@ for:
       - PYWEBVIEW_LOG=debug python3 -m pytest test_simple_browser.py
       - ./run.sh
       - python3 -m pip install --user pyobjc pytest proxy_tools bottle typing_extensions
-    test_script:
-      - cd tests
-      - PYWEBVIEW_LOG=debug python3 -m pytest test_simple_browser.py
-      - ./run.sh
 
 build: off
