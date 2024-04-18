@@ -86,6 +86,7 @@ class Window:
         hidden: bool = False,
         frameless: bool = False,
         easy_drag: bool = True,
+        shadow: bool = True,
         focus: bool = True,
         minimized: bool = False,
         maximized: bool = False,
@@ -121,6 +122,7 @@ class Window:
         self.text_select = text_select
         self.frameless = frameless
         self.easy_drag = easy_drag
+        self.shadow = shadow
         self.focus = focus
         self.hidden = hidden
         self.on_top = on_top
@@ -148,15 +150,15 @@ class Window:
         self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
         self.events = EventContainer()
-        self.events.closed = Event()
-        self.events.closing = Event(True)
-        self.events.loaded = Event()
-        self.events.shown = Event()
-        self.events.minimized = Event()
-        self.events.maximized = Event()
-        self.events.restored = Event()
-        self.events.resized = Event()
-        self.events.moved = Event()
+        self.events.closed = Event(self)
+        self.events.closing = Event(self, True)
+        self.events.loaded = Event(self)
+        self.events.shown = Event(self)
+        self.events.minimized = Event(self)
+        self.events.maximized = Event(self)
+        self.events.restored = Event(self)
+        self.events.resized = Event(self)
+        self.events.moved = Event(self)
 
         self.dom = DOM(self)
         self.gui = None
@@ -279,6 +281,13 @@ class Window:
         self.gui.set_title(title, self.uid)
 
     @_loaded_call
+    def clear_cookies(self):
+        """
+        Clear all the cookies
+        """
+        return self.gui.clear_cookies(self.uid)
+
+    @_loaded_call
     def get_cookies(self):
         """
         Get cookies for the current website
@@ -378,7 +387,7 @@ class Window:
         self.gui.move(x, y, self.uid)
 
     @_loaded_call
-    def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None) -> Any:
+    def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None, raw=False) -> Any:
         """
         Evaluate given JavaScript code and return the result
         :param script: The JavaScript code to be evaluated
@@ -397,7 +406,9 @@ class Window:
         else:
             sync_eval = 'pywebview._stringify(value);'
 
-        if callback:
+        if raw:
+            escaped_script = escape_string(script)
+        elif callback:
             escaped_script = """
                 var value = eval("{0}");
                 if (pywebview._isPromise(value)) {{
@@ -429,7 +440,7 @@ class Window:
 
         if self.gui.renderer == 'cef':
             result = self.gui.evaluate_js(escaped_script, self.uid, unique_id)
-        elif self.gui.renderer == 'android-webkit':
+        elif self.gui.renderer == 'android-webkit' and not raw:
             escaped_script = f"""
                 (function() {{
                     {escaped_script}

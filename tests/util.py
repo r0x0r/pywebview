@@ -5,6 +5,7 @@ import threading
 import time
 import traceback
 from multiprocessing import Queue
+from typing import Any, Callable, Dict, Iterable, Optional
 from uuid import uuid4
 
 import pytest
@@ -13,11 +14,37 @@ logger = logging.getLogger('pywebview')
 
 
 def run_test(
-    webview, window, thread_func=None, param=None, start_args={}, no_destroy=False, destroy_delay=0
-):
+    webview: Any,
+    window: Any,
+    thread_func: Optional[Callable] = None,
+    param: Iterable = (),
+    start_args: Dict[str, Any] = {},
+    no_destroy: bool = False,
+    destroy_delay: float = 0,
+    debug: bool = False
+) -> None:
+    """"
+    A test running function that creates a window and runs a thread function in it. Test logic is to be placed in the
+    thread function. The function will wait for the thread function to finish and then destroy the window. If the thread
+    function raises an exception, the test will fail and the exception will be printed.
+
+    :param webview: webview module
+    :param window: window instance created with webview.create_window
+    :param thread_func: function to run in the window.
+    :param param: positional arguments to pass to the thread function
+    :param start_args: keyword arguments to pass to webview.start
+    :param no_destroy: flag indicating whether to destroy the window after the thread function finishes (default: False).
+    If set to True, the window will not be destroyed and the test will not finish until the window is closed manually.
+    :param destroy_delay: delay in seconds before destroying the window (default: 0)
+    :param debug: flag indicating whether to enable debug mode (default: False)
+
+    """
     __tracebackhide__ = True
     try:
-        queue = Queue()
+        queue: Queue = Queue()
+
+        if debug:
+            start_args = {**start_args, 'debug': True}
 
         time.sleep(2)
         _create_window(
@@ -68,8 +95,10 @@ def _create_window(
 ):
     def thread():
         try:
+            take_screenshot()
+            move_mouse_cocoa()
             if thread_func:
-                thread_func(window)
+                thread_func(window, *thread_param)
 
             destroy_event.set()
         except Exception as e:
@@ -81,7 +110,7 @@ def _create_window(
         args = (thread_param,) if thread_param else ()
         destroy_event = _destroy_window(webview, window, destroy_delay)
 
-        t = threading.Thread(target=thread, args=args)
+        t = threading.Thread(target=thread)
         t.start()
 
     webview.start(**start_args)
@@ -91,17 +120,28 @@ def get_test_name():
     return os.environ.get('PYTEST_CURRENT_TEST').split(':')[-1].split(' ')[0]
 
 
+def move_mouse_cocoa():
+    if sys.platform == 'darwin':
+        from .util_cocoa import mouseMoveRelative
+
+        time.sleep(1)
+        mouseMoveRelative(1, 1)
+
+
+def take_screenshot():
+    if sys.platform == 'darwin':
+        from subprocess import Popen
+        from datetime import datetime
+
+        Popen(['screencapture', '-x', f'/tmp/screenshot-{datetime.now().timestamp()}.png']).wait()
+
 def _destroy_window(_, window, delay):
     def stop():
         event.wait()
         time.sleep(delay)
         window.destroy()
 
-        if sys.platform == 'darwin':
-            from .util_cocoa import mouseMoveRelative
-
-            time.sleep(1)
-            mouseMoveRelative(1, 1)
+        move_mouse_cocoa()
 
     event = threading.Event()
     event.clear()

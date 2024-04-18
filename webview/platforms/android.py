@@ -333,6 +333,11 @@ def evaluate_js(js_code, unique_id):
     lock.acquire()
     return js_result
 
+def clear_cookies(_):
+    def _cookies():
+        CookieManager.getInstance().removeAllCookies(None)
+
+    Runnable(_cookies)()
 
 def get_cookies(_):
     def _cookies():

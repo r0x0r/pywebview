@@ -46,7 +46,7 @@ except ImportError:
     is_webengine = False
     renderer = 'qtwebkit'
 
-if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos','rhel']:
+if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos', 'rhel', 'pop']:
     # I don't know why, but it's a common solution for #890 (White screen displayed)
     # such as:
     # - https://github.com/LCA-ActivityBrowser/activity-browser/pull/954/files
@@ -223,7 +223,6 @@ class BrowserView(QMainWindow):
 
     class WebPage(QWebPage):
         def __init__(self, parent=None, profile=None):
-            print(profile)
             if is_webengine and profile:
                 super(BrowserView.WebPage, self).__init__(profile, parent.view)
             else:
@@ -370,16 +369,18 @@ class BrowserView(QMainWindow):
                 QtCore.Qt.NoContextMenu
             )  # disable right click context menu
 
+        self.cookies = {}
+
         if is_webengine:
             if _settings['private_mode']:
                 self.profile = QWebEngineProfile()
             else:
                 self.profile = QWebEngineProfile('pywebview')
                 self.profile.setPersistentStoragePath(_profile_storage_path)
-                self.cookies = {}
-                cookie_store = self.profile.cookieStore()
-                cookie_store.cookieAdded.connect(self.on_cookie_added)
-                cookie_store.cookieRemoved.connect(self.on_cookie_removed)
+                
+            cookie_store = self.profile.cookieStore()
+            cookie_store.cookieAdded.connect(self.on_cookie_added)
+            cookie_store.cookieRemoved.connect(self.on_cookie_removed)
 
             self.view.setPage(BrowserView.WebPage(self, profile=self.profile))
         elif not is_webengine and not _settings['private_mode']:
@@ -686,6 +687,10 @@ class BrowserView(QMainWindow):
     def get_cookies(self):
         return list(self.cookies.values())
 
+    def clear_cookies(self):
+        self.cookies = {}
+        self.profile.cookieStore().deleteAllCookies()
+
     def get_current_url(self):
         self.loaded.wait()
         self.current_url_trigger.emit()
@@ -895,6 +900,12 @@ def set_title(title, uid):
     i = BrowserView.instances.get(uid)
     if i:
         i.set_title(title)
+
+
+def clear_cookies(uid):
+    i = BrowserView.instances.get(uid)
+    if i:
+        i.clear_cookies()
 
 
 def get_cookies(uid):

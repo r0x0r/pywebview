@@ -6,6 +6,7 @@ import tempfile
 import threading
 import winreg
 from ctypes import windll
+from ctypes import wintypes
 from platform import machine
 from threading import Event, Semaphore
 
@@ -121,11 +122,34 @@ else:
     from . import mshtml as IE
 
     logger.warning(
-        'MSHTML is deprecated. See https://pywebview.flowrl.com/guide/renderer.html#web-engine on details how to use Edge Chromium'
+        'MSHTML is deprecated. See https://pywebview.flowrl.com/guide/web_engine.html on details how to use Edge Chromium'
     )
     logger.debug('Using WinForms / MSHTML')
     IE._set_ie_mode()
     renderer = 'mshtml'
+
+
+def DwmSetWindowAttribute(hwnd, attr, value, size=4):
+    DwmSetWindowAttribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
+    DwmSetWindowAttribute.argtypes = [wintypes.HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+    return DwmSetWindowAttribute(hwnd, attr, ctypes.byref(ctypes.c_int(value)), size)
+
+
+def ExtendFrameIntoClientArea(hwnd):
+    class _MARGINS(ctypes.Structure):
+        _fields_ = [("cxLeftWidth", ctypes.c_int),
+                    ("cxRightWidth", ctypes.c_int),
+                    ("cyTopHeight", ctypes.c_int),
+                    ("cyBottomHeight", ctypes.c_int)
+                    ]
+
+    DwmExtendFrameIntoClientArea = ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea
+    m = _MARGINS()
+    m.cxLeftWidth = 1
+    m.cxRightWidth = 1
+    m.cyTopHeight = 1
+    m.cyBottomHeight = 1
+    return DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(m))
 
 
 class BrowserView:
@@ -195,6 +219,11 @@ class BrowserView:
             if window.fullscreen:
                 self.toggle_fullscreen()
 
+            if window.shadow:
+                # Should do this before set frameless
+                ExtendFrameIntoClientArea(self.Handle.ToInt32())
+                DwmSetWindowAttribute(self.Handle.ToInt32(), 2, 2, 4)
+
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
@@ -235,9 +264,6 @@ class BrowserView:
         def on_activated(self, *_):
             if not self.pywebview_window.focus:
                 windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
-
-            if is_cef and self.pywebview_window.focus:
-                CEF.focus(self.uid)
 
         def on_shown(self, *_):
             if not is_cef:
@@ -326,6 +352,16 @@ class BrowserView:
                 return result
 
             return self.browser.js_result
+
+        def clear_cookies(self):
+            def _clear_cookies():
+                self.browser.clear_cookies()
+
+            if not is_chromium:
+                logger.error('clear_cookies() is not implemented for this platform')
+                return
+
+            self.Invoke(Func[Type](_clear_cookies))
 
         def get_cookies(self):
             def _get_cookies():
@@ -671,6 +707,15 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     except:
         logger.exception('Error invoking %s dialog', dialog_type)
         return None
+
+
+def clear_cookies(uid):
+    if is_cef:
+        CEF.clear_cookies(uid)
+    i = BrowserView.instances.get(uid)
+
+    if i:
+        i.clear_cookies()
 
 
 def get_cookies(uid):

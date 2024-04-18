@@ -1,9 +1,8 @@
 import pytest
-from six.moves import reload_module
-
+from importlib import reload
 
 @pytest.fixture(autouse=True)
 def reload_webview():
     import webview
 
-    reload_module(webview)
+    reload(webview)

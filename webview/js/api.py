@@ -115,48 +115,54 @@ window.pywebview = {
             )
         }
 
-        function serialize(obj, depth=0, visited=new WeakSet()) {
+        function serialize(obj, ancestors=[]) {
             try {
                 if (obj instanceof Node) return pywebview.domJSON.toJSON(obj, { metadata: false, serialProperties: true });
                 if (obj instanceof Window) return 'Window';
 
-                if (visited.has(obj)) {
-                    return '[Circular Reference]';
+                var boundSerialize = serialize.bind(obj);
+
+                if (typeof obj !== "object" || obj === null) {
+                    return obj;
                 }
 
-                if (typeof obj === 'object' && obj !== null) {
-                    visited.add(obj);
-
-                    if (isArrayLike(obj)) {
-                        obj = tryConvertToArray(obj);
-                    }
-
-                    if (Array.isArray(obj)) {
-                        const arr = obj.map(value => serialize(value, depth + 1, visited));
-                        visited.delete(obj);
-                        return arr;
-                    }
-
-                    const newObj = {};
-                    for (const key in obj) {
-                        if (typeof obj === 'function') {
-                            continue;
-                        }
-                        newObj[key] = serialize(obj[key], depth + 1, visited);
-                    }
-                    visited.delete(obj);
-                    return newObj;
+                while (ancestors.length > 0 && ancestors[ancestors.length - 1] !== this) {
+                    ancestors.pop();
                 }
 
-                return obj;
+                if (ancestors.includes(obj)) {
+                    return "[Circular Reference]";
+                }
+                ancestors.push(obj);
+
+                if (isArrayLike(obj)) {
+                    obj = tryConvertToArray(obj);
+                }
+
+                if (Array.isArray(obj)) {
+                    const arr = obj.map(value => boundSerialize(value, ancestors));
+                    return arr;
+                }
+
+                const newObj = {};
+                for (const key in obj) {
+                    if (typeof obj === 'function') {
+                        continue;
+                    }
+                    newObj[key] = boundSerialize(obj[key], ancestors);
+                }
+                return newObj;
+
             } catch (e) {
                 console.error(e)
                 return e.toString();
             }
         }
 
-        return JSON.stringify(serialize(obj));
-    },
+      var _serialize = serialize.bind(null);
+
+      return JSON.stringify(_serialize(obj));
+  },
 
     _getNodeId: function (element) {
         if (!element) {
@@ -219,5 +225,4 @@ if (window.pywebview.platform == 'qtwebengine') {
 } else {
     window.dispatchEvent(new CustomEvent('pywebviewready'));
 }
-
 """

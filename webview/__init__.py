@@ -228,6 +228,7 @@ def create_window(
     hidden: bool = False,
     frameless: bool = False,
     easy_drag: bool = True,
+    shadow: bool = True,
     focus: bool = True,
     minimized: bool = False,
     maximized: bool = False,
@@ -259,6 +260,7 @@ def create_window(
     :param hidden: Whether the window should be hidden.
     :param frameless: Whether the window should have a frame.
     :param easy_drag: Easy window drag mode when window is frameless.
+    :param shadow: Whether the window should have a frame border (shadows and Windows rounded edges).
     :param focus: Whether to activate the window when user opens it. Window can be controlled with mouse but keyboard input will go to another (active) window and not this one.
     :param minimized: Display window minimized
     :param maximized: Display window maximized
@@ -293,6 +295,7 @@ def create_window(
         hidden,
         frameless,
         easy_drag,
+        shadow,
         focus,
         minimized,
         maximized,

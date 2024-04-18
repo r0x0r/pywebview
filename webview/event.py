@@ -28,17 +28,21 @@ class EventContainer:
 
 
 class Event:
-    def __init__(self, should_lock: bool = False) -> None:
+    def __init__(self, window, should_lock: bool = False) -> None:
         self._items: list[Callable[..., Any]] = []
         self._should_lock = should_lock
         self._event = threading.Event()
+        self._window = window
 
     def set(self, *args: Any, **kwargs: Any) -> bool:
         def execute():
             for func in self._items:
                 try:
+
                     if len(inspect.signature(func).parameters.values()) == 0:
                         value = func()
+                    elif 'window' in inspect.signature(func).parameters:
+                        value = func(self._window, *args, **kwargs)
                     else:
                         value = func(*args, **kwargs)
                     return_values.add(value)

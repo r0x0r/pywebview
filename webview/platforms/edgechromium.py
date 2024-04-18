@@ -94,6 +94,9 @@ class EdgeChrome:
             js_result.append(None)
             semaphore.release()
 
+    def clear_cookies(self):
+        self.web_view.CoreWebView2.CookieManager.DeleteAllCookies()
+
     def get_cookies(self, cookies, semaphore):
         def _callback(task):
             for c in task.Result:
@@ -225,6 +228,8 @@ class EdgeChrome:
         elif self.pywebview_window.html:
             self.html = self.pywebview_window.html
             self.load_html(self.pywebview_window.html, '')
+        else:
+            self.load_html(DEFAULT_HTML, '')
 
         if _settings['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             sender.CoreWebView2.OpenDevToolsWindow()

@@ -7,7 +7,7 @@
 webview.create_window(title, url=None, html=None, js_api=None, width=800, height=600,
                       x=None, y=None, screen=None, resizable=True, fullscreen=False,
                       min_size=(200, 100), hidden=False, frameless=False,
-                      easy_drag=True, focus=True, minimized=False, maximized=False
+                      easy_drag=True, shadow=False, focus=True, minimized=False, maximized=False,
                       on_top=False, confirm_close=False, background_color='#FFFFFF',
                       transparent=False, text_select=False, zoomable=False,
                       draggable=False, server=http.BottleServer, server_args={},
@@ -31,6 +31,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `hidden` - Create a window hidden by default. Default is False
 * `frameless` - Create a frameless window. Default is False.
 * `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/guide/api.html#drag-area) for details.
+* `shadow` - Add window shadow. Default is False. _Windows only_.
 * `focus` - Create a non-focusable window if False. Default is True.
 * `minimized` - Display window minimized
 * `maximized` - Display window maximized
@@ -508,6 +509,19 @@ window.height
 
 Get height of the window
 
+### window.clear_cookies
+
+``` python
+window.clear_cookies()
+```
+
+Clear all the cookies including `HttpOnly` ones.
+
+#### Example
+
+* [Cookies](/examples/cookies.html)
+
+
 ### window.create\_confirmation\_dialog
 
 ``` python
@@ -762,7 +776,7 @@ Get DOM document's window `window` as an `Element` object
 
 ## Window events
 
-Window object exposes a number of lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g. `window.events.loaded += func`. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, `window.events.loaded -= func`.
+Window object exposes a number of lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g. `window.events.loaded += func`. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, `window.events.loaded -= func`. To access the window object from the event handler, you can supply `window` parameter as a first positional argument of the handler.
 
 ### window.events.closed
 
@@ -810,20 +824,20 @@ Event fired when pywebview window is shown.
 
 [Example](/examples/events.html)
 
-
 ## DOM events
 
 _pywebview_ exposes a `window.pywebviewready` DOM event that is fired after `window.pywebview` is created.
 
 [Example](/examples/js_api.html)
 
-
 ## Drag area
 
 With a frameless _pywebview_ window, A window can be moved or dragged by adding a special class called `pywebview-drag-region` in your html
+
 ```html
 <div class='pywebview-drag-region'>This div element can be used to moved or drag your window like a native OS window</div>
 ```
+
 The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
 
 

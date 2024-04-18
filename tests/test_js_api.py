@@ -7,20 +7,20 @@ from .util import assert_js, run_test
 
 def test_js_bridge():
     api = Api()
-    window = webview.create_window('JSBridge test', js_api=api)
+    window = webview.create_window('JSBridge test', html='<html><body>TEST</body></html>', js_api=api)
     run_test(webview, window, js_bridge)
 
 
 def test_exception():
     api = Api()
-    window = webview.create_window('JSBridge test', js_api=api)
+    window = webview.create_window('JSBridge test', html='<html><body>TEST</body></html>', js_api=api)
     run_test(webview, window, exception)
 
 
 # This test randomly fails on Windows
 def test_concurrent():
     api = Api()
-    window = webview.create_window('JSBridge test', js_api=api)
+    window = webview.create_window('JSBridge test', html='<html><body>TEST</body></html>', js_api=api)
     run_test(webview, window, concurrent)
 
 
@@ -71,7 +71,6 @@ class Api:
 
 
 def js_bridge(window):
-    window.load_html('<html><body>TEST</body></html>')
     assert_js(window, 'get_int', 420)
     assert_js(window, 'get_float', 3.141)
     assert_js(window, 'get_string', 'test')
