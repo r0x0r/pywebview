@@ -3,7 +3,7 @@
 
 ## 5.1
 
-_Released 07/04/2024_
+_Released 18/04/2024_
 
 ### ⚡ Features
 
