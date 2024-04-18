@@ -7,7 +7,7 @@
 webview.create_window(title, url=None, html=None, js_api=None, width=800, height=600,
                       x=None, y=None, screen=None, resizable=True, fullscreen=False,
                       min_size=(200, 100), hidden=False, frameless=False,
-                      easy_drag=True, focus=True, minimized=False, maximized=False
+                      easy_drag=True, shadow=False, focus=True, minimized=False, maximized=False,
                       on_top=False, confirm_close=False, background_color='#FFFFFF',
                       transparent=False, text_select=False, zoomable=False,
                       draggable=False, server=http.BottleServer, server_args={},
@@ -31,6 +31,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `hidden` - Create a window hidden by default. Default is False
 * `frameless` - Create a frameless window. Default is False.
 * `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/guide/api.html#drag-area) for details.
+* `shadow` - Add window shadow. Default is False. _Windows only_.
 * `focus` - Create a non-focusable window if False. Default is True.
 * `minimized` - Display window minimized
 * `maximized` - Display window maximized

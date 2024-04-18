@@ -1,5 +1,27 @@
 # Changelog
 
+
+## 5.1
+
+_Released 07/04/2024_
+
+### ⚡ Features
+
+- `All` Clear all the cookies (including HttpOnly) with `window.clear_cookies()`. Sponsored by [TBS](https://tbsit360.com/)
+- `All` pywebview event handler can now have an optional `window` parameter that holds an instance of the `Window` object that triggered the event.
+
+### 🚀 Improvements
+
+- `Windows` Add window shadow with `webview.create_window(..., shadow=True)`. Thanks @yllhwa
+
+### 🐞 Bug fixes
+
+- `Cocoa` Fix showing window
+- `QT` Fix fetching cookies in private mode
+- `QT` Fix blank screen in Pop! OS. Thanks @ysfchn.
+- `GTK` Fix frameless windows having a hard-coded minimum size. Thanks @coffeejunk
+
+
 ## 5.0.5
 
 _Released 07/03/2024_
