@@ -95,7 +95,6 @@ def _create_window(
 ):
     def thread():
         try:
-            logger.info('Thread started')
             take_screenshot()
             move_mouse_cocoa()
             if thread_func:
