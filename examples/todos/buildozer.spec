@@ -4,7 +4,7 @@
 title = pywebview todos
 
 # (str) Package name
-package.name = pywebview todos
+package.name = pywebviewTodos
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = com.pywebview.todos
