@@ -22,7 +22,7 @@ source.include_exts = py,png,jpg,kv,atlas,html,jar
 source.exclude_exts = spec,
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = bin,build,dist,docs,logo,tests,pywebview.egg-info,
+source.exclude_dirs = bin,build,dist,docs,logo,tests,pywebview.egg-info
 
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
