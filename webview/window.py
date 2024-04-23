@@ -170,6 +170,8 @@ class Window:
         self.events.resized = Event(self)
         self.events.moved = Event(self)
         self.events._pywebviewready = Event(self)
+        self.events.request_sent = Event(self)
+        self.events.response_received = Event(self)
 
         self._expose_lock = Lock()
         self.dom = DOM(self)
