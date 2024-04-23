@@ -159,6 +159,8 @@ class Window:
         self.events.restored = Event(self)
         self.events.resized = Event(self)
         self.events.moved = Event(self)
+        self.events.request_sent = Event(self)
+        self.events.response_received = Event(self)
 
         self.dom = DOM(self)
         self.gui = None
