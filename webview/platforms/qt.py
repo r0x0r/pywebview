@@ -355,10 +355,6 @@ class BrowserView(QMainWindow):
                 '--enable-features=AutoplayIgnoreWebAudio',
             )
 
-        user_agent = _settings['user_agent']
-        if user_agent and is_webengine:
-            self.view.page().profile().setHttpUserAgent(user_agent)
-
         if _settings['debug'] and is_webengine:
             # Initialise Remote debugging (need to be done only once)
             if not BrowserView.inspector_port:
@@ -369,6 +365,10 @@ class BrowserView(QMainWindow):
                 QtCore.Qt.NoContextMenu
             )  # disable right click context menu
 
+        user_agent = _settings['user_agent']
+        if user_agent and is_webengine:
+            self.view.page().profile().setHttpUserAgent(user_agent)
+        
         self.cookies = {}
 
         if is_webengine:
