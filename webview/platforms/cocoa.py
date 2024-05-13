@@ -243,6 +243,12 @@ class BrowserView:
 
         def webView_decidePolicyForNavigationResponse_decisionHandler_(self, webview, navigationResponse, decisionHandler):
             if navigationResponse.canShowMIMEType():
+                headers = dict(navigationResponse.response().allHeaderFields())
+                new_headers = webview.pywebview_window.events.response_received.set(headers)
+
+                if new_headers:
+                    logger.warning('Editing response headers is not implemented on macOS')
+
                 decisionHandler(WebKit.WKNavigationResponsePolicyAllow)
             elif webview_settings['ALLOW_DOWNLOADS']:
                 decisionHandler(WebKit.WKNavigationResponsePolicyCancel)
