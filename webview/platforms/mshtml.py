@@ -209,7 +209,7 @@ class MSHTML:
 
     def on_document_completed(self, _, args):
         document = self.web_view.Document
-        document.InvokeScript('eval', (alert.src,))
+        document.InvokeScript('eval', (alert.src % {'platform': 'mshtml'}))
 
         if _settings['debug']:
             document.InvokeScript(
