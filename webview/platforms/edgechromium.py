@@ -9,6 +9,7 @@ import clr
 
 from webview import _settings, settings as webview_settings
 from webview.dom import _dnd_state
+from webview.js import alert
 from webview.js.css import disable_text_select
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
@@ -172,7 +173,7 @@ class EdgeChrome:
 
             func_name, func_param, value_id = json.loads(return_value)
             func_param = json.loads(func_param)
-            if func_name == 'alert':
+            if func_name == '_pywebviewAlert':
                 WinForms.MessageBox.Show(func_param)
             elif func_name == 'console':
                 print(func_param)
@@ -265,6 +266,7 @@ class EdgeChrome:
         self.url = None if self.ishtml else url
 
         self.web_view.ExecuteScriptAsync(inject_pywebview(self.pywebview_window, 'chromium'))
+        self.web_view.ExecuteScriptAsync(alert.src % {'platform': 'edgechromium'})
 
         if not self.pywebview_window.text_select:
             self.web_view.ExecuteScriptAsync(disable_text_select)
