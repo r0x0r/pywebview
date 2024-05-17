@@ -15,7 +15,7 @@ class DOM:
 
     @property
     def body(self) -> Element:
-        self._elements.get('body', Element(self.__window, 'body'))
+        return self._elements.get('body', Element(self.__window, 'body'))
 
     @property
     def document(self) -> Element:
@@ -72,7 +72,3 @@ class DOM:
 
         node_ids = self.__window.evaluate_js(code)
         return [Element(self.__window, node_id) for node_id in node_ids]
-
-
-
-
