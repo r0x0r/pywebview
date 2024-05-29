@@ -221,7 +221,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{value: \'{result}\'}}'
         except Exception as e:
-            print(traceback.format_exc())
+            logger.error(traceback.format_exc())
             error = {'message': str(e), 'name': type(e).__name__, 'stack': traceback.format_exc()}
             result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{isError: true, value: \'{result}\'}}'
