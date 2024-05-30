@@ -1,3 +1,5 @@
+"""This example demonstrates how to expose Python functions to the Javascript domain."""
+
 import webview
 from webview.dom import DOMEventHandler
 
@@ -17,9 +19,6 @@ def on_drop(e):
         print(file.get('pywebviewFullPath'))
 
 def bind(window):
-    #window.dom.document.events.dragenter += DOMEventHandler(on_drag, True, True)
-    #window.dom.document.events.dragstart += DOMEventHandler(on_drag, True, True)
-    #window.dom.document.events.dragover += DOMEventHandler(on_drag, True, True)
     window.dom.document.events.drop += DOMEventHandler(on_drop, True, True)
 
 if __name__ == '__main__':
