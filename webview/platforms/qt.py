@@ -541,7 +541,6 @@ class BrowserView(QMainWindow):
         event.accept()
 
         del BrowserView.instances[self.uid]
-        self.view.page().deleteLater()
         self.close()
 
         if self.pywebview_window in windows:
@@ -550,6 +549,7 @@ class BrowserView(QMainWindow):
         self.pywebview_window.events.closed.set()
 
         if len(BrowserView.instances) == 0:
+            self.view.page().deleteLater()
             self.hide()
             _app.exit()
 
