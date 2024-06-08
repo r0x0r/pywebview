@@ -550,24 +550,24 @@ class BrowserView:
 
 
 class OpenFolderDialog:
-    foldersFilter = "Folders|\n"
+    foldersFilter = 'Folders|\n'
     flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
-    windowsFormsAssembly = Assembly.LoadWithPartialName("System.Windows.Forms")
-    iFileDialogType = windowsFormsAssembly.GetType("System.Windows.Forms.FileDialogNative+IFileDialog")
-    OpenFileDialogType = windowsFormsAssembly.GetType("System.Windows.Forms.OpenFileDialog")
-    FileDialogType = windowsFormsAssembly.GetType("System.Windows.Forms.FileDialog")
-    createVistaDialogMethodInfo = OpenFileDialogType.GetMethod("CreateVistaDialog", flags)
-    onBeforeVistaDialogMethodInfo = OpenFileDialogType.GetMethod("OnBeforeVistaDialog", flags)
-    getOptionsMethodInfo = FileDialogType.GetMethod("GetOptions", flags)
-    setOptionsMethodInfo = iFileDialogType.GetMethod("SetOptions", flags)
+    windowsFormsAssembly = Assembly.LoadWithPartialName('System.Windows.Forms')
+    iFileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.FileDialogNative+IFileDialog')
+    OpenFileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.OpenFileDialog')
+    FileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.FileDialog')
+    createVistaDialogMethodInfo = OpenFileDialogType.GetMethod('CreateVistaDialog', flags)
+    onBeforeVistaDialogMethodInfo = OpenFileDialogType.GetMethod('OnBeforeVistaDialog', flags)
+    getOptionsMethodInfo = FileDialogType.GetMethod('GetOptions', flags)
+    setOptionsMethodInfo = iFileDialogType.GetMethod('SetOptions', flags)
     fosPickFoldersBitFlag = windowsFormsAssembly.GetType(
-        "System.Windows.Forms.FileDialogNative+FOS").GetField("FOS_PICKFOLDERS").GetValue(None)
+        'System.Windows.Forms.FileDialogNative+FOS').GetField('FOS_PICKFOLDERS').GetValue(None)
 
     vistaDialogEventsConstructorInfo = windowsFormsAssembly.GetType(
-        "System.Windows.Forms.FileDialog+VistaDialogEvents").GetConstructor(flags, None, [FileDialogType], [])
-    adviseMethodInfo = iFileDialogType.GetMethod("Advise")
-    unadviseMethodInfo = iFileDialogType.GetMethod("Unadvise")
-    showMethodInfo = iFileDialogType.GetMethod("Show")
+        'System.Windows.Forms.FileDialog+VistaDialogEvents').GetConstructor(flags, None, [FileDialogType], [])
+    adviseMethodInfo = iFileDialogType.GetMethod('Advise')
+    unadviseMethodInfo = iFileDialogType.GetMethod('Unadvise')
+    showMethodInfo = iFileDialogType.GetMethod('Show')
 
     @classmethod
     def show(cls, parent=None, initialDirectory=None, title=None):
@@ -596,6 +596,8 @@ class OpenFolderDialog:
             result = OpenFolderDialog.showMethodInfo.Invoke(iFileDialog, [parent.Handle if parent else None])
             if result == 0:
                 return openFileDialog.FileName
+
+            return None
 
         finally:
             OpenFolderDialog.unadviseMethodInfo.Invoke(iFileDialog, [UInt32(dwCookie)])
@@ -707,7 +709,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
     try:
         if dialog_type == FOLDER_DIALOG:
-            file_path = (OpenFolderDialog.show(i, directory),)
+            file_path = OpenFolderDialog.show(i, directory)
 
         elif dialog_type == OPEN_DIALOG:
             dialog = WinForms.OpenFileDialog()
