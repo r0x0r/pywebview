@@ -5,6 +5,23 @@ window.pywebview = {
     api: {},
 
     _createApi: function(funcList) {
+        function sanitize_params(params) {
+            var reservedWords = filtered_js_reserved_words = [
+                'case', 'catch', 'const', 'debugger', 'default', 'delete', 'do', 'export', 'extends',
+                'false', 'function', 'instanceof', 'new', 'null', 'super', 'switch', 'this', 'throw',
+                'true', 'typeof', 'var', 'void'
+            ];
+
+            for (var i = 0; i < params.length; i++) {
+                var param = params[i];
+                if (reservedWords.indexOf(param) !== -1) {
+                    params[i] = param + "_";
+                }
+            }
+
+            return params;
+        }
+
         for(var i = 0; i < funcList.length; i++) {
             var element = funcList[i];
             var funcName = element.func;
@@ -29,8 +46,10 @@ window.pywebview = {
                 'window.pywebview._bridge.call("' + funcName + '", arguments, __id);' +
                 'return promise;';
 
+            console.log(arguments);
+
             // Assign the new function
-            nestedObject[functionName] = new Function(params, funcBody);
+            nestedObject[functionName] = new Function(sanitize_params(params), funcBody);
             window.pywebview._returnValues[funcName] = {};
         };
     },
