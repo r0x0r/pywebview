@@ -22,11 +22,13 @@ from webview.window import FixPoint
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
+clr.AddReference('System.Reflection')
 
 import System.Windows.Forms as WinForms
-from System import Environment, Func, Int32, IntPtr, Type
+from System import Environment, Func, Int32, IntPtr, Type, UInt32, Array, Object
 from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF
 from System.Threading import ApartmentState, Thread, ThreadStart
+from System.Reflection import Assembly, BindingFlags
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 logger = logging.getLogger('pywebview')
@@ -547,6 +549,59 @@ class BrowserView:
         WinForms.MessageBox.Show(str(message))
 
 
+class OpenFolderDialog:
+    foldersFilter = 'Folders|\n'
+    flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+    windowsFormsAssembly = Assembly.LoadWithPartialName('System.Windows.Forms')
+    iFileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.FileDialogNative+IFileDialog')
+    OpenFileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.OpenFileDialog')
+    FileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.FileDialog')
+    createVistaDialogMethodInfo = OpenFileDialogType.GetMethod('CreateVistaDialog', flags)
+    onBeforeVistaDialogMethodInfo = OpenFileDialogType.GetMethod('OnBeforeVistaDialog', flags)
+    getOptionsMethodInfo = FileDialogType.GetMethod('GetOptions', flags)
+    setOptionsMethodInfo = iFileDialogType.GetMethod('SetOptions', flags)
+    fosPickFoldersBitFlag = windowsFormsAssembly.GetType(
+        'System.Windows.Forms.FileDialogNative+FOS').GetField('FOS_PICKFOLDERS').GetValue(None)
+
+    vistaDialogEventsConstructorInfo = windowsFormsAssembly.GetType(
+        'System.Windows.Forms.FileDialog+VistaDialogEvents').GetConstructor(flags, None, [FileDialogType], [])
+    adviseMethodInfo = iFileDialogType.GetMethod('Advise')
+    unadviseMethodInfo = iFileDialogType.GetMethod('Unadvise')
+    showMethodInfo = iFileDialogType.GetMethod('Show')
+
+    @classmethod
+    def show(cls, parent=None, initialDirectory=None, title=None):
+        openFileDialog = WinForms.OpenFileDialog()
+        openFileDialog.InitialDirectory = initialDirectory
+        openFileDialog.Title = title
+        openFileDialog.Filter = OpenFolderDialog.foldersFilter
+        openFileDialog.AddExtension = False
+        openFileDialog.CheckFileExists = False
+        openFileDialog.DereferenceLinks = True
+        openFileDialog.Multiselect = False
+        openFileDialog.RestoreDirectory = True
+
+        iFileDialog = OpenFolderDialog.createVistaDialogMethodInfo.Invoke(openFileDialog, [])
+        OpenFolderDialog.onBeforeVistaDialogMethodInfo.Invoke(openFileDialog, [iFileDialog])
+        options = OpenFolderDialog.getOptionsMethodInfo.Invoke(openFileDialog, [])
+        options = options.op_BitwiseOr(OpenFolderDialog.fosPickFoldersBitFlag)
+        OpenFolderDialog.setOptionsMethodInfo.Invoke(iFileDialog, [options])
+        adviseParametersWithOutputConnectionToken = Array[Object]([
+            OpenFolderDialog.vistaDialogEventsConstructorInfo.Invoke([openFileDialog]),
+            UInt32(0),
+        ])
+        OpenFolderDialog.adviseMethodInfo.Invoke(iFileDialog, adviseParametersWithOutputConnectionToken)
+        dwCookie = adviseParametersWithOutputConnectionToken.GetValue(1)
+        try:
+            result = OpenFolderDialog.showMethodInfo.Invoke(iFileDialog, [parent.Handle if parent else None])
+            if result == 0:
+                return openFileDialog.FileName
+
+            return None
+
+        finally:
+            OpenFolderDialog.unadviseMethodInfo.Invoke(iFileDialog, [UInt32(dwCookie)])
+
 _main_window_created = Event()
 _main_window_created.clear()
 
@@ -654,17 +709,8 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
     try:
         if dialog_type == FOLDER_DIALOG:
-            dialog = WinForms.FolderBrowserDialog()
-            dialog.RestoreDirectory = True
+            file_path = OpenFolderDialog.show(i, directory)
 
-            if directory:
-                dialog.SelectedPath = directory
-
-            result = dialog.ShowDialog(i)
-            if result == WinForms.DialogResult.OK:
-                file_path = (dialog.SelectedPath,)
-            else:
-                file_path = None
         elif dialog_type == OPEN_DIALOG:
             dialog = WinForms.OpenFileDialog()
 
