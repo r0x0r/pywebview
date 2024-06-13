@@ -183,13 +183,10 @@ class SSLWSGIRefServer(bottle.ServerAdapter):
                 class server_cls(server_cls):
                     address_family = socket.AF_INET6
 
+        ssl_context = ssl.SSLContext()
+        ssl_context.load_cert_chain(self.pywebview_certfile, self.pywebview_keyfile)
         self.srv = make_server(self.host, self.port, handler, server_cls, handler_cls)
-        self.srv.socket = ssl.wrap_socket(
-            self.srv.socket,
-            keyfile=self.pywebview_keyfile,
-            certfile=self.pywebview_certfile,
-            server_side=True,
-        )
+        self.srv.socket = ssl_context.wrap_socket(self.srv.socket, server_side=True)
         self.port = self.srv.server_port  # update port actual port (0 means random)
         os.unlink(self.pywebview_keyfile)
         try:
