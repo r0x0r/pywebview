@@ -38,7 +38,7 @@ WST_co = TypeVar('WST_co', bound=WSGIServer, covariant=True)
 
 logger = logging.getLogger(__name__)
 global_server = None
-
+file_index_default = 'index.html'
 
 def _get_random_port() -> int:
     while True:
@@ -97,7 +97,9 @@ class BottleServer:
         else:
             local_urls = [u for u in urls if is_local_url(u)]
             common_path = (
-                os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else None
+                os.path.commonpath(local_urls) if len(local_urls) > 0 and local_urls[-1].endswith('/') else
+                os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else
+                None
             )
             server.root_path = abspath(common_path) if common_path is not None else None
             app = bottle.Bottle()
@@ -120,13 +122,16 @@ class BottleServer:
 
             @app.route('/')
             @app.route('/<file:path>')
-            def asset(file):
+            def asset(file=file_index_default):
                 if not server.root_path:
                     return ''
                 bottle.response.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
                 bottle.response.set_header('Pragma', 'no-cache')
                 bottle.response.set_header('Expires', 0)
-                return bottle.static_file(file, root=server.root_path)
+                res = bottle.static_file(file, root=server.root_path)
+                if res and res.status_code == 404:
+                    return bottle.static_file(file_index_default, root=server.root_path)
+                return res
 
         server.root_path = abspath(common_path) if common_path is not None else None
         server.port = http_port or _get_random_port()
