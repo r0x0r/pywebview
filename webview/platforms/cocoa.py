@@ -268,13 +268,12 @@ class BrowserView:
 
                 if save_dlg.runModal() == AppKit.NSFileHandlingPanelOKButton:
                     self._file_name = save_dlg.filename()
+                    dataTask = Foundation.NSURLSession.sharedSession().downloadTaskWithURL_completionHandler_(
+                        navigationResponse.response().URL(), self.download_completionHandler_error_
+                    )
+                    dataTask.resume()
                 else:
                     self._file_name = None
-
-                dataTask = Foundation.NSURLSession.sharedSession().downloadTaskWithURL_completionHandler_(
-                    navigationResponse.response().URL(), self.download_completionHandler_error_
-                )
-                dataTask.resume()
             else:
                 decisionHandler(WebKit.WKNavigationResponsePolicyCancel)
 
