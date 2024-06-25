@@ -27,7 +27,7 @@ from System.Threading.Tasks import Task, TaskScheduler
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
-from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction
+from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction, CoreWebView2Environment
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
@@ -71,7 +71,17 @@ class EdgeChrome:
         self.url = None
         self.ishtml = False
         self.html = DEFAULT_HTML
-        self.web_view.EnsureCoreWebView2Async(None)
+        self.setup_webview2_environment()
+
+    def setup_webview2_environment(self):
+        def _callback(task):
+            self.web_view.EnsureCoreWebView2Async(task.Result)
+
+        environment = CoreWebView2Environment.CreateAsync()
+        environment.ContinueWith(
+            Action[Task[CoreWebView2Environment]](_callback),
+            self.syncContextTaskScheduler,
+        )
 
     def evaluate_js(self, script, semaphore, js_result, callback=None):
         def _callback(result):
