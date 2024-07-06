@@ -25,3 +25,32 @@ Use [py2app](https://py2app.readthedocs.io/en/latest/). For a reference setup.py
 ## Windows / Linux
 
 Use [pyinstaller](https://www.pyinstaller.org/). Pyinstaller picks all the dependencies found in `pywebview`, even if you don't use them. So for example if you have `PyQt` installed, but use `EdgeChromium` renderer on Windows, pyinstaller will bundle `PyQT` all the same. To prevent that you might want to add unwanted dependencies to `excludes` in your spec file.
+
+Basic pyinstaller script to package an application which uses index.html as content
+``` shell
+pyinstaller main.py --add-data index.html:.
+```
+For one file build
+``` shell
+pyinstaller main.py --add-data index.html:. --onefile
+```
+>[!warning]
+>In Linux if you get a `cannot find python3.xx.so error` you must add it to the pyinstller binary list for the application to work (replace 'x' with python version)
+>``` shell
+>pyinstaller main.py --add-data index.html:. --add-binary /usr/lib/x86_64-linux-gnu/libpython3.x.so:. --onefile
+>```
+
+In case of using a javascript library like vue or react you can build the project and use the build directory to the pyinstaller `--add-data`.
+>[!warning]
+>While using *vite* change the build directory to something else to not conflict with pyinstller's build directory which is also `./dist`
+
+Here is a script to build a vue/react app with pyinstaller (assuming output is your new build directory)
+``` shell
+pyinstaller main.py --add-data output:.
+```
+Onefile
+``` shell
+pyinstaller main.py --add-data output:. --onefile
+```
+
+
