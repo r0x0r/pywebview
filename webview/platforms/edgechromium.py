@@ -1,3 +1,4 @@
+import io
 import json
 import logging
 import os
@@ -18,17 +19,21 @@ clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import Action, Func, String, Type, Uri
+from System import Action, Func, String, Type, Uri, Array, Byte
+from System.IO import Stream, MemoryStream, StreamReader, SeekOrigin
+
 from System.Collections.Generic import List
 from System.Drawing import Color
 from System.Globalization import CultureInfo
 from System.Threading.Tasks import Task, TaskScheduler
+import traceback
 
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
 from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction, CoreWebView2Environment
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
+from Microsoft.Web.WebView2.Core import CoreWebView2WebResourceContext
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
     os.environ['Path'] += ';' + interop_dll_path(platform)
@@ -200,6 +205,57 @@ class EdgeChrome:
         else:
             self.load_url(str(args.get_Uri()))
 
+    def on_web_resource_requested(self, sender, args):
+        # print('on_web_resource_response',args.Response.Headers.GetHeaders())
+        # 使用Python requests发送请求，然后组装response
+
+        def read_irandom_access_stream_to_bytes(stream):
+            if stream is None:
+                return None
+            # print('read_irandom_access_stream_to_bytesess_stream_to_bytes', stream, stream.ToString())
+            stream.Seek(0,SeekOrigin.Begin)  # 确保从流的开头读取
+            size = stream.Length
+            buffer = Array.CreateInstance(Byte, size)
+            stream.Read(buffer, 0, buffer.Length)
+            return bytearray(buffer)
+
+        try:
+            request = args.Request
+            headers = request.Headers
+            py_headers = {}
+            for header in headers:
+                py_headers[header.Key] = header.Value
+            data_stream = read_irandom_access_stream_to_bytes(request.Content)
+            # data = data_stream.decode('utf-8')
+            py_args = {
+                'request': {
+                    'uri': request.Uri,
+                    'method': request.Method,
+                    'headers': py_headers,
+                    'data_stream': data_stream,
+                },
+                'response': {}
+            }
+            self.pywebview_window.events.request_sent.set(args=py_args)
+            py_response: dict = py_args.get('response', {})
+            # print('on_web_resource_response',py_response, py_args)
+            if py_response is not None or py_response.get('status_code') is not None:
+                return
+            res_headers = [{f'{key}:{value}'} for key, value in py_response.get('headers')]
+            bytes_io = io.BytesIO(py_response.get('content'))
+            byte_array = Array[Byte](bytes_io.getvalue())
+            memory_stream = MemoryStream(byte_array)
+            response = self.web_view.CoreWebView2.Environment.CreateWebResourceResponse(
+                memory_stream, py_response.get('status_code', 200), py_response.get('reason_phrase','OK'), '\n'.join(res_headers));
+            args.Response = response
+        except Exception as e:
+            print('on_web_resource_response',e)
+            traceback.print_exc()
+
+    def on_source_changed(self, sender, args):
+        self.url = sender.Source
+        # print('on_source_changed', sender.Source, args)
+
     def on_webview_ready(self, sender, args):
         if not args.IsSuccess:
             logger.error(
@@ -208,6 +264,10 @@ class EdgeChrome:
             )
             return
 
+        # print(self.web_view,self.web_view.CoreWebView2.AddWebResourceRequestedFilter)
+        self.web_view.CoreWebView2.AddWebResourceRequestedFilter('*', CoreWebView2WebResourceContext.All)
+        self.web_view.CoreWebView2.WebResourceRequested += self.on_web_resource_requested
+        self.web_view.CoreWebView2.SourceChanged += self.on_source_changed
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
 
         if _settings['ssl']:
