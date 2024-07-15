@@ -1,3 +1,4 @@
+import io
 import json
 import logging
 import os
@@ -18,21 +19,25 @@ clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import Action, Func, String, Type, Uri
+from System import Action, Func, String, Type, Uri, Array, Byte
+from System.IO import Stream, MemoryStream, StreamReader, SeekOrigin
+
 from System.Collections.Generic import List
 from System.Drawing import Color
 from System.Globalization import CultureInfo
 from System.Threading.Tasks import Task, TaskScheduler
+import traceback
 
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
-from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction, CoreWebView2Environment
+from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction, \
+    CoreWebView2Environment
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
+from Microsoft.Web.WebView2.Core import CoreWebView2WebResourceContext
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
     os.environ['Path'] += ';' + interop_dll_path(platform)
-
 
 logger = logging.getLogger('pywebview')
 
@@ -63,7 +68,9 @@ class EdgeChrome:
         self.web_view.NavigationCompleted += self.on_navigation_completed
         self.web_view.WebMessageReceived += self.on_script_notify
         self.syncContextTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext()
-        self.web_view.DefaultBackgroundColor = Color.FromArgb(255, int(window.background_color.lstrip("#")[0:2], 16), int(window.background_color.lstrip("#")[2:4], 16), int(window.background_color.lstrip("#")[4:6], 16))
+        self.web_view.DefaultBackgroundColor = Color.FromArgb(255, int(window.background_color.lstrip("#")[0:2], 16),
+                                                              int(window.background_color.lstrip("#")[2:4], 16),
+                                                              int(window.background_color.lstrip("#")[4:6], 16))
 
         if window.transparent:
             self.web_view.DefaultBackgroundColor = Color.Transparent
@@ -200,6 +207,163 @@ class EdgeChrome:
         else:
             self.load_url(str(args.get_Uri()))
 
+    def on_web_resource_requested(self, sender, args):
+        # 使用Python requests发送请求，然后组装response
+
+        def read_irandom_access_stream_to_bytes(stream):
+            if stream is None:
+                return None
+            # print('read_irandom_access_stream_to_bytesess_stream_to_bytes', stream, stream.ToString())
+            stream.Seek(0, SeekOrigin.Begin)  # 确保从流的开头读取
+            size = stream.Length
+            buffer = Array.CreateInstance(Byte, size)
+            stream.Read(buffer, 0, buffer.Length)
+            return bytearray(buffer)
+
+        try:
+            request = args.Request
+            headers = request.Headers
+            py_headers = {}
+            for header in headers:
+                py_headers[header.Key] = header.Value
+            data_stream = read_irandom_access_stream_to_bytes(request.Content)
+            # data = data_stream.decode('utf-8')
+            py_args = {
+                'request': {
+                    'uri': request.Uri,
+                    'method': request.Method,
+                    'headers': py_headers,
+                    'data_stream': data_stream,
+                },
+                'response': {}
+            }
+            should_update = self.pywebview_window.events.request_sent.set(args=py_args)
+            if not should_update:
+                return
+
+            py_request = py_args.get('request', {})
+            if py_request and len(py_request) > 0:
+                py_uri = py_request.get('uri')
+                uri = Uri(py_uri)
+                py_data_stream = py_request.get('data_stream')
+                request_memory_stream = MemoryStream(py_data_stream) if py_data_stream is not None else None
+
+                request_headers = py_request.get('headers',{})
+                args.Request.Uri = py_uri
+                if request_memory_stream is not None:
+                    args.Request.Content = request_memory_stream
+
+                for header in args.Request.Headers:
+                    if header.Key in request_headers:
+                        args.Request.Headers.RemoveHeader(header.Key)
+                for k,v in request_headers.items():
+                    if v:
+                        args.Request.Headers.SetHeader(k, v)
+                    else:
+                        args.Request.Headers.RemoveHeader(k)
+
+            # 如果返回有response，则直接返回请求
+            py_response: dict = py_args.get('response', {})
+            if py_response is not None or py_response.get('status_code') is not None:
+                return
+            res_headers = [f'{key}:{value}' for key, value in py_response.get('headers')]
+            bytes_io = io.BytesIO(py_response.get('content'))
+            byte_array = Array[Byte](bytes_io.getvalue())
+            memory_stream = MemoryStream(byte_array)
+            response = self.web_view.CoreWebView2.Environment.CreateWebResourceResponse(
+                memory_stream, py_response.get('status_code', 200), py_response.get('reason_phrase', 'OK'),
+                '\n'.join(res_headers));
+            args.Response = response
+        except Exception as e:
+            print('on_web_resource_response', e)
+            traceback.print_exc()
+
+    def on_web_response_received(self, sender, args):
+        # print('on_web_response_received')
+        # 使用Python requests发送请求，然后组装response
+
+        def read_irandom_access_stream_to_bytes(stream):
+            if stream is None:
+                return None
+            # print('read_irandom_access_stream_to_bytesess_stream_to_bytes', stream, stream.ToString())
+            stream.Seek(0, SeekOrigin.Begin)  # 确保从流的开头读取
+            size = stream.Length
+            buffer = Array.CreateInstance(Byte, size)
+            stream.Read(buffer, 0, buffer.Length)
+            return bytearray(buffer)
+
+        def _callback(task):
+            # print('on_web_response_received callback',task)
+            content = task.Result
+            try:
+                stream = read_irandom_access_stream_to_bytes(content)
+                request = args.Request
+                request_headers = {}
+                for header in request.Headers:
+                    request_headers[header.Key] = header.Value
+                response_headers = {}
+                for header in args.Response.Headers:
+                    response_headers[header.Key] = header.Value
+                request_stream = read_irandom_access_stream_to_bytes(request.Content)
+
+                py_args = {
+                    'request': {
+                        'uri': request.Uri,
+                        'method': request.Method,
+                        'headers': request_headers,
+                        'data_stream': request_stream,
+                    },
+                    'response': {
+                        'headers': response_headers,
+                        'status_code': args.Response.StatusCode,
+                        'reason_phrase': args.Response.ReasonPhrase,
+                        'content': stream,
+                    }
+                }
+
+                self.pywebview_window.events.response_received.set(args=py_args)
+            except Exception as e:
+                traceback.print_exc()
+            pass
+
+        try:
+            # data = data_stream.decode('utf-8')
+            # print('on_web_response_received GetContentAsync',args.Response.GetContentAsync)
+            content = args.Response.GetContentAsync().ContinueWith(
+                Action[Task[Stream]](_callback), self.syncContextTaskScheduler
+            )
+            return
+            py_args = {
+                'request': {
+                    'uri': request.Uri,
+                    'method': request.Method,
+                    'headers': py_headers,
+                    'data_stream': data_stream,
+                },
+                'response': {}
+            }
+            # print(py_args)
+            py_response: dict = py_args.get('response', {})
+            # print('on_web_resource_response',py_response, py_args)
+            if py_response is not None or py_response.get('status_code') is not None:
+                return
+            res_headers = [{f'{key}:{value}'} for key, value in py_response.get('headers')]
+            bytes_io = io.BytesIO(py_response.get('content'))
+            byte_array = Array[Byte](bytes_io.getvalue())
+            memory_stream = MemoryStream(byte_array)
+            response = self.web_view.CoreWebView2.Environment.CreateWebResourceResponse(
+                memory_stream, py_response.get('status_code', 200), py_response.get('reason_phrase', 'OK'),
+                '\n'.join(res_headers));
+            args.Response = response
+        except Exception as e:
+            print('on_web_resource_response', e)
+            traceback.print_exc()
+
+    def on_source_changed(self, sender, args):
+        self.url = sender.Source
+        self.ishtml = False
+        print('on_source_changed', sender.Source, args)
+
     def on_webview_ready(self, sender, args):
         if not args.IsSuccess:
             logger.error(
@@ -208,6 +372,11 @@ class EdgeChrome:
             )
             return
 
+        # print(self.web_view,self.web_view.CoreWebView2.AddWebResourceRequestedFilter)
+        self.web_view.CoreWebView2.AddWebResourceRequestedFilter('*', CoreWebView2WebResourceContext.All)
+        self.web_view.CoreWebView2.WebResourceRequested += self.on_web_resource_requested
+        self.web_view.CoreWebView2.WebResourceResponseReceived += self.on_web_response_received
+        self.web_view.CoreWebView2.SourceChanged += self.on_source_changed
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
 
         if _settings['ssl']:
@@ -253,7 +422,8 @@ class EdgeChrome:
         dialog = WinForms.SaveFileDialog()
 
         try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders') as windows_key:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                r'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders') as windows_key:
                 dialog.InitialDirectory = winreg.QueryValueEx(windows_key, '{374DE290-123F-4565-9164-39C4925E467B}')[0]
         except Exception as e:
             logger.exception(e)
