@@ -693,7 +693,12 @@ def set_title(title, uid):
         _set_title()
 
 
-def create_confirmation_dialog(title, message, _):
+def create_confirmation_dialog(title, message, uid):
+    i = BrowserView.instances.get(uid)
+
+    if not i:
+        return
+        
     result = WinForms.MessageBox.Show(message, title, WinForms.MessageBoxButtons.OKCancel)
     return result == WinForms.DialogResult.OK
 
