@@ -171,6 +171,7 @@ class Window:
         self.events.moved = Event(self)
         self.events._pywebviewready = Event(self)
         self.events.request_sent = Event(self)
+        self.events.request_sent = Event(self, True)
         self.events.response_received = Event(self)
 
         self._expose_lock = Lock()
