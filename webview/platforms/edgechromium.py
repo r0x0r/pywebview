@@ -11,6 +11,7 @@ from webview import _settings, settings as webview_settings
 from webview.dom import _dnd_state
 from webview.js import alert
 from webview.js.css import disable_text_select
+from webview.models import Request, Response
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
 clr.AddReference('System.Windows.Forms')
@@ -27,7 +28,7 @@ from System.Threading.Tasks import Task, TaskScheduler
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
-from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction
+from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2Environment, CoreWebView2ServerCertificateErrorAction, CoreWebView2WebResourceContext
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
@@ -199,6 +200,9 @@ class EdgeChrome:
             return
 
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
+        sender.CoreWebView2.AddWebResourceRequestedFilter('*', CoreWebView2WebResourceContext.All)
+        sender.CoreWebView2.WebResourceResponseReceived += self.on_web_resource_response
+        sender.CoreWebView2.WebResourceRequested += self.on_web_resource_request
 
         if _settings['ssl']:
             sender.CoreWebView2.ServerCertificateErrorDetected += self.on_certificate_error
@@ -260,6 +264,34 @@ class EdgeChrome:
 
     def on_navigation_start(self, sender, args):
         pass
+
+    def on_web_resource_response(self, sender, args):
+        headers = {}
+        for header in args.Response.Headers.GetEnumerator():
+            headers[header.Key] = header.Value
+
+        response = Response(str(args.Request.Uri), args.Response.StatusCode, headers)
+        self.pywebview_window.events.response_received.set(response)
+
+    def on_web_resource_request(self, sender, args):
+        original_headers = {}
+        for header in args.Request.Headers.GetEnumerator():
+            original_headers[header.Key] = header.Value
+
+        request = Request(str(args.Request.Uri), args.Request.Method, original_headers)
+        self.pywebview_window.events.request_sent.set(request)
+
+        if request.headers == original_headers:
+            return
+
+        missing_headers = {k: v for k, v in request.headers.items() if k not in original_headers or original_headers[k] != v}
+        extra_headers = {k: v for k, v in original_headers.items() if k not in request.headers}
+
+        for k, v in extra_headers.items():
+            args.Request.Headers.SetHeader(k, v)
+
+        for k in missing_headers:
+            args.Request.Headers.RemoveHeader(k)
 
     def on_navigation_completed(self, sender, _):
         url = str(sender.Source)
