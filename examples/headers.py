@@ -3,20 +3,21 @@
 import webview
 
 
-def on_request(window, headers):
-    print(f'Request headers: {headers}')
+def on_request(window, request):
+    request.headers['test'] = 'test'
 
 
-def on_response(window, headers):
-    print(f'Response headers: {headers}')
+
+def on_response(window, response):
+    print(response)
 
 
 if __name__ == '__main__':
     window = webview.create_window(
-        'Simple browser', 'https://pywebview.flowrl.com/', confirm_close=True
+        'Simple browser', 'https://www.httpdebugger.com/Tools/ViewBrowserHeaders.aspx'
     )
 
     window.events.request_sent += on_request
     window.events.response_received += on_response
 
-    webview.start()
+    webview.start(debug=True)
