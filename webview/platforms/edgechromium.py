@@ -19,7 +19,8 @@ clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import Action, Func, String, Type, Uri
+from System import Action, Func, String, Type, Uri, Array, Byte
+from System.IO import Stream, MemoryStream, StreamReader, SeekOrigin
 from System.Collections.Generic import List
 from System.Drawing import Color
 from System.Globalization import CultureInfo
@@ -266,22 +267,36 @@ class EdgeChrome:
         pass
 
     def on_web_resource_response(self, sender, args):
-        headers = {}
-        for header in args.Response.Headers.GetEnumerator():
-            headers[header.Key] = header.Value
+        def _callback(task):
+            # print('on_web_response_received callback',task)
+            content = task.Result
+            stream = self.read_irandom_access_stream_to_bytes(content)
 
-        response = Response(str(args.Request.Uri), args.Response.StatusCode, headers)
-        self.pywebview_window.events.response_received.set(response)
+            headers = {}
+            for header in args.Response.Headers.GetEnumerator():
+                headers[header.Key] = header.Value
+            response_content = stream.decode('utf-8') if stream else ''
+            response = Response(str(args.Request.Uri), args.Response.StatusCode, headers, response_content)
+
+            self.pywebview_window.events.response_received.set(response)
+            pass
+
+        args.Response.GetContentAsync().ContinueWith(
+            Action[Task[Stream]](_callback), self.syncContextTaskScheduler
+        )
+
+
 
     def on_web_resource_request(self, sender, args):
         original_headers = {}
         for header in args.Request.Headers.GetEnumerator():
             original_headers[header.Key] = header.Value
-
-        request = Request(str(args.Request.Uri), args.Request.Method, original_headers)
+        # decode C# Stream
+        content_stream = self.read_irandom_access_stream_to_bytes(args.Request.Content)
+        request = Request(str(args.Request.Uri), args.Request.Method, original_headers, content_stream)
         self.pywebview_window.events.request_sent.set(request)
 
-        if request.headers == original_headers:
+        if request.headers == original_headers and request.content_stream == content_stream:
             return
 
         missing_headers = {k: v for k, v in request.headers.items() if k not in original_headers or original_headers[k] != v}
@@ -292,6 +307,36 @@ class EdgeChrome:
 
         for k in missing_headers:
             args.Request.Headers.RemoveHeader(k)
+        # set Content
+        args.Request.Content = MemoryStream(request.content_stream) if request.content_stream is not None else None
+
+        # if request.response had a content, response it
+        if request.response is None:
+            return
+        res_headers = [f'{key}:{value}' for key, value in request.response.headers]
+        # bytes_io = io.BytesIO(request.response.content)
+        byte_array = bytearray(request.response.content.encode('utf-8'))
+        memory_stream = MemoryStream(byte_array)
+        response = self.web_view.CoreWebView2.Environment.CreateWebResourceResponse(
+            memory_stream, request.response.status_code, request.response.reason_phrase,
+            '\n'.join(res_headers))
+        args.Response = response
+
+    @classmethod
+    def read_irandom_access_stream_to_bytes(cls, stream):
+        if stream is None:
+            return None
+        stream.Seek(0, SeekOrigin.Begin)  # 确保从流的开头读取
+        size = stream.Length
+        buffer = Array.CreateInstance(Byte, size)
+        stream.Read(buffer, 0, buffer.Length)
+        return bytearray(buffer)
+
+    def on_source_changed(self, sender, args):
+        self.url = sender.Source
+        self.ishtml = False
+        pass
+
 
     def on_navigation_completed(self, sender, _):
         url = str(sender.Source)

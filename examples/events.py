@@ -1,6 +1,7 @@
 """Subscribe and unsubscribe to pywebview events."""
 
 import webview
+from webview.models import Request, Response
 
 
 def on_closed():
@@ -47,6 +48,27 @@ def on_loaded(window):
 def on_moved(x, y):
     print('pywebview window is moved. new coordinates are x: {x}, y: {y}'.format(x=x, y=y))
 
+def on_request_sent(request: Request):
+    try:
+        method = request.method
+        uri = request.url
+        request_headers = request.headers
+        data_stream = request.content_stream
+        data = data_stream.decode('utf-8') if data_stream else None
+        # Add custom header
+        request.headers['x-Token'] = '123123231'
+        # Remove header
+        request.headers['Content-Security-Policy'] = None
+        # if you want have the response, you can set the request.response
+    except Exception as e:
+        print(e)
+
+
+def on_response_received(response: Response):
+    content = response.content
+    uri = response.url
+    print(uri, content)
+
 
 if __name__ == '__main__':
     window = webview.create_window(
@@ -62,5 +84,8 @@ if __name__ == '__main__':
     window.events.restored += on_restored
     window.events.resized += on_resized
     window.events.moved += on_moved
+
+    window.events.request_sent += on_request_sent
+    window.events.response_received += on_response_received
 
     webview.start()
