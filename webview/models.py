@@ -15,14 +15,14 @@ class Request:
 
 
 class Response:
-    def __init__(self, url: str, status_code: int = 200, headers=None, content: str = '', reason_phrase: str = 'OK') -> None:
+    def __init__(self, url: str, status_code: int = 200, headers=None, content_stram: bytearray = bytearray(), reason_phrase: str = 'OK') -> None:
         if headers is None:
             headers = {}
         self.url = url
         self.status_code = status_code
         self.reason_phrase = reason_phrase
         self.headers = headers
-        self.content = content
+        self.content_stram: bytearray = content_stram
 
     def __repr__(self) -> str:
         return f'Response from {self.url} - {self.status_code}'

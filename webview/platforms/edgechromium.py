@@ -275,8 +275,7 @@ class EdgeChrome:
             headers = {}
             for header in args.Response.Headers.GetEnumerator():
                 headers[header.Key] = header.Value
-            response_content = stream.decode('utf-8') if stream else ''
-            response = Response(str(args.Request.Uri), args.Response.StatusCode, headers, response_content)
+            response = Response(str(args.Request.Uri), args.Response.StatusCode, headers, stream)
 
             self.pywebview_window.events.response_received.set(response)
             pass
@@ -315,7 +314,7 @@ class EdgeChrome:
             return
         res_headers = [f'{key}:{value}' for key, value in request.response.headers]
         # bytes_io = io.BytesIO(request.response.content)
-        byte_array = bytearray(request.response.content.encode('utf-8'))
+        byte_array = bytearray(request.response.content_stram)
         memory_stream = MemoryStream(byte_array)
         response = self.web_view.CoreWebView2.Environment.CreateWebResourceResponse(
             memory_stream, request.response.status_code, request.response.reason_phrase,

@@ -65,7 +65,10 @@ def on_request_sent(request: Request):
 
 
 def on_response_received(response: Response):
-    content = response.content
+    content_stram = response.content_stram
+    content = ''
+    if content_stram:
+        content = content_stram.decode('utf-8')
     uri = response.url
     print(uri, content)
 
