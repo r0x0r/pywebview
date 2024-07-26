@@ -8,7 +8,7 @@ window.pywebview = {
         function sanitize_params(params) {
             var reservedWords = filtered_js_reserved_words = [
                 'case', 'catch', 'const', 'debugger', 'default', 'delete', 'do', 'export', 'extends',
-                'false', 'function', 'instanceof', 'new', 'null', 'super', 'switch', 'this', 'throw',
+                'false', 'function', 'instanceof', 'let', 'new', 'null', 'super', 'switch', 'this', 'throw',
                 'true', 'typeof', 'var', 'void'
             ];
 
@@ -43,10 +43,8 @@ window.pywebview = {
                 'var promise = new Promise(function(resolve, reject) {' +
                 '    window.pywebview._checkValue("' + funcName + '", resolve, reject, __id);' +
                 '});' +
-                'window.pywebview._bridge.call("' + funcName + '", arguments, __id);' +
+                'window.pywebview._jsApiCallback("' + funcName + '", arguments, __id);' +
                 'return promise;';
-
-            console.log(arguments);
 
             // Assign the new function
             nestedObject[functionName] = new Function(sanitize_params(params), funcBody);
@@ -54,33 +52,33 @@ window.pywebview = {
         };
     },
 
-    _bridge: {
-        call: function (funcName, params, id) {
-            switch(window.pywebview.platform) {
-                case 'mshtml':
-                case 'cef':
-                case 'qtwebkit':
-                case 'android-webkit':
-                    return window.external.call(funcName, pywebview._stringify(params), id);
-                case 'chromium':
-                    // Full file path support for WebView2
-                    if (params.event instanceof Event && params.event.type === 'drop' && params.event.dataTransfer.files) {
-                        chrome.webview.postMessageWithAdditionalObjects('FilesDropped', params.event.dataTransfer.files);
-                    }
-                    return window.chrome.webview.postMessage([funcName, pywebview._stringify(params), id]);
-                case 'cocoa':
-                case 'gtk':
-                    return window.webkit.messageHandlers.jsBridge.postMessage(pywebview._stringify({funcName, params, id}));
-                case 'qtwebengine':
-                    if (!window.pywebview._QWebChannel) {
-                        setTimeout(function() {
-                            window.pywebview._QWebChannel.objects.external.call(funcName, pywebview._stringify(params), id);
-                        }, 100)
-                    } else {
+    _jsApiCallback: function (funcName, params, id) {
+        switch(window.pywebview.platform) {
+            case 'mshtml':
+            case 'cef':
+            case 'qtwebkit':
+            case 'android-webkit':
+                return window.external.call(funcName, pywebview._stringify(params), id);
+            case 'chromium':
+                // Full file path support for WebView2
+                if (params.event instanceof Event && params.event.type === 'drop' && params.event.dataTransfer.files) {
+                    chrome.webview.postMessageWithAdditionalObjects('FilesDropped', params.event.dataTransfer.files);
+                }
+                return window.chrome.webview.postMessage([funcName, pywebview._stringify(params), id]);
+            case 'cocoa':
+            case 'gtk':
+                return window.webkit.messageHandlers.jsBridge.postMessage(pywebview._stringify({funcName: funcName, params: params, id: id}));
+            case 'qtwebengine':
+                if (!window.pywebview._QWebChannel) {
+                    setTimeout(function() {
                         window.pywebview._QWebChannel.objects.external.call(funcName, pywebview._stringify(params), id);
-                    }
-                    break;
-            }
+                    }, 100);
+                } else {
+                    window.pywebview._QWebChannel.objects.external.call(funcName, pywebview._stringify(params), id);
+                }
+                break;
+            default:
+                break;
         }
     },
 
@@ -110,7 +108,7 @@ window.pywebview = {
     _eventHandlers: {},
     _returnValues: {},
     _asyncCallback: function(result, id) {
-        window.pywebview._bridge.call('pywebviewAsyncCallback', result, id)
+        window.pywebview._jsApiCallback('pywebviewAsyncCallback', result, id)
     },
     _isPromise: function (obj) {
         return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
@@ -134,7 +132,7 @@ window.pywebview = {
             )
         }
 
-        function serialize(obj, ancestors=[]) {
+        function serialize(obj, ancestors) {
             try {
                 if (obj instanceof Node) return pywebview.domJSON.toJSON(obj, { metadata: false, serialProperties: true });
                 if (obj instanceof Window) return 'Window';
@@ -159,12 +157,14 @@ window.pywebview = {
                 }
 
                 if (Array.isArray(obj)) {
-                    const arr = obj.map(value => boundSerialize(value, ancestors));
+                    var arr = obj.map(function(value) {
+                      return boundSerialize(value, ancestors)
+                    });
                     return arr;
                 }
 
-                const newObj = {};
-                for (const key in obj) {
+                var newObj = {};
+                for (var key in obj) {
                     if (typeof obj === 'function') {
                         continue;
                     }
@@ -180,8 +180,8 @@ window.pywebview = {
 
       var _serialize = serialize.bind(null);
 
-      return JSON.stringify(_serialize(obj));
-  },
+      return JSON.stringify(_serialize(obj, []));
+    },
 
     _getNodeId: function (element) {
         if (!element) {
@@ -232,7 +232,7 @@ window.pywebview = {
         }
 
         return serializedElements;
-    },
+    }
 }
 window.pywebview._createApi(%(func_list)s);
 
