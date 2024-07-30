@@ -143,7 +143,7 @@ def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
     """"
     Injects a global window.pywebview object
     """
-    exposed_objects = set()
+    exposed_objects = []
 
     def get_args(func: object):
         params = list(inspect.getfullargspec(func).args)
@@ -154,10 +154,11 @@ def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
         if obj in exposed_objects:
             return functions
         else:
-            exposed_objects.add(obj)
+            exposed_objects.append(obj)
 
         if functions is None:
             functions = {}
+
         for name in dir(obj):
             full_name = f"{base_name}.{name}" if base_name else name
 
