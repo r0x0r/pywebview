@@ -50,18 +50,14 @@ class Event:
                 except Exception as e:
                     logger.exception(e)
 
-            if self._should_lock:
-                semaphore.release()
-
-        semaphore = threading.Semaphore(0)
         return_values: set[Any] = set()
 
         if len(self._items):
-            t = threading.Thread(target=execute)
-            t.start()
-
             if self._should_lock:
-                semaphore.acquire()
+                execute()
+            else:
+                t = threading.Thread(target=execute)
+                t.start()
 
         false_values = [v for v in return_values if v is False]
         self._event.set()
