@@ -24,6 +24,7 @@ import webview
 from webview.js import api, dom_json, events, npo, polyfill
 from webview.dom import _dnd_state
 from webview.errors import WebViewException
+import urllib.parse
 
 if TYPE_CHECKING:
     from webview.window import Window
@@ -251,7 +252,8 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         if event['type'] == 'drop':
             files = event['dataTransfer'].get('files', [])
             for file in files:
-                path = [item for item in _dnd_state['paths'] if item[0] == file['name']]
+                path = [item for item in _dnd_state['paths'] if item[0] == file['name']
+                        or urllib.parse.unquote(item[0]) == file['name']]
                 if len(path) == 0:
                     continue
 
