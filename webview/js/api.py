@@ -46,8 +46,6 @@ window.pywebview = {
                 'window.pywebview._bridge.call("' + funcName + '", arguments, __id);' +
                 'return promise;';
 
-            console.log(arguments);
-
             // Assign the new function
             nestedObject[functionName] = new Function(sanitize_params(params), funcBody);
             window.pywebview._returnValues[funcName] = {};
