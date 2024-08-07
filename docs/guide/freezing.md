@@ -35,12 +35,12 @@ For one file build
 pyinstaller main.py --add-data index.html:. --onefile
 ```
 >[!warning]
->In Linux if you get a `cannot find python3.xx.so error` you must add it to the pyinstller binary list for the application to work (replace 'x' with python version)
+>In Linux if you get a `cannot find python3.xx.so error` you must add it to the pyinstaller binary list for the application to work (replace 'x' with python version)
 >``` shell
 >pyinstaller main.py --add-data index.html:. --add-binary /usr/lib/x86_64-linux-gnu/libpython3.x.so:. --onefile
 >```
 
-In case of using a javascript library like vue or react you can build the project and use the build directory to the pyinstaller `--add-data`.
+In case of using a Javascript library like vue or react you can build the project and use the build directory to the pyinstaller `--add-data`.
 >[!warning]
 >While using *vite* change the build directory to something else to not conflict with pyinstller's build directory which is also `./dist`
 
