@@ -178,11 +178,14 @@ class EdgeChrome:
             if return_value == '"FilesDropped"':
                 if _dnd_state['num_listeners'] == 0:
                     return
+                additionalObjects = args.get_AdditionalObjects()
+                if additionalObjects is None:
+                    return
 
                 files = [
                     (os.path.basename(file.Path), file.Path)
                     for file
-                    in list(args.get_AdditionalObjects())
+                    in list(additionalObjects)
                     if 'CoreWebView2File' in str(type(file))
                 ]
                 _dnd_state['paths'] += files
