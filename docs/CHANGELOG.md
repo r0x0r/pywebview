@@ -1,5 +1,30 @@
 # Changelog
 
+## 5.2
+
+_Released 08/08/2024_
+
+### 🚀 Improvements
+
+- `All` Replace print with logging in JS API exception handling.
+- `All` Replace ssl.wrap_socket() with SSLContext().wrap_socket(). Thanks @lanzz
+- `WinForms` Add a modern Vista open folder dialog. Thanks @v_yonghliao
+- `EdgeChromium` Replace `window.alert` with a message box implementation.
+- `MSHTML` Convert JS API code to ES5 to be compatible with MSHTML.
+
+#### 🐞 Bug fixes
+
+- `All` Add missing return in DOM.body property. Thanks @lanzz.
+- `All` Use json.dumps to serialise the html template in create_element. Thanks @lanzz
+- `All` Fix ever-growing main menu bug. Thanks @lanzz
+- `All` Change on_closing event handlers to be executed synchronously in order to prevent a deadlock when using thread joining. #1439
+- `All` Fix `TypeError: unhashable type` with certain unhashable object types exposed via JS API. #1442
+- `Cocoa` Fix  nil pointer dereference during file download. Thanks @realityone.
+- `EdgeChromium` Fix multiple pywebviews at the same time. Thanks @huan1936.
+- `QT` Fix devtools in PySide6. Thanks @TransparentLC
+- `QT` Fix user agent.
+- `QT` Fix segfault on window close.
+
 
 ## 5.1
 
