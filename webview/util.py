@@ -68,7 +68,7 @@ def get_app_root() -> str:
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
 
-    if os.getenv('PYTEST_CURRENT_TEST'):
+    if 'pytest' in sys.modules and os.getenv('PYTEST_CURRENT_TEST'):
         test_file = os.getenv('PYTEST_CURRENT_TEST').split('::')[0]
 
         return os.path.dirname(os.path.join(os.getcwd(), test_file))
