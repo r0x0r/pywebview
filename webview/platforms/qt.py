@@ -26,6 +26,7 @@ from qtpy import QtCore
 logger.debug('Using Qt %s' % QtCore.__version__)
 
 from qtpy import PYQT6, PYSIDE6
+from qtpy.QtCore import QJsonValue
 from qtpy.QtGui import QColor, QScreen
 from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
 
@@ -194,7 +195,7 @@ class BrowserView(QMainWindow):
         def mouseMoveEvent(self, event):
             parent = self.parent()
             if (
-                parent.frameless and parent.easy_drag and int(event.buttons()) == 1
+                parent.frameless and parent.easy_drag and event.buttons().value == 1
             ):  # left button is pressed
                 parent.move(event.globalPos() - self.drag_pos)
 
@@ -332,7 +333,6 @@ class BrowserView(QMainWindow):
             self.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
             flags = flags | QtCore.Qt.WindowDoesNotAcceptFocus
 
-
         self.setWindowFlags(flags)
         self.setAcceptDrops(True)
 
@@ -365,7 +365,6 @@ class BrowserView(QMainWindow):
                 QtCore.Qt.NoContextMenu
             )  # disable right click context menu
 
-        
         self.cookies = {}
 
         if is_webengine:
@@ -374,7 +373,7 @@ class BrowserView(QMainWindow):
             else:
                 self.profile = QWebEngineProfile('pywebview')
                 self.profile.setPersistentStoragePath(_profile_storage_path)
-                
+
             cookie_store = self.profile.cookieStore()
             cookie_store.cookieAdded.connect(self.on_cookie_added)
             cookie_store.cookieRemoved.connect(self.on_cookie_removed)
@@ -389,7 +388,7 @@ class BrowserView(QMainWindow):
 
         if is_webengine:
             self.profile.settings().setAttribute(
-                QWebEngineSettings.LocalContentCanAccessFileUrls, settings['ALLOW_FILE_URLS'])
+                QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, settings['ALLOW_FILE_URLS'])
 
         self.view.page().loadFinished.connect(self.on_load_finished)
 
@@ -548,7 +547,7 @@ class BrowserView(QMainWindow):
 
         self.pywebview_window.events.closed.set()
 
-        if len(BrowserView.instances) == 0:
+        if len(BrowserView.instances) == 0 and self.view.page():
             self.view.page().deleteLater()
             self.hide()
             _app.exit()
@@ -628,8 +627,8 @@ class BrowserView(QMainWindow):
         self.activateWindow()
 
     def on_evaluate_js(self, script, uuid):
-        def return_result(result):
-            result = BrowserView._convert_string(result)
+        def return_result(result_):
+            result = BrowserView._convert_string(result_)
             uuid_ = BrowserView._convert_string(uuid)
 
             js_result = self._js_results[uuid_]
@@ -815,15 +814,10 @@ class BrowserView(QMainWindow):
 
     @staticmethod
     def _convert_string(result):
-        try:
-            if result is None or result.isNull():
-                return None
-
-            result = result.toString()  # QJsonValue conversion
-        except AttributeError:
-            pass
-
-        return str(result)
+        if isinstance(result, QJsonValue):
+            return None if result.isNull() else result.toString()
+        else:
+            return result
 
     @staticmethod
     def _get_debug_port():
@@ -858,7 +852,7 @@ class BrowserView(QMainWindow):
 def setup_app():
     # MUST be called before create_window and set_app_menu
     global _app
-    _app = QApplication.instance() or QApplication([])
+    _app = QApplication.instance() or QApplication(sys.argv)
 
 
 def create_window(window):
