@@ -127,7 +127,7 @@ def initialize(forced_gui: GUIType | None = None):
 
     elif platform.system() == 'Windows':
         if forced_gui == 'qt':
-            guis = [import_qt]
+            guis = [import_qt, import_winforms]
         else:
             guis = [import_winforms]
 
