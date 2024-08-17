@@ -68,16 +68,10 @@ def get_app_root() -> str:
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
 
-    if 'pytest' in sys.modules:
-        root_dir = [arg.split('=')[1] for arg in sys.argv if arg.startswith('--rootdir')]
+    if os.getenv('PYTEST_CURRENT_TEST'):
+        test_file = os.getenv('PYTEST_CURRENT_TEST').split('::')[0]
 
-        if root_dir:
-            return root_dir[0]
-
-        for arg in reversed(sys.argv):
-            path = os.path.realpath(arg.split('::')[0])
-            if os.path.exists(path):
-                return path if os.path.isdir(path) else os.path.dirname(path)
+        return os.path.dirname(os.path.join(os.getcwd(), test_file))
 
     if hasattr(sys, 'getandroidapilevel'):
         return os.getenv('ANDROID_APP_PATH')
