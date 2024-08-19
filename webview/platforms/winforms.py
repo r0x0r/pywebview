@@ -171,8 +171,12 @@ class BrowserView:
 
             self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
+            
             # for chromium edge, need this factor to modify the coordinates
-            self.scale_factor = windll.shcore.GetScaleFactorForDevice(0) / 100 if is_chromium else 1
+            try:
+                self.scale_factor = windll.shcore.GetScaleFactorForDevice(0) / 100 if is_chromium else 1
+            except:
+                self.scale_factor = 1
 
             if window.initial_x is not None and window.initial_y is not None:
                 self.StartPosition = WinForms.FormStartPosition.Manual
