@@ -77,7 +77,9 @@ class EdgeChrome:
         def _callback(task):
             self.web_view.EnsureCoreWebView2Async(task.Result)
 
-        environment = CoreWebView2Environment.CreateAsync()
+        environment = CoreWebView2Environment.CreateAsync(
+            userDataFolder=_settings['storage_path']
+        )
         environment.ContinueWith(
             Action[Task[CoreWebView2Environment]](_callback),
             self.syncContextTaskScheduler,
