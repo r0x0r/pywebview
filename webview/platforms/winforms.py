@@ -472,6 +472,10 @@ class BrowserView:
                         self.old_screen.Bounds.Height,
                         64,
                     )
+                    # disable window rounding
+                    DwmSetWindowAttribute(self.Handle.ToInt32(), 33, 1)
+                    # hide window border
+                    DwmSetWindowAttribute(self.Handle.ToInt32(), 34, 0xFFFFFFFE)
                 else:
                     self.WindowState = WinForms.FormWindowState.Normal
                     self.FormBorderStyle = self.old_style
@@ -484,6 +488,11 @@ class BrowserView:
                     else:
                         self.Location = self.old_location
                         self.Size = self.old_size
+
+                    # enable window rounding
+                    DwmSetWindowAttribute(self.Handle.ToInt32(), 33, 0)
+                    # show window border
+                    DwmSetWindowAttribute(self.Handle.ToInt32(), 34, 0xFFFFFFFF)
 
             if self.InvokeRequired:
                 self.Invoke(Func[Type](_toggle))
