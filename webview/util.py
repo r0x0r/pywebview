@@ -68,16 +68,10 @@ def get_app_root() -> str:
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
 
-    if 'pytest' in sys.modules:
-        root_dir = [arg.split('=')[1] for arg in sys.argv if arg.startswith('--rootdir')]
+    if 'pytest' in sys.modules and os.getenv('PYTEST_CURRENT_TEST'):
+        test_file = os.getenv('PYTEST_CURRENT_TEST').split('::')[0]
 
-        if root_dir:
-            return root_dir[0]
-
-        for arg in reversed(sys.argv):
-            path = os.path.realpath(arg.split('::')[0])
-            if os.path.exists(path):
-                return path if os.path.isdir(path) else os.path.dirname(path)
+        return os.path.dirname(os.path.join(os.getcwd(), test_file))
 
     if hasattr(sys, 'getandroidapilevel'):
         return os.getenv('ANDROID_APP_PATH')
@@ -143,7 +137,7 @@ def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
     """"
     Injects a global window.pywebview object
     """
-    exposed_objects = set()
+    exposed_objects = []
 
     def get_args(func: object):
         params = list(inspect.getfullargspec(func).args)
@@ -154,10 +148,11 @@ def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
         if obj in exposed_objects:
             return functions
         else:
-            exposed_objects.add(obj)
+            exposed_objects.append(obj)
 
         if functions is None:
             functions = {}
+
         for name in dir(obj):
             full_name = f"{base_name}.{name}" if base_name else name
 
@@ -221,7 +216,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{value: \'{result}\'}}'
         except Exception as e:
-            print(traceback.format_exc())
+            logger.error(traceback.format_exc())
             error = {'message': str(e), 'name': type(e).__name__, 'stack': traceback.format_exc()}
             result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{isError: true, value: \'{result}\'}}'

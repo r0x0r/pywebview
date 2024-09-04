@@ -9,6 +9,7 @@ import clr
 
 from webview import _settings, settings as webview_settings
 from webview.dom import _dnd_state
+from webview.js import alert
 from webview.js.css import disable_text_select
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
@@ -26,7 +27,7 @@ from System.Threading.Tasks import Task, TaskScheduler
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
-from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction
+from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction, CoreWebView2Environment
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
@@ -70,7 +71,19 @@ class EdgeChrome:
         self.url = None
         self.ishtml = False
         self.html = DEFAULT_HTML
-        self.web_view.EnsureCoreWebView2Async(None)
+        self.setup_webview2_environment()
+
+    def setup_webview2_environment(self):
+        def _callback(task):
+            self.web_view.EnsureCoreWebView2Async(task.Result)
+
+        environment = CoreWebView2Environment.CreateAsync(
+            userDataFolder=_settings['storage_path']
+        )
+        environment.ContinueWith(
+            Action[Task[CoreWebView2Environment]](_callback),
+            self.syncContextTaskScheduler,
+        )
 
     def evaluate_js(self, script, semaphore, js_result, callback=None):
         def _callback(result):
@@ -172,7 +185,7 @@ class EdgeChrome:
 
             func_name, func_param, value_id = json.loads(return_value)
             func_param = json.loads(func_param)
-            if func_name == 'alert':
+            if func_name == '_pywebviewAlert':
                 WinForms.MessageBox.Show(func_param)
             elif func_name == 'console':
                 print(func_param)
@@ -265,6 +278,7 @@ class EdgeChrome:
         self.url = None if self.ishtml else url
 
         self.web_view.ExecuteScriptAsync(inject_pywebview(self.pywebview_window, 'chromium'))
+        self.web_view.ExecuteScriptAsync(alert.src % {'platform': 'edgechromium'})
 
         if not self.pywebview_window.text_select:
             self.web_view.ExecuteScriptAsync(disable_text_select)

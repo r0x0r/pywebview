@@ -4,7 +4,7 @@
 title = pywebview todos
 
 # (str) Package name
-package.name = pywebview todos
+package.name = pywebviewTodos
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = com.pywebview.todos
@@ -13,16 +13,16 @@ package.domain = com.pywebview.todos
 source.dir = ./
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,html,jar
+source.include_exts = py,png,jpg,kv,atlas,html,jar,css
 
 # (list) List of inclusions using pattern matching
-#source.include_patterns = assets/*
+source.include_patterns = assets/*
 
 # (list) Source files to exclude (let empty to not exclude anything)
 source.exclude_exts = spec,
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = bin,build,dist,docs,logo,tests,pywebview.egg-info,
+source.exclude_dirs = bin,build,dist,docs,logo,tests,pywebview.egg-info
 
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
@@ -37,7 +37,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,pywebview
+requirements = python3,kivy,pywebview,bottle,proxy-tools,typing_extensions,cryptography
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -173,7 +173,7 @@ android.apptheme = @android:style/Theme.Material.NoActionBar
 # their classes. Don't add jars that you do not need, since extra jars can slow
 # down the build process. Allows wildcards matching, for example:
 # OUYA-ODK/libs/*.jar
-#android.add_jars = webview/lib/android.jar
+android.add_jars = ../../webview/lib/pywebview-android.jar
 
 # (list) List of Java files to add to the android project (can be java or a
 # directory containing the files)

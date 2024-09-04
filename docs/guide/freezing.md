@@ -53,4 +53,4 @@ Onefile
 pyinstaller main.py --add-data output:. --onefile
 ```
 
-
+You can also use [nuitka](http://nuitka.net/) for packaging. Nuitka does the same, although it is a bit more configurable. You might want to use `--nofollow-import-to` to exclude unwanted dependencies.

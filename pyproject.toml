@@ -32,6 +32,7 @@ dependencies = [
     "pythonnet;sys_platform=='win32'",
     "pyobjc-core;sys_platform=='darwin'",
     "pyobjc-framework-Cocoa;sys_platform=='darwin'",
+    "pyobjc-framework-Quartz;sys_platform=='darwin'",
     "pyobjc-framework-WebKit;sys_platform=='darwin'",
     "pyobjc-framework-security;sys_platform=='darwin'",
     "QtPy;sys_platform=='openbsd6'",
@@ -77,6 +78,7 @@ packages = ["webview", "webview.dom", "webview.js", "webview.lib", "webview.plat
 
 [tool.setuptools.package-data]
 "webview.lib" = ["**/*.dll", "**/*.jar"]
+"webview" = ["py.typed"]
 
 [tool.setuptools_scm]
 write_to = "webview/_version.py"

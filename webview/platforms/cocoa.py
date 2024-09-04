@@ -268,13 +268,12 @@ class BrowserView:
 
                 if save_dlg.runModal() == AppKit.NSFileHandlingPanelOKButton:
                     self._file_name = save_dlg.filename()
+                    dataTask = Foundation.NSURLSession.sharedSession().downloadTaskWithURL_completionHandler_(
+                        navigationResponse.response().URL(), self.download_completionHandler_error_
+                    )
+                    dataTask.resume()
                 else:
                     self._file_name = None
-
-                dataTask = Foundation.NSURLSession.sharedSession().downloadTaskWithURL_completionHandler_(
-                    navigationResponse.response().URL(), self.download_completionHandler_error_
-                )
-                dataTask.resume()
             else:
                 decisionHandler(WebKit.WKNavigationResponsePolicyCancel)
 
@@ -637,7 +636,8 @@ class BrowserView:
             self.minimize()
 
         if not BrowserView.app.isRunning():
-            # Add the default Cocoa application menu
+            # Reset the application menu to the defaults
+            self._clear_main_menu()
             self._add_app_menu()
             self._add_view_menu()
 
@@ -879,6 +879,14 @@ class BrowserView:
             self._file_name_semaphore.acquire()
 
         return self._file_name
+
+    def _clear_main_menu(self):
+        """
+        Remove all items from the main menu.
+        """
+        mainMenu = BrowserView.app.mainMenu()
+        if mainMenu:
+            mainMenu.removeAllItems()
 
     def _add_app_menu(self):
         """

@@ -8,7 +8,7 @@ src = """
     function onMouseMove(ev) {
         var x = ev.screenX - initialX;
         var y = ev.screenY - initialY;
-        window.pywebview._bridge.call('pywebviewMoveWindow', [x, y], 'move');
+        window.pywebview._jsApiCallback('pywebviewMoveWindow', [x, y], 'move');
     }
 
     function onMouseUp() {
@@ -53,11 +53,11 @@ if (!%(zoomable)s) {
 
 // draggable
 if (!%(draggable)s) {
-    document.querySelectorAll("img").forEach(function(img) {
+    Array.prototype.slice.call(document.querySelectorAll("img")).forEach(function(img) {
         img.setAttribute("draggable", false);
     })
 
-    document.querySelectorAll("a").forEach(function(a) {
+    Array.prototype.slice.call(document.querySelectorAll("a")).forEach(function(a) {
         a.setAttribute("draggable", false);
     })
 }

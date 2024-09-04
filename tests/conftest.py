@@ -6,3 +6,9 @@ def reload_webview():
     import webview
 
     reload(webview)
+
+
+# @pytest.fixture(autouse=True)
+# def set_gui():
+#     import os
+#     os.environ['PYWEBVIEW_GUI'] = 'qt'

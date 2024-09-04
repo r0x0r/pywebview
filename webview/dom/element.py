@@ -362,7 +362,7 @@ class Element:
                 pywebview._eventHandlers[handlerId] = function(e) {{
                     {prevent_default}
                     {stop_propagation}
-                    window.pywebview._bridge.call('pywebviewEventHandler', {{ event: e, nodeId: '{self._node_id}' }}, 'eventHandler');
+                    window.pywebview._jsApiCallback('pywebviewEventHandler', {{ event: e, nodeId: '{self._node_id}' }}, 'eventHandler');
                 }}
 
                 element.addEventListener('{event}', pywebview._eventHandlers[handlerId]);

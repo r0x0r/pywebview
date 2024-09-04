@@ -44,7 +44,7 @@ var nodes = document.getElementsByTagName("div")
 
 def test_basic_serialization():
     window = webview.create_window('Basic serialization test', html=HTML)
-    run_test(webview, window, serialization, debug=True)
+    run_test(webview, window, serialization)
 
 
 def test_circular_serialization():
@@ -54,7 +54,7 @@ def test_circular_serialization():
 
 def test_dom_serialization():
     window = webview.create_window('DOM serialization test', html=HTML)
-    run_test(webview, window, dom_serialization, debug=True)
+    run_test(webview, window, dom_serialization)
 
 
 def serialization(window):

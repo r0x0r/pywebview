@@ -4,7 +4,13 @@
 
 src = """
 window.alert = function(message) {
-    window.external.alert(message);
+    var platform = '%(platform)s';
+
+        if (platform == 'edgechromium') {
+        window.chrome.webview.postMessage(['_pywebviewAlert', pywebview._stringify(message), 'alert']);    } else {
+        window.external.alert(message);
+    }
+
 };
 
 """

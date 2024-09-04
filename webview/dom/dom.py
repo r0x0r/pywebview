@@ -1,7 +1,7 @@
+import json
 from typing import List, Optional, Union
 from webview.dom import ManipulationMode
 from webview.dom.element import Element
-from webview.util import escape_quotes
 
 
 class DOM:
@@ -15,7 +15,7 @@ class DOM:
 
     @property
     def body(self) -> Element:
-        self._elements.get('body', Element(self.__window, 'body'))
+        return self._elements.get('body', Element(self.__window, 'body'))
 
     @property
     def document(self) -> Element:
@@ -34,11 +34,13 @@ class DOM:
             parent_command = f'var element = document.querySelector("{parent}");'
         else:
             parent_command = 'var element = document.body;'
+        if not isinstance(html, str):
+            html = str(html)
 
         node_id = self.__window.evaluate_js(f"""
             {parent_command};
             var template = document.createElement('template');
-            template.innerHTML = '{escape_quotes(html)}'.trim();
+            template.innerHTML = {json.dumps(html)}.trim();
             var newElement = template.content.firstChild;
             pywebview._insertNode(newElement, element, '{mode.value}')
             pywebview._getNodeId(newElement);
@@ -70,7 +72,3 @@ class DOM:
 
         node_ids = self.__window.evaluate_js(code)
         return [Element(self.__window, node_id) for node_id in node_ids]
-
-
-
-
