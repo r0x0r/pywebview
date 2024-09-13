@@ -331,9 +331,12 @@ class BrowserView:
             self.setTarget_(self)
             return self
 
+        def setFileDialog_(self, file_dlg):
+            self.file_dlg = file_dlg
+
         def onChange_(self, sender):
             option = sender.indexOfSelectedItem()
-            self.window().setAllowedFileTypes_(self.filter[option][1])
+            self.file_dlg.setAllowedFileTypes_(self.filter[option][1])
 
     class WebKitHost(WebKit.WKWebView):
         def performDragOperation_(self, sender):
@@ -857,6 +860,7 @@ class BrowserView:
                         filter_chooser = BrowserView.FileFilterChooser.alloc().initWithFilter_(
                             file_filter
                         )
+                        filter_chooser.setFileDialog_(open_dlg)
                         open_dlg.setAccessoryView_(filter_chooser)
                         open_dlg.setAccessoryViewDisclosed_(True)
 
@@ -1154,7 +1158,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     for s in file_types:
         description, extensions = parse_file_type(s)
         file_extensions = [i.lstrip('*.') for i in extensions.split(';') if i != '*.*']
-        file_filter.append([description, file_extensions or None])
+        file_filter.append([description, file_extensions or []])
 
     i = BrowserView.instances.get(uid)
     return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
