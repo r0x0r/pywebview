@@ -171,7 +171,7 @@ class BrowserView:
 
             self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
-            
+
             # for chromium edge, need this factor to modify the coordinates
             try:
                 self.scale_factor = windll.shcore.GetScaleFactorForDevice(0) / 100 if is_chromium else 1
@@ -583,7 +583,7 @@ class OpenFolderDialog:
     showMethodInfo = iFileDialogType.GetMethod('Show')
 
     @classmethod
-    def show(cls, parent=None, initialDirectory=None, title=None):
+    def show(cls, parent=None, initialDirectory=None, allow_multiple=False, title=None):
         openFileDialog = WinForms.OpenFileDialog()
         openFileDialog.InitialDirectory = initialDirectory
         openFileDialog.Title = title
@@ -591,7 +591,7 @@ class OpenFolderDialog:
         openFileDialog.AddExtension = False
         openFileDialog.CheckFileExists = False
         openFileDialog.DereferenceLinks = True
-        openFileDialog.Multiselect = False
+        openFileDialog.Multiselect = allow_multiple
         openFileDialog.RestoreDirectory = True
 
         iFileDialog = OpenFolderDialog.createVistaDialogMethodInfo.Invoke(openFileDialog, [])
@@ -608,7 +608,7 @@ class OpenFolderDialog:
         try:
             result = OpenFolderDialog.showMethodInfo.Invoke(iFileDialog, [parent.Handle if parent else None])
             if result == 0:
-                return openFileDialog.FileName
+                return tuple(openFileDialog.FileNames)
 
             return None
 
@@ -711,7 +711,7 @@ def create_confirmation_dialog(title, message, uid):
 
     if not i:
         return
-        
+
     result = WinForms.MessageBox.Show(message, title, WinForms.MessageBoxButtons.OKCancel)
     return result == WinForms.DialogResult.OK
 
@@ -727,7 +727,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
     try:
         if dialog_type == FOLDER_DIALOG:
-            file_path = OpenFolderDialog.show(i, directory)
+            file_path = OpenFolderDialog.show(i, directory, allow_multiple)
 
         elif dialog_type == OPEN_DIALOG:
             dialog = WinForms.OpenFileDialog()
