@@ -331,12 +331,6 @@ class EdgeChrome:
         stream.Read(buffer, 0, buffer.Length)
         return bytearray(buffer)
 
-    def on_source_changed(self, sender, args):
-        self.url = sender.Source
-        self.ishtml = False
-        pass
-
-
     def on_navigation_completed(self, sender, _):
         url = str(sender.Source)
         self.url = None if self.ishtml else url
