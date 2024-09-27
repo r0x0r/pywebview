@@ -16,7 +16,7 @@ from webview import util
 print(util.android_jar_path())
 ```
 
-You can see a sample `bulldozer.spec` [here](https://github.com/r0x0r/pywebview/blob/master/examples/todos/bulldozer.spec)
+You can see a sample `bulldozer.spec` [here](https://github.com/r0x0r/pywebview/blob/a2b8d0449b206db75f9f364639b85db6eac7f07e/examples/todos/buildozer.spec)
 
 ## macOS
 
