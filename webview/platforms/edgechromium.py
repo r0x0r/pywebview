@@ -3,11 +3,11 @@ import logging
 import os
 import webbrowser
 import winreg
-from threading import Semaphore
+from threading import Semaphore, Thread
 
 import clr
 
-from webview import _settings, settings as webview_settings
+from webview import _settings, settings as webview_settings, create_window
 from webview.dom import _dnd_state
 from webview.js import alert
 from webview.js.css import disable_text_select
@@ -199,6 +199,8 @@ class EdgeChrome:
 
         if webview_settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
             webbrowser.open(str(args.get_Uri()))
+        elif webview_settings['OPEN_EXTERNAL_LINKS_IN_NEW_WINDOW']:
+            Thread(target=lambda url: create_window(title=self.pywebview_window._title, url=url), args=(str(args.get_Uri()),)).start()
         else:
             self.load_url(str(args.get_Uri()))
 
