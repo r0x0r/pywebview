@@ -244,13 +244,18 @@ class BrowserView:
         return False
 
     def on_drag_data(self, widget, drag_context, x, y, data, info, time):
-        if _dnd_state['num_listeners'] > 0 and data.get_text():
-            files = [
-                (os.path.basename(value), value.replace('file://', ''))
-                for value
-                in data.get_text().split('\n')
-                if value.startswith('file://')
-            ]
+        text = data.get_text()
+        if text and _dnd_state['num_listeners']:
+            if text.startswith('/'):
+                # Direct path case (e.g., `/home/user/file.txt`)
+                files = [(os.path.basename(text), text)]
+            else:
+                # 'file://' case (e.g., `file:///home/user/file.txt`)
+                files = [
+                    (os.path.basename(value), value.replace('file://', ''))
+                    for value in text.split('\n') if value.startswith('file://')
+                ]
+
             _dnd_state['paths'] += files
 
         return False
