@@ -173,11 +173,14 @@ class EdgeChrome:
             if return_value == '"FilesDropped"':
                 if _dnd_state['num_listeners'] == 0:
                     return
+                additionalObjects = args.get_AdditionalObjects()
+                if additionalObjects is None:
+                    return
 
                 files = [
                     (os.path.basename(file.Path), file.Path)
                     for file
-                    in list(args.get_AdditionalObjects())
+                    in list(additionalObjects)
                     if 'CoreWebView2File' in str(type(file))
                 ]
                 _dnd_state['paths'] += files
@@ -202,6 +205,10 @@ class EdgeChrome:
         else:
             self.load_url(str(args.get_Uri()))
 
+    def on_source_changed(self, sender, args):
+        self.url = sender.Source
+        self.ishtml = False
+
     def on_webview_ready(self, sender, args):
         if not args.IsSuccess:
             logger.error(
@@ -210,6 +217,7 @@ class EdgeChrome:
             )
             return
 
+        self.web_view.CoreWebView2.SourceChanged += self.on_source_changed
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
 
         if _settings['ssl']:
