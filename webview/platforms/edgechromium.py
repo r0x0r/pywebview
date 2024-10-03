@@ -75,7 +75,7 @@ class EdgeChrome:
 
     def setup_webview2_environment(self):
         def _callback(task):
-            self.web_view.EnsureCoreWebView2Async(task.Result)
+            self.web_view.EnsureCoreWebView2Async(None)
 
         environment = CoreWebView2Environment.CreateAsync(
             userDataFolder=_settings['storage_path']
