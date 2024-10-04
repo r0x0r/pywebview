@@ -71,7 +71,11 @@ class EdgeChrome:
         self.url = None
         self.ishtml = False
         self.html = DEFAULT_HTML
-        self.setup_webview2_environment()
+
+        if _settings['storage_path']:
+            self.setup_webview2_environment()
+        else:
+            self.web_view.EnsureCoreWebView2Async(None)
 
     def setup_webview2_environment(self):
         def _callback(task):

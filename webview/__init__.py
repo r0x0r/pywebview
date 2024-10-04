@@ -147,7 +147,9 @@ def start(
     _settings['user_agent'] = user_agent
     _settings['http_server'] = http_server
     _settings['private_mode'] = private_mode
-    _settings['storage_path'] = storage_path
+
+    if storage_path:
+        __set_storage_path(storage_path)
 
     if debug:
         logger.setLevel(logging.DEBUG)
@@ -381,6 +383,20 @@ def generate_ssl_cert():
         f.write(cert_pem)
 
     return keyfile, certfile
+
+
+def __set_storage_path(storage_path):
+    e = WebViewException(f'Storage path {storage_path} is not writable')
+
+    if not os.path.exists(storage_path):
+        try:
+            os.makedirs(storage_path)
+        except OSError:
+            raise e
+    if not os.access(storage_path, os.W_OK):
+        raise e
+
+    _settings['storage_path'] = storage_path
 
 
 def active_window() -> Window | None:
