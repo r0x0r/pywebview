@@ -169,7 +169,7 @@ def start(
 
     if ssl:
         # generate SSL certs and tell the windows to use them
-        keyfile, certfile = generate_ssl_cert()
+        keyfile, certfile = __generate_ssl_cert()
         server_args['keyfile'] = keyfile
         server_args['certfile'] = certfile
         _settings['ssl'] = True
@@ -332,7 +332,7 @@ def create_window(
     return window
 
 
-def generate_ssl_cert():
+def __generate_ssl_cert():
     # https://cryptography.io/en/latest/x509/tutorial/#creating-a-self-signed-certificate
     from cryptography import x509
     from cryptography.hazmat.backends import default_backend
