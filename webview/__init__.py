@@ -75,6 +75,7 @@ settings = {
     'ALLOW_DOWNLOADS': False,
     'ALLOW_FILE_URLS': True,
     'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
+    'OPEN_EXTERNAL_LINKS_IN_NEW_WINDOW': False,
     'OPEN_DEVTOOLS_IN_DEBUG': True,
 }
 
