@@ -95,6 +95,7 @@ menus: list[Menu] = []
 
 def start(
     func: Callable[..., None] | None = None,
+    is_func_daemon: bool = False,
     args: Iterable[Any] | None = None,
     localization: dict[str, str] = {},
     gui: GUIType | None = None,
@@ -114,6 +115,7 @@ def start(
     be called from a main thread.
 
     :param func: Function to invoke upon starting the GUI loop.
+    :param is_func_daemon: Whether the invoked func is daemonize or not.
     :param args: Function arguments. Can be either a single value or a tuple of
         values.
     :param localization: A dictionary with localized strings. Default strings
@@ -201,9 +203,9 @@ def start(
         if args is not None:
             if not hasattr(args, '__iter__'):
                 args = (args,)
-            thread = threading.Thread(target=func, args=args)
+            thread = threading.Thread(target=func, args=args, daemon=is_func_daemon)
         else:
-            thread = threading.Thread(target=func)
+            thread = threading.Thread(target=func, daemon=is_func_daemon)
         thread.start()
 
     if menu:
@@ -415,4 +417,3 @@ def screens() -> list[Screen]:
     guilib = initialize()
     screens = guilib.get_screens()
     return screens
-
