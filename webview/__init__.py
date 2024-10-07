@@ -29,7 +29,7 @@ from webview.guilib import initialize, GUIType
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import (_TOKEN, base_uri, escape_line_breaks, escape_string,
+from webview.util import (_TOKEN, abspath, base_uri, escape_line_breaks, escape_string,
                           is_app, is_local_url, parse_file_type)
 from webview.window import Window
 
@@ -108,6 +108,7 @@ def start(
     server: type[http.ServerType] = http.BottleServer,
     server_args: dict[Any, Any] = {},
     ssl: bool = False,
+    icon: str | None = None,
 ):
     """
     Start a GUI loop and display previously created windows. This function must
@@ -125,7 +126,7 @@ def start(
         will be served using a local HTTP server on a random port. For each
         window, a separate HTTP server is spawned. This option is ignored for
         non-local URLs.
-    :param user_agent: Change user agent string. Not supported in EdgeHTML.
+    :param user_agent: Change user agent string.
     :param private_mode: Enable private mode. In private mode, cookies and local storage are not preserved.
            Default is True.
     :param storage_path: Custom location for cookies and other website data
@@ -133,6 +134,7 @@ def start(
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :param ssl: Enable SSL for local HTTP server. Default is False.
+    :param icon: Path to the icon file. Supported only on GTK/QT.
     """
     global guilib
 
@@ -147,6 +149,9 @@ def start(
     _settings['user_agent'] = user_agent
     _settings['http_server'] = http_server
     _settings['private_mode'] = private_mode
+
+    if icon:
+        _settings['icon'] = abspath(icon)
 
     if storage_path:
         __set_storage_path(storage_path)

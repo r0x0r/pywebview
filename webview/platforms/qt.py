@@ -27,7 +27,7 @@ logger.debug('Using Qt %s' % QtCore.__version__)
 
 from qtpy import PYQT6, PYSIDE6
 from qtpy.QtCore import QJsonValue
-from qtpy.QtGui import QColor, QScreen
+from qtpy.QtGui import QColor, QIcon, QScreen
 from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
 
 try:
@@ -442,6 +442,10 @@ class BrowserView(QMainWindow):
         if not window.minimized:
             self.activateWindow()
             self.raise_()
+
+        if _settings['icon']:
+            icon = QIcon(_settings['icon'])
+            self.setWindowIcon(icon)
 
         self.shown.set()
 
