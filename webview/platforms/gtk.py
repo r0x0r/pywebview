@@ -34,7 +34,6 @@ except ValueError:
 from gi.repository import Gdk, Gio
 from gi.repository import GLib as glib
 from gi.repository import Gtk as gtk
-from gi.repository import Soup
 from gi.repository import WebKit2 as webkit
 
 renderer = 'gtkwebkit2'
@@ -210,6 +209,10 @@ class BrowserView:
 
         if window.fullscreen:
             self.toggle_fullscreen()
+
+        if _settings['icon']:
+            self.window.set_icon_from_file(_settings['icon'])
+            self.window.set_default_icon_from_file(_settings['icon'])
 
     def close_window(self, *data):
         should_cancel = self.pywebview_window.events.closing.set()
