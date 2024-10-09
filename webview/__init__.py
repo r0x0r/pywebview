@@ -85,7 +85,8 @@ _settings = {
     'private_mode': True,
     'user_agent': None,
     'http_server': False,
-    'ssl': False
+    'ssl': False,
+    'icon': None
 }
 
 token = _TOKEN
