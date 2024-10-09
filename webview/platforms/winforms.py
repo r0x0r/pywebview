@@ -164,6 +164,7 @@ class BrowserView:
             super().__init__()
             self.uid = window.uid
             self.pywebview_window = window
+            self.pywebview_window.native = self
             self.real_url = None
             self.Text = window.title
             self.Size = Size(window.initial_width, window.initial_height)
@@ -266,6 +267,9 @@ class BrowserView:
             self.Move += self.on_move
 
             self.localization = window.localization
+
+        def __str__(self):
+            return f'<System.Windows.Forms object with {self.Handle} handle>'
 
         def on_activated(self, *_):
             if not self.pywebview_window.focus:
@@ -655,6 +659,7 @@ def create_window(window):
     def create():
         browser = BrowserView.BrowserForm(window, cache_dir)
         BrowserView.instances[window.uid] = browser
+        window.events.before_show.set()
 
         if window.hidden:
             browser.Opacity = 0

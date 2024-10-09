@@ -153,6 +153,7 @@ class Window:
         self.events.closed = Event(self)
         self.events.closing = Event(self, True)
         self.events.loaded = Event(self)
+        self.events.before_show = Event(self)
         self.events.shown = Event(self)
         self.events.minimized = Event(self)
         self.events.maximized = Event(self)
@@ -162,6 +163,7 @@ class Window:
 
         self.dom = DOM(self)
         self.gui = None
+        self.native = None # set in the gui after window creation
 
     def _initialize(self, gui, server: http.BottleServer | None = None):
         self.gui = gui

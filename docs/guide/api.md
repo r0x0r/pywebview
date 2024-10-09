@@ -677,6 +677,23 @@ Move window to a new position.
 
 [Example](/examples/move_window.html)
 
+
+### window.native
+
+``` python
+window.native.Handle # get application window handle on Windows
+```
+
+Get a native window object. This can be useful for applying custom styling to the window. Object type depends on the platform
+
+`System.Windows.Form` - Windows
+`AppKit.NSWindow` - macOS
+`Gtk.ApplicationWindow` - GTK
+`QMainWindow` - QT
+`kivy.uix.widget.Widget` - Android
+
+The property is available after `before_show` event is fired.
+
 ### window.resize
 
 ``` python
@@ -777,6 +794,10 @@ Get DOM document's window `window` as an `Element` object
 ## Window events
 
 Window object exposes a number of lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g. `window.events.loaded += func`. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, `window.events.loaded -= func`. To access the window object from the event handler, you can supply `window` parameter as a first positional argument of the handler.
+
+### window.events.before_show
+
+Event fired just before pywebview window is shown. This is the earliest event that exposes `window.native` property.
 
 ### window.events.closed
 

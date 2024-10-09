@@ -68,6 +68,7 @@ class BrowserView:
         self.js_results = {}
 
         self.window = gtk.ApplicationWindow(title=window.title, application=_app)
+        self.pywebview_window.native = self.window
 
         self.shown = window.events.shown
         self.loaded = window.events.loaded
@@ -200,19 +201,21 @@ class BrowserView:
         self.webview.set_opacity(0.0)
         scrolled_window.add(self.webview)
 
+        if _settings['icon']:
+            self.window.set_icon_from_file(_settings['icon'])
+            self.window.set_default_icon_from_file(_settings['icon'])
+
+        self.pywebview_window.events.before_show.set()
+
+        if window.fullscreen:
+            self.toggle_fullscreen()
+
         if window.real_url is not None:
             self.webview.load_uri(window.real_url)
         elif window.html:
             self.webview.load_html(window.html, '')
         else:
             self.webview.load_html(DEFAULT_HTML, '')
-
-        if window.fullscreen:
-            self.toggle_fullscreen()
-
-        if _settings['icon']:
-            self.window.set_icon_from_file(_settings['icon'])
-            self.window.set_default_icon_from_file(_settings['icon'])
 
     def close_window(self, *data):
         should_cancel = self.pywebview_window.events.closing.set()

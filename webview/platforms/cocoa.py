@@ -499,6 +499,8 @@ class BrowserView:
             )
             .retain()
         )
+        self.pywebview_window.native = self.window
+
         self.window.focus = window.focus
         self.window.setTitle_(window.title)
         self.window.setMinSize_(AppKit.NSSize(window.min_size[0], window.min_size[1]))
@@ -611,6 +613,8 @@ class BrowserView:
         if window.on_top:
             self.window.setLevel_(AppKit.NSStatusWindowLevel)
 
+        self.pywebview_window.events.before_show.set()
+
         try:
             self.webkit.evaluateJavaScript_completionHandler_('', lambda a, b: None)
         except TypeError:
@@ -627,7 +631,6 @@ class BrowserView:
             self.load_html(DEFAULT_HTML, '')
         if window.fullscreen:
             self.toggle_fullscreen()
-        self.shown.set()
 
     def first_show(self):
         if not self.hidden:
@@ -637,6 +640,8 @@ class BrowserView:
             self.maximize()
         elif self.minimized:
             self.minimize()
+
+        self.shown.set()
 
         if not BrowserView.app.isRunning():
             # Reset the application menu to the defaults

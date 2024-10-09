@@ -273,6 +273,7 @@ class BrowserView(QMainWindow):
         BrowserView.instances[window.uid] = self
         self.uid = window.uid
         self.pywebview_window = window
+        self.pywebview_window.native = self
 
         self.js_bridge = BrowserView.JSBridge()
         self.js_bridge.window = window
@@ -282,9 +283,6 @@ class BrowserView(QMainWindow):
 
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
-
-        self.loaded = window.events.loaded
-        self.shown = window.events.shown
 
         self.localization = window.localization
 
@@ -447,7 +445,7 @@ class BrowserView(QMainWindow):
             icon = QIcon(_settings['icon'])
             self.setWindowIcon(icon)
 
-        self.shown.set()
+        self.pywebview_window.events.before_show.set()
 
     def on_set_title(self, title):
         self.setWindowTitle(title)
@@ -520,6 +518,9 @@ class BrowserView(QMainWindow):
             self.setWindowFlags(flags & ~QtCore.Qt.WindowStaysOnTopHint)
 
         self.show()
+
+    def showEvent(self, event):
+        self.pywebview_window.events.shown.set()
 
     def closeEvent(self, event):
         should_cancel = self.pywebview_window.events.closing.set()
@@ -698,18 +699,18 @@ class BrowserView(QMainWindow):
         self.profile.cookieStore().deleteAllCookies()
 
     def get_current_url(self):
-        self.loaded.wait()
+        self.pywebview_window.events.loaded.wait()
         self.current_url_trigger.emit()
         self._current_url_semaphore.acquire()
 
         return self._current_url
 
     def load_url(self, url):
-        self.loaded.clear()
+        self.pywebview_window.events.loaded.clear()
         self.load_url_trigger.emit(url)
 
     def load_html(self, content, base_uri):
-        self.loaded.clear()
+        self.pywebview_window.events.loaded.clear()
         self.html_trigger.emit(content, base_uri)
 
     def create_confirmation_dialog(self, title, message):
@@ -780,7 +781,7 @@ class BrowserView(QMainWindow):
         self.on_top_trigger.emit(top)
 
     def evaluate_js(self, script):
-        self.loaded.wait()
+        self.pywebview_window.events.loaded.wait()
         result_semaphore = Semaphore(0)
         unique_id = uuid1().hex
         self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': ''}
@@ -816,7 +817,7 @@ class BrowserView(QMainWindow):
         except AttributeError:  # < QT 5.6
             self.view.page().mainFrame().evaluateJavaScript(script)
 
-        self.loaded.set()
+        self.pywebview_window.events.loaded.set()
 
     @staticmethod
     def _convert_string(result):

@@ -108,6 +108,8 @@ class BrowserView(Widget):
         self.webview = None
         self.dialog = None
         super(BrowserView, self).__init__(**kwargs)
+        self.window.native = self
+        self.window.events.before_show.set()
         Clock.schedule_once(lambda dt: run_ui_thread(self.create_webview), 0)
 
     def create_webview(self, *args):
