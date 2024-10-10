@@ -41,7 +41,7 @@ You can also use `PyQt5` or `PyQt6` in macOS.
 
 ### Linux
 
-`pip install pywebview[qt]` should take of QT dependencies. If it does not work or you would like to use GTK, you may try these recipes.
+`pip install pywebview[qt]` should take care of QT dependencies. If it does not work or you would like to use GTK, you may try these recipes.
 
 [PyGObject](https://pygobject.readthedocs.io/en/latest/) is used with GTK. To install dependencies on Ubuntu for both Python 3 and 2
 
