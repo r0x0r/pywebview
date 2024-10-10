@@ -192,7 +192,6 @@ def inject_pywebview(window: Window, platform: str) -> str:
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
     def _call():
         try:
-            print(func_params)
             result = func(*func_params)
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{value: \'{result}\'}}'
@@ -286,15 +285,15 @@ def load_js_files(window: Window, func_list, platform: str) -> str:
                     'token': _TOKEN,
                     'platform': platform,
                     'uid': window.uid,
-                    'func_list': func_list,
+                    'func_list': json.dumps(func_list),
                     'js_api_endpoint': window.js_api_endpoint,
                 }
             elif name == 'customize':
                 params = {
-                    'text_select': str(not window.text_select).lower(),
+                    'text_select': str(not window.text_select),
                     'drag_selector': webview.DRAG_REGION_SELECTOR,
-                    'zoomable': str(window.zoomable).lower(),
-                    'draggable': str(window.draggable).lower(),
+                    'zoomable': str(window.zoomable),
+                    'draggable': str(window.draggable),
                     'easy_drag': str(platform == 'chromium' and window.easy_drag and window.frameless).lower(),
                 }
             elif name == 'polyfill' and platform != 'mshtml':

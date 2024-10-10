@@ -1,7 +1,7 @@
 
 (function() {
     var platform = window.pywebview.platform;
-    var disableText = %(text_select)s;
+    var disableText = '%(text_select)s' === 'False';
     var disableTextCss = 'body {-webkit-user-select: none; -khtml-user-select: none; -ms-user-select: none; user-select: none; cursor: default;}'
 
     if (platform == 'mshtml') {
@@ -64,11 +64,11 @@
             dragBlocks[i].addEventListener('mousedown', onMouseDown);
         }
             // easy drag for edge chromium
-        if (%(easy_drag)s) {
+        if ('%(easy_drag)s' === 'True') {
             window.addEventListener('mousedown', onMouseDown);
         }
 
-        if (!%(zoomable)s) {
+        if ('%(zoomable)s' === 'False') {
             document.body.addEventListener('touchstart', function(e) {
                 if ((e.touches.length > 1) || e.targetTouches.length > 1) {
                     e.preventDefault();
@@ -85,7 +85,7 @@
         }
 
         // draggable
-        if (!%(draggable)s) {
+        if ('%(draggable)s' === 'False') {
             Array.prototype.slice.call(document.querySelectorAll("img")).forEach(function(img) {
                 img.setAttribute("draggable", false);
             })
