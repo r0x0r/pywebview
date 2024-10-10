@@ -21,8 +21,6 @@ from webview.dom.dom import DOM
 from webview.dom.element import Element
 from webview.screen import Screen
 
-from webview.js import css
-
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -271,8 +269,12 @@ class Window:
 
     @_loaded_call
     def load_css(self, stylesheet: str) -> None:
-        code = css.src % stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
-        self.gui.evaluate_js(code, self.uid)
+        """"
+        Load a CSS stylesheet into the current web view window
+        """
+        sanitized_css = stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
+        js_code = f'pywebview._loadCss("{sanitized_css}")'
+        self.gui.evaluate_js(js_code, self.uid)
 
     @_shown_call
     def set_title(self, title: str) -> None:

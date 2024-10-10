@@ -9,8 +9,6 @@ import clr
 
 from webview import _settings, settings as webview_settings
 from webview.dom import _dnd_state
-from webview.js import alert
-from webview.js.css import disable_text_select
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
 clr.AddReference('System.Windows.Forms')
@@ -35,7 +33,7 @@ for platform in ('win-arm64', 'win-x64', 'win-x86'):
 
 
 logger = logging.getLogger('pywebview')
-
+renderer = 'edgechromium'
 
 class EdgeChrome:
     def __init__(self, form, window, cache_dir):
@@ -289,10 +287,5 @@ class EdgeChrome:
         url = str(sender.Source)
         self.url = None if self.ishtml else url
 
-        self.web_view.ExecuteScriptAsync(inject_pywebview(self.pywebview_window, 'chromium'))
-        self.web_view.ExecuteScriptAsync(alert.src % {'platform': 'edgechromium'})
-
-        if not self.pywebview_window.text_select:
-            self.web_view.ExecuteScriptAsync(disable_text_select)
-
+        self.web_view.ExecuteScriptAsync(inject_pywebview(self.pywebview_window, renderer))
         self.pywebview_window.events.loaded.set()

@@ -16,7 +16,6 @@ from PyObjCTools import AppHelper
 
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows, settings as webview_settings)
 from webview.dom import _dnd_state
-from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
@@ -304,15 +303,6 @@ class BrowserView:
 
                 script = inject_pywebview(i.js_bridge.window, 'cocoa')
                 i.webkit.evaluateJavaScript_completionHandler_(script, lambda a, b: None)
-
-                if not i.text_select:
-                    i.webkit.evaluateJavaScript_completionHandler_(
-                        disable_text_select, lambda a, b: None
-                    )
-
-                print_hook = 'window.print = function() { window.webkit.messageHandlers.browserDelegate.postMessage("print") };'
-                i.webkit.evaluateJavaScript_completionHandler_(print_hook, lambda a, b: None)
-
                 i.loaded.set()
 
         # Handle JavaScript window.print()
@@ -461,7 +451,6 @@ class BrowserView:
         self.loaded = window.events.loaded
         self.confirm_close = window.confirm_close
         self.title = window.title
-        self.text_select = window.text_select
         self.is_fullscreen = False
         self.hidden = window.hidden
         self.minimized = window.minimized

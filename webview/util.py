@@ -13,6 +13,7 @@ import os
 import re
 import sys
 import traceback
+from glob import glob
 from http.cookies import SimpleCookie
 from platform import architecture
 from threading import Thread
@@ -21,7 +22,6 @@ from uuid import uuid4
 
 import webview
 
-from webview.js import api, dom_json, events, npo, polyfill
 from webview.dom import _dnd_state
 from webview.errors import WebViewException
 import urllib.parse
@@ -134,16 +134,15 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
+def inject_pywebview(window: Window, platform: str) -> str:
     """"
-    Injects a global window.pywebview object
+    Generates and injects a global window.pywebview object
     """
     exposed_objects = []
 
     def get_args(func: object):
         params = list(inspect.getfullargspec(func).args)
         return params
-
 
     def get_functions(obj: object, base_name: str = '', functions: dict[str, object] = None):
         if obj in exposed_objects:
@@ -186,33 +185,14 @@ def inject_pywebview(window: Window, platform: str, uid: str = '') -> str:
         logger.exception(e)
         func_list = []
 
-    js_code = (
-        npo.src
-        + polyfill.src
-        + api.src
-        % {
-            'token': _TOKEN,
-            'platform': platform,
-            'uid': uid,
-            'func_list': func_list,
-            'js_api_endpoint': window.js_api_endpoint,
-        }
-        + dom_json.src
-        + events.src
-        % {
-            'drag_selector': webview.DRAG_REGION_SELECTOR,
-            'zoomable': str(window.zoomable).lower(),
-            'draggable': str(window.draggable).lower(),
-            'easy_drag': str(platform == 'chromium' and window.easy_drag and window.frameless).lower(),
-        }
-    )
-
+    js_code = load_js_files(window, func_list, platform)
     return js_code
 
 
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
     def _call():
         try:
+            print(func_params)
             result = func(*func_params)
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{value: \'{result}\'}}'
@@ -283,9 +263,69 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
             thread = Thread(target=_call)
             thread.start()
         except Exception:
-            logger.exception('Error occurred while evaluating function %s', func_name)
+            logger.exception(
+                'Error occurred while evaluating function %s', func_name)
     else:
         logger.error('Function %s() does not exist', func_name)
+
+
+def load_js_files(window: Window, func_list, platform: str) -> str:
+    js_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'js')
+    js_files = glob(os.path.join(js_dir, '**', '*.js'), recursive=True)
+    ordered_js_files = sort_js_files(js_files)
+    js_code = ''
+
+    for file in ordered_js_files:
+        with open(file, 'r') as f:
+            name = os.path.splitext(os.path.basename(file))[0]
+            content = f.read()
+            params = {}
+
+            if name == 'api':
+                params = {
+                    'token': _TOKEN,
+                    'platform': platform,
+                    'uid': window.uid,
+                    'func_list': func_list,
+                    'js_api_endpoint': window.js_api_endpoint,
+                }
+            elif name == 'customize':
+                params = {
+                    'text_select': str(not window.text_select).lower(),
+                    'drag_selector': webview.DRAG_REGION_SELECTOR,
+                    'zoomable': str(window.zoomable).lower(),
+                    'draggable': str(window.draggable).lower(),
+                    'easy_drag': str(platform == 'chromium' and window.easy_drag and window.frameless).lower(),
+                }
+            elif name == 'polyfill' and platform != 'mshtml':
+                continue
+
+            js_code += content % params
+
+    return js_code
+
+
+def sort_js_files(js_files: list[str]) -> list[str]:
+    """
+    Sorts JS files in the order they should be loaded. Polyfill first, then API, then the rest and
+    finally finish.js that fires a pywebviewready event.
+    """
+    LOAD_ORDER = { 'polyfill': 0, 'api': 1, 'finish': 99 }
+
+    ordered_js_files = []
+    remaining_js_files = []
+
+    for file in js_files:
+        basename = os.path.splitext(os.path.basename(file))[0]
+        if basename not in LOAD_ORDER:
+            ordered_js_files.append(file)
+        else:
+            remaining_js_files.append((basename, file))
+
+    for basename, file in sorted(remaining_js_files, key=lambda x: LOAD_ORDER[x[0]]):
+        ordered_js_files.insert(LOAD_ORDER[basename], file)
+
+    return ordered_js_files
 
 
 def escape_string(string: str) -> str:

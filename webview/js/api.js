@@ -1,8 +1,9 @@
-src = """
 window.pywebview = {
     token: '%(token)s',
     platform: '%(platform)s',
     api: {},
+    _eventHandlers: {},
+    _returnValues: {},
 
     _createApi: function(funcList) {
         function sanitize_params(params) {
@@ -43,7 +44,7 @@ window.pywebview = {
                 'var promise = new Promise(function(resolve, reject) {' +
                 '    window.pywebview._checkValue("' + funcName + '", resolve, reject, __id);' +
                 '});' +
-                'window.pywebview._jsApiCallback("' + funcName + '", arguments, __id);' +
+                'window.pywebview._jsApiCallback("' + funcName + '", Array.prototype.slice.call(arguments), __id);' +
                 'return promise;';
 
             // Assign the new function
@@ -59,14 +60,14 @@ window.pywebview = {
             case 'qtwebkit':
             case 'android-webkit':
                 return window.external.call(funcName, pywebview._stringify(params), id);
-            case 'chromium':
+            case 'edgechromium':
                 // Full file path support for WebView2
                 if (params.event instanceof Event && params.event.type === 'drop' && params.event.dataTransfer.files) {
                     chrome.webview.postMessageWithAdditionalObjects('FilesDropped', params.event.dataTransfer.files);
                 }
                 return window.chrome.webview.postMessage([funcName, pywebview._stringify(params), id]);
             case 'cocoa':
-            case 'gtk':
+            case 'gtkwebkit2':
                 return window.webkit.messageHandlers.jsBridge.postMessage(pywebview._stringify({funcName: funcName, params: params, id: id}));
             case 'qtwebengine':
                 if (!window.pywebview._QWebChannel) {
@@ -105,8 +106,6 @@ window.pywebview = {
             }
          }, 1)
     },
-    _eventHandlers: {},
-    _returnValues: {},
     _asyncCallback: function(result, id) {
         window.pywebview._jsApiCallback('pywebviewAsyncCallback', result, id)
     },
@@ -125,7 +124,7 @@ window.pywebview = {
 
         function isArrayLike(a) {
             return (
-                a != null &&
+                a &&
                 typeof(a[Symbol.iterator]) === 'function' &&
                 typeof(a.length) === 'number' &&
                 typeof(a) !== 'string'
@@ -147,7 +146,7 @@ window.pywebview = {
                     ancestors.pop();
                 }
 
-                if (ancestors.includes(obj)) {
+                if (ancestors.indexOf(obj) > -1) {
                     return "[Circular Reference]";
                 }
                 ancestors.push(obj);
@@ -179,8 +178,8 @@ window.pywebview = {
         }
 
       var _serialize = serialize.bind(null);
-
-      return JSON.stringify(_serialize(obj, []));
+      var result = JSON.stringify(_serialize(obj, []));
+      return result;
     },
 
     _getNodeId: function (element) {
@@ -206,6 +205,19 @@ window.pywebview = {
         } else if (mode === 'REPLACE') {
             parent.parentNode.replaceChild(node, parent);
         }
+    },
+
+    _loadCss: function (css) {
+       var interval = setInterval(function() {
+            if (document.readyState === "complete") {
+                clearInterval(interval);
+
+                var cssElement = document.createElement("style");
+                cssElement.type = "text/css";
+                cssElement.innerHTML = css;
+                document.head.appendChild(cssElement);
+            }
+        }, 10);
     },
 
     _processElements: function (elements) {
@@ -234,14 +246,5 @@ window.pywebview = {
         return serializedElements;
     }
 }
-window.pywebview._createApi(%(func_list)s);
 
-if (window.pywebview.platform == 'qtwebengine') {
-    new QWebChannel(qt.webChannelTransport, function(channel) {
-        window.pywebview._QWebChannel = channel;
-        window.dispatchEvent(new CustomEvent('pywebviewready'));
-    });
-} else {
-    window.dispatchEvent(new CustomEvent('pywebviewready'));
-}
-"""
+window.pywebview._createApi(%(func_list)s);

@@ -5,12 +5,11 @@ import webbrowser
 import winreg
 from ctypes import windll
 from threading import Semaphore
+from time import sleep
 
 import clr
 
 from webview import _settings
-from webview.js import alert
-from webview.js.css import disable_text_select
 from webview.util import (DEFAULT_HTML, inject_base_uri, interop_dll_path, js_bridge_call,
                           inject_pywebview)
 
@@ -26,6 +25,7 @@ from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
 logger = logging.getLogger('pywebview')
 settings = {}
 
+renderer = 'mshtml'
 
 def _set_ie_mode():
     """
@@ -44,9 +44,9 @@ def _set_ie_mode():
         """
         ie_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'Software\Microsoft\Internet Explorer')
         try:
-            version, type = winreg.QueryValueEx(ie_key, 'svcVersion')
+            version, _ = winreg.QueryValueEx(ie_key, 'svcVersion')
         except:
-            version, type = winreg.QueryValueEx(ie_key, 'Version')
+            version, _ = winreg.QueryValueEx(ie_key, 'Version')
 
         winreg.CloseKey(ie_key)
 
@@ -110,6 +110,7 @@ class MSHTML:
         window = None
 
         def call(self, func_name, param, value_id):
+            print(func_name, param)
             return js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
         def alert(self, message):
@@ -209,14 +210,15 @@ class MSHTML:
 
     def on_document_completed(self, _, args):
         document = self.web_view.Document
-        document.InvokeScript('eval', (alert.src % {'platform': 'mshtml'}))
 
         if _settings['debug']:
             document.InvokeScript(
-                'eval',
-                (
-                    'window.console = { log: function(msg) { window.external.console(JSON.stringify(msg)) }}',
-                ),
+                'eval', """
+                    window.console = {
+                        log: function(msg) { window.external.console(JSON.stringify(msg)) },
+                        error: function(msg) { window.external.console(JSON.stringify(msg)) }
+                    }',
+                """
             )
 
         if self.first_load:
@@ -225,10 +227,8 @@ class MSHTML:
 
         self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)
 
-        document.InvokeScript('eval', (inject_pywebview(self.pywebview_window, 'mshtml'),))
-
-        if not self.pywebview_window.text_select:
-            document.InvokeScript('eval', (disable_text_select,))
+        document.InvokeScript('eval', (inject_pywebview(self.pywebview_window, renderer),))
+        sleep(0.1)
         self.pywebview_window.events.loaded.set()
 
         if self.pywebview_window.easy_drag:

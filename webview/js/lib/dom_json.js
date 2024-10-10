@@ -1,4 +1,3 @@
-src = r"""
 /**
  * domJSON.js: A simple framework for converting DOM nodes to special JSON objects, and vice versa
  *
@@ -822,4 +821,3 @@ src = r"""
 
 	return domJSON;
 });
-"""

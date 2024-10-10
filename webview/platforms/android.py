@@ -12,7 +12,6 @@ from jnius import autoclass, cast, java_method, PythonJavaClass
 from android.runnable import Runnable, run_on_ui_thread
 
 from webview import _settings, settings
-from webview.js.css import disable_text_select
 from webview.util import create_cookie, js_bridge_call, inject_pywebview
 
 AlertDialogBuilder = autoclass('android.app.AlertDialog$Builder')
@@ -124,9 +123,6 @@ class BrowserView(Widget):
 
         def webview_callback(event, data):
             if event == 'onPageFinished':
-                if not self.window.text_select:
-                    self.webview.evaluateJavascript(disable_text_select, None)
-
                 value_callback = JavascriptValueCallback()
                 value_callback.setCallback(EventCallbackWrapper(loaded_callback))
                 self.webview.evaluateJavascript(inject_pywebview(self.window, renderer), value_callback)

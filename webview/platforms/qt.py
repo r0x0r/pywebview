@@ -13,7 +13,6 @@ from uuid import uuid1
 
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows, settings)
 from webview.dom import _dnd_state
-from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, environ_append
@@ -101,15 +100,20 @@ class BrowserView(QMainWindow):
     class JSBridge(QtCore.QObject):
         qtype = QtCore.QJsonValue if is_webengine else str
 
-        def __init__(self):
+        def __init__(self, parent):
             super(BrowserView.JSBridge, self).__init__()
+            self.parent = parent
+            self.window = parent.pywebview_window
 
         @QtCore.Slot(str, qtype, str, result=str)
         def call(self, func_name, param, value_id):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
 
-            return js_bridge_call(self.window, func_name, json.loads(param), value_id)
+            if func_name == '_pywebviewAlert':
+                QMessageBox.information(self.parent, 'Message', param)
+            else:
+                return js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
     class WebView(QWebView):
         def __init__(self, parent=None):
@@ -275,11 +279,9 @@ class BrowserView(QMainWindow):
         self.pywebview_window = window
         self.pywebview_window.native = self
 
-        self.js_bridge = BrowserView.JSBridge()
-        self.js_bridge.window = window
+        self.js_bridge = BrowserView.JSBridge(self)
 
         self.is_fullscreen = False
-        self.text_select = window.text_select
 
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
@@ -667,14 +669,6 @@ class BrowserView(QMainWindow):
 
         self._set_js_api()
 
-        if not self.text_select:
-            script = disable_text_select.replace('\n', '')
-
-            try:
-                self.view.page().runJavaScript(script)
-            except:  # QT < 5.6
-                self.view.page().mainFrame().evaluateJavaScript(script)
-
         if _settings['debug'] and settings['OPEN_DEVTOOLS_IN_DEBUG']:
             self.view.show_inspector()
 
@@ -798,8 +792,7 @@ class BrowserView(QMainWindow):
         def _register_window_object():
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
-        code = 'qtwebengine' if is_webengine else 'qtwebkit'
-        script = inject_pywebview(self.js_bridge.window, code)
+        script = inject_pywebview(self.js_bridge.window, renderer)
 
         if is_webengine:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')

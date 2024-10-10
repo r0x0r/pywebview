@@ -1,5 +1,6 @@
 graft windows_interop
 include webview/lib/Microsoft.Web.WebView2.LICENSE.md
+include webview/js/**/*.js
 exclude docs/**/*
 exclude examples/**/*
 exclude tests/**/*

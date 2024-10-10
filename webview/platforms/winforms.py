@@ -219,7 +219,6 @@ class BrowserView:
             self.shown = window.events.shown
             self.loaded = window.events.loaded
             self.url = window.real_url
-            self.text_select = window.text_select
             self.TopMost = window.on_top
 
             self.is_fullscreen = False

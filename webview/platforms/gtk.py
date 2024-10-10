@@ -9,7 +9,6 @@ from uuid import uuid1
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, settings,
                      parse_file_type, windows)
 from webview.dom import _dnd_state
-from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
@@ -127,7 +126,6 @@ class BrowserView:
         self.window.connect('configure-event', self.on_window_configure)
 
         self.js_bridge = BrowserView.JSBridge(window)
-        self.text_select = window.text_select
 
         storage_path = _settings['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
 
@@ -288,7 +286,11 @@ class BrowserView:
 
     def on_js_bridge_call(self, manager, message):
         body = json.loads(message.get_js_value().to_string())
-        js_bridge_call(self.pywebview_window, body['funcName'], body['params'], body['id'])
+
+        if body['funcName'] == '_pywebviewAlert':
+            self.message_box(body['params'])
+        else:
+            js_bridge_call(self.pywebview_window, body['funcName'], body['params'], body['id'])
 
     def on_window_resize(self, window, allocation):
         if allocation.width != self._last_width or allocation.height != self._last_height:
@@ -311,15 +313,6 @@ class BrowserView:
             glib.idle_add(webview.set_opacity, 1.0)
 
         if status == webkit.LoadEvent.FINISHED:
-            if not self.text_select:
-                webview.evaluate_javascript(
-                    script=disable_text_select,
-                    length=len(disable_text_select),
-                    world_name=None,
-                    source_uri=None,
-                    cancellable=None,
-                    callback=None)
-
             self._set_js_api()
 
     def on_download_started(self, session, download):
@@ -587,9 +580,20 @@ class BrowserView:
 
         return result
 
+    def message_box(self, message):
+        dialog = gtk.MessageDialog(
+            parent=self.window,
+            flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+            type=gtk.MessageType.INFO,
+            buttons=gtk.ButtonsType.OK,
+            message_format=message,
+        )
+        dialog.run()
+        dialog.destroy()
+
     def _set_js_api(self):
         def create_bridge():
-            script = inject_pywebview(self.js_bridge.window, 'gtk', uid=self.pywebview_window.uid)
+            script = inject_pywebview(self.js_bridge.window, renderer)
             self.webview.evaluate_javascript(
                     script=script,
                     length=len(script),
