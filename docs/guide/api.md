@@ -127,15 +127,16 @@ A CSRF token property unique to the session. The same token is exposed as `windo
 ### webview.dom.DOMEventHandler
 
 ``` python
-DOMEventHandler(callback, prevent_default=False, stop_propagation=False, stop_immediate_propagation=False)
+DOMEventHandler(callback, prevent_default=False, stop_propagation=False, stop_immediate_propagation=False, debounce=0)
 ```
 
-A container for an event handler used to control propagation or default behaviour of the event.
+A container for an event handler used to control propagation or default behaviour of the event. If debounce is greater than zero, Python event handler is debounced by a specified number of milliseconds. This can be useful for events like `dragover` and `mouseover` that generate a constant stream of events resulting in poor performance.
 
 #### Examples
 
 ``` python
 element.events.click += DOMEventHandler(on_click, prevent_default=True, stop_propagation=True, stop_immediate_propagation=True)
+element.events.mouseover += DOMEventHandler(on_click, debounce=500)
 ```
 
 ### webview.dom.ManipulationMode

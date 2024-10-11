@@ -11,11 +11,19 @@ class ManipulationMode(Enum):
 
 
 class DOMEventHandler:
-    def __init__(self, callback: Callable, prevent_default: bool=False, stop_propagation: bool=False, stop_immediate_propagation: bool=False):
+    def __init__(
+        self,
+        callback: Callable,
+        prevent_default: bool = False,
+        stop_propagation: bool = False,
+        stop_immediate_propagation: bool = False,
+        debounce: int = 0,
+    ):
         self.__callback = callback
         self.__prevent_default = prevent_default
         self.__stop_propagation = stop_propagation
         self.__stop_immediate_propagation = stop_immediate_propagation
+        self.__debounce = debounce
 
     @property
     def callback(self):
@@ -33,8 +41,9 @@ class DOMEventHandler:
     def stop_immediate_propagation(self):
         return self.__stop_immediate_propagation
 
+    @property
+    def debounce(self):
+        return self.__debounce
 
-_dnd_state = {
-    'num_listeners': 0,
-    'paths': []
-}
+
+_dnd_state = {'num_listeners': 0, 'paths': []}
