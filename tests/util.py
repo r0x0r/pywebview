@@ -152,11 +152,14 @@ def take_screenshot():
 
 def _destroy_window(_, window, delay):
     def stop():
+        logger.info('Stopping webview')
         event.wait()
         time.sleep(delay)
         window.destroy()
+        logger.info('Window destroyed')
 
         move_mouse_cocoa()
+        logger.info('Exiting destroy thread')
 
     event = threading.Event()
     event.clear()
