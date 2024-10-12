@@ -160,7 +160,7 @@ def _destroy_window(_, window, delay):
             window.destroy()
             logger.info('Window destroyed')
 
-            move_mouse_cocoa()
+            #move_mouse_cocoa()
             logger.info('Exiting destroy thread')
         except Exception as e:
             logger.exception(e, exc_info=True)
