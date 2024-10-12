@@ -11,6 +11,7 @@ from uuid import uuid4
 import pytest
 
 logger = logging.getLogger('pywebview')
+logger.setLevel(logging.DEBUG)
 
 
 def run_test(
@@ -60,6 +61,15 @@ def run_test(
 
 
 def assert_js(window, func_name, expected_result, *func_args):
+    """
+    A helper function to run a Javascript function in the window and assert the result.
+
+    @param window: window instance created with webview.create_window
+    @param func_name: the name of the Javascript function to run
+    @param expected_result: the expected result of the function
+    @param func_args: arguments to pass to the function
+
+    """
     value_id = 'v' + uuid4().hex[:8]
     func_args = str(func_args).replace(',)', ')')
 
@@ -95,7 +105,9 @@ def _create_window(
 ):
     def thread():
         try:
+            logger.info('Running test thread')
             take_screenshot()
+            take_screenshot2()
             move_mouse_cocoa()
             if thread_func:
                 thread_func(window, *thread_param)
@@ -113,6 +125,7 @@ def _create_window(
         t = threading.Thread(target=thread)
         t.start()
 
+    logger.info('Starting webview')
     webview.start(**start_args)
 
 
@@ -133,7 +146,9 @@ def take_screenshot():
         from subprocess import Popen
         from datetime import datetime
 
-        Popen(['screencapture', '-x', f'/tmp/screenshot-{datetime.now().timestamp()}.png']).wait()
+        os.makedirs('/tmp/screenshots', exist_ok=True)
+        Popen(['screencapture', '-x', f'/tmp/screenshots/screenshot-{datetime.now().timestamp()}.png']).wait()
+
 
 def _destroy_window(_, window, delay):
     def stop():
@@ -149,3 +164,29 @@ def _destroy_window(_, window, delay):
     t.start()
 
     return event
+
+
+
+def take_screenshot2():
+    from PIL import ImageGrab
+    from datetime import datetime
+
+    # Create the directory if it doesn't exist
+    save_dir = "/tmp/screenshots"
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Get current timestamp for unique file name
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    file_name = f"screenshot_pil_{timestamp}.png"
+
+    # Full path to save the screenshot
+    save_path = os.path.join(save_dir, file_name)
+
+    # Take the screenshot
+    screenshot = ImageGrab.grab()
+
+    # Save the screenshot
+    screenshot.save(save_path, "PNG")
+
+    print(f"Screenshot saved at: {save_path}")
+    return save_path
