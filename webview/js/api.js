@@ -109,7 +109,6 @@ window.pywebview = {
         return window.webkit.messageHandlers.jsBridge.postMessage(
           pywebview._stringify(
             { funcName: funcName, params: params, id: id },
-            true
           )
         );
       case 'qtwebengine':
