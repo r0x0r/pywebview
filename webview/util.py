@@ -290,7 +290,7 @@ def load_js_files(window: Window, func_list, platform: str) -> str:
                 }
             elif name == 'customize':
                 params = {
-                    'text_select': str(not window.text_select),
+                    'text_select': str(window.text_select),
                     'drag_selector': webview.DRAG_REGION_SELECTOR,
                     'zoomable': str(window.zoomable),
                     'draggable': str(window.draggable),
