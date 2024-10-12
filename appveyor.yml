@@ -38,6 +38,7 @@ for:
     install:
       - sudo apt-get update -q
       - sudo apt-get install --no-install-recommends -y xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest
+      - python3 -m pip install --upgrade setuptools==70.0.0
       - python3 -m pip install proxy_tools pytest bottle typing_extensions QtPy PyQt5 pyqtwebengine
     before_test:
       - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset && sleep 3;
@@ -56,11 +57,13 @@ for:
     install:
       - sudo apt-get update -q
       - sudo apt-get install --no-install-recommends -y xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes3 python3-pytest
+      - python3 -m pip install --upgrade setuptools==70.0.0
       - python3 -m pip install proxy_tools pytest bottle typing_extensions pygobject importlib_metadata
     before_test:
       - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset && sleep 3;
     test_script:
       - cd tests
+      -
       - ./run.sh
     after_test:
       - killall Xvfb
@@ -72,11 +75,11 @@ for:
       - path: /tmp/screenshots
         name: Screenshots
     install:
-      - python3 -m pip install --user pyobjc pytest proxy_tools bottle typing_extensions
+      - python3 -m pip install --user pyobjc pytest proxy_tools bottle typing_extensions pillow
     test_script:
       - cd tests
-      - PYWEBVIEW_LOG=debug python3 -m pytest test_simple_browser.py
+      - PYWEBVIEW_LOG=debug python3 -m pytest -s test_simple_browser.py
       - ./run.sh
-      - python3 -m pip install --user pyobjc pytest proxy_tools bottle typing_extensions
+
 
 build: off
