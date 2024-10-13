@@ -106,13 +106,14 @@ def _create_window(
     def thread():
         try:
             logger.info('Running test thread')
-            take_screenshot()
-            take_screenshot2()
+            # take_screenshot()
+            # take_screenshot2()
             move_mouse_cocoa()
             if thread_func:
                 thread_func(window, *thread_param)
 
             destroy_event.set()
+            logger.info('Test thread finished')
         except Exception as e:
             logger.exception(e, exc_info=True)
             queue.put(traceback.format_exc())
