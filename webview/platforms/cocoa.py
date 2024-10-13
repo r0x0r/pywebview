@@ -642,6 +642,7 @@ class BrowserView:
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             AppHelper.installMachInterrupt()
+            logger.info('Starting Cocoa app')
             BrowserView.app.run()
 
     def show(self):
@@ -1112,6 +1113,7 @@ def setup_app():
 def create_window(window):
     def create():
         browser = BrowserView(window)
+        logger.debug('Creating Cocoa window with UID: %s', window.uid)
         browser.first_show()
 
     if window.uid == 'master':

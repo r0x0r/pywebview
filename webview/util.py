@@ -70,9 +70,7 @@ def get_app_root() -> str:
         return os.path.dirname(sys.executable)
 
     if 'pytest' in sys.modules and os.getenv('PYTEST_CURRENT_TEST'):
-        test_file = os.getenv('PYTEST_CURRENT_TEST').split('::')[0]
-
-        return os.path.dirname(os.path.join(os.getcwd(), test_file))
+        return os.path.join(os.path.dirname(__file__), '..', 'tests')
 
     if hasattr(sys, 'getandroidapilevel'):
         return os.getenv('ANDROID_APP_PATH')
@@ -85,8 +83,10 @@ def abspath(path: str) -> str:
     Make path absolute, using the application root
     """
     path = os.fspath(path)
+    print("original path ", path)
     if not os.path.isabs(path):
         path = os.path.join(get_app_root(), path)
+    print("Result: ", os.path.normpath(path))
     return os.path.normpath(path)
 
 
