@@ -69,8 +69,10 @@ class BrowserView:
 
     class AppDelegate(AppKit.NSObject):
         def applicationShouldTerminate_(self, app):
+            logger.info('Application should terminate')
             for i in BrowserView.instances.values():
                 i.closing.set()
+            logger.info('Quitting')
             return Foundation.YES
 
         def applicationSupportsSecureRestorableState_(self, app):
@@ -86,7 +88,6 @@ class BrowserView:
             return BrowserView.should_close(i.pywebview_window)
 
         def windowWillClose_(self, notification):
-            logger.debug('Window will close')
             # Delete the closed instance from the dict
             i = BrowserView.get_instance('window', notification.object())
             del BrowserView.instances[i.uid]
@@ -104,7 +105,6 @@ class BrowserView:
             i.webkit = None
 
             i.closed.set()
-            logger.info('Window closed')
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
             logger.info('Window closed')
@@ -1257,7 +1257,6 @@ def get_active_window():
 def destroy_window(uid):
     i = BrowserView.instances.get(uid)
     if i:
-        logger.info('Destroying window %s', uid)
         i.destroy()
 
 

@@ -105,7 +105,6 @@ def _create_window(
 ):
     def thread():
         try:
-            logger.info('Running test thread')
             # take_screenshot()
             # take_screenshot2()
             move_mouse_cocoa()
@@ -113,7 +112,6 @@ def _create_window(
                 thread_func(window, *thread_param)
 
             destroy_event.set()
-            logger.info('Test thread finished')
         except Exception as e:
             logger.exception(e, exc_info=True)
             queue.put(traceback.format_exc())
@@ -126,7 +124,7 @@ def _create_window(
         t = threading.Thread(target=thread)
         t.start()
 
-    logger.info('Starting webview')
+    logger.info('Webview should start')
     webview.start(**start_args)
     logger.info('Webview should end')
 
@@ -155,14 +153,11 @@ def take_screenshot():
 def _destroy_window(_, window, delay):
     def stop():
         try:
-            logger.info('Stopping webview')
             event.wait()
             time.sleep(delay)
             window.destroy()
-            logger.info('Window destroyed')
 
             #move_mouse_cocoa()
-            logger.info('Exiting destroy thread')
         except Exception as e:
             logger.exception(e, exc_info=True)
 

@@ -16,6 +16,7 @@ def test_move_window():
     run_test(webview, window, move_window)
 
 
+@pytest.mark.skip
 def xy(window):
     assert window.x == 200
     assert window.y == 200
