@@ -69,10 +69,8 @@ class BrowserView:
 
     class AppDelegate(AppKit.NSObject):
         def applicationShouldTerminate_(self, app):
-            logger.info('Application should terminate')
             for i in BrowserView.instances.values():
                 i.closing.set()
-            logger.info('Quitting')
             return Foundation.YES
 
         def applicationSupportsSecureRestorableState_(self, app):
@@ -107,8 +105,6 @@ class BrowserView:
             i.closed.set()
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
-                BrowserView.app.terminate_(self)
-            logger.info('Application stopped')
 
         def windowDidResize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
@@ -643,7 +639,6 @@ class BrowserView:
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             AppHelper.installMachInterrupt()
-            logger.info('Starting Cocoa app')
             BrowserView.app.run()
 
     def show(self):
@@ -1114,7 +1109,6 @@ def setup_app():
 def create_window(window):
     def create():
         browser = BrowserView(window)
-        logger.debug('Creating Cocoa window with UID: %s', window.uid)
         browser.first_show()
 
     if window.uid == 'master':

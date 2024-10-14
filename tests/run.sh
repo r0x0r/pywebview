@@ -8,7 +8,7 @@ PYTEST_OPTIONS='-s --disable-pytest-warnings -r w'
 
 exitcode=0
 pywebviewtest() {
-  python3 -m pytest "$@" || exitcode=$?
+  python3 -m pytest -q "$@" || exitcode=$?
 }
 
 # cd ..

@@ -125,7 +125,6 @@ def _create_window(
         t.start()
 
     webview.start(**start_args)
-    logger.info('Webview should end')
 
 
 def get_test_name():

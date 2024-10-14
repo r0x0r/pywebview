@@ -83,10 +83,8 @@ def abspath(path: str) -> str:
     Make path absolute, using the application root
     """
     path = os.fspath(path)
-    print("original path ", path)
     if not os.path.isabs(path):
         path = os.path.join(get_app_root(), path)
-    print("Result: ", os.path.normpath(path))
     return os.path.normpath(path)
 
 
