@@ -106,11 +106,6 @@ class BrowserView:
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
 
-                if os.getenv('PYWEBVIEW_TEST'):
-                    from time import sleep
-                    sleep(1)
-                    BrowserView.app.terminate_(self)
-
         def windowDidResize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
 
@@ -645,6 +640,7 @@ class BrowserView:
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             AppHelper.installMachInterrupt()
             BrowserView.app.run()
+            logger.info('App quit')
 
     def show(self):
         def _show():
@@ -1119,6 +1115,7 @@ def create_window(window):
     if window.uid == 'master':
         main_thread().pydev_do_not_trace = True # vs code debugger hang fix
         create()
+
     else:
         AppHelper.callAfter(create)
 
