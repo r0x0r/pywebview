@@ -106,6 +106,9 @@ class BrowserView:
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
 
+                if os.getenv('PYWEBVIEW_TEST'):
+                    BrowserView.app.terminate_(self)
+
         def windowDidResize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
 
