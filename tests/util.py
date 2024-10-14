@@ -124,7 +124,6 @@ def _create_window(
         t = threading.Thread(target=thread)
         t.start()
 
-    logger.info('Webview should start')
     webview.start(**start_args)
     logger.info('Webview should end')
 
