@@ -878,6 +878,8 @@ def create_window(window):
             browser.showMinimized()
         elif not window.hidden:
             browser.show()
+        elif window.hidden:
+            browser.pywebview_window.events.shown.set()
 
     if window.uid == 'master':
         global _app

@@ -107,6 +107,8 @@ class BrowserView:
                 BrowserView.app.stop_(self)
 
                 if os.getenv('PYWEBVIEW_TEST'):
+                    from time import sleep
+                    sleep(1)
                     BrowserView.app.terminate_(self)
 
         def windowDidResize_(self, notification):
