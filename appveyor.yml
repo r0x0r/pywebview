@@ -8,7 +8,7 @@ for:
     matrix:
       only:
         - image: Visual Studio 2022
-    job_name: Windows
+        - job_name: Windows
     environment:
       PYTHON: "C:\\Python37-x64"
       PYTHON_VERSION: "3.7.x"
@@ -29,7 +29,7 @@ for:
     matrix:
       only:
         - image: Ubuntu2004
-    job_name: QT
+        - job_name: QT
     environment:
       PYWEBVIEW_GUI: qt
       DISPLAY: :99
@@ -50,7 +50,7 @@ for:
     matrix:
       only:
         - image: Ubuntu2204
-    job_name: GTK
+        - job_name: GTK
     environment:
       PYWEBVIEW_GUI: gtk
       DISPLAY: :99
@@ -71,7 +71,7 @@ for:
     matrix:
       only:
         - image: macos
-    job_name: macOS
+        - job_name: macOS
     artifacts:
       - path: /tmp/screenshots
         name: Screenshots
