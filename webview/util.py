@@ -69,7 +69,7 @@ def get_app_root() -> str:
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
 
-    if 'pytest' in sys.modules and os.getenv('PYTEST_CURRENT_TEST'):
+    if 'pytest' in sys.modules and os.getenv('PYWEBVIEW_TEST'):
         return os.path.join(os.path.dirname(__file__), '..', 'tests')
 
     if hasattr(sys, 'getandroidapilevel'):
