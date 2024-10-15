@@ -229,9 +229,9 @@ class BrowserView(QMainWindow):
     class WebPage(QWebPage):
         def __init__(self, parent=None, profile=None):
             if is_webengine and profile:
-                super(BrowserView.WebPage, self).__init__(profile, parent.view)
+                super(BrowserView.WebPage, self).__init__(profile, parent.webview)
             else:
-                super(BrowserView.WebPage, self).__init__(parent.view)
+                super(BrowserView.WebPage, self).__init__(parent.webview)
 
             if is_webengine:
                 self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
@@ -346,7 +346,7 @@ class BrowserView(QMainWindow):
             # Enable the transparency hint
             self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
-        self.view = BrowserView.WebView(self)
+        self.webview = BrowserView.WebView(self)
 
         if is_webengine:
             environ_append(
@@ -361,7 +361,7 @@ class BrowserView(QMainWindow):
                 BrowserView.inspector_port = BrowserView._get_debug_port()
                 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = BrowserView.inspector_port
         else:
-            self.view.setContextMenuPolicy(
+            self.webview.setContextMenuPolicy(
                 QtCore.Qt.NoContextMenu
             )  # disable right click context menu
 
@@ -378,7 +378,7 @@ class BrowserView(QMainWindow):
             cookie_store.cookieAdded.connect(self.on_cookie_added)
             cookie_store.cookieRemoved.connect(self.on_cookie_removed)
 
-            self.view.setPage(BrowserView.WebPage(self, profile=self.profile))
+            self.webview.setPage(BrowserView.WebPage(self, profile=self.profile))
         elif not is_webengine and not _settings['private_mode']:
             logger.warning('qtwebkit does not support private_mode')
 
@@ -390,12 +390,12 @@ class BrowserView(QMainWindow):
             self.profile.settings().setAttribute(
                 QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, settings['ALLOW_FILE_URLS'])
 
-        self.view.page().loadFinished.connect(self.on_load_finished)
+        self.webview.page().loadFinished.connect(self.on_load_finished)
 
         if settings['ALLOW_DOWNLOADS']:
-            self.view.page().profile().downloadRequested.connect(self.on_download_requested)
+            self.webview.page().profile().downloadRequested.connect(self.on_download_requested)
 
-        self.setCentralWidget(self.view)
+        self.setCentralWidget(self.webview)
 
         self.create_window_trigger.connect(BrowserView.on_create_window)
         self.load_url_trigger.connect(self.on_load_url)
@@ -417,20 +417,20 @@ class BrowserView(QMainWindow):
         self.on_top_trigger.connect(self.on_set_on_top)
 
         if is_webengine and platform.system() != 'OpenBSD':
-            self.channel = QWebChannel(self.view.page())
-            self.view.page().setWebChannel(self.channel)
+            self.channel = QWebChannel(self.webview.page())
+            self.webview.page().setWebChannel(self.channel)
 
         if window.fullscreen:
             self.toggle_fullscreen()
 
         if window.real_url is not None:
-            self.view.setUrl(QtCore.QUrl(window.real_url))
+            self.webview.setUrl(QtCore.QUrl(window.real_url))
         elif window.uid == 'web_inspector':
-            self.view.setUrl(QtCore.QUrl(window.original_url))
+            self.webview.setUrl(QtCore.QUrl(window.original_url))
         elif window.html:
-            self.view.setHtml(window.html, QtCore.QUrl(''))
+            self.webview.setHtml(window.html, QtCore.QUrl(''))
         else:
-            self.view.setHtml(DEFAULT_HTML, QtCore.QUrl(''))
+            self.webview.setHtml(DEFAULT_HTML, QtCore.QUrl(''))
 
         if window.initial_x is not None and window.initial_y is not None:
             self.move(self.screen.x()+window.initial_x, self.screen.y()+window.initial_y)
@@ -502,15 +502,15 @@ class BrowserView(QMainWindow):
             del self.cookies[raw]
 
     def on_current_url(self):
-        url = BrowserView._convert_string(self.view.url().toString())
+        url = BrowserView._convert_string(self.webview.url().toString())
         self._current_url = None if url == '' or url.startswith('data:text/html') else url
         self._current_url_semaphore.release()
 
     def on_load_url(self, url):
-        self.view.setUrl(QtCore.QUrl(url))
+        self.webview.setUrl(QtCore.QUrl(url))
 
     def on_load_html(self, content, base_uri):
-        self.view.setHtml(content, QtCore.QUrl(base_uri))
+        self.webview.setHtml(content, QtCore.QUrl(base_uri))
 
     def on_set_on_top(self, top):
         flags = self.windowFlags()
@@ -554,8 +554,8 @@ class BrowserView(QMainWindow):
 
         self.pywebview_window.events.closed.set()
 
-        if self.view.page():
-            self.view.page().deleteLater()
+        if self.webview.page():
+            self.webview.page().deleteLater()
 
         if len(BrowserView.instances) == 0:
             self.hide()
@@ -652,13 +652,13 @@ class BrowserView(QMainWindow):
 
         try:  # < Qt5.6
             if _qt6:
-                self.view.page().runJavaScript(script, 0, return_result)
+                self.webview.page().runJavaScript(script, 0, return_result)
             else:
-                self.view.page().runJavaScript(script, return_result)
+                self.webview.page().runJavaScript(script, return_result)
         except TypeError:
-            self.view.page().runJavaScript(script)  # PySide2 & PySide6
+            self.webview.page().runJavaScript(script)  # PySide2 & PySide6
         except AttributeError:
-            result = self.view.page().mainFrame().evaluateJavaScript(script)
+            result = self.webview.page().mainFrame().evaluateJavaScript(script)
             return_result(result)
         except Exception as e:
             logger.exception(e)
@@ -670,7 +670,7 @@ class BrowserView(QMainWindow):
         self._set_js_api()
 
         if _settings['debug'] and settings['OPEN_DEVTOOLS_IN_DEBUG']:
-            self.view.show_inspector()
+            self.webview.show_inspector()
 
     def on_download_requested(self, download):
         old_path = download.url().path()
@@ -798,17 +798,17 @@ class BrowserView(QMainWindow):
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
             if qwebchannel_js.open(QtCore.QFile.ReadOnly):
                 source = bytes(qwebchannel_js.readAll()).decode('utf-8')
-                self.view.page().runJavaScript(source)
+                self.webview.page().runJavaScript(source)
                 self.channel.registerObject('external', self.js_bridge)
                 qwebchannel_js.close()
         else:
-            frame = self.view.page().mainFrame()
+            frame = self.webview.page().mainFrame()
             _register_window_object()
 
         try:
-            self.view.page().runJavaScript(script)
+            self.webview.page().runJavaScript(script)
         except AttributeError:  # < QT 5.6
-            self.view.page().mainFrame().evaluateJavaScript(script)
+            self.webview.page().mainFrame().evaluateJavaScript(script)
 
         self.pywebview_window.events.loaded.set()
 

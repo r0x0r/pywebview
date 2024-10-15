@@ -93,14 +93,14 @@ class BrowserView:
             if i.pywebview_window in windows:
                 windows.remove(i.pywebview_window)
 
-            i.webkit.setNavigationDelegate_(None)
-            i.webkit.setUIDelegate_(None)
+            i.webview.setNavigationDelegate_(None)
+            i.webview.setUIDelegate_(None)
 
             # this seems to be a bug in WkWebView, so we need to load blank html
             # see https://stackoverflow.com/questions/27410413/wkwebview-embed-video-keeps-playing-sound-after-release
-            i.webkit.loadHTMLString_baseURL_('', None)
-            i.webkit.removeFromSuperview()
-            i.webkit = None
+            i.webview.loadHTMLString_baseURL_('', None)
+            i.webview.removeFromSuperview()
+            i.webview = None
 
             i.closed.set()
             if BrowserView.instances == {}:
@@ -302,14 +302,14 @@ class BrowserView:
                     i.window.makeFirstResponder_(webview)
 
                 script = inject_pywebview(i.js_bridge.window, 'cocoa')
-                i.webkit.evaluateJavaScript_completionHandler_(script, lambda a, b: None)
+                i.webview.evaluateJavaScript_completionHandler_(script, lambda a, b: None)
                 i.loaded.set()
 
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):
             if message.body() == 'print':
                 i = BrowserView.get_instance('_browserDelegate', self)
-                BrowserView.print_webview(i.webkit)
+                BrowserView.print_webview(i.webview)
 
     class FileFilterChooser(AppKit.NSPopUpButton):
         def initWithFilter_(self, file_filter):
@@ -501,19 +501,19 @@ class BrowserView:
         frame.size.height = window.initial_height
         self.window.setFrame_display_(frame, True)
 
-        self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
-        self.webkit.pywebview_window = window
+        self.webview = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
+        self.webview.pywebview_window = window
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
         self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
 
         BrowserView.app.setDelegate_(self._appDelegate)
-        self.webkit.setUIDelegate_(self._browserDelegate)
-        self.webkit.setNavigationDelegate_(self._browserDelegate)
+        self.webview.setUIDelegate_(self._browserDelegate)
+        self.webview.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
 
-        config = self.webkit.configuration()
+        config = self.webview.configuration()
         config.userContentController().addScriptMessageHandler_name_(
             self._browserDelegate, 'browserDelegate'
         )
@@ -550,7 +550,7 @@ class BrowserView:
 
         user_agent = webview_settings.get('user_agent') or _settings['user_agent']
         if user_agent:
-            self.webkit.setCustomUserAgent_(user_agent)
+            self.webview.setCustomUserAgent_(user_agent)
 
         self.window.setFrameOrigin_(self.screen.origin)
 
@@ -565,7 +565,7 @@ class BrowserView:
             self.window.setBackgroundColor_(
                 BrowserView.nscolor_from_hex(window.background_color, 0)
             )
-            self.webkit.setValue_forKey_(True, 'drawsTransparentBackground')
+            self.webview.setValue_forKey_(True, 'drawsTransparentBackground')
         else:
             self.window.setBackgroundColor_(BrowserView.nscolor_from_hex(window.background_color))
 
@@ -579,8 +579,8 @@ class BrowserView:
             visualEffectView.setFrame_(frame_vibrancy)
             visualEffectView.setState_(AppKit.NSVisualEffectStateActive)
             visualEffectView.setBlendingMode_(AppKit.NSVisualEffectBlendingModeBehindWindow)
-            self.webkit.addSubview_positioned_relativeTo_(
-                visualEffectView, AppKit.NSWindowBelow, self.webkit
+            self.webview.addSubview_positioned_relativeTo_(
+                visualEffectView, AppKit.NSWindowBelow, self.webview
             )
 
         self.frameless = window.frameless
@@ -605,7 +605,7 @@ class BrowserView:
         self.pywebview_window.events.before_show.set()
 
         try:
-            self.webkit.evaluateJavaScript_completionHandler_('', lambda a, b: None)
+            self.webview.evaluateJavaScript_completionHandler_('', lambda a, b: None)
         except TypeError:
             registerMetaDataForSelector(
                 b'WKWebView', b'evaluateJavaScript:completionHandler:', _eval_js_metadata
@@ -765,7 +765,7 @@ class BrowserView:
 
     def get_current_url(self):
         def get():
-            self._current_url = str(self.webkit.URL())
+            self._current_url = str(self.webview.URL())
             self._current_url_semaphore.release()
 
         AppHelper.callAfter(get)
@@ -777,7 +777,7 @@ class BrowserView:
         def load(url):
             page_url = Foundation.NSURL.URLWithString_(BrowserView.quote(url))
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
-            self.webkit.loadRequest_(req)
+            self.webview.loadRequest_(req)
 
         self.loaded.clear()
         self.url = url
@@ -786,14 +786,14 @@ class BrowserView:
     def load_html(self, content, base_uri):
         def load(content, url):
             url = Foundation.NSURL.URLWithString_(BrowserView.quote(url))
-            self.webkit.loadHTMLString_baseURL_(content, url)
+            self.webview.loadHTMLString_baseURL_(content, url)
 
         self.loaded.clear()
         AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script):
         def eval():
-            self.webkit.evaluateJavaScript_completionHandler_(script, handler)
+            self.webview.evaluateJavaScript_completionHandler_(script, handler)
 
         def handler(result, error):
             JSResult.result = None if result is None else json.loads(result)

@@ -108,7 +108,6 @@ class BrowserView(Widget):
         self.dialog = None
         super(BrowserView, self).__init__(**kwargs)
         self.window.native = self
-        self.window.events.before_show.set()
         Clock.schedule_once(lambda dt: run_ui_thread(self.create_webview), 0)
 
     def create_webview(self, *args):
@@ -178,6 +177,7 @@ class BrowserView(Widget):
             self.webview.setDownloadListener(DownloadListener())
 
         self.webview.setOnKeyListener(KeyListener(self._back_pressed))
+        self.window.events.before_show.set()
 
         if self.window.real_url:
             self.webview.loadUrl(self.window.real_url)

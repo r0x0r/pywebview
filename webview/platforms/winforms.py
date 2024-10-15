@@ -242,8 +242,10 @@ class BrowserView:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert, self)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window, cache_dir)
+                self.webview = self.browser.webview
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
+                self.webview = self.browser.webview
 
             if (
                 window.transparent and self.browser
@@ -277,7 +279,7 @@ class BrowserView:
         def on_shown(self, *_):
             if not is_cef:
                 self.shown.set()
-                self.browser.web_view.Focus()
+                self.browser.webview.Focus()
 
         def on_close(self, *_):
             def _shutdown():

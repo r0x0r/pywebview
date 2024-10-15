@@ -121,80 +121,80 @@ class MSHTML:
 
     def __init__(self, form, window, alert):
         self.pywebview_window = window
-        self.web_view = WebBrowserEx()
-        self.web_view.Dock = WinForms.DockStyle.Fill
-        self.web_view.ScriptErrorsSuppressed = not _settings['debug']
-        self.web_view.IsWebBrowserContextMenuEnabled = _settings['debug']
-        self.web_view.WebBrowserShortcutsEnabled = False
-        self.web_view.DpiAware = True
+        self.webview = WebBrowserEx()
+        self.webview.Dock = WinForms.DockStyle.Fill
+        self.webview.ScriptErrorsSuppressed = not _settings['debug']
+        self.webview.IsWebBrowserContextMenuEnabled = _settings['debug']
+        self.webview.WebBrowserShortcutsEnabled = False
+        self.webview.DpiAware = True
         MSHTML.alert = alert
 
         user_agent = _settings['user_agent'] or settings.get('user_agent')
         if user_agent:
-            self.web_view.ChangeUserAgent(user_agent)
+            self.webview.ChangeUserAgent(user_agent)
 
-        self.web_view.ScriptErrorsSuppressed = not _settings['debug']
-        self.web_view.IsWebBrowserContextMenuEnabled = _settings['debug']
+        self.webview.ScriptErrorsSuppressed = not _settings['debug']
+        self.webview.IsWebBrowserContextMenuEnabled = _settings['debug']
 
         self.js_result_semaphore = Semaphore(0)
         self.js_bridge = MSHTML.JSBridge()
         self.js_bridge.window = window
 
-        self.web_view.ObjectForScripting = self.js_bridge
+        self.webview.ObjectForScripting = self.js_bridge
 
         # HACK. Hiding the WebBrowser is needed in order to show a non-default background color. Tweaking the Visible property
         # results in showing a non-responsive control, until it is loaded fully. To avoid this, we need to disable this behaviour
         # for the default background color.
         if window.background_color != '#FFFFFF':
-            self.web_view.Visible = False
+            self.webview.Visible = False
             self.first_load = True
         else:
             self.first_load = False
 
         self.cancel_back = False
-        self.web_view.PreviewKeyDown += self.on_preview_keydown
-        self.web_view.Navigating += self.on_navigating
-        self.web_view.NewWindow3 += self.on_new_window
-        self.web_view.DownloadComplete += self.on_download_complete
-        self.web_view.DocumentCompleted += self.on_document_completed
+        self.webview.PreviewKeyDown += self.on_preview_keydown
+        self.webview.Navigating += self.on_navigating
+        self.webview.NewWindow3 += self.on_new_window
+        self.webview.DownloadComplete += self.on_download_complete
+        self.webview.DocumentCompleted += self.on_document_completed
 
         if window.real_url:
-            self.web_view.Navigate(window.real_url)
+            self.webview.Navigate(window.real_url)
         elif window.html:
-            self.web_view.DocumentText = window.html
+            self.webview.DocumentText = window.html
         else:
-            self.web_view.DocumentText = DEFAULT_HTML
+            self.webview.DocumentText = DEFAULT_HTML
 
         self.form = form
-        form.Controls.Add(self.web_view)
+        form.Controls.Add(self.webview)
 
     def evaluate_js(self, script):
-        result = self.web_view.Document.InvokeScript('eval', (script,))
+        result = self.webview.Document.InvokeScript('eval', (script,))
         self.js_result = None if result is None or result == 'null' else json.loads(result)  ##
         self.js_result_semaphore.release()
 
     def load_html(self, content, base_uri):
-        self.web_view.DocumentText = inject_base_uri(content, base_uri)
+        self.webview.DocumentText = inject_base_uri(content, base_uri)
         self.pywebview_window.events.loaded.clear()
 
     def load_url(self, url):
-        self.web_view.Navigate(url)
+        self.webview.Navigate(url)
 
     def on_preview_keydown(self, _, args):
         if args.KeyCode == WinForms.Keys.Back:
             self.cancel_back = True
         elif args.KeyCode == WinForms.Keys.Delete:
-            self.web_view.Document.ExecCommand('Delete', False, None)
+            self.webview.Document.ExecCommand('Delete', False, None)
         elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.C:
-            self.web_view.Document.ExecCommand('Copy', False, None)
+            self.webview.Document.ExecCommand('Copy', False, None)
         elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.X:
-            self.web_view.Document.ExecCommand('Cut', False, None)
+            self.webview.Document.ExecCommand('Cut', False, None)
         elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.V:
-            self.web_view.Document.ExecCommand('Paste', False, None)
+            self.webview.Document.ExecCommand('Paste', False, None)
         elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.Z:
-            self.web_view.Document.ExecCommand('Undo', False, None)
+            self.webview.Document.ExecCommand('Undo', False, None)
         elif args.Modifiers == WinForms.Keys.Control and args.KeyCode == WinForms.Keys.A:
-            self.web_view.Document.ExecCommand('selectAll', False, None)
+            self.webview.Document.ExecCommand('selectAll', False, None)
 
     def on_new_window(self, sender, args):
         args.Cancel = True
@@ -209,7 +209,7 @@ class MSHTML:
             self.cancel_back = False
 
     def on_document_completed(self, _, args):
-        document = self.web_view.Document
+        document = self.webview.Document
 
         if _settings['debug']:
             document.InvokeScript(
@@ -222,7 +222,7 @@ class MSHTML:
             )
 
         if self.first_load:
-            self.web_view.Visible = True
+            self.webview.Visible = True
             self.first_load = False
 
         self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)

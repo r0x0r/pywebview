@@ -38,7 +38,7 @@ renderer = 'edgechromium'
 class EdgeChrome:
     def __init__(self, form, window, cache_dir):
         self.pywebview_window = window
-        self.web_view = WebView2()
+        self.webview = WebView2()
         props = CoreWebView2CreationProperties()
         props.UserDataFolder = cache_dir
         props.set_IsInPrivateModeEnabled(_settings['private_mode'])
@@ -47,24 +47,24 @@ class EdgeChrome:
         if webview_settings['ALLOW_FILE_URLS']:
             props.AdditionalBrowserArguments += ' --allow-file-access-from-files'
 
-        self.web_view.CreationProperties = props
+        self.webview.CreationProperties = props
 
         self.form = form
-        form.Controls.Add(self.web_view)
+        form.Controls.Add(self.webview)
 
         self.js_results = {}
         self.js_result_semaphore = Semaphore(0)
-        self.web_view.Dock = WinForms.DockStyle.Fill
-        self.web_view.BringToFront()
-        self.web_view.CoreWebView2InitializationCompleted += self.on_webview_ready
-        self.web_view.NavigationStarting += self.on_navigation_start
-        self.web_view.NavigationCompleted += self.on_navigation_completed
-        self.web_view.WebMessageReceived += self.on_script_notify
+        self.webview.Dock = WinForms.DockStyle.Fill
+        self.webview.BringToFront()
+        self.webview.CoreWebView2InitializationCompleted += self.on_webview_ready
+        self.webview.NavigationStarting += self.on_navigation_start
+        self.webview.NavigationCompleted += self.on_navigation_completed
+        self.webview.WebMessageReceived += self.on_script_notify
         self.syncContextTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext()
-        self.web_view.DefaultBackgroundColor = Color.FromArgb(255, int(window.background_color.lstrip("#")[0:2], 16), int(window.background_color.lstrip("#")[2:4], 16), int(window.background_color.lstrip("#")[4:6], 16))
+        self.webview.DefaultBackgroundColor = Color.FromArgb(255, int(window.background_color.lstrip("#")[0:2], 16), int(window.background_color.lstrip("#")[2:4], 16), int(window.background_color.lstrip("#")[4:6], 16))
 
         if window.transparent:
-            self.web_view.DefaultBackgroundColor = Color.Transparent
+            self.webview.DefaultBackgroundColor = Color.Transparent
 
         self.url = None
         self.ishtml = False
@@ -73,11 +73,11 @@ class EdgeChrome:
         if _settings['storage_path']:
             self.setup_webview2_environment()
         else:
-            self.web_view.EnsureCoreWebView2Async(None)
+            self.webview.EnsureCoreWebView2Async(None)
 
     def setup_webview2_environment(self):
         def _callback(task):
-            self.web_view.EnsureCoreWebView2Async(task.Result)
+            self.webview.EnsureCoreWebView2Async(task.Result)
 
         environment = CoreWebView2Environment.CreateAsync(
             userDataFolder=_settings['storage_path']
@@ -100,7 +100,7 @@ class EdgeChrome:
                 semaphore.release()
 
         try:
-            self.web_view.ExecuteScriptAsync(script).ContinueWith(
+            self.webview.ExecuteScriptAsync(script).ContinueWith(
                 Action[Task[String]](lambda task: _callback(json.loads(task.Result))),
                 self.syncContextTaskScheduler,
             )
@@ -110,14 +110,14 @@ class EdgeChrome:
             semaphore.release()
 
     def clear_cookies(self):
-        self.web_view.CoreWebView2.CookieManager.DeleteAllCookies()
+        self.webview.CoreWebView2.CookieManager.DeleteAllCookies()
 
     def get_cookies(self, cookies, semaphore):
         def _callback(task):
             for c in task.Result:
                 _cookies.append(c)
 
-            self.web_view.Invoke(Func[Type](_parse_cookies))
+            self.webview.Invoke(Func[Type](_parse_cookies))
 
         def _parse_cookies():
             # cookies must be accessed in the main thread, otherwise an exception is thrown
@@ -144,7 +144,7 @@ class EdgeChrome:
             semaphore.release()
 
         _cookies = []
-        self.web_view.CoreWebView2.CookieManager.GetCookiesAsync(self.url).ContinueWith(
+        self.webview.CoreWebView2.CookieManager.GetCookiesAsync(self.url).ContinueWith(
             Action[Task[List[CoreWebView2Cookie]]](_callback), self.syncContextTaskScheduler
         )
 
@@ -156,14 +156,14 @@ class EdgeChrome:
         self.ishtml = True
         self.pywebview_window.events.loaded.clear()
 
-        if self.web_view.CoreWebView2:
-            self.web_view.CoreWebView2.NavigateToString(self.html)
+        if self.webview.CoreWebView2:
+            self.webview.CoreWebView2.NavigateToString(self.html)
         else:
-            self.web_view.EnsureCoreWebView2Async(None)
+            self.webview.EnsureCoreWebView2Async(None)
 
     def load_url(self, url):
         self.ishtml = False
-        self.web_view.Source = Uri(url)
+        self.webview.Source = Uri(url)
 
     def on_certificate_error(self, _, args):
         args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
@@ -219,7 +219,7 @@ class EdgeChrome:
             )
             return
 
-        self.web_view.CoreWebView2.SourceChanged += self.on_source_changed
+        self.webview.CoreWebView2.SourceChanged += self.on_source_changed
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
 
         if _settings['ssl']:
@@ -287,5 +287,5 @@ class EdgeChrome:
         url = str(sender.Source)
         self.url = None if self.ishtml else url
 
-        self.web_view.ExecuteScriptAsync(inject_pywebview(self.pywebview_window, renderer))
+        self.webview.ExecuteScriptAsync(inject_pywebview(self.pywebview_window, renderer))
         self.pywebview_window.events.loaded.set()
