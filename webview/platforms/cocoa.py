@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import ctypes
 import json
+import urllib
 import logging
 import webbrowser
 from collections.abc import Callable
@@ -338,10 +339,10 @@ class BrowserView:
                 }
                 urls = pboard.readObjectsForClasses_options_(classes, options) or []
                 files = [
-                    (os.path.basename(url.filePathURL().absoluteString()), url.filePathURL().absoluteString().replace('file://', ''))
-                    for url
-                    in urls
-                    if url.filePathURL().absoluteString().startswith('file://')
+                    (os.path.basename(os.path.dirname(file_path)) if os.path.isdir(file_path) else os.path.basename(file_path),file_path)
+                    for url in urls
+                    for file_path in [urllib.parse.unquote(url.filePathURL().absoluteString().replace('file://', ''))]
+                    if os.path.isdir(file_path) or os.path.isfile(file_path)
                 ]
 
                 _dnd_state['paths'] += files
