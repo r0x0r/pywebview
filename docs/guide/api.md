@@ -54,7 +54,7 @@ server=http.BottleServer, server_args
 webview.start(func=None, args=None, localization={}, gui=None, debug=False,
               http_server=False, http_port=None, user_agent=None, private_mode=True,
               storage_path=None, menu=[], server=http.BottleServer, ssl=False,
-              server_args={}):
+              server_args={}, icon=None):
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
@@ -73,6 +73,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `server` - A custom WSGI server instance. Defaults to BottleServer.
 * `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server. Cocoa/QT/GTK only.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
+* `icon` - path to application icon. Available only for GTK / QT. For other platforms icon should be specified via a bundler.
 
 #### Examples
 
@@ -157,7 +158,7 @@ Used by `element.append`, `element.copy`, `element.move` and `window.dom.create_
 
 Get or modify element's attributes. `attributes` is a `PropsDict` dict-like object that implements most of dict functions. To add an attribute, you can simply assign a value to a key in `attributes`. Similarly, to remove an attribute, you can set its value to None.
 
-##### Examples
+#### Examples
 
 ``` python
 element.attributes['id'] = 'container-id' # set element's id
@@ -174,7 +175,7 @@ element.classes
 
 Get or set element's classes. `classes` is a `ClassList` list-like object that implements a subset of list functions like `append`, `remove` and `clear`. Additionally it has a `toggle` function for toggling a class.
 
-##### Examples
+#### Examples
 
 ``` python
 element.classes = ['container', 'red', 'dotted'] # overwrite element's classes
@@ -189,7 +190,7 @@ element.classes.toggle('dotted')
 element.append(html, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Insert html content to the element as a last child. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
+Insert HTML content to the element as a last child. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
 
 ### element.blur
 
@@ -693,7 +694,17 @@ Get a native window object. This can be useful for applying custom styling to th
 `QMainWindow` - QT
 `kivy.uix.widget.Widget` - Android
 
-The property is available after `before_show` event is fired.
+The `native` property is available after the `before_show` event is fired.
+
+You can also each platform's WebView object via `window.native.webview`. WebView's types are as follows.
+
+`Microsoft.Web.WebView2.WinForms.WebView2` - Windows / EdgeChromium
+`System.Windows.Forms.WebBrowser` - Windows / MSHTML
+`WebKit.WKWebView` - macOS
+`gi.repository.WebKit2.WebView` - GTK
+`QtWebEngineWidgets.QWebEngineView` /  `QtWebKitWidgets.QWebView`- QT
+`android.webkit.WebView` - Android
+
 
 ### window.resize
 
@@ -761,7 +772,7 @@ Get document's body as an `Element` object
 window.create_element(html, parent=None, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Insert html content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omited, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
+Insert HTML content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omited, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
 
 ### window.dom.document
 
@@ -854,13 +865,12 @@ _pywebview_ exposes a `window.pywebviewready` DOM event that is fired after `win
 
 ## Drag area
 
-With a frameless _pywebview_ window, A window can be moved or dragged by adding a special class called `pywebview-drag-region` in your html
+With a frameless _pywebview_ window, A window can be moved or dragged by adding a special class called `pywebview-drag-region` to any element.
 
 ```html
-<div class='pywebview-drag-region'>This div element can be used to moved or drag your window like a native OS window</div>
+<div class='pywebview-drag-region'>Now window can be moved by dragging this DIV.</div>
 ```
 
 The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
-
 
 [Example](/examples/drag_region.html)

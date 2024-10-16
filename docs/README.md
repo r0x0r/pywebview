@@ -8,7 +8,7 @@ footer: BSD Licensed | Copyright © 2014–present Roman Sirokov
 ---
 
 <div class='center version'>
-Current version: <strong>5.2</strong><br/>
+Current version: <strong>5.3</strong><br/>
 <a href='/changelog.html'>What's new</a>
 </div>
 
