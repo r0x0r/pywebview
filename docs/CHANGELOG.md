@@ -24,6 +24,7 @@ _Released xx/10/2024_
 
 - `All` Support for Unicode filenames in drag and drop. Thanks @hustshenl
 - `Cocoa` Fix open file dialog file type selector and all files filter
+- `Cocoa` Fix folder drag and drop. Thanks @pythons
 - `GTK` Fix multiple file drag and drop on certain Linux distributions. Thanks @coffeejunk
 - `QT` QT6 compatilibity
 - `QT` Release of profile requested but WebEnginePage still not deleted with multiple windows

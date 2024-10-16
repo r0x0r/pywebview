@@ -24,8 +24,8 @@ pip install pywebview
 
 _On Linux you need additional libraries. Refer to the [installation](/guide/installation.html) page for details._
 
-
 ### Hello world:
+
 ``` python
 import webview
 webview.create_window('Hello world', 'https://pywebview.flowrl.com/')
