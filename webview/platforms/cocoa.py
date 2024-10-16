@@ -191,7 +191,7 @@ class BrowserView:
         def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_completionHandler_(
             self, webview, message, frame, handler
         ):
-            i = BrowserView.get_instance('webkit', webview)
+            i = BrowserView.get_instance('webview', webview)
             ok = i.localization['global.ok']
             cancel = i.localization['global.cancel']
 
@@ -295,7 +295,7 @@ class BrowserView:
         # Show the webview when it finishes loading
         def webView_didFinishNavigation_(self, webview, nav):
             # Add the webview to the window if it's not yet the contentView
-            i = BrowserView.get_instance('webkit', webview)
+            i = BrowserView.get_instance('webview', webview)
 
             if i:
                 if not webview.window():
@@ -350,7 +350,7 @@ class BrowserView:
             return super(BrowserView.WebKitHost, self).performDragOperation_(sender)
 
         def mouseDown_(self, event):
-            i = BrowserView.get_instance('webkit', self)
+            i = BrowserView.get_instance('webview', self)
             window = self.window()
 
             if i.frameless and i.easy_drag:
@@ -365,7 +365,7 @@ class BrowserView:
             super(BrowserView.WebKitHost, self).mouseDown_(event)
 
         def mouseDragged_(self, event):
-            i = BrowserView.get_instance('webkit', self)
+            i = BrowserView.get_instance('webview', self)
             window = self.window()
 
             if i.frameless and i.easy_drag:
@@ -393,7 +393,7 @@ class BrowserView:
                 window.setFrameOrigin_(newOrigin)
 
             if event.modifierFlags() & getattr(AppKit, 'NSEventModifierFlagControl', 1 << 18):
-                i = BrowserView.get_instance('webkit', self)
+                i = BrowserView.get_instance('webview', self)
                 if not _settings['debug']:
                     return
 
