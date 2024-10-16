@@ -7,6 +7,12 @@ def reload_webview():
 
     reload(webview)
 
+@pytest.fixture(autouse=True)
+def set_env():
+    import os
+
+    os.environ['PYWEBVIEW_TEST'] = 'true'
+
 
 # @pytest.fixture(autouse=True)
 # def set_gui():

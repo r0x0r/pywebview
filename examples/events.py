@@ -2,6 +2,9 @@
 
 import webview
 
+def on_before_show(window):
+    print('Native window object', window.native)
+
 
 def on_closed():
     print('pywebview window is closed')
@@ -55,6 +58,7 @@ if __name__ == '__main__':
 
     window.events.closed += on_closed
     window.events.closing += on_closing
+    window.events.before_show += on_before_show
     window.events.shown += on_shown
     window.events.loaded += on_loaded
     window.events.minimized += on_minimized

@@ -8,7 +8,7 @@ footer: BSD Licensed | Copyright © 2014–present Roman Sirokov
 ---
 
 <div class='center version'>
-Current version: <strong>5.2</strong><br/>
+Current version: <strong>5.3</strong><br/>
 <a href='/changelog.html'>What's new</a>
 </div>
 
@@ -24,8 +24,8 @@ pip install pywebview
 
 _On Linux you need additional libraries. Refer to the [installation](/guide/installation.html) page for details._
 
-
 ### Hello world:
+
 ``` python
 import webview
 webview.create_window('Hello world', 'https://pywebview.flowrl.com/')

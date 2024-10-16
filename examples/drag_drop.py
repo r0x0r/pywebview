@@ -21,7 +21,7 @@ def on_drop(e):
 def bind(window):
     window.dom.document.events.dragenter += DOMEventHandler(on_drag, True, True)
     window.dom.document.events.dragstart += DOMEventHandler(on_drag, True, True)
-    window.dom.document.events.dragover += DOMEventHandler(on_drag, True, True)
+    window.dom.document.events.dragover += DOMEventHandler(on_drag, True, True, debounce=500)
     window.dom.document.events.drop += DOMEventHandler(on_drop, True, True)
 
 if __name__ == '__main__':

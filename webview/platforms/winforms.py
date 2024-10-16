@@ -164,6 +164,7 @@ class BrowserView:
             super().__init__()
             self.uid = window.uid
             self.pywebview_window = window
+            self.pywebview_window.native = self
             self.real_url = None
             self.Text = window.title
             self.Size = Size(window.initial_width, window.initial_height)
@@ -171,7 +172,7 @@ class BrowserView:
 
             self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
-            
+
             # for chromium edge, need this factor to modify the coordinates
             try:
                 self.scale_factor = windll.shcore.GetScaleFactorForDevice(0) / 100 if is_chromium else 1
@@ -218,7 +219,6 @@ class BrowserView:
             self.shown = window.events.shown
             self.loaded = window.events.loaded
             self.url = window.real_url
-            self.text_select = window.text_select
             self.TopMost = window.on_top
 
             self.is_fullscreen = False
@@ -242,8 +242,10 @@ class BrowserView:
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert, self)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window, cache_dir)
+                self.webview = self.browser.webview
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
+                self.webview = self.browser.webview
 
             if (
                 window.transparent and self.browser
@@ -267,6 +269,9 @@ class BrowserView:
 
             self.localization = window.localization
 
+        def __str__(self):
+            return f'<System.Windows.Forms object with {self.Handle} handle>'
+
         def on_activated(self, *_):
             if not self.pywebview_window.focus:
                 windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
@@ -274,7 +279,7 @@ class BrowserView:
         def on_shown(self, *_):
             if not is_cef:
                 self.shown.set()
-                self.browser.web_view.Focus()
+                self.browser.webview.Focus()
 
         def on_close(self, *_):
             def _shutdown():
@@ -583,7 +588,7 @@ class OpenFolderDialog:
     showMethodInfo = iFileDialogType.GetMethod('Show')
 
     @classmethod
-    def show(cls, parent=None, initialDirectory=None, title=None):
+    def show(cls, parent=None, initialDirectory=None, allow_multiple=False, title=None):
         openFileDialog = WinForms.OpenFileDialog()
         openFileDialog.InitialDirectory = initialDirectory
         openFileDialog.Title = title
@@ -591,7 +596,7 @@ class OpenFolderDialog:
         openFileDialog.AddExtension = False
         openFileDialog.CheckFileExists = False
         openFileDialog.DereferenceLinks = True
-        openFileDialog.Multiselect = False
+        openFileDialog.Multiselect = allow_multiple
         openFileDialog.RestoreDirectory = True
 
         iFileDialog = OpenFolderDialog.createVistaDialogMethodInfo.Invoke(openFileDialog, [])
@@ -608,7 +613,7 @@ class OpenFolderDialog:
         try:
             result = OpenFolderDialog.showMethodInfo.Invoke(iFileDialog, [parent.Handle if parent else None])
             if result == 0:
-                return openFileDialog.FileName
+                return tuple(openFileDialog.FileNames)
 
             return None
 
@@ -655,6 +660,7 @@ def create_window(window):
     def create():
         browser = BrowserView.BrowserForm(window, cache_dir)
         BrowserView.instances[window.uid] = browser
+        window.events.before_show.set()
 
         if window.hidden:
             browser.Opacity = 0
@@ -711,7 +717,7 @@ def create_confirmation_dialog(title, message, uid):
 
     if not i:
         return
-        
+
     result = WinForms.MessageBox.Show(message, title, WinForms.MessageBoxButtons.OKCancel)
     return result == WinForms.DialogResult.OK
 
@@ -727,7 +733,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
     try:
         if dialog_type == FOLDER_DIALOG:
-            file_path = OpenFolderDialog.show(i, directory)
+            file_path = OpenFolderDialog.show(i, directory, allow_multiple)
 
         elif dialog_type == OPEN_DIALOG:
             dialog = WinForms.OpenFileDialog()

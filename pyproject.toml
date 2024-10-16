@@ -78,6 +78,7 @@ packages = ["webview", "webview.dom", "webview.js", "webview.lib", "webview.plat
 
 [tool.setuptools.package-data]
 "webview.lib" = ["**/*.dll", "**/*.jar"]
+"webview.js" = ["**/*.js"]
 "webview" = ["py.typed"]
 
 [tool.setuptools_scm]

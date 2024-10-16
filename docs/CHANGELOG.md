@@ -1,5 +1,37 @@
 # Changelog
 
+## 5.3
+
+_Released 16/10/2024_
+
+### ⚡ Features
+
+- `All` Native window object for each platform is now exposed `window.native`. You can use it for example for applying custom appearance to a window. Additionally WebView is exposed via `window.native.webview`
+- `All` New `window.events.before_show` event.
+- `All` New DomEventHandler `debounce` parameter. It can be used it for solving performance issues with `dragover` and `mouseover` events.
+- `GTK/QT` application icon support for GTK and QT platforms `webview.start(icon=<path>)`
+
+### 🚀 Improvements
+
+- `All` Storage path is now verified for write permissions before application start. An exception is thrown, if path is not writable.
+- `All` Refined logic at which point of the startup procedure `shown` event is fired.
+- `Cocoa` Better handling of stopping event loop in headless environments.
+- `Windows` Fallback to WinForms when QT is forced and not available
+- `Windows` Remove white border in a fullscreen window.
+- `Windows` Support multiple selection in open folder dialog.
+
+#### 🐞 Bug fixes
+
+- `All` Support for Unicode filenames in drag and drop. Thanks @hustshenl
+- `Cocoa` Fix open file dialog file type selector and all files filter
+- `Cocoa` Fix folder drag and drop. Thanks @pythons
+- `GTK` Fix multiple file drag and drop on certain Linux distributions. Thanks @coffeejunk
+- `QT` QT6 compatilibity
+- `QT` Release of profile requested but WebEnginePage still not deleted with multiple windows
+- `Windows` Graceful handling for `shcore.dll` not being present on Windows 7. Thanks @rafael-vasconcellos.
+- `Windows` Return result of open folder dialog is fixed to tuple.
+- `Edge Chromium` Current url not being updated after a navigation event. Thanks @hustshenl
+
 ## 5.2
 
 _Released 17/08/2024_

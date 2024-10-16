@@ -9,7 +9,6 @@ from uuid import uuid1
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, settings,
                      parse_file_type, windows)
 from webview.dom import _dnd_state
-from webview.js.css import disable_text_select
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
@@ -34,7 +33,6 @@ except ValueError:
 from gi.repository import Gdk, Gio
 from gi.repository import GLib as glib
 from gi.repository import Gtk as gtk
-from gi.repository import Soup
 from gi.repository import WebKit2 as webkit
 
 renderer = 'gtkwebkit2'
@@ -69,6 +67,7 @@ class BrowserView:
         self.js_results = {}
 
         self.window = gtk.ApplicationWindow(title=window.title, application=_app)
+        self.pywebview_window.native = self.window
 
         self.shown = window.events.shown
         self.loaded = window.events.loaded
@@ -127,7 +126,6 @@ class BrowserView:
         self.window.connect('configure-event', self.on_window_configure)
 
         self.js_bridge = BrowserView.JSBridge(window)
-        self.text_select = window.text_select
 
         storage_path = _settings['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
 
@@ -201,15 +199,21 @@ class BrowserView:
         self.webview.set_opacity(0.0)
         scrolled_window.add(self.webview)
 
+        if _settings['icon']:
+            self.window.set_icon_from_file(_settings['icon'])
+            self.window.set_default_icon_from_file(_settings['icon'])
+
+        self.pywebview_window.events.before_show.set()
+
+        if window.fullscreen:
+            self.toggle_fullscreen()
+
         if window.real_url is not None:
             self.webview.load_uri(window.real_url)
         elif window.html:
             self.webview.load_html(window.html, '')
         else:
             self.webview.load_html(DEFAULT_HTML, '')
-
-        if window.fullscreen:
-            self.toggle_fullscreen()
 
     def close_window(self, *data):
         should_cancel = self.pywebview_window.events.closing.set()
@@ -244,13 +248,19 @@ class BrowserView:
         return False
 
     def on_drag_data(self, widget, drag_context, x, y, data, info, time):
-        if _dnd_state['num_listeners'] > 0 and data.get_text():
-            files = [
-                (os.path.basename(value), value.replace('file://', ''))
-                for value
-                in data.get_text().split('\n')
-                if value.startswith('file://')
-            ]
+        text = data.get_text()
+        if _dnd_state['num_listeners'] > 0 and text:
+            files = []
+            for value in text.split('\n'):
+                value = value.strip()
+                if value.startswith('file://'):
+                    # Handle 'file://' URIs (e.g., `file:///home/user/file.txt`)
+                    path = value.replace('file://', '')
+                    files.append((os.path.basename(path), path))
+                elif value.startswith('/') and os.path.exists(value):
+                    # Handle direct paths (e.g., `/home/user/file.txt`)
+                    files.append((os.path.basename(value), value))
+
             _dnd_state['paths'] += files
 
         return False
@@ -276,7 +286,11 @@ class BrowserView:
 
     def on_js_bridge_call(self, manager, message):
         body = json.loads(message.get_js_value().to_string())
-        js_bridge_call(self.pywebview_window, body['funcName'], body['params'], body['id'])
+
+        if body['funcName'] == '_pywebviewAlert':
+            self.message_box(body['params'])
+        else:
+            js_bridge_call(self.pywebview_window, body['funcName'], body['params'], body['id'])
 
     def on_window_resize(self, window, allocation):
         if allocation.width != self._last_width or allocation.height != self._last_height:
@@ -299,15 +313,6 @@ class BrowserView:
             glib.idle_add(webview.set_opacity, 1.0)
 
         if status == webkit.LoadEvent.FINISHED:
-            if not self.text_select:
-                webview.evaluate_javascript(
-                    script=disable_text_select,
-                    length=len(disable_text_select),
-                    world_name=None,
-                    source_uri=None,
-                    cancellable=None,
-                    callback=None)
-
             self._set_js_api()
 
     def on_download_started(self, session, download):
@@ -575,9 +580,20 @@ class BrowserView:
 
         return result
 
+    def message_box(self, message):
+        dialog = gtk.MessageDialog(
+            parent=self.window,
+            flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+            type=gtk.MessageType.INFO,
+            buttons=gtk.ButtonsType.OK,
+            message_format=message,
+        )
+        dialog.run()
+        dialog.destroy()
+
     def _set_js_api(self):
         def create_bridge():
-            script = inject_pywebview(self.js_bridge.window, 'gtk', uid=self.pywebview_window.uid)
+            script = inject_pywebview(self.js_bridge.window, renderer)
             self.webview.evaluate_javascript(
                     script=script,
                     length=len(script),
