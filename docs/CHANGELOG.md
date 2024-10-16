@@ -2,7 +2,7 @@
 
 ## 5.3
 
-_Released xx/10/2024_
+_Released 16/10/2024_
 
 ### ⚡ Features
 
