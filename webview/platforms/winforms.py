@@ -408,10 +408,14 @@ class BrowserView:
             self.Invoke(Func[Type](self.Hide))
 
         def show(self):
-            if self.InvokeRequired:
-                self.Invoke(Func[Type](self.Show))
-            else:
+            def _show():
                 self.Show()
+                self.Activate()
+
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](_show))
+            else:
+                _show()
 
         def set_window_menu(self, menu_list):
             def _set_window_menu():
