@@ -350,7 +350,7 @@ class BrowserView(QMainWindow):
 
         if is_webengine:
             environ_append(
-                'QTWEBENGINE_CHROMIUM_settings',
+                'QTWEBENGINE_CHROMIUM_FLAGS',
                 '--use-fake-ui-for-media-stream',
                 '--enable-features=AutoplayIgnoreWebAudio',
             )
