@@ -47,6 +47,9 @@ class EdgeChrome:
         if webview_settings['ALLOW_FILE_URLS']:
             props.AdditionalBrowserArguments += ' --allow-file-access-from-files'
 
+        if webview_settings['REMOTE_DEBUGGING_PORT'] is not None:
+            props.AdditionalBrowserArguments += f' --remote-debugging-port={webview_settings["REMOTE_DEBUGGING_PORT"]}'
+
         self.webview.CreationProperties = props
 
         self.form = form
