@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.3.1
+
+_Released 21/10/2024_
+
+#### 🐞 Bug fixes
+
+- Fix Pyinstaller compatibility
+
+
 ## 5.3
 
 _Released 16/10/2024_
