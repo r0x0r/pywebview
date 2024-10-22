@@ -111,7 +111,7 @@ class BrowserView(QMainWindow):
             param = BrowserView._convert_string(param)
 
             if func_name == '_pywebviewAlert':
-                QMessageBox.information(self.parent, 'Message', param)
+                QMessageBox.information(self.parent, 'Message', str(param))
             else:
                 return js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
