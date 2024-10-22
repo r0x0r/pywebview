@@ -1,5 +1,25 @@
 # Changelog
 
+## 5.3.2
+
+_Released 22/10/2024_
+
+#### 🐞 Bug fixes
+
+- Fix Pyinstaller compatibility for non-Windows platforms #1508
+- Error occurs when alert() is called with non-string arguments #1506
+
+
+
+## 5.3.1
+
+_Released 21/10/2024_
+
+#### 🐞 Bug fixes
+
+- Fix Pyinstaller compatibility
+
+
 ## 5.3
 
 _Released 16/10/2024_

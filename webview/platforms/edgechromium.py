@@ -191,7 +191,7 @@ class EdgeChrome:
             func_name, func_param, value_id = json.loads(return_value)
             func_param = json.loads(func_param)
             if func_name == '_pywebviewAlert':
-                WinForms.MessageBox.Show(func_param)
+                WinForms.MessageBox.Show(str(func_param))
             elif func_name == 'console':
                 print(func_param)
             else:

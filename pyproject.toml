@@ -74,7 +74,7 @@ line_length = 100
 
 [tool.setuptools]
 include-package-data = false
-packages = ["webview", "webview.dom", "webview.js", "webview.lib", "webview.platforms"]
+packages = ["webview", "webview.dom", "webview.js", "webview.lib", "webview.platforms", "webview.__pyinstaller"]
 
 [tool.setuptools.package-data]
 "webview.lib" = ["**/*.dll", "**/*.jar"]
@@ -83,3 +83,7 @@ packages = ["webview", "webview.dom", "webview.js", "webview.lib", "webview.plat
 
 [tool.setuptools_scm]
 write_to = "webview/_version.py"
+
+
+[project.entry-points."pyinstaller40"]
+hook-dirs = "webview.__pyinstaller:get_hook_dirs"

@@ -167,7 +167,7 @@ class BrowserView:
                 AppKit.NSApplicationActivateIgnoringOtherApps
             )
             alert = AppKit.NSAlert.alloc().init()
-            alert.setInformativeText_(message)
+            alert.setInformativeText_(str(message))
             alert.runModal()
 
             if not handler.__block_signature__:
