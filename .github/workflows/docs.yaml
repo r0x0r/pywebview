@@ -20,6 +20,7 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@example.com"
 
-          git fetch origin master --depth 1
+          git fetch origin
+          git checkout docs
           git merge origin/master --no-edit --allow-unrelated-histories
           git push origin docs
