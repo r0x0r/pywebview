@@ -21,6 +21,7 @@ jobs:
           git config user.email "actions@example.com"
 
           git fetch origin
+          git reset --hard origin/master
           git checkout docs
           git merge origin/master --no-edit --allow-unrelated-histories
           git push origin docs
