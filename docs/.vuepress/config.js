@@ -8,13 +8,16 @@ const examples = dirTree(path.join(__dirname, '../examples'), {extensions:/\.md/
 module.exports = {
   title: 'pywebview',
   description: 'Build GUI for your Python program with JavaScript, HTML, and CSS',
-  ga: 'UA-12494025-18',
-  plugins: {
-    '@vuepress/medium-zoom': {
-      selector: 'img.zoom',
-      options: {
-        margin: 16
-      }
+  locales: {
+    '/': {
+      lang: 'en-US',
+      title: 'pywebview',
+      description: 'Build GUI for your Python program with JavaScript, HTML, and CSS',
+    },
+    '/zh/': {
+      lang: 'zh-CN',
+      title: 'pywebview',
+      description: '使用 JavaScript、HTML 和 CSS 为 Python 程序构建 GUI',
     }
   },
   port: 8082,
@@ -25,6 +28,7 @@ module.exports = {
     editLinks: true,
     editLinkText: 'Help us improve this page!',
     logo: '/logo-no-text.png',
+    
     nav: [
       { text: 'Guide', link: '/guide/' },
       { text: 'Examples', link: '/examples/' },
@@ -75,3 +79,4 @@ module.exports = {
     }
   }
 }
+
