@@ -1,10 +1,10 @@
-Thanks for considering contributing to pywebview.
+感谢您考虑为 _pywebview_ 做出贡献。
 
-_pywebview_ is a small-time project, which gets updated sporadically whenever time permits. Any help is appreciated and the best way to contribute is submitting a pull request. Bug fixes are always welcome. If you wish to submit a new feature, please create an issue and discuss it beforehand.
+_pywebview_ 是一个小型项目，只要时间允许，它就会偶尔更新。任何帮助都值得赞赏，最好的贡献方式是提交拉取请求。错误修复总是受欢迎的。如果您想提交新功能，请创建一个 issue 并事先讨论。
 
-If you found a bug and want to report it, please test it first in a web-browser that is used by default for your operating system to see if the problem is with your code, rather than pywebview. Do not forget to specify on which platform and pywebview version it occurs.
+如果您发现错误并想报告它，请先在您的操作系统使用的 Web 浏览器中测试它，以查看问题是否与您的代码有关，而不是 _pywebview_。并且不要忘记指定它发生在哪个平台和 _pywebview_ 版本上。
 
-To support pywebview financially, consider sponsoring  the project. Pywebview has no corporate backing and financial help is welcomed to keep the project alive.
+要在经济上支持 _pywebview_，请考虑赞助该项目。_pywebview_ 没有公司支持，欢迎提供资金帮助以保持项目活力。
 
 <div class="center spc-l spc-vertical">
 	<a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button">
@@ -20,4 +20,4 @@ To support pywebview financially, consider sponsoring  the project. Pywebview ha
 
 
 
-For other ways to donate refer to the [donation](/contributing/donating.html) page.
+有关其他捐赠方式，请参阅[捐赠](/zh/contributing/donating.html) 页面。
