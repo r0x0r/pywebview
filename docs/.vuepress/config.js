@@ -3,7 +3,7 @@ const path = require('path');
 const { generateExamples } = require('./generate-examples');
 
 generateExamples(path.join(__dirname, '../../examples'), path.join(__dirname, '../examples'));
-generateExamples(path.join(__dirname, '../../examples'), path.join(__dirname, '../zh/examples'));
+
 const examples = dirTree(path.join(__dirname, '../examples'), { extensions: /\.md/ });
 
 module.exports = {
