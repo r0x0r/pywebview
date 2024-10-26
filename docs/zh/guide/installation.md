@@ -1,30 +1,30 @@
-# Installation
+# 安装
 
 ``` bash
 pip install pywebview
 ```
 
-This will install _pywebview_ with default dependencies. To install _pywebview_ with PySide2 (available on Linux and macOS and Windows) use
+这将安装带有默认依赖项的 _pywebview_ 。如果你想使用PySide2（在Linux、macOS和Windows上可用），请使用
 
 ``` bash
 pip install pywebview[qt]
 ```
 
-To install _pywebview_ with CEF (available on Windows) use
+要在 _pywebview_ 中使用CEF（在Windows上可用），请使用
 
 ``` bash
 pip install pywebview[cef]
 ```
 
-## Dependencies
+## 依赖
 
 ### Windows
 
-[pythonnet](https://github.com/pythonnet/pythonnet) (requires > .NET 4.0)
+[pythonnet](https://github.com/pythonnet/pythonnet) (需要 > .NET 4.0)
 
-To use with the latest Chromium you need [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). If you plan to distribute your software, check out [distribution guidelines](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution) too.
+要使用最新的Chromium，您需要安装[WebView2运行时](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). 如果您计划分发软件，请查看[分发指南](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution)。
 
-To use with CEF you need
+要使用CEF，您需要
 [cefpython](https://github.com/cztomczak/cefpython/)
 
 ``` bash
@@ -36,8 +36,8 @@ pip install cefpython3
 
 [pyobjc](https://pythonhosted.org/pyobjc/)
 
-`PyObjC` comes preinstalled with the Python bundled in macOS. For a stand-alone Python installation you have to install it separately.
-You can also use `PyQt5` or `PyQt6` in macOS.
+`PyObjC`预装在了了macOS中捆绑的Python。对于独立的Python安装，您必须单独安装`PyObjC`。
+您还可以在macOS中使用`PyQt5`或`PyQt6`。
 
 ### Linux
 
