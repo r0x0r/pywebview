@@ -124,7 +124,7 @@ class BrowserView(Widget):
             if event == 'onPageFinished':
                 value_callback = JavascriptValueCallback()
                 value_callback.setCallback(EventCallbackWrapper(loaded_callback))
-                self.webview.evaluateJavascript(inject_pywebview(self.window, renderer), value_callback)
+                inject_pywebview(renderer, self.window, self.webview.evaluateJavascript, (value_callback,))
 
                 if not _settings['private_mode']:
                     CookieManager.getInstance().setAcceptCookie(True)

@@ -328,5 +328,5 @@ window.pywebview = {
     };
   },
 };
-
-window.pywebview._createApi(JSON.parse('%(func_list)s'));
+alert(+new Date());
+debugger

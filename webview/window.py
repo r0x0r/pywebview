@@ -151,7 +151,7 @@ class Window:
         self.events.closed = Event(self)
         self.events.closing = Event(self, True)
         self.events.loaded = Event(self)
-        self.events.before_show = Event(self)
+        self.events.before_show = Event(self, True)
         self.events.shown = Event(self)
         self.events.minimized = Event(self)
         self.events.maximized = Event(self)

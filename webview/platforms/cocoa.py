@@ -180,7 +180,6 @@ class BrowserView:
             # Prevent `ObjCPointerWarning: PyObjCPointer created: ... type ^{__SecTrust=}`
             from Security import SecTrustRef
 
-
             # this allows any server cert
             credential = AppKit.NSURLCredential.credentialForTrust_(
                 challenge.protectionSpace().serverTrust()
@@ -302,9 +301,9 @@ class BrowserView:
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                script = inject_pywebview(i.js_bridge.window, 'cocoa')
-                i.webview.evaluateJavaScript_completionHandler_(script, lambda a, b: None)
                 i.loaded.set()
+
+                inject_pywebview('cocoa', i.js_bridge.window, i.webview.evaluateJavaScript_completionHandler_, (lambda a, b: None,))
 
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):

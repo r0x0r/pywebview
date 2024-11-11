@@ -593,16 +593,10 @@ class BrowserView:
 
     def _set_js_api(self):
         def create_bridge():
-            script = inject_pywebview(self.js_bridge.window, renderer)
-            self.webview.evaluate_javascript(
-                    script=script,
-                    length=len(script),
-                    world_name=None,
-                    source_uri=None,
-                    cancellable=None,
-                    callback=None)
-
             self.loaded.set()
+            inject_pywebview(renderer, self.js_bridge.window, self.webview.evaluate_javascript, [
+                -1, None, None, None, None
+            ])
 
         glib.idle_add(create_bridge)
 

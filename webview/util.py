@@ -17,7 +17,7 @@ from glob import glob
 from http.cookies import SimpleCookie
 from platform import architecture
 from threading import Thread
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 from uuid import uuid4
 
 import webview
@@ -132,7 +132,7 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def inject_pywebview(window: Window, platform: str) -> str:
+def inject_pywebview(platform: str, window: Window, eval_func: Callable, eval_params: list = []) -> str:
     """"
     Generates and injects a global window.pywebview object
     """
@@ -177,13 +177,15 @@ def inject_pywebview(window: Window, platform: str) -> str:
 
         return [{'func': name, 'params': params} for name, params in functions.items()]
 
+    js_code, finish_script = load_js_files(window, platform)
+    eval_func(js_code, *eval_params)
+
     try:
         func_list = generate_func()
+        eval_func(finish_script % {'functions': json.dumps(func_list)}, *eval_params)
     except Exception as e:
         logger.exception(e)
         func_list = []
-
-    js_code = load_js_files(window, func_list, platform)
     return js_code
 
 
@@ -266,11 +268,12 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         logger.error('Function %s() does not exist', func_name)
 
 
-def load_js_files(window: Window, func_list, platform: str) -> str:
+def load_js_files(window: Window, platform: str) -> str:
     js_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'js')
     js_files = glob(os.path.join(js_dir, '**', '*.js'), recursive=True)
     ordered_js_files = sort_js_files(js_files)
     js_code = ''
+    finish_script = ''
 
     for file in ordered_js_files:
         with open(file, 'r') as f:
@@ -283,7 +286,6 @@ def load_js_files(window: Window, func_list, platform: str) -> str:
                     'token': _TOKEN,
                     'platform': platform,
                     'uid': window.uid,
-                    'func_list': json.dumps(func_list),
                     'js_api_endpoint': window.js_api_endpoint,
                 }
             elif name == 'customize':
@@ -294,12 +296,14 @@ def load_js_files(window: Window, func_list, platform: str) -> str:
                     'draggable': str(window.draggable),
                     'easy_drag': str(platform == 'chromium' and window.easy_drag and window.frameless).lower(),
                 }
+            elif name == 'finish':
+                finish_script = content
             elif name == 'polyfill' and platform != 'mshtml':
                 continue
 
             js_code += content % params
 
-    return js_code
+    return js_code, finish_script
 
 
 def sort_js_files(js_files: list[str]) -> list[str]:

@@ -792,8 +792,6 @@ class BrowserView(QMainWindow):
         def _register_window_object():
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
-        script = inject_pywebview(self.js_bridge.window, renderer)
-
         if is_webengine:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
             if qwebchannel_js.open(QtCore.QFile.ReadOnly):
@@ -805,12 +803,13 @@ class BrowserView(QMainWindow):
             frame = self.webview.page().mainFrame()
             _register_window_object()
 
-        try:
-            self.webview.page().runJavaScript(script)
-        except AttributeError:  # < QT 5.6
-            self.webview.page().mainFrame().evaluateJavaScript(script)
-
         self.pywebview_window.events.loaded.set()
+
+        try:
+            inject_pywebview(renderer, self.js_bridge.window, self.webview.page().runJavaScript)
+        except AttributeError:  # < QT 5.6
+            inject_pywebview(renderer, self.js_bridge.window, self.webview.page().mainFrame().evaluateJavaScript)
+
 
     @staticmethod
     def _convert_string(result):

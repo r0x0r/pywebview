@@ -286,6 +286,6 @@ class EdgeChrome:
     def on_navigation_completed(self, sender, _):
         url = str(sender.Source)
         self.url = None if self.ishtml else url
-
-        self.webview.ExecuteScriptAsync(inject_pywebview(self.pywebview_window, renderer))
         self.pywebview_window.events.loaded.set()
+
+        inject_pywebview(renderer, self.pywebview_window, self.webview.ExecuteScriptAsync)
