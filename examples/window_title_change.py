@@ -1,14 +1,15 @@
 """Change window title every three seconds."""
 
-import time
-
 import webview
 
 
 def change_title(window):
     """changes title every 3 seconds"""
     for i in range(1, 100):
-        time.sleep(3)
+        # exit loop when window is closed
+        if window.events.closed.wait(3):
+            break
+
         window.title = f'New Title #{i}'
         print(window.title)
 
