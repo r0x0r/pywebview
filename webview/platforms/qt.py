@@ -803,13 +803,7 @@ class BrowserView(QMainWindow):
             frame = self.webview.page().mainFrame()
             _register_window_object()
 
-        self.pywebview_window.events.loaded.set()
-
-        try:
-            inject_pywebview(renderer, self.js_bridge.window, self.webview.page().runJavaScript)
-        except AttributeError:  # < QT 5.6
-            inject_pywebview(renderer, self.js_bridge.window, self.webview.page().mainFrame().evaluateJavaScript)
-
+        inject_pywebview(renderer, self.js_bridge.window)
 
     @staticmethod
     def _convert_string(result):

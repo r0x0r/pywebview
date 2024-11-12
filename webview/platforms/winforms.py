@@ -354,7 +354,6 @@ class BrowserView:
             semaphore = Semaphore(0)
             js_result = []
 
-            self.loaded.wait()
             self.Invoke(Func[Type](_evaluate_js))
             semaphore.acquire()
 
@@ -382,8 +381,6 @@ class BrowserView:
             if not is_chromium:
                 logger.error('get_cookies() is not implemented for this platform')
                 return cookies
-
-            self.loaded.wait()
 
             semaphore = Semaphore(0)
 

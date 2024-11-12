@@ -9,3 +9,4 @@ if (window.pywebview.platform == 'qtwebengine') {
   window.dispatchEvent(new CustomEvent('pywebviewready'));
 }
 
+12

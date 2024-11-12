@@ -132,7 +132,7 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def inject_pywebview(platform: str, window: Window, eval_func: Callable, eval_params: list = []) -> str:
+def inject_pywebview(platform: str, window: Window) -> str:
     """"
     Generates and injects a global window.pywebview object
     """
@@ -177,17 +177,17 @@ def inject_pywebview(platform: str, window: Window, eval_func: Callable, eval_pa
 
         return [{'func': name, 'params': params} for name, params in functions.items()]
 
+    window.events.before_load.set()
     js_code, finish_script = load_js_files(window, platform)
-    eval_func(js_code, *eval_params)
+    window.run_js(js_code)
 
     try:
         func_list = generate_func()
-        eval_func(finish_script % {'functions': json.dumps(func_list)}, *eval_params)
+        window.run_js(finish_script % {'functions': json.dumps(func_list)})
     except Exception as e:
         logger.exception(e)
-        func_list = []
-    return js_code
 
+    window.events.loaded.set()
 
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
     def _call():
@@ -298,6 +298,7 @@ def load_js_files(window: Window, platform: str) -> str:
                 }
             elif name == 'finish':
                 finish_script = content
+                continue
             elif name == 'polyfill' and platform != 'mshtml':
                 continue
 

@@ -7,7 +7,7 @@ import urllib
 import logging
 import webbrowser
 from collections.abc import Callable
-from threading import Semaphore, Thread, main_thread
+from threading import Semaphore, Thread, current_thread, main_thread
 
 import AppKit
 import Foundation
@@ -31,18 +31,6 @@ info['NSRequiresAquaSystemAppearance'] = Foundation.NO  # Enable dark mode suppo
 
 # Dynamic library required by BrowserView.pyobjc_method_signature()
 _objc_so = ctypes.cdll.LoadLibrary(_objc.__file__)
-
-# Bridgesupport metadata for [WKWebView evaluateJavaScript:completionHandler:]
-_eval_js_metadata = {
-    'arguments': {
-        3: {
-            'callable': {
-                'retval': {'type': b'v'},
-                'arguments': {0: {'type': b'^v'}, 1: {'type': b'@'}, 2: {'type': b'@'}},
-            }
-        }
-    }
-}
 
 # Fallbacks, in case these constants are not wrapped by PyObjC
 try:
@@ -301,9 +289,7 @@ class BrowserView:
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                i.loaded.set()
-
-                inject_pywebview('cocoa', i.js_bridge.window, i.webview.evaluateJavaScript_completionHandler_, (lambda a, b: None,))
+                inject_pywebview('cocoa', i.js_bridge.window)
 
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):
@@ -604,13 +590,6 @@ class BrowserView:
 
         self.pywebview_window.events.before_show.set()
 
-        try:
-            self.webview.evaluateJavaScript_completionHandler_('', lambda a, b: None)
-        except TypeError:
-            registerMetaDataForSelector(
-                b'WKWebView', b'evaluateJavaScript:completionHandler:', _eval_js_metadata
-            )
-
         if window.real_url:
             self.url = window.real_url
             self.load_url(window.real_url)
@@ -796,17 +775,22 @@ class BrowserView:
             self.webview.evaluateJavaScript_completionHandler_(script, handler)
 
         def handler(result, error):
-            JSResult.result = None if result is None else json.loads(result)
+            try:
+                JSResult.result = json.loads(result)
+            except TypeError:
+                JSResult.result = result
+
             JSResult.result_semaphore.release()
 
         class JSResult:
             result = None
             result_semaphore = Semaphore(0)
 
-        self.loaded.wait()
-        AppHelper.callAfter(eval)
-
-        JSResult.result_semaphore.acquire()
+        if main_thread() == current_thread():
+            eval()
+        else:
+            AppHelper.callAfter(eval)
+            JSResult.result_semaphore.acquire()
         return JSResult.result
 
     def create_file_dialog(

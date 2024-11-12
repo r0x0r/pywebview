@@ -114,17 +114,12 @@ class BrowserView(Widget):
         def js_api_handler(func, params, id):
             js_bridge_call(self.window, func, json.loads(params), id)
 
-        def loaded_callback(event, data):
-            self.window.events.loaded.set()
-
         def chrome_callback(event, data):
             print(event, data)
 
         def webview_callback(event, data):
             if event == 'onPageFinished':
-                value_callback = JavascriptValueCallback()
-                value_callback.setCallback(EventCallbackWrapper(loaded_callback))
-                inject_pywebview(renderer, self.window, self.webview.evaluateJavascript, (value_callback,))
+                inject_pywebview(renderer, self.window)
 
                 if not _settings['private_mode']:
                     CookieManager.getInstance().setAcceptCookie(True)

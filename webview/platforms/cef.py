@@ -116,8 +116,7 @@ class Browser:
         self.cookie_visitor = CookieVisitor()
 
         self.browser.GetJavascriptBindings().Rebind()
-        self.loaded.set()
-        inject_pywebview('cef', self.window, self.browser.ExecuteJavascript)
+        inject_pywebview('cef', self.window)
 
         sleep(0.1)  # wait for window.pywebview to load
         self.initialized = True
@@ -142,8 +141,6 @@ class Browser:
         self.browser.NotifyMoveOrResizeStarted()
 
     def evaluate_js(self, code, unique_id):
-        self.loaded.wait()
-
         self.eval_events[unique_id] = Event()
         eval_script = """
             try {{
@@ -167,12 +164,10 @@ class Browser:
         return result
 
     def clear_cookies(self):
-        self.loaded.wait()
         self.cookie_manager.DeleteCookies('', '')
         self.cookie_manager.FlushStore()
 
     def get_cookies(self):
-        self.loaded.wait()
         self.cookie_visitor.cookies = []
         self.cookie_visitor.lock = Event()
         self.cookie_manager.VisitUrlCookies(self.browser.GetUrl(), True, self.cookie_visitor)
@@ -181,7 +176,6 @@ class Browser:
         return self.cookie_visitor.cookies
 
     def get_current_url(self):
-        self.loaded.wait()
         return self.browser.GetUrl()
 
     def load_url(self, url):

@@ -518,8 +518,6 @@ class BrowserView:
 
             semaphore.release()
 
-        self.loaded.wait()
-
         cookies = []
         semaphore = Semaphore(0)
         glib.idle_add(_get_cookies)
@@ -528,7 +526,6 @@ class BrowserView:
         return cookies
 
     def get_current_url(self):
-        self.loaded.wait()
         uri = self.webview.get_uri()
         return uri if uri != 'about:blank' else None
 
@@ -563,7 +560,6 @@ class BrowserView:
         result_semaphore = Semaphore(0)
         self.js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
 
-        self.loaded.wait()
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
 
@@ -593,10 +589,7 @@ class BrowserView:
 
     def _set_js_api(self):
         def create_bridge():
-            self.loaded.set()
-            inject_pywebview(renderer, self.js_bridge.window, self.webview.evaluate_javascript, [
-                -1, None, None, None, None
-            ])
+            inject_pywebview(renderer, self.js_bridge.window)
 
         glib.idle_add(create_bridge)
 

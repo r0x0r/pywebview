@@ -36,7 +36,8 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
 
     @wraps(function)
     def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
-        event = self.events.loaded if event_type == 'loaded' else self.events.shown
+
+        event = getattr(self.events, event_type)
 
         try:
             if not event.wait(20):
@@ -58,6 +59,9 @@ def _shown_call(function: Callable[P, T]) -> Callable[P, T]:
 
 def _loaded_call(function: Callable[P, T]) -> Callable[P, T]:
     return _api_call(function, 'loaded')
+
+def _before_load_call(function: Callable[P, T]) -> Callable[P, T]:
+    return _api_call(function, 'before_load')
 
 
 class FixPoint(Flag):
@@ -151,6 +155,7 @@ class Window:
         self.events.closed = Event(self)
         self.events.closing = Event(self, True)
         self.events.loaded = Event(self)
+        self.events.before_load = Event(self, True)
         self.events.before_show = Event(self, True)
         self.events.shown = Event(self)
         self.events.minimized = Event(self)
@@ -390,6 +395,14 @@ class Window:
         """
         self.gui.move(x, y, self.uid)
 
+    @_before_load_call
+    def run_js(self, script: str, callback=None, raw=False) -> None:
+        """
+        Run JavaScript code in the target window
+        :param script: JavaScript code to run
+        """
+        self.gui.evaluate_js(script, self.uid)
+
     @_loaded_call
     def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None, raw=False) -> Any:
         """
@@ -428,6 +441,8 @@ class Window:
             )
         else:
             escaped_script = f"""
+                console.log("evaluating script at " +  +new Date());
+
                 var value;
                 try {{
                     value = eval("{escape_string(script)}");
