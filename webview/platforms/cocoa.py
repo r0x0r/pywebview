@@ -106,7 +106,7 @@ class BrowserView:
             i.closed.set()
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
-                BrowserView.app.abortModal_()
+                BrowserView.app.abortModal()
 
         def windowDidResize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
