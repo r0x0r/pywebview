@@ -177,17 +177,22 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
         return [{'func': name, 'params': params} for name, params in functions.items()]
 
+    def generate_js_object():
+        window.run_js(js_code)
+
+        try:
+            func_list = generate_func()
+            window.run_js(finish_script % {'functions': json.dumps(func_list)})
+        except Exception as e:
+            logger.exception(e)
+
+        window.events.loaded.set()
+
     window.events.before_load.set()
     js_code, finish_script = load_js_files(window, platform)
-    window.run_js(js_code)
+    thread = Thread(target=generate_js_object)
+    thread.start()
 
-    try:
-        func_list = generate_func()
-        window.run_js(finish_script % {'functions': json.dumps(func_list)})
-    except Exception as e:
-        logger.exception(e)
-
-    window.events.loaded.set()
 
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
     def _call():

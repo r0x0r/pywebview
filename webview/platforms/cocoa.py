@@ -786,11 +786,8 @@ class BrowserView:
             result = None
             result_semaphore = Semaphore(0)
 
-        if main_thread() == current_thread():
-            eval()
-        else:
-            AppHelper.callAfter(eval)
-            JSResult.result_semaphore.acquire()
+        AppHelper.callAfter(eval)
+        JSResult.result_semaphore.acquire()
         return JSResult.result
 
     def create_file_dialog(
