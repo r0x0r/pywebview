@@ -8,5 +8,3 @@ if (window.pywebview.platform == 'qtwebengine') {
 } else {
   window.dispatchEvent(new CustomEvent('pywebviewready'));
 }
-
-12

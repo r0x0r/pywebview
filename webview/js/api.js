@@ -328,5 +328,3 @@ window.pywebview = {
     };
   },
 };
-console.log('pyewbview loaded at: ', +new Date());
-debugger

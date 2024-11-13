@@ -777,7 +777,7 @@ class BrowserView:
         def handler(result, error):
             try:
                 JSResult.result = json.loads(result)
-            except TypeError:
+            except Exception:
                 JSResult.result = result
 
             JSResult.result_semaphore.release()

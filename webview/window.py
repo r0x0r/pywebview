@@ -401,7 +401,7 @@ class Window:
         Run JavaScript code in the target window
         :param script: JavaScript code to run
         """
-        self.gui.evaluate_js(script, self.uid)
+        return self.gui.evaluate_js(script, self.uid)
 
     @_loaded_call
     def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None, raw=False) -> Any:
@@ -441,8 +441,6 @@ class Window:
             )
         else:
             escaped_script = f"""
-                console.log("evaluating script at " +  +new Date());
-
                 var value;
                 try {{
                     value = eval("{escape_string(script)}");

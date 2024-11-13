@@ -641,13 +641,11 @@ class BrowserView(QMainWindow):
             uuid_ = BrowserView._convert_string(uuid)
 
             js_result = self._js_results[uuid_]
-            js_result['result'] = (
-                None
-                if result is None or result == 'null'
-                else result
-                if result == ''
-                else json.loads(result)
-            )
+            try:
+                js_result['result'] = json.loads(result)
+            except Exception:
+                js_result['result'] = result
+
             js_result['semaphore'].release()
 
         try:  # < Qt5.6

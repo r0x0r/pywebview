@@ -88,13 +88,15 @@ class EdgeChrome:
         )
 
     def evaluate_js(self, script, semaphore, js_result, callback=None):
-        def _callback(result):
+        def _callback(res):
             if callback is None:
-                result = None if result is None or result == '' else json.loads(result)
+                try:
+                    result = json.loads(res)
+                except Exception:
+                    result = res
                 js_result.append(result)
                 semaphore.release()
             else:
-                # future js callback option to handle async js method
                 callback(result)
                 js_result.append(None)
                 semaphore.release()
@@ -169,6 +171,7 @@ class EdgeChrome:
         args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
 
     def on_script_notify(self, _, args):
+        print(args)
         try:
             return_value = args.get_WebMessageAsJson()
 

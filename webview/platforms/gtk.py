@@ -548,34 +548,26 @@ class BrowserView:
                     callback=_callback)
 
         def _callback(webview, task):
-            value = webview.evaluate_javascript_finish(task)
-            result = value.to_string() if value else None
-
-            if unique_id in self.js_results:
-                self.js_results[unique_id]['result'] = result
+            nonlocal result
+            try: 
+                value = webview.evaluate_javascript_finish(task)
+                result = value.to_string() if value else None
+            except Exception as e:
+                logger.exception(e)
+                result = None
 
             result_semaphore.release()
 
-        unique_id = uuid1().hex
         result_semaphore = Semaphore(0)
-        self.js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
-
+        result = None
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
 
-        result = self.js_results[unique_id]['result']
-        result = (
-            None
-            if result == 'undefined' or result == 'null' or result is None
-            else result
-            if result == ''
-            else json.loads(result)
-        )
-
-        del self.js_results[unique_id]
-
-        return result
-
+        try:
+            return json.loads(result)
+        except Exception:
+            return result 
+            
     def message_box(self, message):
         dialog = gtk.MessageDialog(
             parent=self.window,

@@ -21,9 +21,31 @@ for:
       - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
 
       - "%CMD_IN_ENV% pip install -r requirements.txt"
-      - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\" pythonnet bottle .[cef]"
+      - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\""
     test_script:
       - cd tests
+      - powershell -File ./run.ps1
+  -
+    matrix:
+      only:
+        - image: Visual Studio 2022
+        - job_name: Windows
+    environment:
+      PYTHON: "C:\\Python37-x64"
+      PYTHON_VERSION: "3.7.x"
+      PYTHON_ARCH: "64"
+      APPVEYOR_BAKE_IMAGE: pywebview-visualstudio2022
+    install:
+      - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+      - "choco install webview2-runtime --ignore-checksums"
+      - "python --version"
+      - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
+
+      - "%CMD_IN_ENV% pip install -r requirements.txt"
+      - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\" cefpython3"
+    test_script:
+      - cd tests
+      - set PYWEBVIEW_GUI=cef
       - powershell -File ./run.ps1
   -
     matrix:
