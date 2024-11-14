@@ -641,9 +641,14 @@ class BrowserView(QMainWindow):
             uuid_ = BrowserView._convert_string(uuid)
 
             js_result = self._js_results[uuid_]
-            try:
-                js_result['result'] = json.loads(result)
-            except Exception:
+
+            if js_result['parse_json']:
+                try:
+                    js_result['result'] = json.loads(result)
+                except Exception:
+                    logger.exception('Failed to parse JSON: %s', result)
+                    js_result['result'] = result
+            else:
                 js_result['result'] = result
 
             js_result['semaphore'].release()
@@ -772,11 +777,11 @@ class BrowserView(QMainWindow):
     def set_on_top(self, top):
         self.on_top_trigger.emit(top)
 
-    def evaluate_js(self, script):
+    def evaluate_js(self, script, parse_json):
         self.pywebview_window.events.loaded.wait()
         result_semaphore = Semaphore(0)
         unique_id = uuid1().hex
-        self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': ''}
+        self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': '', 'parse_json': parse_json }
 
         self.evaluate_js_trigger.emit(script, unique_id)
         result_semaphore.acquire()
@@ -1055,10 +1060,10 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
-def evaluate_js(script, uid):
+def evaluate_js(script, uid, parse_json=True):
     i = BrowserView.instances.get(uid)
     if i:
-        return i.evaluate_js(script)
+        return i.evaluate_js(script, parse_json)
 
 
 def get_position(uid):

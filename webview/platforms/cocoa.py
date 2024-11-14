@@ -770,14 +770,18 @@ class BrowserView:
         self.loaded.clear()
         AppHelper.callAfter(load, content, base_uri)
 
-    def evaluate_js(self, script):
+    def evaluate_js(self, script, parse_json):
         def eval():
             self.webview.evaluateJavaScript_completionHandler_(script, handler)
 
         def handler(result, error):
-            try:
-                JSResult.result = json.loads(result)
-            except Exception:
+            if parse_json:
+                try:
+                    JSResult.result = json.loads(result)
+                except Exception:
+                    logger.exception('Failed to parse JSON: ' + result)
+                    JSResult.result = result
+            else:
                 JSResult.result = result
 
             JSResult.result_semaphore.release()
@@ -1316,10 +1320,10 @@ def get_cookies(uid):
         return i.get_cookies()
 
 
-def evaluate_js(script, uid):
+def evaluate_js(script, uid, parse_json=True):
     i = BrowserView.instances.get(uid)
     if i:
-        return i.evaluate_js(script)
+        return i.evaluate_js(script, parse_json)
 
 
 def get_position(uid):

@@ -87,19 +87,17 @@ class EdgeChrome:
             self.syncContextTaskScheduler,
         )
 
-    def evaluate_js(self, script, semaphore, js_result, callback=None):
+    def evaluate_js(self, script, semaphore, js_result, parse_json):
         def _callback(res):
-            if callback is None:
+            if parse_json:
                 try:
                     result = json.loads(res)
                 except Exception:
                     result = res
-                js_result.append(result)
-                semaphore.release()
             else:
-                callback(result)
-                js_result.append(None)
-                semaphore.release()
+                result = res
+            js_result.append(result)
+            semaphore.release()
 
         try:
             self.webview.ExecuteScriptAsync(script).ContinueWith(

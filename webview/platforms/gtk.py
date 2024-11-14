@@ -537,7 +537,7 @@ class BrowserView:
         self.loaded.clear()
         self.webview.load_html(content, base_uri)
 
-    def evaluate_js(self, script):
+    def evaluate_js(self, script, parse_json):
         def _evaluate_js():
             self.webview.evaluate_javascript(
                     script=script,
@@ -549,9 +549,9 @@ class BrowserView:
 
         def _callback(webview, task):
             nonlocal result
-            try: 
+            try:
                 value = webview.evaluate_javascript_finish(task)
-                result = value.to_string() if value else None
+                result = self._convert_js_value(value)
             except Exception as e:
                 logger.exception(e)
                 result = None
@@ -563,11 +563,14 @@ class BrowserView:
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
 
-        try:
-            return json.loads(result)
-        except Exception:
-            return result 
-            
+        if parse_json:
+            try:
+                return json.loads(result)
+            except Exception:
+                pass
+
+        return result
+
     def message_box(self, message):
         dialog = gtk.MessageDialog(
             parent=self.window,
@@ -584,6 +587,26 @@ class BrowserView:
             inject_pywebview(renderer, self.js_bridge.window)
 
         glib.idle_add(create_bridge)
+
+    def _convert_js_value(self, js_value):
+        if not js_value or js_value.is_null() or js_value.is_undefined():
+            return None
+        elif js_value.is_boolean():
+            return js_value.to_boolean()
+        elif js_value.is_number():
+            return js_value.to_double()
+        elif js_value.is_string():
+            return js_value.to_string()
+        elif js_value.is_object():
+            js_object = js_value.to_object()
+            python_dict = {}
+            properties = js_object.get_property_names()
+            for prop in properties:
+                python_dict[prop] = self._js_value_to_python(js_object.get_property(prop))
+            return python_dict
+        else:
+            logger.error(f'Unsupported JavaScriptCore.Value type: {js_value}')
+            return js_value.to_string()
 
 
 def setup_app():
@@ -868,11 +891,11 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     return file_names[0]
 
 
-def evaluate_js(script, uid):
+def evaluate_js(script, uid, parse_json=True):
     i = BrowserView.instances.get(uid)
 
     if i:
-        return i.evaluate_js(script)
+        return i.evaluate_js(script, parse_json)
 
 
 def get_position(uid):

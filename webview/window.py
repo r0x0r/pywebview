@@ -401,7 +401,9 @@ class Window:
         Run JavaScript code in the target window
         :param script: JavaScript code to run
         """
-        return self.gui.evaluate_js(script, self.uid)
+        if self.gui.renderer == 'cef':
+            return self.gui.evaluate_js(script, self.uid, None, False)
+        return self.gui.evaluate_js(script, self.uid, False)
 
     @_loaded_call
     def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None, raw=False) -> Any:
@@ -415,30 +417,26 @@ class Window:
         self._callbacks[unique_id] = callback
 
         if self.gui.renderer == 'cef':
-            sync_eval = 'window.external.return_result(pywebview._stringify(value), "{0}");'.format(
-                unique_id,
-            )
+            return_result = f'window.external.return_result(pywebview._stringify(value), "{unique_id}");'
         elif self.gui.renderer == 'android-webkit':
-            sync_eval = 'return pywebview._stringify(value);'
+            return_result = 'return pywebview._stringify(value);'
         else:
-            sync_eval = 'pywebview._stringify(value);'
+            return_result = 'pywebview._stringify(value);'
 
         if raw:
             escaped_script = escape_string(script)
         elif callback:
-            escaped_script = """
-                var value = eval("{0}");
+            escaped_script = f"""
+                var value = eval("{escape_string(script)}");
                 if (pywebview._isPromise(value)) {{
                     value.then(function evaluate_async(result) {{
-                        pywebview._asyncCallback(pywebview._stringify(result), "{1}")
+                        pywebview._asyncCallback(pywebview._stringify(result), "{unique_id}")
                     }}).catch(function evaluate_async(error) {{
-                        pywebview._asyncCallback(pywebview._stringify(error), "{1}")
+                        pywebview._asyncCallback(pywebview._stringify(error), "{unique_id}")
                     }});
                     "true";
-                }} else {{ {2} }}
-            """.format(
-                escape_string(script), unique_id, sync_eval
-            )
+                }} else {{ {return_result} }}
+            """
         else:
             escaped_script = f"""
                 var value;
@@ -452,11 +450,11 @@ class Window:
                     var keys = Object.getOwnPropertyNames(e);
                     keys.forEach(function(key) {{ value[key] = e[key] }})
                 }}
-                {sync_eval};
+                {return_result};
             """
 
         if self.gui.renderer == 'cef':
-            result = self.gui.evaluate_js(escaped_script, self.uid, unique_id)
+            result = self.gui.evaluate_js(escaped_script, self.uid, unique_id, True)
         elif self.gui.renderer == 'android-webkit' and not raw:
             escaped_script = f"""
                 (function() {{

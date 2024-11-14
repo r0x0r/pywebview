@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import sys
+from uuid import uuid4
 import webbrowser
 from copy import copy
 from ctypes import windll
@@ -63,6 +64,7 @@ class JSBridge:
         self.eval_events = eval_events
 
     def return_result(self, result, uid):
+        print(result)
         self.results[uid] = json.loads(result) if result else None
         self.eval_events[uid].set()
 
@@ -140,28 +142,31 @@ class Browser:
         )
         self.browser.NotifyMoveOrResizeStarted()
 
-    def evaluate_js(self, code, unique_id):
+    def evaluate_js(self, code, unique_id, parse_json):
         self.eval_events[unique_id] = Event()
-        eval_script = """
-            try {{
-                {0}
-            }} catch(e) {{
-                console.error(e.stack);
-                window.external.return_result(null, '{1}');
-            }}
-        """.format(
-            code, unique_id
-        )
 
-        result = self.browser.ExecuteJavascript(eval_script)
-        self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
+        if unique_id:
+            eval_script = f"""
+                try {{
+                    {code}
+                }} catch(e) {{
+                    console.error(e.stack);
+                    window.external.return_result(null, '{unique_id}');
+                }}
+            """
 
-        result = copy(self.js_bridge.results[unique_id])
+            self.browser.ExecuteJavascript(eval_script)
+            self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
 
-        del self.eval_events[unique_id]
-        del self.js_bridge.results[unique_id]
+            result = copy(self.js_bridge.results[unique_id])
 
-        return result
+            del self.eval_events[unique_id]
+            del self.js_bridge.results[unique_id]
+
+            return result
+        else:
+            self.browser.ExecuteJavascript(code)
+            return None
 
     def clear_cookies(self):
         self.cookie_manager.DeleteCookies('', '')
@@ -336,9 +341,9 @@ def load_url(url, uid):
 
 
 @_cef_call
-def evaluate_js(code, result, uid):
+def evaluate_js(code, unique_id, parse_json, uid):
     instance = instances[uid]
-    return instance.evaluate_js(code, result)
+    return instance.evaluate_js(code, unique_id, parse_json)
 
 
 @_cef_call

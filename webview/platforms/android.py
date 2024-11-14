@@ -306,11 +306,10 @@ def load_html(html_content, base_uri, _):
     app.view.webview.loadDataWithBaseURL(base_uri, html_content, 'text/html', 'UTF-8', None)
 
 
-def evaluate_js(js_code, unique_id):
+def evaluate_js(js_code, _, parse_json=True):
     def callback(event, result):
         nonlocal js_result
-        result = json.loads(result)
-        js_result = json.loads(result) if result else None
+        js_result = json.loads(result) if parse_json else result
         lock.release()
 
     def _evaluate_js():

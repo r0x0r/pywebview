@@ -168,9 +168,9 @@ class MSHTML:
         self.form = form
         form.Controls.Add(self.webview)
 
-    def evaluate_js(self, script):
+    def evaluate_js(self, script, parse_json=True):
         result = self.webview.Document.InvokeScript('eval', (script,))
-        self.js_result = None if result is None or result == 'null' else json.loads(result)  ##
+        self.js_result = json.loads(result) if result and parse_json else result
         self.js_result_semaphore.release()
 
     def load_html(self, content, base_uri):

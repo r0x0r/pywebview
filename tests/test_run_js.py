@@ -19,17 +19,10 @@ def test_int(window):
     run_test(webview, window, int_test)
 
 
-
-
-
 def string_test(window):
     result = window.run_js(
-        """
-    function getValue() {
-        return "this is only a test"
-    }
-
-    getValue()
+    """
+    "this is only a test"
     """
     )
     assert result == 'this is only a test'
@@ -37,11 +30,17 @@ def string_test(window):
 
 def int_test(window):
     result = window.run_js(
-        """
+    """
     420
     """
     )
     assert result == 420
 
 
-
+def numeric_test(window):
+    result = window.run_js(
+    """
+    '420'
+    """
+    )
+    assert result == '420'

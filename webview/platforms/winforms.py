@@ -345,11 +345,11 @@ class BrowserView:
         def on_move(self, sender, args):
             self.pywebview_window.events.moved.set(self.Location.X, self.Location.Y)
 
-        def evaluate_js(self, script):
+        def evaluate_js(self, script, parse_json):
             def _evaluate_js():
                 self.browser.evaluate_js(
-                    script, semaphore, js_result
-                ) if is_chromium else self.browser.evaluate_js(script)
+                    script, semaphore, js_result, parse_json
+                ) if is_chromium else self.browser.evaluate_js(script, parse_json)
 
             semaphore = Semaphore(0)
             js_result = []
@@ -925,13 +925,13 @@ def destroy_window(uid):
         i.browser.js_result_semaphore.release()
 
 
-def evaluate_js(script, uid, result_id=None):
+def evaluate_js(script, uid, result_id, parse_json):
     if is_cef:
-        return CEF.evaluate_js(script, result_id, uid)
+        return CEF.evaluate_js(script, result_id, parse_json, uid)
 
     i = BrowserView.instances.get(uid)
     if i:
-        return i.evaluate_js(script)
+        return i.evaluate_js(script, parse_json)
 
 
 def get_position(uid):
