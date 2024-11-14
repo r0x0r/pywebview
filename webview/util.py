@@ -134,7 +134,9 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
 
 def inject_pywebview(platform: str, window: Window) -> str:
     """"
-    Generates and injects a global window.pywebview object
+    Generates and injects a global window.pywebview object. The object contains exposed API functions
+    as well as utility functions required by pywebview. The function fires before_load event before
+    injecting the object and loaded event after the object is injected.
     """
     exposed_objects = []
 
@@ -195,6 +197,10 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
 
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
+    """
+    Calls a function from the JS API and executes it in Python. The function is executed in a separate
+    thread to prevent blocking the UI thread. The result is then passed back to the JS API.
+    """
     def _call():
         try:
             result = func(*func_params)
