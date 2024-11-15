@@ -925,7 +925,7 @@ def destroy_window(uid):
         i.browser.js_result_semaphore.release()
 
 
-def evaluate_js(script, uid, result_id, parse_json):
+def evaluate_js(script, uid, parse_json, result_id=None):
     if is_cef:
         return CEF.evaluate_js(script, result_id, parse_json, uid)
 

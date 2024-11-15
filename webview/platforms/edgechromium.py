@@ -169,7 +169,6 @@ class EdgeChrome:
         args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
 
     def on_script_notify(self, _, args):
-        print(args)
         try:
             return_value = args.get_WebMessageAsJson()
 
