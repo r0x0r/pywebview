@@ -10,11 +10,11 @@
         }
     } else if (platform == 'edgechromium') {
         window.alert = function (message) {
-            window.chrome.webview.postMessage(['_pywebviewAlert', pywebview._stringify(message), 'alert']);
+            window.chrome.webview.postMessage(['_pywebviewAlert', pywebview.stringify(message), 'alert']);
         }
     } else if (platform == 'gtkwebkit2') {
         window.alert = function (message) {
-            window.webkit.messageHandlers.jsBridge.postMessage(pywebview._stringify({funcName: '_pywebviewAlert', params: message, id: 'alert'}));
+            window.webkit.messageHandlers.jsBridge.postMessage(pywebview.stringify({funcName: '_pywebviewAlert', params: message, id: 'alert'}));
         }
     } else if (platform == 'cocoa') {
         window.print = function() {
@@ -22,7 +22,7 @@
         }
     } else if (platform === 'qtwebengine') {
         window.alert = function (message) {
-            window.pywebview._QWebChannel.objects.external.call('_pywebviewAlert', pywebview._stringify(message), 'alert');
+            window.pywebview._QWebChannel.objects.external.call('_pywebviewAlert', pywebview.stringify(message), 'alert');
         }
     } else if (platform === 'qtwebkit') {
         window.alert = function (message) {

@@ -279,7 +279,7 @@ class Window:
         """
         sanitized_css = stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
         js_code = f'pywebview._loadCss("{sanitized_css}")'
-        self.gui.evaluate_js(js_code, self.uid)
+        self.run_js(js_code)
 
     @_shown_call
     def set_title(self, title: str) -> None:
@@ -415,11 +415,11 @@ class Window:
         self._callbacks[unique_id] = callback
 
         if self.gui.renderer == 'cef':
-            return_result = f'window.external.return_result(pywebview._stringify(value), "{unique_id}");'
+            return_result = f'window.external.return_result(pywebview.stringify(value), "{unique_id}");'
         elif self.gui.renderer == 'android-webkit':
-            return_result = 'return pywebview._stringify(value);'
+            return_result = 'return pywebview.stringify(value);'
         else:
-            return_result = 'pywebview._stringify(value);'
+            return_result = 'pywebview.stringify(value);'
 
         if raw:
             escaped_script = escape_string(script)
@@ -428,9 +428,9 @@ class Window:
                 var value = eval("{escape_string(script)}");
                 if (pywebview._isPromise(value)) {{
                     value.then(function evaluate_async(result) {{
-                        pywebview._asyncCallback(pywebview._stringify(result), "{unique_id}")
+                        pywebview._asyncCallback(pywebview.stringify(result), "{unique_id}")
                     }}).catch(function evaluate_async(error) {{
-                        pywebview._asyncCallback(pywebview._stringify(error), "{unique_id}")
+                        pywebview._asyncCallback(pywebview.stringify(error), "{unique_id}")
                     }});
                     "true";
                 }} else {{ {return_result} }}
@@ -523,7 +523,7 @@ class Window:
             func_list.append({'func': name, 'params': params})
 
         if self.events.loaded.is_set():
-            self.evaluate_js(f'window.pywebview._createApi({func_list})')
+            self.run_js(f'window.pywebview._createApi({func_list})')
 
     def _resolve_url(self, url: str) -> str | None:
         if is_app(url):

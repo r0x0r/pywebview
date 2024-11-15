@@ -775,7 +775,7 @@ class BrowserView:
             self.webview.evaluateJavaScript_completionHandler_(script, handler)
 
         def handler(result, error):
-            if parse_json:
+            if parse_json and result:
                 try:
                     JSResult.result = json.loads(result)
                 except Exception:

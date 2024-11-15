@@ -86,7 +86,7 @@ window.pywebview = {
       case 'cef':
       case 'qtwebkit':
       case 'android-webkit':
-        return window.external.call(funcName, pywebview._stringify(params), id);
+        return window.external.call(funcName, pywebview.stringify(params), id);
       case 'edgechromium':
         // Full file path support for WebView2
         if (
@@ -101,13 +101,13 @@ window.pywebview = {
         }
         return window.chrome.webview.postMessage([
           funcName,
-          pywebview._stringify(params),
+          pywebview.stringify(params),
           id,
         ]);
       case 'cocoa':
       case 'gtkwebkit2':
         return window.webkit.messageHandlers.jsBridge.postMessage(
-          pywebview._stringify(
+          pywebview.stringify(
             { funcName: funcName, params: params, id: id },
           )
         );
@@ -116,14 +116,14 @@ window.pywebview = {
           setTimeout(function () {
             window.pywebview._QWebChannel.objects.external.call(
               funcName,
-              pywebview._stringify(params),
+              pywebview.stringify(params),
               id
             );
           }, 100);
         } else {
           window.pywebview._QWebChannel.objects.external.call(
             funcName,
-            pywebview._stringify(params),
+            pywebview.stringify(params),
             id
           );
         }
@@ -167,7 +167,7 @@ window.pywebview = {
     );
   },
 
-  _stringify: function stringify(obj, timing) {
+  stringify: function stringify(obj, timing) {
     function tryConvertToArray(obj) {
       try {
         return Array.prototype.slice.call(obj);
