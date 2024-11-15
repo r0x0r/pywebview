@@ -563,7 +563,7 @@ class BrowserView:
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
 
-        if parse_json:
+        if parse_json and result:
             try:
                 return json.loads(result)
             except Exception:

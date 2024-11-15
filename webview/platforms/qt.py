@@ -642,7 +642,7 @@ class BrowserView(QMainWindow):
 
             js_result = self._js_results[uuid_]
 
-            if js_result['parse_json']:
+            if js_result['parse_json'] and result:
                 try:
                     js_result['result'] = json.loads(result)
                 except Exception:

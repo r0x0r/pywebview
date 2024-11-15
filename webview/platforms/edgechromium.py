@@ -89,7 +89,7 @@ class EdgeChrome:
 
     def evaluate_js(self, script, semaphore, js_result, parse_json):
         def _callback(res):
-            if parse_json:
+            if parse_json and res:
                 try:
                     result = json.loads(res)
                 except Exception:

@@ -309,7 +309,7 @@ def load_html(html_content, base_uri, _):
 def evaluate_js(js_code, _, parse_json=True):
     def callback(event, result):
         nonlocal js_result
-        js_result = json.loads(result) if parse_json else result
+        js_result = json.loads(result) if parse_json and result else result
         lock.release()
 
     def _evaluate_js():
