@@ -401,8 +401,6 @@ class Window:
         Run JavaScript code in the target window
         :param script: JavaScript code to run
         """
-        if self.gui.renderer == 'cef':
-            return self.gui.evaluate_js(script, self.uid, None, False)
         return self.gui.evaluate_js(script, self.uid, False)
 
     @_loaded_call
@@ -454,16 +452,16 @@ class Window:
             """
 
         if self.gui.renderer == 'cef':
-            result = self.gui.evaluate_js(escaped_script, self.uid, unique_id, True)
+            result = self.gui.evaluate_js(escaped_script, self.uid, True, unique_id)
         elif self.gui.renderer == 'android-webkit' and not raw:
             escaped_script = f"""
                 (function() {{
                     {escaped_script}
                 }})()
             """
-            result = self.gui.evaluate_js(escaped_script, self.uid)
+            result = self.gui.evaluate_js(escaped_script, self.uid, True)
         else:
-            result = self.gui.evaluate_js(escaped_script, self.uid)
+            result = self.gui.evaluate_js(escaped_script, self.uid, True)
 
         if isinstance(result, dict) and result.get('pywebviewJavascriptError420'):
             del result['pywebviewJavascriptError420']
