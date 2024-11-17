@@ -108,7 +108,7 @@ window.pywebview = {
       case 'gtkwebkit2':
         return window.webkit.messageHandlers.jsBridge.postMessage(
           pywebview.stringify(
-            { funcName: funcName, params: params, id: id },
+            { funcName: funcName, params: params, id: id }
           )
         );
       case 'qtwebengine':
@@ -322,7 +322,6 @@ window.pywebview = {
       var args = arguments;
       clearTimeout(timeout);
       timeout = setTimeout(function () {
-        debugger;
         func.apply(context, args);
       }, delay);
     };

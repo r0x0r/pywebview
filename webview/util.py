@@ -43,6 +43,9 @@ DEFAULT_HTML = """
 
 logger = logging.getLogger('pywebview')
 
+# Magic value indicating that everything is loaded and the JS API is ready
+LOADED_MAGIC_VALUE = '_pywebviewReady0xB16B00B5'
+
 
 def is_app(url: str | None) -> bool:
     """Returns true if 'url' is a WSGI or ASGI app."""
@@ -184,11 +187,13 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
         try:
             func_list = generate_func()
-            window.run_js(finish_script % {'functions': json.dumps(func_list)})
+            window.run_js(finish_script % {
+                'functions': json.dumps(func_list),
+                'LOADED_MAGIC_VALUE': LOADED_MAGIC_VALUE
+            })
         except Exception as e:
             logger.exception(e)
-
-        window.events.loaded.set()
+            window.events.loaded.set()
 
     window.events.before_load.set()
     js_code, finish_script = load_js_files(window, platform)
@@ -444,3 +449,8 @@ def css_to_camel(css_case_string: str) -> str:
 
 def android_jar_path() -> str:
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', 'pywebview-android.jar')
+
+
+def check_loaded(window: Window, result: Any):
+    if result == LOADED_MAGIC_VALUE and not window.events.loaded.is_set():
+        window.events.loaded.set()

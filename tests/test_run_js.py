@@ -53,10 +53,12 @@ def numeric_test(window):
 
 
 def stringify_test(window):
+    window.events.loaded.wait()
     result = window.run_js(
     """
-    var obj = {a: 420}
-    pywebview.stringify(obj)
+    var obj = {a: 420};
+    var value = pywebview.stringify(obj);
+    value;
     """
     )
     assert result == '{"a":420}'

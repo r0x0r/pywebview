@@ -11,7 +11,7 @@ from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, setting
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
+from webview.util import DEFAULT_HTML, check_loaded, create_cookie, js_bridge_call, inject_pywebview
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
@@ -539,22 +539,37 @@ class BrowserView:
 
     def evaluate_js(self, script, parse_json):
         def _evaluate_js():
-            self.webview.evaluate_javascript(
-                    script=script,
-                    length=len(script),
-                    world_name=None,
-                    source_uri=None,
-                    cancellable=None,
-                    callback=_callback)
+            try:
+                self.webview.evaluate_javascript(
+                        script=script,
+                        length=len(script),
+                        world_name=None,
+                        source_uri=None,
+                        cancellable=None,
+                        callback=_callback)
+            except Exception:
+                logger.exception(e)
+                result_semaphore.release()
+
 
         def _callback(webview, task):
             nonlocal result
             try:
+                s = script
                 value = webview.evaluate_javascript_finish(task)
-                result = self._convert_js_value(value)
+                res = self._convert_js_value(value)
+
+                if parse_json and res:
+                    try:
+                        result = json.loads(res)
+                    except Exception:
+                        pass
+                else:
+                    result = res
+                    check_loaded(self.pywebview_window, res)
+
             except Exception as e:
                 logger.exception(e)
-                result = None
 
             result_semaphore.release()
 
@@ -562,12 +577,6 @@ class BrowserView:
         result = None
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
-
-        if parse_json and result:
-            try:
-                return json.loads(result)
-            except Exception:
-                pass
 
         return result
 

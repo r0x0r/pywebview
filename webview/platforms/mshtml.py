@@ -10,13 +10,14 @@ from time import sleep
 import clr
 
 from webview import _settings
-from webview.util import (DEFAULT_HTML, inject_base_uri, interop_dll_path, js_bridge_call,
+from webview.util import (DEFAULT_HTML, check_loaded, inject_base_uri, interop_dll_path, js_bridge_call,
                           inject_pywebview)
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
+from System import Func, Type
 import System.Windows.Forms as WinForms
 
 clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
@@ -169,9 +170,25 @@ class MSHTML:
         form.Controls.Add(self.webview)
 
     def evaluate_js(self, script, parse_json=True):
-        result = self.webview.Document.InvokeScript('eval', (script,))
-        self.js_result = json.loads(result) if result and parse_json else result
-        self.js_result_semaphore.release()
+        def _evaluate_js():
+            nonlocal result
+            res = self.webview.Document.InvokeScript('eval', (script,))
+
+            if parse_json and res is not None:
+                try:
+                    result = json.loads(res)
+                except Exception:
+                    result = res
+            else:
+                check_loaded(self.pywebview_window, res)
+                result = res
+            lock.release()
+
+        result = None
+        lock = Semaphore(0)
+        self.form.Invoke(Func[Type](_evaluate_js))
+        lock.acquire()
+        return result
 
     def load_html(self, content, base_uri):
         self.webview.DocumentText = inject_base_uri(content, base_uri)
@@ -226,8 +243,7 @@ class MSHTML:
             self.first_load = False
 
         self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)
-
-        document.InvokeScript('eval', (inject_pywebview(self.pywebview_window, renderer),))
+        inject_pywebview(renderer, self.pywebview_window)
 
         if self.pywebview_window.easy_drag:
             document.MouseMove += self.on_mouse_move

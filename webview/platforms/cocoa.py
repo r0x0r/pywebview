@@ -7,19 +7,19 @@ import urllib
 import logging
 import webbrowser
 from collections.abc import Callable
-from threading import Semaphore, Thread, current_thread, main_thread
+from threading import Semaphore, Thread, main_thread
 
 import AppKit
 import Foundation
 import WebKit
-from objc import _objc, nil, registerMetaDataForSelector, selector, super
+from objc import _objc, nil, selector, super
 from PyObjCTools import AppHelper
 
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows, settings as webview_settings)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
+from webview.util import DEFAULT_HTML, check_loaded, create_cookie, js_bridge_call, inject_pywebview
 from webview.window import FixPoint
 
 
@@ -782,6 +782,7 @@ class BrowserView:
                     logger.exception('Failed to parse JSON: ' + result)
                     JSResult.result = result
             else:
+                check_loaded(self.pywebview_window, result)
                 JSResult.result = result
 
             JSResult.result_semaphore.release()

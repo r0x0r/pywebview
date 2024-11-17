@@ -346,22 +346,8 @@ class BrowserView:
             self.pywebview_window.events.moved.set(self.Location.X, self.Location.Y)
 
         def evaluate_js(self, script, parse_json):
-            def _evaluate_js():
-                self.browser.evaluate_js(
-                    script, semaphore, js_result, parse_json
-                ) if is_chromium else self.browser.evaluate_js(script, parse_json)
-
-            semaphore = Semaphore(0)
-            js_result = []
-
-            self.Invoke(Func[Type](_evaluate_js))
-            semaphore.acquire()
-
-            if is_chromium:
-                result = js_result.pop()
-                return result
-
-            return self.browser.js_result
+            result = self.browser.evaluate_js(script, parse_json)
+            return result
 
         def clear_cookies(self):
             def _clear_cookies():

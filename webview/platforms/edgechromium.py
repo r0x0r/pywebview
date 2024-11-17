@@ -9,14 +9,14 @@ import clr
 
 from webview import _settings, settings as webview_settings
 from webview.dom import _dnd_state
-from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
+from webview.util import DEFAULT_HTML, check_loaded, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import Action, Func, String, Type, Uri
+from System import Action, Func, String, Type, Uri, Object
 from System.Collections.Generic import List
 from System.Drawing import Color
 from System.Globalization import CultureInfo
@@ -87,27 +87,33 @@ class EdgeChrome:
             self.syncContextTaskScheduler,
         )
 
-    def evaluate_js(self, script, semaphore, js_result, parse_json):
+    def evaluate_js(self, script, parse_json):
         def _callback(res):
-            if parse_json and res:
+            nonlocal result
+            if parse_json and res is not None:
                 try:
                     result = json.loads(res)
                 except Exception:
                     result = res
             else:
+                check_loaded(self.pywebview_window, res)
                 result = res
-            js_result.append(result)
             semaphore.release()
 
+        result = None
+        semaphore = Semaphore(0)
+
         try:
-            self.webview.ExecuteScriptAsync(script).ContinueWith(
+            self.webview.Invoke(Func[Object](lambda: self.webview.ExecuteScriptAsync(script).ContinueWith(
                 Action[Task[String]](lambda task: _callback(json.loads(task.Result))),
                 self.syncContextTaskScheduler,
-            )
+            )))
+            semaphore.acquire()
         except Exception:
             logger.exception('Error occurred in script')
-            js_result.append(None)
             semaphore.release()
+
+        return result
 
     def clear_cookies(self):
         self.webview.CoreWebView2.CookieManager.DeleteAllCookies()

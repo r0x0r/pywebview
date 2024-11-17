@@ -8,3 +8,6 @@ if (window.pywebview.platform == 'qtwebengine') {
 } else {
   window.dispatchEvent(new CustomEvent('pywebviewready'));
 }
+
+// return a magic value to indicate that the webview is ready
+'%(LOADED_MAGIC_VALUE)s';
