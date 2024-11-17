@@ -798,8 +798,6 @@ def load_url(url, uid):
     if not i:
         return
 
-    i.loaded.clear()
-
     if is_cef:
         CEF.load_url(url, uid)
     else:

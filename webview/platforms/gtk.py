@@ -530,11 +530,9 @@ class BrowserView:
         return uri if uri != 'about:blank' else None
 
     def load_url(self, url):
-        self.loaded.clear()
         self.webview.load_uri(url)
 
     def load_html(self, content, base_uri):
-        self.loaded.clear()
         self.webview.load_html(content, base_uri)
 
     def evaluate_js(self, script, parse_json):

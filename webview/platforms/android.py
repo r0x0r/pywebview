@@ -294,14 +294,12 @@ def setup_app():
 
 @run_on_ui_thread
 def load_url(url, _):
-    app.window.events.loaded.clear()
     app.view._cookies = {}
     app.view.webview.loadUrl(url)
 
 
 @run_on_ui_thread
 def load_html(html_content, base_uri, _):
-    app.window.events.loaded.clear()
     app.view._cookies = {}
     app.view.webview.loadDataWithBaseURL(base_uri, html_content, 'text/html', 'UTF-8', None)
 

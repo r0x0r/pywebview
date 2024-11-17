@@ -185,12 +185,10 @@ class Browser:
 
     def load_url(self, url):
         self.initialized = False
-        self.loaded.clear()
         self.browser.LoadUrl(url)
 
     def load_html(self, html):
         self.initialized = False
-        self.loaded.clear()
         self.browser.LoadUrl('data:text/html,{0}'.format(html))
 
     def focus(self):

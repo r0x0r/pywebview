@@ -107,7 +107,7 @@ def create_test_window(
         try:
             if thread_func:
                 thread_func(window, *thread_param)
-
+            window.events.loaded.wait()
             destroy_event.set()
         except Exception as e:
             logger.exception(e, exc_info=True)

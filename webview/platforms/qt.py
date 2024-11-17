@@ -697,18 +697,15 @@ class BrowserView(QMainWindow):
         self.profile.cookieStore().deleteAllCookies()
 
     def get_current_url(self):
-        self.pywebview_window.events.loaded.wait()
         self.current_url_trigger.emit()
         self._current_url_semaphore.acquire()
 
         return self._current_url
 
     def load_url(self, url):
-        self.pywebview_window.events.loaded.clear()
         self.load_url_trigger.emit(url)
 
     def load_html(self, content, base_uri):
-        self.pywebview_window.events.loaded.clear()
         self.html_trigger.emit(content, base_uri)
 
     def create_confirmation_dialog(self, title, message):
@@ -779,7 +776,6 @@ class BrowserView(QMainWindow):
         self.on_top_trigger.emit(top)
 
     def evaluate_js(self, script, parse_json):
-        self.pywebview_window.events.loaded.wait()
         result_semaphore = Semaphore(0)
         unique_id = uuid1().hex
         self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': '', 'parse_json': parse_json }

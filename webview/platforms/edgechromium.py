@@ -160,7 +160,6 @@ class EdgeChrome:
     def load_html(self, content, _):
         self.html = content
         self.ishtml = True
-        self.pywebview_window.events.loaded.clear()
 
         if self.webview.CoreWebView2:
             self.webview.CoreWebView2.NavigateToString(self.html)

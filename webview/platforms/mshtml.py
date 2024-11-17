@@ -192,7 +192,6 @@ class MSHTML:
 
     def load_html(self, content, base_uri):
         self.webview.DocumentText = inject_base_uri(content, base_uri)
-        self.pywebview_window.events.loaded.clear()
 
     def load_url(self, url):
         self.webview.Navigate(url)

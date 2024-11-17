@@ -758,7 +758,6 @@ class BrowserView:
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
             self.webview.loadRequest_(req)
 
-        self.loaded.clear()
         self.url = url
         AppHelper.callAfter(load, url)
 
@@ -767,7 +766,6 @@ class BrowserView:
             url = Foundation.NSURL.URLWithString_(BrowserView.quote(url))
             self.webview.loadHTMLString_baseURL_(content, url)
 
-        self.loaded.clear()
         AppHelper.callAfter(load, content, base_uri)
 
     def evaluate_js(self, script, parse_json):

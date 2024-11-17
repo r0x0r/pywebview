@@ -260,6 +260,7 @@ class Window:
             self._url_prefix, self._common_path, self.server = http.start_server([url])
 
         self.real_url = self._resolve_url(url)
+        self.events.loaded.clear()
         self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
@@ -270,6 +271,7 @@ class Window:
         :param content: Content to load.
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         """
+        self.events.loaded.clear()
         self.gui.load_html(content, base_uri, self.uid)
 
     @_loaded_call
