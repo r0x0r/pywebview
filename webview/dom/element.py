@@ -119,7 +119,7 @@ class Element:
     @property
     @_exists
     def node(self) -> Dict[str, Any]:
-        return self._window.evaluate_js(f"{self._query_command}; var r2 = pywebview._processElements([element])[0]; console.log(element); console.log(r2); r2")
+        return self._window.evaluate_js(f"{self._query_command}; var r2 = pywebview._processElements([element])[0]; r2")
 
     @property
     @_exists
@@ -448,3 +448,7 @@ class Element:
             return 'window'
         else:
             return self.node['outerHTML']
+
+    @_exists
+    def __eq__(self, other: 'Element') -> bool:
+        return hasattr(other, '_node_id') and self._node_id == other._node_id

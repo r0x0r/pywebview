@@ -43,9 +43,6 @@ DEFAULT_HTML = """
 
 logger = logging.getLogger('pywebview')
 
-# Magic value indicating that everything is loaded and the JS API is ready
-LOADED_MAGIC_VALUE = '_pywebviewReady0xB16B00B5'
-
 
 def is_app(url: str | None) -> bool:
     """Returns true if 'url' is a WSGI or ASGI app."""
@@ -161,6 +158,7 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
             if name.startswith('_'):
                 continue
+
             attr = getattr(obj, name)
             if inspect.ismethod(attr):
                 functions[full_name] = get_args(attr)[1:]
@@ -184,12 +182,13 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
     def generate_js_object():
         window.run_js(js_code)
+        window.events.loaded.set()
 
         try:
+            window._js_api.window = window
             func_list = generate_func()
             window.run_js(finish_script % {
-                'functions': json.dumps(func_list),
-                'LOADED_MAGIC_VALUE': LOADED_MAGIC_VALUE
+                'functions': json.dumps(func_list)
             })
         except Exception as e:
             logger.exception(e)
@@ -303,9 +302,6 @@ def load_js_files(window: Window, platform: str) -> str:
                     'platform': platform,
                     'uid': window.uid,
                     'js_api_endpoint': window.js_api_endpoint,
-                }
-            elif name == 'customize':
-                params = {
                     'text_select': str(window.text_select),
                     'drag_selector': webview.DRAG_REGION_SELECTOR,
                     'zoomable': str(window.zoomable),
@@ -328,7 +324,7 @@ def sort_js_files(js_files: list[str]) -> list[str]:
     Sorts JS files in the order they should be loaded. Polyfill first, then API, then the rest and
     finally finish.js that fires a pywebviewready event.
     """
-    LOAD_ORDER = { 'polyfill': 0, 'api': 1, 'finish': 99 }
+    LOAD_ORDER = { 'polyfill': 0, 'api': 1 }
 
     ordered_js_files = []
     remaining_js_files = []
@@ -450,7 +446,3 @@ def css_to_camel(css_case_string: str) -> str:
 def android_jar_path() -> str:
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', 'pywebview-android.jar')
 
-
-def check_loaded(window: Window, result: Any):
-    if result == LOADED_MAGIC_VALUE and not window.events.loaded.is_set():
-        window.events.loaded.set()

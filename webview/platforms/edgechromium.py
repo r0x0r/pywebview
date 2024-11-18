@@ -9,7 +9,7 @@ import clr
 
 from webview import _settings, settings as webview_settings
 from webview.dom import _dnd_state
-from webview.util import DEFAULT_HTML, check_loaded, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
+from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
@@ -96,7 +96,6 @@ class EdgeChrome:
                 except Exception:
                     result = res
             else:
-                check_loaded(self.pywebview_window, res)
                 result = res
             semaphore.release()
 

@@ -97,5 +97,5 @@
     }
 
     disableTouchEvents();
-})();
+  })();
 

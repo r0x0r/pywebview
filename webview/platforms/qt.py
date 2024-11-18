@@ -15,7 +15,7 @@ from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, check_loaded, create_cookie, js_bridge_call, inject_pywebview, environ_append
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, environ_append
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
@@ -649,7 +649,6 @@ class BrowserView(QMainWindow):
                     logger.exception('Failed to parse JSON: %s', result)
                     js_result['result'] = result
             else:
-                check_loaded(self.pywebview_window, result)
                 js_result['result'] = result
 
             js_result['semaphore'].release()

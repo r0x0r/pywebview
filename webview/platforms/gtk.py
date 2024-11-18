@@ -11,7 +11,7 @@ from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, setting
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, check_loaded, create_cookie, js_bridge_call, inject_pywebview
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
@@ -564,7 +564,6 @@ class BrowserView:
                         pass
                 else:
                     result = res
-                    check_loaded(self.pywebview_window, res)
 
             except Exception as e:
                 logger.exception(e)

@@ -10,7 +10,7 @@ from time import sleep
 import clr
 
 from webview import _settings
-from webview.util import (DEFAULT_HTML, check_loaded, inject_base_uri, interop_dll_path, js_bridge_call,
+from webview.util import (DEFAULT_HTML, inject_base_uri, interop_dll_path, js_bridge_call,
                           inject_pywebview)
 
 clr.AddReference('System.Windows.Forms')
@@ -180,7 +180,6 @@ class MSHTML:
                 except Exception:
                     result = res
             else:
-                check_loaded(self.pywebview_window, res)
                 result = res
             lock.release()
 

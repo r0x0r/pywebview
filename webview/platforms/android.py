@@ -12,7 +12,7 @@ from jnius import autoclass, cast, java_method, PythonJavaClass
 from android.runnable import Runnable, run_on_ui_thread
 
 from webview import _settings, settings
-from webview.util import check_loaded, create_cookie, js_bridge_call, inject_pywebview
+from webview.util import create_cookie, js_bridge_call, inject_pywebview
 
 AlertDialogBuilder = autoclass('android.app.AlertDialog$Builder')
 AndroidString = autoclass('java.lang.String')
@@ -308,10 +308,6 @@ def evaluate_js(js_code, _, parse_json=True):
     def callback(event, result):
         nonlocal js_result
         js_result = json.loads(result) if parse_json and result else result
-
-        if not parse_json:
-            check_loaded(app.view.window, result)
-
         lock.release()
 
     def _evaluate_js():
