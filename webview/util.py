@@ -102,7 +102,7 @@ def base_uri(relative_path: str = '') -> str:
 
 def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
     if isinstance(input_, dict):
-        cookie = SimpleCookie[str]()
+        cookie = SimpleCookie()
         name = input_['name']
         cookie[name] = input_['value']
         cookie[name]['path'] = input_['path']
