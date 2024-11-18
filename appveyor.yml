@@ -100,7 +100,8 @@ for:
       - python3 -m pip install --user pyobjc pytest proxy_tools bottle typing_extensions pillow
     test_script:
       - cd tests
-      - python3 -m pytest
+      - python3 -m pytest && echo "Test finished"
+      - ps
 
 
 build: off
