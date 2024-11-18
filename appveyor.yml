@@ -65,7 +65,7 @@ for:
       - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset && sleep 3;
     test_script:
       - cd tests
-      - python -m pytest
+      - python3 -m pytest
     after_test:
       - killall Xvfb
   -
@@ -85,7 +85,7 @@ for:
       - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset && sleep 3;
     test_script:
       - cd tests
-      - python -m pytest
+      - python3 -m pytest
     after_test:
       - killall Xvfb
   -
@@ -100,7 +100,7 @@ for:
       - python3 -m pip install --user pyobjc pytest proxy_tools bottle typing_extensions pillow
     test_script:
       - cd tests
-      - python -m pytest
+      - python3 -m pytest
 
 
 build: off
