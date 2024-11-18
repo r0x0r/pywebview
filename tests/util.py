@@ -70,6 +70,7 @@ def assert_js(window, func_name, expected_result, *func_args):
     @param func_args: arguments to pass to the function
 
     """
+    window.events.loaded.wait()
     value_id = 'v' + uuid4().hex[:8]
     func_args = str(func_args).replace(',)', ')')
 

@@ -6,6 +6,7 @@ import os
 from collections.abc import Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
+from threading import Lock
 from typing import Any, Callable, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
@@ -60,8 +61,13 @@ def _shown_call(function: Callable[P, T]) -> Callable[P, T]:
 def _loaded_call(function: Callable[P, T]) -> Callable[P, T]:
     return _api_call(function, 'loaded')
 
+
 def _before_load_call(function: Callable[P, T]) -> Callable[P, T]:
     return _api_call(function, 'before_load')
+
+
+def _pywebview_ready_call(function: Callable[P, T]) -> Callable[P, T]:
+    return _api_call(function, '_pywebviewready')
 
 
 class FixPoint(Flag):
@@ -163,7 +169,9 @@ class Window:
         self.events.restored = Event(self)
         self.events.resized = Event(self)
         self.events.moved = Event(self)
+        self.events._pywebviewready = Event(self)
 
+        self._expose_lock = Lock()
         self.dom = DOM(self)
         self.gui = None
         self.native = None # set in the gui after window creation
@@ -192,8 +200,6 @@ class Window:
             http.global_server.js_api_endpoint if not http.global_server is None else None
         )
         self.real_url = self._resolve_url(self.original_url)
-
-
 
     @property
     def width(self) -> int:
@@ -261,6 +267,8 @@ class Window:
 
         self.real_url = self._resolve_url(url)
         self.events.loaded.clear()
+        self.events.before_load.clear()
+        self.events._pywebviewready.clear()
         self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
@@ -272,6 +280,8 @@ class Window:
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         """
         self.events.loaded.clear()
+        self.events.before_load.clear()
+        self.events._pywebviewready.clear()
         self.gui.load_html(content, base_uri, self.uid)
 
     @_loaded_call
@@ -398,14 +408,15 @@ class Window:
         self.gui.move(x, y, self.uid)
 
     @_before_load_call
-    def run_js(self, script: str, callback=None, raw=False) -> None:
+    def run_js(self, script: str) -> Any:
         """
         Run JavaScript code in the target window
         :param script: JavaScript code to run
         """
         return self.gui.evaluate_js(script, self.uid, False)
 
-    @_loaded_call
+
+    @_pywebview_ready_call
     def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None, raw=False) -> Any:
         """
         Evaluate given JavaScript code and return the result
@@ -518,11 +529,13 @@ class Window:
 
         func_list: list[dict[str, Any]] = []
 
-        for func in functions:
-            name = func.__name__
-            self._functions[name] = func
-            params = list(inspect.getfullargspec(func).args)
-            func_list.append({'func': name, 'params': params})
+        with self._expose_lock:
+            for func in functions:
+                name = func.__name__
+                self._functions[name] = func
+                params = list(inspect.getfullargspec(func).args)
+                func_list.append({'func': name, 'params': params})
+            print('exposed')
 
         if self.events.loaded.is_set():
             self.run_js(f'window.pywebview._createApi({func_list})')

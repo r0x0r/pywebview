@@ -313,7 +313,7 @@ class BrowserView:
             glib.idle_add(webview.set_opacity, 1.0)
 
         if status == webkit.LoadEvent.FINISHED:
-            self._set_js_api()
+            inject_pywebview(renderer, self.js_bridge.window)
 
     def on_download_started(self, session, download):
         download.connect('decide-destination', self.on_download_decide_destination)
@@ -587,12 +587,6 @@ class BrowserView:
         )
         dialog.run()
         dialog.destroy()
-
-    def _set_js_api(self):
-        def create_bridge():
-            inject_pywebview(renderer, self.js_bridge.window)
-
-        glib.idle_add(create_bridge)
 
     def _convert_js_value(self, js_value):
         if not js_value or js_value.is_null() or js_value.is_undefined():

@@ -182,14 +182,15 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
     def generate_js_object():
         window.run_js(js_code)
-        window.events.loaded.set()
+        window.events._pywebviewready.set()
 
         try:
-            window._js_api.window = window
-            func_list = generate_func()
-            window.run_js(finish_script % {
-                'functions': json.dumps(func_list)
-            })
+            with window._expose_lock:
+                func_list = generate_func()
+                window.run_js(finish_script % {
+                    'functions': json.dumps(func_list)
+                })
+                window.events.loaded.set()
         except Exception as e:
             logger.exception(e)
             window.events.loaded.set()
@@ -301,7 +302,10 @@ def load_js_files(window: Window, platform: str) -> str:
                     'token': _TOKEN,
                     'platform': platform,
                     'uid': window.uid,
-                    'js_api_endpoint': window.js_api_endpoint,
+                    'js_api_endpoint': window.js_api_endpoint
+                }
+            elif name == 'customize':
+                params = {
                     'text_select': str(window.text_select),
                     'drag_selector': webview.DRAG_REGION_SELECTOR,
                     'zoomable': str(window.zoomable),
