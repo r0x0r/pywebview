@@ -3,7 +3,7 @@ import pytest
 import webview
 from time import sleep
 from .util import run_test
-import sys
+import os
 
 
 @pytest.fixture
@@ -15,8 +15,7 @@ def test_get_cookies(window):
     run_test(webview, window, get_cookies_test)
 
 
-# this test crashes QT
-@pytest.mark.skip
+@pytest.mark.skipif(os.environ.get('PYWEBVIEW_GUI') == 'qt', reason='This test crashes QT')
 def test_clear_cookies(window):
      run_test(webview, window, clear_cookies_test)
 
