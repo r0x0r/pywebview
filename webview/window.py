@@ -535,7 +535,6 @@ class Window:
                 self._functions[name] = func
                 params = list(inspect.getfullargspec(func).args)
                 func_list.append({'func': name, 'params': params})
-            print('exposed')
 
         if self.events.loaded.is_set():
             self.run_js(f'window.pywebview._createApi({func_list})')
