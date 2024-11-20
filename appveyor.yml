@@ -24,7 +24,7 @@ for:
       - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\""
     test_script:
       - cd tests
-      - python -m pytest
+      - python -m pytest -s
   -
     matrix:
       only:

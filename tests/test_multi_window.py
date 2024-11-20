@@ -19,18 +19,22 @@ def test_bg_color():
 
 
 def test_load_html(window):
+    print('test_load_html')
     run_test(webview, window, load_html)
 
 
 def test_load_url(window):
+    print('test_load_url')
     run_test(webview, window, load_url)
 
 
 def test_evaluate_js(window):
+    print('test_evaluate_js')
     run_test(webview, window, evaluate_js)
 
 
 def test_js_bridge():
+    print('test_js_bridge')
     class Api1:
         def test1(self):
             return 1
