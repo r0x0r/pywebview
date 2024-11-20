@@ -112,11 +112,8 @@ def load_html(window):
 
 def load_url(window):
     child_window = webview.create_window('Window #2')
-    print(1)
     assert child_window != 'MainWindow'
 
     child_window.load_url('https://pywebview.flowrl.com')
-    print(2)
     child_window.events.loaded.wait()
     child_window.destroy()
-    print(3)
