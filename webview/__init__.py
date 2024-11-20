@@ -76,6 +76,7 @@ settings = {
     'ALLOW_FILE_URLS': True,
     'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
     'OPEN_DEVTOOLS_IN_DEBUG': True,
+    'REMOTE_DEBUGGING_PORT': None,
 }
 
 guilib = None
