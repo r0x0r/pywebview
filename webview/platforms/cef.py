@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 browser_settings = {}
 command_line_switches = {}
+renderer = 'cef'
 
 
 def _set_dpi_mode(enabled):
@@ -64,7 +65,6 @@ class JSBridge:
         self.eval_events = eval_events
 
     def return_result(self, result, uid):
-        print(result)
         self.results[uid] = json.loads(result) if result else None
         self.eval_events[uid].set()
 
@@ -72,7 +72,6 @@ class JSBridge:
         js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
 
-renderer = 'cef'
 
 
 class CookieVisitor:
@@ -150,7 +149,6 @@ class Browser:
                 try {{
                     {code}
                 }} catch(e) {{
-                    console.error(e.stack);
                     window.external.return_result(null, '{unique_id}');
                 }}
             """

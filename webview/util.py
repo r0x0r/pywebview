@@ -183,6 +183,7 @@ def inject_pywebview(platform: str, window: Window) -> str:
     def generate_js_object():
         window.run_js(js_code)
         window.events._pywebviewready.set()
+        logger.debug('_pywebviewready event fired')
 
         try:
             with window._expose_lock:
@@ -191,11 +192,13 @@ def inject_pywebview(platform: str, window: Window) -> str:
                     'functions': json.dumps(func_list)
                 })
                 window.events.loaded.set()
+                logger.debug('loaded event fired')
         except Exception as e:
             logger.exception(e)
             window.events.loaded.set()
 
     window.events.before_load.set()
+    logger.debug('before_load event fired. injecting pywebview object')
     js_code, finish_script = load_js_files(window, platform)
     thread = Thread(target=generate_js_object)
     thread.start()
