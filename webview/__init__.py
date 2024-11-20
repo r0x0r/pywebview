@@ -61,7 +61,7 @@ _formatter = logging.Formatter('[pywebview] %(message)s')
 _handler.setFormatter(_formatter)
 logger.addHandler(_handler)
 
-log_level = os.environ.get('PYWEBVIEW_LOG') or logging.INFO
+log_level = logging._nameToLevel[os.environ.get('PYWEBVIEW_LOG', 'info').upper()]
 logger.setLevel(log_level)
 
 OPEN_DIALOG = 10
@@ -420,7 +420,12 @@ def active_window() -> Window | None:
 
 @module_property
 def screens() -> list[Screen]:
-    guilib = initialize()
+    global renderer, guilib
+
+    if not guilib:
+        guilib = initialize()
+        renderer = guilib.renderer
+
     screens = guilib.get_screens()
     return screens
 

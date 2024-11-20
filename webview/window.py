@@ -269,20 +269,22 @@ class Window:
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
+        logger.debug(f'Loading URL: {self.real_url}')
         self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
-    def load_html(self, content: str, base_uri: str = base_uri()) -> None:
+    def load_html(self, html: str, base_uri: str = base_uri()) -> None:
         """
-        Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
+        Load a new HTML content into a previously created WebView window. This function must be invoked after WebView windows is
         created with create_window(). Otherwise an exception is thrown.
-        :param content: Content to load.
+        :param html: HTML content to load.
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         """
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
-        self.gui.load_html(content, base_uri, self.uid)
+        logger.debug(f'Loading HTML: {html[:30]}')
+        self.gui.load_html(html, base_uri, self.uid)
 
     @_loaded_call
     def load_css(self, stylesheet: str) -> None:
