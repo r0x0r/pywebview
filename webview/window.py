@@ -412,19 +412,25 @@ class Window:
     @_before_load_call
     def run_js(self, script: str) -> Any:
         """
-        Run JavaScript code in the target window
+        Run JavaScript code as is without any modifications. Result of the code is
+        not guaranteed to be returned and depends on the platform
         :param script: JavaScript code to run
         """
         return self.gui.evaluate_js(script, self.uid, False)
 
 
     @_pywebview_ready_call
-    def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None, raw=False) -> Any:
+    def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None) -> Any:
         """
-        Evaluate given JavaScript code and return the result
+        Evaluate given JavaScript code and return the result. The code is executed in eval statement
+        in order to support returning the last evaluated value in the script without the return statement.
+        Promises are supported and resolved values are returned to the callback function.
+        Exceptions are caught and rethrown as JavascriptException in Python code. Javascript code is
+        evaluated synchronously and the result is returned to the caller.
         :param script: The JavaScript code to be evaluated
-        :return: Return value of the evaluated code
         :callback: Optional callback function that will be called for resolved promises
+        :return: Return value of the evaluated code
+
         """
         unique_id = uuid1().hex
         self._callbacks[unique_id] = callback
@@ -436,9 +442,7 @@ class Window:
         else:
             return_result = 'pywebview.stringify(value);'
 
-        if raw:
-            escaped_script = escape_string(script)
-        elif callback:
+        if callback:
             escaped_script = f"""
                 var value = eval("{escape_string(script)}");
                 if (pywebview._isPromise(value)) {{
@@ -468,7 +472,7 @@ class Window:
 
         if self.gui.renderer == 'cef':
             result = self.gui.evaluate_js(escaped_script, self.uid, True, unique_id)
-        elif self.gui.renderer == 'android-webkit' and not raw:
+        elif self.gui.renderer == 'android-webkit':
             escaped_script = f"""
                 (function() {{
                     {escaped_script}

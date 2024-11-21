@@ -288,6 +288,12 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
 
 
 def load_js_files(window: Window, platform: str) -> str:
+    """
+    Load JS files in the order they should be loaded.
+    The order is polyfill, api, the rest and finish.js.
+    Return the concatenated JS code and the finish script, which must be loaded last and
+    separately in order to
+    """
     js_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'js')
     js_files = glob(os.path.join(js_dir, '**', '*.js'), recursive=True)
     ordered_js_files = sort_js_files(js_files)
