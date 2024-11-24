@@ -313,7 +313,7 @@ class BrowserView:
             glib.idle_add(webview.set_opacity, 1.0)
 
         if status == webkit.LoadEvent.FINISHED:
-            self._set_js_api()
+            inject_pywebview(renderer, self.js_bridge.window)
 
     def on_download_started(self, session, download):
         download.connect('decide-destination', self.on_download_decide_destination)
@@ -518,8 +518,6 @@ class BrowserView:
 
             semaphore.release()
 
-        self.loaded.wait()
-
         cookies = []
         semaphore = Semaphore(0)
         glib.idle_add(_get_cookies)
@@ -528,55 +526,54 @@ class BrowserView:
         return cookies
 
     def get_current_url(self):
-        self.loaded.wait()
         uri = self.webview.get_uri()
         return uri if uri != 'about:blank' else None
 
     def load_url(self, url):
-        self.loaded.clear()
         self.webview.load_uri(url)
 
     def load_html(self, content, base_uri):
-        self.loaded.clear()
         self.webview.load_html(content, base_uri)
 
-    def evaluate_js(self, script):
+    def evaluate_js(self, script, parse_json):
         def _evaluate_js():
-            self.webview.evaluate_javascript(
-                    script=script,
-                    length=len(script),
-                    world_name=None,
-                    source_uri=None,
-                    cancellable=None,
-                    callback=_callback)
+            try:
+                self.webview.evaluate_javascript(
+                        script=script,
+                        length=len(script),
+                        world_name=None,
+                        source_uri=None,
+                        cancellable=None,
+                        callback=_callback)
+            except Exception:
+                logger.exception(e)
+                result_semaphore.release()
+
 
         def _callback(webview, task):
-            value = webview.evaluate_javascript_finish(task)
-            result = value.to_string() if value else None
+            nonlocal result
+            try:
+                s = script
+                value = webview.evaluate_javascript_finish(task)
+                res = self._convert_js_value(value)
 
-            if unique_id in self.js_results:
-                self.js_results[unique_id]['result'] = result
+                if parse_json and res:
+                    try:
+                        result = json.loads(res)
+                    except Exception:
+                        pass
+                else:
+                    result = res
+
+            except Exception as e:
+                logger.exception(e)
 
             result_semaphore.release()
 
-        unique_id = uuid1().hex
         result_semaphore = Semaphore(0)
-        self.js_results[unique_id] = {'semaphore': result_semaphore, 'result': None}
-
-        self.loaded.wait()
+        result = None
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
-
-        result = self.js_results[unique_id]['result']
-        result = (
-            None
-            if result == 'undefined' or result == 'null' or result is None
-            else result
-            if result == ''
-            else json.loads(result)
-        )
-
-        del self.js_results[unique_id]
 
         return result
 
@@ -591,20 +588,25 @@ class BrowserView:
         dialog.run()
         dialog.destroy()
 
-    def _set_js_api(self):
-        def create_bridge():
-            script = inject_pywebview(self.js_bridge.window, renderer)
-            self.webview.evaluate_javascript(
-                    script=script,
-                    length=len(script),
-                    world_name=None,
-                    source_uri=None,
-                    cancellable=None,
-                    callback=None)
-
-            self.loaded.set()
-
-        glib.idle_add(create_bridge)
+    def _convert_js_value(self, js_value):
+        if not js_value or js_value.is_null() or js_value.is_undefined():
+            return None
+        elif js_value.is_boolean():
+            return js_value.to_boolean()
+        elif js_value.is_number():
+            return js_value.to_double()
+        elif js_value.is_string():
+            return js_value.to_string()
+        elif js_value.is_object():
+            js_object = js_value.to_object()
+            python_dict = {}
+            properties = js_object.get_property_names()
+            for prop in properties:
+                python_dict[prop] = self._js_value_to_python(js_object.get_property(prop))
+            return python_dict
+        else:
+            logger.error(f'Unsupported JavaScriptCore.Value type: {js_value}')
+            return js_value.to_string()
 
 
 def setup_app():
@@ -889,11 +891,11 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
     return file_names[0]
 
 
-def evaluate_js(script, uid):
+def evaluate_js(script, uid, parse_json=True):
     i = BrowserView.instances.get(uid)
 
     if i:
-        return i.evaluate_js(script)
+        return i.evaluate_js(script, parse_json)
 
 
 def get_position(uid):

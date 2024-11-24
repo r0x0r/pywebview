@@ -17,6 +17,7 @@ clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
+from System import Func, Type
 import System.Windows.Forms as WinForms
 
 clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
@@ -168,14 +169,28 @@ class MSHTML:
         self.form = form
         form.Controls.Add(self.webview)
 
-    def evaluate_js(self, script):
-        result = self.webview.Document.InvokeScript('eval', (script,))
-        self.js_result = None if result is None or result == 'null' else json.loads(result)  ##
-        self.js_result_semaphore.release()
+    def evaluate_js(self, script, parse_json=True):
+        def _evaluate_js():
+            nonlocal result
+            res = self.webview.Document.InvokeScript('eval', (script,))
+
+            if parse_json and res is not None:
+                try:
+                    result = json.loads(res)
+                except Exception:
+                    result = res
+            else:
+                result = res
+            lock.release()
+
+        result = None
+        lock = Semaphore(0)
+        self.form.Invoke(Func[Type](_evaluate_js))
+        lock.acquire()
+        return result
 
     def load_html(self, content, base_uri):
         self.webview.DocumentText = inject_base_uri(content, base_uri)
-        self.pywebview_window.events.loaded.clear()
 
     def load_url(self, url):
         self.webview.Navigate(url)
@@ -226,10 +241,7 @@ class MSHTML:
             self.first_load = False
 
         self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)
-
-        document.InvokeScript('eval', (inject_pywebview(self.pywebview_window, renderer),))
-        sleep(0.1)
-        self.pywebview_window.events.loaded.set()
+        inject_pywebview(renderer, self.pywebview_window)
 
         if self.pywebview_window.easy_drag:
             document.MouseMove += self.on_mouse_move

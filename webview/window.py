@@ -6,6 +6,7 @@ import os
 from collections.abc import Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
+from threading import Lock
 from typing import Any, Callable, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
@@ -36,7 +37,8 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
 
     @wraps(function)
     def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
-        event = self.events.loaded if event_type == 'loaded' else self.events.shown
+
+        event = getattr(self.events, event_type)
 
         try:
             if not event.wait(20):
@@ -58,6 +60,14 @@ def _shown_call(function: Callable[P, T]) -> Callable[P, T]:
 
 def _loaded_call(function: Callable[P, T]) -> Callable[P, T]:
     return _api_call(function, 'loaded')
+
+
+def _before_load_call(function: Callable[P, T]) -> Callable[P, T]:
+    return _api_call(function, 'before_load')
+
+
+def _pywebview_ready_call(function: Callable[P, T]) -> Callable[P, T]:
+    return _api_call(function, '_pywebviewready')
 
 
 class FixPoint(Flag):
@@ -151,14 +161,17 @@ class Window:
         self.events.closed = Event(self)
         self.events.closing = Event(self, True)
         self.events.loaded = Event(self)
-        self.events.before_show = Event(self)
+        self.events.before_load = Event(self, True)
+        self.events.before_show = Event(self, True)
         self.events.shown = Event(self)
         self.events.minimized = Event(self)
         self.events.maximized = Event(self)
         self.events.restored = Event(self)
         self.events.resized = Event(self)
         self.events.moved = Event(self)
+        self.events._pywebviewready = Event(self)
 
+        self._expose_lock = Lock()
         self.dom = DOM(self)
         self.gui = None
         self.native = None # set in the gui after window creation
@@ -187,8 +200,6 @@ class Window:
             http.global_server.js_api_endpoint if not http.global_server is None else None
         )
         self.real_url = self._resolve_url(self.original_url)
-
-
 
     @property
     def width(self) -> int:
@@ -255,17 +266,25 @@ class Window:
             self._url_prefix, self._common_path, self.server = http.start_server([url])
 
         self.real_url = self._resolve_url(url)
+        self.events.loaded.clear()
+        self.events.before_load.clear()
+        self.events._pywebviewready.clear()
+        logger.debug(f'Loading URL: {self.real_url}')
         self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
-    def load_html(self, content: str, base_uri: str = base_uri()) -> None:
+    def load_html(self, html: str, base_uri: str = base_uri()) -> None:
         """
-        Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
+        Load a new HTML content into a previously created WebView window. This function must be invoked after WebView windows is
         created with create_window(). Otherwise an exception is thrown.
-        :param content: Content to load.
+        :param html: HTML content to load.
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         """
-        self.gui.load_html(content, base_uri, self.uid)
+        self.events.loaded.clear()
+        self.events.before_load.clear()
+        self.events._pywebviewready.clear()
+        logger.debug(f'Loading HTML: {html[:30]}')
+        self.gui.load_html(html, base_uri, self.uid)
 
     @_loaded_call
     def load_css(self, stylesheet: str) -> None:
@@ -274,7 +293,7 @@ class Window:
         """
         sanitized_css = stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
         js_code = f'pywebview._loadCss("{sanitized_css}")'
-        self.gui.evaluate_js(js_code, self.uid)
+        self.run_js(js_code)
 
     @_shown_call
     def set_title(self, title: str) -> None:
@@ -390,42 +409,51 @@ class Window:
         """
         self.gui.move(x, y, self.uid)
 
-    @_loaded_call
-    def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None, raw=False) -> Any:
+    @_before_load_call
+    def run_js(self, script: str) -> Any:
         """
-        Evaluate given JavaScript code and return the result
+        Run JavaScript code as is without any modifications. Result of the code is
+        not guaranteed to be returned and depends on the platform
+        :param script: JavaScript code to run
+        """
+        return self.gui.evaluate_js(script, self.uid, False)
+
+
+    @_pywebview_ready_call
+    def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None) -> Any:
+        """
+        Evaluate given JavaScript code and return the result. The code is executed in eval statement
+        in order to support returning the last evaluated value in the script without the return statement.
+        Promises are supported and resolved values are returned to the callback function.
+        Exceptions are caught and rethrown as JavascriptException in Python code. Javascript code is
+        evaluated synchronously and the result is returned to the caller.
         :param script: The JavaScript code to be evaluated
-        :return: Return value of the evaluated code
         :callback: Optional callback function that will be called for resolved promises
+        :return: Return value of the evaluated code
+
         """
         unique_id = uuid1().hex
         self._callbacks[unique_id] = callback
 
         if self.gui.renderer == 'cef':
-            sync_eval = 'window.external.return_result(pywebview._stringify(value), "{0}");'.format(
-                unique_id,
-            )
+            return_result = f'window.external.return_result(pywebview.stringify(value), "{unique_id}");'
         elif self.gui.renderer == 'android-webkit':
-            sync_eval = 'return pywebview._stringify(value);'
+            return_result = 'return pywebview.stringify(value);'
         else:
-            sync_eval = 'pywebview._stringify(value);'
+            return_result = 'pywebview.stringify(value);'
 
-        if raw:
-            escaped_script = escape_string(script)
-        elif callback:
-            escaped_script = """
-                var value = eval("{0}");
+        if callback:
+            escaped_script = f"""
+                var value = eval("{escape_string(script)}");
                 if (pywebview._isPromise(value)) {{
                     value.then(function evaluate_async(result) {{
-                        pywebview._asyncCallback(pywebview._stringify(result), "{1}")
+                        pywebview._asyncCallback(pywebview.stringify(result), "{unique_id}")
                     }}).catch(function evaluate_async(error) {{
-                        pywebview._asyncCallback(pywebview._stringify(error), "{1}")
+                        pywebview._asyncCallback(pywebview.stringify(error), "{unique_id}")
                     }});
                     "true";
-                }} else {{ {2} }}
-            """.format(
-                escape_string(script), unique_id, sync_eval
-            )
+                }} else {{ {return_result} }}
+            """
         else:
             escaped_script = f"""
                 var value;
@@ -439,20 +467,20 @@ class Window:
                     var keys = Object.getOwnPropertyNames(e);
                     keys.forEach(function(key) {{ value[key] = e[key] }})
                 }}
-                {sync_eval};
+                {return_result};
             """
 
         if self.gui.renderer == 'cef':
-            result = self.gui.evaluate_js(escaped_script, self.uid, unique_id)
-        elif self.gui.renderer == 'android-webkit' and not raw:
+            result = self.gui.evaluate_js(escaped_script, self.uid, True, unique_id)
+        elif self.gui.renderer == 'android-webkit':
             escaped_script = f"""
                 (function() {{
                     {escaped_script}
                 }})()
             """
-            result = self.gui.evaluate_js(escaped_script, self.uid)
+            result = self.gui.evaluate_js(escaped_script, self.uid, True)
         else:
-            result = self.gui.evaluate_js(escaped_script, self.uid)
+            result = self.gui.evaluate_js(escaped_script, self.uid, True)
 
         if isinstance(result, dict) and result.get('pywebviewJavascriptError420'):
             del result['pywebviewJavascriptError420']
@@ -507,14 +535,15 @@ class Window:
 
         func_list: list[dict[str, Any]] = []
 
-        for func in functions:
-            name = func.__name__
-            self._functions[name] = func
-            params = list(inspect.getfullargspec(func).args)
-            func_list.append({'func': name, 'params': params})
+        with self._expose_lock:
+            for func in functions:
+                name = func.__name__
+                self._functions[name] = func
+                params = list(inspect.getfullargspec(func).args)
+                func_list.append({'func': name, 'params': params})
 
         if self.events.loaded.is_set():
-            self.evaluate_js(f'window.pywebview._createApi({func_list})')
+            self.run_js(f'window.pywebview._createApi({func_list})')
 
     def _resolve_url(self, url: str) -> str | None:
         if is_app(url):

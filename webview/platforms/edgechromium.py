@@ -16,7 +16,7 @@ clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import Action, Func, String, Type, Uri
+from System import Action, Func, String, Type, Uri, Object
 from System.Collections.Generic import List
 from System.Drawing import Color
 from System.Globalization import CultureInfo
@@ -90,27 +90,32 @@ class EdgeChrome:
             self.syncContextTaskScheduler,
         )
 
-    def evaluate_js(self, script, semaphore, js_result, callback=None):
-        def _callback(result):
-            if callback is None:
-                result = None if result is None or result == '' else json.loads(result)
-                js_result.append(result)
-                semaphore.release()
+    def evaluate_js(self, script, parse_json):
+        def _callback(res):
+            nonlocal result
+            if parse_json and res is not None:
+                try:
+                    result = json.loads(res)
+                except Exception:
+                    result = res
             else:
-                # future js callback option to handle async js method
-                callback(result)
-                js_result.append(None)
-                semaphore.release()
+                result = res
+            semaphore.release()
+
+        result = None
+        semaphore = Semaphore(0)
 
         try:
-            self.webview.ExecuteScriptAsync(script).ContinueWith(
+            self.webview.Invoke(Func[Object](lambda: self.webview.ExecuteScriptAsync(script).ContinueWith(
                 Action[Task[String]](lambda task: _callback(json.loads(task.Result))),
                 self.syncContextTaskScheduler,
-            )
+            )))
+            semaphore.acquire()
         except Exception:
             logger.exception('Error occurred in script')
-            js_result.append(None)
             semaphore.release()
+
+        return result
 
     def clear_cookies(self):
         self.webview.CoreWebView2.CookieManager.DeleteAllCookies()
@@ -157,7 +162,6 @@ class EdgeChrome:
     def load_html(self, content, _):
         self.html = content
         self.ishtml = True
-        self.pywebview_window.events.loaded.clear()
 
         if self.webview.CoreWebView2:
             self.webview.CoreWebView2.NavigateToString(self.html)
@@ -290,5 +294,4 @@ class EdgeChrome:
         url = str(sender.Source)
         self.url = None if self.ishtml else url
 
-        self.webview.ExecuteScriptAsync(inject_pywebview(self.pywebview_window, renderer))
-        self.pywebview_window.events.loaded.set()
+        inject_pywebview(renderer, self.pywebview_window)

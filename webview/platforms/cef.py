@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import sys
+from uuid import uuid4
 import webbrowser
 from copy import copy
 from ctypes import windll
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 browser_settings = {}
 command_line_switches = {}
+renderer = 'cef'
 
 
 def _set_dpi_mode(enabled):
@@ -70,7 +72,6 @@ class JSBridge:
         js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
 
-renderer = 'cef'
 
 
 class CookieVisitor:
@@ -116,11 +117,10 @@ class Browser:
         self.cookie_visitor = CookieVisitor()
 
         self.browser.GetJavascriptBindings().Rebind()
-        self.browser.ExecuteJavascript(inject_pywebview(self.window, 'cef'))
+        inject_pywebview('cef', self.window)
 
         sleep(0.1)  # wait for window.pywebview to load
         self.initialized = True
-        self.loaded.set()
 
     def close(self):
         self.browser.CloseBrowser(True)
@@ -141,38 +141,36 @@ class Browser:
         )
         self.browser.NotifyMoveOrResizeStarted()
 
-    def evaluate_js(self, code, unique_id):
-        self.loaded.wait()
-
+    def evaluate_js(self, code, unique_id, parse_json):
         self.eval_events[unique_id] = Event()
-        eval_script = """
-            try {{
-                {0}
-            }} catch(e) {{
-                console.error(e.stack);
-                window.external.return_result(null, '{1}');
-            }}
-        """.format(
-            code, unique_id
-        )
 
-        result = self.browser.ExecuteJavascript(eval_script)
-        self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
+        if unique_id:
+            eval_script = f"""
+                try {{
+                    {code}
+                }} catch(e) {{
+                    window.external.return_result(null, '{unique_id}');
+                }}
+            """
 
-        result = copy(self.js_bridge.results[unique_id])
+            self.browser.ExecuteJavascript(eval_script)
+            self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
 
-        del self.eval_events[unique_id]
-        del self.js_bridge.results[unique_id]
+            result = copy(self.js_bridge.results[unique_id])
 
-        return result
+            del self.eval_events[unique_id]
+            del self.js_bridge.results[unique_id]
+
+            return result
+        else:
+            self.browser.ExecuteJavascript(code)
+            return None
 
     def clear_cookies(self):
-        self.loaded.wait()
         self.cookie_manager.DeleteCookies('', '')
         self.cookie_manager.FlushStore()
 
     def get_cookies(self):
-        self.loaded.wait()
         self.cookie_visitor.cookies = []
         self.cookie_visitor.lock = Event()
         self.cookie_manager.VisitUrlCookies(self.browser.GetUrl(), True, self.cookie_visitor)
@@ -181,17 +179,14 @@ class Browser:
         return self.cookie_visitor.cookies
 
     def get_current_url(self):
-        self.loaded.wait()
         return self.browser.GetUrl()
 
     def load_url(self, url):
         self.initialized = False
-        self.loaded.clear()
         self.browser.LoadUrl(url)
 
     def load_html(self, html):
         self.initialized = False
-        self.loaded.clear()
         self.browser.LoadUrl('data:text/html,{0}'.format(html))
 
     def focus(self):
@@ -342,9 +337,9 @@ def load_url(url, uid):
 
 
 @_cef_call
-def evaluate_js(code, result, uid):
+def evaluate_js(code, unique_id, parse_json, uid):
     instance = instances[uid]
-    return instance.evaluate_js(code, result)
+    return instance.evaluate_js(code, unique_id, parse_json)
 
 
 @_cef_call

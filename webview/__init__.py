@@ -56,12 +56,12 @@ __all__ = (
 )
 
 logger = logging.getLogger('pywebview')
-handler = logging.StreamHandler()
-formatter = logging.Formatter('[pywebview] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+_handler = logging.StreamHandler()
+_formatter = logging.Formatter('[pywebview] %(message)s')
+_handler.setFormatter(_formatter)
+logger.addHandler(_handler)
 
-log_level = logging.DEBUG if os.environ.get('PYWEBVIEW_LOG') == 'debug' else logging.INFO
+log_level = logging._nameToLevel[os.environ.get('PYWEBVIEW_LOG', 'info').upper()]
 logger.setLevel(log_level)
 
 OPEN_DIALOG = 10
@@ -93,6 +93,7 @@ _settings = {
 token = _TOKEN
 windows: list[Window] = []
 menus: list[Menu] = []
+renderer: str | None = None
 
 
 def start(
@@ -138,7 +139,7 @@ def start(
     :param ssl: Enable SSL for local HTTP server. Default is False.
     :param icon: Path to the icon file. Supported only on GTK/QT.
     """
-    global guilib
+    global guilib, renderer
 
     def _create_children(other_windows):
         if not windows[0].events.shown.wait(10):
@@ -173,6 +174,7 @@ def start(
         raise WebViewException('You must create a window first before calling this function.')
 
     guilib = initialize(gui)
+    renderer = guilib.renderer
 
     if ssl:
         # generate SSL certs and tell the windows to use them
@@ -419,7 +421,12 @@ def active_window() -> Window | None:
 
 @module_property
 def screens() -> list[Screen]:
-    guilib = initialize()
+    global renderer, guilib
+
+    if not guilib:
+        guilib = initialize()
+        renderer = guilib.renderer
+
     screens = guilib.get_screens()
     return screens
 

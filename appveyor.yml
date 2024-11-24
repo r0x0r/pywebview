@@ -1,14 +1,14 @@
 image:
-  - macos
+  - Visual Studio 2022
   - Ubuntu2004
   - Ubuntu2204
-  - Visual Studio 2022
+  - macos
 for:
   -
     matrix:
       only:
         - image: Visual Studio 2022
-        - job_name: Windows
+        - job_name: EdgeChromium
     environment:
       PYTHON: "C:\\Python37-x64"
       PYTHON_VERSION: "3.7.x"
@@ -21,10 +21,32 @@ for:
       - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
 
       - "%CMD_IN_ENV% pip install -r requirements.txt"
-      - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\" pythonnet bottle .[cef]"
+      - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\""
     test_script:
       - cd tests
-      - powershell -File ./run.ps1
+      - python -m pytest -s
+  -
+    matrix:
+      only:
+        - image: Visual Studio 2022
+        - job_name: CEF
+    environment:
+      PYTHON: "C:\\Python37-x64"
+      PYTHON_VERSION: "3.7.x"
+      PYTHON_ARCH: "64"
+      APPVEYOR_BAKE_IMAGE: pywebview-visualstudio2022
+      PYWEBVIEW_GUI: "cef"
+    install:
+      - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+      - "choco install webview2-runtime --ignore-checksums"
+      - "python --version"
+      - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
+
+      - "%CMD_IN_ENV% pip install -r requirements.txt"
+      - "%CMD_IN_ENV% pip install \"pytest>=4.3.0\" cefpython3"
+    test_script:
+      - cd tests
+      - python -m pytest
   -
     matrix:
       only:
@@ -35,7 +57,7 @@ for:
       DISPLAY: :99
       QT_QPA_PLATFORM: offscreen
     install:
-      - sudo apt-get update -q
+      - sudo apt-get update -q --allow-releaseinfo-change
       - sudo apt-get install --no-install-recommends -y xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest
       - python3 -m pip install --upgrade setuptools==70.0.0
       - python3 -m pip install proxy_tools pytest bottle typing_extensions QtPy PyQt5 pyqtwebengine
@@ -43,7 +65,7 @@ for:
       - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset && sleep 3;
     test_script:
       - cd tests
-      - ./run.sh
+      - python3 -m pytest -s
     after_test:
       - killall Xvfb
   -
@@ -55,7 +77,7 @@ for:
       PYWEBVIEW_GUI: gtk
       DISPLAY: :99
     install:
-      - sudo apt-get update -q
+      - sudo apt-get update -q --allow-releaseinfo-change
       - sudo apt-get install --no-install-recommends -y xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes3 python3-pytest
       - python3 -m pip install --upgrade setuptools==70.0.0
       - python3 -m pip install proxy_tools pytest bottle typing_extensions pygobject importlib_metadata
@@ -63,8 +85,7 @@ for:
       - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset && sleep 3;
     test_script:
       - cd tests
-      -
-      - ./run.sh
+      - python3 -m pytest -s
     after_test:
       - killall Xvfb
   -
@@ -79,7 +100,7 @@ for:
       - python3 -m pip install --user pyobjc pytest proxy_tools bottle typing_extensions pillow
     test_script:
       - cd tests
-      - ./run.sh
+      - python3 -m pytest
 
 
 build: off

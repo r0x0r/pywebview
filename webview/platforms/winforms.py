@@ -345,24 +345,9 @@ class BrowserView:
         def on_move(self, sender, args):
             self.pywebview_window.events.moved.set(self.Location.X, self.Location.Y)
 
-        def evaluate_js(self, script):
-            def _evaluate_js():
-                self.browser.evaluate_js(
-                    script, semaphore, js_result
-                ) if is_chromium else self.browser.evaluate_js(script)
-
-            semaphore = Semaphore(0)
-            js_result = []
-
-            self.loaded.wait()
-            self.Invoke(Func[Type](_evaluate_js))
-            semaphore.acquire()
-
-            if is_chromium:
-                result = js_result.pop()
-                return result
-
-            return self.browser.js_result
+        def evaluate_js(self, script, parse_json):
+            result = self.browser.evaluate_js(script, parse_json)
+            return result
 
         def clear_cookies(self):
             def _clear_cookies():
@@ -382,8 +367,6 @@ class BrowserView:
             if not is_chromium:
                 logger.error('get_cookies() is not implemented for this platform')
                 return cookies
-
-            self.loaded.wait()
 
             semaphore = Semaphore(0)
 
@@ -815,8 +798,6 @@ def load_url(url, uid):
     if not i:
         return
 
-    i.loaded.clear()
-
     if is_cef:
         CEF.load_url(url, uid)
     else:
@@ -928,13 +909,13 @@ def destroy_window(uid):
         i.browser.js_result_semaphore.release()
 
 
-def evaluate_js(script, uid, result_id=None):
+def evaluate_js(script, uid, parse_json, result_id=None):
     if is_cef:
-        return CEF.evaluate_js(script, result_id, uid)
+        return CEF.evaluate_js(script, result_id, parse_json, uid)
 
     i = BrowserView.instances.get(uid)
     if i:
-        return i.evaluate_js(script)
+        return i.evaluate_js(script, parse_json)
 
 
 def get_position(uid):

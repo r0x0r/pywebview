@@ -49,7 +49,6 @@ class DOM:
         return Element(self.__window, node_id)
 
     def get_element(self, selector: str) -> Optional[Element]:
-        self.__window.events.loaded.wait()
         node_id = self.__window.evaluate_js(f"""
             var element = document.querySelector('{selector}');
             pywebview._getNodeId(element);
@@ -58,7 +57,6 @@ class DOM:
         return Element(self.__window, node_id) if node_id else None
 
     def get_elements(self, selector: str) -> List[Element]:
-        self.__window.events.loaded.wait()
         code = f"""
             var elements = document.querySelectorAll('{selector}');
             nodeIds = [];

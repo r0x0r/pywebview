@@ -114,17 +114,12 @@ class BrowserView(Widget):
         def js_api_handler(func, params, id):
             js_bridge_call(self.window, func, json.loads(params), id)
 
-        def loaded_callback(event, data):
-            self.window.events.loaded.set()
-
         def chrome_callback(event, data):
             print(event, data)
 
         def webview_callback(event, data):
             if event == 'onPageFinished':
-                value_callback = JavascriptValueCallback()
-                value_callback.setCallback(EventCallbackWrapper(loaded_callback))
-                self.webview.evaluateJavascript(inject_pywebview(self.window, renderer), value_callback)
+                inject_pywebview(renderer, self.window)
 
                 if not _settings['private_mode']:
                     CookieManager.getInstance().setAcceptCookie(True)
@@ -299,23 +294,20 @@ def setup_app():
 
 @run_on_ui_thread
 def load_url(url, _):
-    app.window.events.loaded.clear()
     app.view._cookies = {}
     app.view.webview.loadUrl(url)
 
 
 @run_on_ui_thread
 def load_html(html_content, base_uri, _):
-    app.window.events.loaded.clear()
     app.view._cookies = {}
     app.view.webview.loadDataWithBaseURL(base_uri, html_content, 'text/html', 'UTF-8', None)
 
 
-def evaluate_js(js_code, unique_id):
+def evaluate_js(js_code, _, parse_json=True):
     def callback(event, result):
         nonlocal js_result
-        result = json.loads(result)
-        js_result = json.loads(result) if result else None
+        js_result = json.loads(result) if parse_json and result else result
         lock.release()
 
     def _evaluate_js():

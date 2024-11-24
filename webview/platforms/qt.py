@@ -641,13 +641,16 @@ class BrowserView(QMainWindow):
             uuid_ = BrowserView._convert_string(uuid)
 
             js_result = self._js_results[uuid_]
-            js_result['result'] = (
-                None
-                if result is None or result == 'null'
-                else result
-                if result == ''
-                else json.loads(result)
-            )
+
+            if js_result['parse_json'] and result:
+                try:
+                    js_result['result'] = json.loads(result)
+                except Exception:
+                    logger.exception('Failed to parse JSON: %s', result)
+                    js_result['result'] = result
+            else:
+                js_result['result'] = result
+
             js_result['semaphore'].release()
 
         try:  # < Qt5.6
@@ -693,18 +696,15 @@ class BrowserView(QMainWindow):
         self.profile.cookieStore().deleteAllCookies()
 
     def get_current_url(self):
-        self.pywebview_window.events.loaded.wait()
         self.current_url_trigger.emit()
         self._current_url_semaphore.acquire()
 
         return self._current_url
 
     def load_url(self, url):
-        self.pywebview_window.events.loaded.clear()
         self.load_url_trigger.emit(url)
 
     def load_html(self, content, base_uri):
-        self.pywebview_window.events.loaded.clear()
         self.html_trigger.emit(content, base_uri)
 
     def create_confirmation_dialog(self, title, message):
@@ -774,11 +774,10 @@ class BrowserView(QMainWindow):
     def set_on_top(self, top):
         self.on_top_trigger.emit(top)
 
-    def evaluate_js(self, script):
-        self.pywebview_window.events.loaded.wait()
+    def evaluate_js(self, script, parse_json):
         result_semaphore = Semaphore(0)
         unique_id = uuid1().hex
-        self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': ''}
+        self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': '', 'parse_json': parse_json }
 
         self.evaluate_js_trigger.emit(script, unique_id)
         result_semaphore.acquire()
@@ -792,8 +791,6 @@ class BrowserView(QMainWindow):
         def _register_window_object():
             frame.addToJavaScriptWindowObject('external', self.js_bridge)
 
-        script = inject_pywebview(self.js_bridge.window, renderer)
-
         if is_webengine:
             qwebchannel_js = QtCore.QFile('://qtwebchannel/qwebchannel.js')
             if qwebchannel_js.open(QtCore.QFile.ReadOnly):
@@ -805,12 +802,7 @@ class BrowserView(QMainWindow):
             frame = self.webview.page().mainFrame()
             _register_window_object()
 
-        try:
-            self.webview.page().runJavaScript(script)
-        except AttributeError:  # < QT 5.6
-            self.webview.page().mainFrame().evaluateJavaScript(script)
-
-        self.pywebview_window.events.loaded.set()
+        inject_pywebview(renderer, self.js_bridge.window)
 
     @staticmethod
     def _convert_string(result):
@@ -1064,10 +1056,10 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
-def evaluate_js(script, uid):
+def evaluate_js(script, uid, parse_json=True):
     i = BrowserView.instances.get(uid)
     if i:
-        return i.evaluate_js(script)
+        return i.evaluate_js(script, parse_json)
 
 
 def get_position(uid):

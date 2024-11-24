@@ -29,5 +29,5 @@ def evaluate_js(window):
 
 
 if __name__ == '__main__':
-    window = webview.create_window('Run custom JavaScript', html='<html><body></body></html>')
+    window = webview.create_window('Evaluate JavaScript', html='<html><body></body></html>')
     webview.start(evaluate_js, window)

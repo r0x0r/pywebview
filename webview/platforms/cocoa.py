@@ -12,7 +12,7 @@ from threading import Semaphore, Thread, main_thread
 import AppKit
 import Foundation
 import WebKit
-from objc import _objc, nil, registerMetaDataForSelector, selector, super
+from objc import _objc, nil, selector, super
 from PyObjCTools import AppHelper
 
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows, settings as webview_settings)
@@ -31,18 +31,6 @@ info['NSRequiresAquaSystemAppearance'] = Foundation.NO  # Enable dark mode suppo
 
 # Dynamic library required by BrowserView.pyobjc_method_signature()
 _objc_so = ctypes.cdll.LoadLibrary(_objc.__file__)
-
-# Bridgesupport metadata for [WKWebView evaluateJavaScript:completionHandler:]
-_eval_js_metadata = {
-    'arguments': {
-        3: {
-            'callable': {
-                'retval': {'type': b'v'},
-                'arguments': {0: {'type': b'^v'}, 1: {'type': b'@'}, 2: {'type': b'@'}},
-            }
-        }
-    }
-}
 
 # Fallbacks, in case these constants are not wrapped by PyObjC
 try:
@@ -180,7 +168,6 @@ class BrowserView:
             # Prevent `ObjCPointerWarning: PyObjCPointer created: ... type ^{__SecTrust=}`
             from Security import SecTrustRef
 
-
             # this allows any server cert
             credential = AppKit.NSURLCredential.credentialForTrust_(
                 challenge.protectionSpace().serverTrust()
@@ -302,9 +289,7 @@ class BrowserView:
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                script = inject_pywebview(i.js_bridge.window, 'cocoa')
-                i.webview.evaluateJavaScript_completionHandler_(script, lambda a, b: None)
-                i.loaded.set()
+                inject_pywebview('cocoa', i.js_bridge.window)
 
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):
@@ -605,13 +590,6 @@ class BrowserView:
 
         self.pywebview_window.events.before_show.set()
 
-        try:
-            self.webview.evaluateJavaScript_completionHandler_('', lambda a, b: None)
-        except TypeError:
-            registerMetaDataForSelector(
-                b'WKWebView', b'evaluateJavaScript:completionHandler:', _eval_js_metadata
-            )
-
         if window.real_url:
             self.url = window.real_url
             self.load_url(window.real_url)
@@ -780,7 +758,6 @@ class BrowserView:
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
             self.webview.loadRequest_(req)
 
-        self.loaded.clear()
         self.url = url
         AppHelper.callAfter(load, url)
 
@@ -789,24 +766,29 @@ class BrowserView:
             url = Foundation.NSURL.URLWithString_(BrowserView.quote(url))
             self.webview.loadHTMLString_baseURL_(content, url)
 
-        self.loaded.clear()
         AppHelper.callAfter(load, content, base_uri)
 
-    def evaluate_js(self, script):
+    def evaluate_js(self, script, parse_json):
         def eval():
             self.webview.evaluateJavaScript_completionHandler_(script, handler)
 
         def handler(result, error):
-            JSResult.result = None if result is None else json.loads(result)
+            if parse_json and result:
+                try:
+                    JSResult.result = json.loads(result)
+                except Exception:
+                    logger.exception('Failed to parse JSON: ' + result)
+                    JSResult.result = result
+            else:
+                JSResult.result = result
+
             JSResult.result_semaphore.release()
 
         class JSResult:
             result = None
             result_semaphore = Semaphore(0)
 
-        self.loaded.wait()
         AppHelper.callAfter(eval)
-
         JSResult.result_semaphore.acquire()
         return JSResult.result
 
@@ -1336,10 +1318,10 @@ def get_cookies(uid):
         return i.get_cookies()
 
 
-def evaluate_js(script, uid):
+def evaluate_js(script, uid, parse_json=True):
     i = BrowserView.instances.get(uid)
     if i:
-        return i.evaluate_js(script)
+        return i.evaluate_js(script, parse_json)
 
 
 def get_position(uid):

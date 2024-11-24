@@ -7,13 +7,13 @@ class ClassList:
             self.__element._window.evaluate_js(f"{self.__element._query_command}; element.className = '{classes}'")
 
     def append(self, cls):
-        self.__element._window.evaluate_js(f"{self.__element._query_command}; element.classList.add('{cls}')")
+        self.__element._window.run_js(f"{self.__element._query_command}; element.classList.add('{cls}')")
 
     def remove(self, cls):
-        self.__element._window.evaluate_js(f"{self.__element._query_command}; element.classList.remove('{cls}')")
+        self.__element._window.run_js(f"{self.__element._query_command}; element.classList.remove('{cls}')")
 
     def toggle(self, cls):
-        self.__element._window.evaluate_js(f"{self.__element._query_command}; element.classList.toggle('{cls}')")
+        self.__element._window.run_js(f"{self.__element._query_command}; element.classList.toggle('{cls}')")
 
     def __get_classes(self):
         classes = self.__element._window.evaluate_js(f"{self.__element._query_command}; element.className").split(' ')
@@ -36,4 +36,4 @@ class ClassList:
         return repr(classes)
 
     def clear(self):
-        self.__element._window.evaluate_js(f"{self.__element._query_command}; element.className = ''")
+        self.__element._window.run_js(f"{self.__element._query_command}; element.className = ''")
