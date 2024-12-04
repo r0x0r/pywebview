@@ -77,10 +77,11 @@ settings = {
     'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
     'OPEN_DEVTOOLS_IN_DEBUG': True,
     'REMOTE_DEBUGGING_PORT': None,
+    'IGNORE_SSL_ERRORS': False,
 }
 
 guilib = None
-_settings = {
+_state = {
     'debug': False,
     'storage_path': None,
     'private_mode': True,
@@ -148,13 +149,13 @@ def start(
         for window in other_windows:
             guilib.create_window(window)
 
-    _settings['debug'] = debug
-    _settings['user_agent'] = user_agent
-    _settings['http_server'] = http_server
-    _settings['private_mode'] = private_mode
+    _state['debug'] = debug
+    _state['user_agent'] = user_agent
+    _state['http_server'] = http_server
+    _state['private_mode'] = private_mode
 
     if icon:
-        _settings['icon'] = abspath(icon)
+        _state['icon'] = abspath(icon)
 
     if storage_path:
         __set_storage_path(storage_path)
@@ -162,8 +163,8 @@ def start(
     if debug:
         logger.setLevel(logging.DEBUG)
 
-    if _settings['storage_path'] and _settings['private_mode'] and not os.path.exists(_settings['storage_path']):
-        os.makedirs(_settings['storage_path'])
+    if _state['storage_path'] and _state['private_mode'] and not os.path.exists(_state['storage_path']):
+        os.makedirs(_state['storage_path'])
 
     original_localization.update(localization)
 
@@ -181,7 +182,7 @@ def start(
         keyfile, certfile = __generate_ssl_cert()
         server_args['keyfile'] = keyfile
         server_args['certfile'] = certfile
-        _settings['ssl'] = True
+        _state['ssl'] = True
     else:
         keyfile, certfile = None, None
 
@@ -189,7 +190,7 @@ def start(
     has_local_urls = not not [w.original_url for w in windows if is_local_url(w.original_url)]
     # start the global server if it's not running and we need it
     if (http.global_server is None) and (http_server or has_local_urls):
-        if not _settings['private_mode'] and not http_port:
+        if not _state['private_mode'] and not http_port:
             http_port = DEFAULT_HTTP_PORT
         *_, server = http.start_global_server(
             http_port=http_port, urls=urls, server=server, **server_args
@@ -405,7 +406,7 @@ def __set_storage_path(storage_path):
     if not os.access(storage_path, os.W_OK):
         raise e
 
-    _settings['storage_path'] = storage_path
+    _state['storage_path'] = storage_path
 
 
 def active_window() -> Window | None:

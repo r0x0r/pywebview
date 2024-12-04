@@ -11,7 +11,7 @@ from kivy.clock import Clock
 from jnius import autoclass, cast, java_method, PythonJavaClass
 from android.runnable import Runnable, run_on_ui_thread
 
-from webview import _settings, settings
+from webview import _state, settings
 from webview.util import create_cookie, js_bridge_call, inject_pywebview
 
 AlertDialogBuilder = autoclass('android.app.AlertDialog$Builder')
@@ -121,7 +121,7 @@ class BrowserView(Widget):
             if event == 'onPageFinished':
                 inject_pywebview(renderer, self.window)
 
-                if not _settings['private_mode']:
+                if not _state['private_mode']:
                     CookieManager.getInstance().setAcceptCookie(True)
                     CookieManager.getInstance().acceptCookie()
                     CookieManager.getInstance().flush()
@@ -146,14 +146,14 @@ class BrowserView(Widget):
         webview_settings.setLoadWithOverviewMode(True)
         webview_settings.setSupportZoom(self.window.zoomable)
         webview_settings.setBuiltInZoomControls(False)
-        webview_settings.setDomStorageEnabled(not _settings['private_mode'])
+        webview_settings.setDomStorageEnabled(not _state['private_mode'])
 
-        if _settings['user_agent']:
-            webview_settings.setUserAgentString(_settings['user_agent'])
+        if _state['user_agent']:
+            webview_settings.setUserAgentString(_state['user_agent'])
 
         self._webview_callback_wrapper = EventCallbackWrapper(webview_callback)
         webview_client = PyWebViewClient()
-        webview_client.setCallback(self._webview_callback_wrapper, _settings['ssl'])
+        webview_client.setCallback(self._webview_callback_wrapper, _state['ssl'] or settings['IGNORE_SSL_ERRORS'])
         self.webview.setWebViewClient(webview_client)
 
         self._chrome_callback_wrapper = EventCallbackWrapper(chrome_callback)
@@ -182,7 +182,7 @@ class BrowserView(Widget):
         self.window.events.shown.set()
 
     def dismiss(self):
-        if _settings['private_mode']:
+        if _state['private_mode']:
             self.webview.clearHistory()
             self.webview.clearCache(True)
             self.webview.clearFormData()

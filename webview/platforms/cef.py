@@ -13,7 +13,7 @@ from time import sleep
 
 from cefpython3 import cefpython as cef
 
-from webview import _settings, settings
+from webview import _state, settings
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
 
 sys.excepthook = cef.ExceptHook
@@ -246,18 +246,18 @@ def init(_, cache_dir):
 
         default_settings = {
             'multi_threaded_message_loop': True,
-            'context_menu': {'enabled': _settings['debug']},
+            'context_menu': {'enabled': _state['debug']},
         }
 
         default_command_line_switches = {
             'enable-media-stream': '',
         }
 
-        if not _settings['debug']:
+        if not _state['debug']:
             default_settings['remote_debugging_port'] = -1
 
-        if _settings['user_agent']:
-            default_settings['user_agent'] = _settings['user_agent']
+        if _state['user_agent']:
+            default_settings['user_agent'] = _state['user_agent']
 
         if cache_dir:
             default_settings['cache_path'] = cache_dir
@@ -310,7 +310,7 @@ def create_browser(window, handle, alert_func, parent):
         window.events.shown.set()
         cef_browser.SendFocusEvent(True)
 
-        if _settings['debug'] and settings['OPEN_DEVTOOLS_IN_DEBUG']:
+        if _state['debug'] and settings['OPEN_DEVTOOLS_IN_DEBUG']:
             cef_browser.ShowDevTools()
 
     window_info = cef.WindowInfo()
@@ -386,7 +386,7 @@ def shutdown():
         if os.path.exists('webrtc_event_logs'):
             shutil.rmtree('webrtc_event_logs')
 
-        if os.path.exists('error.log') and not _settings['debug']:
+        if os.path.exists('error.log') and not _state['debug']:
             os.remove('error.log')
 
         if sys.platform == 'win32':

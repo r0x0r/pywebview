@@ -12,7 +12,7 @@ from threading import Event, Semaphore
 
 import clr
 
-from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows
+from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, windows
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -615,14 +615,14 @@ _already_set_up_app = False
 def init_storage():
     global cache_dir
 
-    if not _settings['private_mode'] or _settings['storage_path']:
+    if not _state['private_mode'] or _state['storage_path']:
         try:
             data_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
 
             if not os.access(data_folder, os.W_OK):
                 data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
 
-            cache_dir = _settings['storage_path'] or os.path.join(data_folder, 'pywebview')
+            cache_dir = _state['storage_path'] or os.path.join(data_folder, 'pywebview')
 
             if not os.path.exists(cache_dir):
                 os.makedirs(cache_dir)
