@@ -29,7 +29,7 @@ from webview.guilib import initialize, GUIType
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import (_TOKEN, abspath, base_uri, escape_line_breaks, escape_string,
+from webview.util import (ImmutableDict, _TOKEN, abspath, base_uri, escape_line_breaks, escape_string,
                           is_app, is_local_url, parse_file_type)
 from webview.window import Window
 
@@ -71,17 +71,16 @@ SAVE_DIALOG = 30
 DRAG_REGION_SELECTOR = '.pywebview-drag-region'
 DEFAULT_HTTP_PORT = 42001
 
-settings = {
+settings = ImmutableDict({
     'ALLOW_DOWNLOADS': False,
     'ALLOW_FILE_URLS': True,
     'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
     'OPEN_DEVTOOLS_IN_DEBUG': True,
     'REMOTE_DEBUGGING_PORT': None,
     'IGNORE_SSL_ERRORS': False,
-}
+})
 
-guilib = None
-_state = {
+_state = ImmutableDict({
     'debug': False,
     'storage_path': None,
     'private_mode': True,
@@ -89,7 +88,9 @@ _state = {
     'http_server': False,
     'ssl': False,
     'icon': None
-}
+})
+
+guilib = None
 
 token = _TOKEN
 windows: list[Window] = []

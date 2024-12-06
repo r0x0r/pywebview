@@ -13,6 +13,7 @@ import os
 import re
 import sys
 import traceback
+from collections import UserDict
 from glob import glob
 from http.cookies import SimpleCookie
 from platform import architecture
@@ -42,6 +43,29 @@ DEFAULT_HTML = """
 """
 
 logger = logging.getLogger('pywebview')
+
+
+
+class ImmutableDict(UserDict):
+    """"
+    A dictionary that does not allow adding new keys or deleting existing ones.
+    Only existing keys can be modified.
+    """
+
+    def __init__(self, initial_data=None, **kwargs):
+        self.data = {}
+        if initial_data:
+            self.data.update(initial_data)
+        if kwargs:
+            self.data.update(kwargs)
+
+    def __setitem__(self, key, value):
+        if key not in self.data:
+            raise KeyError(f"Cannot add new key '{key}'. Only existing keys can be modified.")
+        super().__setitem__(key, value)
+
+    def __delitem__(self, key):
+        raise KeyError('Deleting keys is not allowed.')
 
 
 def is_app(url: str | None) -> bool:
