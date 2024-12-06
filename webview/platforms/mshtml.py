@@ -2,14 +2,12 @@ import json
 import logging
 import sys
 import webbrowser
-import winreg
 from ctypes import windll
 from threading import Semaphore
-from time import sleep
 
 import clr
 
-from webview import _settings
+from webview import _state
 from webview.util import (DEFAULT_HTML, inject_base_uri, interop_dll_path, js_bridge_call,
                           inject_pywebview)
 
@@ -124,18 +122,18 @@ class MSHTML:
         self.pywebview_window = window
         self.webview = WebBrowserEx()
         self.webview.Dock = WinForms.DockStyle.Fill
-        self.webview.ScriptErrorsSuppressed = not _settings['debug']
-        self.webview.IsWebBrowserContextMenuEnabled = _settings['debug']
+        self.webview.ScriptErrorsSuppressed = not _state['debug']
+        self.webview.IsWebBrowserContextMenuEnabled = _state['debug']
         self.webview.WebBrowserShortcutsEnabled = False
         self.webview.DpiAware = True
         MSHTML.alert = alert
 
-        user_agent = _settings['user_agent'] or settings.get('user_agent')
+        user_agent = _state['user_agent'] or settings.get('user_agent')
         if user_agent:
             self.webview.ChangeUserAgent(user_agent)
 
-        self.webview.ScriptErrorsSuppressed = not _settings['debug']
-        self.webview.IsWebBrowserContextMenuEnabled = _settings['debug']
+        self.webview.ScriptErrorsSuppressed = not _state['debug']
+        self.webview.IsWebBrowserContextMenuEnabled = _state['debug']
 
         self.js_result_semaphore = Semaphore(0)
         self.js_bridge = MSHTML.JSBridge()
@@ -226,7 +224,7 @@ class MSHTML:
     def on_document_completed(self, _, args):
         document = self.webview.Document
 
-        if _settings['debug']:
+        if _state['debug']:
             document.InvokeScript(
                 'eval', """
                     window.console = {

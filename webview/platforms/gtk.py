@@ -6,7 +6,7 @@ from threading import Semaphore, Thread, main_thread
 from typing import Any
 from uuid import uuid1
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, settings,
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, settings,
                      parse_file_type, windows)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
@@ -127,7 +127,7 @@ class BrowserView:
 
         self.js_bridge = BrowserView.JSBridge(window)
 
-        storage_path = _settings['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
+        storage_path = _state['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
 
         if not os.path.exists(storage_path):
             os.makedirs(storage_path)
@@ -135,7 +135,7 @@ class BrowserView:
         web_context = webkit.WebContext.get_default()
         self.cookie_manager = web_context.get_cookie_manager()
 
-        if not _settings['private_mode']:
+        if not _state['private_mode']:
             self.cookie_manager.set_persistent_storage(
                 os.path.join(storage_path, 'cookies'), webkit.CookiePersistentStorage.SQLITE
             )
@@ -150,11 +150,14 @@ class BrowserView:
         self.webview.connect('decide-policy', self.on_navigation)
         self.webview.connect('drag-data-received', self.on_drag_data)
 
+        if settings['IGNORE_SSL_ERRORS']:
+            web_context.set_tls_errors_policy(webkit.TLSErrorsPolicy.IGNORE)
+
         if settings['ALLOW_DOWNLOADS']:
             web_context.connect('download-started', self.on_download_started)
 
         webkit_settings = self.webview.get_settings().props
-        user_agent = settings.get('user_agent') or _settings['user_agent']
+        user_agent = settings.get('user_agent') or _state['user_agent']
         if user_agent:
             webkit_settings.user_agent = user_agent
 
@@ -184,7 +187,7 @@ class BrowserView:
             wvbg.alpha = 0.0
             self.webview.set_background_color(wvbg)
 
-        if _settings['debug']:
+        if _state['debug']:
             webkit_settings.enable_developer_extras = True
 
             if settings['OPEN_DEVTOOLS_IN_DEBUG']:
@@ -192,16 +195,16 @@ class BrowserView:
         else:
             self.webview.connect('context-menu', lambda a, b, c, d: True)  # Disable context menu
 
-        if _settings['private_mode']:
+        if _state['private_mode']:
             webkit_settings.enable_html5_database = False
             webkit_settings.enable_html5_local_storage = False
 
         self.webview.set_opacity(0.0)
         scrolled_window.add(self.webview)
 
-        if _settings['icon']:
-            self.window.set_icon_from_file(_settings['icon'])
-            self.window.set_default_icon_from_file(_settings['icon'])
+        if _state['icon']:
+            self.window.set_icon_from_file(_state['icon'])
+            self.window.set_default_icon_from_file(_state['icon'])
 
         self.pywebview_window.events.before_show.set()
 

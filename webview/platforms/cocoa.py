@@ -15,7 +15,7 @@ import WebKit
 from objc import _objc, nil, selector, super
 from PyObjCTools import AppHelper
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows, settings as webview_settings)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, parse_file_type, windows, settings as webview_settings)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -169,10 +169,13 @@ class BrowserView:
             from Security import SecTrustRef
 
             # this allows any server cert
-            credential = AppKit.NSURLCredential.credentialForTrust_(
-                challenge.protectionSpace().serverTrust()
-            )
-            handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
+            if webview_settings['IGNORE_SSL_ERRORS']:
+                credential = AppKit.NSURLCredential.credentialForTrust_(
+                    challenge.protectionSpace().serverTrust()
+                )
+                handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
+            else:
+                handler(AppKit.NSURLSessionAuthChallengePerformDefaultHandling, nil)
 
         # Display a JavaScript confirm panel containing the specified message
         def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_completionHandler_(
@@ -379,13 +382,13 @@ class BrowserView:
 
             if event.modifierFlags() & getattr(AppKit, 'NSEventModifierFlagControl', 1 << 18):
                 i = BrowserView.get_instance('webview', self)
-                if not _settings['debug']:
+                if not _state['debug']:
                     return
 
             super(BrowserView.WebKitHost, self).mouseDown_(event)
 
         def willOpenMenu_withEvent_(self, menu, event):
-            if not _settings['debug']:
+            if not _state['debug']:
                 menu.removeAllItems()
 
         def keyDown_(self, event):
@@ -505,7 +508,7 @@ class BrowserView:
         )
         self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
 
-        if _settings['private_mode']:
+        if _state['private_mode']:
             # nonPersisentDataStore preserves cookies for some unknown reason. For this reason we use default datastore
             # and clear all the cookies beforehand
 
@@ -528,13 +531,13 @@ class BrowserView:
 
         config.preferences().setValue_forKey_(webview_settings['ALLOW_FILE_URLS'], 'allowFileAccessFromFileURLs')
 
-        if _settings['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
+        if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
         config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
-        user_agent = webview_settings.get('user_agent') or _settings['user_agent']
+        user_agent = webview_settings.get('user_agent') or _state['user_agent']
         if user_agent:
             self.webview.setCustomUserAgent_(user_agent)
 

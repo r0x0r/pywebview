@@ -7,7 +7,7 @@ from threading import Semaphore
 
 import clr
 
-from webview import _settings, settings as webview_settings
+from webview import _state, settings as webview_settings
 from webview.dom import _dnd_state
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
@@ -41,7 +41,7 @@ class EdgeChrome:
         self.webview = WebView2()
         props = CoreWebView2CreationProperties()
         props.UserDataFolder = cache_dir
-        props.set_IsInPrivateModeEnabled(_settings['private_mode'])
+        props.set_IsInPrivateModeEnabled(_state['private_mode'])
         props.AdditionalBrowserArguments = '--disable-features=ElasticOverscroll'
 
         if webview_settings['ALLOW_FILE_URLS']:
@@ -73,7 +73,7 @@ class EdgeChrome:
         self.ishtml = False
         self.html = DEFAULT_HTML
 
-        if _settings['storage_path']:
+        if _state['storage_path']:
             self.setup_webview2_environment()
         else:
             self.webview.EnsureCoreWebView2Async(None)
@@ -83,7 +83,7 @@ class EdgeChrome:
             self.webview.EnsureCoreWebView2Async(task.Result)
 
         environment = CoreWebView2Environment.CreateAsync(
-            userDataFolder=_settings['storage_path']
+            userDataFolder=_state['storage_path']
         )
         environment.ContinueWith(
             Action[Task[CoreWebView2Environment]](_callback),
@@ -229,27 +229,27 @@ class EdgeChrome:
         self.webview.CoreWebView2.SourceChanged += self.on_source_changed
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
 
-        if _settings['ssl']:
+        if _state['ssl'] or webview_settings['IGNORE_SSL_ERRORS']:
             sender.CoreWebView2.ServerCertificateErrorDetected += self.on_certificate_error
 
         sender.CoreWebView2.DownloadStarting += self.on_download_starting
 
         settings = sender.CoreWebView2.Settings
-        settings.AreBrowserAcceleratorKeysEnabled = _settings['debug']
-        settings.AreDefaultContextMenusEnabled = _settings['debug']
+        settings.AreBrowserAcceleratorKeysEnabled = _state['debug']
+        settings.AreDefaultContextMenusEnabled = _state['debug']
         settings.AreDefaultScriptDialogsEnabled = True
-        settings.AreDevToolsEnabled = _settings['debug']
+        settings.AreDevToolsEnabled = _state['debug']
         settings.IsBuiltInErrorPageEnabled = True
         settings.IsScriptEnabled = True
         settings.IsWebMessageEnabled = True
-        settings.IsStatusBarEnabled = _settings['debug']
+        settings.IsStatusBarEnabled = _state['debug']
         settings.IsSwipeNavigationEnabled = False
         settings.IsZoomControlEnabled = True
 
-        if _settings['user_agent']:
-            settings.UserAgent = _settings['user_agent']
+        if _state['user_agent']:
+            settings.UserAgent = _state['user_agent']
 
-        if _settings['private_mode']:
+        if _state['private_mode']:
             # cookies persist even if UserDataFolder is in memory. We have to delete cookies manually.
             sender.CoreWebView2.CookieManager.DeleteAllCookies()
 
@@ -261,7 +261,7 @@ class EdgeChrome:
         else:
             self.load_html(DEFAULT_HTML, '')
 
-        if _settings['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
+        if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             sender.CoreWebView2.OpenDevToolsWindow()
 
     def on_download_starting(self, sender, args):
