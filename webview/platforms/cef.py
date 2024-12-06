@@ -265,6 +265,9 @@ def init(_, cache_dir):
         if settings['ALLOW_FILE_URLS']:
             default_command_line_switches['allow-file-access-from-files'] = ''
 
+        if settings['IGNORE_SSL_ERRORS']:
+            default_command_line_switches['ignore-certificate-errors'] = ''
+
         resource_root = getattr(sys, '_MEIPASS', os.path.dirname(cef.__file__))
 
         default_settings.update(

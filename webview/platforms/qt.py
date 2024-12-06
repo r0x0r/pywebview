@@ -845,6 +845,8 @@ class BrowserView(QMainWindow):
 def setup_app():
     # MUST be called before create_window and set_app_menu
     global _app
+    if settings['IGNORE_SSL_ERRORS']:
+        environ_append('QTWEBENGINE_CHROMIUM_FLAGS', '--ignore-certificate-errors')
     _app = QApplication.instance() or QApplication(sys.argv)
 
 
