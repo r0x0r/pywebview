@@ -22,6 +22,7 @@ __pycache__
 .venv/
 _version.py
 docs/examples
+docs/zh/examples
 /main.py
 .buildozer
 *.apk
