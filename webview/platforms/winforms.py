@@ -375,6 +375,26 @@ class BrowserView:
 
             return cookies
 
+        def add_cookie(self, name: str, value: str, domain: str, path: str, 
+                        expires: float = None, secure: bool = False, 
+                        http_only: bool = False, same_site: str = None):
+            def _add_cookie():
+                self.browser.add_cookie(
+                    name,
+                    value,
+                    domain,
+                    path, 
+                    expires,
+                    secure, 
+                    http_only,
+                    same_site
+                )
+            if not is_chromium:
+                logger.error('add_cookie() is not implemented for this platform')
+                return
+            
+            self.Invoke(Func[Type](_add_cookie))
+
         def load_html(self, content, base_uri):
             def _load_html():
                 self.browser.load_html(content, base_uri)
@@ -783,6 +803,13 @@ def get_cookies(uid):
     if i:
         return i.get_cookies()
 
+def add_cookie(name, value, domain, path, expires, secure, http_only, same_site,uid):
+    if is_cef:
+        return CEF.add_cookie(name, value, domain, path, expires, secure, http_only, same_site, uid)
+    i = BrowserView.instances.get(uid)
+
+    if i:
+        return i.add_cookie(name, value, domain, path, expires, secure, http_only, same_site)
 
 def get_current_url(uid):
     if is_cef:

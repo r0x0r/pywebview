@@ -14,7 +14,9 @@ from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridg
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
+clr.AddReference("System")
 
+from System import DateTime
 import System.Windows.Forms as WinForms
 from System import Action, Func, String, Type, Uri, Object
 from System.Collections.Generic import List
@@ -25,7 +27,7 @@ from System.Threading.Tasks import Task, TaskScheduler
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
-from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction, CoreWebView2Environment
+from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction, CoreWebView2Environment, CoreWebView2CookieSameSiteKind
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
@@ -155,6 +157,27 @@ class EdgeChrome:
         self.webview.CoreWebView2.CookieManager.GetCookiesAsync(self.url).ContinueWith(
             Action[Task[List[CoreWebView2Cookie]]](_callback), self.syncContextTaskScheduler
         )
+
+    def add_cookie(self, name: str, value: str, domain: str, path: str, 
+                        expires: float = None, secure: bool = False, 
+                        http_only: bool = False, same_site: str = None):
+        core = self.webview.CoreWebView2
+        manager = core.CookieManager
+
+        # Create a cookie instance
+        cookie = manager.CreateCookie(name, value, domain, path)
+
+        # Set optional properties
+        if expires:
+            cookie.Expires = DateTime.FromFileTimeUtc(int(expires * 10000000))  # Convert UNIX timestamp to .NET DateTime
+        cookie.IsSecure = secure
+        cookie.IsHttpOnly = http_only
+
+        if same_site:
+            cookie.SameSite = getattr(CoreWebView2CookieSameSiteKind, same_site.capitalize(), None)
+
+        # Add or update the cookie
+        manager.AddOrUpdateCookie(cookie)
 
     def get_current_url(self):
         return self.url

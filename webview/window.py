@@ -318,6 +318,25 @@ class Window:
         return self.gui.get_cookies(self.uid)
 
     @_loaded_call
+    def add_cookie(self, name: str, value: str, domain: str, path: str, 
+                        expires: float = None, secure: bool = False, 
+                        http_only: bool = False, same_site: str = None):
+        """
+        Clear all the cookies
+        """
+        return self.gui.add_cookie(
+            name,
+            value,
+            domain,
+            path, 
+            expires,
+            secure, 
+            http_only,
+            same_site,
+            self.uid
+            )
+
+    @_loaded_call
     def get_current_url(self) -> str | None:
         """
         Get the URL currently loaded in the target webview
