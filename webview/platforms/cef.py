@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import sys
-from uuid import uuid4
 import webbrowser
 from copy import copy
 from ctypes import windll
@@ -13,7 +12,7 @@ from time import sleep
 
 from cefpython3 import cefpython as cef
 
-from webview import _state, settings
+from webview import _settings, settings
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
 
 sys.excepthook = cef.ExceptHook
@@ -23,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 browser_settings = {}
 command_line_switches = {}
-renderer = 'cef'
 
 
 def _set_dpi_mode(enabled):
@@ -72,6 +70,7 @@ class JSBridge:
         js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
 
+renderer = 'cef'
 
 
 class CookieVisitor:
@@ -117,10 +116,11 @@ class Browser:
         self.cookie_visitor = CookieVisitor()
 
         self.browser.GetJavascriptBindings().Rebind()
-        inject_pywebview('cef', self.window)
+        self.browser.ExecuteJavascript(inject_pywebview(self.window, 'cef'))
 
         sleep(0.1)  # wait for window.pywebview to load
         self.initialized = True
+        self.loaded.set()
 
     def close(self):
         self.browser.CloseBrowser(True)
@@ -141,36 +141,38 @@ class Browser:
         )
         self.browser.NotifyMoveOrResizeStarted()
 
-    def evaluate_js(self, code, unique_id, parse_json):
+    def evaluate_js(self, code, unique_id):
+        self.loaded.wait()
+
         self.eval_events[unique_id] = Event()
+        eval_script = """
+            try {{
+                {0}
+            }} catch(e) {{
+                console.error(e.stack);
+                window.external.return_result(null, '{1}');
+            }}
+        """.format(
+            code, unique_id
+        )
 
-        if unique_id:
-            eval_script = f"""
-                try {{
-                    {code}
-                }} catch(e) {{
-                    window.external.return_result(null, '{unique_id}');
-                }}
-            """
+        result = self.browser.ExecuteJavascript(eval_script)
+        self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
 
-            self.browser.ExecuteJavascript(eval_script)
-            self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
+        result = copy(self.js_bridge.results[unique_id])
 
-            result = copy(self.js_bridge.results[unique_id])
+        del self.eval_events[unique_id]
+        del self.js_bridge.results[unique_id]
 
-            del self.eval_events[unique_id]
-            del self.js_bridge.results[unique_id]
-
-            return result
-        else:
-            self.browser.ExecuteJavascript(code)
-            return None
+        return result
 
     def clear_cookies(self):
+        self.loaded.wait()
         self.cookie_manager.DeleteCookies('', '')
         self.cookie_manager.FlushStore()
 
     def get_cookies(self):
+        self.loaded.wait()
         self.cookie_visitor.cookies = []
         self.cookie_visitor.lock = Event()
         self.cookie_manager.VisitUrlCookies(self.browser.GetUrl(), True, self.cookie_visitor)
@@ -179,14 +181,17 @@ class Browser:
         return self.cookie_visitor.cookies
 
     def get_current_url(self):
+        self.loaded.wait()
         return self.browser.GetUrl()
 
     def load_url(self, url):
         self.initialized = False
+        self.loaded.clear()
         self.browser.LoadUrl(url)
 
     def load_html(self, html):
         self.initialized = False
+        self.loaded.clear()
         self.browser.LoadUrl('data:text/html,{0}'.format(html))
 
     def focus(self):
@@ -246,27 +251,24 @@ def init(_, cache_dir):
 
         default_settings = {
             'multi_threaded_message_loop': True,
-            'context_menu': {'enabled': _state['debug']},
+            'context_menu': {'enabled': _settings['debug']},
         }
 
         default_command_line_switches = {
             'enable-media-stream': '',
         }
 
-        if not _state['debug']:
+        if not _settings['debug']:
             default_settings['remote_debugging_port'] = -1
 
-        if _state['user_agent']:
-            default_settings['user_agent'] = _state['user_agent']
+        if _settings['user_agent']:
+            default_settings['user_agent'] = _settings['user_agent']
 
         if cache_dir:
             default_settings['cache_path'] = cache_dir
 
         if settings['ALLOW_FILE_URLS']:
             default_command_line_switches['allow-file-access-from-files'] = ''
-
-        if settings['IGNORE_SSL_ERRORS']:
-            default_command_line_switches['ignore-certificate-errors'] = ''
 
         resource_root = getattr(sys, '_MEIPASS', os.path.dirname(cef.__file__))
 
@@ -313,7 +315,7 @@ def create_browser(window, handle, alert_func, parent):
         window.events.shown.set()
         cef_browser.SendFocusEvent(True)
 
-        if _state['debug'] and settings['OPEN_DEVTOOLS_IN_DEBUG']:
+        if _settings['debug'] and settings['OPEN_DEVTOOLS_IN_DEBUG']:
             cef_browser.ShowDevTools()
 
     window_info = cef.WindowInfo()
@@ -340,9 +342,23 @@ def load_url(url, uid):
 
 
 @_cef_call
-def evaluate_js(code, unique_id, parse_json, uid):
+def evaluate_js(code, result, uid):
     instance = instances[uid]
-    return instance.evaluate_js(code, unique_id, parse_json)
+    return instance.evaluate_js(code, result)
+
+@_cef_call
+def add_cookie(name, value, domain, path, expires, secure, http_only, same_site, uid):
+    instance = instances[uid]
+    return instance.add_cookie(
+        name,
+        value,
+        domain,
+        path, 
+        expires,
+        secure, 
+        http_only,
+        same_site,
+        )
 
 
 @_cef_call
@@ -389,7 +405,7 @@ def shutdown():
         if os.path.exists('webrtc_event_logs'):
             shutil.rmtree('webrtc_event_logs')
 
-        if os.path.exists('error.log') and not _state['debug']:
+        if os.path.exists('error.log') and not _settings['debug']:
             os.remove('error.log')
 
         if sys.platform == 'win32':

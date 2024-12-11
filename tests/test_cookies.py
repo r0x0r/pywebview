@@ -14,6 +14,9 @@ def window():
 def test_get_cookies(window):
     run_test(webview, window, get_cookies_test)
 
+def test_add_cookie(window):
+    run_test(webview, window, add_cookie_test)
+
 
 @pytest.mark.skipif(os.environ.get('PYWEBVIEW_GUI') == 'qt', reason='This test crashes QT')
 def test_clear_cookies(window):
@@ -24,6 +27,12 @@ def get_cookies_test(window):
     cookies = window.get_cookies()
     assert len(cookies) == 1
     assert cookies[0].output().startswith('Set-Cookie: pywebview=true; Domain=127.0.0.1;')
+
+def add_cookie_test(window):
+    window.clear_cookies()
+    cookies = window.add_cookie('TEST_KEY', 'TEST_VALUE', '127.0.0.1', '/')
+    cookies = window.get_cookies()
+    assert len(cookies) == 1
 
 
 def clear_cookies_test(window):
