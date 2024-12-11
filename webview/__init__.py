@@ -29,22 +29,24 @@ from webview.guilib import initialize, GUIType
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import (ImmutableDict, _TOKEN, abspath, base_uri, escape_line_breaks, escape_string,
+from webview.util import (_TOKEN, abspath, base_uri, escape_line_breaks, escape_string,
                           is_app, is_local_url, parse_file_type)
 from webview.window import Window
 
 __all__ = (
     # Stuff that's here
-    'active_window',
     'start',
     'create_window',
     'token',
-    'renderer',
     'screens',
-    'settings',
     # From event
     'Event',
-    # from util    '
+    # from util
+    '_TOKEN',
+    'base_uri',
+    'parse_file_type',
+    'escape_string',
+    'escape_line_breaks',
     'JavascriptException',
     'WebViewException',
     # from screen
@@ -54,12 +56,12 @@ __all__ = (
 )
 
 logger = logging.getLogger('pywebview')
-_handler = logging.StreamHandler()
-_formatter = logging.Formatter('[pywebview] %(message)s')
-_handler.setFormatter(_formatter)
-logger.addHandler(_handler)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('[pywebview] %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
-log_level = logging._nameToLevel[os.environ.get('PYWEBVIEW_LOG', 'info').upper()]
+log_level = logging.DEBUG if os.environ.get('PYWEBVIEW_LOG') == 'debug' else logging.INFO
 logger.setLevel(log_level)
 
 OPEN_DIALOG = 10
@@ -69,16 +71,15 @@ SAVE_DIALOG = 30
 DRAG_REGION_SELECTOR = '.pywebview-drag-region'
 DEFAULT_HTTP_PORT = 42001
 
-settings = ImmutableDict({
+settings = {
     'ALLOW_DOWNLOADS': False,
     'ALLOW_FILE_URLS': True,
     'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
     'OPEN_DEVTOOLS_IN_DEBUG': True,
-    'REMOTE_DEBUGGING_PORT': None,
-    'IGNORE_SSL_ERRORS': False,
-})
+}
 
-_state = ImmutableDict({
+guilib = None
+_settings = {
     'debug': False,
     'storage_path': None,
     'private_mode': True,
@@ -86,14 +87,11 @@ _state = ImmutableDict({
     'http_server': False,
     'ssl': False,
     'icon': None
-})
-
-guilib = None
+}
 
 token = _TOKEN
 windows: list[Window] = []
 menus: list[Menu] = []
-renderer: str | None = None
 
 
 def start(
@@ -112,6 +110,7 @@ def start(
     server_args: dict[Any, Any] = {},
     ssl: bool = False,
     icon: str | None = None,
+    **kwargs,
 ):
     """
     Start a GUI loop and display previously created windows. This function must
@@ -139,22 +138,23 @@ def start(
     :param ssl: Enable SSL for local HTTP server. Default is False.
     :param icon: Path to the icon file. Supported only on GTK/QT.
     """
-    global guilib, renderer
+    global guilib
+    print('start', kwargs)
 
     def _create_children(other_windows):
         if not windows[0].events.shown.wait(10):
             raise WebViewException('Main window failed to load')
 
         for window in other_windows:
-            guilib.create_window(window)
+            guilib.create_window(window, **kwargs)
 
-    _state['debug'] = debug
-    _state['user_agent'] = user_agent
-    _state['http_server'] = http_server
-    _state['private_mode'] = private_mode
+    _settings['debug'] = debug
+    _settings['user_agent'] = user_agent
+    _settings['http_server'] = http_server
+    _settings['private_mode'] = private_mode
 
     if icon:
-        _state['icon'] = abspath(icon)
+        _settings['icon'] = abspath(icon)
 
     if storage_path:
         __set_storage_path(storage_path)
@@ -162,8 +162,8 @@ def start(
     if debug:
         logger.setLevel(logging.DEBUG)
 
-    if _state['storage_path'] and _state['private_mode'] and not os.path.exists(_state['storage_path']):
-        os.makedirs(_state['storage_path'])
+    if _settings['storage_path'] and _settings['private_mode'] and not os.path.exists(_settings['storage_path']):
+        os.makedirs(_settings['storage_path'])
 
     original_localization.update(localization)
 
@@ -174,14 +174,13 @@ def start(
         raise WebViewException('You must create a window first before calling this function.')
 
     guilib = initialize(gui)
-    renderer = guilib.renderer
 
     if ssl:
         # generate SSL certs and tell the windows to use them
         keyfile, certfile = __generate_ssl_cert()
         server_args['keyfile'] = keyfile
         server_args['certfile'] = certfile
-        _state['ssl'] = True
+        _settings['ssl'] = True
     else:
         keyfile, certfile = None, None
 
@@ -189,7 +188,7 @@ def start(
     has_local_urls = not not [w.original_url for w in windows if is_local_url(w.original_url)]
     # start the global server if it's not running and we need it
     if (http.global_server is None) and (http_server or has_local_urls):
-        if not _state['private_mode'] and not http_port:
+        if not _settings['private_mode'] and not http_port:
             http_port = DEFAULT_HTTP_PORT
         *_, server = http.start_global_server(
             http_port=http_port, urls=urls, server=server, **server_args
@@ -217,7 +216,7 @@ def start(
 
     if menu:
         guilib.set_app_menu(menu)
-    guilib.create_window(windows[0])
+    guilib.create_window(windows[0], **kwargs)
     # keyfile is deleted by the ServerAdapter right after wrap_socket()
     if certfile:
         os.unlink(certfile)
@@ -255,6 +254,7 @@ def create_window(
     server: type[http.ServerType] = http.BottleServer,
     http_port: int | None = None,
     server_args: http.ServerArgs = {},
+    **kwargs,
 ) -> Window:
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
@@ -290,7 +290,6 @@ def create_window(
         raise ValueError('{0} is not a valid hex triplet color'.format(background_color))
 
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
-
     window = Window(
         uid,
         title,
@@ -324,6 +323,7 @@ def create_window(
         http_port=http_port,
         server_args=server_args,
         screen=screen,
+        **kwargs,
     )
 
     windows.append(window)
@@ -405,7 +405,7 @@ def __set_storage_path(storage_path):
     if not os.access(storage_path, os.W_OK):
         raise e
 
-    _state['storage_path'] = storage_path
+    _settings['storage_path'] = storage_path
 
 
 def active_window() -> Window | None:
@@ -421,12 +421,7 @@ def active_window() -> Window | None:
 
 @module_property
 def screens() -> list[Screen]:
-    global renderer, guilib
-
-    if not guilib:
-        guilib = initialize()
-        renderer = guilib.renderer
-
+    guilib = initialize()
     screens = guilib.get_screens()
     return screens
 

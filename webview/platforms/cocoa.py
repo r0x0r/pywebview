@@ -12,10 +12,10 @@ from threading import Semaphore, Thread, main_thread
 import AppKit
 import Foundation
 import WebKit
-from objc import _objc, nil, selector, super
+from objc import _objc, nil, registerMetaDataForSelector, selector, super
 from PyObjCTools import AppHelper
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, parse_file_type, windows, settings as webview_settings)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, parse_file_type, windows, settings as webview_settings)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -31,6 +31,18 @@ info['NSRequiresAquaSystemAppearance'] = Foundation.NO  # Enable dark mode suppo
 
 # Dynamic library required by BrowserView.pyobjc_method_signature()
 _objc_so = ctypes.cdll.LoadLibrary(_objc.__file__)
+
+# Bridgesupport metadata for [WKWebView evaluateJavaScript:completionHandler:]
+_eval_js_metadata = {
+    'arguments': {
+        3: {
+            'callable': {
+                'retval': {'type': b'v'},
+                'arguments': {0: {'type': b'^v'}, 1: {'type': b'@'}, 2: {'type': b'@'}},
+            }
+        }
+    }
+}
 
 # Fallbacks, in case these constants are not wrapped by PyObjC
 try:
@@ -94,7 +106,7 @@ class BrowserView:
             i.closed.set()
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
-                BrowserView.app.abortModal()
+                BrowserView.app.abortModal_()
 
         def windowDidResize_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
@@ -168,14 +180,12 @@ class BrowserView:
             # Prevent `ObjCPointerWarning: PyObjCPointer created: ... type ^{__SecTrust=}`
             from Security import SecTrustRef
 
+
             # this allows any server cert
-            if webview_settings['IGNORE_SSL_ERRORS']:
-                credential = AppKit.NSURLCredential.credentialForTrust_(
-                    challenge.protectionSpace().serverTrust()
-                )
-                handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
-            else:
-                handler(AppKit.NSURLSessionAuthChallengePerformDefaultHandling, nil)
+            credential = AppKit.NSURLCredential.credentialForTrust_(
+                challenge.protectionSpace().serverTrust()
+            )
+            handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
 
         # Display a JavaScript confirm panel containing the specified message
         def webView_runJavaScriptConfirmPanelWithMessage_initiatedByFrame_completionHandler_(
@@ -292,7 +302,9 @@ class BrowserView:
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                inject_pywebview('cocoa', i.js_bridge.window)
+                script = inject_pywebview(i.js_bridge.window, 'cocoa')
+                i.webview.evaluateJavaScript_completionHandler_(script, lambda a, b: None)
+                i.loaded.set()
 
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):
@@ -382,13 +394,13 @@ class BrowserView:
 
             if event.modifierFlags() & getattr(AppKit, 'NSEventModifierFlagControl', 1 << 18):
                 i = BrowserView.get_instance('webview', self)
-                if not _state['debug']:
+                if not _settings['debug']:
                     return
 
             super(BrowserView.WebKitHost, self).mouseDown_(event)
 
         def willOpenMenu_withEvent_(self, menu, event):
-            if not _state['debug']:
+            if not _settings['debug']:
                 menu.removeAllItems()
 
         def keyDown_(self, event):
@@ -508,7 +520,7 @@ class BrowserView:
         )
         self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
 
-        if _state['private_mode']:
+        if _settings['private_mode']:
             # nonPersisentDataStore preserves cookies for some unknown reason. For this reason we use default datastore
             # and clear all the cookies beforehand
 
@@ -531,13 +543,13 @@ class BrowserView:
 
         config.preferences().setValue_forKey_(webview_settings['ALLOW_FILE_URLS'], 'allowFileAccessFromFileURLs')
 
-        if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
+        if _settings['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
         config.userContentController().addScriptMessageHandler_name_(self.js_bridge, 'jsBridge')
 
-        user_agent = webview_settings.get('user_agent') or _state['user_agent']
+        user_agent = webview_settings.get('user_agent') or _settings['user_agent']
         if user_agent:
             self.webview.setCustomUserAgent_(user_agent)
 
@@ -592,6 +604,13 @@ class BrowserView:
             self.window.setLevel_(AppKit.NSStatusWindowLevel)
 
         self.pywebview_window.events.before_show.set()
+
+        try:
+            self.webview.evaluateJavaScript_completionHandler_('', lambda a, b: None)
+        except TypeError:
+            registerMetaDataForSelector(
+                b'WKWebView', b'evaluateJavaScript:completionHandler:', _eval_js_metadata
+            )
 
         if window.real_url:
             self.url = window.real_url
@@ -761,6 +780,7 @@ class BrowserView:
             req = Foundation.NSURLRequest.requestWithURL_(page_url)
             self.webview.loadRequest_(req)
 
+        self.loaded.clear()
         self.url = url
         AppHelper.callAfter(load, url)
 
@@ -769,29 +789,24 @@ class BrowserView:
             url = Foundation.NSURL.URLWithString_(BrowserView.quote(url))
             self.webview.loadHTMLString_baseURL_(content, url)
 
+        self.loaded.clear()
         AppHelper.callAfter(load, content, base_uri)
 
-    def evaluate_js(self, script, parse_json):
+    def evaluate_js(self, script):
         def eval():
             self.webview.evaluateJavaScript_completionHandler_(script, handler)
 
         def handler(result, error):
-            if parse_json and result:
-                try:
-                    JSResult.result = json.loads(result)
-                except Exception:
-                    logger.exception('Failed to parse JSON: ' + result)
-                    JSResult.result = result
-            else:
-                JSResult.result = result
-
+            JSResult.result = None if result is None else json.loads(result)
             JSResult.result_semaphore.release()
 
         class JSResult:
             result = None
             result_semaphore = Semaphore(0)
 
+        self.loaded.wait()
         AppHelper.callAfter(eval)
+
         JSResult.result_semaphore.acquire()
         return JSResult.result
 
@@ -1321,10 +1336,10 @@ def get_cookies(uid):
         return i.get_cookies()
 
 
-def evaluate_js(script, uid, parse_json=True):
+def evaluate_js(script, uid):
     i = BrowserView.instances.get(uid)
     if i:
-        return i.evaluate_js(script, parse_json)
+        return i.evaluate_js(script)
 
 
 def get_position(uid):

@@ -12,7 +12,7 @@ from threading import Event, Semaphore
 
 import clr
 
-from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, windows
+from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _settings, windows
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -160,7 +160,8 @@ class BrowserView:
     app_menu_list = None
 
     class BrowserForm(WinForms.Form):
-        def __init__(self, window, cache_dir):
+        def __init__(self, window, cache_dir, **kwargs):
+            print('in BrowserForm', kwargs)
             super().__init__()
             self.uid = window.uid
             self.pywebview_window = window
@@ -241,7 +242,7 @@ class BrowserView:
                 self.browser = None
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert, self)
             elif is_chromium:
-                self.browser = Chromium.EdgeChrome(self, window, cache_dir)
+                self.browser = Chromium.EdgeChrome(self, window, cache_dir, **kwargs)
                 self.webview = self.browser.webview
             else:
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
@@ -345,9 +346,24 @@ class BrowserView:
         def on_move(self, sender, args):
             self.pywebview_window.events.moved.set(self.Location.X, self.Location.Y)
 
-        def evaluate_js(self, script, parse_json):
-            result = self.browser.evaluate_js(script, parse_json)
-            return result
+        def evaluate_js(self, script):
+            def _evaluate_js():
+                self.browser.evaluate_js(
+                    script, semaphore, js_result
+                ) if is_chromium else self.browser.evaluate_js(script)
+
+            semaphore = Semaphore(0)
+            js_result = []
+
+            self.loaded.wait()
+            self.Invoke(Func[Type](_evaluate_js))
+            semaphore.acquire()
+
+            if is_chromium:
+                result = js_result.pop()
+                return result
+
+            return self.browser.js_result
 
         def clear_cookies(self):
             def _clear_cookies():
@@ -358,23 +374,7 @@ class BrowserView:
                 return
 
             self.Invoke(Func[Type](_clear_cookies))
-
-        def get_cookies(self):
-            def _get_cookies():
-                self.browser.get_cookies(cookies, semaphore)
-
-            cookies = []
-            if not is_chromium:
-                logger.error('get_cookies() is not implemented for this platform')
-                return cookies
-
-            semaphore = Semaphore(0)
-
-            self.Invoke(Func[Type](_get_cookies))
-            semaphore.acquire()
-
-            return cookies
-
+        
         def add_cookie(self, name: str, value: str, domain: str, path: str, 
                         expires: float = None, secure: bool = False, 
                         http_only: bool = False, same_site: str = None):
@@ -394,6 +394,24 @@ class BrowserView:
                 return
             
             self.Invoke(Func[Type](_add_cookie))
+
+        def get_cookies(self):
+            def _get_cookies():
+                self.browser.get_cookies(cookies, semaphore)
+
+            cookies = []
+            if not is_chromium:
+                logger.error('get_cookies() is not implemented for this platform')
+                return cookies
+
+            self.loaded.wait()
+
+            semaphore = Semaphore(0)
+
+            self.Invoke(Func[Type](_get_cookies))
+            semaphore.acquire()
+
+            return cookies
 
         def load_html(self, content, base_uri):
             def _load_html():
@@ -635,14 +653,14 @@ _already_set_up_app = False
 def init_storage():
     global cache_dir
 
-    if not _state['private_mode'] or _state['storage_path']:
+    if not _settings['private_mode'] or _settings['storage_path']:
         try:
             data_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
 
             if not os.access(data_folder, os.W_OK):
                 data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
 
-            cache_dir = _state['storage_path'] or os.path.join(data_folder, 'pywebview')
+            cache_dir = _settings['storage_path'] or os.path.join(data_folder, 'pywebview')
 
             if not os.path.exists(cache_dir):
                 os.makedirs(cache_dir)
@@ -663,9 +681,10 @@ def setup_app():
     _already_set_up_app = True
 
 
-def create_window(window):
+def create_window(window, **kwargs):
+    print('in create_window in winforms.py', kwargs)
     def create():
-        browser = BrowserView.BrowserForm(window, cache_dir)
+        browser = BrowserView.BrowserForm(window, cache_dir, **kwargs)
         BrowserView.instances[window.uid] = browser
         window.events.before_show.set()
 
@@ -810,6 +829,7 @@ def add_cookie(name, value, domain, path, expires, secure, http_only, same_site,
 
     if i:
         return i.add_cookie(name, value, domain, path, expires, secure, http_only, same_site)
+    
 
 def get_current_url(uid):
     if is_cef:
@@ -824,6 +844,8 @@ def load_url(url, uid):
     i = BrowserView.instances.get(uid)
     if not i:
         return
+
+    i.loaded.clear()
 
     if is_cef:
         CEF.load_url(url, uid)
@@ -936,13 +958,13 @@ def destroy_window(uid):
         i.browser.js_result_semaphore.release()
 
 
-def evaluate_js(script, uid, parse_json, result_id=None):
+def evaluate_js(script, uid, result_id=None):
     if is_cef:
-        return CEF.evaluate_js(script, result_id, parse_json, uid)
+        return CEF.evaluate_js(script, result_id, uid)
 
     i = BrowserView.instances.get(uid)
     if i:
-        return i.evaluate_js(script, parse_json)
+        return i.evaluate_js(script)
 
 
 def get_position(uid):

@@ -7,7 +7,7 @@ from threading import Semaphore
 
 import clr
 
-from webview import _state, settings as webview_settings
+from webview import _settings, settings as webview_settings
 from webview.dom import _dnd_state
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
@@ -18,7 +18,7 @@ clr.AddReference("System")
 
 from System import DateTime
 import System.Windows.Forms as WinForms
-from System import Action, Func, String, Type, Uri, Object
+from System import Action, Func, String, Type, Uri
 from System.Collections.Generic import List
 from System.Drawing import Color
 from System.Globalization import CultureInfo
@@ -38,19 +38,22 @@ logger = logging.getLogger('pywebview')
 renderer = 'edgechromium'
 
 class EdgeChrome:
-    def __init__(self, form, window, cache_dir):
+    def __init__(self, form, window, cache_dir, **kwargs):
+        self.kwargs = kwargs
         self.pywebview_window = window
         self.webview = WebView2()
         props = CoreWebView2CreationProperties()
         props.UserDataFolder = cache_dir
-        props.set_IsInPrivateModeEnabled(_state['private_mode'])
+        props.set_IsInPrivateModeEnabled(_settings['private_mode'])
         props.AdditionalBrowserArguments = '--disable-features=ElasticOverscroll'
+        
+        if 'proxy_host' in kwargs and 'proxy_port' in kwargs:
+            _host = kwargs['proxy_host']
+            _port = kwargs['proxy_port']
+            props.AdditionalBrowserArguments =  f' --proxy-server="http://{_host}:{_port}"'
 
         if webview_settings['ALLOW_FILE_URLS']:
             props.AdditionalBrowserArguments += ' --allow-file-access-from-files'
-
-        if webview_settings['REMOTE_DEBUGGING_PORT'] is not None:
-            props.AdditionalBrowserArguments += f' --remote-debugging-port={webview_settings["REMOTE_DEBUGGING_PORT"]}'
 
         self.webview.CreationProperties = props
 
@@ -75,7 +78,7 @@ class EdgeChrome:
         self.ishtml = False
         self.html = DEFAULT_HTML
 
-        if _state['storage_path']:
+        if _settings['storage_path']:
             self.setup_webview2_environment()
         else:
             self.webview.EnsureCoreWebView2Async(None)
@@ -85,39 +88,55 @@ class EdgeChrome:
             self.webview.EnsureCoreWebView2Async(task.Result)
 
         environment = CoreWebView2Environment.CreateAsync(
-            userDataFolder=_state['storage_path']
+            userDataFolder=_settings['storage_path']
         )
         environment.ContinueWith(
             Action[Task[CoreWebView2Environment]](_callback),
             self.syncContextTaskScheduler,
         )
 
-    def evaluate_js(self, script, parse_json):
-        def _callback(res):
-            nonlocal result
-            if parse_json and res is not None:
-                try:
-                    result = json.loads(res)
-                except Exception:
-                    result = res
+    def evaluate_js(self, script, semaphore, js_result, callback=None):
+        def _callback(result):
+            if callback is None:
+                result = None if result is None or result == '' else json.loads(result)
+                js_result.append(result)
+                semaphore.release()
             else:
-                result = res
-            semaphore.release()
-
-        result = None
-        semaphore = Semaphore(0)
+                # future js callback option to handle async js method
+                callback(result)
+                js_result.append(None)
+                semaphore.release()
 
         try:
-            self.webview.Invoke(Func[Object](lambda: self.webview.ExecuteScriptAsync(script).ContinueWith(
+            self.webview.ExecuteScriptAsync(script).ContinueWith(
                 Action[Task[String]](lambda task: _callback(json.loads(task.Result))),
                 self.syncContextTaskScheduler,
-            )))
-            semaphore.acquire()
+            )
         except Exception:
             logger.exception('Error occurred in script')
+            js_result.append(None)
             semaphore.release()
 
-        return result
+    def add_cookie(self, name: str, value: str, domain: str, path: str, 
+                        expires: float = None, secure: bool = False, 
+                        http_only: bool = False, same_site: str = None):
+        core = self.webview.CoreWebView2
+        manager = core.CookieManager
+
+        # Create a cookie instance
+        cookie = manager.CreateCookie(name, value, domain, path)
+
+        # Set optional properties
+        if expires:
+            cookie.Expires = DateTime.FromFileTimeUtc(int(expires * 10000000))  # Convert UNIX timestamp to .NET DateTime
+        cookie.IsSecure = secure
+        cookie.IsHttpOnly = http_only
+
+        if same_site:
+            cookie.SameSite = getattr(CoreWebView2CookieSameSiteKind, same_site.capitalize(), None)
+
+        # Add or update the cookie
+        manager.AddOrUpdateCookie(cookie)
 
     def clear_cookies(self):
         self.webview.CoreWebView2.CookieManager.DeleteAllCookies()
@@ -158,33 +177,13 @@ class EdgeChrome:
             Action[Task[List[CoreWebView2Cookie]]](_callback), self.syncContextTaskScheduler
         )
 
-    def add_cookie(self, name: str, value: str, domain: str, path: str, 
-                        expires: float = None, secure: bool = False, 
-                        http_only: bool = False, same_site: str = None):
-        core = self.webview.CoreWebView2
-        manager = core.CookieManager
-
-        # Create a cookie instance
-        cookie = manager.CreateCookie(name, value, domain, path)
-
-        # Set optional properties
-        if expires:
-            cookie.Expires = DateTime.FromFileTimeUtc(int(expires * 10000000))  # Convert UNIX timestamp to .NET DateTime
-        cookie.IsSecure = secure
-        cookie.IsHttpOnly = http_only
-
-        if same_site:
-            cookie.SameSite = getattr(CoreWebView2CookieSameSiteKind, same_site.capitalize(), None)
-
-        # Add or update the cookie
-        manager.AddOrUpdateCookie(cookie)
-
     def get_current_url(self):
         return self.url
 
     def load_html(self, content, _):
         self.html = content
         self.ishtml = True
+        self.pywebview_window.events.loaded.clear()
 
         if self.webview.CoreWebView2:
             self.webview.CoreWebView2.NavigateToString(self.html)
@@ -241,6 +240,13 @@ class EdgeChrome:
         self.url = sender.Source
         self.ishtml = False
 
+    def on_basic_authentication_requested(self, sender, args):
+        if 'proxy_host' in self.kwargs and 'proxy_port' in self.kwargs:
+            if 'proxy_user' in self.kwargs and 'proxy_password' in self.kwargs:
+                args.Response.UserName = self.kwargs['proxy_user']
+                args.Response.Password = self.kwargs['proxy_password']
+
+
     def on_webview_ready(self, sender, args):
         if not args.IsSuccess:
             logger.error(
@@ -251,28 +257,29 @@ class EdgeChrome:
 
         self.webview.CoreWebView2.SourceChanged += self.on_source_changed
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
+        sender.CoreWebView2.BasicAuthenticationRequested += self.on_basic_authentication_requested
 
-        if _state['ssl'] or webview_settings['IGNORE_SSL_ERRORS']:
+        if _settings['ssl']:
             sender.CoreWebView2.ServerCertificateErrorDetected += self.on_certificate_error
 
         sender.CoreWebView2.DownloadStarting += self.on_download_starting
 
         settings = sender.CoreWebView2.Settings
-        settings.AreBrowserAcceleratorKeysEnabled = _state['debug']
-        settings.AreDefaultContextMenusEnabled = _state['debug']
+        settings.AreBrowserAcceleratorKeysEnabled = _settings['debug']
+        settings.AreDefaultContextMenusEnabled = _settings['debug']
         settings.AreDefaultScriptDialogsEnabled = True
-        settings.AreDevToolsEnabled = _state['debug']
+        settings.AreDevToolsEnabled = _settings['debug']
         settings.IsBuiltInErrorPageEnabled = True
         settings.IsScriptEnabled = True
         settings.IsWebMessageEnabled = True
-        settings.IsStatusBarEnabled = _state['debug']
+        settings.IsStatusBarEnabled = _settings['debug']
         settings.IsSwipeNavigationEnabled = False
         settings.IsZoomControlEnabled = True
 
-        if _state['user_agent']:
-            settings.UserAgent = _state['user_agent']
+        if _settings['user_agent']:
+            settings.UserAgent = _settings['user_agent']
 
-        if _state['private_mode']:
+        if _settings['private_mode']:
             # cookies persist even if UserDataFolder is in memory. We have to delete cookies manually.
             sender.CoreWebView2.CookieManager.DeleteAllCookies()
 
@@ -284,7 +291,7 @@ class EdgeChrome:
         else:
             self.load_html(DEFAULT_HTML, '')
 
-        if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
+        if _settings['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             sender.CoreWebView2.OpenDevToolsWindow()
 
     def on_download_starting(self, sender, args):
@@ -317,4 +324,5 @@ class EdgeChrome:
         url = str(sender.Source)
         self.url = None if self.ishtml else url
 
-        inject_pywebview(renderer, self.pywebview_window)
+        self.webview.ExecuteScriptAsync(inject_pywebview(self.pywebview_window, renderer))
+        self.pywebview_window.events.loaded.set()
