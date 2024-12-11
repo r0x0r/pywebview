@@ -89,3 +89,5 @@ class Event:
         self._items.remove(item)
         return self
 
+    def __len__(self) -> int:
+        return len(self._items)
