@@ -18,8 +18,9 @@ from PyObjCTools import AppHelper
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, parse_file_type, windows, settings as webview_settings)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
+from webview.models import Request
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, stringify_headers
 from webview.window import FixPoint
 
 
@@ -226,9 +227,6 @@ class BrowserView:
             # The event that might have triggered the navigation
             event = AppKit.NSApp.currentEvent()
 
-            if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@i')
-
             """ Disable back navigation on pressing the Delete key: """
             # Check if the requested navigation action is Back/Forward
             if action.navigationType() == getattr(WebKit, 'WKNavigationTypeBackForward', 2):
@@ -238,8 +236,35 @@ class BrowserView:
                     handler(getattr(WebKit, 'WKNavigationActionPolicyCancel', 0))
                     return
 
-            # Normal navigation, allow
-            handler(getattr(WebKit, 'WKNavigationActionPolicyAllow', 1))
+            request = action.request()
+            url = request.URL()
+
+            original_headers = dict(request.allHTTPHeaderFields())
+            i = BrowserView.get_instance('webview', webview)
+
+            if (
+                len(i.pywebview_window.events.request_sent) > 0 and
+                'X-Handled' not in original_headers and
+                str(url) == i.pywebview_window.real_url
+            ):
+                request_ = Request(str(url), request.HTTPMethod(), original_headers)
+                i.pywebview_window.events.request_sent.set(request_)
+                request_.headers['X-Handled'] = 'true'
+
+                new_request = Foundation.NSMutableURLRequest.requestWithURL_(url)
+                new_request.setHTTPMethod_(request.HTTPMethod())
+                new_request.setAllHTTPHeaderFields_(AppKit.NSDictionary(stringify_headers(request_.headers)))
+                new_request.setHTTPBody_(request.HTTPBody())
+                new_request.setHTTPBodyStream_(request.HTTPBodyStream())
+                new_request.setHTTPShouldHandleCookies_(request.HTTPShouldHandleCookies())
+                new_request.setHTTPShouldUsePipelining_(request.HTTPShouldUsePipelining())
+                new_request.setMainDocumentURL_(request.mainDocumentURL())
+                new_request.setNetworkServiceType_(request.networkServiceType())
+                webview.loadRequest_(new_request)
+                handler(getattr(WebKit, 'WKNavigationActionPolicyCancel', 1))
+            else:
+                # Normal navigation, allow
+                handler(getattr(WebKit, 'WKNavigationActionPolicyAllow', 1))
 
         def webView_decidePolicyForNavigationResponse_decisionHandler_(self, webview, navigationResponse, decisionHandler):
             if navigationResponse.canShowMIMEType():
@@ -432,6 +457,61 @@ class BrowserView:
 
             super(BrowserView.WebKitHost, self).keyDown_(event)
 
+
+    class SchemeHandler(AppKit.NSObject):
+        """
+        Custom WKURLSchemeHandler to intercept and proxy traffic.
+        """
+        def init(self):
+            self = super(BrowserView.SchemeHandler, self).init()
+            if self:
+                self.session = None
+            return self
+
+        def webView_startURLSchemeTask_(self, webView, urlSchemeTask):
+            """
+            Intercepts the request and routes it through the proxy.
+            """
+            # Configure the proxy server
+            config = Foundation.NSURLSessionConfiguration.defaultSessionConfiguration()
+            # config.connectionProxyDictionary = {
+            #     "HTTPEnable": 1,
+            #     "HTTPProxy": "127.0.0.1",
+            #     "HTTPPort": 8888,
+            #     "HTTPSEnable": 1,
+            #     "HTTPSProxy": "127.0.0.1",
+            #     "HTTPSPort": 8888,
+            # }
+
+            # Create a session with the proxy configuration
+            if not self.session:
+                self.session =Foundation.NSURLSession.sessionWithConfiguration_(config)
+
+            # Create a task for the intercepted request
+            request = urlSchemeTask.request()
+            task = self.session.dataTaskWithRequest_completionHandler_(
+                request, lambda data, response, error: self.handle_response(urlSchemeTask, data, response, error)
+            )
+            task.resume()
+
+        def handle_response(self, urlSchemeTask, data, response, error):
+            """
+            Handles the response from the proxy and forwards it back to the web view.
+            """
+            if error:
+                urlSchemeTask.didFailWithError_(error)
+            else:
+                urlSchemeTask.didReceiveResponse_(response)
+                urlSchemeTask.didReceiveData_(data)
+                urlSchemeTask.didFinish()
+
+        def webView_stopURLSchemeTask_(self, webView, urlSchemeTask):
+            """
+            Stops handling the request.
+            """
+            pass
+
+
     def __init__(self, window):
         BrowserView.instances[window.uid] = self
         self.uid = window.uid
@@ -513,6 +593,9 @@ class BrowserView:
         config.userContentController().addScriptMessageHandler_name_(
             self._browserDelegate, 'browserDelegate'
         )
+        schemeHandler = BrowserView.SchemeHandler.alloc().init()
+        # config.setURLSchemeHandler_forURLScheme_(schemeHandler, 'http')
+        # config.setURLSchemeHandler_forURLScheme_(schemeHandler, 'https')
         self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
 
         if _state['private_mode']:

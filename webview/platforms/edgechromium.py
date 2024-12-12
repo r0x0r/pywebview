@@ -314,7 +314,7 @@ class EdgeChrome:
             return
 
         missing_headers = {k: v for k, v in request.headers.items() if k not in original_headers or original_headers[k] != v}
-        extra_headers = {k: v for k, v in original_headers.items() if k not in request.headers}
+        extra_headers = {k: str(v) for k, v in original_headers.items() if k not in request.headers}
 
         for k, v in extra_headers.items():
             args.Request.Headers.SetHeader(k, v)

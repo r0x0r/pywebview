@@ -483,3 +483,6 @@ def css_to_camel(css_case_string: str) -> str:
 def android_jar_path() -> str:
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', 'pywebview-android.jar')
 
+
+def stringify_headers(headers: dict[str, Any]) -> dict[str, str]:
+    return {k: str(v) for k, v in headers.items()}

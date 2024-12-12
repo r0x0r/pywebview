@@ -10,6 +10,7 @@ from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, settings,
                      parse_file_type, windows)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
+from webview.models import Request
 from webview.screen import Screen
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
 from webview.window import FixPoint, Window
@@ -149,6 +150,7 @@ class BrowserView:
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('decide-policy', self.on_navigation)
         self.webview.connect('drag-data-received', self.on_drag_data)
+        self.webview.connect('resource-load-started', self.on_request)
 
         if settings['IGNORE_SSL_ERRORS']:
             web_context.set_tls_errors_policy(webkit.TLSErrorsPolicy.IGNORE)
@@ -309,6 +311,37 @@ class BrowserView:
         # for a lack of better solution we check that BrowserView has 'webview_ready' attribute
         if 'shown' in dir(self):
             self.shown.set()
+
+    def on_request(self, webview, resource, request):
+        headers = request.get_http_headers()
+        original_headers = self._headers_to_dict(headers)
+        url = request.get_uri()
+        method = request.get_http_method()
+
+        request_ = Request(url, method, original_headers)
+        self.pywebview_window.events.request_sent.set(request_)
+
+        if (
+            request_.headers == original_headers or 
+            not headers or 
+            'X-Handled' in request_.headers or
+            url != self.pywebview_window.real_url
+        ):
+            return
+
+        missing_headers = {k: v for k, v in request_.headers.items() if k not in original_headers or original_headers[k] != v}
+        extra_headers = {k: str(v) for k, v in original_headers.items() if k not in request_.headers}
+
+        for k, v in missing_headers.items():
+            headers.append(k, v)
+
+        for k in extra_headers:
+            headers.remove(k)
+
+        headers.append('X-Handled', 'true')
+
+        webview.load_request(request)
+
 
     def on_load_finish(self, webview, status):
         # Show the webview if it's not already visible
@@ -610,6 +643,15 @@ class BrowserView:
         else:
             logger.error(f'Unsupported JavaScriptCore.Value type: {js_value}')
             return js_value.to_string()
+
+    def _headers_to_dict(self, headers):
+        def _assign(k, v):
+            headers_dict[k] = v
+        headers_dict = {}
+
+        if headers:
+            headers.foreach(_assign)
+        return headers_dict
 
 
 def setup_app():
