@@ -12,7 +12,8 @@ from threading import Semaphore, Thread, main_thread
 import AppKit
 import Foundation
 import WebKit
-from objc import _objc, nil, selector, super
+from objc import _objc, nil, selector, super, lookUpClass, classAddMethod
+
 from PyObjCTools import AppHelper
 
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, parse_file_type, windows, settings as webview_settings)
@@ -49,6 +50,24 @@ logger.debug('Using Cocoa')
 
 renderer = 'wkwebview'
 
+
+def swizzle(classname, sel):
+    def decorator(function):
+        cls = lookUpClass(classname)
+        try:
+            old = cls.instanceMethodForSelector_(sel)
+            if old.isClassMethod:
+                old = cls.methodForSelector_(sel)
+        except:
+            return None
+        def wrapper(self, *args, **kwargs):
+            return function(self, old, *args, **kwargs)
+        new = selector(wrapper, selector = old.selector,
+                            signature = old.signature,
+                            isClassMethod = old.isClassMethod)
+        classAddMethod(cls, sel, new)
+        return wrapper
+    return decorator
 
 class BrowserView:
     instances = {}
@@ -350,6 +369,10 @@ class BrowserView:
             self.file_dlg.setAllowedFileTypes_(self.filter[option][1])
 
     class WebKitHost(WebKit.WKWebView):
+        @swizzle('WKWebView', b'handlesURLScheme:')
+        def handlesURLScheme_(self, scheme, protocol):
+            return False
+
         def performDragOperation_(self, sender):
             if sender.draggingSource() is None and _dnd_state['num_listeners'] > 0:
                 pboard = sender.draggingPasteboard()
@@ -472,6 +495,7 @@ class BrowserView:
             """
             Intercepts the request and routes it through the proxy.
             """
+            print('Intercepted request:', urlSchemeTask.request().URL().absoluteString())
             # Configure the proxy server
             config = Foundation.NSURLSessionConfiguration.defaultSessionConfiguration()
             # config.connectionProxyDictionary = {
@@ -493,6 +517,9 @@ class BrowserView:
                 request, lambda data, response, error: self.handle_response(urlSchemeTask, data, response, error)
             )
             task.resume()
+        def webView_stopURLSchemeTask_(self, webview, task):
+            """Handle cancellation of the task"""
+            print("Task stopped")
 
         def handle_response(self, urlSchemeTask, data, response, error):
             """
@@ -504,12 +531,6 @@ class BrowserView:
                 urlSchemeTask.didReceiveResponse_(response)
                 urlSchemeTask.didReceiveData_(data)
                 urlSchemeTask.didFinish()
-
-        def webView_stopURLSchemeTask_(self, webView, urlSchemeTask):
-            """
-            Stops handling the request.
-            """
-            pass
 
 
     def __init__(self, window):
@@ -577,7 +598,9 @@ class BrowserView:
         frame.size.height = window.initial_height
         self.window.setFrame_display_(frame, True)
 
-        self.webview = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
+        schemeHandler = BrowserView.SchemeHandler.alloc().init()
+        config = WebKit.WKWebViewConfiguration.alloc().init()
+        self.webview = BrowserView.WebKitHost.alloc().initWithFrame_configuration_(rect, config).retain()
         self.webview.pywebview_window = window
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
@@ -589,13 +612,13 @@ class BrowserView:
         self.webview.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
 
-        config = self.webview.configuration()
+        #config = self.webview.configuration()
         config.userContentController().addScriptMessageHandler_name_(
             self._browserDelegate, 'browserDelegate'
         )
-        schemeHandler = BrowserView.SchemeHandler.alloc().init()
-        # config.setURLSchemeHandler_forURLScheme_(schemeHandler, 'http')
-        # config.setURLSchemeHandler_forURLScheme_(schemeHandler, 'https')
+
+        config.setURLSchemeHandler_forURLScheme_(schemeHandler, 'http')
+        config.setURLSchemeHandler_forURLScheme_(schemeHandler, 'https')
         self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
 
         if _state['private_mode']:

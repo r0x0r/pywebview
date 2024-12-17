@@ -136,6 +136,8 @@ class BrowserView(Widget):
                     self._cookies[url] = list(set(self._cookies[url] + cookies['cookies']))
                 else:
                     self._cookies[url] = cookies['cookies']
+            #elif event == 'shouldInterceptRequest':
+
 
         self._cookies = {}
         self.webview = WebViewA(activity)

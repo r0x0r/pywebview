@@ -56,13 +56,12 @@ public class PyWebViewClient extends WebViewClient {
 
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-        if (request != null && request.getUrl() != null && request.getMethod().equalsIgnoreCase("get")) {
-            String scheme = request.getUrl().getScheme().trim();
-            if (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https")) {
-                return executeRequest(request.getUrl().toString());
-            }
+        const shouldInterceptRequest = this.callbackWrapper.callback("shouldInterceptRequest", request.getUrl().toString(), request.getMethod(), request.getRequestHeaders());
+
+        if (shouldInterceptRequest != null) {
+            return this.executeRequest(shouldInterceptRequest);
         }
-        return null;
+        return super.shouldInterceptRequest(view, request);
     }
 
 
