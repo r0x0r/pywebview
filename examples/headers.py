@@ -8,13 +8,12 @@ def on_request(window, request):
 
 
 def on_response(window, response):
-    return
     print(response)
 
 
 if __name__ == '__main__':
     window = webview.create_window(
-        'Simple browser', 'https://www.whatismybrowser.com/detect/what-http-headers-is-my-browser-sending/'
+        'Headers', 'https://httpbin.org/headers'
     )
 
     window.events.request_sent += on_request
