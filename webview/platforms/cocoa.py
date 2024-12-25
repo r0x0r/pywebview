@@ -146,6 +146,23 @@ class BrowserView:
                 body['params'] = None
             js_bridge_call(self.window, body['funcName'], body['params'], body['id'])
 
+    class DownloadDelegate(AppKit.NSObject):
+        # Download delegate to handle links with download attribute set
+        def download_decideDestinationUsingResponse_suggestedFilename_completionHandler_(self, download, decideDestinationUsingResponse, suggestedFilename, completionHandler):
+            save_dlg = AppKit.NSSavePanel.savePanel()
+            directory = Foundation.NSSearchPathForDirectoriesInDomains(
+                Foundation.NSDownloadsDirectory, 
+                Foundation.NSUserDomainMask, 
+                True)[0]
+            save_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
+            save_dlg.setNameFieldStringValue_(suggestedFilename)
+            if save_dlg.runModal() == AppKit.NSFileHandlingPanelOKButton:
+                filename = save_dlg.filename()
+                url = Foundation.NSURL.fileURLWithPath_(filename)
+                completionHandler(url)
+            else:
+                completionHandler(None)
+
     class BrowserDelegate(AppKit.NSObject):
 
         # Display a JavaScript alert panel containing the specified message
@@ -229,6 +246,11 @@ class BrowserView:
             if not handler.__block_signature__:
                 handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@i')
 
+            # Handle links with the download attribute set to recommend a file name
+            if action.shouldPerformDownload() and webview_settings['ALLOW_DOWNLOADS']:
+                handler(getattr(WebKit, 'WKNavigationActionPolicyDownload', 2))
+                return
+
             """ Disable back navigation on pressing the Delete key: """
             # Check if the requested navigation action is Back/Forward
             if action.navigationType() == getattr(WebKit, 'WKNavigationTypeBackForward', 2):
@@ -240,6 +262,9 @@ class BrowserView:
 
             # Normal navigation, allow
             handler(getattr(WebKit, 'WKNavigationActionPolicyAllow', 1))
+
+        def webView_navigationAction_didBecomeDownload_(self, webview, navigationAction, download):
+            download.setDelegate_(BrowserView.DownloadDelegate.alloc().init().retain())
 
         def webView_decidePolicyForNavigationResponse_decisionHandler_(self, webview, navigationResponse, decisionHandler):
             if navigationResponse.canShowMIMEType():
