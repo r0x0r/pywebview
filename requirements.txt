@@ -1,4 +1,5 @@
 pythonnet; sys_platform == "win32"
+cefpython3; sys_platform == "win32"
 pyobjc-core; sys_platform == "darwin"
 pyobjc-framework-Cocoa; sys_platform == "darwin"
 pyobjc-framework-Quartz; sys_platform == "darwin"
