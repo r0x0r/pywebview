@@ -962,21 +962,6 @@ class BrowserView:
         for app_menu in BrowserView.app_menu_list:
             create_submenu(app_menu.title, app_menu.items, os_bar_menu)
 
-
-    def get_active_window():
-        active_window = BrowserView.app.keyWindow()
-        if active_window is None:
-            return None
-
-        active_window_number = active_window.windowNumber()
-
-        for uid, browser_view_instance in BrowserView.instances.items():
-            if browser_view_instance.window.windowNumber() == active_window_number:
-                return browser_view_instance.pywebview_window
-
-        return None
-
-
     def _clear_main_menu(self):
         """
         Remove all items from the main menu.
@@ -1208,6 +1193,18 @@ def setup_app():
 def set_app_menu(app_menu_list):
     BrowserView.app_menu_list = app_menu_list
 
+def get_active_window():
+        active_window = BrowserView.app.keyWindow()
+        if active_window is None:
+            return None
+
+        active_window_number = active_window.windowNumber()
+
+        for uid, browser_view_instance in BrowserView.instances.items():
+            if browser_view_instance.window.windowNumber() == active_window_number:
+                return browser_view_instance.pywebview_window
+
+        return None
 
 def create_window(window):
     def create():
