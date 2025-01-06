@@ -207,6 +207,17 @@ class BrowserView:
             result = BrowserView.display_confirmation_dialog(ok, cancel, message)
             handler(result)
 
+        # Display a Javascript input panel
+        def webView_runJavaScriptTextInputPanelWithPrompt_defaultText_initiatedByFrame_completionHandler_(
+            self, webview, prompt, default_text, frame, handler
+        ):
+            i = BrowserView.get_instance('webview', webview)
+            ok = i.localization['global.ok']
+            cancel = i.localization['global.cancel']
+
+            result = BrowserView.display_input_dialog(ok, cancel, prompt, default_text)
+            handler(result)
+
         # Display an open panel for <input type="file"> element
         def webView_runOpenPanelWithParameters_initiatedByFrame_completionHandler_(
             self, webview, param, frame, handler
@@ -1127,6 +1138,29 @@ class BrowserView:
         alert.setAlertStyle_(AppKit.NSWarningAlertStyle)
 
         return alert.runModal() == AppKit.NSAlertFirstButtonReturn
+
+    @staticmethod
+    def display_input_dialog(first_button, second_button, prompt, default_text):
+        AppKit.NSApplication.sharedApplication()
+        AppKit.NSRunningApplication.currentApplication().activateWithOptions_(
+            AppKit.NSApplicationActivateIgnoringOtherApps
+        )
+        alert = AppKit.NSAlert.alloc().init()
+        text_field = AppKit.NSTextField.alloc().initWithFrame_(
+            AppKit.NSMakeRect(0, 0, 240, 24)
+        )
+        text_field.cell().setScrollable_(True)
+        text_field.setStringValue_(default_text)
+        alert.setAccessoryView_(text_field)
+        alert.addButtonWithTitle_(first_button)
+        alert.addButtonWithTitle_(second_button)
+        alert.setMessageText_(prompt)
+        alert.setAlertStyle_(AppKit.NSWarningAlertStyle)
+
+        if alert.runModal() == AppKit.NSAlertFirstButtonReturn:
+            return text_field.stringValue()
+        else:
+            return None
 
     @staticmethod
     def should_close(window):
