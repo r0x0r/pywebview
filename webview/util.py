@@ -318,7 +318,8 @@ def load_js_files(window: Window, platform: str) -> str:
     Return the concatenated JS code and the finish script, which must be loaded last and
     separately in order to
     """
-    js_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'js')
+    js_dir = get_js_dir()
+    logger.debug('Loading JS files from %s', js_dir)
     js_files = glob(os.path.join(js_dir, '**', '*.js'), recursive=True)
     ordered_js_files = sort_js_files(js_files)
     js_code = ''
@@ -354,6 +355,30 @@ def load_js_files(window: Window, platform: str) -> str:
             js_code += content % params
 
     return js_code, finish_script
+
+
+def get_js_dir() -> str:
+    """
+    Get the path to the directory with Javascript files.
+    """
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'js')
+
+    if os.path.exists(path):
+        return path
+
+    # try py2app frozen path. This is hacky, but it works.
+    # See https://github.com/r0x0r/pywebview/issues/1565
+    if '.zip' in path:
+        base_path = path.split('.zip')[0]
+        dir = os.path.dirname(base_path)
+
+        for file in os.listdir(dir):
+            if file.startswith('python') and os.path.isdir(os.path.join(dir, file)):
+                js_path = os.path.join(dir, file, 'webview', 'js')
+                if os.path.exists(js_path):
+                    return js_path
+
+    raise FileNotFoundError('Cannot find JS directory in %s' % path)
 
 
 def sort_js_files(js_files: list[str]) -> list[str]:

@@ -100,6 +100,7 @@ class BottleServer:
                 os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else None
             )
             server.root_path = abspath(common_path) if common_path is not None else None
+            logger.debug('HTTP server root path: %s' % server.root_path)
             app = bottle.Bottle()
 
             @app.post(f'/js_api/{server.uid}')
