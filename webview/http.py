@@ -36,7 +36,7 @@ from .util import abspath, is_app, is_local_url
 WRHT_co = TypeVar('WRHT_co', bound=WSGIRequestHandler, covariant=True)
 WST_co = TypeVar('WST_co', bound=WSGIServer, covariant=True)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('pywebview')
 global_server = None
 
 
