@@ -286,6 +286,7 @@ class BrowserView:
                 if is_cef:
                     CEF.shutdown()
                 elif is_chromium:
+                    self.hide()
                     self.browser.clear_user_data()
 
                 WinForms.Application.Exit()
