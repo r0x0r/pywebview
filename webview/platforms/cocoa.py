@@ -667,6 +667,7 @@ class BrowserView:
             self._clear_main_menu()
             self._add_app_menu()
             self._add_view_menu()
+            self._add_edit_menu()
             self._add_user_menu()
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
@@ -1074,6 +1075,34 @@ class BrowserView:
         fullScreenMenuItem.setKeyEquivalentModifierMask_(
             AppKit.NSControlKeyMask | AppKit.NSCommandKeyMask
         )
+
+    def _add_edit_menu(self):
+        """
+        Create a default Edit menu that shows Copy/Paste/etc.
+        """
+        mainMenu = BrowserView.app.mainMenu()
+
+        if not mainMenu:
+            mainMenu = AppKit.NSMenu.alloc().init()
+            BrowserView.app.setMainMenu_(mainMenu)
+
+        # Create an Edit menu and make it a submenu of the main menu
+        editMenu = AppKit.NSMenu.alloc().init()
+        editMenu.setTitle_(self.localization['cocoa.menu.edit'])
+        editMenuItem = AppKit.NSMenuItem.alloc().init()
+        editMenuItem.setSubmenu_(editMenu)
+        # Make the edit menu the first item after the application menu
+        mainMenu.insertItem_atIndex_(editMenuItem, 1)
+
+        for (title, action, keyEquivalent) in [
+            (self.localization['cocoa.menu.cut'], 'cut:', 'x'),
+            (self.localization['cocoa.menu.copy'], 'copy:', 'c'),
+            (self.localization['cocoa.menu.paste'], 'paste:', 'v'),
+            (self.localization['cocoa.menu.selectAll'], 'selectAll:', 'a'),
+        ]:
+            menuItem = editMenu.addItemWithTitle_action_keyEquivalent_(
+                title, action, keyEquivalent
+            )
 
     def _append_app_name(self, val):
         """
