@@ -363,6 +363,16 @@ class BrowserView:
 
             return super(BrowserView.WebKitHost, self).performDragOperation_(sender)
 
+        def addSubview_(self, event):
+            # translate the event from the web coordinate space into the window coordinate space
+            # basically flip the y axis since the WKWebView/WebKitHost implements a flipped view
+            # (but seems to miss this flip back when adding a subview)
+            event_frame = event.frame()
+            flipped_y = self.frame().size.height - (event_frame.origin.y + event_frame.size.height)
+            event.setFrameOrigin_(AppKit.NSPoint(event_frame.origin.x, flipped_y))
+
+            super(BrowserView.WebKitHost, self).addSubview_(event)
+
         def mouseDown_(self, event):
             i = BrowserView.get_instance('webview', self)
             window = self.window()
