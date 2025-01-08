@@ -1,5 +1,7 @@
 ---
 home: true
+title: pywebview
+tagline: Build GUI for your Python program with JavaScript, HTML, and CSS.
 heroImage: logo.png
 footer: BSD Licensed | Copyright © 2014–present Roman Sirokov
 actions:
@@ -14,46 +16,37 @@ actions:
     link: /examples/
 
 highlights:
-  - header: Current version
-    description: 5.4
-    #link: [What's new](/changelog.html)
-
-
-    # image: /assets/image/box.svg
-    # bgImage: https://theme-hope-assets.vuejs.press/bg/3-light.svg
-    # bgImageDark: https://theme-hope-assets.vuejs.press/bg/3-dark.svg
-    # highlights:
-    #   - title: Run <code>pnpm create vuepress-theme-hope hope-project</code> to create a new project with this theme.
-    #   - title: Run <code>pnpm create vuepress-theme-hope add .</code> in your project root to create a new project with this theme.
-
-
   - header: Features
-    #image: /assets/image/markdown.svg
-    bgImage: https://theme-hope-assets.vuejs.press/bg/2-light.svg
-    bgImageDark: https://theme-hope-assets.vuejs.press/bg/2-dark.svg
-    bgImageStyle:
-      background-repeat: repeat
-      background-size: initial
-    features:
+    description: pywebview is a lightweight BSD-licensed cross-platform wrapper around a webview component. pywebview allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application,
+   hiding the fact that GUI is browser based. pywebview ships with a built-in HTTP server, DOM support in Python and window management functionality.
+    image: /assets/image/ui.svg
+    # bgImage: https://theme-hope-assets.vuejs.press/bg/6-light.svg
+    # bgImageDark: https://theme-hope-assets.vuejs.press/bg/6-dark.svg
+    highlights:
       - title: Cross-platform
         details: Available for Windows, macOS, Linux and Android
         icon: clipboard-check
 
-      - title: Two-way Javav
+      - title: Two-way Javascript↔Python communication
+        details: Communicate between Javascript and Python domains without HTTP
+
+      - title: Built-in HTTP server
+        details: Serve static files through built-in HTTP server
 
       - title: Native components
-        details: Menu, message and file boxes are native GUI
+        details: Menu, message-boxes and file dialogs are native GUI elements.
 
       - title: DOM support
-        details: Manipulate and traverse DOM using Python API
+        details: Manipulate and traverse DOM nodes using Python API
+
+      - title: Better filesystem support
+        details: Get full path of dropped files
 
       - title: Bundler friendly
-        details: Supports pyinstaller and nuitka out of the box
-
+        details: Supports pyinstaller, nuitka and py2app
 ---
 
 
-_pywebview_ is a lightweight BSD-licensed cross-platform wrapper around a webview component. _pywebview_ allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. _pywebview_ ships with a built-in HTTP server, DOM support in Python and window management functionality.
 
 ## Install
 

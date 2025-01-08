@@ -52,10 +52,11 @@ Become a financial contributor and help us sustain our community. More donation 
 
 #### Individuals
 
-<a href="https://opencollective.com/pywebview"><img src="https://opencollective.com/pywebview/individuals.svg?width=890"></a>
+[![Github Sponsor](/github_sponsor_button.png)](https://github.com/sponsors/r0x0r)
 
-<a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button"><img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/></a>
+[![Patreon](/patreon.png)](https://www.patreon.com/bePatron?u=13226105)
 
+[![Open Collective](/opencollective.png)](https://opencollective.com/pywebview/donate)
 
 #### Organizations
 

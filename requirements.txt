@@ -4,10 +4,12 @@ pyobjc-framework-Cocoa; sys_platform == "darwin"
 pyobjc-framework-Quartz; sys_platform == "darwin"
 pyobjc-framework-WebKit; sys_platform == "darwin"
 pyobjc-framework-Security; sys_platform == "darwin"
-PyQt5; sys_platform == "openbsd6" or sys_platform == "linux"
-pyqtwebengine; sys_platform == "openbsd6" or sys_platform == "linux"
+PyQt6; sys_platform == "openbsd6" or sys_platform == "linux"
+PyQt6-WebEngine; sys_platform == "openbsd6" or sys_platform == "linux"
 QtPy; sys_platform == "openbsd6" or sys_platform == "linux"
 importlib_resources; python_version < "3.7"
+typing_extensions
 proxy_tools
 bottle
 cryptography
+
