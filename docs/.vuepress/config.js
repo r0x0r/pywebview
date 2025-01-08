@@ -1,31 +1,33 @@
-const dirTree = require('directory-tree');
-const path = require('path');
-const { generateExamples } = require('./generate-examples');
+import { defineUserConfig } from 'vuepress';
+import { hopeTheme } from 'vuepress-theme-hope';
+import { viteBundler } from '@vuepress/bundler-vite'
+//import { mediumZoomPlugin } from '@vuepress/plugin-medium-zoom';
+import { path } from '@vuepress/utils';
+import { generateExamples } from './generate-examples';
+import dirTree from 'directory-tree';
 
-generateExamples(path.join(__dirname, '../../examples'), path.join(__dirname, '../examples'));
-const examples = dirTree(path.join(__dirname, '../examples'), {extensions:/\.md/});
+generateExamples(path.resolve(__dirname, '../../examples'), path.resolve(__dirname, '../examples'));
+const examples = dirTree(path.resolve(__dirname, '../examples'), { extensions: /\.md/ });
 
-module.exports = {
+export default defineUserConfig({
   title: 'pywebview',
   description: 'Build GUI for your Python program with JavaScript, HTML, and CSS',
-  ga: 'UA-12494025-18',
-  plugins: {
-    '@vuepress/medium-zoom': {
-      selector: 'img.zoom',
-      options: {
-        margin: 16
-      }
-    }
-  },
   port: 8082,
-  themeConfig: {
+  bundler: viteBundler({
+    viteOptions: {},
+    vuePluginOptions: {},
+  }),
+  theme: hopeTheme({
     repo: 'r0x0r/pywebview',
     docsDir: 'docs',
     docsBranch: 'docs',
     editLinks: true,
     editLinkText: 'Help us improve this page!',
     logo: '/logo-no-text.png',
-    nav: [
+    markdown: {
+      align: true,
+    },
+    navbar: [
       { text: 'Guide', link: '/guide/' },
       { text: 'Examples', link: '/examples/' },
       { text: 'Contributing', link: '/contributing/' },
@@ -34,12 +36,11 @@ module.exports = {
       { text: '2.x', link: 'https://pywebview.flowrl.com/2.4' },
       { text: '3.x', link: 'https://pywebview.flowrl.com/3.7' },
     ],
-    //sidebarDepth: 1,
     displayAllHeaders: true,
     sidebar: {
       '/guide/': [
-          {
-          title: 'Basics',
+        {
+          text: 'Basics',
           collapsable: false,
           children: [
             '/guide/installation',
@@ -47,7 +48,7 @@ module.exports = {
           ]
         },
         {
-          title: 'Development',
+          text: 'Development',
           collapsable: false,
           children: [
             '/guide/api',
@@ -72,6 +73,15 @@ module.exports = {
         'donating',
         'documentation'
       ]
-    }
-  }
-}
+    },
+    contributors: false
+  }),
+  plugins: [
+    // mediumZoomPlugin({
+    //   selector: 'img.zoom',
+    //   options: {
+    //     margin: 16
+    //   }
+    // })
+  ]
+});

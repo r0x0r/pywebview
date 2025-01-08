@@ -1,5 +1,30 @@
 # Changelog
 
+## 5.4
+
+_Released xx/01/2025_
+
+### ⚡ Features
+
+- `All` A new function for executing Javascript as is `window.run_js(code)` without returning a result
+- `All` New `before_load` event that is fired right before pywebview code is injected into the page. The event roughly corresponds to `DOMContentLoaded` DOM event.
+- `EdgeChromium` Add remote debugging support via `webview.settings['REMOTE_DEBUGGING_PORT']`. Thanks @Lugribossk
+
+### 🚀 Improvements
+
+- `All` Implement a __len__ method for `Event` objects to get a number of event subscribers.
+- `All` The order of firing of loading events `loading`, `before_load` and `loaded` is standardized across the platforms.
+- `All` `Window` objects can now be exposed via JS API
+- `All` Make `webview.settings` key immutable.
+- `GTK` `'undefined'`and `'null'` string values are no longer translated to None during JS API. serialization.
+- `Cocoa` Add support for the download attribute on links. Thanks @maddyaby.
+
+#### 🐞 Bug fixes
+
+- `EdgeChromium` Delete browser data in private mode on program exit
+- `Cocoa` Fix typo in `abortModal` call. Thanks @simonrob
+- `Cocoa` Fix missing menu
+
 ## 5.3.2
 
 _Released 22/10/2024_

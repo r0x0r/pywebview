@@ -1,24 +1,39 @@
-# About
+# Introduction
 
-_pywebview_ is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. You can use pywebview either with a lightweight web framework like [Flask](http://flask.pocoo.org/) or on its own with a two way bridge between Python and DOM.
+_pywebview_ is a lightweight native webview wrapper that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. _pywebview_ ships with a built-in HTTP server, DOM support in Python and window management functionality.
 
-_pywebview_ uses native GUI for creating a web component window: WinForms on Windows, Cocoa on macOS and QT or GTK on Linux. If you choose to freeze your application, pywebview does not bundle a heavy GUI toolkit or web renderer with it keeping the executable size small. _pywebview_ is compatible with Python 3.
-_pywebview_ ships with an optional HTTP server, DOM support,
+_pywebview_ is available for Windows, macOS, Linux (GTK or QT) and Android. It uses native GUI for creating a web component window: WinForms on Windows, Cocoa on macOS and QT or GTK on Linux. If you choose to freeze your application, _pywebview_ does not bundle a heavy GUI toolkit or web renderer with it keeping the executable size small.
 
-_pywebview_ is a BSD licensed open source project. It is an independent project with no corporate backing. If you find _pywebview_ useful, consider supporting it. More donation options are outlined on the [Donating](/contributing/donating.html) page.
+_pywebview_ provides advanced features like window manipulation functionality, event system, built-in HTTP server, native GUI elements like application menu and various dialogs, two way communication between Javascript ↔ Python and DOM support.
 
 _pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/).
 
+## Install
 
-<div class='spc-l spc-bottom center'>
-	<a href="https://www.patreon.com/bePatron?u=13226105" data-patreon-widget-type="become-patron-button">
-		<img src='https://c5.patreon.com/external/logo/become_a_patron_button.png' alt='Become a Patron!'/>
-	</a>
-</div>
+Generally, you should be able to install _pywebview_ with
 
-<div class="center spc-l spc-vertical">
-	<a href="https://opencollective.com/pywebview/donate" target="_blank">
-		<img src="https://opencollective.com/pywebview/donate/button@2x.png?color=blue" width=300 />
-	</a>
-</div>
+``` bash
+pip install pywebview
+```
 
+Although on some Linux platforms you may need to install additional libraries. Refer to the [installation](/guide/installation.html) page for details.
+
+## Develop
+
+Read the basic concepts in [Usage](/guide/usage), dive into [application architecture](/guide/architecture). Explore [API](/guide/api) and check various [examples](/examples)
+
+## Contribute
+
+Checkout out [contributing guidelines](/contributing)
+
+## Support the project
+
+If you find _pywebview_ useful, please support it.
+
+::: center
+[![Github Sponsor](/github_sponsor_button.png)](https://github.com/sponsors/r0x0r)
+
+[![Patreon](/patreon.png)](https://www.patreon.com/bePatron?u=13226105)
+
+[![Open Collective](/opencollective.png)](https://opencollective.com/pywebview/donate)
+:::
