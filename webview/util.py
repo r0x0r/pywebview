@@ -90,6 +90,9 @@ def get_app_root() -> str:
     if hasattr(sys, '_MEIPASS'):  # Pyinstaller
         return sys._MEIPASS
 
+    if os.getenv('RESOURCEPATH'): # py2app
+        return os.getenv('RESOURCEPATH')
+
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
 
