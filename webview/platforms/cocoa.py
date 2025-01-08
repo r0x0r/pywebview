@@ -151,8 +151,8 @@ class BrowserView:
         def download_decideDestinationUsingResponse_suggestedFilename_completionHandler_(self, download, decideDestinationUsingResponse, suggestedFilename, completionHandler):
             save_dlg = AppKit.NSSavePanel.savePanel()
             directory = Foundation.NSSearchPathForDirectoriesInDomains(
-                Foundation.NSDownloadsDirectory, 
-                Foundation.NSUserDomainMask, 
+                Foundation.NSDownloadsDirectory,
+                Foundation.NSUserDomainMask,
                 True)[0]
             save_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
             save_dlg.setNameFieldStringValue_(suggestedFilename)
@@ -187,7 +187,7 @@ class BrowserView:
             from Security import SecTrustRef
 
             # this allows any server cert
-            if webview_settings['IGNORE_SSL_ERRORS']:
+            if webview_settings['IGNORE_SSL_ERRORS'] or _state['ssl']:
                 credential = AppKit.NSURLCredential.credentialForTrust_(
                     challenge.protectionSpace().serverTrust()
                 )
