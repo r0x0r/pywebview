@@ -95,7 +95,7 @@ class BottleServer:
             app = apps[0]
             common_path = '.'
         else:
-            local_urls = [u for u in urls if is_local_url(u)]
+            local_urls = [u.split('#')[0] for u in urls if is_local_url(u)]
             common_path = (
                 os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else None
             )
