@@ -59,9 +59,10 @@ class BrowserView:
 
     class AppDelegate(AppKit.NSObject):
         def applicationShouldTerminate_(self, app):
+            should_close = True
             for i in BrowserView.instances.values():
-                i.closing.set()
-            return Foundation.YES
+                should_close = should_close and BrowserView.should_close(i.pywebview_window)
+            return Foundation.YES if should_close else Foundation.NO
 
         def applicationSupportsSecureRestorableState_(self, app):
             return Foundation.YES
