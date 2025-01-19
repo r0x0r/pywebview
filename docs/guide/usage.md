@@ -21,7 +21,7 @@ second_window = webview.create_window('Second window', 'https://woot.fi')
 webview.start()
 ```
 
-_pywebview_ gives a choice of using several web renderers. To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `cef` or `qt`). See [Renderer](/guide/renderer.md) for details.
+_pywebview_ gives a choice of using several web renderers. To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `cef` or `qt`). See [Web Engine](/guide/web_engine.md) for details.
 
 
 ## Backend logic
