@@ -454,6 +454,14 @@ Instantiate to create a menu separator.
 
 Represents a display found on the system.
 
+### screen.frame
+
+Returns a platform native working area (frame) object of the screen.
+
+``` python
+screen.frame
+```
+
 ### screen.height
 
 ``` python
@@ -466,6 +474,18 @@ Get display height.
 
 ``` python
 screen.width
+```
+
+### screen.x
+
+``` python
+screen.x
+```
+
+### screen.y
+
+``` python
+screen.y
 ```
 
 Get display width.
