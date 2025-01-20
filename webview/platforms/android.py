@@ -365,6 +365,7 @@ def get_current_url(_):
     return app.view.getUrl()
 
 def get_screens():
+    logger.warning('Screen information is not supported on Android')
     return []
 
 

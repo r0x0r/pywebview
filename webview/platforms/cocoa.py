@@ -1423,7 +1423,7 @@ def get_size(uid):
 
 def get_screens():
     screens = [
-        Screen(s.frame().size.width, s.frame().size.height, s.frame()) for s in AppKit.NSScreen.screens()
+        Screen(s.frame().origin.x, s.frame().origin.y, s.frame().size.width, s.frame().size.height, s.frame()) for s in AppKit.NSScreen.screens()
     ]
     return screens
 

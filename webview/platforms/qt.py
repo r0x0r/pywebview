@@ -1085,7 +1085,7 @@ def get_size(uid):
 def get_screens():
     global _app
     _app = QApplication.instance() or QApplication(sys.argv)
-    screens = [Screen(s.geometry().width(), s.geometry().height(), s) for s in _app.screens()]
+    screens = [Screen(s.geometry().x, s.geometry().y, s.geometry().width(), s.geometry().height(), s) for s in _app.screens()]
 
     return screens
 

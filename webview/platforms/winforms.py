@@ -936,7 +936,7 @@ def get_size(uid):
 
 
 def get_screens():
-    screens = [Screen(s.Bounds.Width, s.Bounds.Height, s.WorkingArea) for s in WinForms.Screen.AllScreens]
+    screens = [Screen(s.Bounds.X, s.Bounds.Y, s.Bounds.Height, s.WorkingArea) for s in WinForms.Screen.AllScreens]
     return screens
 
 
