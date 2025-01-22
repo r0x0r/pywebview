@@ -181,16 +181,18 @@ class BrowserView:
 
             if window.initial_x is not None and window.initial_y is not None:
                 self.StartPosition = WinForms.FormStartPosition.Manual
-                self.Location = Point(window.initial_x, window.initial_y)
+                self.Location = Point(
+                    int(window.initial_x * self.scale_factor),
+                    int(window.initial_y * self.scale_factor)
+                )
             elif window.screen:
                 self.StartPosition = WinForms.FormStartPosition.Manual
                 x = int(
-                    window.screen.frame.X * self.scale_factor + (window.screen.width - window.initial_width) * self.scale_factor / 2
-                    if window.screen.frame.X >= 0
-                    else window.screen.frame.X * self.scale_factor - window.screen.width * self.scale_factor / 2
+                    window.screen.x * self.scale_factor + (window.screen.width - window.initial_width) * self.scale_factor / 2
+                    if window.screen.x >= 0
+                    else window.screen.X * self.scale_factor + window.screen.width / 2
                 )
-
-                y = int(window.screen.frame.Y * self.scale_factor + (window.screen.height - window.initial_height) * self.scale_factor / 2)
+                y = int(window.screen.y * self.scale_factor + (window.screen.height - window.initial_height) * self.scale_factor / 2)
                 self.Location = Point(x, y)
             else:
                 self.StartPosition = WinForms.FormStartPosition.CenterScreen
@@ -936,7 +938,7 @@ def get_size(uid):
 
 
 def get_screens():
-    screens = [Screen(s.Bounds.X, s.Bounds.Y, s.Bounds.Height, s.WorkingArea) for s in WinForms.Screen.AllScreens]
+    screens = [Screen(s.Bounds.X, s.Bounds.Y, s.Bounds.Width, s.Bounds.Height, s.WorkingArea) for s in WinForms.Screen.AllScreens]
     return screens
 
 
