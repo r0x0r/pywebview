@@ -24,7 +24,7 @@ Read the basic concepts in [Usage](/guide/usage), dive into [application archite
 
 ## Contribute
 
-Checkout out [contributing guidelines](/contributing)
+Checkout out [contributing guidelines](/contributing/)
 
 ## Support the project
 

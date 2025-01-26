@@ -446,21 +446,12 @@ Instantiate to create a menu item. `title` is the name of the item and function 
 
 ### menu.MenuSeparator
 
-`MenuSeparator(title, function)`
+`MenuSeparator()`
 Instantiate to create a menu separator.
-
 
 ## webview.Screen
 
-Represents a display found on the system.
-
-### screen.frame
-
-Returns a platform native working area (frame) object of the screen.
-
-``` python
-screen.frame
-```
+Represents a display found on the systems. A list of `Screen` objects is returned by `webview.screens` property.
 
 ### screen.height
 

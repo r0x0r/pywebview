@@ -2,7 +2,7 @@
 
 There are several way to build your application using _pywebview_:
 
-## Web server
+## Pure web server
 
 - The most simple case is pointing to a url. This requires a running web server either remotely or locally
 
@@ -25,11 +25,9 @@ When using a local web server, you should protect your API calls against CSRF at
 
 While the `file://` protocol is possible, its use is discouraged as it comes with a number of inherit limitations and is not well supported.
 
-## JS API / internal HTTP server
+## JS API with internal HTTP server
 
 Another approach is using JS API bridge and serving static content with a built-in HTTP server.  JS API bridge allows communication between Python and Javascript domains without a web server. Thje bridge can be created either with `create_window(..., js_api=Api())` or or `window.expose` function. To serve static contents, set entrypoint url to a local relative path. This will start a built-in HTTP server automatically. For more details on communication between Python and Javascript refer to [interdomain communication](/guide/interdomain.html). See an example [serverless application](https://github.com/r0x0r/pywebview/tree/master/examples/todos) for a complete implementation.
-
-
 
 ## Serverless
 

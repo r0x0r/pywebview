@@ -1,6 +1,7 @@
 import { defineUserConfig } from 'vuepress';
 import { hopeTheme } from 'vuepress-theme-hope';
 import { viteBundler } from '@vuepress/bundler-vite'
+import { linksCheckPlugin } from '@vuepress/plugin-links-check'
 //import { mediumZoomPlugin } from '@vuepress/plugin-medium-zoom';
 import { path } from '@vuepress/utils';
 import { generateExamples } from './generate-examples';
@@ -17,6 +18,9 @@ export default defineUserConfig({
     viteOptions: {},
     vuePluginOptions: {},
   }),
+  head: [
+    ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=cloud,code,devices,folder,grid_view,package,sync,widgets' }],
+  ],
   theme: hopeTheme({
     repo: 'r0x0r/pywebview',
     docsDir: 'docs',
@@ -26,6 +30,7 @@ export default defineUserConfig({
     logo: '/logo-no-text.png',
     markdown: {
       align: true,
+      linksCheck: true
     },
     navbar: [
       { text: 'Guide', link: '/guide/' },
@@ -77,6 +82,11 @@ export default defineUserConfig({
     contributors: false
   }),
   plugins: [
+    // linksCheckPlugin({
+    //   exclude: [
+    //     '/CHANGELOG'
+    //   ],
+    // })
     // mediumZoomPlugin({
     //   selector: 'img.zoom',
     //   options: {
