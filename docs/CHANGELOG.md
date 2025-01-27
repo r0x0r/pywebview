@@ -22,6 +22,7 @@ _Released 27/01/2025_
 - `Cocoa` Ignore ssl errors for local HTTP server by default
 - `Cocoa` Native Color Picker on MacOS is drawn in the wrong place #1568. Thanks @maddyaby
 - `Cocoa` Improved support for py2app #1565
+- `EdgeChromium` Update webview2 binaries to 1.0.2957.106
 
 #### 🐞 Bug fixes
 
