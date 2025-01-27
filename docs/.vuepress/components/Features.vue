@@ -86,6 +86,10 @@ export default {
   right: 50%;
   transform: translateX(-50%);
   overflow: visible;
+
+  [data-theme="dark"] & {
+    background-image: url('/prism.png');
+  }
 }
 
 h2 {

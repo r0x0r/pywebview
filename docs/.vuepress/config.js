@@ -46,7 +46,7 @@ export default defineUserConfig({
       '/guide/': [
         {
           text: 'Basics',
-          collapsable: false,
+          collapsible: false,
           children: [
             '/guide/installation',
             '/guide/usage'
@@ -54,7 +54,7 @@ export default defineUserConfig({
         },
         {
           text: 'Development',
-          collapsable: false,
+          collapsible: false,
           children: [
             '/guide/api',
             '/guide/architecture',
