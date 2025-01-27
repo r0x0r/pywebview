@@ -29,7 +29,7 @@ def link_handler(e):
 
 
 def bind(window):
-    window.dom.document.events.scroll += scroll_handler
+    window.dom.document.events.scroll += DOMEventHandler(scroll_handler, debounce=100)
 
     button = window.dom.get_element('#button')
     button.events.click += click_handler

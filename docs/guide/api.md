@@ -1,6 +1,15 @@
 
 # API
 
+## webview.active_window
+
+``` python
+webview.active_window()
+```
+
+Get an instance of the currently active window
+
+
 ## webview.create_window
 
 ``` python
@@ -62,7 +71,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `func` - function to invoke upon starting the GUI loop.
 * `args` - function arguments. Can be either a single value or a tuple of values.
 * `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
-* `gui` - force a specific GUI. Allowed values are `cef`, `qt` or `gtk` depending on a platform. See [Renderer](/guide/renderer.md) for details.
+* `gui` - force a specific GUI. Allowed values are `cef`, `qt` or `gtk` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server for absolute local paths. For relative paths HTTP server is started automatically and cannot be disabled. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `http_port` - specify a port number for the HTTP server. By default port is randomized.
@@ -71,7 +80,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `storage_path` - An optional location on hard drive where to store persistant objects like cookies and local storage. By default `~/.pywebview` is used on *nix systems and `%APPDATA%\pywebview` on Windows.
 * `menu` - Pass a list of Menu objects to create an application menu. See [this example](/examples/menu.html) for usage details.
 * `server` - A custom WSGI server instance. Defaults to BottleServer.
-* `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server. Cocoa/QT/GTK only.
+* `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server. You need to have `cryptography` pip dependency installed in order to use `ssl`. It is not installed by default.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 * `icon` - path to application icon. Available only for GTK / QT. For other platforms icon should be specified via a bundler.
 
@@ -99,7 +108,8 @@ webview.settings = {
   'ALLOW_DOWNLOADS': False,
   'ALLOW_FILE_URLS': True,
   'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
-  'OPEN_DEVTOOLS_IN_DEBUG': True
+  'OPEN_DEVTOOLS_IN_DEBUG': True,
+  'REMOTE_DEBUGGING_PORT': None
 }
 ```
 
@@ -109,6 +119,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `ALLOW_FILE_URLS` Enable `file://` urls. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
+* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.
 
 #### Examples
 
@@ -435,13 +446,12 @@ Instantiate to create a menu item. `title` is the name of the item and function 
 
 ### menu.MenuSeparator
 
-`MenuSeparator(title, function)`
+`MenuSeparator()`
 Instantiate to create a menu separator.
-
 
 ## webview.Screen
 
-Represents a display found on the system.
+Represents a display found on the systems. A list of `Screen` objects is returned by `webview.screens` property.
 
 ### screen.height
 
@@ -455,6 +465,18 @@ Get display height.
 
 ``` python
 screen.width
+```
+
+### screen.x
+
+``` python
+screen.x
+```
+
+### screen.y
+
+``` python
+screen.y
 ```
 
 Get display width.
@@ -570,8 +592,8 @@ Destroy the window.
 window.evaluate_js(script, callback=None)
 ```
 
-Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. Functions are omitted and circular references are converted to the `[Circular Reference]` string literal. `webview.error.JavascriptException` is thrown if executed codes raises an error.
-r-strings is a recommended way to load Javascript.
+Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. DOM nodes are serialized using custom serialization. Functions are omitted and circular references are converted to the `[Circular Reference]` string literal. `webview.error.JavascriptException` is thrown if executed codes raises an error.
+r-strings is a recommended way to load Javascript. Note that the `evaluate_js` employs `eval`, which will fail if `unsafe-eval` CSP is set. Alternatively you may use `window.run_js(code)` that executes Javascript code as is without returning a result.
 
 ### window.expose
 
@@ -716,7 +738,6 @@ Resize window. Optional parameter fix_point specifies in respect to which point 
 
 [Example](/examples/minimize.html)
 
-
 ### window.restore
 
 ``` python
@@ -726,6 +747,17 @@ window.restore()
 Restore minimized window.
 
 [Example](/examples/minimize.html)
+
+### window.run_js
+
+``` python
+window.run_js('document.body.style.color = "deepred"')
+```
+
+Execute Javascript as is without wrapping it in `eval` and helper code. This function does not return a result.
+
+[Example](/examples/run_js.html)
+
 
 ### window.set_title
 
@@ -802,58 +834,67 @@ Get a list of `Element` objects matching the selector.
 
 Get DOM document's window `window` as an `Element` object
 
-
 ## Window events
 
-Window object exposes a number of lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g. `window.events.loaded += func`. Duplicate subscriptions are ignored and function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, `window.events.loaded -= func`. To access the window object from the event handler, you can supply `window` parameter as a first positional argument of the handler.
+Window object exposes various lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g., `window.events.loaded += func`. Duplicate subscriptions are ignored, and the function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, e.g., `window.events.loaded -= func`. To access the window object from the event handler, supply the `window` parameter as the first positional argument of the handler. Most window events are asynchronous, and event handlers are executed in separate threads. The `before_show` and `before_load` events are synchronous and block the main thread until handled.
 
 ### window.events.before_show
 
-Event fired just before pywebview window is shown. This is the earliest event that exposes `window.native` property.
+This event is fired just before pywebview window is shown. This is the earliest event that exposes `window.native` property. This event is blocking.
+
+### window.events.before_load
+
+The event is fired right before _pywebview_ code is injected into the page. The event roughly corresponds to `DOMContentLoaded` DOM event. This event is blocking.
 
 ### window.events.closed
 
-Event fired just before pywebview window is closed.
+The event is fired just before _pywebview_ window is closed.
 
 [Example](/examples/events.html)
 
 ### window.events.closing
 
-Event fired when pywebview window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled.
+The event is fired when _pywebview_ window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled.
 
 [Example](/examples/events.html)
 
 ### window.events.loaded
 
-Event fired when DOM is ready.
-
-[Example](/examples/events.html)
-
-### window.events.minimized
-
-Event fired when window is minimized.
-
-[Example](/examples/events.html)
-
-### window.events.restore
-
-Event fired when window is restored.
+The event is fired when DOM is ready.
 
 [Example](/examples/events.html)
 
 ### window.events.maximized
 
-Event fired when window is maximized (fullscreen on macOS)
+The event is fired when window is maximized (fullscreen on macOS)
+
+### window.events.minimized
+
+The event is fired when window is minimized.
+
+[Example](/examples/events.html)
+
+### window.events.moved
+
+The event is fired when window is moved.
+
+[Example](/examples/events.html)
+
+### window.events.restored
+
+The event is fired when window is restored.
+
+[Example](/examples/events.html)
 
 ### window.events.resized
 
-Event fired when pywebview window is resized. Event handler can either have no or accept (width, height) arguments.
+The event is fired when pywebview window is resized. Event handler can either have no or accept (width, height) arguments.
 
 [Example](/examples/events.html)
 
 ### window.events.shown
 
-Event fired when pywebview window is shown.
+The event is fired when pywebview window is shown.
 
 [Example](/examples/events.html)
 

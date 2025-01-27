@@ -13,11 +13,12 @@ import os
 import re
 import sys
 import traceback
+from collections import UserDict
 from glob import glob
 from http.cookies import SimpleCookie
 from platform import architecture
 from threading import Thread
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 from uuid import uuid4
 
 import webview
@@ -44,6 +45,29 @@ DEFAULT_HTML = """
 logger = logging.getLogger('pywebview')
 
 
+
+class ImmutableDict(UserDict):
+    """"
+    A dictionary that does not allow adding new keys or deleting existing ones.
+    Only existing keys can be modified.
+    """
+
+    def __init__(self, initial_data=None, **kwargs):
+        self.data = {}
+        if initial_data:
+            self.data.update(initial_data)
+        if kwargs:
+            self.data.update(kwargs)
+
+    def __setitem__(self, key, value):
+        if key not in self.data:
+            raise KeyError(f"Cannot add new key '{key}'. Only existing keys can be modified.")
+        super().__setitem__(key, value)
+
+    def __delitem__(self, key):
+        raise KeyError('Deleting keys is not allowed.')
+
+
 def is_app(url: str | None) -> bool:
     """Returns true if 'url' is a WSGI or ASGI app."""
     return callable(url)
@@ -65,6 +89,9 @@ def get_app_root() -> str:
 
     if hasattr(sys, '_MEIPASS'):  # Pyinstaller
         return sys._MEIPASS
+
+    if os.getenv('RESOURCEPATH'): # py2app
+        return os.getenv('RESOURCEPATH')
 
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
@@ -99,7 +126,7 @@ def base_uri(relative_path: str = '') -> str:
 
 def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
     if isinstance(input_, dict):
-        cookie = SimpleCookie[str]()
+        cookie = SimpleCookie()
         name = input_['name']
         cookie[name] = input_['value']
         cookie[name]['path'] = input_['path']
@@ -132,9 +159,11 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def inject_pywebview(window: Window, platform: str) -> str:
+def inject_pywebview(platform: str, window: Window) -> str:
     """"
-    Generates and injects a global window.pywebview object
+    Generates and injects a global window.pywebview object. The object contains exposed API functions
+    as well as utility functions required by pywebview. The function fires before_load event before
+    injecting the object and loaded event after the object is injected.
     """
     exposed_objects = []
 
@@ -156,6 +185,7 @@ def inject_pywebview(window: Window, platform: str) -> str:
 
             if name.startswith('_'):
                 continue
+
             attr = getattr(obj, name)
             if inspect.ismethod(attr):
                 functions[full_name] = get_args(attr)[1:]
@@ -177,17 +207,35 @@ def inject_pywebview(window: Window, platform: str) -> str:
 
         return [{'func': name, 'params': params} for name, params in functions.items()]
 
-    try:
-        func_list = generate_func()
-    except Exception as e:
-        logger.exception(e)
-        func_list = []
+    def generate_js_object():
+        window.run_js(js_code)
+        window.events._pywebviewready.set()
+        logger.debug('_pywebviewready event fired')
 
-    js_code = load_js_files(window, func_list, platform)
-    return js_code
+        try:
+            with window._expose_lock:
+                func_list = generate_func()
+                window.run_js(finish_script % {
+                    'functions': json.dumps(func_list)
+                })
+                window.events.loaded.set()
+                logger.debug('loaded event fired')
+        except Exception as e:
+            logger.exception(e)
+            window.events.loaded.set()
+
+    window.events.before_load.set()
+    logger.debug('before_load event fired. injecting pywebview object')
+    js_code, finish_script = load_js_files(window, platform)
+    thread = Thread(target=generate_js_object)
+    thread.start()
 
 
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
+    """
+    Calls a function from the JS API and executes it in Python. The function is executed in a separate
+    thread to prevent blocking the UI thread. The result is then passed back to the JS API.
+    """
     def _call():
         try:
             result = func(*func_params)
@@ -266,11 +314,19 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         logger.error('Function %s() does not exist', func_name)
 
 
-def load_js_files(window: Window, func_list, platform: str) -> str:
-    js_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'js')
+def load_js_files(window: Window, platform: str) -> str:
+    """
+    Load JS files in the order they should be loaded.
+    The order is polyfill, api, the rest and finish.js.
+    Return the concatenated JS code and the finish script, which must be loaded last and
+    separately in order to
+    """
+    js_dir = get_js_dir()
+    logger.debug('Loading JS files from %s', js_dir)
     js_files = glob(os.path.join(js_dir, '**', '*.js'), recursive=True)
     ordered_js_files = sort_js_files(js_files)
     js_code = ''
+    finish_script = ''
 
     for file in ordered_js_files:
         with open(file, 'r') as f:
@@ -283,8 +339,7 @@ def load_js_files(window: Window, func_list, platform: str) -> str:
                     'token': _TOKEN,
                     'platform': platform,
                     'uid': window.uid,
-                    'func_list': json.dumps(func_list),
-                    'js_api_endpoint': window.js_api_endpoint,
+                    'js_api_endpoint': window.js_api_endpoint
                 }
             elif name == 'customize':
                 params = {
@@ -294,12 +349,39 @@ def load_js_files(window: Window, func_list, platform: str) -> str:
                     'draggable': str(window.draggable),
                     'easy_drag': str(platform == 'chromium' and window.easy_drag and window.frameless).lower(),
                 }
+            elif name == 'finish':
+                finish_script = content
+                continue
             elif name == 'polyfill' and platform != 'mshtml':
                 continue
 
             js_code += content % params
 
-    return js_code
+    return js_code, finish_script
+
+
+def get_js_dir() -> str:
+    """
+    Get the path to the directory with Javascript files.
+    """
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'js')
+
+    if os.path.exists(path):
+        return path
+
+    # try py2app frozen path. This is hacky, but it works.
+    # See https://github.com/r0x0r/pywebview/issues/1565
+    if '.zip' in path:
+        base_path = path.split('.zip')[0]
+        dir = os.path.dirname(base_path)
+
+        for file in os.listdir(dir):
+            if file.startswith('python') and os.path.isdir(os.path.join(dir, file)):
+                js_path = os.path.join(dir, file, 'webview', 'js')
+                if os.path.exists(js_path):
+                    return js_path
+
+    raise FileNotFoundError('Cannot find JS directory in %s' % path)
 
 
 def sort_js_files(js_files: list[str]) -> list[str]:
@@ -307,7 +389,7 @@ def sort_js_files(js_files: list[str]) -> list[str]:
     Sorts JS files in the order they should be loaded. Polyfill first, then API, then the rest and
     finally finish.js that fires a pywebviewready event.
     """
-    LOAD_ORDER = { 'polyfill': 0, 'api': 1, 'finish': 99 }
+    LOAD_ORDER = { 'polyfill': 0, 'api': 1 }
 
     ordered_js_files = []
     remaining_js_files = []
@@ -428,3 +510,4 @@ def css_to_camel(css_case_string: str) -> str:
 
 def android_jar_path() -> str:
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', 'pywebview-android.jar')
+

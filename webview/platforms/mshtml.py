@@ -2,14 +2,12 @@ import json
 import logging
 import sys
 import webbrowser
-import winreg
 from ctypes import windll
 from threading import Semaphore
-from time import sleep
 
 import clr
 
-from webview import _settings
+from webview import _state
 from webview.util import (DEFAULT_HTML, inject_base_uri, interop_dll_path, js_bridge_call,
                           inject_pywebview)
 
@@ -17,6 +15,7 @@ clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
+from System import Func, Type
 import System.Windows.Forms as WinForms
 
 clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
@@ -123,18 +122,18 @@ class MSHTML:
         self.pywebview_window = window
         self.webview = WebBrowserEx()
         self.webview.Dock = WinForms.DockStyle.Fill
-        self.webview.ScriptErrorsSuppressed = not _settings['debug']
-        self.webview.IsWebBrowserContextMenuEnabled = _settings['debug']
+        self.webview.ScriptErrorsSuppressed = not _state['debug']
+        self.webview.IsWebBrowserContextMenuEnabled = _state['debug']
         self.webview.WebBrowserShortcutsEnabled = False
         self.webview.DpiAware = True
         MSHTML.alert = alert
 
-        user_agent = _settings['user_agent'] or settings.get('user_agent')
+        user_agent = _state['user_agent'] or settings.get('user_agent')
         if user_agent:
             self.webview.ChangeUserAgent(user_agent)
 
-        self.webview.ScriptErrorsSuppressed = not _settings['debug']
-        self.webview.IsWebBrowserContextMenuEnabled = _settings['debug']
+        self.webview.ScriptErrorsSuppressed = not _state['debug']
+        self.webview.IsWebBrowserContextMenuEnabled = _state['debug']
 
         self.js_result_semaphore = Semaphore(0)
         self.js_bridge = MSHTML.JSBridge()
@@ -168,14 +167,28 @@ class MSHTML:
         self.form = form
         form.Controls.Add(self.webview)
 
-    def evaluate_js(self, script):
-        result = self.webview.Document.InvokeScript('eval', (script,))
-        self.js_result = None if result is None or result == 'null' else json.loads(result)  ##
-        self.js_result_semaphore.release()
+    def evaluate_js(self, script, parse_json=True):
+        def _evaluate_js():
+            nonlocal result
+            res = self.webview.Document.InvokeScript('eval', (script,))
+
+            if parse_json and res is not None:
+                try:
+                    result = json.loads(res)
+                except Exception:
+                    result = res
+            else:
+                result = res
+            lock.release()
+
+        result = None
+        lock = Semaphore(0)
+        self.form.Invoke(Func[Type](_evaluate_js))
+        lock.acquire()
+        return result
 
     def load_html(self, content, base_uri):
         self.webview.DocumentText = inject_base_uri(content, base_uri)
-        self.pywebview_window.events.loaded.clear()
 
     def load_url(self, url):
         self.webview.Navigate(url)
@@ -211,7 +224,7 @@ class MSHTML:
     def on_document_completed(self, _, args):
         document = self.webview.Document
 
-        if _settings['debug']:
+        if _state['debug']:
             document.InvokeScript(
                 'eval', """
                     window.console = {
@@ -226,10 +239,7 @@ class MSHTML:
             self.first_load = False
 
         self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)
-
-        document.InvokeScript('eval', (inject_pywebview(self.pywebview_window, renderer),))
-        sleep(0.1)
-        self.pywebview_window.events.loaded.set()
+        inject_pywebview(renderer, self.pywebview_window)
 
         if self.pywebview_window.easy_drag:
             document.MouseMove += self.on_mouse_move

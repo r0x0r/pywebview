@@ -1,3 +1,4 @@
+window.pywebview._createApi(JSON.parse('%(functions)s'));
 
 if (window.pywebview.platform == 'qtwebengine') {
   new QWebChannel(qt.webChannelTransport, function(channel) {
@@ -7,4 +8,5 @@ if (window.pywebview.platform == 'qtwebengine') {
 } else {
   window.dispatchEvent(new CustomEvent('pywebviewready'));
 }
+
 

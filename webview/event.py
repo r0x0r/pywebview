@@ -67,7 +67,7 @@ class Event:
     def is_set(self) -> bool:
         return self._event.is_set()
 
-    def wait(self, timeout: float = 0) -> bool:
+    def wait(self, timeout: float | None = None) -> bool:
         return self._event.wait(timeout)
 
     def clear(self) -> None:
@@ -89,3 +89,5 @@ class Event:
         self._items.remove(item)
         return self
 
+    def __len__(self) -> int:
+        return len(self._items)

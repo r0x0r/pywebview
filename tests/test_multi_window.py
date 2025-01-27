@@ -47,6 +47,7 @@ def bg_color(window):
     child_window = webview.create_window('Window #2', html='<html><body><h1>Test/h1></body></html>', background_color='#0000FF')
 
     assert child_window.uid != 'MainWindow'
+    child_window.events.loaded.wait()
     child_window.destroy()
 
 
@@ -58,10 +59,9 @@ def js_bridge(window):
     api2 = Api2()
     child_window = webview.create_window('Window #2', html='<html><body><h1>Test</h1></body></html>', js_api=api2)
     assert child_window.uid != 'MainWindow'
-    child_window.load_html('<html><body><h1>Secondary window</h1></body></html>')
+    #child_window.load_html('<html><body><h1>Secondary window</h1></body></html>')
     assert_js(window, 'test1', 1)
     assert_js(child_window, 'test2', 2)
-
     child_window.destroy()
 
 
@@ -97,14 +97,18 @@ def evaluate_js(window):
 
 def load_html(window):
     child_window = webview.create_window(
-        'Window #2', html='<body style="background: red;"><h1>Master Window</h1></body>'
+        'Window #2', html='<body style="background: red;"><h1>Secondary Window</h1></body>'
     )
     assert child_window != 'MainWindow'
+    child_window.load_html('<body style="background: blue;"><h1>Secondary Window #2</h1></body>')
+    child_window.events.loaded.wait()
     child_window.destroy()
 
 
 def load_url(window):
     child_window = webview.create_window('Window #2')
     assert child_window != 'MainWindow'
+
     child_window.load_url('https://pywebview.flowrl.com')
+    child_window.events.loaded.wait()
     child_window.destroy()

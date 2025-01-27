@@ -9,6 +9,7 @@ dist
 .cache
 .idea
 .vs
+.temp
 bin
 obj
 node_modules

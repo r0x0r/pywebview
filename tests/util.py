@@ -47,8 +47,8 @@ def run_test(
         if debug:
             start_args = {**start_args, 'debug': True}
 
-        time.sleep(2)
-        _create_window(
+        time.sleep(1)
+        create_test_window(
             webview, window, thread_func, queue, param, start_args, no_destroy, destroy_delay
         )
 
@@ -70,6 +70,7 @@ def assert_js(window, func_name, expected_result, *func_args):
     @param func_args: arguments to pass to the function
 
     """
+    window.events.loaded.wait()
     value_id = 'v' + uuid4().hex[:8]
     func_args = str(func_args).replace(',)', ')')
 
@@ -100,17 +101,14 @@ def assert_js(window, func_name, expected_result, *func_args):
     assert expected_result == result
 
 
-def _create_window(
+def create_test_window(
     webview, window, thread_func, queue, thread_param, start_args, no_destroy, destroy_delay
 ):
     def thread():
         try:
-            # take_screenshot()
-            # take_screenshot2()
-            move_mouse_cocoa()
+            window.events.loaded.wait()
             if thread_func:
                 thread_func(window, *thread_param)
-
             destroy_event.set()
         except Exception as e:
             logger.exception(e, exc_info=True)
@@ -165,7 +163,6 @@ def _destroy_window(_, window, delay):
     t.start()
 
     return event
-
 
 
 def take_screenshot2():

@@ -92,7 +92,7 @@ class Element:
     @_exists
     @_ignore_window_document
     def id(self, id: str) -> None:
-        self._window.evaluate_js(f"{self._query_command}; element.id = '{id}'")
+        self._window.run_js(f"{self._query_command}; element.id = '{id}'")
 
     @property
     @_exists
@@ -119,7 +119,7 @@ class Element:
     @property
     @_exists
     def node(self) -> Dict[str, Any]:
-        return self._window.evaluate_js(f"{self._query_command}; var r2 = pywebview._processElements([element])[0]; console.log(element); console.log(r2); r2")
+        return self._window.evaluate_js(f"{self._query_command}; var r2 = pywebview._processElements([element])[0]; r2")
 
     @property
     @_exists
@@ -143,7 +143,7 @@ class Element:
     @_exists
     @_ignore_window_document
     def tabindex(self, tab_index: int) -> None:
-        self._window.evaluate_js(f"{self._query_command}; element.tabIndex = {tab_index}")
+        self._window.run_js(f"{self._query_command}; element.tabIndex = {tab_index}")
 
     @property
     @_exists
@@ -155,7 +155,7 @@ class Element:
     @_exists
     @_ignore_window_document
     def text(self, text: str) -> None:
-        self._window.evaluate_js(f"{self._query_command}; element.textContent = '{text}'")
+        self._window.run_js(f"{self._query_command}; element.textContent = '{text}'")
 
     @property
     @_exists
@@ -179,17 +179,17 @@ class Element:
     @_exists
     @_ignore_window_document
     def value(self, value: str) -> None:
-        self._window.evaluate_js(f"{self._query_command}; if ('value' in element) {{ element.value = '{value}' }}")
+        self._window.run_js(f"{self._query_command}; if ('value' in element) {{ element.value = '{value}' }}")
 
     @_exists
     @_ignore_window_document
     def blur(self) -> None:
-        self._window.evaluate_js(f"{self._query_command}; element.blur()")
+        self._window.run_js(f"{self._query_command}; element.blur()")
 
     @_exists
     @_ignore_window_document
     def focus(self) -> None:
-        self._window.evaluate_js(f"{self._query_command}; element.focus()")
+        self._window.run_js(f"{self._query_command}; element.focus()")
 
     @property
     @_exists
@@ -245,7 +245,7 @@ class Element:
     @_ignore_window_document
     def hide(self) -> None:
         self.__original_display = self._window.evaluate_js(f"{self._query_command}; element.style.display")
-        self._window.evaluate_js(f"{self._query_command}; element.style.display = 'none'")
+        self._window.run_js(f"{self._query_command}; element.style.display = 'none'")
 
     @_exists
     @_ignore_window_document
@@ -254,7 +254,7 @@ class Element:
 
         if current_display == 'none':
             display = self.__original_display or 'block'
-            self._window.evaluate_js(f"{self._query_command}; element.style.display = '{display}'")
+            self._window.run_js(f"{self._query_command}; element.style.display = '{display}'")
 
     @_exists
     @_ignore_window_document
@@ -274,18 +274,18 @@ class Element:
     @_exists
     @_ignore_window_document
     def empty(self) -> None:
-        self._window.evaluate_js(f"{self._query_command}; element.innerHTML = ''")
+        self._window.run_js(f"{self._query_command}; element.innerHTML = ''")
 
     @_exists
     @_ignore_window_document
     def remove(self) -> None:
-        self._window.evaluate_js(f"{self._query_command}; element.remove()")
+        self._window.run_js(f"{self._query_command}; element.remove()")
 
         if self._node_id in self._window.dom._elements:
             self._window.dom._elements.pop(self._node_id)
 
         handler_ids = ','.join([ f'"{handler_id}"' for handler_id in self._event_handler_ids.values()])
-        self._window.evaluate_js(f"""
+        self._window.run_js(f"""
             var handlerIds = [{handler_ids}];
             handlerIds.forEach(function(handlerId) {{
                 delete pywebview._eventHandlers[handler_id]
@@ -333,7 +333,7 @@ class Element:
         if isinstance(target, str):
             target = self._window.dom.get_element(target)
 
-        self._window.evaluate_js(f"""
+        self._window.run_js(f"""
             {self._query_command};
             var target = document.querySelector('[data-pywebview-id=\"{target._node_id}\"]');
             pywebview._insertNode(element, target, '{mode.value}')
@@ -393,7 +393,7 @@ class Element:
         if not handler_id:
             return
 
-        self._window.evaluate_js(f"""
+        self._window.run_js(f"""
             {self._query_command};
             var callback = pywebview._eventHandlers['{handler_id}'];
             if (element) {{
@@ -448,3 +448,7 @@ class Element:
             return 'window'
         else:
             return self.node['outerHTML']
+
+    @_exists
+    def __eq__(self, other: 'Element') -> bool:
+        return hasattr(other, '_node_id') and self._node_id == other._node_id

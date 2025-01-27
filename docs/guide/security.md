@@ -1,7 +1,5 @@
 # Security
 
-When using a local web server, you may want to protect your API from unauthorized access.
+It is advisable to enable SSL for local HTTP server. To accomplish this, simply start the application with the `ssl` paramater set to True `webview.start(ssl=True)`. You need to have `cryptography` pip dependency installed in order to use `ssl`. It is not installed by default.
 
-First, it is advisable to enable SSL for local http server. To accomplish this, simply start the application with the `ssl` paramater set to True `webview.start(ssl=True)`.
-
-Second, if you use a third party http server with REST API, [CSRF attacks](https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)) can be a major problem. _pywebview_ addresses the problem by generating a session-unique token that is exposed both to Python as `webview.token` and Javascript as `window.pywebview.token`. Refer to [CSRF cheat sheet](https://www.owasp.org/index.php/Cross-Site_Request_Forgery_\(CSRF\)_Prevention_Cheat_Sheet) for API securing approaches and see [Flask app](https://github.com/r0x0r/pywebview/tree/master/examples/flask_app) for a concrete example.
+If you employ a REST API, [CSRF attacks](https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)) can be a major concern. _pywebview_ mitigates this risk by generating a session-unique token that is accessible in Python as `webview.token` and in JavaScript as `window.pywebview.token`. For more information on securing APIs, refer to the [CSRF Prevention Cheat Sheet](https://www.owasp.org/index.php/Cross-Site_Request_Forgery_\(CSRF\)_Prevention_Cheat_Sheet). You can also see a practical example in the [Flask app](https://github.com/r0x0r/pywebview/tree/master/examples/flask_app).

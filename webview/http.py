@@ -36,7 +36,7 @@ from .util import abspath, is_app, is_local_url
 WRHT_co = TypeVar('WRHT_co', bound=WSGIRequestHandler, covariant=True)
 WST_co = TypeVar('WST_co', bound=WSGIServer, covariant=True)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('pywebview')
 global_server = None
 
 
@@ -86,7 +86,7 @@ class BottleServer:
     def start_server(
         cls, urls: list[str], http_port: int | None, keyfile: None = None, certfile: None = None
     ) -> tuple[str, str | None, BottleServer]:
-        from webview import _settings
+        from webview import _state
 
         apps = [u for u in urls if is_app(u)]
         server = cls()
@@ -95,11 +95,12 @@ class BottleServer:
             app = apps[0]
             common_path = '.'
         else:
-            local_urls = [u for u in urls if is_local_url(u)]
+            local_urls = [u.split('#')[0] for u in urls if is_local_url(u)]
             common_path = (
                 os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else None
             )
             server.root_path = abspath(common_path) if common_path is not None else None
+            logger.debug('HTTP server root path: %s' % server.root_path)
             app = bottle.Bottle()
 
             @app.post(f'/js_api/{server.uid}')
@@ -139,7 +140,7 @@ class BottleServer:
             server_adapter = ThreadedAdapter
         server.thread = threading.Thread(
             target=lambda: bottle.run(
-                app=app, server=server_adapter, port=server.port, quiet=not _settings['debug']
+                app=app, server=server_adapter, port=server.port, quiet=not _state['debug']
             ),
             daemon=True,
         )

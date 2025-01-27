@@ -1,6 +1,5 @@
-const fs = require('fs');
-const path = require('path');
-
+import fs from 'fs';
+import path from 'path';
 
 function extractDescriptionFromPythonCode(code) {
   const match = code.match(/(['"]{3}[\s\S]*?['"]{3})/);
@@ -16,11 +15,9 @@ function removeExtraLineBreaksFromCodeBlock(code) {
   return code.replace(/(\r?\n){3,}/g, '\n\n').trim();
 }
 
-
 function removeCommentsFromPythonCode(code) {
   return code.replace(/(^['"]{3}[\s\S]*?['"]{3})/gm, '').trim();
 }
-
 
 function convertToMarkdown(filePath, outputDirectory) {
   try {
@@ -54,9 +51,4 @@ function generateExamples(directoryPath, outputDirectory) {
   });
 }
 
-
-module.exports = {
-  generateExamples
-}
-
-
+export { generateExamples };
