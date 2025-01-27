@@ -5,34 +5,33 @@
 https://pywebview.flowrl.com
 </p>
 
+_pywebview_ is a lightweight native webview wrapper that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. _pywebview_ ships with a built-in HTTP server, DOM support in Python and window management functionality.
 
-_pywebview_ is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its own native GUI window. It gives you the power of web technologies in your desktop application, hiding the fact that the GUI is browser based. Available for Windows, macOS, Linux and Android. You can use pywebview either with a 3rd party web framework or on its own with a two way bridge between Python and DOM.
+_pywebview_ is available for Windows, macOS, Linux (GTK or QT) and Android. It uses native GUI for creating a web component window: WinForms on Windows, Cocoa on macOS and QT or GTK on Linux. If you choose to freeze your application, _pywebview_ does not bundle a heavy GUI toolkit or web renderer with it keeping the executable size small.
 
-_pywebview_ uses native GUI for creating a web component window: WinForms on Windows, Cocoa on macOS, QT or GTK on Linux and Kivy for Android. If you choose to freeze your application, pywebview does not bundle a heavy GUI toolkit or web renderer with it, keeping the executable size small. _pywebview_ is compatible with Python 3.
+_pywebview_ provides advanced features like window manipulation functionality, event system, built-in HTTP server, native GUI elements like application menu and various dialogs, two way communication between Javascript ↔ Python and DOM support.
 
 _pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/).
 
-
 # Getting started
 
-### Install
-
+## Install
 
 ``` bash
 pip install pywebview
 ```
-- _On Linux you need additional libraries. Refer to the [installation](https://pywebview.flowrl.com/guide/installation.html) page for details._
 
+_You might need additional libraries.  Refer to the [installation](https://pywebview.flowrl.com/guide/installation) page for details._
 
-### Hello world
+## Hello world
+
 ``` python
 import webview
 webview.create_window('Hello world', 'https://pywebview.flowrl.com/hello')
 webview.start()
 ```
 
-Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.com/guide), [examples](https://pywebview.flowrl.com/examples) or [contributing](https://pywebview.flowrl.com/contributing). If React is your thing, get started right away with [React boilerplate](https://github.com/r0x0r/pywebview-react-boilerplate).
-
+Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.com/guide), exploring [examples](https://pywebview.flowrl.com/examples) or [contributing](https://pywebview.flowrl.com/contributing). If React is your thing, get started right away with [React boilerplate](https://github.com/r0x0r/pywebview-react-boilerplate).
 
 # Contribution
 
@@ -42,33 +41,16 @@ If your company is looking for support with _pywebview_ or needs a hand with ful
 
 ### Code Contributors
 
-This project exists thanks to all the people who contribute. [[Contribute](docs/contributing/README.md)].
+This project thrives thanks to the contributions of our community. [[Learn how to contribute](docs/contributing/README.md)].
+
 <a href="https://github.com/r0x0r/pywebview/graphs/contributors"><img src="https://opencollective.com/pywebview/contributors.svg?width=890&button=false" /></a>
 
 ### Financial Contributors
 
 Become a financial contributor and help us sustain our community. More donation options are outlined on the [Donating](https://pywebview.flowrl.com/contributing/donating.html) page.
 
+[![Github Sponsor](/docs/.vuepress/public/github_sponsor_button.png)](https://github.com/sponsors/r0x0r)
 
-#### Individuals
+[![Patreon](/docs/.vuepress/public/patreon.png)](https://www.patreon.com/bePatron?u=13226105)
 
-[![Github Sponsor](/github_sponsor_button.png)](https://github.com/sponsors/r0x0r)
-
-[![Patreon](/patreon.png)](https://www.patreon.com/bePatron?u=13226105)
-
-[![Open Collective](/opencollective.png)](https://opencollective.com/pywebview/donate)
-
-#### Organizations
-
-Support this project with your organization. Your logo will show up here with a link to your website. [[Contribute](https://opencollective.com/pywebview/contribute)]
-
-<a href="https://opencollective.com/pywebview/organization/0/website"><img src="https://opencollective.com/pywebview/organization/0/avatar.svg"></a>
-<a href="https://opencollective.com/pywebview/organization/1/website"><img src="https://opencollective.com/pywebview/organization/1/avatar.svg"></a>
-<a href="https://opencollective.com/pywebview/organization/2/website"><img src="https://opencollective.com/pywebview/organization/2/avatar.svg"></a>
-<a href="https://opencollective.com/pywebview/organization/3/website"><img src="https://opencollective.com/pywebview/organization/3/avatar.svg"></a>
-<a href="https://opencollective.com/pywebview/organization/4/website"><img src="https://opencollective.com/pywebview/organization/4/avatar.svg"></a>
-<a href="https://opencollective.com/pywebview/organization/5/website"><img src="https://opencollective.com/pywebview/organization/5/avatar.svg"></a>
-<a href="https://opencollective.com/pywebview/organization/6/website"><img src="https://opencollective.com/pywebview/organization/6/avatar.svg"></a>
-<a href="https://opencollective.com/pywebview/organization/7/website"><img src="https://opencollective.com/pywebview/organization/7/avatar.svg"></a>
-<a href="https://opencollective.com/pywebview/organization/8/website"><img src="https://opencollective.com/pywebview/organization/8/avatar.svg"></a>
-<a href="https://opencollective.com/pywebview/organization/9/website"><img src="https://opencollective.com/pywebview/organization/9/avatar.svg"></a>
+[![Open Collective](/docs/.vuepress/public/opencollective.png)](https://opencollective.com/pywebview/donate)
