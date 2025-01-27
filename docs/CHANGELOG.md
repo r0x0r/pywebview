@@ -2,12 +2,13 @@
 
 ## 5.4
 
-_Released xx/01/2025_
+_Released 27/01/2025_
 
 ### ⚡ Features
 
 - `All` A new function for executing Javascript as is `window.run_js(code)` without returning a result
 - `All` New `before_load` event that is fired right before pywebview code is injected into the page. The event roughly corresponds to `DOMContentLoaded` DOM event.
+- `All` `Screen` object now have origin coordinates as `screen.x` and `screen.y`
 - `EdgeChromium` Add remote debugging support via `webview.settings['REMOTE_DEBUGGING_PORT']`. Thanks @Lugribossk
 
 ### 🚀 Improvements
@@ -16,14 +17,22 @@ _Released xx/01/2025_
 - `All` The order of firing of loading events `loading`, `before_load` and `loaded` is standardized across the platforms.
 - `All` `Window` objects can now be exposed via JS API
 - `All` Make `webview.settings` key immutable.
-- `GTK` `'undefined'`and `'null'` string values are no longer translated to None during JS API. serialization.
+- `GTK` `'undefined'`and `'null'` string values are no longer translated to None during JS API serialization.
 - `Cocoa` Add support for the download attribute on links. Thanks @maddyaby.
+- `Cocoa` Ignore ssl errors for local HTTP server by default
+- `Cocoa` Native Color Picker on MacOS is drawn in the wrong place #1568. Thanks @maddyaby
+- `Cocoa` Improved support for py2app #1565
 
 #### 🐞 Bug fixes
 
+- `HTTP` Fix loading local urls with a hash served by local HTTP server.
 - `EdgeChromium` Delete browser data in private mode on program exit
 - `Cocoa` Fix typo in `abortModal` call. Thanks @simonrob
 - `Cocoa` Fix missing menu
+- `Cocoa` Fix window close termination when pressing Cmd+Q. Thanks @mikeylemmon.
+- `Cocoa` Fix missing `get_active_window`. Thanks @sardination
+- `Windows` Fix window placing in certain monitor layouts when assigning to a specific monitor.
+- `Windows` Fix a short blank when closing the window. Thanks @godcop
 
 ## 5.3.2
 
