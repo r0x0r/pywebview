@@ -207,6 +207,17 @@ class BrowserView:
             result = BrowserView.display_confirmation_dialog(ok, cancel, message)
             handler(result)
 
+        # Display a Javascript input panel
+        def webView_runJavaScriptTextInputPanelWithPrompt_defaultText_initiatedByFrame_completionHandler_(
+            self, webview, prompt, default_text, frame, handler
+        ):
+            i = BrowserView.get_instance('webview', webview)
+            ok = i.localization['global.ok']
+            cancel = i.localization['global.cancel']
+
+            result = BrowserView.display_input_dialog(ok, cancel, prompt, default_text)
+            handler(result)
+
         # Display an open panel for <input type="file"> element
         def webView_runOpenPanelWithParameters_initiatedByFrame_completionHandler_(
             self, webview, param, frame, handler
@@ -656,6 +667,7 @@ class BrowserView:
             self._clear_main_menu()
             self._add_app_menu()
             self._add_view_menu()
+            self._add_edit_menu()
             self._add_user_menu()
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
@@ -1064,6 +1076,34 @@ class BrowserView:
             AppKit.NSControlKeyMask | AppKit.NSCommandKeyMask
         )
 
+    def _add_edit_menu(self):
+        """
+        Create a default Edit menu that shows Copy/Paste/etc.
+        """
+        mainMenu = BrowserView.app.mainMenu()
+
+        if not mainMenu:
+            mainMenu = AppKit.NSMenu.alloc().init()
+            BrowserView.app.setMainMenu_(mainMenu)
+
+        # Create an Edit menu and make it a submenu of the main menu
+        editMenu = AppKit.NSMenu.alloc().init()
+        editMenu.setTitle_(self.localization['cocoa.menu.edit'])
+        editMenuItem = AppKit.NSMenuItem.alloc().init()
+        editMenuItem.setSubmenu_(editMenu)
+        # Make the edit menu the first item after the application menu
+        mainMenu.insertItem_atIndex_(editMenuItem, 1)
+
+        for (title, action, keyEquivalent) in [
+            (self.localization['cocoa.menu.cut'], 'cut:', 'x'),
+            (self.localization['cocoa.menu.copy'], 'copy:', 'c'),
+            (self.localization['cocoa.menu.paste'], 'paste:', 'v'),
+            (self.localization['cocoa.menu.selectAll'], 'selectAll:', 'a'),
+        ]:
+            menuItem = editMenu.addItemWithTitle_action_keyEquivalent_(
+                title, action, keyEquivalent
+            )
+
     def _append_app_name(self, val):
         """
         Append the application name to a string if it's available. If not, the
@@ -1127,6 +1167,29 @@ class BrowserView:
         alert.setAlertStyle_(AppKit.NSWarningAlertStyle)
 
         return alert.runModal() == AppKit.NSAlertFirstButtonReturn
+
+    @staticmethod
+    def display_input_dialog(first_button, second_button, prompt, default_text):
+        AppKit.NSApplication.sharedApplication()
+        AppKit.NSRunningApplication.currentApplication().activateWithOptions_(
+            AppKit.NSApplicationActivateIgnoringOtherApps
+        )
+        alert = AppKit.NSAlert.alloc().init()
+        text_field = AppKit.NSTextField.alloc().initWithFrame_(
+            AppKit.NSMakeRect(0, 0, 240, 24)
+        )
+        text_field.cell().setScrollable_(True)
+        text_field.setStringValue_(default_text)
+        alert.setAccessoryView_(text_field)
+        alert.addButtonWithTitle_(first_button)
+        alert.addButtonWithTitle_(second_button)
+        alert.setMessageText_(prompt)
+        alert.setAlertStyle_(AppKit.NSWarningAlertStyle)
+
+        if alert.runModal() == AppKit.NSAlertFirstButtonReturn:
+            return text_field.stringValue()
+        else:
+            return None
 
     @staticmethod
     def should_close(window):
