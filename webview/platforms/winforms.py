@@ -262,6 +262,9 @@ class BrowserView:
             if not window.focus:
                 windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
 
+            if self.get_system_theme() == 0:
+                DwmSetWindowAttribute(self.Handle.ToInt32(), 20, 1)
+
             self.Activated += self.on_activated
             self.Shown += self.on_shown
             self.FormClosed += self.on_close
@@ -273,6 +276,21 @@ class BrowserView:
 
         def __str__(self):
             return f'<System.Windows.Forms object with {self.Handle} handle>'
+
+        def get_system_theme(self):
+            try:
+                personalize_key = winreg.OpenKey(
+                    winreg.HKEY_CURRENT_USER,
+                    r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                    0,
+                    winreg.KEY_READ
+                )
+                system_theme, _ = winreg.QueryValueEx(personalize_key, "SystemUsesLightTheme")
+                winreg.CloseKey(personalize_key)
+                return system_theme
+            except Exception as e:
+                logger.error(f'Error while getting system theme: {e}')
+                return None
 
         def on_activated(self, *_):
             if not self.pywebview_window.focus:
