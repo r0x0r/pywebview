@@ -15,7 +15,7 @@ export default {
   },
   methods: {
     goToChangelog() {
-      window.location.href = '/CHANGELOG';
+      window.location.href = '/CHANGELOG.html';
     }
   }
 }
