@@ -1,7 +1,47 @@
+
 window.pywebview = {
   token: '%(token)s',
   platform: '%(platform)s',
   api: {},
+  state: new Proxy(new EventTarget(), {
+    get(obj, key) {
+      var value = Reflect.get(obj, key);
+      if (typeof(value) == 'function'){
+        return value.bind(obj);
+      }
+      return value;
+    },
+
+    set(target, key, value) {
+      var oldValue = target[key];
+      var updateFromPython = value.hasOwnProperty('value') && value.pywebviewNoUpdate;
+      var targetValue = updateFromPython ? value.value : value;
+
+      if (oldValue === targetValue) {
+        return
+      }
+
+      target[key] = targetValue;
+      target.dispatchEvent(new CustomEvent('change', {detail: {key: key, value: targetValue}}))
+
+      if (!updateFromPython) {
+        pywebview._jsApiCallback('pywebviewStateUpdate', key, targetValue);
+      }
+
+      return true;
+    },
+
+    deleteProperty(target, key) {
+      if (key in target) {
+        Reflect.deleteProperty(target, key);
+        delete target[key];
+        pywebview._jsApiCallback('pywebviewStateDelete', key);
+        target.dispatchEvent(new CustomEvent('delete', {detail: {key}}))
+        return true;
+      }
+      return false;
+    }
+  }),
   _eventHandlers: {},
   _returnValuesCallbacks: {},
 
