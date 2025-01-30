@@ -299,6 +299,9 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
 
         del window._callbacks[value_id]
         return
+    
+    if func_name == 'pywebviewStateUpdate':
+        window.state = param
 
     func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
 

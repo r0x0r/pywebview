@@ -1,7 +1,60 @@
+function createObservableContainer() {
+  class EventEmitter {
+    constructor() {
+      this.events = {};
+    }
+
+    on(event, listener) {
+      if (!this.events[event]) {
+        this.events[event] = [];
+      }
+      this.events[event].push(listener);
+    }
+
+    emit(event, ...args) {
+      if (this.events[event]) {
+        for (const listener of this.events[event]) {
+          listener(...args);
+        }
+      }
+    }
+  }
+
+  const emitter = new EventEmitter();
+
+  const proxy = new Proxy({}, {
+    set(target, property, value) {
+      const oldValue = target[property];
+      if (oldValue !== value) {
+        target[property] = value;
+        pywebview._jsApiCallback('pywebviewStateUpdate', property, value);
+        emitter.emit("update", { property, oldValue, newValue: value });
+      }
+      return true; // Indicate success
+    },
+    deleteProperty(target, property) {
+      if (property in target) {
+        const oldValue = target[property];
+        delete target[property];
+        pywebview._jsApiCallback('pywebviewStateDelete', property);
+        emitter.emit("delete", { property, oldValue });
+        return true;
+      }
+      return false;
+    }
+  });
+
+  // Attach the emitter to the proxy for event handling
+  proxy.on = emitter.on.bind(emitter);
+  return proxy;
+}
+
+
 window.pywebview = {
   token: '%(token)s',
   platform: '%(platform)s',
   api: {},
+  state: c,
   _eventHandlers: {},
   _returnValues: {},
 

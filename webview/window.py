@@ -21,6 +21,7 @@ from webview.util import (base_uri, escape_string, is_app, is_local_url, parse_f
 from webview.dom.dom import DOM
 from webview.dom.element import Element
 from webview.screen import Screen
+from webview.state import State
 
 
 P = ParamSpec('P')
@@ -175,6 +176,7 @@ class Window:
         self.dom = DOM(self)
         self.gui = None
         self.native = None # set in the gui after window creation
+        self.state = State(self)
 
     def _initialize(self, gui, server: http.BottleServer | None = None):
         self.gui = gui
