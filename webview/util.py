@@ -224,12 +224,18 @@ def inject_pywebview(platform: str, window: Window) -> str:
             logger.exception(e)
             window.events.loaded.set()
 
+        inject_state(window)
+
     window.events.before_load.set()
     logger.debug('before_load event fired. injecting pywebview object')
     js_code, finish_script = load_js_files(window, platform)
     thread = Thread(target=generate_js_object)
     thread.start()
 
+
+def inject_state(window: Window):
+    """ Inject state after page is loaded"""
+    pass
 
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
     """
@@ -298,6 +304,14 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
             )
 
         del window._callbacks[value_id]
+        return
+
+    if func_name == 'pywebviewStateUpdate':
+        window.state.__setattr__(param, value_id, False)
+        return
+
+    if func_name == 'pywebviewStateDelete':
+        del window.state[param]
         return
 
     func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
