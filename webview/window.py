@@ -269,6 +269,7 @@ class Window:
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
+
         logger.debug(f'Loading URL: {self.real_url}')
         self.gui.load_url(self.real_url, self.uid)
 
@@ -419,7 +420,7 @@ class Window:
         return self.gui.evaluate_js(script, self.uid, False)
 
 
-    @_pywebview_ready_call
+    @_loaded_call
     def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None) -> Any:
         """
         Evaluate given JavaScript code and return the result. The code is executed in eval statement
