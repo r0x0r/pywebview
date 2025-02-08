@@ -2,7 +2,8 @@ import pytest
 import webview
 from threading import Lock
 
-from .util import run_test
+from .util import run_test, wait_release
+
 
 
 @pytest.fixture
@@ -113,7 +114,8 @@ def event_change_test(window):
         assert event == 'change'
         assert name == 'test'
         assert value == 420
-        lock.release()
+
+        wait_release(lock)
 
     lock = Lock()
     window.state += on_change
@@ -126,7 +128,8 @@ def event_delete_test(window):
         assert event == 'delete'
         assert name == 'test'
         assert value is None
-        lock.release()
+
+        wait_release(lock)
 
     lock = Lock()
     window.state += on_delete
