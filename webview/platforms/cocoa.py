@@ -15,11 +15,11 @@ import WebKit
 from objc import _objc, nil, selector, super
 from PyObjCTools import AppHelper
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, parse_file_type, windows, settings as webview_settings)
+from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, windows, settings as webview_settings)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, parse_file_type
 from webview.window import FixPoint
 
 

@@ -2,6 +2,7 @@ from enum import Enum
 import json
 from typing import Any, Callable
 from typing_extensions import Self
+from threading import Thread
 
 
 class StateEventType(str, Enum):
@@ -19,6 +20,13 @@ class State(dict):
         def update_js():
             script = f"window.pywebview.state.{name} = {{ 'value': JSON.parse('{json.dumps(value)}'), 'pywebviewHaltUpdate': true }}"
             self.__window.run_js(script)
+            t = Thread(target=notify_handlers)
+            t.start()
+
+        def notify_handlers():
+            for handler in self.__event_handlers:
+                if callable(handler):
+                    handler(StateEventType.CHANGE, name, value)
 
         if name.startswith('_State__'):
             super().__setattr__(name, value)
@@ -26,10 +34,6 @@ class State(dict):
 
         if name not in self or self[name] != value:
             self[name] = value
-
-            for handler in self.__event_handlers:
-                if callable(handler):
-                    handler(StateEventType.CHANGE, name, value)
 
             if not should_update_js:
                 return
