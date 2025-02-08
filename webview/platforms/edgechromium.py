@@ -93,7 +93,7 @@ class EdgeChrome:
         try:
             shutil.rmtree(self.user_data_folder)
         except Exception as e:
-            logger.exception(e)
+            logger.warning(f'Failed to delete user data folder: {e}')
 
     def setup_webview2_environment(self):
         def _callback(task):

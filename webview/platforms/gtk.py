@@ -6,12 +6,11 @@ from threading import Semaphore, Thread, main_thread
 from typing import Any
 from uuid import uuid1
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, settings,
-                     parse_file_type, windows)
+from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, settings, windows
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, parse_file_type
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
