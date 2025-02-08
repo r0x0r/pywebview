@@ -1,6 +1,7 @@
 from enum import Enum
 import json
-from typing import Any, Callable, Self
+from typing import Any, Callable
+from typing_extensions import Self
 
 
 class StateEventType(str, Enum):
