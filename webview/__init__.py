@@ -29,8 +29,7 @@ from webview.guilib import initialize, GUIType
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import (ImmutableDict, _TOKEN, abspath, base_uri, escape_line_breaks, escape_string,
-                          is_app, is_local_url, parse_file_type)
+from webview.util import ImmutableDict, _TOKEN, abspath, is_app, is_local_url
 from webview.window import Window
 
 __all__ = (

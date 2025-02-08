@@ -45,7 +45,6 @@ DEFAULT_HTML = """
 logger = logging.getLogger('pywebview')
 
 
-
 class ImmutableDict(UserDict):
     """"
     A dictionary that does not allow adding new keys or deleting existing ones.
@@ -225,8 +224,6 @@ def inject_pywebview(platform: str, window: Window) -> str:
             logger.exception(e)
             window.events.loaded.set()
 
-        inject_state(window)
-
     window.events.before_load.set()
     logger.debug('before_load event fired. injecting pywebview object')
     js_code, finish_script = load_js_files(window, platform)
@@ -236,7 +233,8 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
 def inject_state(window: Window):
     """ Inject state after page is loaded"""
-    pass
+
+    json_string = json.dumps(window.state)
 
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
     """
@@ -308,11 +306,12 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         return
 
     if func_name == 'pywebviewStateUpdate':
-        window.state.__setattr__(param, value_id, False)
+        window.state.__setattr__(param['key'], param['value'], False)
         return
 
     if func_name == 'pywebviewStateDelete':
-        del window.state[param]
+        obj = json.dumps({ 'key': param, 'pywebviewHaltUpdate': True })
+        delattr(window.state, obj)
         return
 
     func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
@@ -364,6 +363,10 @@ def load_js_files(window: Window, platform: str) -> str:
                     'draggable': str(window.draggable),
                     'easy_drag': str(platform == 'edgechromium' and window.easy_drag and window.frameless)
                 }
+            elif name == 'state':
+                params = {
+                    'state': json.dumps(window.state)
+                }
             elif name == 'finish':
                 finish_script = content
                 continue
@@ -404,7 +407,7 @@ def sort_js_files(js_files: list[str]) -> list[str]:
     Sorts JS files in the order they should be loaded. Polyfill first, then API, then the rest and
     finally finish.js that fires a pywebviewready event.
     """
-    LOAD_ORDER = { 'polyfill': 0, 'api': 1 }
+    LOAD_ORDER = { 'polyfill': 0, 'api': 1, 'state': 2 }
 
     ordered_js_files = []
     remaining_js_files = []
