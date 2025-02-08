@@ -29,6 +29,7 @@ from System import Environment, Func, Int32, IntPtr, Type, UInt32, Array, Object
 from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF
 from System.Threading import ApartmentState, Thread, ThreadStart
 from System.Reflection import Assembly, BindingFlags
+from Microsoft.Win32 import SystemEvents
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 logger = logging.getLogger('pywebview')
@@ -271,8 +272,40 @@ class BrowserView:
 
             self.localization = window.localization
 
+            self.update_title_bar_theme()
+            SystemEvents.UserPreferenceChanged += self.on_system_theme_changed
+
         def __str__(self):
             return f'<System.Windows.Forms object with {self.Handle} handle>'
+
+        def on_system_theme_changed(self, sender, e):
+            self.update_title_bar_theme()
+                
+        def update_title_bar_theme(self):
+            if self.is_dark_theme():
+                DwmSetWindowAttribute(self.Handle.ToInt32(), 20, 1)
+                DwmSetWindowAttribute(self.Handle.ToInt32(), 38, 2)
+            else:
+                DwmSetWindowAttribute(self.Handle.ToInt32(), 20, 0)
+                DwmSetWindowAttribute(self.Handle.ToInt32(), 38, 1)
+        
+        def is_dark_theme(self):
+            try:
+                personalize_key = winreg.OpenKey(
+                    winreg.HKEY_CURRENT_USER,
+                    r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                    0,
+                    winreg.KEY_READ
+                )
+                system_theme, _ = winreg.QueryValueEx(personalize_key, "SystemUsesLightTheme")
+                winreg.CloseKey(personalize_key)
+                if system_theme == 0:
+                    return True
+                else:
+                    return False
+            except Exception as e:
+                logger.error(f'Error while getting system theme: {e}')
+                return None
 
         def on_activated(self, *_):
             if not self.pywebview_window.focus:
