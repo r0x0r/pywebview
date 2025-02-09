@@ -790,7 +790,6 @@ Toggle fullscreen mode on the active monitor.
 
 [Example](/examples/toggle_fullscreen.html)
 
-
 ### window.dom.body
 
 ``` python
@@ -899,11 +898,35 @@ The event is fired when pywebview window is shown.
 
 [Example](/examples/events.html)
 
+### window.state
+
+An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
+
+## Javascript API
+
+_pywebview_ create a global Javascript object `window.pywebview` that has following properties
+
+### window.pywebview
+
+A global Javascript object that exposes the following properties:
+
+* `api` - A namespace for Python functions exposed via `window.expose` or `js_api` argument.
+* `platform` - Current renderer in use.
+* `token` - A CSRF token unique to the session that matches `webview.token` on the Python side.
+* `state` - A shared state object between Python and Javascript.
+
 ## DOM events
 
-_pywebview_ exposes a `window.pywebviewready` DOM event that is fired after `window.pywebview` is created.
+### pywebviewready
+
+_pywebview_ exposes a `window.pywebviewready` event that is fired after `window.pywebview` object is fully created.
 
 [Example](/examples/js_api.html)
+
+### State events
+
+`pywebview.state` is an `EventTarget` object that fires two events `change` and `delete`. To subscribe to an event, use
+`pywebview.state.addEventHandler('change', (e) => {})` or `pywebview.state.addEventHandler('delete', (e) => {})`. State change is stored in the `event.detail` object in form of `{ key, value }`
 
 ## Drag area
 
