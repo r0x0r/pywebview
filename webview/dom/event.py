@@ -1,13 +1,12 @@
 import logging
 from typing import Any, Callable
 from typing_extensions import Self
-from webview import Window
 from webview.dom.element import Element
 
 logger = logging.getLogger(__file__)
 
 class DOMEvent:
-    def __init__(self, event, window: Window, element: Element) -> None:
+    def __init__(self, event, element: Element) -> None:
         self.event = event
         self.__element = element
         self._items: list[Callable[..., Any]] = []

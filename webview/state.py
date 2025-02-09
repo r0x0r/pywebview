@@ -18,7 +18,8 @@ class State(dict):
 
     def __setattr__(self, name, value, should_update_js=True):
         def update_js():
-            script = f"window.pywebview.state.{name} = {{ 'value': JSON.parse('{json.dumps(value)}'), 'pywebviewHaltUpdate': true }}"
+            special_name = '__pywebviewHaltUpdate__' + name
+            script = f"window.pywebview.state.{special_name} = JSON.parse('{json.dumps(value)}')"
             self.__window.run_js(script)
             t = Thread(target=notify_handlers)
             t.start()
@@ -49,14 +50,8 @@ class State(dict):
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     def __delattr__(self, name):
-        try:
-            if 'pywebviewHaltUpdate' in name:
-                name = json.loads(name)
-        except:
-            pass
-
-        if isinstance(name, dict) and 'key' in name and name.get('pywebviewHaltUpdate'):
-            name = name['key']
+        if name.startswith('__pywebviewHaltUpdate__'):
+            name = name.replace('__pywebviewHaltUpdate__', '')
             halt_update = True
         else:
             halt_update = False
@@ -65,7 +60,8 @@ class State(dict):
             del self[name]
 
             if not halt_update:
-                self.__window.run_js(f"delete window.pywebview.state.{name}")
+                special_name = '__pywebviewHaltUpdate__' + name
+                self.__window.run_js(f"delete window.pywebview.state.{special_name}")
 
             for handler in self.__event_handlers:
                 if callable(handler):

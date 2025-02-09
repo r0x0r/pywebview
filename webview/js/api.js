@@ -1,4 +1,3 @@
-
 window.pywebview = {
   token: '%(token)s',
   platform: '%(platform)s',

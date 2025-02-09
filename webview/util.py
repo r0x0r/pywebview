@@ -310,8 +310,8 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         return
 
     if func_name == 'pywebviewStateDelete':
-        obj = json.dumps({ 'key': param, 'pywebviewHaltUpdate': True })
-        delattr(window.state, obj)
+        special_key = '__pywebviewHaltUpdate__' + param
+        delattr(window.state, special_key)
         return
 
     func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
