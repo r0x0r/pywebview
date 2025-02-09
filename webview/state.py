@@ -4,10 +4,15 @@ from typing import Any, Callable
 from typing_extensions import Self
 from threading import Thread
 
+try:
+    from enum import StrEnum # Python 3.11 and above
+except ImportError:
+    StrEnum = str, Enum
 
-class StateEventType(str, Enum):
+class StateEventType(StrEnum):
     CHANGE = 'change'
     DELETE = 'delete'
+
 
 
 class State(dict):
