@@ -347,7 +347,7 @@ def load_js_files(window: Window, platform: str) -> str:
                     'drag_selector': webview.DRAG_REGION_SELECTOR,
                     'zoomable': str(window.zoomable),
                     'draggable': str(window.draggable),
-                    'easy_drag': str(platform == 'chromium' and window.easy_drag and window.frameless).lower(),
+                    'easy_drag': str(platform == 'edgechromium' and window.easy_drag and window.frameless)
                 }
             elif name == 'finish':
                 finish_script = content
