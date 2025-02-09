@@ -25,32 +25,41 @@ pywebview.state = (function() {
     },
 
     set(target, key, value) {
+      var haltUpdate = false;
+      if (key.indexOf('__pywebviewHaltUpdate__') == 0) {
+        key = key.replace('__pywebviewHaltUpdate__', '');
+        haltUpdate = true;
+      }
       var oldValue = target[key];
-      var haltUpdate = value.hasOwnProperty('value') && value.pywebviewHaltUpdate;
-      var targetValue = haltUpdate ? value.value : value;
 
-      if (oldValue === targetValue) {
+      if (oldValue === value) {
         return
       }
-      debugger
 
-      target[key] = targetValue;
-      target.dispatchEvent(new CustomEvent('change', {detail: {key: key, value: targetValue}}))
+      target[key] = value;
+      target.dispatchEvent(new CustomEvent('change', {detail: {key: key, value: value}}))
 
       if (!haltUpdate) {
-        pywebview._jsApiCallback('pywebviewStateUpdate', { key: key, value: targetValue}, (Math.random() + "").substring(2));
+        pywebview._jsApiCallback('pywebviewStateUpdate', { key: key, value: value}, (Math.random() + "").substring(2));
       }
 
       return true;
     },
 
     deleteProperty(target, key) {
+      let haltUpdate = false;
+      if (key.indexOf('__pywebviewHaltUpdate__') == 0) {
+        key = key.replace('__pywebviewHaltUpdate__', '');
+        haltUpdate = true;
+      }
+
       if (key in target) {
         Reflect.deleteProperty(target, key);
         delete target[key];
-        console.log('delete called')
-        pywebview._jsApiCallback('pywebviewStateDelete', key, (Math.random() + "").substring(2));
-        console.log('delete called 2')
+
+        if (!haltUpdate) {
+          pywebview._jsApiCallback('pywebviewStateDelete', key, (Math.random() + "").substring(2));
+        }
         target.dispatchEvent(new CustomEvent('delete', {detail: {key}}))
         return true;
       }
