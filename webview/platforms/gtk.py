@@ -600,12 +600,7 @@ class BrowserView:
         elif js_value.is_string():
             return js_value.to_string()
         elif js_value.is_object():
-            js_object = js_value.to_object()
-            python_dict = {}
-            properties = js_object.get_property_names()
-            for prop in properties:
-                python_dict[prop] = self._js_value_to_python(js_object.get_property(prop))
-            return python_dict
+            return json.loads(js_value.to_json(2))
         else:
             logger.error(f'Unsupported JavaScriptCore.Value type: {js_value}')
             return js_value.to_string()
