@@ -7,7 +7,7 @@ window.pywebview = {
 
   _createApi: function (funcList) {
     function sanitize_params(params) {
-      var reservedWords = (filtered_js_reserved_words = [
+      var reservedWords = [
         'case',
         'catch',
         'const',
@@ -31,7 +31,7 @@ window.pywebview = {
         'typeof',
         'var',
         'void',
-      ]);
+      ];
 
       for (var i = 0; i < params.length; i++) {
         var param = params[i];
