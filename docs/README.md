@@ -10,7 +10,7 @@ actions:
     link: /guide/
   - text: API
     icon: code
-    link: /guide/api
+    link: /api/
   - text: Examples
     icon: star
     link: /examples/
