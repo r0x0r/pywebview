@@ -4,7 +4,7 @@
 
 pywebview is designed to be built with [buildozer](https://buildozer.readthedocs.io/en/latest/). You need to include following lines in your `buildozer.spec` to bundle pywebview correctly
 
-```
+``` ini
 requirements = python3,kivy,pywebview
 android.add_jars = <path_to_pywebview-android.jar>
 ```
