@@ -9,7 +9,6 @@ webview.active_window()
 
 Get an instance of the currently active window
 
-
 ## webview.create_window
 
 ``` python

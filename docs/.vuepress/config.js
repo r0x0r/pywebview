@@ -34,6 +34,7 @@ export default defineUserConfig({
     },
     navbar: [
       { text: 'Guide', link: '/guide/' },
+      { text: 'API', link: '/api/' },
       { text: 'Examples', link: '/examples/' },
       { text: 'Contributing', link: '/contributing/' },
       { text: 'Blog', link: '/blog/' },
@@ -56,7 +57,6 @@ export default defineUserConfig({
           text: 'Development',
           collapsible: false,
           children: [
-            '/guide/api',
             '/guide/architecture',
             '/guide/debugging',
             '/guide/dom',
