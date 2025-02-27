@@ -11,13 +11,13 @@ html = """
         window.addEventListener('pywebviewready', () => {
             window.pywebview.state.addEventListener('change', event => {
                 console.log('Counter value changed:', event)
-                document.getElementById('counter').innerText = pywebview.state.counter
+                document.getElementById('counter').innerText = pywebview.state.counter.nested.value
             })
         })
 
         function increaseCounter() {
-            pywebview.state.counter++
-            document.getElementById('counter').innerText = pywebview.state.counter
+            pywebview.state.counter.nested.value++
+            document.getElementById('counter').innerText = pywebview.state.counter.nested.value
         }
     </script>
 
@@ -36,7 +36,7 @@ def on_counter_change(type, name, value):
     print(f'Event {type} for {name} value : {value}')
 
 def decrease_counter():
-    window.state.counter -= 1
+    window.state.counter['nested']['value'] -= 1
 
 def on_loaded(window):
     window.expose(decrease_counter)
@@ -45,6 +45,10 @@ def on_loaded(window):
 if __name__ == '__main__':
     global window
     window = webview.create_window('State example', html=html)
-    window.state.counter = 0
+    window.state.counter = {
+        'nested': {
+            'value': 0
+        }
+    }
     window.events.loaded += on_loaded
     webview.start(debug=True)

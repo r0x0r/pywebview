@@ -29,7 +29,6 @@ webview.start()
 
 _pywebview_ gives a choice of using several web renderers. To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `cef` or `qt`). See [Web Engine](/guide/web_engine.md) for details.
 
-
 ## Backend logic
 
 `webview.start` starts a GUI loop and blocks further code from execution until the last window is destroyed. Since the GUI loop is blocking, you must execute your backend logic in a separate thread or process. You can execute your backend code by passing your function to `webview.start(func, *args)`. This will launch a separate thread and is identical to starting a thread manually.
@@ -99,7 +98,15 @@ webview.create_window("Test", html="<button onclick='pywebview.api.log(\"Woah du
 webview.start()
 ```
 
+If you want to share data, then take a look at [shared state](#shared-state).
+
 Alternatively you may use a more traditional approach with REST API paired with a WSGI server for interdomain communication. See [Flask app](https://github.com/r0x0r/pywebview/tree/master/examples/flask_app) for an example.
+
+## Shared state
+
+Data can be shared via the `Window.state` (Python) and `pywebview.state` (Javascript) objects. Modifying any property on either state object will result in the state being updated on the other side and vice versa. For example, setting `window.state.hello = 'world'` in Python will automatically propagate to `pywebview.state.hello` in Javascript. State is specific to its window and is preserved between page (re)loads. Binary data can be passed by converting it to Base64.
+
+[Example](/examples/state.html)
 
 ## HTTP server
 

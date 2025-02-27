@@ -25,7 +25,7 @@ def test_state_from_js(window):
 
 
 def test_state_dict(window):
-    run_test(webview, window, state_dict_test)
+    run_test(webview, window, state_dict_test, debug=True)
 
 
 def test_state_none(window):
@@ -77,6 +77,9 @@ def state_from_js_test(window):
 def state_dict_test(window):
     window.state.test = { 'test1': 'test1', 'test2': 2 }
     assert window.evaluate_js('JSON.stringify(pywebview.state.test) === JSON.stringify({ "test1": "test1", "test2": 2}) ')
+
+    window.state.test['test1'] = 'test2'
+    assert window.evaluate_js('JSON.stringify(pywebview.state.test) === JSON.stringify({ "test1": "test2", "test2": 2}) ')
 
 
 def state_none_test(window):
