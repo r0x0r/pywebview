@@ -1,4 +1,3 @@
-from enum import Enum
 import json
 from typing import Any, Callable
 from typing_extensions import Self
@@ -7,12 +6,13 @@ from threading import Thread
 try:
     from enum import StrEnum # Python 3.11 and above
 except ImportError:
+    from enum import Enum
     StrEnum = str, Enum
+
 
 class StateEventType(StrEnum):
     CHANGE = 'change'
     DELETE = 'delete'
-
 
 
 class State(dict):
@@ -21,10 +21,10 @@ class State(dict):
         self.__event_handlers = []
         self.__window = window
 
-    def __setattr__(self, name, value, should_update_js=True):
+    def __setattr__(self, key, value, should_update_js=True):
         def update_js():
-            special_name = '__pywebviewHaltUpdate__' + name
-            script = f"window.pywebview.state.{special_name} = JSON.parse('{json.dumps(value)}')"
+            special_key = '__pywebviewHaltUpdate__' + key
+            script = f"window.pywebview.state.{special_key} = JSON.parse('{json.dumps(value)}')"
             self.__window.run_js(script)
             t = Thread(target=notify_handlers)
             t.start()
@@ -32,14 +32,14 @@ class State(dict):
         def notify_handlers():
             for handler in self.__event_handlers:
                 if callable(handler):
-                    handler(StateEventType.CHANGE, name, value)
+                    handler(StateEventType.CHANGE, key, value)
 
-        if name.startswith('_State__'):
-            super().__setattr__(name, value)
+        if key.startswith('_State__'):
+            super().__setattr__(key, value)
             return
 
-        if name not in self or self[name] != value:
-            self[name] = value
+        if key not in self or self[key] != value:
+            self[key] = value
 
             if not should_update_js:
                 return
@@ -49,30 +49,30 @@ class State(dict):
             else:
                 self.__window.events.loaded += update_js
 
-    def __getattr__(self, name):
-        if name in self:
-            return self[name]
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+    def __getattr__(self, key):
+        if key in self:
+            return self[key]
+        raise AttributeError(f"'{type(self).__key__}' object has no attribute '{key}'")
 
-    def __delattr__(self, name):
-        if name.startswith('__pywebviewHaltUpdate__'):
-            name = name.replace('__pywebviewHaltUpdate__', '')
+    def __delattr__(self, key):
+        if key.startswith('__pywebviewHaltUpdate__'):
+            key = key.replace('__pywebviewHaltUpdate__', '')
             halt_update = True
         else:
             halt_update = False
 
-        if name in self:
-            del self[name]
+        if key in self:
+            del self[key]
 
             if not halt_update:
-                special_name = '__pywebviewHaltUpdate__' + name
-                self.__window.run_js(f"delete window.pywebview.state.{special_name}")
+                special_key = '__pywebviewHaltUpdate__' + key
+                self.__window.run_js(f"delete window.pywebview.state.{special_key}")
 
             for handler in self.__event_handlers:
                 if callable(handler):
-                    handler(StateEventType.DELETE, name)
+                    handler(StateEventType.DELETE, key)
         else:
-            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+            raise AttributeError(f"'{type(self).__key__}' object has no attribute '{key}'")
 
     def __add__(self, item: Callable[..., Any]) -> Self:
         self.__event_handlers.append(item)

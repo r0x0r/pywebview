@@ -4,7 +4,7 @@ _pywebview_ offers two-way communication between Javascript and Python, enabling
 
 ## Shared state
 
-`NEW 6.0` Data can be shared via the `Window.state` (Python) and `pywebview.state` (Javascript) objects. Modifying any property on either state object will result in the state being updated on the other side and vice versa. For example, setting `window.state.hello = 'world'` in Python will automatically propagate to `pywebview.state.hello` in Javascript. State is specific to its window and is preserved between page (re)loads. Binary data can be passed by converting it to Base64 or such.
+`NEW 6.0` Data can be shared via the `Window.state` (Python) and `pywebview.state` (Javascript) objects. Modifying any property on either state object will result in the state being updated on the other side and vice versa. For example, setting `window.state.hello = 'world'` in Python will automatically propagate to `pywebview.state.hello` in Javascript. Only changes on the top level are propagated, ie if you mutate an object, it won't be updated on the other side. State is specific to its window and is preserved between page (re)loads. Binary data can be passed by converting it to Base64 or such.
 
 State changes trigger events that can be subscribed to using `pywebview.state += lambda event_type, key, value: pass`. The `event_type` is either `change` or `delete`. The `key` is the property name, and the `value` is the property's value (`None` for delete events).
 
