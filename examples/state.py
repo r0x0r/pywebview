@@ -32,8 +32,8 @@ html = """
 </html>
 """
 
-def on_counter_change(type, name, value):
-    print(f'Event {type} for {name} value : {value}')
+def on_counter_change(type, key, value):
+    print(f'Event {type} for {key} value : {value}')
 
 def decrease_counter():
     window.state.counter -= 1
