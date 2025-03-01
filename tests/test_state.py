@@ -48,8 +48,16 @@ def test_event_change(window):
     run_test(webview, window, event_change_test)
 
 
+def test_event_change_js(window):
+    run_test(webview, window, event_change_js_test)
+
+
 def test_event_delete(window):
     run_test(webview, window, event_delete_test)
+
+
+def test_event_delete_js(window):
+    run_test(webview, window, event_delete_js_test)
 
 
 def test_event_change_from_js(window):
@@ -108,8 +116,20 @@ def delete_from_js_test(window):
     window.run_js('delete pywebview.state.test')
     assert 'test' not in window.state
 
-
 def event_change_test(window):
+    def on_change(event, name, value):
+        assert event == 'change'
+        assert name == 'test'
+        assert value == 420
+
+        wait_release(lock)
+
+    lock = Lock()
+    window.state += on_change
+    window.state.test = 420
+    assert lock.acquire(3)
+
+def event_change_js_test(window):
     def on_change(event, name, value):
         assert event == 'change'
         assert name == 'test'
@@ -133,6 +153,22 @@ def event_delete_test(window):
 
     lock = Lock()
     window.state += on_delete
+    window.state.test = 420
+    del window.state.test
+    assert lock.acquire(3)
+
+
+def event_delete_js_test(window):
+    def on_delete(event, name, value):
+        assert event == 'delete'
+        assert name == 'test'
+        assert value is None
+
+        wait_release(lock)
+
+    lock = Lock()
+    window.state += on_delete
+    window.state.test = 420
     window.evaluate_js('delete pywebview.state.test')
     assert lock.acquire(3)
 

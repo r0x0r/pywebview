@@ -21,18 +21,27 @@ class State(dict):
         self.__event_handlers = []
         self.__window = window
 
-    def __setattr__(self, key, value, should_update_js=True):
-        def update_js():
-            special_key = '__pywebviewHaltUpdate__' + key
-            script = f"window.pywebview.state.{special_key} = JSON.parse('{json.dumps(value)}')"
-            self.__window.run_js(script)
-            t = Thread(target=notify_handlers)
-            t.start()
+    def __update_js(self, key, value):
+        special_key = '__pywebviewHaltUpdate__' + key
+        script = f"window.pywebview.state.{special_key} = JSON.parse('{json.dumps(value)}')"
+        self.__window.run_js(script)
 
+    def __notify_handlers(self, type, key, value=None):
         def notify_handlers():
             for handler in self.__event_handlers:
                 if callable(handler):
-                    handler(StateEventType.CHANGE, key, value)
+                    if type == StateEventType.CHANGE:
+                        handler(type, key, value)
+                    elif type == StateEventType.DELETE:
+                        handler(type, key)
+
+        t = Thread(target=notify_handlers)
+        t.start()
+
+    def __setattr__(self, key, value, should_update_js=True):
+        def update_and_notify():
+            self.__update_js(key, value)
+            self.__notify_handlers(StateEventType.CHANGE, key, value)
 
         if key.startswith('_State__'):
             super().__setattr__(key, value)
@@ -42,12 +51,13 @@ class State(dict):
             self[key] = value
 
             if not should_update_js:
+                self.__notify_handlers(key, value)
                 return
 
             if self.__window.events.loaded.is_set():
-                update_js()
+                update_and_notify()
             else:
-                self.__window.events.loaded += update_js
+                self.__window.events.loaded += update_and_notify
 
     def __getattr__(self, key):
         if key in self:
@@ -68,9 +78,8 @@ class State(dict):
                 special_key = '__pywebviewHaltUpdate__' + key
                 self.__window.run_js(f"delete window.pywebview.state.{special_key}")
 
-            for handler in self.__event_handlers:
-                if callable(handler):
-                    handler(StateEventType.DELETE, key)
+            self.__notify_handlers(StateEventType.DELETE, key)
+
         else:
             raise AttributeError(f"'{type(self).__key__}' object has no attribute '{key}'")
 
