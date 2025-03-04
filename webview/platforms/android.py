@@ -18,6 +18,7 @@ AlertDialogBuilder = autoclass('android.app.AlertDialog$Builder')
 AndroidString = autoclass('java.lang.String')
 CookieManager = autoclass('android.webkit.CookieManager')
 WebViewA = autoclass('android.webkit.WebView')
+View = autoclass('android.view.View')
 KeyEvent = autoclass('android.view.KeyEvent')
 PyWebViewClient = autoclass('com.pywebview.PyWebViewClient')
 PyWebChromeClient = autoclass('com.pywebview.PyWebChromeClient')
@@ -109,6 +110,7 @@ class BrowserView(Widget):
         super(BrowserView, self).__init__(**kwargs)
         self.window.native = self
         Clock.schedule_once(lambda dt: run_ui_thread(self.create_webview), 0)
+        self.is_fullscreen = False
 
     def create_webview(self, *args):
         def js_api_handler(func, params, id):
@@ -178,6 +180,9 @@ class BrowserView(Widget):
             self.webview.loadUrl(self.window.real_url)
         elif self.window.html:
             self.webview.loadDataWithBaseURL(None, self.window.html, 'text/html', 'UTF-8', None)
+
+        if self.window.fullscreen:
+            toggle_fullscreen(self.window)
 
         self.window.events.shown.set()
 
@@ -414,8 +419,27 @@ def set_on_top(_, on_top):
     logger.warning('Always on top mode is not supported on Android')
 
 
+@run_on_ui_thread
 def toggle_fullscreen(_):
-    logger.warning('Fullscreen mode is not supported on Android')
+    is_fullscreen = app.view.is_fullscreen
+
+    if not is_fullscreen:
+        try:
+            option = (View.SYSTEM_UI_FLAG_FULLSCREEN |
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+        except Exception as e:
+            logger.error(f"Error setting fullscreen: {e}")
+
+
+    else:
+        option = View.SYSTEM_UI_FLAG_VISIBLE
+    app.view.webview.setSystemUiVisibility(option)
+    app.view.is_fullscreen = not is_fullscreen
+
 
 
 def add_tls_cert(certfile):
