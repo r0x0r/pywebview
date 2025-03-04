@@ -431,14 +431,20 @@ def toggle_fullscreen(_):
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
                 View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+            app.view.webview.setSystemUiVisibility(option)
+            app.view.is_fullscreen = True
+
         except Exception as e:
-            logger.error(f"Error setting fullscreen: {e}")
+            logger.error(f"Error toggling fullscreen: {e}")
 
 
     else:
-        option = View.SYSTEM_UI_FLAG_VISIBLE
-    app.view.webview.setSystemUiVisibility(option)
-    app.view.is_fullscreen = not is_fullscreen
+        try:
+            option = View.SYSTEM_UI_FLAG_VISIBLE
+            app.view.webview.setSystemUiVisibility(option)
+            app.view.is_fullscreen = False
+        except Exception as e:
+            logger.error(f"Error toggling fullscreen: {e}")
 
 
 
