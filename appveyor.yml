@@ -78,7 +78,7 @@ for:
       DISPLAY: :99
     install:
       - sudo apt-get update -q --allow-releaseinfo-change
-      - sudo apt-get install --no-install-recommends -y xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes3 python3-pytest
+      - sudo apt-get install --no-install-recommends -y xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes3 python3-pytest libgirepository1.0-dev
       - python3 -m pip install --upgrade setuptools==70.0.0
       - python3 -m pip install proxy_tools pytest bottle typing_extensions pygobject importlib_metadata
     before_test:
