@@ -423,8 +423,8 @@ def set_on_top(_, on_top):
 def toggle_fullscreen(_):
     is_fullscreen = app.view.is_fullscreen
 
-    if not is_fullscreen:
-        try:
+    try:
+        if not is_fullscreen:
             option = (View.SYSTEM_UI_FLAG_FULLSCREEN |
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
@@ -433,19 +433,12 @@ def toggle_fullscreen(_):
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
             app.view.webview.setSystemUiVisibility(option)
             app.view.is_fullscreen = True
-
-        except Exception as e:
-            logger.error(f"Error toggling fullscreen: {e}")
-
-
-    else:
-        try:
+        else:
             option = View.SYSTEM_UI_FLAG_VISIBLE
             app.view.webview.setSystemUiVisibility(option)
             app.view.is_fullscreen = False
-        except Exception as e:
-            logger.error(f"Error toggling fullscreen: {e}")
-
+    except Exception as e:
+        logger.error(f"Error toggling fullscreen: {e}")
 
 
 def add_tls_cert(certfile):
