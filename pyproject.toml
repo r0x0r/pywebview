@@ -52,7 +52,7 @@ qt = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 qt5 = ["QtPy", "PyQt5", "pyqtwebengine"]
 qt6 = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 android = ["kivy", "jnius"]
-ssl = ["crpytography"]
+ssl = ["cryptography"]
 
 [project.urls]
 Homepage = "https://pywebview.flowrl.com/"
