@@ -45,7 +45,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 cef = ["cefpython3"]
-gtk = ["PyGObject", "PyGObject-stubs"]
+gtk = ["PyGObject==3.50.0", "PyGObject-stubs"]
 pyside2 = ["QtPy", "PySide2"]
 pyside6 = ["QtPy", "PySide6"]
 qt = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
