@@ -4,6 +4,7 @@ import inspect
 import logging
 import os
 from collections.abc import Mapping, Sequence
+from asyncio import AbstractEventLoop
 from enum import Flag, auto
 from functools import wraps
 from threading import Lock
@@ -111,7 +112,8 @@ class Window:
         http_port: int | None = None,
         server: type[http.ServerType] | None = None,
         server_args: http.ServerArgs = {},
-        screen: Screen = None
+        screen: Screen = None,
+        event_loop: AbstractEventLoop = None
     ) -> None:
         self.uid = uid
         self._title = title
@@ -142,6 +144,7 @@ class Window:
         self.localization_override = localization
         self.vibrancy = vibrancy
         self.screen = screen
+        self.event_loop = event_loop
 
         # Server config
         self._http_port = http_port

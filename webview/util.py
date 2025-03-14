@@ -20,6 +20,7 @@ from platform import architecture
 from threading import Thread
 from typing import TYPE_CHECKING, Any, Callable
 from uuid import uuid4
+import asyncio
 
 import webview
 
@@ -239,6 +240,10 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
     def _call():
         try:
             result = func(*func_params)
+            if window.event_loop and asyncio.iscoroutine(result):
+                future = asyncio.run_coroutine_threadsafe(result, window.event_loop)
+                result = future.result()
+
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
             code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{value: \'{result}\'}}'
         except Exception as e:
