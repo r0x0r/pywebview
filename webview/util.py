@@ -310,7 +310,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
     if func is not None:
         try:
             func_params = param
-            thread = Thread(target=_call)
+            thread = Thread(target=_call, daemon=True)
             thread.start()
         except Exception:
             logger.exception(
