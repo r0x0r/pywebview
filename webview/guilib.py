@@ -11,7 +11,7 @@ from typing_extensions import Literal, TypeAlias
 
 from webview import WebViewException
 
-GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android']
+GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android', 'winui3']
 
 logger = logging.getLogger('pywebview')
 guilib: ModuleType | None = None
@@ -76,6 +76,17 @@ def initialize(forced_gui: GUIType | None = None):
             logger.exception('pythonnet cannot be loaded')
             return False
 
+    def import_winui3():
+        global guilib
+
+        try:
+            import webview.platforms.winui3 as guilib
+
+            return True
+        except ImportError:
+            logger.exception('WinRT cannot be loaded')
+            return False
+
     def try_import(guis: list[Callable[[], Any]]) -> bool:
         while guis:
             import_func = guis.pop(0)
@@ -94,7 +105,7 @@ def initialize(forced_gui: GUIType | None = None):
             os.environ['PYWEBVIEW_GUI'].lower()
             if 'PYWEBVIEW_GUI' in os.environ
             and os.environ['PYWEBVIEW_GUI'].lower()
-            in ['qt', 'gtk', 'cef', 'mshtml', 'edgechromium']
+            in ['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'winui3']
             else forced_gui,
         )
 
@@ -127,12 +138,14 @@ def initialize(forced_gui: GUIType | None = None):
 
     elif platform.system() == 'Windows':
         if forced_gui == 'qt':
-            guis = [import_qt, import_winforms]
+            guis = [import_qt, import_winforms, import_winui3]
+        elif forced_gui == 'winui3':
+            guis = [import_winui3, import_winforms]
         else:
-            guis = [import_winforms]
+            guis = [import_winforms, import_winui3]
 
         if not try_import(guis):
-            raise WebViewException('You must have pythonnet installed in order to use pywebview.')
+            raise WebViewException('You must have pythonnet or Windows App runtime installed in order to use pywebview.')
     else:
         raise WebViewException(
             'Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.'
