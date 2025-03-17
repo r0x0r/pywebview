@@ -9,10 +9,11 @@ The following renderers are used on each platform
 | macOS    |              | WebKit   | WebKit.WKWebView (bundled with OS)                |                       |
 | QT       | qt           | WebKit   | QtWebEngine / QtWebKit                            |                       |
 | Windows  | edgechromium | Chromium | > .NET Framework 4.6.2 and Edge Runtime installed | Ever-green Chromium   |
+| Windows  | winui3       | Chromium | > Windows App Runtime installed                   | Ever-green Chromium   |
 | Windows  | cef          | CEF      | CEF Python                                        | Chrome 66             |
 | Windows  | mshtml       | MSHTML   | DEPRECATED  Internet Explorer MSHTML              | IE11 (Windows 10/8/7) |
 
-On Windows renderer is chosen in the following order: `edgechromium`, `mshtml`. `mshtml` is the only renderer that is guaranteed to be available on any system. Edge Runtime must be installed in order to use Edge Chromium on Windows. You can download it from [here](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). Distribution guidelines are found [here](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution).
+On Windows renderer is chosen in the following order: `edgechromium`, `winui3`, `mshtml`. `mshtml` is the only renderer that is guaranteed to be available on any system. Edge Runtime must be installed in order to use Edge Chromium on Windows. You can download it from [here](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). Distribution guidelines are found [here](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution). Similarly, Windows App Runtime must be installed in order to use WinUI3 on Windows. You can download it from [here](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads). It can also be redistributed with your application so that users don't have to install it separately.
 
 To change a default renderer set either `PYWEBVIEW_GUI` environment variable or  pass the rendered value to `webview.start(gui=code)` function parameter. Check for available values in the Code column from the table above.
 

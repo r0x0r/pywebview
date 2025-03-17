@@ -88,6 +88,7 @@ window.pywebview = {
       case 'android-webkit':
         return window.external.call(funcName, pywebview.stringify(params), id);
       case 'edgechromium':
+      case 'winui3':
         // Full file path support for WebView2
         if (
           params.event instanceof Event &&
