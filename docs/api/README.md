@@ -118,7 +118,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `ALLOW_FILE_URLS` Enable `file://` urls. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
-* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.
+* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium` or `winui3`. Disabled by default.
 
 #### Examples
 
@@ -709,7 +709,8 @@ window.native.Handle # get application window handle on Windows
 
 Get a native window object. This can be useful for applying custom styling to the window. Object type depends on the platform
 
-`System.Windows.Form` - Windows
+`System.Windows.Form` - Windows / .NET
+`winui3.microsoft.ui.xaml.window.Window` - Windows / WinUI3
 `AppKit.NSWindow` - macOS
 `Gtk.ApplicationWindow` - GTK
 `QMainWindow` - QT
@@ -719,8 +720,9 @@ The `native` property is available after the `before_show` event is fired.
 
 You can also each platform's WebView object via `window.native.webview`. WebView's types are as follows.
 
-`Microsoft.Web.WebView2.WinForms.WebView2` - Windows / EdgeChromium
-`System.Windows.Forms.WebBrowser` - Windows / MSHTML
+`Microsoft.Web.WebView2.WinForms.WebView2` - Windows / .NET / EdgeChromium
+`System.Windows.Forms.WebBrowser` - Windows / .NET / MSHTML
+`winui3.microsoft.ui.xaml.controls.WebView2` - Windows / WinUI3
 `WebKit.WKWebView` - macOS
 `gi.repository.WebKit2.WebView` - GTK
 `QtWebEngineWidgets.QWebEngineView` /  `QtWebKitWidgets.QWebView`- QT
