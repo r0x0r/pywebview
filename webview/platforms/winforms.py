@@ -228,7 +228,7 @@ class BrowserView:
             if window.fullscreen:
                 self.toggle_fullscreen()
 
-            if window.shadow:
+            if window.shadow and not window.transparent:
                 # Should do this before set frameless
                 ExtendFrameIntoClientArea(self.Handle.ToInt32())
                 DwmSetWindowAttribute(self.Handle.ToInt32(), 2, 2, 4)
@@ -280,7 +280,7 @@ class BrowserView:
 
         def on_system_theme_changed(self, sender, e):
             self.update_title_bar_theme()
-                
+
         def update_title_bar_theme(self):
             if self.is_dark_theme():
                 DwmSetWindowAttribute(self.Handle.ToInt32(), 20, 1)
@@ -288,7 +288,7 @@ class BrowserView:
             else:
                 DwmSetWindowAttribute(self.Handle.ToInt32(), 20, 0)
                 DwmSetWindowAttribute(self.Handle.ToInt32(), 38, 1)
-        
+
         def is_dark_theme(self):
             try:
                 personalize_key = winreg.OpenKey(
