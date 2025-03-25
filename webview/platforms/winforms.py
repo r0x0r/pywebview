@@ -158,8 +158,6 @@ def ExtendFrameIntoClientArea(hwnd):
 class BrowserView:
     instances = {}
 
-    app_menu_list = None
-
     class BrowserForm(WinForms.Form):
         def __init__(self, window, cache_dir):
             super().__init__()
@@ -173,6 +171,7 @@ class BrowserView:
 
             self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
+            hwnd = self.Handle.ToInt32()
 
             # for chromium edge, need this factor to modify the coordinates
             try:
@@ -230,19 +229,19 @@ class BrowserView:
 
             if window.shadow and not window.transparent:
                 # Should do this before set frameless
-                ExtendFrameIntoClientArea(self.Handle.ToInt32())
-                DwmSetWindowAttribute(self.Handle.ToInt32(), 2, 2, 4)
+                ExtendFrameIntoClientArea(hwnd)
+                DwmSetWindowAttribute(hwnd, 2, 2, 4)
 
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
 
-            if BrowserView.app_menu_list:
-                self.set_window_menu(BrowserView.app_menu_list)
+            if window.menu or _state['menu']:
+                self.set_window_menu(window.menu or _state['menu'])
 
             if is_cef:
                 self.browser = None
-                CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert, self)
+                CEF.create_browser(window, hwnd, BrowserView.alert, self)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window, cache_dir)
                 self.webview = self.browser.webview
@@ -672,7 +671,7 @@ def init_storage():
 
 
 def setup_app():
-    # MUST be called before create_window and set_app_menu
+    # MUST be called before create_window
     global _already_set_up_app
     if _already_set_up_app:
         return
@@ -850,20 +849,6 @@ def load_html(content, base_uri, uid):
         CEF.load_html(inject_base_uri(content, base_uri), uid)
     elif i:
         i.load_html(content, base_uri)
-
-
-def set_app_menu(app_menu_list):
-    """
-    Create a custom menu for the app bar menu (on supported platforms).
-    Otherwise, this menu is used across individual windows.
-
-    Args:
-        app_menu_list ([webview.menu.Menu])
-    """
-    # WindowsForms doesn't allow controls to have more than one parent, so we
-    #     save the app_menu_list and recreate the menu for each window as they
-    #     are created.
-    BrowserView.app_menu_list = app_menu_list
 
 
 def get_active_window():

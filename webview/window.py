@@ -17,6 +17,7 @@ import webview.http as http
 from webview.errors import JavascriptException, WebViewException
 from webview.event import Event, EventContainer
 from webview.localization import original_localization
+from webview.menu import Menu
 from webview.util import (base_uri, escape_string, is_app, is_local_url, parse_file_type)
 from webview.dom.dom import DOM
 from webview.dom.element import Element
@@ -108,6 +109,7 @@ class Window:
         zoomable: bool = False,
         draggable: bool = False,
         vibrancy: bool = False,
+        menu: list[Menu] = [],
         localization: Mapping[str, str] | None = None,
         http_port: int | None = None,
         server: type[http.ServerType] | None = None,
@@ -143,6 +145,7 @@ class Window:
         self.localization_override = localization
         self.vibrancy = vibrancy
         self.screen = screen
+        self.menu = menu
 
         # Server config
         self._http_port = http_port

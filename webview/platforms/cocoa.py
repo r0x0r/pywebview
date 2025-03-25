@@ -5,6 +5,7 @@ import ctypes
 import json
 import urllib
 import logging
+import uuid
 import webbrowser
 from collections.abc import Callable
 from threading import Semaphore, Thread, main_thread
@@ -49,11 +50,12 @@ logger.debug('Using Cocoa')
 renderer = 'wkwebview'
 
 
+
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
     app.setActivationPolicy_(0)
-    app_menu_list = None
+    current_menu = None
 
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
 
@@ -72,6 +74,15 @@ class BrowserView:
             return self.focus
 
     class WindowDelegate(AppKit.NSObject):
+        def windowDidBecomeKey_(self, notification):
+            i = BrowserView.get_instance('window', notification.object())
+
+            if i.menu and BrowserView.current_menu != i.menu:
+                BrowserView.current_menu = i.menu
+                new_menu = i._recreate_menus(BrowserView.current_menu)
+                BrowserView.app.setMainMenu_(new_menu)
+
+
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
             return BrowserView.should_close(i.pywebview_window)
@@ -518,6 +529,8 @@ class BrowserView:
                 | AppKit.NSTexturedBackgroundWindowMask
             )
 
+        self.menu = window.menu or _state['menu']
+
         # The allocated resources are retained because we would explicitly delete
         # this instance when its window is closed
         self.window = (
@@ -665,13 +678,8 @@ class BrowserView:
         self.shown.set()
 
         if not BrowserView.app.isRunning():
-            # Reset the application menu to the defaults
-            self._clear_main_menu()
-            self._add_app_menu()
-            if webview_settings['SHOW_DEFAULT_MENUS']:
-                self._add_view_menu()
-                self._add_edit_menu()
-            self._add_user_menu()
+            new_menu = self._recreate_menus(self.menu)
+            BrowserView.app.setMainMenu_(new_menu)
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             AppHelper.installMachInterrupt()
@@ -925,97 +933,36 @@ class BrowserView:
 
         return self._file_name
 
+    def _recreate_menus(self, user_menu):
+        main_menu = self._clear_main_menu()
+        self._add_app_menu(main_menu)
 
-    def _add_user_menu(self):
-        """
-        Create a custom menu for the app menu (MacOS bar menu)
+        if webview_settings['SHOW_DEFAULT_MENUS']:
+            self._add_view_menu(main_menu)
+            self._add_edit_menu(main_menu)
 
-        Args:
-            app_menu_list ([webview.menu.Menu])
-        """
+        self._add_custom_menu(main_menu, user_menu)
 
-        if BrowserView.app_menu_list is None:
-            return
-
-        # From https://github.com/r0x0r/pywebview/issues/500
-        class InternalMenu:
-            def __init__(self, title, parent):
-                self.m = AppKit.NSMenu.alloc().init()
-                self.item = AppKit.NSMenuItem.alloc().init()
-                self.item.setSubmenu_(self.m)
-                if not isinstance(parent, self.__class__):
-                    self.m.setTitle_(title)
-                    parent.addItem_(self.item)
-                else:
-                    self.item.setTitle_(title)
-                    parent.m.addItem_(self.item)
-
-            def action(self, title: str, action: Callable, command: str | None = None):
-                InternalAction(self, title, action, command)
-                return self
-
-            def separator(self):
-                self.m.addItem_(AppKit.NSMenuItem.separatorItem())
-                return self
-
-            def sub_menu(self, title: str):
-                return self.__class__(title, parent=self)
-
-        class InternalAction:
-            def __init__(self, parent: InternalMenu, title: str, action: callable, command=None):
-                self.action = action
-                s = selector(self._call_action, signature=b'v@:')
-                if command:
-                    item = parent.m.addItemWithTitle_action_keyEquivalent_(title, s, command)
-                else:
-                    item = AppKit.NSMenuItem.alloc().init()
-                    item.setAction_(s)
-                    item.setTitle_(title)
-                    parent.m.addItem_(item)
-                item.setTarget_(self)
-
-            def _call_action(self):
-                # Don't run action function on main thread
-                Thread(target=self.action).start()
-
-        def create_submenu(title, line_items, supermenu):
-            m = InternalMenu(title, parent=supermenu)
-            for menu_line_item in line_items:
-                if isinstance(menu_line_item, MenuSeparator):
-                    m = m.separator()
-                elif isinstance(menu_line_item, MenuAction):
-                    m = m.action(menu_line_item.title, menu_line_item.function)
-                elif isinstance(menu_line_item, Menu):
-                    create_submenu(menu_line_item.title, menu_line_item.items, m)
-
-        os_bar_menu = BrowserView.app.mainMenu()
-        if os_bar_menu is None:
-            os_bar_menu = AppKit.NSMenu.alloc().init()
-            BrowserView.app.setMainMenu_(os_bar_menu)
-
-        for app_menu in BrowserView.app_menu_list:
-            create_submenu(app_menu.title, app_menu.items, os_bar_menu)
+        return main_menu
 
     def _clear_main_menu(self):
         """
-        Remove all items from the main menu.
+        Remove all items from the main menu or create a new one if it doesn't exist.
         """
         mainMenu = BrowserView.app.mainMenu()
         if mainMenu:
             mainMenu.removeAllItems()
 
-    def _add_app_menu(self):
+        mainMenu = AppKit.NSMenu.alloc().init()
+
+        return mainMenu
+
+    def _add_app_menu(self, mainMenu):
         """
         Create a default Cocoa menu that shows 'Services', 'Hide',
         'Hide Others', 'Show All', and 'Quit'. Will append the application name
         to some menu items if it's available.
         """
-
-        mainMenu = BrowserView.app.mainMenu()
-
-        if not mainMenu:
-            mainMenu = AppKit.NSMenu.alloc().init()
-            BrowserView.app.setMainMenu_(mainMenu)
 
         # Create an application menu and make it a submenu of the main menu
         mainAppMenuItem = AppKit.NSMenuItem.alloc().init()
@@ -1061,15 +1008,11 @@ class BrowserView:
             self._append_app_name(self.localization['cocoa.menu.quit']), 'terminate:', 'q'
         )
 
-    def _add_view_menu(self):
+    def _add_view_menu(self, mainMenu):
+
         """
         Create a default View menu that shows 'Enter Full Screen'.
         """
-        mainMenu = BrowserView.app.mainMenu()
-
-        if not mainMenu:
-            mainMenu = AppKit.NSMenu.alloc().init()
-            BrowserView.app.setMainMenu_(mainMenu)
 
         # Create an View menu and make it a submenu of the main menu
         viewMenu = AppKit.NSMenu.alloc().init()
@@ -1087,16 +1030,10 @@ class BrowserView:
             AppKit.NSControlKeyMask | AppKit.NSCommandKeyMask
         )
 
-    def _add_edit_menu(self):
+    def _add_edit_menu(self, mainMenu):
         """
         Create a default Edit menu that shows Copy/Paste/etc.
         """
-        mainMenu = BrowserView.app.mainMenu()
-
-        if not mainMenu:
-            mainMenu = AppKit.NSMenu.alloc().init()
-            BrowserView.app.setMainMenu_(mainMenu)
-
         # Create an Edit menu and make it a submenu of the main menu
         editMenu = AppKit.NSMenu.alloc().init()
         editMenu.setTitle_(self.localization['cocoa.menu.edit'])
@@ -1114,6 +1051,50 @@ class BrowserView:
             menuItem = editMenu.addItemWithTitle_action_keyEquivalent_(
                 title, action, keyEquivalent
             )
+
+    def _add_custom_menu(self, mainMenu, app_menu_list):
+        """
+        Create a custom menu for the app menu (MacOS bar menu)
+        """
+
+        if app_menu_list is None:
+            return
+
+        def process_menu_items(menu_items, parent_menu):
+            for item in menu_items:
+                if isinstance(item, MenuSeparator):
+                    parent_menu.addItem_(AppKit.NSMenuItem.separatorItem())
+                elif isinstance(item, MenuAction):
+                    # Actions must be registered before application start. Otherwise they are disabled.
+                    # Menu handler is a workaround to register actions after application start
+                    random_id = str(uuid.uuid4())[:6]
+                    action_id = item.function.__name__ + '.' + random_id
+                    menu_handler.register_action(action_id, item.function)
+
+                    menu_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                        item.title, 'handleMenuAction:', ''
+                    )
+                    menu_item.setTarget_(menu_handler)
+                    menu_item.setRepresentedObject_(action_id)
+                    parent_menu.addItem_(menu_item)
+                elif isinstance(item, Menu):
+                    submenu = AppKit.NSMenu.alloc().init()
+                    submenu.setTitle_(item.title)
+                    menu_item = AppKit.NSMenuItem.alloc().init()
+                    menu_item.setTitle_(item.title)
+                    menu_item.setSubmenu_(submenu)
+                    parent_menu.addItem_(menu_item)
+
+                    process_menu_items(item.items, submenu)
+
+        for app_menu in app_menu_list:
+            submenu = AppKit.NSMenu.alloc().init()
+            submenu.setTitle_(app_menu.title)
+            menu_item = AppKit.NSMenuItem.alloc().init()
+            menu_item.setTitle_(app_menu.title)
+            menu_item.setSubmenu_(submenu)
+            mainMenu.addItem_(menu_item)
+            process_menu_items(app_menu.items, submenu)
 
     def _append_app_name(self, val):
         """
@@ -1271,12 +1252,26 @@ class BrowserView:
         return string.replace(' ', '%20')
 
 
+class MenuHandler:
+    def __init__(self):
+        self.actions = {}
+
+    def handleMenuAction_(self, sender):
+        action_id = sender.representedObject()
+        if action_id in self.actions:
+            Thread(target=self.actions[action_id]).start()
+        else:
+            logger.warning(f'Menu cction {action_id} not found')
+
+    def register_action(self, action_id, action_callable):
+        self.actions[action_id] = action_callable
+
+menu_handler = MenuHandler()
+
+
 def setup_app():
-    # MUST be called before create_window and set_app_menu
     pass
 
-def set_app_menu(app_menu_list):
-    BrowserView.app_menu_list = app_menu_list
 
 def get_active_window():
     active_window = BrowserView.app.keyWindow()

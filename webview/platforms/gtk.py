@@ -114,6 +114,9 @@ class BrowserView:
             Gdk.Screen.get_default(), style_provider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
+        if window.menu:
+            logger.warning('Window specific menu is not supported on GTK')
+
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_policy(gtk.PolicyType.NEVER, gtk.PolicyType.NEVER)
         self.window.add(scrolled_window)
@@ -607,10 +610,18 @@ class BrowserView:
 
 
 def setup_app():
-    # MUST be called before create_window and set_app_menu
+    def set_menubar(app):
+        app.set_menubar(app_menu)
+
     global _app
-    if _app is None:
-        _app = gtk.Application.new(None, 0)
+    if _app is not None:
+        return
+
+    _app = gtk.Application.new(None, 0)
+
+    if _state['menu']:
+        app_menu = create_menu(_state['menu'])
+        _app.connect('startup', set_menubar)
 
 
 def create_window(window):
@@ -789,15 +800,7 @@ def create_confirmation_dialog(title, message, uid):
     return result
 
 
-def set_app_menu(app_menu_list):
-    """
-    Create a custom menu for the app bar menu (on supported platforms).
-    Otherwise, this menu is used across individual windows.
-
-    Args:
-        app_menu_list ([webview.menu.Menu])
-    """
-    global _app_actions
+def create_menu(app_menu_list):
 
     def action_callback(action, parameter):
         function = _app_actions.get(action.get_name())
@@ -837,17 +840,13 @@ def set_app_menu(app_menu_list):
 
         supermenu.append_submenu(title, m)
 
-    global _app
-
     menubar = Gio.Menu()
 
     for app_menu in app_menu_list:
         create_submenu(app_menu.title, app_menu.items, menubar)
 
-    def set_menubar(app):
-        app.set_menubar(menubar)
+    return menubar
 
-    _app.connect('startup', set_menubar)
 
 
 def get_active_window():
