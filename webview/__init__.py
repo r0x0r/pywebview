@@ -84,7 +84,8 @@ _state = ImmutableDict({
     'user_agent': None,
     'http_server': False,
     'ssl': False,
-    'icon': None
+    'icon': None,
+    'menu': None
 })
 
 guilib = None
@@ -215,7 +216,9 @@ def start(
         thread.start()
 
     if menu:
-        guilib.set_app_menu(menu)
+        _state['menu'] = menu
+        #guilib.set_app_menu(menu)
+
     guilib.create_window(windows[0])
     # keyfile is deleted by the ServerAdapter right after wrap_socket()
     if certfile:
@@ -250,6 +253,7 @@ def create_window(
     zoomable: bool = False,
     draggable: bool = False,
     vibrancy: bool = False,
+    menu: list[Menu] = [],
     localization: Mapping[str, str] | None = None,
     server: type[http.ServerType] = http.BottleServer,
     http_port: int | None = None,
@@ -279,6 +283,7 @@ def create_window(
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
+    :param menu: List of menus to be included in the window menu
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :return: window object.
@@ -318,6 +323,7 @@ def create_window(
         zoomable,
         draggable,
         vibrancy,
+        menu,
         localization,
         server=server,
         http_port=http_port,

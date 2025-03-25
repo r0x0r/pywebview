@@ -1,7 +1,7 @@
 """Create an application menu."""
 
 import webview
-import webview.menu as wm
+from webview.menu import Menu, MenuAction, MenuSeparator
 
 
 def change_active_window_content():
@@ -15,6 +15,11 @@ def click_me():
     if active_window:
         active_window.load_html('<h1>You clicked me!</h1>')
 
+
+def test():
+    active_window = webview.active_window()
+    if active_window:
+        active_window.load_html('<h1>This is a test!</h1>')
 
 def do_nothing():
     pass
@@ -32,29 +37,37 @@ def open_file_dialog():
 
 
 if __name__ == '__main__':
+    window_menu = [Menu(
+        'Window', [
+            MenuAction('Test', test)
+        ]
+    )]
+
     window_1 = webview.create_window(
-        'Application Menu Example', 'https://pywebview.flowrl.com/hello'
+        'Application Menu Example', 'https://pywebview.flowrl.com/hello', menu=window_menu
     )
     window_2 = webview.create_window(
         'Another Window', html='<h1>Another window to test application menu</h1>'
     )
 
+
+
     menu_items = [
-        wm.Menu(
-            'Test Menu',
+        Menu(
+            'Menu 1',
             [
-                wm.MenuAction('Change Active Window Content', change_active_window_content),
-                wm.MenuSeparator(),
-                wm.Menu(
+                MenuAction('Change Active Window Content', change_active_window_content),
+                MenuSeparator(),
+                Menu(
                     'Random',
                     [
-                        wm.MenuAction('Click Me', click_me),
-                        wm.MenuAction('File Dialog', open_file_dialog),
+                        MenuAction('Click Me', click_me),
+                        MenuAction('File Dialog', open_file_dialog),
                     ],
                 ),
             ],
         ),
-        wm.Menu('Nothing Here', [wm.MenuAction('This will do nothing', do_nothing)]),
+        Menu('Menu 2', [MenuAction('This will do nothing', do_nothing)]),
     ]
 
     webview.start(menu=menu_items)
