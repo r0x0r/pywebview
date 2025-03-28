@@ -251,10 +251,20 @@ class BrowserView:
             if (
                 window.transparent and self.browser
             ):  # window transparency is supported only with EdgeChromium
-                self.BackColor = Color.FromArgb(255,255,0,0)
-                self.TransparencyKey = Color.FromArgb(255,255,0,0)
+                TRANSPARENT_COLOR = Color.Red #FromArgb(255, 74, 65, 42)
+                self.BackColor = TRANSPARENT_COLOR
+                self.TransparencyKey = TRANSPARENT_COLOR
+
+                colorref = 42 << 16  # Red component
+                colorref |= 65 << 8     # Green component
+                colorref |= 74          # Blue component
                 self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
-                self.browser.DefaultBackgroundColor = Color.Transparent
+                WS_EX_LAYERED = 0x80000
+                LWA_COLORKEY = 0x1
+                LWA_ALPHA = 0x2
+                #windll.user32.SetWindowLongA(hwnd, -20, windll.user32.GetWindowLongA(hwnd, -20) | WS_EX_LAYERED)
+                #windll.user32.SetLayeredWindowAttributes(hwnd, colorref, 0, LWA_COLORKEY)
+
             else:
                 self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
@@ -269,9 +279,57 @@ class BrowserView:
             self.Move += self.on_move
 
             self.localization = window.localization
+            self._setup_wndproc()
 
         def __str__(self):
             return f'<System.Windows.Forms object with {self.Handle} handle>'
+
+        def _setup_wndproc(self):
+            global CallWindowProc
+            GWL_WNDPROC = -4
+
+            # Define SetWindowLongPtrW
+            windll = ctypes.WinDLL('user32', use_last_error=True)
+            SetWindowLongPtr = windll.SetWindowLongPtrW
+            SetWindowLongPtr.argtypes = [wintypes.HWND, wintypes.INT, ctypes.c_void_p]
+            SetWindowLongPtr.restype = ctypes.c_void_p
+
+            # Define GetWindowLongPtrW
+            GetWindowLongPtr = windll.GetWindowLongPtrW
+            GetWindowLongPtr.argtypes = [wintypes.HWND, wintypes.INT]
+            GetWindowLongPtr.restype = ctypes.c_void_p
+
+            # Define CallWindowProcW
+            CallWindowProc = windll.CallWindowProcW
+            CallWindowProc.argtypes = [
+                ctypes.c_void_p,
+                wintypes.HWND,
+                wintypes.UINT,
+                wintypes.WPARAM,
+                wintypes.LPARAM,
+            ]
+            CallWindowProc.restype = ctypes.c_long
+
+            self.original_wndproc = GetWindowLongPtr(self.Handle.ToInt64(), GWL_WNDPROC)
+
+            WNDPROC = ctypes.WINFUNCTYPE(
+                ctypes.c_long,
+                wintypes.HWND,
+                wintypes.UINT,
+                wintypes.WPARAM,
+                wintypes.LPARAM,
+            )
+
+            self.wndproc_callback = WNDPROC(self.WndProc)
+            SetWindowLongPtr(
+                self.Handle.ToInt64(),
+                GWL_WNDPROC,
+                ctypes.cast(self.wndproc_callback, ctypes.c_void_p),
+            )
+
+            # current_wndproc = GetWindowLongPtr(self.Handle.ToInt64(), GWL_WNDPROC)
+            # print(f"Current WndProc: {current_wndproc}")
+
 
         def on_activated(self, *_):
             if not self.pywebview_window.focus:
@@ -553,6 +611,77 @@ class BrowserView:
                 self.WindowState = WinForms.FormWindowState.Normal
 
             self.Invoke(Func[Type](_restore))
+
+
+        def WndProc(self, hwnd, msg, w_param, l_param):
+            #print(f"Message: {msg}")
+            # WM_NCHITTEST message
+            if msg != 0x201:  # WM_NCHITTEST
+                return CallWindowProc(self.original_wndproc, hwnd, msg, w_param, l_param)
+            #Check if we're using Edge Chromium (where click-through would be applicable)
+            if not is_chromium or not self.pywebview_window.transparent:
+                return
+            # Find Chrome widget window
+            chrome_widget = self.browser.webview.Handle.ToInt32()
+            if not chrome_widget:
+                return CallWindowProc(self.original_wndproc, hwnd, msg, w_param, l_param)
+
+            click_through = True
+
+            # Get cursor position
+            point = wintypes.POINT()
+            windll.user32.GetCursorPos(ctypes.byref(point))
+            windll.user32.ScreenToClient(chrome_widget, ctypes.byref(point))
+
+
+            # TODO: Implement check for HTML elements with the browser API
+            # For now, we're implementing just the caption check
+
+            # Check if cursor is over caption area
+            if click_through:
+                rect = wintypes.RECT()
+                windll.user32.GetWindowRect(hwnd, ctypes.byref(rect))
+
+                # Calculate caption height
+                caption_height = windll.user32.GetSystemMetrics(32)  # SM_CYDLGFRAME
+                caption_height += windll.user32.GetSystemMetrics(4)  # SM_CYCAPTION
+
+                # Set bottom of caption area
+                rect.bottom = rect.top + caption_height
+
+                # Get cursor position again for window rect check
+                cursor_point = wintypes.POINT()
+                windll.user32.GetCursorPos(ctypes.byref(cursor_point))
+
+                # Check if cursor is in the caption area
+                if (cursor_point.x >= rect.left and cursor_point.x <= rect.right and
+                    cursor_point.y >= rect.top and cursor_point.y <= rect.bottom):
+                    click_through = False
+
+            # Toggle WS_EX_TRANSPARENT style based on click_through value
+            # Store state in a class variable
+            if not hasattr(self, 'cur_click_through'):
+                self.cur_click_through = False
+
+            if click_through != self.cur_click_through:
+                self.cur_click_through = click_through
+
+            # Get current extended window style
+            WS_EX_TRANSPARENT = 0x00000020
+            GWL_EXSTYLE = -20
+
+            current_style = windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+
+            if click_through:
+                new_style = current_style | WS_EX_TRANSPARENT
+            else:
+                new_style = current_style & ~WS_EX_TRANSPARENT
+
+            windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, new_style)
+
+            # Call the original window procedure
+            return CallWindowProc(self.original_wndproc, hwnd, msg, w_param, l_param)
+
 
     @staticmethod
     def alert(message):

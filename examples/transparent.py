@@ -9,6 +9,9 @@ html = """
 		<meta charset="utf-8">
         <title>Test app</title>
         <style>
+        body {
+            background-color: transparent;
+        }
             .frame {
                 border-radius: 5px 5px 0 0;
                 position: fixed;
@@ -61,6 +64,7 @@ html = """
                             Lorem ipsum dolor sit amet, consectetur adipiscing elit
                         </div>
                     </td>
+                    <button onclick="alert('w00t')">Click me</button>
                 </tr>
             </tbody>
         </table>
@@ -71,5 +75,5 @@ html = """
 
 if __name__ == '__main__':
     # Create a transparent webview window
-    webview.create_window('Transparent window', html=html, transparent=True, frameless=True)
+    webview.create_window('Transparent window', html=html, transparent=True, frameless=True, easy_drag=True)
     webview.start()

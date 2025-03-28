@@ -20,7 +20,7 @@ import System.Windows.Forms as WinForms
 from System import Action, Convert, Func, String, Type, Uri, Object
 from System.Collections.Generic import List
 from System.Diagnostics import Process
-from System.Drawing import Color
+from System.Drawing import Color, ColorTranslator
 from System.Globalization import CultureInfo
 from System.Threading.Tasks import Task, TaskScheduler
 
@@ -67,10 +67,13 @@ class EdgeChrome:
         self.webview.NavigationCompleted += self.on_navigation_completed
         self.webview.WebMessageReceived += self.on_script_notify
         self.syncContextTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext()
-        self.webview.DefaultBackgroundColor = Color.FromArgb(255, int(window.background_color.lstrip("#")[0:2], 16), int(window.background_color.lstrip("#")[2:4], 16), int(window.background_color.lstrip("#")[4:6], 16))
 
         if window.transparent:
+            #os.environ['WEBVIEW2_DEFAULT_BACKGROUND_COLOR'] = '00FFFFFF'
             self.webview.DefaultBackgroundColor = Color.Transparent
+            print('w00t')
+        else:
+            self.webview.DefaultBackgroundColor = ColorTranslator.FromHtml(window.background_color)
 
         self.url = None
         self.ishtml = False
