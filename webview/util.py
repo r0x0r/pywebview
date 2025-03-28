@@ -240,14 +240,14 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         try:
             result = func(*func_params)
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
-            code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{value: \'{result}\'}}'
+            retval = f"{{value: \'{result}\'}}"
         except Exception as e:
             logger.error(traceback.format_exc())
             error = {'message': str(e), 'name': type(e).__name__, 'stack': traceback.format_exc()}
             result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
-            code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{isError: true, value: \'{result}\'}}'
+            retval = f"{{isError: true, value: \'{result}\'}}"
 
-        window.evaluate_js(code)
+        window.evaluate_js(f'window.pywebview._returnValuesCallbacks["{func_name}"]["{value_id}"]({retval})')
 
     def get_nested_attribute(obj: object, attr_str: str):
         attributes = attr_str.split('.')
