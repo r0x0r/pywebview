@@ -118,7 +118,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `ALLOW_FILE_URLS` Enable `file://` urls. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
-* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.
+* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium` or `winui3`. Disabled by default.
 
 #### Examples
 

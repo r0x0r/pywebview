@@ -1,7 +1,7 @@
 import webview
 
 """
-Enable remote debugging when using `edgechromium`.
+Enable remote debugging when using `edgechromium` or `winui3`.
 This can be used to write tests for the application using Playwright.
 See [https://playwright.dev/docs/webview2](https://playwright.dev/docs/webview2) for how to configure it.
 """
