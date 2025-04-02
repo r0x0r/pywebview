@@ -236,6 +236,8 @@ class BrowserView:
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
+
+                # Allow minimization through taskbar
                 GWL_STYLE = -16
                 WS_MINIMIZEBOX = 0x00020000
                 WS_SYSMENU = 0x00080000
@@ -373,12 +375,22 @@ class BrowserView:
 
             if self.WindowState == WinForms.FormWindowState.Minimized:
                 self.pywebview_window.events.minimized.set()
+                self.FormBorderStyle = WinForms.FormBorderStyle.FixedDialog # Set window border to allow animation
 
             if self.WindowState == WinForms.FormWindowState.Normal and self.old_state in (
                 WinForms.FormWindowState.Minimized,
                 WinForms.FormWindowState.Maximized,
             ):
                 self.pywebview_window.events.restored.set()
+
+                # Remove border again and allow minimizing through taskbar
+                self.FormBorderStyle = getattr(WinForms.FormBorderStyle, "None")
+                GWL_STYLE = -16
+                WS_MINIMIZEBOX = 0x00020000
+                WS_SYSMENU = 0x00080000
+                style = windll.user32.GetWindowLongW(self.Handle.ToInt32(), GWL_STYLE)
+                style |= WS_MINIMIZEBOX | WS_SYSMENU
+                windll.user32.SetWindowLongW(self.Handle.ToInt32(), GWL_STYLE, style)
 
             self.old_state = self.WindowState
 
