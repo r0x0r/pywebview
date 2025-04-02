@@ -596,6 +596,7 @@ class BrowserView:
 
         def minimize(self):
             def _minimize():
+                self.FormBorderStyle = WinForms.FormBorderStyle.FixedDialog # Set window border to allow animation
                 self.WindowState = WinForms.FormWindowState.Minimized
 
             self.Invoke(Func[Type](_minimize))
