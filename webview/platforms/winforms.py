@@ -375,7 +375,6 @@ class BrowserView:
 
             if self.WindowState == WinForms.FormWindowState.Minimized:
                 self.pywebview_window.events.minimized.set()
-                self.FormBorderStyle = WinForms.FormBorderStyle.FixedDialog # Set window border to allow animation
 
             if self.WindowState == WinForms.FormWindowState.Normal and self.old_state in (
                 WinForms.FormWindowState.Minimized,
