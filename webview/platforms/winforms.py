@@ -236,6 +236,12 @@ class BrowserView:
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
+                GWL_STYLE = -16
+                WS_MINIMIZEBOX = 0x00020000
+                WS_SYSMENU = 0x00080000
+                style = windll.user32.GetWindowLongW(self.Handle.ToInt32(), GWL_STYLE)
+                style |= WS_MINIMIZEBOX | WS_SYSMENU
+                windll.user32.SetWindowLongW(self.Handle.ToInt32(), GWL_STYLE, style)
 
             if BrowserView.app_menu_list:
                 self.set_window_menu(BrowserView.app_menu_list)
