@@ -18,6 +18,7 @@ import tempfile
 import threading
 from collections.abc import Iterable, Mapping
 from typing import Any, Callable
+from asyncio import AbstractEventLoop
 from uuid import uuid4
 
 from proxy_tools import module_property
@@ -255,6 +256,7 @@ def create_window(
     server: type[http.ServerType] = http.BottleServer,
     http_port: int | None = None,
     server_args: http.ServerArgs = {},
+    event_loop: AbstractEventLoop = None
 ) -> Window:
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
@@ -282,6 +284,7 @@ def create_window(
     :param transparent: Don't draw window background.
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
+    :param event_loop: Optional event loop to support exposing async functions
     :return: window object.
     """
 
@@ -324,6 +327,7 @@ def create_window(
         http_port=http_port,
         server_args=server_args,
         screen=screen,
+        event_loop=event_loop
     )
 
     windows.append(window)
