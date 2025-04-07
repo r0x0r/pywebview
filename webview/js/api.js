@@ -134,7 +134,7 @@ window.pywebview = {
   },
 
   _checkValue: function (funcName, resolve, reject, id) {
-    window.pywebview._returnValuesCallbacks[funcName][id] = (returnObj) => {
+    window.pywebview._returnValuesCallbacks[funcName][id] = function(returnObj) {
       var value = returnObj.value;
       var isError = returnObj.isError;
 
