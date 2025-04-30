@@ -76,10 +76,7 @@ class EdgeChrome:
         self.ishtml = False
         self.html = DEFAULT_HTML
 
-        if _state['storage_path']:
-            self.setup_webview2_environment()
-        else:
-            self.webview.EnsureCoreWebView2Async(None)
+        self.webview.EnsureCoreWebView2Async(None)
 
     def clear_user_data(self):
         if not _state['private_mode']:
@@ -94,18 +91,6 @@ class EdgeChrome:
             shutil.rmtree(self.user_data_folder)
         except Exception as e:
             logger.exception(e)
-
-    def setup_webview2_environment(self):
-        def _callback(task):
-            self.webview.EnsureCoreWebView2Async(task.Result)
-
-        environment = CoreWebView2Environment.CreateAsync(
-            userDataFolder=_state['storage_path']
-        )
-        environment.ContinueWith(
-            Action[Task[CoreWebView2Environment]](_callback),
-            self.syncContextTaskScheduler,
-        )
 
     def evaluate_js(self, script, parse_json):
         def _callback(res):
