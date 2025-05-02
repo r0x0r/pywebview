@@ -223,8 +223,10 @@ class BrowserView:
             self, webview, param, frame, handler
         ):
             i = list(BrowserView.instances.values())[0]
+            file_filter = param._acceptedMIMETypes()
+
             files = i.create_file_dialog(
-                OPEN_DIALOG, '', param.allowsMultipleSelection(), '', [], main_thread=True
+                OPEN_DIALOG, '', param.allowsMultipleSelection(), '', file_filter, main_thread=True
             )
 
             if not handler.__block_signature__:
@@ -883,16 +885,24 @@ class BrowserView:
 
                 # Set allowed file extensions
                 if file_filter:
-                    open_dlg.setAllowedFileTypes_(file_filter[0][1])
+                    if isinstance(file_filter, Foundation.WKNSArray):
+                        try:
+                            import UniformTypeIdentifiers
+                            UTType = UniformTypeIdentifiers.UTType
+                        except ImportError:
+                            UTType = None # Fallback if UTType is not available
 
-                    # Add a menu to choose between multiple file filters
-                    if len(file_filter) > 1:
-                        filter_chooser = BrowserView.FileFilterChooser.alloc().initWithFilter_(
-                            file_filter
-                        )
-                        filter_chooser.setFileDialog_(open_dlg)
-                        open_dlg.setAccessoryView_(filter_chooser)
-                        open_dlg.setAccessoryViewDisclosed_(True)
+                        open_dlg.setAllowedContentTypes_([UTType.typeWithMIMEType_("image/jpg")])
+                    else:
+                        open_dlg.setAllowedFileTypes_(file_filter[0][1])
+
+                        if len(file_filter) > 1:
+                            filter_chooser = BrowserView.FileFilterChooser.alloc().initWithFilter_(
+                                file_filter
+                            )
+                            filter_chooser.setFileDialog_(open_dlg)
+                            open_dlg.setAccessoryView_(filter_chooser)
+                            open_dlg.setAccessoryViewDisclosed_(True)
 
                 if directory:  # set initial directory
                     open_dlg.setDirectoryURL_(Foundation.NSURL.fileURLWithPath_(directory))
