@@ -795,7 +795,7 @@ def create_confirmation_dialog(title, message, uid):
     return result
 
 
-def set_app_menu(app_menu_list):
+def set_app_menu(app_menu_list, *_):
     """
     Create a custom menu for the app bar menu (on supported platforms).
     Otherwise, this menu is used across individual windows.
