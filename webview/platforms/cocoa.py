@@ -54,7 +54,6 @@ class BrowserView:
     app = AppKit.NSApplication.sharedApplication()
     app.setActivationPolicy_(0)
     app_menu_list = None
-    no_default_menus = False
 
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
 
@@ -669,7 +668,7 @@ class BrowserView:
             # Reset the application menu to the defaults
             self._clear_main_menu()
             self._add_app_menu()
-            if not BrowserView.no_default_menus:
+            if webview_settings['SHOW_DEFAULT_MENUS']:
                 self._add_view_menu()
                 self._add_edit_menu()
             self._add_user_menu()
@@ -1276,16 +1275,8 @@ def setup_app():
     # MUST be called before create_window and set_app_menu
     pass
 
-def set_app_menu(app_menu_list, no_default_menus = False):
-    """
-    Create a custom menu for the app bar menu.
-
-    Args:
-        app_menu_list ([webview.menu.Menu])
-        no_default_menus (bool): hide the view menu (default is False)
-    """
+def set_app_menu(app_menu_list):
     BrowserView.app_menu_list = app_menu_list
-    BrowserView.no_default_menus = no_default_menus
 
 def get_active_window():
     active_window = BrowserView.app.keyWindow()

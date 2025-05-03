@@ -852,7 +852,7 @@ def load_html(content, base_uri, uid):
         i.load_html(content, base_uri)
 
 
-def set_app_menu(app_menu_list, *_):
+def set_app_menu(app_menu_list):
     """
     Create a custom menu for the app bar menu (on supported platforms).
     Otherwise, this menu is used across individual windows.

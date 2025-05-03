@@ -76,6 +76,7 @@ settings = ImmutableDict({
     'OPEN_DEVTOOLS_IN_DEBUG': True,
     'REMOTE_DEBUGGING_PORT': None,
     'IGNORE_SSL_ERRORS': False,
+    'SHOW_DEFAULT_MENUS': True,
 })
 
 _state = ImmutableDict({
@@ -108,7 +109,6 @@ def start(
     private_mode: bool = True,
     storage_path: str | None = None,
     menu: list[Menu] = [],
-    no_default_menus: bool = False,
     server: type[http.ServerType] = http.BottleServer,
     server_args: dict[Any, Any] = {},
     ssl: bool = False,
@@ -135,7 +135,6 @@ def start(
            Default is True.
     :param storage_path: Custom location for cookies and other website data
     :param menu: List of menus to be included in the app menu
-    :param no_default_menus: Omit the View and Edit menus. Supported only on Cocoa.
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :param ssl: Enable SSL for local HTTP server. Default is False.
@@ -217,8 +216,8 @@ def start(
             thread = threading.Thread(target=func)
         thread.start()
 
-    if menu or no_default_menus:
-        guilib.set_app_menu(menu, no_default_menus)
+    if menu:
+        guilib.set_app_menu(menu)
     guilib.create_window(windows[0])
     # keyfile is deleted by the ServerAdapter right after wrap_socket()
     if certfile:
