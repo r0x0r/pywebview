@@ -33,7 +33,7 @@ class State(dict):
                     if type == StateEventType.CHANGE:
                         handler(type, key, value)
                     elif type == StateEventType.DELETE:
-                        handler(type, key)
+                        handler(type, key, value)
 
         t = Thread(target=notify_handlers)
         t.start()
@@ -72,13 +72,14 @@ class State(dict):
             halt_update = False
 
         if key in self:
+            old_value = self[key]
             del self[key]
 
             if not halt_update:
                 special_key = '__pywebviewHaltUpdate__' + key
                 self.__window.run_js(f"delete window.pywebview.state.{special_key}")
 
-            self.__notify_handlers(StateEventType.DELETE, key)
+            self.__notify_handlers(StateEventType.DELETE, key, old_value)
 
         else:
             raise AttributeError(f"'{type(self).__key__}' object has no attribute '{key}'")

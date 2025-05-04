@@ -118,59 +118,90 @@ def delete_from_js_test(window):
 
 def event_change_test(window):
     def on_change(event, name, value):
-        assert event == 'change'
-        assert name == 'test'
-        assert value == 420
+        try:
+            assert event == 'change'
+            assert name == 'test'
+            assert value == 420
+        except AssertionError as e:
+            nonlocal exception
+            exception = e
 
         wait_release(lock)
 
     lock = Lock()
+    exception = False
     window.state += on_change
     window.state.test = 420
     assert lock.acquire(3)
+    if exception:
+        raise exception
+
 
 def event_change_js_test(window):
     def on_change(event, name, value):
-        assert event == 'change'
-        assert name == 'test'
-        assert value == 420
+        try:
+            assert event == 'change'
+            assert name == 'test'
+            assert value == 420
+        except AssertionError as e:
+            nonlocal exception
+            exception = e
 
         wait_release(lock)
 
     lock = Lock()
+    exception = False
     window.state += on_change
     window.evaluate_js('pywebview.state.test = 420')
     assert lock.acquire(3)
+    if exception:
+        raise exception
 
 
 def event_delete_test(window):
     def on_delete(event, name, value):
-        assert event == 'delete'
-        assert name == 'test'
-        assert value is None
+        try:
+            assert event == 'delete'
+            assert name == 'test'
+            assert value == 420
+        except AssertionError as e:
+            nonlocal exception
+            exception = e
 
         wait_release(lock)
 
+    exception = False
     lock = Lock()
-    window.state += on_delete
     window.state.test = 420
+    window.state += on_delete
     del window.state.test
     assert lock.acquire(3)
+
+    if exception:
+        raise exception
 
 
 def event_delete_js_test(window):
     def on_delete(event, name, value):
-        assert event == 'delete'
-        assert name == 'test'
-        assert value is None
+        try:
+            assert event == 'delete'
+            assert name == 'test'
+            assert value == 420
+        except AssertionError as e:
+            nonlocal exception
+            exception = e
 
         wait_release(lock)
 
     lock = Lock()
-    window.state += on_delete
+    exception = False
     window.state.test = 420
+    window.state += on_delete
     window.evaluate_js('delete pywebview.state.test')
     assert lock.acquire(3)
+
+    if exception:
+        raise exception
 
 
 def event_change_from_js_test(window):

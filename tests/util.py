@@ -138,7 +138,7 @@ def wait_release(lock, timeout=3, count=0):
         return True
     elif count * 0.1 < timeout:
         time.sleep(0.1)
-        wait_release()
+        wait_release(lock)
     else:
         return False
 
