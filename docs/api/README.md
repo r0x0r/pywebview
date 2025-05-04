@@ -120,7 +120,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
 * `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.
-* `SHOW_DEFAULT_MENUS` Show default application menus. Enabled by default.
+* `SHOW_DEFAULT_MENUS` Show default application menus on macOS. Enabled by default.
 
 #### Examples
 
