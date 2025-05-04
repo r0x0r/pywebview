@@ -668,8 +668,9 @@ class BrowserView:
             # Reset the application menu to the defaults
             self._clear_main_menu()
             self._add_app_menu()
-            self._add_view_menu()
-            self._add_edit_menu()
+            if webview_settings['SHOW_DEFAULT_MENUS']:
+                self._add_view_menu()
+                self._add_edit_menu()
             self._add_user_menu()
 
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)

@@ -76,6 +76,7 @@ settings = ImmutableDict({
     'OPEN_DEVTOOLS_IN_DEBUG': True,
     'REMOTE_DEBUGGING_PORT': None,
     'IGNORE_SSL_ERRORS': False,
+    'SHOW_DEFAULT_MENUS': True,
 })
 
 _state = ImmutableDict({
