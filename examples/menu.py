@@ -31,9 +31,9 @@ def say_this_is_window_2():
         active_window.load_html('<h1>This is window 2</h2>')
 
 
-def open_file_dialog():
+def open_save_file_dialog():
     active_window = webview.active_window()
-    active_window.create_file_dialog(webview.SAVE_DIALOG, directory='/', save_filename='test.file')
+    active_window.create_file_dialog(webview.FileDialog.SAVE, directory='/', save_filename='test.file')
 
 
 if __name__ == '__main__':
@@ -53,7 +53,7 @@ if __name__ == '__main__':
                     'Random',
                     [
                         MenuAction('Click Me', click_me),
-                        MenuAction('File Dialog', open_file_dialog),
+                        MenuAction('File Dialog', open_save_file_dialog),
                     ],
                 ),
             ],

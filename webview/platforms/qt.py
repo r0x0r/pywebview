@@ -11,7 +11,7 @@ from functools import partial
 from threading import Event, Semaphore, Thread
 from uuid import uuid1
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, windows, settings)
+from webview import (FileDialog, _state, windows, settings)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -461,11 +461,11 @@ class BrowserView(QMainWindow):
         confirmation_dialog_result['semaphore'].release()
 
     def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
-        if dialog_type == FOLDER_DIALOG:
+        if dialog_type == FileDialog.FOLDER:
             self._file_name = QFileDialog.getExistingDirectory(
                 self, self.localization['linux.openFolder'], directory, options=QFileDialog.ShowDirsOnly
             )
-        elif dialog_type == OPEN_DIALOG:
+        elif dialog_type == FileDialog.OPEN:
             if allow_multiple:
                 self._file_name = QFileDialog.getOpenFileNames(
                     self, self.localization['linux.openFiles'], directory, file_filter
@@ -474,7 +474,7 @@ class BrowserView(QMainWindow):
                 self._file_name = QFileDialog.getOpenFileName(
                     self, self.localization['linux.openFile'], directory, file_filter
                 )
-        elif dialog_type == SAVE_DIALOG:
+        elif dialog_type == FileDialog.SAVE:
             if directory:
                 save_filename = os.path.join(str(directory), str(save_filename))
 
@@ -727,9 +727,9 @@ class BrowserView(QMainWindow):
         )
         self._file_name_semaphore.acquire()
 
-        if dialog_type == FOLDER_DIALOG:
+        if dialog_type == FileDialog.FOLDER:
             file_names = (self._file_name,)
-        elif dialog_type == SAVE_DIALOG or not allow_multiple:
+        elif dialog_type == FileDialog.SAVE or not allow_multiple:
             file_names = (self._file_name[0],)
         else:
             file_names = tuple(self._file_name[0])

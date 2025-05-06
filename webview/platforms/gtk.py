@@ -6,7 +6,7 @@ from threading import Semaphore, Thread, main_thread
 from typing import Any
 from uuid import uuid1
 
-from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, settings, windows
+from webview import FileDialog, _state, settings, windows
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -325,7 +325,7 @@ class BrowserView:
 
     def on_download_decide_destination(self, download, suggested_filename):
         destination = self.create_file_dialog(
-            SAVE_DIALOG,
+            FileDialog.SAVE,
             glib.get_user_special_dir(glib.UserDirectory.DIRECTORY_DOWNLOAD),
             False,
             suggested_filename,
@@ -448,11 +448,11 @@ class BrowserView:
         return False
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
-        if dialog_type == FOLDER_DIALOG:
+        if dialog_type == FileDialog.FOLDER:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
             title = self.localization['linux.openFolder']
             button = gtk.STOCK_OPEN
-        elif dialog_type == OPEN_DIALOG:
+        elif dialog_type == FileDialog.OPEN:
             gtk_dialog_type = gtk.FileChooserAction.OPEN
             if allow_multiple:
                 title = self.localization['linux.openFiles']
@@ -460,7 +460,7 @@ class BrowserView:
                 title = self.localization['linux.openFile']
 
             button = gtk.STOCK_OPEN
-        elif dialog_type == SAVE_DIALOG:
+        elif dialog_type == FileDialog.SAVE:
             gtk_dialog_type = gtk.FileChooserAction.SAVE
             title = self.localization['global.saveFile']
             button = gtk.STOCK_SAVE
@@ -476,13 +476,13 @@ class BrowserView:
         dialog.set_current_folder(directory)
         self._add_file_filters(dialog, file_types)
 
-        if dialog_type == SAVE_DIALOG:
+        if dialog_type == FileDialog.SAVE:
             dialog.set_current_name(save_filename)
 
         response = dialog.run()
 
         if response == gtk.ResponseType.OK:
-            if dialog_type == SAVE_DIALOG:
+            if dialog_type == FileDialog.SAVE:
                 file_name = (dialog.get_filename(),)
             else:
                 file_name = dialog.get_filenames()

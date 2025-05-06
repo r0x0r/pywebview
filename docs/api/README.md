@@ -558,10 +558,10 @@ Create a confirmation (Ok / Cancel) dialog.
 ### window.create\_file\_dialog
 
 ``` python
-window.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=())
+window.create_file_dialog(dialog_type=FileDialog.OPEN, directory='', allow_multiple=False, save_filename='', file_types=())
 ```
 
-Create an open file (`webview.OPEN_DIALOG`), open folder (`webview.FOLDER_DIALOG`) or save file (`webview.SAVE_DIALOG`) dialog.
+Create an open file (`webview.FileDialog.OPEN`), open folder (`webview.FileDialog.FOLDER`) or save file (`webview.FileDialog.SAVE`) dialog.
 
 Return a tuple of selected files, None if cancelled.
 
@@ -900,7 +900,7 @@ The event is fired when pywebview window is shown.
 
 ### window.state
 
-An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
+An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete` (`webview.state.StateEventType` enum). `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
 
 ## Javascript API
 
@@ -936,6 +936,6 @@ With a frameless _pywebview_ window, A window can be moved or dragged by adding 
 <div class='pywebview-drag-region'>Now window can be moved by dragging this DIV.</div>
 ```
 
-The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
+The magic class name can be overriden by re-assigning the `webview.settings['DRAG_REGION_SELECTOR']` constant.
 
 [Example](/examples/drag_region.html)

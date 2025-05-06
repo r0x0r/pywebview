@@ -12,7 +12,7 @@ from threading import Event, Semaphore
 
 import clr
 
-from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, windows
+from webview import FileDialog, _state, windows
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -757,10 +757,10 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         directory = os.environ['HOMEPATH']
 
     try:
-        if dialog_type == FOLDER_DIALOG:
+        if dialog_type == FileDialog.FOLDER:
             file_path = OpenFolderDialog.show(i, directory, allow_multiple)
 
-        elif dialog_type == OPEN_DIALOG:
+        elif dialog_type == FileDialog.OPEN:
             dialog = WinForms.OpenFileDialog()
 
             dialog.Multiselect = allow_multiple
@@ -780,7 +780,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
             else:
                 file_path = None
 
-        elif dialog_type == SAVE_DIALOG:
+        elif dialog_type == FileDialog.SAVE:
             dialog = WinForms.SaveFileDialog()
             if len(file_types) > 0:
                 dialog.Filter = '|'.join(

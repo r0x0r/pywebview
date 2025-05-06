@@ -16,7 +16,7 @@ import WebKit
 from objc import _objc, nil, selector, super
 from PyObjCTools import AppHelper
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, windows, settings as webview_settings)
+from webview import (FileDialog, _state, windows, settings as webview_settings)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -237,7 +237,7 @@ class BrowserView:
             file_filter = param._acceptedMIMETypes()
 
             files = i.create_file_dialog(
-                OPEN_DIALOG, '', param.allowsMultipleSelection(), '', file_filter, main_thread=True
+                FileDialog.OPEN, '', param.allowsMultipleSelection(), '', file_filter, main_thread=True
             )
 
             if not handler.__block_signature__:
@@ -862,7 +862,7 @@ class BrowserView:
         def create_dialog(*args):
             dialog_type = args[0]
 
-            if dialog_type == SAVE_DIALOG:
+            if dialog_type == FileDialog.SAVE:
                 save_filename = args[2]
 
                 save_dlg = AppKit.NSSavePanel.savePanel()
@@ -884,10 +884,10 @@ class BrowserView:
                 open_dlg = AppKit.NSOpenPanel.openPanel()
 
                 # Enable the selection of files in the dialog.
-                open_dlg.setCanChooseFiles_(dialog_type != FOLDER_DIALOG)
+                open_dlg.setCanChooseFiles_(dialog_type != FileDialog.FOLDER)
 
                 # Enable the selection of directories in the dialog.
-                open_dlg.setCanChooseDirectories_(dialog_type == FOLDER_DIALOG)
+                open_dlg.setCanChooseDirectories_(dialog_type == FileDialog.FOLDER)
 
                 # Enable / disable multiple selection
                 open_dlg.setAllowsMultipleSelection_(allow_multiple)

@@ -70,7 +70,7 @@ def choose_path():
     Invoke a folder selection dialog here
     :return:
     """
-    dirs = webview.windows[0].create_file_dialog(webview.FOLDER_DIALOG)
+    dirs = webview.windows[0].create_file_dialog(webview.FileDialog.FOLDER)
     if dirs and len(dirs) > 0:
         directory = dirs[0]
         if isinstance(directory, bytes):

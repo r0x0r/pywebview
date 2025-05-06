@@ -557,10 +557,10 @@ Create a confirmation (Ok / Cancel) dialog.
 ### window.create\_file\_dialog
 
 ``` python
-window.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=())
+window.create_file_dialog(dialog_type=FileDialog.OPEN, directory='', allow_multiple=False, save_filename='', file_types=())
 ```
 
-Create an open file (`webview.OPEN_DIALOG`), open folder (`webview.FOLDER_DIALOG`) or save file (`webview.SAVE_DIALOG`) dialog.
+Create an open file (`webview.FileDialog.OPEN`), open folder (`webview.FileDialog.FOLDER`) or save file (`webview.FileDialog.OPEN.SAVE`) dialog.
 
 Return a tuple of selected files, None if cancelled.
 
@@ -935,6 +935,6 @@ With a frameless _pywebview_ window, A window can be moved or dragged by adding 
 <div class='pywebview-drag-region'>Now window can be moved by dragging this DIV.</div>
 ```
 
-The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
+The magic class name can be overriden by re-assigning the `webview.settings['DRAG_REGION_SELECTOR']` constant.
 
 [Example](/examples/drag_region.html)
