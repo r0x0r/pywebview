@@ -172,10 +172,11 @@ def inject_pywebview(platform: str, window: Window) -> str:
         return params
 
     def get_functions(obj: object, base_name: str = '', functions: dict[str, object] = None):
-        if obj in exposed_objects:
+        obj_id = id(obj)
+        if obj_id in exposed_objects:
             return functions
         else:
-            exposed_objects.append(obj)
+            exposed_objects.append(obj_id)
 
         if functions is None:
             functions = {}
