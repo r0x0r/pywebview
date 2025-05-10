@@ -272,6 +272,7 @@ class Window:
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
+
         logger.debug(f'Loading URL: {self.real_url}')
         self.gui.load_url(self.real_url, self.uid)
 

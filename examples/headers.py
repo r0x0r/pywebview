@@ -4,7 +4,7 @@ import webview
 
 
 def on_request(window, request):
-    request.headers['test'] = 'test'
+    request.headers['pywebview'] = 'header'
 
 
 def on_response(window, response):

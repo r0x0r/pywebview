@@ -19,7 +19,7 @@ from PyObjCTools import AppHelper
 from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, parse_file_type, windows, settings as webview_settings)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
-from webview.models import Request
+from webview.models import Request, Response
 from webview.screen import Screen
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, stringify_headers
 from webview.window import FixPoint
@@ -51,23 +51,6 @@ logger.debug('Using Cocoa')
 renderer = 'wkwebview'
 
 
-def swizzle(classname, sel):
-    def decorator(function):
-        cls = lookUpClass(classname)
-        try:
-            old = cls.instanceMethodForSelector_(sel)
-            if old.isClassMethod:
-                old = cls.methodForSelector_(sel)
-        except:
-            return None
-        def wrapper(self, *args, **kwargs):
-            return function(self, old, *args, **kwargs)
-        new = selector(wrapper, selector = old.selector,
-                            signature = old.signature,
-                            isClassMethod = old.isClassMethod)
-        classAddMethod(cls, sel, new)
-        return wrapper
-    return decorator
 
 class BrowserView:
     instances = {}
@@ -288,10 +271,12 @@ class BrowserView:
         def webView_decidePolicyForNavigationResponse_decisionHandler_(self, webview, navigationResponse, decisionHandler):
             if navigationResponse.canShowMIMEType():
                 headers = dict(navigationResponse.response().allHeaderFields())
-                new_headers = webview.pywebview_window.events.response_received.set(headers)
-
-                if new_headers:
-                    logger.warning('Editing response headers is not implemented on macOS')
+                response = Response(
+                    navigationResponse.response().URL().absoluteString(),
+                    navigationResponse.response().statusCode(),
+                    headers,
+                )
+                webview.pywebview_window.events.response_received.set(response)
 
                 decisionHandler(WebKit.WKNavigationResponsePolicyAllow)
             elif webview_settings['ALLOW_DOWNLOADS']:
@@ -369,10 +354,6 @@ class BrowserView:
             self.file_dlg.setAllowedFileTypes_(self.filter[option][1])
 
     class WebKitHost(WebKit.WKWebView):
-        @swizzle('WKWebView', b'handlesURLScheme:')
-        def handlesURLScheme_(self, scheme, protocol):
-            return False
-
         def performDragOperation_(self, sender):
             if sender.draggingSource() is None and _dnd_state['num_listeners'] > 0:
                 pboard = sender.draggingPasteboard()
