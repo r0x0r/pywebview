@@ -36,7 +36,7 @@ from .util import abspath, is_app, is_local_url
 WRHT_co = TypeVar('WRHT_co', bound=WSGIRequestHandler, covariant=True)
 WST_co = TypeVar('WST_co', bound=WSGIServer, covariant=True)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('pywebview')
 global_server = None
 
 
@@ -95,11 +95,12 @@ class BottleServer:
             app = apps[0]
             common_path = '.'
         else:
-            local_urls = [u for u in urls if is_local_url(u)]
-            common_path = (
-                os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else None
-            )
+            local_urls = [u.split('#')[0] for u in urls if is_local_url(u)]
+            common_path = os.path.commonpath(local_urls) if len(local_urls) > 0 else None
+            if common_path is not None and not os.path.isdir(abspath(common_path)):
+                common_path = os.path.dirname(common_path)
             server.root_path = abspath(common_path) if common_path is not None else None
+            logger.debug('HTTP server root path: %s' % server.root_path)
             app = bottle.Bottle()
 
             @app.post(f'/js_api/{server.uid}')

@@ -12,7 +12,7 @@ from threading import Event, Semaphore
 
 import clr
 
-from webview import FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, windows
+from webview import FileDialog, _state, windows
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -29,6 +29,7 @@ from System import Environment, Func, Int32, IntPtr, Type, UInt32, Array, Object
 from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF
 from System.Threading import ApartmentState, Thread, ThreadStart
 from System.Reflection import Assembly, BindingFlags
+from Microsoft.Win32 import SystemEvents
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 logger = logging.getLogger('pywebview')
@@ -157,8 +158,6 @@ def ExtendFrameIntoClientArea(hwnd):
 class BrowserView:
     instances = {}
 
-    app_menu_list = None
-
     class BrowserForm(WinForms.Form):
         def __init__(self, window, cache_dir):
             super().__init__()
@@ -172,6 +171,7 @@ class BrowserView:
 
             self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
+            hwnd = self.Handle.ToInt32()
 
             # for chromium edge, need this factor to modify the coordinates
             try:
@@ -181,16 +181,18 @@ class BrowserView:
 
             if window.initial_x is not None and window.initial_y is not None:
                 self.StartPosition = WinForms.FormStartPosition.Manual
-                self.Location = Point(window.initial_x, window.initial_y)
+                self.Location = Point(
+                    int(window.initial_x * self.scale_factor),
+                    int(window.initial_y * self.scale_factor)
+                )
             elif window.screen:
                 self.StartPosition = WinForms.FormStartPosition.Manual
                 x = int(
-                    window.screen.frame.X * self.scale_factor + (window.screen.width - window.initial_width) * self.scale_factor / 2
-                    if window.screen.frame.X >= 0
-                    else window.screen.frame.X * self.scale_factor - window.screen.width * self.scale_factor / 2
+                    window.screen.x * self.scale_factor + (window.screen.width - window.initial_width) * self.scale_factor / 2
+                    if window.screen.x >= 0
+                    else window.screen.X * self.scale_factor + window.screen.width / 2
                 )
-
-                y = int(window.screen.frame.Y * self.scale_factor + (window.screen.height - window.initial_height) * self.scale_factor / 2)
+                y = int(window.screen.y * self.scale_factor + (window.screen.height - window.initial_height) * self.scale_factor / 2)
                 self.Location = Point(x, y)
             else:
                 self.StartPosition = WinForms.FormStartPosition.CenterScreen
@@ -225,21 +227,21 @@ class BrowserView:
             if window.fullscreen:
                 self.toggle_fullscreen()
 
-            if window.shadow:
+            if window.shadow and not window.transparent:
                 # Should do this before set frameless
-                ExtendFrameIntoClientArea(self.Handle.ToInt32())
-                DwmSetWindowAttribute(self.Handle.ToInt32(), 2, 2, 4)
+                ExtendFrameIntoClientArea(hwnd)
+                DwmSetWindowAttribute(hwnd, 2, 2, 4)
 
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
 
-            if BrowserView.app_menu_list:
-                self.set_window_menu(BrowserView.app_menu_list)
+            if window.menu or _state['menu']:
+                self.set_window_menu(window.menu or _state['menu'])
 
             if is_cef:
                 self.browser = None
-                CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert, self)
+                CEF.create_browser(window, hwnd, BrowserView.alert, self)
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window, cache_dir)
                 self.webview = self.browser.webview
@@ -269,8 +271,40 @@ class BrowserView:
 
             self.localization = window.localization
 
+            self.update_title_bar_theme()
+            SystemEvents.UserPreferenceChanged += self.on_system_theme_changed
+
         def __str__(self):
             return f'<System.Windows.Forms object with {self.Handle} handle>'
+
+        def on_system_theme_changed(self, sender, e):
+            self.update_title_bar_theme()
+
+        def update_title_bar_theme(self):
+            if self.is_dark_theme():
+                DwmSetWindowAttribute(self.Handle.ToInt32(), 20, 1)
+                DwmSetWindowAttribute(self.Handle.ToInt32(), 38, 2)
+            else:
+                DwmSetWindowAttribute(self.Handle.ToInt32(), 20, 0)
+                DwmSetWindowAttribute(self.Handle.ToInt32(), 38, 1)
+
+        def is_dark_theme(self):
+            try:
+                personalize_key = winreg.OpenKey(
+                    winreg.HKEY_CURRENT_USER,
+                    r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                    0,
+                    winreg.KEY_READ
+                )
+                system_theme, _ = winreg.QueryValueEx(personalize_key, "SystemUsesLightTheme")
+                winreg.CloseKey(personalize_key)
+                if system_theme == 0:
+                    return True
+                else:
+                    return False
+            except Exception as e:
+                logger.error(f'Error while getting system theme: {e}')
+                return None
 
         def on_activated(self, *_):
             if not self.pywebview_window.focus:
@@ -285,6 +319,10 @@ class BrowserView:
             def _shutdown():
                 if is_cef:
                     CEF.shutdown()
+                elif is_chromium:
+                    self.hide()
+                    self.browser.clear_user_data()
+
                 WinForms.Application.Exit()
 
             if not is_cef:
@@ -633,7 +671,7 @@ def init_storage():
 
 
 def setup_app():
-    # MUST be called before create_window and set_app_menu
+    # MUST be called before create_window
     global _already_set_up_app
     if _already_set_up_app:
         return
@@ -719,10 +757,10 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         directory = os.environ['HOMEPATH']
 
     try:
-        if dialog_type == FOLDER_DIALOG:
+        if dialog_type == FileDialog.FOLDER:
             file_path = OpenFolderDialog.show(i, directory, allow_multiple)
 
-        elif dialog_type == OPEN_DIALOG:
+        elif dialog_type == FileDialog.OPEN:
             dialog = WinForms.OpenFileDialog()
 
             dialog.Multiselect = allow_multiple
@@ -742,7 +780,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
             else:
                 file_path = None
 
-        elif dialog_type == SAVE_DIALOG:
+        elif dialog_type == FileDialog.SAVE:
             dialog = WinForms.SaveFileDialog()
             if len(file_types) > 0:
                 dialog.Filter = '|'.join(
@@ -811,20 +849,6 @@ def load_html(content, base_uri, uid):
         CEF.load_html(inject_base_uri(content, base_uri), uid)
     elif i:
         i.load_html(content, base_uri)
-
-
-def set_app_menu(app_menu_list):
-    """
-    Create a custom menu for the app bar menu (on supported platforms).
-    Otherwise, this menu is used across individual windows.
-
-    Args:
-        app_menu_list ([webview.menu.Menu])
-    """
-    # WindowsForms doesn't allow controls to have more than one parent, so we
-    #     save the app_menu_list and recreate the menu for each window as they
-    #     are created.
-    BrowserView.app_menu_list = app_menu_list
 
 
 def get_active_window():
@@ -932,7 +956,7 @@ def get_size(uid):
 
 
 def get_screens():
-    screens = [Screen(s.Bounds.Width, s.Bounds.Height, s.WorkingArea) for s in WinForms.Screen.AllScreens]
+    screens = [Screen(s.Bounds.X, s.Bounds.Y, s.Bounds.Width, s.Bounds.Height, s.WorkingArea) for s in WinForms.Screen.AllScreens]
     return screens
 
 

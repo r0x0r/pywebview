@@ -11,6 +11,7 @@ http://github.com/r0x0r/pywebview/
 from __future__ import annotations
 
 import datetime
+import enum
 import logging
 import os
 import re
@@ -29,8 +30,7 @@ from webview.guilib import initialize, GUIType
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import (ImmutableDict, _TOKEN, abspath, base_uri, escape_line_breaks, escape_string,
-                          is_app, is_local_url, parse_file_type)
+from webview.util import ImmutableDict, _TOKEN, abspath, is_app, is_local_url
 from webview.window import Window
 
 __all__ = (
@@ -62,21 +62,39 @@ logger.addHandler(_handler)
 log_level = logging._nameToLevel[os.environ.get('PYWEBVIEW_LOG', 'info').upper()]
 logger.setLevel(log_level)
 
-OPEN_DIALOG = 10
-FOLDER_DIALOG = 20
-SAVE_DIALOG = 30
+@module_property
+def OPEN_DIALOG():
+    logger.warning("OPEN_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.OPEN' instead.")
+    return 10
 
-DRAG_REGION_SELECTOR = '.pywebview-drag-region'
-DEFAULT_HTTP_PORT = 42001
+@module_property
+def FOLDER_DIALOG():
+    logger.warning("FOLDER_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.FOLDER' instead.")
+    return 20
+
+@module_property
+def SAVE_DIALOG():
+    logger.warning("SAVE_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.SAVE' instead.")
+    return 30
+
+class FileDialog(enum.IntEnum):
+    OPEN= 10
+    FOLDER = 20
+    SAVE = 30
+
 
 settings = ImmutableDict({
     'ALLOW_DOWNLOADS': False,
     'ALLOW_FILE_URLS': True,
+    'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
+    'DEFAULT_HTTP_PORT': 42001,
     'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
     'OPEN_DEVTOOLS_IN_DEBUG': True,
     'REMOTE_DEBUGGING_PORT': None,
     'IGNORE_SSL_ERRORS': False,
+    'SHOW_DEFAULT_MENUS': True,
 })
+
 
 _state = ImmutableDict({
     'debug': False,
@@ -85,14 +103,21 @@ _state = ImmutableDict({
     'user_agent': None,
     'http_server': False,
     'ssl': False,
-    'icon': None
+    'icon': None,
+    'menu': None
 })
+
+
+@module_property
+def DRAG_REGION_SELECTOR():
+    logger.warning("DRAG_REGION_SELECTOR is deprecated and will be removed in a future version. Use 'settings[\"DRAG_REGION_SELECTOR\"]' instead.")
+    return settings['DRAG_REGION_SELECTOR']
+
 
 guilib = None
 
 token = _TOKEN
 windows: list[Window] = []
-menus: list[Menu] = []
 renderer: str | None = None
 
 
@@ -190,7 +215,7 @@ def start(
     # start the global server if it's not running and we need it
     if (http.global_server is None) and (http_server or has_local_urls):
         if not _state['private_mode'] and not http_port:
-            http_port = DEFAULT_HTTP_PORT
+            http_port = settings['DEFAULT_HTTP_PORT']
         *_, server = http.start_global_server(
             http_port=http_port, urls=urls, server=server, **server_args
         )
@@ -216,7 +241,9 @@ def start(
         thread.start()
 
     if menu:
-        guilib.set_app_menu(menu)
+        _state['menu'] = menu
+        #guilib.set_app_menu(menu)
+
     guilib.create_window(windows[0])
     # keyfile is deleted by the ServerAdapter right after wrap_socket()
     if certfile:
@@ -225,7 +252,7 @@ def start(
 
 def create_window(
     title: str,
-    url: str | None = None,
+    url: str | callable | None = None,
     html: str | None = None,
     js_api: Any = None,
     width: int = 800,
@@ -251,6 +278,7 @@ def create_window(
     zoomable: bool = False,
     draggable: bool = False,
     vibrancy: bool = False,
+    menu: list[Menu] = [],
     localization: Mapping[str, str] | None = None,
     server: type[http.ServerType] = http.BottleServer,
     http_port: int | None = None,
@@ -260,7 +288,7 @@ def create_window(
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
     :param title: Window title
-    :param url: URL to load
+    :param url: URL or WSGI/ASGI app to load
     :param html: HTML content to load
     :param width: window width. Default is 800px
     :param height: window height. Default is 600px
@@ -280,6 +308,7 @@ def create_window(
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
+    :param menu: List of menus to be included in the window menu
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :return: window object.
@@ -319,6 +348,7 @@ def create_window(
         zoomable,
         draggable,
         vibrancy,
+        menu,
         localization,
         server=server,
         http_port=http_port,

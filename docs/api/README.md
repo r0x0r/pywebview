@@ -9,7 +9,6 @@ webview.active_window()
 
 Get an instance of the currently active window
 
-
 ## webview.create_window
 
 ``` python
@@ -109,7 +108,8 @@ webview.settings = {
   'ALLOW_FILE_URLS': True,
   'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
   'OPEN_DEVTOOLS_IN_DEBUG': True,
-  'REMOTE_DEBUGGING_PORT': None
+  'REMOTE_DEBUGGING_PORT': None,
+  'SHOW_DEFAULT_MENUS': True
 }
 ```
 
@@ -120,6 +120,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
 * `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.
+* `SHOW_DEFAULT_MENUS` Show default application menus on macOS. Enabled by default.
 
 #### Examples
 
@@ -560,7 +561,7 @@ Create a confirmation (Ok / Cancel) dialog.
 window.create_file_dialog(dialog_type=FileDialog.OPEN, directory='', allow_multiple=False, save_filename='', file_types=())
 ```
 
-Create an open file (`webview.FileDialog.OPEN`), open folder (`webview.FileDialog.FOLDER`) or save file (`webview.FileDialog.OPEN.SAVE`) dialog.
+Create an open file (`webview.FileDialog.OPEN`), open folder (`webview.FileDialog.FOLDER`) or save file (`webview.FileDialog.SAVE`) dialog.
 
 Return a tuple of selected files, None if cancelled.
 
@@ -899,7 +900,7 @@ The event is fired when pywebview window is shown.
 
 ### window.state
 
-An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. Object mutations are not detected. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
+An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete` (`webview.state.StateEventType` enum). `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
 
 ## Javascript API
 

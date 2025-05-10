@@ -3,11 +3,11 @@ window.pywebview = {
   platform: '%(platform)s',
   api: {},
   _eventHandlers: {},
-  _returnValues: {},
+  _returnValuesCallbacks: {},
 
   _createApi: function (funcList) {
     function sanitize_params(params) {
-      var reservedWords = (filtered_js_reserved_words = [
+      var reservedWords = [
         'case',
         'catch',
         'const',
@@ -31,7 +31,7 @@ window.pywebview = {
         'typeof',
         'var',
         'void',
-      ]);
+      ];
 
       for (var i = 0; i < params.length; i++) {
         var param = params[i];
@@ -76,7 +76,7 @@ window.pywebview = {
         sanitize_params(params),
         funcBody
       );
-      window.pywebview._returnValues[funcName] = {};
+      window.pywebview._returnValuesCallbacks[funcName] = {};
     }
   },
 
@@ -134,27 +134,23 @@ window.pywebview = {
   },
 
   _checkValue: function (funcName, resolve, reject, id) {
-    var check = setInterval(function () {
-      var returnObj = window.pywebview._returnValues[funcName][id];
-      if (returnObj) {
-        var value = returnObj.value;
-        var isError = returnObj.isError;
+    window.pywebview._returnValuesCallbacks[funcName][id] = function(returnObj) {
+      var value = returnObj.value;
+      var isError = returnObj.isError;
 
-        delete window.pywebview._returnValues[funcName][id];
-        clearInterval(check);
+      delete window.pywebview._returnValuesCallbacks[funcName][id];
 
-        if (isError) {
-          var pyError = JSON.parse(value);
-          var error = new Error(pyError.message);
-          error.name = pyError.name;
-          error.stack = pyError.stack;
+      if (isError) {
+        var pyError = JSON.parse(value);
+        var error = new Error(pyError.message);
+        error.name = pyError.name;
+        error.stack = pyError.stack;
 
-          reject(error);
-        } else {
-          resolve(JSON.parse(value));
-        }
+        reject(error);
+      } else {
+        resolve(JSON.parse(value));
       }
-    }, 1);
+    };
   },
   _asyncCallback: function (result, id) {
     window.pywebview._jsApiCallback('pywebviewAsyncCallback', result, id);

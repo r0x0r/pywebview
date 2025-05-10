@@ -17,10 +17,12 @@ import webview.http as http
 from webview.errors import JavascriptException, WebViewException
 from webview.event import Event, EventContainer
 from webview.localization import original_localization
+from webview.menu import Menu
 from webview.util import (base_uri, escape_string, is_app, is_local_url, parse_file_type)
 from webview.dom.dom import DOM
 from webview.dom.element import Element
 from webview.screen import Screen
+from webview.state import State
 
 
 P = ParamSpec('P')
@@ -107,6 +109,7 @@ class Window:
         zoomable: bool = False,
         draggable: bool = False,
         vibrancy: bool = False,
+        menu: list[Menu] = [],
         localization: Mapping[str, str] | None = None,
         http_port: int | None = None,
         server: type[http.ServerType] | None = None,
@@ -142,6 +145,7 @@ class Window:
         self.localization_override = localization
         self.vibrancy = vibrancy
         self.screen = screen
+        self.menu = menu
 
         # Server config
         self._http_port = http_port
@@ -178,6 +182,7 @@ class Window:
         self.dom = DOM(self)
         self.gui = None
         self.native = None # set in the gui after window creation
+        self.state = State(self)
 
     def _initialize(self, gui, server: http.BottleServer | None = None):
         self.gui = gui
@@ -514,7 +519,7 @@ class Window:
     ) -> Sequence[str] | None:
         """
         Create a file dialog
-        :param dialog_type: Dialog type: open file (OPEN_DIALOG), save file (SAVE_DIALOG), open folder (OPEN_FOLDER). Default
+        :param dialog_type: Dialog type: open file (FileDialog.OPEN), save file (FileDialog.SAVE), open folder (FileDialog.OPEN). Default
                             is open file.
         :param directory: Initial directory
         :param allow_multiple: Allow multiple selection. Default is false.

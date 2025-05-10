@@ -6,13 +6,12 @@ from threading import Semaphore, Thread, main_thread
 from typing import Any
 from uuid import uuid1
 
-from webview import (FOLDER_DIALOG, OPEN_DIALOG, SAVE_DIALOG, _state, settings,
-                     parse_file_type, windows)
+from webview import FileDialog, _state, settings, windows
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.models import Request
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, parse_file_type
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
@@ -115,6 +114,9 @@ class BrowserView:
         gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(), style_provider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
+
+        if window.menu:
+            logger.warning('Window specific menu is not supported on GTK')
 
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_policy(gtk.PolicyType.NEVER, gtk.PolicyType.NEVER)
@@ -356,7 +358,7 @@ class BrowserView:
 
     def on_download_decide_destination(self, download, suggested_filename):
         destination = self.create_file_dialog(
-            SAVE_DIALOG,
+            FileDialog.SAVE,
             glib.get_user_special_dir(glib.UserDirectory.DIRECTORY_DOWNLOAD),
             False,
             suggested_filename,
@@ -479,11 +481,11 @@ class BrowserView:
         return False
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_types):
-        if dialog_type == FOLDER_DIALOG:
+        if dialog_type == FileDialog.FOLDER:
             gtk_dialog_type = gtk.FileChooserAction.SELECT_FOLDER
             title = self.localization['linux.openFolder']
             button = gtk.STOCK_OPEN
-        elif dialog_type == OPEN_DIALOG:
+        elif dialog_type == FileDialog.OPEN:
             gtk_dialog_type = gtk.FileChooserAction.OPEN
             if allow_multiple:
                 title = self.localization['linux.openFiles']
@@ -491,7 +493,7 @@ class BrowserView:
                 title = self.localization['linux.openFile']
 
             button = gtk.STOCK_OPEN
-        elif dialog_type == SAVE_DIALOG:
+        elif dialog_type == FileDialog.SAVE:
             gtk_dialog_type = gtk.FileChooserAction.SAVE
             title = self.localization['global.saveFile']
             button = gtk.STOCK_SAVE
@@ -507,13 +509,13 @@ class BrowserView:
         dialog.set_current_folder(directory)
         self._add_file_filters(dialog, file_types)
 
-        if dialog_type == SAVE_DIALOG:
+        if dialog_type == FileDialog.SAVE:
             dialog.set_current_name(save_filename)
 
         response = dialog.run()
 
         if response == gtk.ResponseType.OK:
-            if dialog_type == SAVE_DIALOG:
+            if dialog_type == FileDialog.SAVE:
                 file_name = (dialog.get_filename(),)
             else:
                 file_name = dialog.get_filenames()
@@ -634,12 +636,7 @@ class BrowserView:
         elif js_value.is_string():
             return js_value.to_string()
         elif js_value.is_object():
-            js_object = js_value.to_object()
-            python_dict = {}
-            properties = js_object.get_property_names()
-            for prop in properties:
-                python_dict[prop] = self._js_value_to_python(js_object.get_property(prop))
-            return python_dict
+            return json.loads(js_value.to_json(2))
         else:
             logger.error(f'Unsupported JavaScriptCore.Value type: {js_value}')
             return js_value.to_string()
@@ -655,10 +652,18 @@ class BrowserView:
 
 
 def setup_app():
-    # MUST be called before create_window and set_app_menu
+    def set_menubar(app):
+        app.set_menubar(app_menu)
+
     global _app
-    if _app is None:
-        _app = gtk.Application.new(None, 0)
+    if _app is not None:
+        return
+
+    _app = gtk.Application.new(None, 0)
+
+    if _state['menu']:
+        app_menu = create_menu(_state['menu'])
+        _app.connect('startup', set_menubar)
 
 
 def create_window(window):
@@ -837,15 +842,7 @@ def create_confirmation_dialog(title, message, uid):
     return result
 
 
-def set_app_menu(app_menu_list):
-    """
-    Create a custom menu for the app bar menu (on supported platforms).
-    Otherwise, this menu is used across individual windows.
-
-    Args:
-        app_menu_list ([webview.menu.Menu])
-    """
-    global _app_actions
+def create_menu(app_menu_list):
 
     def action_callback(action, parameter):
         function = _app_actions.get(action.get_name())
@@ -885,17 +882,13 @@ def set_app_menu(app_menu_list):
 
         supermenu.append_submenu(title, m)
 
-    global _app
-
     menubar = Gio.Menu()
 
     for app_menu in app_menu_list:
         create_submenu(app_menu.title, app_menu.items, menubar)
 
-    def set_menubar(app):
-        app.set_menubar(menubar)
+    return menubar
 
-    _app.connect('startup', set_menubar)
 
 
 def get_active_window():
@@ -984,7 +977,7 @@ def get_screens():
     n = display.get_n_monitors()
     monitors = [Gdk.Display.get_monitor(display, i) for i in range(n)]
     geometries = [Gdk.Monitor.get_geometry(m) for m in monitors]
-    screens = [Screen(geom.width, geom.height, geom) for geom in geometries]
+    screens = [Screen(geom.x, geom.y, geom.width, geom.height, geom) for geom in geometries]
 
     return screens
 

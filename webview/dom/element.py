@@ -434,7 +434,7 @@ class Element:
         """)
 
         for event in events:
-            setattr(self.events, event, DOMEvent(event, self._window, self))
+            setattr(self.events, event, DOMEvent(event, self))
 
     @_exists
     def __str__(self) -> str:

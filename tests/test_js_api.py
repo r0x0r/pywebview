@@ -24,6 +24,12 @@ def test_concurrent():
     run_test(webview, window, concurrent)
 
 
+def test_skip_existing():
+    api = Api()
+    window = webview.create_window('JSBridge test', html='<html><body>TEST</body></html>', js_api=api)
+    run_test(webview, window, skip_existing)
+
+
 class NestedApi:
     @classmethod
     def get_int(cls):
@@ -38,6 +44,7 @@ class Api:
 
     nested = NestedApi
     nested_instance = NestedApi()
+    nested_instance_duplicate = nested_instance
 
     def get_int(self):
         return 420
@@ -97,3 +104,6 @@ def concurrent(window):
 
     for e in filter(lambda r: r, [f.exception() for f in futures]):
         raise e
+
+def skip_existing(window):
+    assert window.evaluate_js('window.pywebview.api.nested_instance_duplicate === undefined')

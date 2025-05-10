@@ -1,13 +1,6 @@
-# DOM Support
+# DOM support
 
 Starting from 5.0 _pywebview_ has got support for basic DOM manipulation, traversal operations and DOM events. See these examples for details [DOM Events](/examples/dom_events), [DOM Manipulation](/examples/dom_manipulation) and [DOM Traversal](/examples/dom_traversal).
-
-## Global objects
-
-``` python
-webview.dom.window # Return serialized Javascript window object
-webview.dom.document # Return serialized Javascript document object
-```
 
 ## Create element
 
@@ -18,11 +11,11 @@ element = window.dom.create_element('<h1>Warning</h1>' parent='#container', mode
 
 Manipulation Mode can be one of following `LastChild`, `FirstChild`, `Before`, `After` or `Replace`. `LastChild` is a default value.
 
-## Get element(s)
+## Get elements
 
 ``` python
 element = window.dom.get_element('#element-id') # returns a first matching Element or None
-elements = window.dom.get_elements(selector: str) # returns a list of matching Elements
+elements = window.dom.get_elements('div') # returns a list of matching Elements
 ```
 
 ## Basic information about element
@@ -41,6 +34,7 @@ Some element's properties can be set or modified
 
 ``` python
 element.id = 'new-id'
+element.classes.add('green-text') # add .green-text class
 element.classes.remove('red-background') # remove .red-background class
 element.classes.toggle('blue-border') # toggle .blue-border class
 element.style['width'] = '200px'
@@ -48,7 +42,6 @@ element.tabindex = 108
 element.text = 'New content'
 element.value = 'Luna'
 ```
-
 
 ## Manupulate element
 
@@ -69,6 +62,14 @@ element.children # return a list of element's children
 element.next # return a next element in the DOM hierarchy or None
 element.parent # return element's parent
 element.previous # return a previous element in the DOM hierarchy or None
+```
+
+`body`, `document` and `window` objects can be directly accessed via
+
+```python
+window.dom.body
+window.dom.document
+window.dom.window
 ```
 
 ### Element visibility and focus
@@ -93,20 +94,27 @@ DOM events can be subscribed directly from Python
 def print_handler(e):
   print(e)
 
-def shout_handler():
+def shout_handler(e):
   print('!!!!!!!!')
   print(e)
   print('!!!!!!!!')
 
 element.on('click', print_handler)
-element.events.click += shout_handler # these two ways to unsubscribe from events are equivalent
+element.events.click += shout_handler # these two ways to subscribe to an event are equivalent
 
 element.off('click', print_handler)
 element.events.click -= shout_handler # as well as these two
 ```
 
+If you need more control over how DOM events are handled, you can use `webview.dom.DOMEventHandler`. It allows setting `preventDefault`, `stopPropagation`, `stopImmediatePropagation` values, as well as
+debouncing event handlers.
+
+```python
+window.dom.document.events.dragover += DOMEventHandler(on_drag, prevent_default=True, stop_propagation=True, stop_immediate_propagation=True, debounce=500)
+```
+
 _pywebview_ enhances the `drop` event to support full file path information.
 
 ``` python
-window.dom.document.events.drop += lambda e: print(e['domTransfer']['files'][0]) # print dropped file full path information
+window.dom.document.events.drop += lambda e: print(e['domTransfer']['files'][0]) # print a full path of the dropped file
 ```

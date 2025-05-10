@@ -129,12 +129,19 @@ def get_test_name():
     return os.environ.get('PYTEST_CURRENT_TEST').split(':')[-1].split(' ')[0]
 
 
-def move_mouse_cocoa():
-    if sys.platform == 'darwin':
-        from .util_cocoa import mouseMoveRelative
+def wait_release(lock, timeout=3, count=0):
+    """
+    Release a lock only if after it is locked. If the lock is not released within the timeout, return False.
+    """
+    if lock.locked():
+        lock.release()
+        return True
+    elif count * 0.1 < timeout:
+        time.sleep(0.1)
+        wait_release(lock)
+    else:
+        return False
 
-        time.sleep(1)
-        mouseMoveRelative(1, 1)
 
 
 def take_screenshot():
@@ -153,7 +160,6 @@ def _destroy_window(_, window, delay):
             time.sleep(delay)
             window.destroy()
 
-            #move_mouse_cocoa()
         except Exception as e:
             logger.exception(e, exc_info=True)
 

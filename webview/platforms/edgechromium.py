@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 import webbrowser
 import winreg
 from threading import Semaphore
@@ -17,8 +18,9 @@ clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import Action, Func, String, Type, Uri, Object
+from System import Action, Convert, Func, String, Type, Uri, Object
 from System.Collections.Generic import List
+from System.Diagnostics import Process
 from System.Drawing import Color
 from System.Globalization import CultureInfo
 from System.Threading.Tasks import Task, TaskScheduler
@@ -42,6 +44,7 @@ class EdgeChrome:
         self.webview = WebView2()
         props = CoreWebView2CreationProperties()
         props.UserDataFolder = cache_dir
+        self.user_data_folder = props.UserDataFolder
         props.set_IsInPrivateModeEnabled(_state['private_mode'])
         props.AdditionalBrowserArguments = '--disable-features=ElasticOverscroll'
 
@@ -74,22 +77,21 @@ class EdgeChrome:
         self.ishtml = False
         self.html = DEFAULT_HTML
 
-        if _state['storage_path']:
-            self.setup_webview2_environment()
-        else:
-            self.webview.EnsureCoreWebView2Async(None)
+        self.webview.EnsureCoreWebView2Async(None)
 
-    def setup_webview2_environment(self):
-        def _callback(task):
-            self.webview.EnsureCoreWebView2Async(task.Result)
+    def clear_user_data(self):
+        if not _state['private_mode']:
+            return
 
-        environment = CoreWebView2Environment.CreateAsync(
-            userDataFolder=_state['storage_path']
-        )
-        environment.ContinueWith(
-            Action[Task[CoreWebView2Environment]](_callback),
-            self.syncContextTaskScheduler,
-        )
+        process_id = Convert.ToInt32(self.webview.CoreWebView2.BrowserProcessId)
+        process = Process.GetProcessById(process_id)
+        self.webview.Dispose()
+        process.WaitForExit(3000)
+
+        try:
+            shutil.rmtree(self.user_data_folder)
+        except Exception as e:
+            logger.warning(f'Failed to delete user data folder: {e}')
 
     def evaluate_js(self, script, parse_json):
         def _callback(res):

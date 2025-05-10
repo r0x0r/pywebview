@@ -45,7 +45,6 @@ DEFAULT_HTML = """
 logger = logging.getLogger('pywebview')
 
 
-
 class ImmutableDict(UserDict):
     """"
     A dictionary that does not allow adding new keys or deleting existing ones.
@@ -89,6 +88,9 @@ def get_app_root() -> str:
 
     if hasattr(sys, '_MEIPASS'):  # Pyinstaller
         return sys._MEIPASS
+
+    if os.getenv('RESOURCEPATH'): # py2app
+        return os.getenv('RESOURCEPATH')
 
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
@@ -169,10 +171,11 @@ def inject_pywebview(platform: str, window: Window) -> str:
         return params
 
     def get_functions(obj: object, base_name: str = '', functions: dict[str, object] = None):
-        if obj in exposed_objects:
+        obj_id = id(obj)
+        if obj_id in exposed_objects:
             return functions
         else:
-            exposed_objects.append(obj)
+            exposed_objects.append(obj_id)
 
         if functions is None:
             functions = {}
@@ -228,6 +231,11 @@ def inject_pywebview(platform: str, window: Window) -> str:
     thread.start()
 
 
+def inject_state(window: Window):
+    """ Inject state after page is loaded"""
+
+    json_string = json.dumps(window.state)
+
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
     """
     Calls a function from the JS API and executes it in Python. The function is executed in a separate
@@ -237,14 +245,14 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         try:
             result = func(*func_params)
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
-            code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{value: \'{result}\'}}'
+            retval = f"{{value: \'{result}\'}}"
         except Exception as e:
             logger.error(traceback.format_exc())
             error = {'message': str(e), 'name': type(e).__name__, 'stack': traceback.format_exc()}
             result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
-            code = f'window.pywebview._returnValues["{func_name}"]["{value_id}"] = {{isError: true, value: \'{result}\'}}'
+            retval = f"{{isError: true, value: \'{result}\'}}"
 
-        window.evaluate_js(code)
+        window.evaluate_js(f'window.pywebview._returnValuesCallbacks["{func_name}"]["{value_id}"]({retval})')
 
     def get_nested_attribute(obj: object, attr_str: str):
         attributes = attr_str.split('.')
@@ -297,6 +305,15 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         del window._callbacks[value_id]
         return
 
+    if func_name == 'pywebviewStateUpdate':
+        window.state.__setattr__(param['key'], param['value'], False)
+        return
+
+    if func_name == 'pywebviewStateDelete':
+        special_key = '__pywebviewHaltUpdate__' + param
+        delattr(window.state, special_key)
+        return
+
     func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
 
     if func is not None:
@@ -318,7 +335,8 @@ def load_js_files(window: Window, platform: str) -> str:
     Return the concatenated JS code and the finish script, which must be loaded last and
     separately in order to
     """
-    js_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'js')
+    js_dir = get_js_dir()
+    logger.debug('Loading JS files from %s', js_dir)
     js_files = glob(os.path.join(js_dir, '**', '*.js'), recursive=True)
     ordered_js_files = sort_js_files(js_files)
     js_code = ''
@@ -340,10 +358,14 @@ def load_js_files(window: Window, platform: str) -> str:
             elif name == 'customize':
                 params = {
                     'text_select': str(window.text_select),
-                    'drag_selector': webview.DRAG_REGION_SELECTOR,
+                    'drag_selector': webview.settings['DRAG_REGION_SELECTOR'],
                     'zoomable': str(window.zoomable),
                     'draggable': str(window.draggable),
-                    'easy_drag': str(platform == 'chromium' and window.easy_drag and window.frameless).lower(),
+                    'easy_drag': str(platform == 'edgechromium' and window.easy_drag and window.frameless)
+                }
+            elif name == 'state':
+                params = {
+                    'state': json.dumps(window.state)
                 }
             elif name == 'finish':
                 finish_script = content
@@ -356,12 +378,36 @@ def load_js_files(window: Window, platform: str) -> str:
     return js_code, finish_script
 
 
+def get_js_dir() -> str:
+    """
+    Get the path to the directory with Javascript files.
+    """
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'js')
+
+    if os.path.exists(path):
+        return path
+
+    # try py2app frozen path. This is hacky, but it works.
+    # See https://github.com/r0x0r/pywebview/issues/1565
+    if '.zip' in path:
+        base_path = path.split('.zip')[0]
+        dir = os.path.dirname(base_path)
+
+        for file in os.listdir(dir):
+            if file.startswith('python') and os.path.isdir(os.path.join(dir, file)):
+                js_path = os.path.join(dir, file, 'webview', 'js')
+                if os.path.exists(js_path):
+                    return js_path
+
+    raise FileNotFoundError('Cannot find JS directory in %s' % path)
+
+
 def sort_js_files(js_files: list[str]) -> list[str]:
     """
     Sorts JS files in the order they should be loaded. Polyfill first, then API, then the rest and
     finally finish.js that fires a pywebviewready event.
     """
-    LOAD_ORDER = { 'polyfill': 0, 'api': 1 }
+    LOAD_ORDER = { 'polyfill': 0, 'api': 1, 'state': 2 }
 
     ordered_js_files = []
     remaining_js_files = []
