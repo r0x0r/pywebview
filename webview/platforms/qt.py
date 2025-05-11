@@ -874,6 +874,8 @@ def create_window(window):
             _app_menu = QMenuBar()
             _app_menu.setNativeMenuBar(False)
             create_menu(_state['menu'], _app_menu)
+        else:
+            _app_menu = None
 
         _app = QApplication.instance() or QApplication(sys.argv)
 
