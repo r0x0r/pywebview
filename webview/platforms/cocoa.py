@@ -322,11 +322,12 @@ class BrowserView:
 
         def webView_decidePolicyForNavigationResponse_decisionHandler_(self, webview, navigationResponse, decisionHandler):
             if navigationResponse.canShowMIMEType():
-                headers = dict(navigationResponse.response().allHeaderFields())
+                response_ = navigationResponse.response()
+                headers = dict(response_.allHeaderFields())
                 response = Response(
-                    navigationResponse.response().URL().absoluteString(),
-                    navigationResponse.response().statusCode(),
-                    headers,
+                    response_.URL().absoluteString(),
+                    response_.statusCode(),
+                    headers
                 )
                 webview.pywebview_window.events.response_received.set(response)
 
@@ -524,58 +525,6 @@ class BrowserView:
             super(BrowserView.WebKitHost, self).keyDown_(event)
 
 
-    class SchemeHandler(AppKit.NSObject):
-        """
-        Custom WKURLSchemeHandler to intercept and proxy traffic.
-        """
-        def init(self):
-            self = super(BrowserView.SchemeHandler, self).init()
-            if self:
-                self.session = None
-            return self
-
-        def webView_startURLSchemeTask_(self, webView, urlSchemeTask):
-            """
-            Intercepts the request and routes it through the proxy.
-            """
-            print('Intercepted request:', urlSchemeTask.request().URL().absoluteString())
-            # Configure the proxy server
-            config = Foundation.NSURLSessionConfiguration.defaultSessionConfiguration()
-            # config.connectionProxyDictionary = {
-            #     "HTTPEnable": 1,
-            #     "HTTPProxy": "127.0.0.1",
-            #     "HTTPPort": 8888,
-            #     "HTTPSEnable": 1,
-            #     "HTTPSProxy": "127.0.0.1",
-            #     "HTTPSPort": 8888,
-            # }
-
-            # Create a session with the proxy configuration
-            if not self.session:
-                self.session =Foundation.NSURLSession.sessionWithConfiguration_(config)
-
-            # Create a task for the intercepted request
-            request = urlSchemeTask.request()
-            task = self.session.dataTaskWithRequest_completionHandler_(
-                request, lambda data, response, error: self.handle_response(urlSchemeTask, data, response, error)
-            )
-            task.resume()
-        def webView_stopURLSchemeTask_(self, webview, task):
-            """Handle cancellation of the task"""
-            print("Task stopped")
-
-        def handle_response(self, urlSchemeTask, data, response, error):
-            """
-            Handles the response from the proxy and forwards it back to the web view.
-            """
-            if error:
-                urlSchemeTask.didFailWithError_(error)
-            else:
-                urlSchemeTask.didReceiveResponse_(response)
-                urlSchemeTask.didReceiveData_(data)
-                urlSchemeTask.didFinish()
-
-
     def __init__(self, window):
         BrowserView.instances[window.uid] = self
         self.uid = window.uid
@@ -643,7 +592,6 @@ class BrowserView:
         frame.size.height = window.initial_height
         self.window.setFrame_display_(frame, True)
 
-        schemeHandler = BrowserView.SchemeHandler.alloc().init()
         config = WebKit.WKWebViewConfiguration.alloc().init()
         self.webview = BrowserView.WebKitHost.alloc().initWithFrame_configuration_(rect, config).retain()
         self.webview.pywebview_window = window
@@ -662,8 +610,6 @@ class BrowserView:
             self._browserDelegate, 'browserDelegate'
         )
 
-        config.setURLSchemeHandler_forURLScheme_(schemeHandler, 'http')
-        config.setURLSchemeHandler_forURLScheme_(schemeHandler, 'https')
         self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
 
         if _state['private_mode']:
