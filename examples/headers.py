@@ -1,7 +1,7 @@
 """Subscribe and unsubscribe to pywebview events."""
 
 import webview
-
+from bottle import Bottle, request
 
 def on_request(window, request):
     request.headers['pywebview'] = 'header'
@@ -11,12 +11,19 @@ def on_response(window, response):
     print(response)
 
 
+app = Bottle()
+
+@app.route('/')
+def display_headers():
+    headers = dict(request.headers)
+    return '<br>'.join(f'{key}: {value}' for key, value in headers.items())
+
 if __name__ == '__main__':
     window = webview.create_window(
-        'Headers', 'https://httpbin.org/headers'
+        'Headers', app
     )
 
     window.events.request_sent += on_request
     window.events.response_received += on_response
 
-    webview.start(private_mode=False)
+    webview.start(debug=True)
