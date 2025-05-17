@@ -12,6 +12,7 @@ from jnius import autoclass, cast, java_method, PythonJavaClass
 from android.runnable import Runnable, run_on_ui_thread
 
 from webview import _state, settings
+from webview.models import Request, Response
 from webview.util import create_cookie, js_bridge_call, inject_pywebview
 
 AlertDialogBuilder = autoclass('android.app.AlertDialog$Builder')
@@ -98,30 +99,57 @@ class JsApiCallbackWrapper(PythonJavaClass):
             Runnable(self.callback)(func, params, id)
 
 
+class RequestInterceptor(PythonJavaClass):
+    __javacontext__ = 'app'
+    __javainterfaces__ = ['com/pywebview/WebViewRequestInterceptor']
+
+    def __init__(self, webview_instance):
+        super().__init__()
+        self.webview = webview_instance
+
+    @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
+    def onRequest(self, url, method, headers_json):
+        # Parse headers from JSON string instead of Map
+        headers = json.loads(headers_json) if headers_json else {}
+
+        request = Request(url, method, headers)
+        self.webview.pywebview_window.events.request_sent.set(request)
+
+    @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
+    def onResponse(self, url, status_code_str, headers_json):
+        # Convert status_code from string to int
+        status_code = int(status_code_str)
+        # Parse headers from JSON string
+        headers = json.loads(headers_json) if headers_json else {}
+
+        response = Response(url, status_code, headers)
+        self.webview.pywebview_window.events.response_received.set(response)
+
+
 def run_ui_thread(f, *args, **kwargs):
     Runnable(f)(args, kwargs)
 
 
 class BrowserView(Widget):
     def __init__(self, window, **kwargs):
-        self.window = window
+        self.pywebview_window = window
         self.webview = None
         self.dialog = None
         super(BrowserView, self).__init__(**kwargs)
-        self.window.native = self
+        self.pywebview_window.native = self
         Clock.schedule_once(lambda dt: run_ui_thread(self.create_webview), 0)
         self.is_fullscreen = False
 
     def create_webview(self, *args):
         def js_api_handler(func, params, id):
-            js_bridge_call(self.window, func, json.loads(params), id)
+            js_bridge_call(self.pywebview_window, func, json.loads(params), id)
 
         def chrome_callback(event, data):
             print(event, data)
 
         def webview_callback(event, data):
             if event == 'onPageFinished':
-                inject_pywebview(renderer, self.window)
+                inject_pywebview(renderer, self.pywebview_window)
 
                 if not _state['private_mode']:
                     CookieManager.getInstance().setAcceptCookie(True)
@@ -138,8 +166,16 @@ class BrowserView(Widget):
                     self._cookies[url] = list(set(self._cookies[url] + cookies['cookies']))
                 else:
                     self._cookies[url] = cookies['cookies']
-            #elif event == 'shouldInterceptRequest':
-
+            elif event == 'shouldInterceptRequest':
+                pass
+            elif event == 'onReceivedHttpError':
+                response_data = json.loads(data)
+                response = Response(
+                    response_data.get('url', ''),
+                    response_data.get('statusCode', 0),
+                    response_data.get('headers', {})
+                )
+                self.pywebview_window.events.response_received.set(response)
 
         self._cookies = {}
         self.webview = WebViewA(activity)
@@ -148,7 +184,7 @@ class BrowserView(Widget):
         webview_settings.setJavaScriptEnabled(True)
         webview_settings.setUseWideViewPort(False)
         webview_settings.setLoadWithOverviewMode(True)
-        webview_settings.setSupportZoom(self.window.zoomable)
+        webview_settings.setSupportZoom(self.pywebview_window.zoomable)
         webview_settings.setBuiltInZoomControls(False)
         webview_settings.setDomStorageEnabled(not _state['private_mode'])
 
@@ -158,6 +194,10 @@ class BrowserView(Widget):
         self._webview_callback_wrapper = EventCallbackWrapper(webview_callback)
         webview_client = PyWebViewClient()
         webview_client.setCallback(self._webview_callback_wrapper, _state['ssl'] or settings['IGNORE_SSL_ERRORS'])
+
+        self._request_interceptor = RequestInterceptor(self)
+        webview_client.setRequestInterceptor(self._request_interceptor)
+
         self.webview.setWebViewClient(webview_client)
 
         self._chrome_callback_wrapper = EventCallbackWrapper(chrome_callback)
@@ -176,17 +216,17 @@ class BrowserView(Widget):
             self.webview.setDownloadListener(DownloadListener())
 
         self.webview.setOnKeyListener(KeyListener(self._back_pressed))
-        self.window.events.before_show.set()
+        self.pywebview_window.events.before_show.set()
 
-        if self.window.real_url:
-            self.webview.loadUrl(self.window.real_url)
-        elif self.window.html:
-            self.webview.loadDataWithBaseURL(None, self.window.html, 'text/html', 'UTF-8', None)
+        if self.pywebview_window.real_url:
+            self.webview.loadUrl(self.pywebview_window.real_url)
+        elif self.pywebview_window.html:
+            self.webview.loadDataWithBaseURL(None, self.pywebview_window.html, 'text/html', 'UTF-8', None)
 
-        if self.window.fullscreen:
-            toggle_fullscreen(self.window)
+        if self.pywebview_window.fullscreen:
+            toggle_fullscreen(self.pywebview_window)
 
-        self.window.events.shown.set()
+        self.pywebview_window.events.shown.set()
 
     def dismiss(self):
         if _state['private_mode']:
@@ -204,7 +244,7 @@ class BrowserView(Widget):
             self.dialog = None
 
         def quit(dialog, which):
-            self.window.closed.set()
+            self.pywebview_window.closed.set()
             self.dialog = None
             app.stop()
 
@@ -212,9 +252,9 @@ class BrowserView(Widget):
             return
 
         context = self.webview.getContext()
-        message = AndroidString(self.window.localization['global.quitConfirmation'])
-        quit_msg = AndroidString(self.window.localization['global.quit'])
-        cancel_msg = AndroidString(self.window.localization['global.cancel'])
+        message = AndroidString(self.pywebview_window.localization['global.quitConfirmation'])
+        quit_msg = AndroidString(self.pywebview_window.localization['global.quit'])
+        cancel_msg = AndroidString(self.pywebview_window.localization['global.cancel'])
 
         self.dialog = AlertDialogBuilder(context) \
             .setMessage(message) \
@@ -227,19 +267,19 @@ class BrowserView(Widget):
         if self.webview.canGoBack():
             self.webview.goBack()
             return
-        should_cancel = self.window.closing.set()
+        should_cancel = self.pywebview_window.closing.set()
 
         if should_cancel:
             return
 
-        if self.window.confirm_close:
+        if self.pywebview_window.confirm_close:
             self._quit_confirmation()
         else:
             app.pause()
-            self.window.closed.set()
-
+            self.pywebview_window.closed.set()
 
         return True
+
 
 class AndroidApp(App):
     def __init__(self, window):
@@ -330,11 +370,13 @@ def evaluate_js(js_code, _, parse_json=True):
     lock.acquire()
     return js_result
 
+
 def clear_cookies(_):
     def _cookies():
         CookieManager.getInstance().removeAllCookies(None)
 
     Runnable(_cookies)()
+
 
 def get_cookies(_):
     def _cookies():
@@ -346,7 +388,7 @@ def get_cookies(_):
         url = f'{url.scheme}://{url.netloc}'
 
         if url in raw_cookies:
-            cookies = [ create_cookie(c) for c in raw_cookies[url] ]
+            cookies = [create_cookie(c) for c in raw_cookies[url]]
 
         for c in {x for v in raw_cookies.values() for x in v}:
             cookie = create_cookie(c)
@@ -367,9 +409,11 @@ def get_cookies(_):
 
     return cookies
 
+
 @run_on_ui_thread
 def get_current_url(_):
     return app.view.getUrl()
+
 
 def get_screens():
     logger.warning('Screen information is not supported on Android')
@@ -428,11 +472,11 @@ def toggle_fullscreen(_):
     try:
         if not is_fullscreen:
             option = (View.SYSTEM_UI_FLAG_FULLSCREEN |
-                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+                      View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                      View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                      View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                      View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                      View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
             app.view.webview.setSystemUiVisibility(option)
             app.view.is_fullscreen = True
         else:

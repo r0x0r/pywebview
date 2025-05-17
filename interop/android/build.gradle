@@ -21,12 +21,18 @@ android {
         main.java.srcDirs += 'lib/src/main/java'
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
     namespace "com.pywebview"
 }
 
-task androidSourcesJar(type: Jar) {
+task jar(type: Jar) {
     getArchiveClassifier().set('sources')
-    from android.sourceSets.main.java.srcDirs
+    from "${buildDir}/intermediates/javac/release/classes"
+    dependsOn 'compileReleaseJavaWithJavac'
 }
 
 artifacts {
