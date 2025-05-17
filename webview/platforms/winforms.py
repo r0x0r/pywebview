@@ -252,8 +252,6 @@ class BrowserView:
             if (
                 window.transparent and self.browser
             ):  # window transparency is supported only with EdgeChromium
-                self.BackColor = Color.FromArgb(255,255,0,0)
-                self.TransparencyKey = Color.FromArgb(255,255,0,0)
                 self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
                 self.browser.DefaultBackgroundColor = Color.Transparent
             else:
@@ -692,6 +690,12 @@ def create_window(window):
             browser.Show()
             browser.Hide()
             browser.Opacity = 1
+        elif window.transparent and is_chromium:
+            # hack to make transparent window work
+            # window is started hidden and shown on Navigating event.
+            # no idea why this works
+            browser.Show()
+            browser.Hide()
         else:
             browser.Show()
 
