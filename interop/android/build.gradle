@@ -31,10 +31,13 @@ android {
 
 task jar(type: Jar) {
     getArchiveClassifier().set('sources')
+    destinationDirectory = file('../../webview/lib')
+    archiveFileName = 'pywebview-android.jar'
     from "${buildDir}/intermediates/javac/release/classes"
     dependsOn 'compileReleaseJavaWithJavac'
 }
 
+
 artifacts {
-    archives androidSourcesJar
+    archives jar
 }
