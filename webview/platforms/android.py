@@ -107,19 +107,23 @@ class RequestInterceptor(PythonJavaClass):
         super().__init__()
         self.webview = webview_instance
 
-    @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
-    def onRequest(self, url, method, headers_json):
-        # Parse headers from JSON string instead of Map
+    @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;')
+    def onRequest(self, url: str, method: str, headers_json: str):
         headers = json.loads(headers_json) if headers_json else {}
+        original_headers = headers.copy()
 
         request = Request(url, method, headers)
         self.webview.pywebview_window.events.request_sent.set(request)
 
-    @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
-    def onResponse(self, url, status_code_str, headers_json):
-        # Convert status_code from string to int
-        status_code = int(status_code_str)
-        # Parse headers from JSON string
+        if request.headers != original_headers:
+            logger.debug('Request headers mutated. Original: %s, Mutated: %s', original_headers, request.headers)
+
+            return json.dumps(request.headers)
+
+        return None
+
+    @java_method('(Ljava/lang/String;ILjava/lang/String;)V')
+    def onResponse(self, url: str, status_code: int, headers_json: str):
         headers = json.loads(headers_json) if headers_json else {}
 
         response = Response(url, status_code, headers)
@@ -194,6 +198,7 @@ class BrowserView(Widget):
         self._webview_callback_wrapper = EventCallbackWrapper(webview_callback)
         webview_client = PyWebViewClient()
         webview_client.setCallback(self._webview_callback_wrapper, _state['ssl'] or settings['IGNORE_SSL_ERRORS'])
+        self.webview_client = webview_client
 
         self._request_interceptor = RequestInterceptor(self)
         webview_client.setRequestInterceptor(self._request_interceptor)
@@ -267,7 +272,7 @@ class BrowserView(Widget):
         if self.webview.canGoBack():
             self.webview.goBack()
             return
-        should_cancel = self.pywebview_window.closing.set()
+        should_cancel = self.pywebview_window.events.closing.set()
 
         if should_cancel:
             return

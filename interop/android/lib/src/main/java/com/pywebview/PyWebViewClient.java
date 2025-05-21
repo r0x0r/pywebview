@@ -10,6 +10,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.util.Log;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
@@ -60,22 +61,130 @@ public class PyWebViewClient extends WebViewClient {
 
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-        if (requestInterceptor != null) {
-            String url = request.getUrl().toString();
-            String method = request.getMethod();
+        if (requestInterceptor == null) {
+            return super.shouldInterceptRequest(view, request);
+        }
 
-            Map<String, String> headers = new HashMap<>();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                Map<String, String> requestHeaders = request.getRequestHeaders();
-                if (requestHeaders != null) {
-                    headers.putAll(requestHeaders);
+        String url = request.getUrl().toString();
+        String method = request.getMethod();
+
+        // Collect original request headers
+        Map<String, String> headers = new HashMap<>();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && request.getRequestHeaders() != null) {
+            headers.putAll(request.getRequestHeaders());
+        }
+
+        try {
+            // Get modified headers from interceptor
+            String headersJson = new JSONObject(headers).toString();
+            String newHeaders = requestInterceptor.onRequest(url, method, headersJson);
+
+            if (newHeaders == null) {
+                // No interception needed, use default response
+                return handleDefaultResponse(view, request);
+            }
+
+            // Process intercepted request
+            return performCustomRequest(url, method, newHeaders);
+
+        } catch (Exception e) {
+            Log.e("PyWebViewClient", "Error intercepting request", e);
+            notifyInterceptorOfError(url, e);
+            return super.shouldInterceptRequest(view, request);
+        }
+    }
+
+    private WebResourceResponse handleDefaultResponse(WebView view, WebResourceRequest request) {
+        WebResourceResponse response = super.shouldInterceptRequest(view, request);
+
+        try {
+            String url = request.getUrl().toString();
+            int statusCode = 200;
+            Map<String, String> responseHeaders = new HashMap<>();
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && response != null) {
+                statusCode = response.getStatusCode();
+                if (response.getResponseHeaders() != null) {
+                    responseHeaders.putAll(response.getResponseHeaders());
                 }
             }
 
-            requestInterceptor.onRequest(url, method, headers);
+            String responseHeadersJson = new JSONObject(responseHeaders).toString();
+            requestInterceptor.onResponse(url, statusCode, responseHeadersJson);
+        } catch (Exception e) {
+            Log.e("PyWebViewClient", "Error processing default response", e);
         }
 
-        return super.shouldInterceptRequest(view, request);
+        return response;
+    }
+
+    private WebResourceResponse performCustomRequest(String url, String method, String headersJson) throws Exception {
+        JSONObject headersObj = new JSONObject(headersJson);
+        Log.e("PyWebViewClient", "Intercepted headers: " + headersObj.toString());
+
+        // Create and configure connection
+        java.net.URL urlObj = new java.net.URL(url);
+        java.net.HttpURLConnection connection = (java.net.HttpURLConnection) urlObj.openConnection();
+        connection.setRequestMethod(method);
+
+        // Set headers
+        java.util.Iterator<String> keys = headersObj.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            connection.setRequestProperty(key, headersObj.getString(key));
+        }
+
+        connection.connect();
+
+        // Process response
+        String contentType = connection.getContentType();
+        String mimeType = contentType;
+        String encoding = connection.getContentEncoding();
+
+        // Parse content type
+        if (contentType != null && contentType.contains(";")) {
+            mimeType = contentType.split(";")[0].trim();
+            if (encoding == null && contentType.toLowerCase().contains("charset=")) {
+                for (String part : contentType.split(";")) {
+                    if (part.toLowerCase().contains("charset=")) {
+                        encoding = part.split("=")[1].trim();
+                        break;
+                    }
+                }
+            }
+        }
+
+        InputStream inputStream = connection.getInputStream();
+        int statusCode = connection.getResponseCode();
+        String reasonPhrase = connection.getResponseMessage();
+
+        // Collect response headers
+        Map<String, String> responseHeaders = new HashMap<>();
+        for (Map.Entry<String, List<String>> entry : connection.getHeaderFields().entrySet()) {
+            if (entry.getKey() != null && !entry.getValue().isEmpty()) {
+                responseHeaders.put(entry.getKey(), entry.getValue().get(0));
+            }
+        }
+
+        // Notify interceptor
+        requestInterceptor.onResponse(url, statusCode, new JSONObject(responseHeaders).toString());
+
+        // Return appropriate response based on API level
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            return new WebResourceResponse(mimeType, encoding, statusCode, reasonPhrase, responseHeaders, inputStream);
+        } else {
+            return new WebResourceResponse(mimeType, encoding, inputStream);
+        }
+    }
+
+    private void notifyInterceptorOfError(String url, Exception e) {
+        try {
+            JSONObject errorInfo = new JSONObject();
+            errorInfo.put("error", e.getMessage());
+            requestInterceptor.onResponse(url, 0, errorInfo.toString());
+        } catch (Exception jsonEx) {
+            Log.e("PyWebViewClient", "Error creating JSON for error response", jsonEx);
+        }
     }
 
     @Override
@@ -91,7 +200,9 @@ public class PyWebViewClient extends WebViewClient {
                 headers.putAll(errorResponse.getResponseHeaders());
             }
 
-            requestInterceptor.onResponse(url, statusCode, headers);
+            JSONObject headersJson = new JSONObject(headers);
+            String headersJsonString = headersJson.toString();
+            requestInterceptor.onResponse(url, statusCode, headersJsonString);
         }
 
         if (callback != null) {
