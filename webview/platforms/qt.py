@@ -381,10 +381,6 @@ class BrowserView(QMainWindow):
                 QtCore.Qt.NoContextMenu
             )  # disable right click context menu
 
-        # user_agent = _state['user_agent']
-        # if user_agent and is_webengine:
-        #     self.webview.page().profile().setHttpUserAgent(user_agent)
-
         self.cookies = {}
 
         if is_webengine:
@@ -395,6 +391,10 @@ class BrowserView(QMainWindow):
             else:
                 self.profile = QWebEngineProfile('pywebview')
                 self.profile.setPersistentStoragePath(_profile_storage_path)
+
+            user_agent = _state['user_agent']
+            if user_agent:
+                self.profile.setHttpUserAgent(user_agent)
 
             cookie_store = self.profile.cookieStore()
             cookie_store.cookieAdded.connect(self.on_cookie_added)
