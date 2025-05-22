@@ -296,8 +296,9 @@ class BrowserView:
             if (
                 len(i.pywebview_window.events.request_sent) > 0 and
                 'X-Handled' not in original_headers and
-                str(url) == i.pywebview_window.real_url
+                str(url) != 'about:blank'
             ):
+
                 request_ = Request(str(url), request.HTTPMethod(), original_headers)
                 i.pywebview_window.events.request_sent.set(request_)
                 request_.headers['X-Handled'] = 'true'
