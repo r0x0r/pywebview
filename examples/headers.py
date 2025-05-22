@@ -4,11 +4,12 @@ import webview
 from bottle import Bottle, request
 
 def on_request(window, request):
+    print('Request sent: ' + request.url)
     request.headers['pywebview'] = 'header'
 
 
 def on_response(window, response):
-    print(response)
+    print('Response received: ' + response.url)
 
 
 app = Bottle()

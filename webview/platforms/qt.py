@@ -381,9 +381,9 @@ class BrowserView(QMainWindow):
                 QtCore.Qt.NoContextMenu
             )  # disable right click context menu
 
-        user_agent = _settings['user_agent']
-        if user_agent and is_webengine:
-            self.view.page().profile().setHttpUserAgent(user_agent)
+        # user_agent = _state['user_agent']
+        # if user_agent and is_webengine:
+        #     self.webview.page().profile().setHttpUserAgent(user_agent)
 
         self.cookies = {}
 
