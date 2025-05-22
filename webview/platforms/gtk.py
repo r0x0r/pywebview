@@ -315,12 +315,13 @@ class BrowserView:
         if 'shown' in dir(self):
             self.shown.set()
 
-    def on_response(self, webview, response):
+    def on_response(self, resource, _):
+        response = resource.get_response()
         headers = response.get_http_headers()
         original_headers = self._headers_to_dict(headers)
-        url = response.get_uri()
+        url = resource.get_uri()
 
-        response_ = Response(url, response.get_http_status_code(), original_headers)
+        response_ = Response(url, response.get_status_code(), original_headers)
         self.pywebview_window.events.response_received.set(response_)
 
     def on_request(self, webview, resource, request):
@@ -359,7 +360,6 @@ class BrowserView:
         webview.stop_loading()
         self.request_headers_mutated = True
         webview.load_request(request)
-
 
     def on_load_finish(self, webview, status):
         # Show the webview if it's not already visible
