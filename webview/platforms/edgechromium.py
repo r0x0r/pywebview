@@ -8,7 +8,7 @@ from threading import Semaphore
 
 import clr
 
-from webview import _state, settings as webview_settings
+from webview import Window, _state, settings as webview_settings
 from webview.dom import _dnd_state
 from webview.models import Request, Response
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
@@ -39,7 +39,7 @@ logger = logging.getLogger('pywebview')
 renderer = 'edgechromium'
 
 class EdgeChrome:
-    def __init__(self, form, window, cache_dir):
+    def __init__(self, form: WinForms.Form, window: Window, cache_dir: str):
         self.pywebview_window = window
         self.webview = WebView2()
         props = CoreWebView2CreationProperties()
@@ -93,7 +93,7 @@ class EdgeChrome:
         except Exception as e:
             logger.warning(f'Failed to delete user data folder: {e}')
 
-    def evaluate_js(self, script, parse_json):
+    def evaluate_js(self, script: str, parse_json: bool):
         def _callback(res):
             nonlocal result
             if parse_json and res is not None:
@@ -171,7 +171,7 @@ class EdgeChrome:
         else:
             self.webview.EnsureCoreWebView2Async(None)
 
-    def load_url(self, url):
+    def load_url(self, url: str):
         self.ishtml = False
         self.webview.Source = Uri(url)
 
@@ -294,7 +294,9 @@ class EdgeChrome:
             args.Cancel = True
 
     def on_navigation_start(self, sender, args):
-        pass
+        if self.pywebview_window.transparent:
+            self.form.Show()
+            self.form.Activate()
 
     def on_web_resource_response(self, sender, args):
         headers = {}

@@ -59,6 +59,7 @@ html = """
                         <div class="bodypanel">
                             <b>Alert!</b><br>
                             Lorem ipsum dolor sit amet, consectetur adipiscing elit
+                            <button>Button</button>
                         </div>
                     </td>
                 </tr>
@@ -71,5 +72,5 @@ html = """
 
 if __name__ == '__main__':
     # Create a transparent webview window
-    webview.create_window('Transparent window', html=html, transparent=True, frameless=True)
+    webview.create_window('Transparent window', html=html, transparent=True, frameless=True)#, hidden=True)
     webview.start()
