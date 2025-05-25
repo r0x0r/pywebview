@@ -22,6 +22,8 @@ import java.net.URLConnection;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import android.webkit.SslErrorHandler;
+import android.net.http.SslError;
 
 
 
@@ -44,7 +46,7 @@ public class PyWebViewClient extends WebViewClient {
     }
 
     @Override
-    public void onReceivedSslError(WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
+    public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
         if (this.ignoreSslErrors) {
             Log.d("PyWebViewClient", "SSL Error: " +error.getPrimaryError());
             handler.proceed();
