@@ -4,7 +4,7 @@ on android. It will be responsible for defining android and api signature to red
 the over head cost of pyjnius finding all signatures by itself.
 """
 
-from jnius import JavaClass, MetaJavaClass, JavaMethod, JavaMultipleMethod
+from jnius import JavaClass, MetaJavaClass, JavaMethod, JavaMultipleMethod, JavaStaticMethod
 
 
 class AlertDialogBuilder(JavaClass, metaclass=MetaJavaClass):
@@ -82,3 +82,27 @@ class AlertDialogBuilder(JavaClass, metaclass=MetaJavaClass):
     setInverseBackgroundForced = JavaMethod('(Z)Landroid/app/AlertDialog$Builder;')
     create = JavaMethod('()Landroid/app/AlertDialog;')
     show = JavaMethod('()Landroid/app/AlertDialog;')
+
+
+class CookieManager(JavaClass, metaclass=MetaJavaClass):
+    __javaclass__ = 'android/webkit/CookieManager'
+
+    getInstance = JavaStaticMethod('()Landroid/webkit/CookieManager;')
+    setAcceptCookie = JavaMethod('(Z)V')
+    acceptCookie = JavaMethod('(Z)V')
+    setAcceptThirdPartyCookies = JavaMethod('(Landroid/webkit/WebView;Z)V')
+    acceptThirdPartyCookies = JavaMethod('(Landroid/webkit/WebView;)Z')
+    setCookie = JavaMultipleMethod([
+        ('(Ljava/lang/String;Ljava/lang/String;)V', False, False),
+        ('(Ljava/lang/String;Ljava/lang/String;Landroid/webkit/ValueCallback;)V', False, False)
+    ])
+    getCookie = JavaMethod('(Ljava/lang/String;)Ljava/lang/String;')
+    removeSessionCookie = JavaMethod('()V')
+    removeSessionCookies = JavaMethod('(Landroid/webkit/ValueCallback;)V')
+    removeAllCookie = JavaMethod('()V')
+    removeAllCookies = JavaMethod('(Landroid/webkit/ValueCallback;)V')
+    hasCookies = JavaMethod('()Z')
+    removeExpiredCookie = JavaMethod('()V')
+    flush = JavaMethod('()V')
+    allowFileSchemeCookies = JavaStaticMethod('()Z')
+    setAcceptFileSchemeCookies = JavaStaticMethod('(Z)V')
