@@ -384,7 +384,7 @@ class Window:
     @_shown_call
     def maximize(self) -> None:
         """
-        Minimize window.
+        Maximize window.
         """
         self.gui.maximize(self.uid)
 
