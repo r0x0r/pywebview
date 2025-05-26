@@ -9,6 +9,7 @@ from uuid import uuid1
 from webview import FileDialog, _state, settings, windows
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
+from webview.models import Request, Response
 from webview.screen import Screen
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, parse_file_type
 from webview.window import FixPoint, Window
@@ -146,11 +147,13 @@ class BrowserView:
         self.manager.register_script_message_handler('jsBridge')
         self.manager.connect('script-message-received', self.on_js_bridge_call)
 
+        self.request_headers_mutated = False
         self.webview = webkit.WebView().new_with_user_content_manager(self.manager)
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('decide-policy', self.on_navigation)
         self.webview.connect('drag-data-received', self.on_drag_data)
+        self.webview.connect('resource-load-started', self.on_request)
 
         if settings['IGNORE_SSL_ERRORS']:
             web_context.set_tls_errors_policy(webkit.TLSErrorsPolicy.IGNORE)
@@ -312,13 +315,62 @@ class BrowserView:
         if 'shown' in dir(self):
             self.shown.set()
 
+    def on_response(self, resource, _):
+        response = resource.get_response()
+        headers = response.get_http_headers()
+        original_headers = self._headers_to_dict(headers)
+        url = resource.get_uri()
+
+        response_ = Response(url, response.get_status_code(), original_headers)
+        self.pywebview_window.events.response_received.set(response_)
+
+    def on_request(self, webview, resource, request):
+        if len(self.pywebview_window.events.request_sent) == 0:
+            return
+
+        if len(self.pywebview_window.events.response_received) > 0:
+            resource.connect('notify::response', self.on_response)
+
+        headers = request.get_http_headers()
+        original_headers = self._headers_to_dict(headers)
+        url = request.get_uri()
+        method = request.get_http_method()
+
+        request_ = Request(url, method, original_headers)
+        self.pywebview_window.events.request_sent.set(request_)
+
+        if (
+            request_.headers == original_headers or
+            not headers or
+            self.request_headers_mutated or
+            url != self.pywebview_window.real_url
+        ):
+            return
+
+        missing_headers = {k: v for k, v in request_.headers.items() if k not in original_headers or original_headers[k] != v}
+        extra_headers = {k: str(v) for k, v in original_headers.items() if k not in request_.headers}
+
+        for k, v in missing_headers.items():
+            headers.append(k, v)
+
+        for k in extra_headers:
+            headers.remove(k)
+
+        #headers.append('X-Handled', 'true')
+        webview.stop_loading()
+        self.request_headers_mutated = True
+        webview.load_request(request)
+
     def on_load_finish(self, webview, status):
         # Show the webview if it's not already visible
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)
 
-        if status == webkit.LoadEvent.FINISHED:
+        if status == webkit.LoadEvent.FINISHED and not self.request_headers_mutated:
             inject_pywebview(renderer, self.js_bridge.window)
+
+        if self.request_headers_mutated:
+            self.request_headers_mutated = False
 
     def on_download_started(self, session, download):
         download.connect('decide-destination', self.on_download_decide_destination)
@@ -607,6 +659,15 @@ class BrowserView:
         else:
             logger.error(f'Unsupported JavaScriptCore.Value type: {js_value}')
             return js_value.to_string()
+
+    def _headers_to_dict(self, headers):
+        def _assign(k, v):
+            headers_dict[k] = v
+        headers_dict = {}
+
+        if headers:
+            headers.foreach(_assign)
+        return headers_dict
 
 
 def setup_app():

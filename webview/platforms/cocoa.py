@@ -13,14 +13,16 @@ from threading import Semaphore, Thread, main_thread
 import AppKit
 import Foundation
 import WebKit
-from objc import _objc, nil, selector, super
+from objc import _objc, nil, selector, super, lookUpClass, classAddMethod
+
 from PyObjCTools import AppHelper
 
 from webview import (FileDialog, _state, windows, settings as webview_settings)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
+from webview.models import Request, Response
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, parse_file_type
+from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, parse_file_type, stringify_headers
 from webview.window import FixPoint
 
 
@@ -285,14 +287,51 @@ class BrowserView:
                     handler(getattr(WebKit, 'WKNavigationActionPolicyCancel', 0))
                     return
 
-            # Normal navigation, allow
-            handler(getattr(WebKit, 'WKNavigationActionPolicyAllow', 1))
+            request = action.request()
+            url = request.URL()
+
+            original_headers = dict(request.allHTTPHeaderFields())
+            i = BrowserView.get_instance('webview', webview)
+
+            if (
+                len(i.pywebview_window.events.request_sent) > 0 and
+                'X-Handled' not in original_headers and
+                str(url) != 'about:blank'
+            ):
+
+                request_ = Request(str(url), request.HTTPMethod(), original_headers)
+                i.pywebview_window.events.request_sent.set(request_)
+                request_.headers['X-Handled'] = 'true'
+
+                new_request = Foundation.NSMutableURLRequest.requestWithURL_(url)
+                new_request.setHTTPMethod_(request.HTTPMethod())
+                new_request.setAllHTTPHeaderFields_(AppKit.NSDictionary(stringify_headers(request_.headers)))
+                new_request.setHTTPBody_(request.HTTPBody())
+                new_request.setHTTPBodyStream_(request.HTTPBodyStream())
+                new_request.setHTTPShouldHandleCookies_(request.HTTPShouldHandleCookies())
+                new_request.setHTTPShouldUsePipelining_(request.HTTPShouldUsePipelining())
+                new_request.setMainDocumentURL_(request.mainDocumentURL())
+                new_request.setNetworkServiceType_(request.networkServiceType())
+                webview.loadRequest_(new_request)
+                handler(getattr(WebKit, 'WKNavigationActionPolicyCancel', 1))
+            else:
+                # Normal navigation, allow
+                handler(getattr(WebKit, 'WKNavigationActionPolicyAllow', 1))
 
         def webView_navigationAction_didBecomeDownload_(self, webview, navigationAction, download):
             download.setDelegate_(BrowserView.DownloadDelegate.alloc().init().retain())
 
         def webView_decidePolicyForNavigationResponse_decisionHandler_(self, webview, navigationResponse, decisionHandler):
             if navigationResponse.canShowMIMEType():
+                response_ = navigationResponse.response()
+                headers = dict(response_.allHeaderFields())
+                response = Response(
+                    response_.URL().absoluteString(),
+                    response_.statusCode(),
+                    headers
+                )
+                webview.pywebview_window.events.response_received.set(response)
+
                 decisionHandler(WebKit.WKNavigationResponsePolicyAllow)
             elif webview_settings['ALLOW_DOWNLOADS']:
                 decisionHandler(WebKit.WKNavigationResponsePolicyCancel)
@@ -486,6 +525,7 @@ class BrowserView:
 
             super(BrowserView.WebKitHost, self).keyDown_(event)
 
+
     def __init__(self, window):
         BrowserView.instances[window.uid] = self
         self.uid = window.uid
@@ -553,7 +593,8 @@ class BrowserView:
         frame.size.height = window.initial_height
         self.window.setFrame_display_(frame, True)
 
-        self.webview = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
+        config = WebKit.WKWebViewConfiguration.alloc().init()
+        self.webview = BrowserView.WebKitHost.alloc().initWithFrame_configuration_(rect, config).retain()
         self.webview.pywebview_window = window
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
@@ -565,10 +606,11 @@ class BrowserView:
         self.webview.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
 
-        config = self.webview.configuration()
+        #config = self.webview.configuration()
         config.userContentController().addScriptMessageHandler_name_(
             self._browserDelegate, 'browserDelegate'
         )
+
         self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
 
         if _state['private_mode']:

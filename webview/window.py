@@ -173,6 +173,9 @@ class Window:
         self.events.restored = Event(self)
         self.events.resized = Event(self)
         self.events.moved = Event(self)
+        self.events.request_sent = Event(self)
+        self.events.response_received = Event(self)
+
         self.events._pywebviewready = Event(self)
 
         self._expose_lock = Lock()
@@ -274,6 +277,7 @@ class Window:
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
+
         logger.debug(f'Loading URL: {self.real_url}')
         self.gui.load_url(self.real_url, self.uid)
 

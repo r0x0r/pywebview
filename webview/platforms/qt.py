@@ -4,7 +4,6 @@ import os
 import platform
 import socket
 import sys
-import typing as t
 import webbrowser
 from copy import copy, deepcopy
 from functools import partial
@@ -14,6 +13,7 @@ from uuid import uuid1
 from webview import (FileDialog, _state, windows, settings)
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
+from webview.models import Request
 from webview.screen import Screen
 from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, environ_append
 from webview.window import FixPoint, Window
@@ -25,13 +25,14 @@ from qtpy import QtCore
 logger.debug('Using Qt %s' % QtCore.__version__)
 
 from qtpy import PYQT6, PYSIDE6
-from qtpy.QtCore import QJsonValue
+from qtpy.QtCore import QJsonValue, QByteArray
 from qtpy.QtGui import QColor, QIcon, QScreen
 from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
 
 try:
     from qtpy.QtNetwork import QSslCertificate, QSslConfiguration
     from qtpy.QtWebChannel import QWebChannel
+    from qtpy.QtWebEngineCore import QWebEngineUrlRequestInterceptor
     from qtpy.QtWebEngineWidgets import QWebEnginePage as QWebPage
     from qtpy.QtWebEngineWidgets import QWebEngineProfile, QWebEngineSettings
     from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView
@@ -178,7 +179,6 @@ class BrowserView(QMainWindow):
             except KeyError:
                 title = 'Web Inspector - {}'.format(self.parent().title)
                 url = 'http://localhost:{}'.format(BrowserView.inspector_port)
-                print(url)
                 window = Window('web_inspector', title, url, '', 700, 500)
                 window.localization = self.parent().localization
 
@@ -206,6 +206,26 @@ class BrowserView(QMainWindow):
                     self.mousePressEvent(event)
 
             return False
+
+    class RequestInterceptor(QWebEngineUrlRequestInterceptor):
+        def __init__(self, window):
+            super().__init__()
+            self.window = window
+
+        def interceptRequest(self, info):
+            if len(self.window.events.request_sent) == 0:
+                return
+
+            url = info.requestUrl().toString()
+            method = info.requestMethod()
+            headers = {k.data().decode('utf-8'): k.data().decode('utf-8') for k, v in info.httpHeaders().items()}
+
+            request = Request(url, method, headers)
+            self.window.events.request_sent.set(request)
+
+            if request.headers != headers:
+                for key, value in request.headers.items():
+                    info.setHttpHeader(QByteArray(key.encode('utf-8')), QByteArray(value.encode('utf-8')))
 
     # New-window-requests handler for Qt 5.5+ only
     class NavigationHandler(QWebPage):
@@ -364,16 +384,23 @@ class BrowserView(QMainWindow):
         self.cookies = {}
 
         if is_webengine:
+            self.request_interceptor = BrowserView.RequestInterceptor(self.pywebview_window)
+
             if _state['private_mode']:
                 self.profile = QWebEngineProfile()
             else:
                 self.profile = QWebEngineProfile('pywebview')
                 self.profile.setPersistentStoragePath(_profile_storage_path)
 
+            user_agent = _state['user_agent']
+            if user_agent:
+                self.profile.setHttpUserAgent(user_agent)
+
             cookie_store = self.profile.cookieStore()
             cookie_store.cookieAdded.connect(self.on_cookie_added)
             cookie_store.cookieRemoved.connect(self.on_cookie_removed)
 
+            self.profile.setUrlRequestInterceptor(self.request_interceptor)
             self.webview.setPage(BrowserView.WebPage(self, profile=self.profile))
         elif not is_webengine and not _state['private_mode']:
             logger.warning('qtwebkit does not support private_mode')
