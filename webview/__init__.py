@@ -78,7 +78,7 @@ def SAVE_DIALOG():
     return 30
 
 class FileDialog(enum.IntEnum):
-    OPEN= 10
+    OPEN = 10
     FOLDER = 20
     SAVE = 30
 

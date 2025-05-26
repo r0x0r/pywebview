@@ -107,9 +107,12 @@ Return a list of available displays (as `Screen` objects) with the primary displ
 webview.settings = {
   'ALLOW_DOWNLOADS': False,
   'ALLOW_FILE_URLS': True,
+  'DRAG_REGION_SELECTOR': 'pywebview-drag-region',
   'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
   'OPEN_DEVTOOLS_IN_DEBUG': True,
-  'REMOTE_DEBUGGING_PORT': None
+  'IGNORE_SSL_ERRORS': False,
+  'REMOTE_DEBUGGING_PORT': None,
+  'SHOW_DEFAULT_MENUS': True
 }
 ```
 
@@ -117,9 +120,12 @@ Additional options that override default behaviour of _pywebview_ to address pop
 
 * `ALLOW_DOWNLOADS` Allow file downloads. Disabled by default.
 * `ALLOW_FILE_URLS` Enable `file://` urls. Disabled by default.
+* `DRAG_REGION_SELECTOR` CSS selector for a drag region in . Default is `pywebview-drag-region`.
+* `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
 * `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.
+* `SHOW_DEFAULT_MENUS` Show default menu on Cocoa. Enabled by default.
 
 #### Examples
 
@@ -467,11 +473,16 @@ Get display height.
 screen.width
 ```
 
+Get display width.
+
+
 ### screen.x
 
 ``` python
 screen.x
 ```
+
+Get X coordinate of the top-left corner of the display.
 
 ### screen.y
 
@@ -479,7 +490,8 @@ screen.x
 screen.y
 ```
 
-Get display width.
+Get Y coordinate of the top-left corner of the display.
+
 
 ## webview.Window
 
@@ -878,6 +890,31 @@ The event is fired when window is minimized.
 The event is fired when window is moved.
 
 [Example](/examples/events.html)
+
+### window.events.request_sent
+
+The event is fired when a HTTP request is sent. The event is emitted for every HTTP request, except on macOS where it is emitted only for the main document.
+The event handler can accept a single argument - a `Request` object that contains the following properties:
+
+* `url` - URL of the request
+* `method` - HTTP method
+* `headers` - HTTP request headers as a dictionary. If you mutate mutate headers, modified headers will be used for the request.
+
+[Example](/examples/headers.html)
+
+
+### window.events.response_received
+
+The event is fired when a HTTP response is received. The event is emitted for every HTTP response, except on macOS where it is emitted only for the main document.
+The event handler can accept a single argument - a `Response` object that contains the following properties:
+
+* `url` - URL of the response
+* `status` - HTTP status code
+* `headers` - HTTP response headers as a dictionary
+
+Not supported on QT.
+
+[Example](/examples/headers.html)
 
 ### window.events.restored
 

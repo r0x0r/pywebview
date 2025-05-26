@@ -1,5 +1,41 @@
 # Changelog
 
+## 6.0
+
+_Released xx/xx/2025_
+
+### ⚡ Features
+
+- `All` Shared state management via `window.state` object. The state is automatically updated between Javascript and Python.
+- `All` New `request_sent` and `response_received` events. The events are fired when a HTTP request is sent and a response is received. Request headers can be modified before sending.
+- `All` Window specific menu that can be created via `webview.create_window(menu=webview.menu.Menu)`.
+- `All` Add origin coordinates (x, y) to `webview.screen.Screen` object
+- `Cocoa` New `webview.settings['SHOW_DEFAULT_MENUS']` parameter to omit default menus. True by default. Thanks @mikeylemmon.
+- `Android` Fullscreen mode support #1598. Thanks @michelle-avery.
+
+### 🚀 Improvements
+
+- `All` BREAKING: `webview.SAVE_DIALOG`, `webview.OPEN_DIALOG` and `webview.FOLDER_DIALOG` constants are deprecated in favor of `webview.FileDialog` enum with values `SAVE`, `LOAD` and `FOLDER`.
+- `All` BREAKING: Deprecated functions `window.get_element` and `window.get_elements` are removed. Use  `window.dom.get_element` and `window.dom.get_elements` instead.
+- `All` BREAKING: `webview.DRAG_REGION_SELECTOR` is deprecated. Use `webview.settings['DRAG_REGION_SELECTOR']` instead.
+- `All` Modify JS API to use callback instead of setInterval #1607. Thanks @qaqFei.
+- `Cocoa` Add handler for Javascript prompt/input #1567. Thanks @maddyaby.
+- `Winforms` Title bar theme follows system theme changes. Thanks @godcop.
+
+#### 🐞 Bug fixes
+
+- `All` Better duplicate object detection in JS API serialization.
+- `All` Loading URLs with a hash served by local HTTP server. #1574
+- `All` Multiwindow with local-url setups sets wrong server root (BottleServer). Thanks @Sopze92.
+- `Cocoa` Don't terminate app if windows shouldn't close #1580. Thanks @mikeylemmon.
+- `Cocoa` File filter set via <input type="file"> tag.
+- `QT` Fix user agent string.
+- `EdgeChromium` Fix easy drag
+- `EdgeChromium` Remote Debugging Fails When Both `storage_path` and `REMOTE_DEBUGGING_PORT` are set
+- `EdgeChromium` Fix window transparency. Transparent windows can now react to mouse events.
+- `Winforms` Fix window placing on a screen
+
+
 ## 5.4
 
 _Released 27/01/2025_
