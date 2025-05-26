@@ -33,3 +33,30 @@ class ValueCallback(PythonJavaClass):
             value: The object received which needs to be processed.
         """
         self.on_receive_value(value)
+
+
+class DownloadListener(PythonJavaClass):
+    """
+    Handles download events initiated through a WebView in an Android application.
+
+    This class serves as a bridge for the Android `DownloadListener` interface,
+    facilitating the handling of download requests generated during WebView interactions.
+    By implementing this interface, it allows the developer to intercept and handle
+    download events directly using the provided callback.
+
+    Attributes:
+    on_download_start (callable): A callback function that is triggered when a download
+        starts. The function should accept five parameters: url, user_agent, content_disposition,
+        mimetype, and content_length.
+    """
+    __javacontext__ = 'app'
+    __javainterfaces__ = ['android/webkit/DownloadListener']
+
+    def __init__(self, on_download_start):
+        self.on_download_start = on_download_start
+
+    @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;J)V')
+    def onDownloadStart(self, url, user_agent, content_disposition, mimetype, content_length):
+        self.on_download_start(url, user_agent, content_disposition, mimetype, content_length)
+
+
