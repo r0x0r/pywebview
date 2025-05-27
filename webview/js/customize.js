@@ -96,7 +96,7 @@
 
     function onMouseMove(ev) {
         // handle resizing
-        if (mouseState.isResizing) {
+        if (easyResize && mouseState.isResizing) {
             let w = mouseState.initialWidth;
             let h = mouseState.initialHeight;
             let fixPoint = 0;
@@ -154,7 +154,7 @@
         }
 
         // change cursor style to indicate resizable region
-        if (!(mouseState.isResizing || mouseState.isMoving)) {
+        if (easyResize && !(mouseState.isResizing || mouseState.isMoving)) {
             overrideCursorStyle(possibleResizingDirection(ev))
         }
     }
