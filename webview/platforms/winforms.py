@@ -531,16 +531,19 @@ class BrowserView:
                 _toggle()
 
         def resize(self, width, height, fix_point):
+            scaled_width = round(width * self.scale_factor)
+            scaled_height = round(height * self.scale_factor)
+
             x = self.Location.X
             y = self.Location.Y
 
             if fix_point & FixPoint.EAST:
-                x = x + self.Width - width
+                x = x + self.Width - scaled_width
 
             if fix_point & FixPoint.SOUTH:
-                y = y + self.Height - height
+                y = y + self.Height - scaled_height
 
-            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, x, y, width, height, 64)
+            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, x, y, scaled_width, scaled_height, 64)
 
         def move(self, x, y):
             SWP_NOSIZE = 0x0001  # Retains the current size
