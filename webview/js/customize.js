@@ -37,65 +37,203 @@
         document.head.appendChild(css);
     }
 
-    function disableTouchEvents() {
-        var initialX = 0;
-        var initialY = 0;
+    // store mouse state for moving and resizing
+    var mouseState = {
+        isResizing: false,
+        isMoving: false,
+        resizingDirection: "",
+        initialX: 0,
+        initialY: 0,
+        initialWidth: 0,
+        initialHeight: 0
+    }
 
-        function onMouseMove(ev) {
-            var x = ev.screenX - initialX;
-            var y = ev.screenY - initialY;
-            window.pywebview._jsApiCallback('pywebviewMoveWindow', [x, y], 'move');
-        }
+    // easy drag for edge chromium
+    var easyDrag = '%(easy_drag)s' === 'True';
+    var easyResize = '%(easy_resize)s' === 'True';
 
-        function onMouseUp() {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-        }
+    // calculate possible resizing direction
+    function possibleResizingDirection(ev) {
+        const regionSize = 5;
+        const nearLeft = ev.clientX < regionSize;
+        const nearRight = window.innerWidth - ev.clientX < regionSize;
+        const nearTop = ev.clientY < regionSize;
+        const nearBottom = window.innerHeight - ev.clientY < regionSize;
 
-        function onMouseDown(ev) {
-            initialX = ev.clientX;
-            initialY = ev.clientY;
-            window.addEventListener('mouseup', onMouseUp);
-            window.addEventListener('mousemove', onMouseMove);
-        }
+        if (nearLeft && nearTop)
+            return 'nw';
+        if (nearLeft && nearBottom)
+            return 'sw';
+        if (nearRight && nearTop)
+            return 'ne';
+        if (nearRight && nearBottom)
+            return 'se';
+        if (nearLeft)
+            return 'w';
+        if (nearRight)
+            return 'e';
+        if (nearTop)
+            return 'n';
+        if (nearBottom)
+            return 's';
+        return '';
+    }
 
-        var dragBlocks = document.querySelectorAll('%(drag_selector)s');
-        for (var i=0; i < dragBlocks.length; i++) {
-            dragBlocks[i].addEventListener('mousedown', onMouseDown);
-        }
-            // easy drag for edge chromium
-        if ('%(easy_drag)s' === 'True') {
-            window.addEventListener('mousedown', onMouseDown);
-        }
-
-        if ('%(zoomable)s' === 'False') {
-            document.body.addEventListener('touchstart', function(e) {
-                if ((e.touches.length > 1) || e.targetTouches.length > 1) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
-                }
-            }, {passive: false});
-
-            window.addEventListener('wheel', function (e) {
-                if (e.ctrlKey) {
-                    e.preventDefault();
-                }
-            }, {passive: false});
-        }
-
-        // draggable
-        if ('%(draggable)s' === 'False') {
-            Array.prototype.slice.call(document.querySelectorAll("img")).forEach(function(img) {
-                img.setAttribute("draggable", false);
-            })
-
-            Array.prototype.slice.call(document.querySelectorAll("a")).forEach(function(a) {
-                a.setAttribute("draggable", false);
-            })
+    // override cursor style to indicate resizable region
+    function overrideCursorStyle(direction) {
+        if (direction === "") {
+            document.getElementById('cursor-style')?.remove();
+        } else {
+            let cursorStyle = document.getElementById('cursor-style');
+            if (cursorStyle === null) {
+                cursorStyle = document.createElement('style');
+                cursorStyle.id = 'cursor-style';
+                document.head.appendChild(cursorStyle);
+            }
+            cursorStyle.innerHTML = '*{cursor: ' + direction + '-resize !important;}';
         }
     }
 
-    disableTouchEvents();
-  })();
+    function onMouseMove(ev) {
+        // handle resizing
+        if (mouseState.isResizing) {
+            let w = mouseState.initialWidth;
+            let h = mouseState.initialHeight;
+            let fixPoint = 0;
+
+            switch (mouseState.resizingDirection) {
+                case "nw":
+                    w += mouseState.initialX - ev.screenX;
+                    h += mouseState.initialY - ev.screenY;
+                    fixPoint = 12;
+                    break
+                case "sw":
+                    w += mouseState.initialX - ev.screenX;
+                    h += ev.screenY - mouseState.initialY;
+                    fixPoint = 5;
+                    break
+                case "ne":
+                    w += ev.screenX - mouseState.initialX;
+                    h += mouseState.initialY - ev.screenY;
+                    fixPoint = 10;
+                    break
+                case "se":
+                    w += ev.screenX - mouseState.initialX;
+                    h += ev.screenY - mouseState.initialY;
+                    fixPoint = 3;
+                    break
+                case "w":
+                    w += mouseState.initialX - ev.screenX;
+                    fixPoint = 13;
+                    break
+                case "e":
+                    w += ev.screenX - mouseState.initialX;
+                    fixPoint = 11;
+                    break
+                case "n":
+                    h += mouseState.initialY - ev.screenY;
+                    fixPoint = 14;
+                    break
+                case "s":
+                    h += ev.screenY - mouseState.initialY;
+                    fixPoint = 7;
+                    break
+            }
+
+            mouseState.initialX = ev.screenX;
+            mouseState.initialY = ev.screenY;
+            mouseState.initialWidth = w;
+            mouseState.initialHeight = h;
+
+            window.pywebview._jsApiCallback('pywebviewResizeWindow', [w, h, fixPoint], 'resize');
+        }
+
+        // handle moving
+        if (mouseState.isMoving) {
+            window.pywebview._jsApiCallback('pywebviewMoveWindow', [ev.screenX - mouseState.initialX, ev.screenY - mouseState.initialY], 'move');
+        }
+
+        // change cursor style to indicate resizable region
+        if (!(mouseState.isResizing || mouseState.isMoving)) {
+            overrideCursorStyle(possibleResizingDirection(ev))
+        }
+    }
+
+    // reset resizing and moving state
+    function onMouseUp() {
+        mouseState.isResizing = false;
+        mouseState.isMoving = false;
+        window.removeEventListener('mouseup', onMouseUp);
+    }
+
+    function startMovingWindow(ev) {
+        mouseState.isMoving = true;
+        mouseState.initialX = ev.clientX;
+        mouseState.initialY = ev.clientY;
+        window.addEventListener('mouseup', onMouseUp);
+    }
+
+    function startResizingWindow(ev, direction) {
+        mouseState.isResizing = true;
+        mouseState.resizingDirection = direction;
+        mouseState.initialX = ev.screenX;
+        mouseState.initialY = ev.screenY;
+        mouseState.initialWidth = window.innerWidth;
+        mouseState.initialHeight = window.innerHeight;
+        overrideCursorStyle(direction);
+        window.addEventListener('mouseup', onMouseUp);
+    }
+
+    function onMouseDown(ev) {
+        if (easyResize) {
+            const direction = possibleResizingDirection(ev);
+            if (direction !== "") {
+                startResizingWindow(ev, direction);
+                return;
+            }
+        }
+
+        if (easyDrag) {
+            startMovingWindow(ev);
+        }
+    }
+
+    var dragBlocks = document.querySelectorAll('%(drag_selector)s');
+    for (var i=0; i < dragBlocks.length; i++) {
+        dragBlocks[i].addEventListener('mousedown', startMovingWindow);
+    }
+
+    // listen mousedown forever event for moving and resizing
+    window.addEventListener('mousedown', onMouseDown);
+
+    // listen mousemove forever event for change cursor
+    window.addEventListener('mousemove', onMouseMove);
+
+    if ('%(zoomable)s' === 'False') {
+        document.body.addEventListener('touchstart', function(e) {
+            if ((e.touches.length > 1) || e.targetTouches.length > 1) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            }
+        }, {passive: false});
+
+        window.addEventListener('wheel', function (e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, {passive: false});
+    }
+
+    // draggable
+    if ('%(draggable)s' === 'False') {
+        Array.prototype.slice.call(document.querySelectorAll("img")).forEach(function(img) {
+            img.setAttribute("draggable", false);
+        })
+
+        Array.prototype.slice.call(document.querySelectorAll("a")).forEach(function(a) {
+            a.setAttribute("draggable", false);
+        })
+    }
+})();
 
