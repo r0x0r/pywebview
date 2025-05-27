@@ -140,11 +140,6 @@
                     break
             }
 
-            mouseState.initialX = ev.screenX;
-            mouseState.initialY = ev.screenY;
-            mouseState.initialWidth = w;
-            mouseState.initialHeight = h;
-
             window.pywebview._jsApiCallback('pywebviewResizeWindow', [w, h, fixPoint], 'resize');
         }
 
