@@ -370,6 +370,8 @@ class Window:
             with bitwise operators.
             Example: FixPoint.NORTH | FixPoint.WEST
         """
+        width = max(width, self.min_size[0])
+        height = max(height, self.min_size[1])
         if not isinstance(fix_point, FixPoint):
             fix_point = FixPoint(fix_point)
         self.gui.resize(width, height, self.uid, fix_point)
