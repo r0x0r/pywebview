@@ -1,6 +1,6 @@
 __all__ = ('View', 'KeyEvent')
 
-from jnius import JavaClass, MetaJavaClass, JavaStaticField
+from jnius import JavaClass, MetaJavaClass, JavaStaticField, JavaMethod
 
 
 class View(JavaClass, metaclass=MetaJavaClass):
@@ -71,3 +71,6 @@ class KeyEvent(JavaClass, metaclass=MetaJavaClass):
     """
     __javaclass__ = 'android/view/KeyEvent'
     KEYCODE_BACK = JavaStaticField('I')
+    ACTION_DOWN = JavaStaticField('I')
+
+    getAction = JavaMethod('()I')
