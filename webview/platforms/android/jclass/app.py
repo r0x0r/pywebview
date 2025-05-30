@@ -42,7 +42,7 @@ class AlertDialogBuilder(JavaClass, metaclass=MetaJavaClass):
     __javaclass__ = 'android/app/AlertDialog$Builder'
     __javaconstructor__ = [
         ('(Landroid/content/Context;)V', False),
-        ('()Landroid/content/Context;', False)
+        ('(Landroid/content/Context;I)V', False)
     ]
     setTitle = JavaMultipleMethod([
         ('(I)Landroid/app/AlertDialog$Builder;', False, False),
