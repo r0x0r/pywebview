@@ -1,3 +1,5 @@
+__all__ = ('Environment',)
+
 from jnius import JavaClass, MetaJavaClass, JavaStaticField
 
 

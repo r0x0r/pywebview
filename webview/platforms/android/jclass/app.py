@@ -1,3 +1,5 @@
+__all__ = ('AlertDialogBuilder', 'DownloadManagerRequest')
+
 from jnius import JavaClass, MetaJavaClass, JavaMultipleMethod, JavaMethod, JavaStaticField
 
 

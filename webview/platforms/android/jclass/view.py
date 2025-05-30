@@ -1,3 +1,5 @@
+__all__ = ('View', 'KeyEvent')
+
 from jnius import JavaClass, MetaJavaClass, JavaStaticField
 
 

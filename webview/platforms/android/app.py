@@ -31,8 +31,8 @@ class App(EventDispatcher):
         return self.root
 
     @run_on_ui_thread
-    def add_content_view(self, root):
-        activity.addContentView(root)
+    def set_content_view(self, root):
+        activity.setContentView(root)
 
     def on_create(self):
         """Event handler for the `on_create` event which is fired after
@@ -53,10 +53,7 @@ class App(EventDispatcher):
         pass
 
     def run(self):
-        self.root = self.build_view()
-        if not self.root:
-            raise Exception("Application: No Layout was returned in build")
-        self.add_content_view(self.root)
+        self.build_view()
         self._eventloop.status = "created"
         self.dispatch("on_create")
         self._eventloop.mainloop()

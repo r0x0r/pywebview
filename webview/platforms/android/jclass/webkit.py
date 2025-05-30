@@ -1,6 +1,6 @@
-from jnius import JavaClass, MetaJavaClass, JavaMethod, JavaStaticMethod, JavaMultipleMethod, JavaStaticField
+__all__ = ('PyWebViewClient', 'PyWebChromeClient', 'PyJavascriptInterface', 'CookieManager', 'WebView')
 
-from webview.platforms.android.jclass.view import View
+from jnius import JavaClass, MetaJavaClass, JavaMethod, JavaStaticMethod, JavaMultipleMethod, JavaStaticField
 
 
 class PyWebViewClient(JavaClass, metaclass=MetaJavaClass):
@@ -164,7 +164,7 @@ class CookieManager(JavaClass, metaclass=MetaJavaClass):
     setAcceptFileSchemeCookies = JavaStaticMethod('(Z)V')
 
 
-class WebView(View):
+class WebView(JavaClass, metaclass=MetaJavaClass):
     __javaclass__ = 'android/webkit/WebView'
     __javaconstructor__ = [
         ('(Landroid/content/Context;)V', False),

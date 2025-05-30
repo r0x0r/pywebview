@@ -1,3 +1,5 @@
+__all__ = ('Context',)
+
 from jnius import JavaClass, MetaJavaClass, JavaStaticField
 
 

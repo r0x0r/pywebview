@@ -1,3 +1,5 @@
+__all__ = ('KeyListener',)
+
 from jnius import PythonJavaClass, java_method
 
 

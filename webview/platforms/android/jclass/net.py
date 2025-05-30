@@ -1,3 +1,5 @@
+__all__ = ('Uri',)
+
 from jnius import JavaClass, MetaJavaClass, JavaMethod, JavaStaticMethod
 
 

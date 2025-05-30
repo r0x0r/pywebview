@@ -1,3 +1,5 @@
+__all__ = ('ValueCallback', 'DownloadListener')
+
 from jnius import PythonJavaClass, java_method
 
 
