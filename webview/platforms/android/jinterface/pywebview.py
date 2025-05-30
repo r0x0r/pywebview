@@ -22,12 +22,11 @@ class EventCallbackWrapper(PythonJavaClass):
     __javainterfaces__ = ['com/pywebview/EventCallbackWrapper']
 
     def __init__(self, callback):
-        self.callback = callback
+        self.callback_wrapper = callback
 
     @java_method('(Ljava/lang/String;Ljava/lang/String;)V')
     def callback(self, event, data):
-        if self.callback:
-            self.callback(event, data)
+        self.callback_wrapper(event, data)
 
 
 class JsApiCallbackWrapper(PythonJavaClass):
