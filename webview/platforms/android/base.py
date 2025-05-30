@@ -1,5 +1,7 @@
+from time import sleep
+
 from webview.platforms.android.event import EventDispatcher
-from android.activity import _activity as activity  # noqa
+from android.activity import register_activity_lifecycle_callbacks, _activity as activity  # noqa
 
 
 class EventLoop(EventDispatcher):
@@ -12,26 +14,18 @@ class EventLoop(EventDispatcher):
         self.resumed = False
         self.destroyed = False
         self.paused = False
+        register_activity_lifecycle_callbacks(
+            onActivityCreated=self.app.on_create,
+            onActivityPaused=self.app.on_pause,
+            onActivityDestroyed=self.app.on_destroy,
+            onActivityResumed=self.app.on_resume,
+            onActivityStarted=self.app.on_start,
+            onActivityStopped=self.app.on_stop,
+        )
 
     def mainloop(self):
         while not self.quit and self.status == "created":
-            self.poll()
-
-    def poll(self):
-        if activity.isResumed() and not self.resumed:
-            self.app.dispatch("on_resume")
-            self.resumed = activity.resumed
-            self.paused = False
-
-        if activity.isDestroyed() and not self.destroyed:
-            self.app.dispatch("on_destroy")
-            self.destroyed = activity.destroyed
-            self.resumed = False
-
-        if not activity.hasWindowFocus() and not self.paused:
-            self.app.dispatch("on_pause")
-            self.paused = True
-            self.resumed = False
+            sleep(1/60)  # Run at 60 FPS
 
     def close(self):
         self.quit = True
