@@ -353,7 +353,7 @@ def load_js_files(window: Window, platform: str) -> str:
                     'zoomable': str(window.zoomable),
                     'draggable': str(window.draggable),
                     'easy_drag': str(platform == 'edgechromium' and window.easy_drag and window.frameless),
-                    'easy_resize': str(window.frameless and window.resizable),
+                    'easy_resize': str(platform != 'cocoa' and window.frameless and window.resizable),
                 }
             elif name == 'finish':
                 finish_script = content
