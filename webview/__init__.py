@@ -223,13 +223,26 @@ def start(
     renderer = guilib.renderer
 
     if ssl:
-        # generate SSL certs and tell the windows to use them
-        keyfile, certfile = __generate_ssl_cert()
-        server_args['keyfile'] = keyfile
-        server_args['certfile'] = certfile
+        if not server_args:
+            # generate SSL certs and tell the windows to use them
+            keyfile, certfile = __generate_ssl_cert()
+            server_args['keyfile'] = keyfile
+            server_args['certfile'] = certfile
+        else:
+            if 'keyfile' not in server_args or 'certfile' not in server_args:
+                raise WebViewException('Both the keyfile and certfile must exist and be match.')
+            keyfile = server_args['keyfile']
+            certfile = server_args['certfile']
+            if not os.path.exists(keyfile):
+                raise WebViewException(f'The {keyfile} does not exist.')
+            if not os.path.exists(certfile):
+                raise WebViewException(f'The {certfile} does not exist.')
+
         _state['ssl'] = True
     else:
         keyfile, certfile = None, None
+        server_args.pop('keyfile', None)
+        server_args.pop('certfile', None)
 
     urls = [w.original_url for w in windows]
     has_local_urls = not not [w.original_url for w in windows if is_local_url(w.original_url)]
@@ -242,7 +255,7 @@ def start(
         )
 
     for window in windows:
-        should_initialize = not window._initialize(guilib)
+        should_initialize = not window._initialize(guilib, server_args=server_args)
         if should_initialize:
             return
 
@@ -483,4 +496,3 @@ def screens() -> list[Screen]:
 
     screens = guilib.get_screens()
     return screens
-
