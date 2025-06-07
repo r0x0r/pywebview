@@ -603,7 +603,7 @@ class BrowserView:
                         cancellable=None,
                         callback=_callback)
             except Exception:
-                logger.exception(e)
+                logger.exception('Error evaluating JavaScript')
                 result_semaphore.release()
 
 
