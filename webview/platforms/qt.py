@@ -262,9 +262,9 @@ class BrowserView(QMainWindow):
 
             def onFeaturePermissionRequested(self, url, feature):
                 if feature in (
-                    QWebPage.MediaAudioCapture,
-                    QWebPage.MediaVideoCapture,
-                    QWebPage.MediaAudioVideoCapture,
+                    QWebPage.Feature.MediaAudioCapture,
+                    QWebPage.Feature.MediaVideoCapture,
+                    QWebPage.Feature.MediaAudioVideoCapture,
                 ):
                     self.setFeaturePermission(url, feature, QWebPage.PermissionGrantedByUser)
                 else:

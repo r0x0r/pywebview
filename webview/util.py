@@ -67,12 +67,12 @@ class ImmutableDict(UserDict):
         raise KeyError('Deleting keys is not allowed.')
 
 
-def is_app(url: str | None) -> bool:
+def is_app(url: str | callable | None) -> bool:
     """Returns true if 'url' is a WSGI or ASGI app."""
     return callable(url)
 
 
-def is_local_url(url: str | None) -> bool:
+def is_local_url(url: str | callable | None) -> bool:
     return not ((is_app(url)) or (
             (not url) or (url.startswith('http://')) or (url.startswith('https://')) or url.startswith('file://')))
 
