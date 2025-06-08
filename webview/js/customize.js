@@ -185,6 +185,7 @@
         if (easyResize) {
             var direction = possibleResizingDirection(ev);
             if (direction !== "") {
+                ev.preventDefault();
                 startResizingWindow(ev, direction);
                 return;
             }
