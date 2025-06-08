@@ -208,6 +208,13 @@
     // listen mousemove event for moving and resizing
     window.addEventListener('mousemove', onMouseMove);
 
+    if (easyResize) {
+        // hide native scrollbar
+        var hideScrollbarStyle = document.createElement('style');
+        hideScrollbarStyle.innerHTML = '::-webkit-scrollbar{display:none}';
+        document.body.appendChild(hideScrollbarStyle)
+    }
+
     if ('%(zoomable)s' === 'False') {
         document.body.addEventListener('touchstart', function(e) {
             if ((e.touches.length > 1) || e.targetTouches.length > 1) {
