@@ -869,6 +869,12 @@ The event is fired when _pywebview_ window is about to be closed. If confirm_clo
 
 [Example](/examples/events.html)
 
+### window.events.initialized
+
+The event is fired right after GUI is chosen and HTTP server is started (if applicable). The first parameter `renderer` has a value of the chosen GUI library / web renderer. If event handler returns False, the window creation will be cancelled and GUI loop will not be started (for windows created before the GUI loop is started). This event is blocking.
+
+[Example](/examples/events.html)
+
 ### window.events.loaded
 
 The event is fired when DOM is ready.

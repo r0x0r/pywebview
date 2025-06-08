@@ -167,6 +167,7 @@ class Window:
         self.events.loaded = Event(self)
         self.events.before_load = Event(self, True)
         self.events.before_show = Event(self, True)
+        self.events.initialized = Event(self, True)
         self.events.shown = Event(self)
         self.events.minimized = Event(self)
         self.events.maximized = Event(self)
@@ -208,6 +209,9 @@ class Window:
             http.global_server.js_api_endpoint if not http.global_server is None else None
         )
         self.real_url = self._resolve_url(self.original_url)
+
+        abort = self.events.initialized.set(gui.renderer)
+        return not abort
 
     @property
     def width(self) -> int:
