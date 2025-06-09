@@ -257,13 +257,6 @@ class Window:
         if hasattr(self, 'gui') and self.gui != None:
             self.gui.set_on_top(self.uid, on_top)
 
-    @_loaded_call
-    def get_elements(self, selector: str) -> list[Element]:
-        logger.warning(
-            'This function is deprecated and will be removed in future releases. Use window.dom.get_elements() instead'
-        )
-        return self.dom.get_elements(selector)
-
     @_shown_call
     def load_url(self, url: str) -> None:
         """
