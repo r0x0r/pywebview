@@ -182,8 +182,9 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
         for name in dir(obj):
             full_name = f"{base_name}.{name}" if base_name else name
+            target_obj = getattr(obj, name)
 
-            if name.startswith('_'):
+            if name.startswith('_') or getattr(target_obj, '_serializable', True) == False:
                 continue
 
             attr = getattr(obj, name)

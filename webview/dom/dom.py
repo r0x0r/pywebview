@@ -5,6 +5,8 @@ from webview.dom.element import Element
 
 
 class DOM:
+    _serializable = False
+
     def __init__(self, window):
         self.__window = window
         window.events.loaded += self.__on_loaded

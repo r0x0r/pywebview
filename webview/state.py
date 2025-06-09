@@ -17,6 +17,8 @@ class StateEventType(StrEnum):
 
 class State(dict):
 
+    _serializable = False
+
     def __init__(self, window):
         self.__event_handlers = []
         self.__window = window
