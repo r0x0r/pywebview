@@ -735,19 +735,13 @@ class BrowserView:
         AppHelper.callAfter(_show)
 
     def hide(self):
-        def _hide():
-            self.window.orderOut_(self.window)
-
-        AppHelper.callAfter(_hide)
+        AppHelper.callAfter(self.window.orderOut_, self.window)
 
     def destroy(self):
         AppHelper.callAfter(self.window.close)
 
     def set_title(self, title):
-        def _set_title():
-            self.window.setTitle_(title)
-
-        AppHelper.callAfter(_set_title)
+        AppHelper.callAfter(self.window.setTitle_, title)
 
     def toggle_fullscreen(self):
         def toggle():
@@ -791,14 +785,15 @@ class BrowserView:
         self.resize(width, height, None)
 
     def minimize(self):
-        self.window.miniaturize_(self)
+        AppHelper.callLater(self.window.miniaturize_, self)
 
     def restore(self):
-        self.window.deminiaturize_(self)
+        AppHelper.callLater(self.window.deminiaturize_, self)
 
     def move(self, x, y):
         flipped_y = self.screen.size.height - y
-        self.window.setFrameTopLeftPoint_(AppKit.NSPoint(self.screen.origin.x + x, self.screen.origin.y + flipped_y))
+        point = AppKit.NSPoint(self.screen.origin.x + x, self.screen.origin.y + flipped_y)
+        AppHelper.callLater(self.window.setFrameTopLeftPoint_, point)
 
     def center(self):
         window_frame = self.window.frame()
