@@ -301,7 +301,7 @@ class BrowserView:
                 else:
                     return False
             except Exception as e:
-                logger.error(f'Error while getting system theme: {e}')
+                logger.debug(f'Error while getting system theme: {e}')
                 return None
 
         def on_activated(self, *_):
