@@ -4,7 +4,7 @@ html = """
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura.css">
+       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     </head>
 
     <script>

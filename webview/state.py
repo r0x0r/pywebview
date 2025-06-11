@@ -7,7 +7,9 @@ try:
     from enum import StrEnum # Python 3.11 and above
 except ImportError:
     from enum import Enum
-    StrEnum = str, Enum
+
+    class StrEnum(str, Enum):
+        pass
 
 
 class StateEventType(StrEnum):
