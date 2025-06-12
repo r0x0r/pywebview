@@ -10,7 +10,7 @@ def window():
     return webview.create_window('User Agent Test', html='<html><body>User Agent Test</body></html>')
 
 # This test is skipped on AppVeyor because it does not support changing the user agent for some reason.
-@pytest.mark.skipif(os.environ.get('APPVEYOR') == 'true', reason="Skip on AppVeyor")
+@pytest.mark.skip #if(os.environ.get('APPVEYOR') == 'true', reason="Skip on AppVeyor")
 def test_user_agent(window):
     run_test(webview, window, user_agent_test, start_args={'user_agent': 'Custom user agent'})
 

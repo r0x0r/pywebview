@@ -17,7 +17,7 @@ def test_start():
 
 
 def assert_func(window):
-    sleep(1)
+    window.events.loaded.wait()
     html_result = window.evaluate_js('document.getElementById("heading").innerText')
     assert html_result == 'Hello there!'
 
