@@ -218,7 +218,11 @@ class BrowserView(QMainWindow):
 
             url = info.requestUrl().toString()
             method = info.requestMethod()
-            headers = {k.data().decode('utf-8'): k.data().decode('utf-8') for k, v in info.httpHeaders().items()}
+
+            if 'httpHeaders' in dir(info):
+                headers = {k.data().decode('utf-8'): k.data().decode('utf-8') for k, v in info.httpHeaders().items()}
+            else:
+                headers = {}
 
             request = Request(url, method, headers)
             self.window.events.request_sent.set(request)
