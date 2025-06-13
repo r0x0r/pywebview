@@ -53,14 +53,33 @@ __all__ = (
     'Window',
 )
 
-logger = logging.getLogger('pywebview')
-_handler = logging.StreamHandler()
-_formatter = logging.Formatter('[pywebview] %(message)s')
-_handler.setFormatter(_formatter)
-logger.addHandler(_handler)
 
-log_level = logging._nameToLevel[os.environ.get('PYWEBVIEW_LOG', 'info').upper()]
-logger.setLevel(log_level)
+def _setup_logger():
+    """Setup logger with console handler and appropriate log level."""
+
+    logger = logging.getLogger('pywebview')
+
+    # Avoid duplicate setup
+    if logger.handlers:
+        return logger
+
+    # Create and configure handler
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('[pywebview] %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    # Set log level from environment variable with validation
+    log_level_name = os.environ.get('PYWEBVIEW_LOG', 'INFO').upper()
+    try:
+        log_level = getattr(logging, log_level_name)
+        logger.setLevel(log_level)
+    except AttributeError:
+        # Fallback to INFO if invalid level specified
+        logger.setLevel(logging.INFO)
+        logger.warning(f"Invalid log level '{log_level_name}', using INFO instead")
+
+logger = _setup_logger()
 
 @module_property
 def OPEN_DIALOG():
