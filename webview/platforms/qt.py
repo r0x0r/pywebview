@@ -251,10 +251,9 @@ class BrowserView(QMainWindow):
                     QWebPage.Feature.MediaVideoCapture,
                     QWebPage.Feature.MediaAudioVideoCapture,
                 ):
-                    self.setFeaturePermission(url, feature, QWebPage.PermissionGrantedByUser)
+                    self.setFeaturePermission(url, feature, 1) # QWebPage.PermissionGrantedByUser
                 else:
-                    self.setFeaturePermission(url, feature, QWebPage.PermissionDeniedByUser)
-
+                    self.setFeaturePermission(url, feature, 2) # QWebPage.PermissionDeniedByUser
         else:
 
             def acceptNavigationRequest(self, frame, request, type):
