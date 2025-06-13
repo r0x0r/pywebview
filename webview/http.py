@@ -99,6 +99,7 @@ class BottleServer:
             common_path = os.path.commonpath(local_urls) if len(local_urls) > 0 else None
             if common_path is not None and not os.path.isdir(abspath(common_path)):
                 common_path = os.path.dirname(common_path)
+            logger.debug("Comon path for local URLs: %s" % common_path)
             server.root_path = abspath(common_path) if common_path is not None else None
             logger.debug('HTTP server root path: %s' % server.root_path)
             app = bottle.Bottle()
