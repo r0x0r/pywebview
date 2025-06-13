@@ -606,7 +606,6 @@ class BrowserView:
         self.webview.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
 
-        #config = self.webview.configuration()
         config.userContentController().addScriptMessageHandler_name_(
             self._browserDelegate, 'browserDelegate'
         )
@@ -792,8 +791,7 @@ class BrowserView:
 
     def move(self, x, y):
         flipped_y = self.screen.size.height - y
-        point = AppKit.NSPoint(self.screen.origin.x + x, self.screen.origin.y + flipped_y)
-        AppHelper.callLater(self.window.setFrameTopLeftPoint_, point)
+        self.window.setFrameTopLeftPoint_(AppKit.NSPoint(self.screen.origin.x + x, self.screen.origin.y + flipped_y))
 
     def center(self):
         window_frame = self.window.frame()
