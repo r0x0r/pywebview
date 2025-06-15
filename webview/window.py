@@ -359,7 +359,7 @@ class Window:
 
     @_shown_call
     def resize(
-        self, width: int, height: int, fix_point: FixPoint = FixPoint.NORTH | FixPoint.WEST
+        self, width: int, height: int, fix_point: FixPoint | int = FixPoint.NORTH | FixPoint.WEST
     ) -> None:
         """
         Resize window
@@ -370,6 +370,10 @@ class Window:
             with bitwise operators.
             Example: FixPoint.NORTH | FixPoint.WEST
         """
+        width = max(width, self.min_size[0])
+        height = max(height, self.min_size[1])
+        if not isinstance(fix_point, FixPoint):
+            fix_point = FixPoint(fix_point)
         self.gui.resize(width, height, self.uid, fix_point)
 
     @_shown_call

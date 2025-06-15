@@ -262,6 +262,10 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         window.move(*param)
         return
 
+    if func_name == 'pywebviewResizeWindow':
+        window.resize(*param)
+        return
+
     if func_name == 'pywebviewEventHandler':
         event = param['event']
         node_id = param['nodeId']
@@ -348,7 +352,8 @@ def load_js_files(window: Window, platform: str) -> str:
                     'drag_selector': webview.DRAG_REGION_SELECTOR,
                     'zoomable': str(window.zoomable),
                     'draggable': str(window.draggable),
-                    'easy_drag': str(platform == 'edgechromium' and window.easy_drag and window.frameless)
+                    'easy_drag': str(platform == 'edgechromium' and window.easy_drag and window.frameless),
+                    'easy_resize': str(platform == 'edgechromium' and window.frameless and window.resizable),
                 }
             elif name == 'finish':
                 finish_script = content
