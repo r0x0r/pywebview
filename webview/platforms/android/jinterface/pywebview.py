@@ -49,11 +49,11 @@ class JsApiCallbackWrapper(PythonJavaClass):
     __javainterfaces__ = ['com/pywebview/JsApiCallbackWrapper']
 
     def __init__(self, callback):
-        self.callback = callback
+        self.callback_wrapper = callback
 
     @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
     def callback(self, func, params, id):
-        self.callback(func, params, id)
+        self.callback_wrapper(func, params, id)
 
 
 class RequestInterceptor(PythonJavaClass):
