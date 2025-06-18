@@ -79,6 +79,8 @@ def _setup_logger():
         logger.setLevel(logging.INFO)
         logger.warning(f"Invalid log level '{log_level_name}', using INFO instead")
 
+    return logger
+
 logger = _setup_logger()
 
 @module_property
