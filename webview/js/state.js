@@ -54,13 +54,15 @@ pywebview.state = (function() {
       }
 
       if (key in target) {
+        const oldValue = target[key];
         Reflect.deleteProperty(target, key);
+
         delete target[key];
 
         if (!haltUpdate) {
           pywebview._jsApiCallback('pywebviewStateDelete', key, (Math.random() + "").substring(2));
         }
-        target.dispatchEvent(new CustomEvent('delete', {detail: {key}}))
+        target.dispatchEvent(new CustomEvent('delete', {detail: {key, value: oldValue}}))
         return true;
       }
       return false;

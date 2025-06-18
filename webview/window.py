@@ -183,7 +183,7 @@ class Window:
         self.dom = DOM(self)
         self.gui = None
         self.native = None # set in the gui after window creation
-        self.state = State(self)
+        self._state = State(self)
 
     def _initialize(self, gui, server: http.BottleServer | None = None):
         self.gui = gui
@@ -224,6 +224,16 @@ class Window:
         self.events.shown.wait(15)
         _, height = self.gui.get_size(self.uid)
         return height
+
+    @property
+    def state(self) -> State:
+        return self._state
+
+    @state.setter
+    def state(self, state: State) -> None:
+        if not isinstance(state, State):
+            raise TypeError('State must be an instance of State class')
+        self._state = state
 
     @property
     def title(self) -> str:
