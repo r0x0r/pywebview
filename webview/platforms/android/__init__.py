@@ -1,36 +1,38 @@
 import logging
-import os
 import json
 from threading import Semaphore
 from urllib.parse import urlparse
 
-from kivy.app import App
-from kivy.uix.widget import Widget
-from kivy.clock import Clock
-
-from jnius import autoclass, cast, java_method, PythonJavaClass
-from android.runnable import Runnable, run_on_ui_thread
+from jnius import cast, autoclass
+from android.runnable import run_on_ui_thread  # noqa
+from android.activity import _activity as activity# noqa
 
 from webview import _state, settings
 from webview.models import Request, Response
+from webview.platforms.android.app import App
+from webview.platforms.android.jclass import (
+    CookieManager,
+    WebView,
+    PyWebViewClient,
+    PyWebChromeClient,
+    PyJavascriptInterface,
+    AlertDialogBuilder,
+    DownloadManagerRequest,
+    Uri,
+    Environment,
+    View,
+    KeyEvent,
+    Context
+)
+from webview.platforms.android.jinterface import (
+    EventCallbackWrapper,
+    RequestInterceptor,
+    JsApiCallbackWrapper,
+    KeyListener,
+    ValueCallback,
+    DownloadListener
+)
 from webview.util import create_cookie, js_bridge_call, inject_pywebview
-
-AlertDialogBuilder = autoclass('android.app.AlertDialog$Builder')
-AndroidString = autoclass('java.lang.String')
-CookieManager = autoclass('android.webkit.CookieManager')
-WebViewA = autoclass('android.webkit.WebView')
-View = autoclass('android.view.View')
-KeyEvent = autoclass('android.view.KeyEvent')
-PyWebViewClient = autoclass('com.pywebview.PyWebViewClient')
-PyWebChromeClient = autoclass('com.pywebview.PyWebChromeClient')
-PyJavaScriptInterface = autoclass('com.pywebview.PyJavascriptInterface')
-JavascriptValueCallback = autoclass('com.pywebview.JavascriptValueCallback')
-activity = autoclass('org.kivy.android.PythonActivity').mActivity
-Environment = autoclass('android.os.Environment')
-DownloadManager = autoclass('android.app.DownloadManager')
-DownloadManagerRequest = autoclass('android.app.DownloadManager$Request')
-Uri = autoclass('android.net.Uri')
-Context = autoclass('android.content.Context')
 
 
 logger = logging.getLogger('pywebview')
@@ -39,112 +41,17 @@ renderer = 'android-webkit'
 app = None
 
 
-class DownloadListener(PythonJavaClass):
-    __javacontext__ = 'app'
-    __javainterfaces__ = ['android/webkit/DownloadListener']
-
-    @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;J)V')
-    def onDownloadStart(self, url, userAgent, contentDisposition, mimetype, contentLength):
-        context = activity.getApplicationContext()
-        visibility = DownloadManagerRequest.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
-        dir_type = Environment.DIRECTORY_DOWNLOADS
-        uri = Uri.parse(url)
-        filepath = uri.getLastPathSegment()
-        request = DownloadManagerRequest(uri)
-        request.setNotificationVisibility(visibility)
-        request.setDestinationInExternalFilesDir(context, dir_type, filepath)
-        dm = cast(DownloadManager, activity.getSystemService(Context.DOWNLOAD_SERVICE))
-        dm.enqueue(request)
-
-
-class KeyListener(PythonJavaClass):
-    __javacontext__ = 'app'
-    __javainterfaces__ = ['android/view/View$OnKeyListener']
-
-    def __init__(self, listener):
-        super().__init__()
-        self.listener = listener
-
-    @java_method('(Landroid/view/View;ILandroid/view/KeyEvent;)Z')
-    def onKey(self, v, key_code, event):
-        if key_code == KeyEvent.KEYCODE_BACK:
-            return self.listener()
-
-
-class EventCallbackWrapper(PythonJavaClass):
-    __javacontext__ = 'app'
-    __javainterfaces__ = ['com/pywebview/EventCallbackWrapper']
-
-    def __init__(self, callback):
-        super().__init__()
-        self.callback = callback
-
-    @java_method('(Ljava/lang/String;Ljava/lang/String;)V')
-    def callback(self, event, data):
-        if self.callback:
-            self.callback(event, data)
-
-
-class JsApiCallbackWrapper(PythonJavaClass):
-    __javacontext__ = 'app'
-    __javainterfaces__ = ['com/pywebview/JsApiCallbackWrapper']
-
-    def __init__(self, callback):
-        super().__init__()
-        self.callback = callback
-
-    @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
-    def callback(self, func, params, id):
-        if self.callback:
-            Runnable(self.callback)(func, params, id)
-
-
-class RequestInterceptor(PythonJavaClass):
-    __javacontext__ = 'app'
-    __javainterfaces__ = ['com/pywebview/WebViewRequestInterceptor']
-
-    def __init__(self, webview_instance):
-        super().__init__()
-        self.webview = webview_instance
-
-    @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;')
-    def onRequest(self, url: str, method: str, headers_json: str):
-        headers = json.loads(headers_json) if headers_json else {}
-        original_headers = headers.copy()
-
-        request = Request(url, method, headers)
-        self.webview.pywebview_window.events.request_sent.set(request)
-
-        if request.headers != original_headers:
-            logger.debug('Request headers mutated. Original: %s, Mutated: %s', original_headers, request.headers)
-
-            return json.dumps(request.headers)
-
-        return None
-
-    @java_method('(Ljava/lang/String;ILjava/lang/String;)V')
-    def onResponse(self, url: str, status_code: int, headers_json: str):
-        headers = json.loads(headers_json) if headers_json else {}
-
-        response = Response(url, status_code, headers)
-        self.webview.pywebview_window.events.response_received.set(response)
-
-
-def run_ui_thread(f, *args, **kwargs):
-    Runnable(f)(args, kwargs)
-
-
-class BrowserView(Widget):
-    def __init__(self, window, **kwargs):
+class BrowserView:
+    def __init__(self, window):
         self.pywebview_window = window
         self.webview = None
         self.dialog = None
-        super(BrowserView, self).__init__(**kwargs)
         self.pywebview_window.native = self
-        Clock.schedule_once(lambda dt: run_ui_thread(self.create_webview), 0)
         self.is_fullscreen = False
+        self.create_webview()
 
-    def create_webview(self, *args):
+    @run_on_ui_thread
+    def create_webview(self):
         def js_api_handler(func, params, id):
             js_bridge_call(self.pywebview_window, func, json.loads(params), id)
 
@@ -154,13 +61,13 @@ class BrowserView(Widget):
         def webview_callback(event, data):
             if event == 'onPageFinished':
                 inject_pywebview(renderer, self.pywebview_window)
-
+                cookiemanager = CookieManager.getInstance()
                 if not _state['private_mode']:
-                    CookieManager.getInstance().setAcceptCookie(True)
-                    CookieManager.getInstance().acceptCookie()
-                    CookieManager.getInstance().flush()
+                    cookiemanager.setAcceptCookie(True)
+                    cookiemanager.acceptCookie()
+                    cookiemanager.flush()
                 else:
-                    CookieManager.getInstance().setAcceptCookie(False)
+                    cookiemanager.setAcceptCookie(False)
 
             elif event == 'onCookiesReceived':
                 cookies = json.loads(data)
@@ -170,8 +77,6 @@ class BrowserView(Widget):
                     self._cookies[url] = list(set(self._cookies[url] + cookies['cookies']))
                 else:
                     self._cookies[url] = cookies['cookies']
-            elif event == 'shouldInterceptRequest':
-                pass
             elif event == 'onReceivedHttpError':
                 response_data = json.loads(data)
                 response = Response(
@@ -182,7 +87,7 @@ class BrowserView(Widget):
                 self.pywebview_window.events.response_received.set(response)
 
         self._cookies = {}
-        self.webview = WebViewA(activity)
+        self.webview = WebView(activity)
         webview_settings = self.webview.getSettings()
         webview_settings.setAllowFileAccessFromFileURLs(True)
         webview_settings.setJavaScriptEnabled(True)
@@ -196,31 +101,41 @@ class BrowserView(Widget):
             webview_settings.setUserAgentString(_state['user_agent'])
 
         self._webview_callback_wrapper = EventCallbackWrapper(webview_callback)
-        webview_client = PyWebViewClient()
+        self._webview_client = webview_client = PyWebViewClient()
         webview_client.setCallback(self._webview_callback_wrapper, _state['ssl'] or settings['IGNORE_SSL_ERRORS'])
-        self.webview_client = webview_client
-
-        self._request_interceptor = RequestInterceptor(self)
+        self._request_interceptor = RequestInterceptor(self._on_request, self._on_response)
         webview_client.setRequestInterceptor(self._request_interceptor)
 
         self.webview.setWebViewClient(webview_client)
 
         self._chrome_callback_wrapper = EventCallbackWrapper(chrome_callback)
-        chrome_client = PyWebChromeClient()
+        self._chrome_client = chrome_client = PyWebChromeClient()
         chrome_client.setCallback(self._chrome_callback_wrapper)
         self.webview.setWebChromeClient(chrome_client)
 
         self._js_api_callback_wrapper = JsApiCallbackWrapper(js_api_handler)
-        js_interface = PyJavaScriptInterface()
+        self._js_interface = js_interface = PyJavascriptInterface()
         js_interface.setCallback(self._js_api_callback_wrapper)
         self.webview.addJavascriptInterface(js_interface, 'external')
 
-        activity.setContentView(self.webview)
-
         if settings['ALLOW_DOWNLOADS']:
-            self.webview.setDownloadListener(DownloadListener())
+            def _on_download_start(url, *_):
+                context = activity.getApplicationContext()
+                visibility = DownloadManagerRequest.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+                dir_type = Environment.DIRECTORY_DOWNLOADS
+                uri = Uri.parse(url)
+                filepath = uri.getLastPathSegment()
+                request = DownloadManagerRequest(uri)
+                request.setNotificationVisibility(visibility)
+                request.setDestinationInExternalFilesDir(context, dir_type, filepath)
+                dm = cast("android.app.DownloadManager", activity.getSystemService(Context.DOWNLOAD_SERVICE))
+                dm.enqueue(request)
 
-        self.webview.setOnKeyListener(KeyListener(self._back_pressed))
+            self._download_listener = DownloadListener(_on_download_start)
+            self.webview.setDownloadListener(self._download_listener)
+
+        self._key_listener = KeyListener(self._back_pressed)
+        self.webview.setOnKeyListener(self._key_listener)
         self.pywebview_window.events.before_show.set()
 
         if self.pywebview_window.real_url:
@@ -232,6 +147,27 @@ class BrowserView(Widget):
             toggle_fullscreen(self.pywebview_window)
 
         self.pywebview_window.events.shown.set()
+        activity.setContentView(self.webview)
+
+    def _on_request(self, url: str, method: str, headers_json: str):
+        headers = json.loads(headers_json) if headers_json else {}
+        original_headers = headers.copy()
+
+        request = Request(url, method, headers)
+        self.pywebview_window.events.request_sent.set(request)
+
+        if request.headers != original_headers:
+            logger.debug('Request headers mutated. Original: %s, Mutated: %s', original_headers, request.headers)
+
+            return json.dumps(request.headers)
+
+        return None
+
+    def _on_response(self, url: str, status_code: int, headers_json: str):
+        headers = json.loads(headers_json) if headers_json else {}
+
+        response = Response(url, status_code, headers)
+        self.pywebview_window.events.response_received.set(response)
 
     def dismiss(self):
         if _state['private_mode']:
@@ -256,33 +192,30 @@ class BrowserView(Widget):
         if self.dialog:
             return
 
-        context = self.webview.getContext()
-        message = AndroidString(self.pywebview_window.localization['global.quitConfirmation'])
-        quit_msg = AndroidString(self.pywebview_window.localization['global.quit'])
-        cancel_msg = AndroidString(self.pywebview_window.localization['global.cancel'])
+        String = autoclass("java.lang.String")
+        message = String(self.pywebview_window.localization['global.quitConfirmation'])
+        quit_msg = String(self.pywebview_window.localization['global.quit'])
+        cancel_msg = String(self.pywebview_window.localization['global.cancel'])
 
-        self.dialog = AlertDialogBuilder(context) \
+        self.dialog = AlertDialogBuilder(activity) \
             .setMessage(message) \
             .setPositiveButton(quit_msg, quit) \
             .setNegativeButton(cancel_msg, cancel) \
             .setOnCancelListener(cancel) \
             .show()
 
-    def _back_pressed(self):
-        if self.webview.canGoBack():
+    def _back_pressed(self, v, key_code, event):
+        if not (event.getAction() == KeyEvent.ACTION_DOWN and key_code == KeyEvent.KEYCODE_BACK):
+            return False
+        elif self.webview.canGoBack():
             self.webview.goBack()
-            return
-        should_cancel = self.pywebview_window.events.closing.set()
-
-        if should_cancel:
-            return
-
-        if self.pywebview_window.confirm_close:
+        elif self.pywebview_window.events.closing.set():
+            pass
+        elif self.pywebview_window.confirm_close:
             self._quit_confirmation()
         else:
             app.pause()
             self.pywebview_window.closed.set()
-
         return True
 
 
@@ -292,40 +225,23 @@ class AndroidApp(App):
         self.first_show = True
         super().__init__()
 
-    def build(self):
+    def build_view(self):
         self.view = BrowserView(self.window)
         return self.view
 
-    def on_pause(self):
-        def _pause():
-            self.view.webview.pauseTimers()
-            self.view.webview.onPause()
+    def on_pause(self, _):
+        self.view.webview.pauseTimers()
+        self.view.webview.onPause()
 
         logger.debug('pausing initiated')
 
-        # on_pause triggers on first show for some reason, so we need to ignore it
-        if self.view.webview and not self.first_show:
-            logger.debug('pausing')
-            Runnable(_pause)()
-
-        self.first_show = False
-
-        return True
-
-    def on_resume(self):
-        def _resume():
-            logger.debug('resuming')
-            self.view.webview.onResume()
-            self.view.webview.resumeTimers()
-
-        if self.view.webview:
-            Runnable(_resume)()
-
-    def on_stop(self):
-        return True
+    def on_resume(self, _):
+        logger.debug('resuming')
+        self.view.webview.onResume()
+        self.view.webview.resumeTimers()
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, _):
+def create_file_dialog(*_):
     logger.warning('Creating file dialogs is not supported on Android')
 
 
@@ -357,33 +273,34 @@ def load_html(html_content, base_uri, _):
 
 
 def evaluate_js(js_code, _, parse_json=True):
-    def callback(event, result):
+    def callback(result):
         nonlocal js_result
         js_result = json.loads(result) if parse_json and result else result
         lock.release()
 
+    @run_on_ui_thread
     def _evaluate_js():
-        callback_wrapper = EventCallbackWrapper(callback)
-        value_callback = JavascriptValueCallback()
-        value_callback.setCallback(callback_wrapper)
+        value_callback = ValueCallback(callback)
         app.view.webview.evaluateJavascript(js_code, value_callback)
 
     lock = Semaphore(0)
     js_result = None
 
-    Runnable(_evaluate_js)()
+    _evaluate_js()
     lock.acquire()
     return js_result
 
 
 def clear_cookies(_):
+    @run_on_ui_thread
     def _cookies():
         CookieManager.getInstance().removeAllCookies(None)
 
-    Runnable(_cookies)()
+    _cookies()
 
 
 def get_cookies(_):
+    @run_on_ui_thread
     def _cookies():
         nonlocal cookies
 
@@ -409,7 +326,7 @@ def get_cookies(_):
 
     cookies = []
     lock = Semaphore(0)
-    Runnable(_cookies)()
+    _cookies()
     lock.acquire()
 
     return cookies

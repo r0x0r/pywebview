@@ -52,7 +52,8 @@ public class PyWebViewClient extends WebViewClient {
 
     @Override
     public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-        if (ignoreSslErrors) {
+        if (this.ignoreSslErrors) {
+            Log.d("PyWebViewClient", "SSL Error: " +error.getPrimaryError());
             handler.proceed();
         } else {
             handler.cancel();
