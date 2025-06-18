@@ -1,0 +1,26 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Android test suite</title>
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css">
+
+  <body>
+    <div id="mocha"></div>
+    <script src="https://unpkg.com/mocha/mocha.js"></script>
+    <script src="https://unpkg.com/chai@4.5.0/chai.js"></script>
+    <script>mocha.setup('bdd')</script>
+    <script>mocha.timeout(10000)</script>
+    <script>expect = chai.expect</script>
+    <script src="index.js"></script>
+
+    <script src="tests/test-dom.js"></script>
+    <script src="tests/test-events.js"></script>
+    <script src="tests/test-js-api.js"></script>
+    <script src="tests/test-state.js"></script>
+    <script src="tests/test-window.js"></script>
+    <script>mocha.run();</script>
+
+    <div id="test-area" styles="visibility: hidden;"></div>
+</html>

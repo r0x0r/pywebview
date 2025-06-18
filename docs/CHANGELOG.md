@@ -23,7 +23,7 @@ _Released xx/xx/2025_
 - `All` Modify JS API to use callback instead of setInterval #1607. Thanks @qaqFei.
 - `All` When exposing a `Window` object to JS API, `dom`, `events` and `state` objects are omitted.
 - `Cocoa` Add handler for Javascript prompt/input #1567. Thanks @maddyaby.
-- `Winforms` Title bar theme follows system theme changes #1595. Thanks @godcop.
+- `Winforms` Dark mode support with automatic theme changing #1595. Thanks @godcop.
 
 #### 🐞 Bug fixes
 
