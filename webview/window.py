@@ -176,7 +176,7 @@ class Window:
         self.gui = None
         self.native = None # set in the gui after window creation
 
-    def _initialize(self, gui, server: http.BottleServer | None = None):
+    def _initialize(self, gui, server: http.BottleServer | None = None, server_args: http.ServerArgs = dict):
         self.gui = gui
 
         self.localization = original_localization.copy()
@@ -188,7 +188,7 @@ class Window:
                 urls=[self.original_url],
                 http_port=self._http_port,
                 server=self._server,
-                **self._server_args,
+                **(self._server_args or server_args),
             )
         elif server is None:
             server = http.global_server
