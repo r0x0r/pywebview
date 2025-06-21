@@ -218,6 +218,20 @@ class BrowserView:
             self.pywebview_window.closed.set()
         return True
 
+    def get_size(self):
+        return self.webview.getWidth(), self.webview.getHeight()
+
+    def get_url(self):
+        return self.webview.getUrl()
+
+    @run_on_ui_thread
+    def load_url(self, url):
+        self.webview.loadUrl(url)
+
+    @run_on_ui_thread
+    def load_data_with_base_url(self, base_uri, html_content):
+        self.webview.loadDataWithBaseURL(base_uri, html_content, 'text/html', 'UTF-8', None)
+
 
 class AndroidApp(App):
     def __init__(self, window):
@@ -260,16 +274,14 @@ def setup_app():
     pass
 
 
-@run_on_ui_thread
 def load_url(url, _):
     app.view._cookies = {}
-    app.view.webview.loadUrl(url)
+    app.view.load_url(url)
 
 
-@run_on_ui_thread
 def load_html(html_content, base_uri, _):
     app.view._cookies = {}
-    app.view.webview.loadDataWithBaseURL(base_uri, html_content, 'text/html', 'UTF-8', None)
+    app.view.load_data_with_base_url(base_uri, html_content)
 
 
 def evaluate_js(js_code, _, parse_json=True):
@@ -292,49 +304,34 @@ def evaluate_js(js_code, _, parse_json=True):
 
 
 def clear_cookies(_):
-    @run_on_ui_thread
-    def _cookies():
-        CookieManager.getInstance().removeAllCookies(None)
-
-    _cookies()
+    CookieManager.getInstance().removeAllCookies(None)
 
 
 def get_cookies(_):
-    @run_on_ui_thread
-    def _cookies():
-        nonlocal cookies
-
-        raw_cookies = app.view._cookies
-        full_url = app.view.webview.getUrl()
-        url = urlparse(full_url)
-        url = f'{url.scheme}://{url.netloc}'
-
-        if url in raw_cookies:
-            cookies = [create_cookie(c) for c in raw_cookies[url]]
-
-        for c in {x for v in raw_cookies.values() for x in v}:
-            cookie = create_cookie(c)
-            domain = next(iter(cookie.values())).get('domain')
-
-            if not domain:
-                continue
-
-            if domain.startswith('.') and url.endswith(domain.lstrip('.')) or not domain.startswith('.') and url == domain:
-                cookies.append(cookie)
-
-        lock.release()
-
     cookies = []
-    lock = Semaphore(0)
-    _cookies()
-    lock.acquire()
+    raw_cookies = app.view._cookies
+    full_url = app.view.get_url()
+    url = urlparse(full_url)
+    url = f'{url.scheme}://{url.netloc}'
+
+    if url in raw_cookies:
+        cookies = [create_cookie(c) for c in raw_cookies[url]]
+
+    for c in {x for v in raw_cookies.values() for x in v}:
+        cookie = create_cookie(c)
+        domain = next(iter(cookie.values())).get('domain')
+
+        if not domain:
+            continue
+
+        if domain.startswith('.') and url.endswith(domain.lstrip('.')) or not domain.startswith('.') and url == domain:
+            cookies.append(cookie)
 
     return cookies
 
 
-@run_on_ui_thread
 def get_current_url(_):
-    return app.view.getUrl()
+    return app.view.get_url()
 
 
 def get_screens():
@@ -342,9 +339,8 @@ def get_screens():
     return []
 
 
-@run_on_ui_thread
 def get_size(_):
-    return (app.view.width, app.view.height)
+    return app.view.get_size()
 
 
 def get_position(_):
