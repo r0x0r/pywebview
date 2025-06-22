@@ -638,7 +638,7 @@ class BrowserView:
 
         config.preferences().setValue_forKey_(webview_settings['ALLOW_FILE_URLS'], 'allowFileAccessFromFileURLs')
 
-        if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
+        if _state['debug']:
             config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
