@@ -181,18 +181,22 @@ def inject_pywebview(platform: str, window: Window) -> str:
             functions = {}
 
         for name in dir(obj):
-            full_name = f"{base_name}.{name}" if base_name else name
-            target_obj = getattr(obj, name)
+            try:
+                full_name = f"{base_name}.{name}" if base_name else name
+                target_obj = getattr(obj, name)
 
-            if name.startswith('_') or getattr(target_obj, '_serializable', True) == False:
+                if name.startswith('_') or getattr(target_obj, '_serializable', True) == False:
+                    continue
+
+                attr = getattr(obj, name)
+                if inspect.ismethod(attr):
+                    functions[full_name] = get_args(attr)[1:]
+                # If the attribute is a class or a non-callable object, make a recursive call
+                elif inspect.isclass(attr) or (isinstance(attr, object) and not callable(attr) and hasattr(attr, "__module__")):
+                    get_functions(attr, full_name, functions)
+            except Exception as e:
+                logger.error(f'Error while processing {full_name}: {e}')
                 continue
-
-            attr = getattr(obj, name)
-            if inspect.ismethod(attr):
-                functions[full_name] = get_args(attr)[1:]
-            # If the attribute is a class or a non-callable object, make a recursive call
-            elif inspect.isclass(attr) or (isinstance(attr, object) and not callable(attr) and hasattr(attr, "__module__")):
-                get_functions(attr, full_name, functions)
 
         return functions
 
