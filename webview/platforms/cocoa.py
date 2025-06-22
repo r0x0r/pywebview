@@ -384,6 +384,9 @@ class BrowserView:
 
                 inject_pywebview('cocoa', i.js_bridge.window)
 
+                if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
+                    BrowserView._open_web_inspector(webview)
+
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):
             if message.body() == 'print':
@@ -1281,6 +1284,24 @@ class BrowserView:
         return _objc_so.PyObjCMethodSignature_WithMetaData(
             ctypes.create_string_buffer(signature_str), None, False
         )
+
+    @staticmethod
+    def _open_web_inspector(webview):
+        """
+        Programmatically open the Web Inspector for the given WKWebView.
+        Uses private WebKit APIs that may not work on all macOS versions.
+        """
+        try:
+            if hasattr(webview, '_inspector'):
+                inspector = webview._inspector()
+                if inspector and hasattr(inspector, 'show'):
+                    inspector.show()
+                    return True
+
+            return False
+
+        except Exception as e:
+            return False
 
     @staticmethod
     def quote(string):
