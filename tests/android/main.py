@@ -1,4 +1,7 @@
 import webview
+import logging
+
+logger = logging.getLogger('pywebview')
 
 
 class TestAPI:
@@ -38,23 +41,23 @@ class Api:
         return eval(code)
 
     def get_size(self):
-        return self.window.height, self.window.width
+        return self._window.height, self._window.width
 
     def evaluate_js(self, code):
-        return self.window.evaluate_js(code)
+        return self._window.evaluate_js(code)
 
     def run_js(self, code):
-        return self.window.run_js(code)
+        return self._window.run_js(code)
 
     def get_cookies(self):
-        cookies = self.window.get_cookies()
+        cookies = self._window.get_cookies()
         return [cookie.output() for cookie in cookies]
 
     def clear_cookies(self):
-        self.window.clear_cookies()
+        self._window.clear_cookies()
 
-    window = None
-    dom = None
+    _window = None
+    _dom = None
     test1 = TestAPI()
     test2 = TestAPI()
 
@@ -87,9 +90,9 @@ if __name__ == '__main__':
     window.events.before_load += lambda: set_event('before_load', True)
     window.events.before_show += lambda: set_event('before_show', True)
     window.events.shown += lambda: set_event('shown', True)
-    window.events.request_sent += lambda request: set_event('request_sent', request)
-    window.events.response_received += lambda response: set_event('response_received', response)
+    window.events.request_sent += lambda request: set_event('request_sent', request.__dict__)
+    window.events.response_received += lambda response: set_event('response_received', response.__dict__)
 
-    api.window = window
-    api.dom = window.dom
+    api._window = window
+    api._dom = window.dom
     webview.start(debug=True)

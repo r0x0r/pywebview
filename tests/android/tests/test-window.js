@@ -18,11 +18,11 @@ describe('Window tests', function() {
 
     describe('Evaluate JS tests', function() {
       it('evaluate_js can run Javascript', async function() {
-        expect(await window.pywebview.api.window.evaluate_js('window.testValue + 1')).to.equal(421);
+        expect(await window.pywebview.api.evaluate_js('window.testValue + 1')).to.equal(421);
       })
 
       it('evaluate_js can handle mixed code with functions and comments', async function() {
-        const result = await window.pywebview.api.window.evaluate_js(`
+        const result = await window.pywebview.api.evaluate_js(`
           // comment
           function test() {
               return 2 + 2;
@@ -33,7 +33,7 @@ describe('Window tests', function() {
       });
 
       it('evaluate_js can return arrays with mixed types', async function() {
-        const result = await window.pywebview.api.window.evaluate_js(`
+        const result = await window.pywebview.api.evaluate_js(`
           function getValue() {
               return [undefined, 1, 'two', 3.00001, {four: true}]
           }
@@ -43,7 +43,7 @@ describe('Window tests', function() {
       });
 
       it('evaluate_js can return objects with nested structures', async function() {
-        const result = await window.pywebview.api.window.evaluate_js(`
+        const result = await window.pywebview.api.evaluate_js(`
           function getValue() {
               return {1: 2, 'test': true, obj: {2: false, 3: 3.1}}
           }
@@ -53,7 +53,7 @@ describe('Window tests', function() {
       });
 
       it('evaluate_js can return strings', async function() {
-        const result = await window.pywebview.api.window.evaluate_js(`
+        const result = await window.pywebview.api.evaluate_js(`
           function getValue() {
               return "this is only a test"
           }
@@ -63,7 +63,7 @@ describe('Window tests', function() {
       });
 
       it('evaluate_js can return integers', async function() {
-        const result = await window.pywebview.api.window.evaluate_js(`
+        const result = await window.pywebview.api.evaluate_js(`
           function getValue() {
               return 23
           }
@@ -73,7 +73,7 @@ describe('Window tests', function() {
       });
 
       it('evaluate_js can return floats', async function() {
-        const result = await window.pywebview.api.window.evaluate_js(`
+        const result = await window.pywebview.api.evaluate_js(`
           function getValue() {
               return 23.23443
           }
@@ -83,7 +83,7 @@ describe('Window tests', function() {
       });
 
       it('evaluate_js converts undefined to null', async function() {
-        const result = await window.pywebview.api.window.evaluate_js(`
+        const result = await window.pywebview.api.evaluate_js(`
           function getValue() {
               return undefined
           }
@@ -93,7 +93,7 @@ describe('Window tests', function() {
       });
 
       it('evaluate_js returns null values', async function() {
-        const result = await window.pywebview.api.window.evaluate_js(`
+        const result = await window.pywebview.api.evaluate_js(`
           function getValue() {
               return null
           }
@@ -103,7 +103,7 @@ describe('Window tests', function() {
       });
 
       it('evaluate_js converts NaN to null', async function() {
-        const result = await window.pywebview.api.window.evaluate_js(`
+        const result = await window.pywebview.api.evaluate_js(`
           function getValue() {
               return NaN
           }
@@ -113,34 +113,34 @@ describe('Window tests', function() {
       });
 
       it('evaluate_js can access DOM body element', async function() {
-        const result = await window.pywebview.api.window.evaluate_js('document.body');
+        const result = await window.pywebview.api.evaluate_js('document.body');
         expect(result).to.be.an('object');
         expect(result.nodeName).to.equal('BODY');
       });
 
       it('evaluate_js can access document object', async function() {
-        const result = await window.pywebview.api.window.evaluate_js('document');
+        const result = await window.pywebview.api.evaluate_js('document');
         expect(result).to.be.an('object');
         expect(result.nodeName).to.equal('#document');
       });
 
       it('evaluate_js can query DOM elements', async function() {
         // First add a test element to the DOM
-        await window.pywebview.api.window.evaluate_js(`
+        await window.pywebview.api.evaluate_js(`
           const testDiv = document.createElement('div');
           testDiv.id = 'testNode';
           document.body.appendChild(testDiv);
         `);
 
         // Then query it
-        const node = await window.pywebview.api.window.evaluate_js('document.querySelector("#testNode")');
+        const node = await window.pywebview.api.evaluate_js('document.querySelector("#testNode")');
         expect(node).to.be.an('object');
         expect(node.id).to.equal('testNode');
       });
 
       it('evaluate_js throws exception for invalid JavaScript', async function() {
         try {
-          await window.pywebview.api.window.evaluate_js('eklmn');
+          await window.pywebview.api.evaluate_js('eklmn');
           expect.fail('Expected an exception to be thrown');
         } catch (error) {
           expect(error).to.be.an('error');

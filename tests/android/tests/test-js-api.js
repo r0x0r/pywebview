@@ -118,8 +118,6 @@ describe('JS API tests', function() {
 
     describe('Performance Tests', function() {
         it('should handle many TestAPI calls efficiently', async function() {
-            this.timeout(10000); // 10 second timeout for performance test
-
             const startTime = performance.now();
 
             // Use sequential calls for more realistic performance testing
