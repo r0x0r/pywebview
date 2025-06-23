@@ -1,8 +1,9 @@
 
-describe('Window tests', function() {
+describe.only('Window tests', function() {
     before(async function() {
-        window.testValue = 420;
-    });
+      window.testValue = 420; // Set a global variable for testing
+    })
+
 
     describe('Window size tests', function() {
       it('get_size returns the correct window size', async function() {

@@ -1,6 +1,12 @@
 import webview
 import logging
 
+try:
+    from jnius import JavaException
+except ImportError:
+    JavaException = Exception
+    detach = lambda: None
+
 logger = logging.getLogger('pywebview')
 
 
@@ -38,13 +44,19 @@ class TestAPI:
 class Api:
     def eval(self, code):
         """ Evauate Python code in the context of this module. """
-        return eval(code)
+        try:
+            result = eval(code)
+            return result
+        except (JavaException, Exception) as e:
+            logger.error(f'Error evaluating code: {code}\n{e}')
+            return None
 
     def get_size(self):
         return self._window.height, self._window.width
 
     def evaluate_js(self, code):
-        return self._window.evaluate_js(code)
+        result = self._window.evaluate_js(code)
+        return result
 
     def run_js(self, code):
         return self._window.run_js(code)
@@ -95,4 +107,4 @@ if __name__ == '__main__':
 
     api._window = window
     api._dom = window.dom
-    webview.start(ssl=True)
+    webview.start(debug=True)

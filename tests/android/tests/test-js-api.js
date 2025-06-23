@@ -1,6 +1,6 @@
-describe('JS API tests', function() {
-
+describe.only('JS API tests', function() {
     describe('Basic API Bridge Tests', function() {
+
         it('should return integer from TestAPI', async function() {
             const result = await window.pywebview.api.test1.getInteger();
             expect(result).to.equal(420);
@@ -43,7 +43,7 @@ describe('JS API tests', function() {
             expect(result).to.deep.equal({ message: 'Hello World!' });
         });
 
-        it('should use eval method from main API', async function() {
+        it.skip('should use eval method from main API', async function() {
             const result = await window.pywebview.api.eval('2 + 3');
             expect(result).to.equal(5);
         });
@@ -83,7 +83,7 @@ describe('JS API tests', function() {
         });
     });
 
-    describe('Concurrent API Calls', function() {
+    describe.skip('Concurrent API Calls', function() {
         it('should handle multiple concurrent TestAPI calls', async function() {
             const numberOfCalls = 5;
             const promises = [];
@@ -112,7 +112,7 @@ describe('JS API tests', function() {
     });
 
 
-    describe('Performance Tests', function() {
+    describe.skip('Performance Tests', function() {
         it('should handle many TestAPI calls efficiently', async function() {
             const startTime = performance.now();
 

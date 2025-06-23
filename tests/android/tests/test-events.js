@@ -1,4 +1,12 @@
 describe('Window events tests', function() {
+    before(async function() {
+      await testUtils.wait(5000);
+    })
+
+    beforeEach(function() {
+        debugger
+    })
+
     describe('Event registration tests', function() {
         it('should have all events registered and set to true', async function() {
             const events = await window.pywebview.api.eval('events');
@@ -42,6 +50,7 @@ describe('Window events tests', function() {
     describe('Event timing tests', function() {
         it('should have lifecycle events in logical order', async function() {
             // All these events should be true by the time the test runs
+            debugger
             const beforeLoadState = await window.pywebview.api.eval('events.get("before_load")');
             const loadedState = await window.pywebview.api.eval('events.get("loaded")');
             const beforeShowState = await window.pywebview.api.eval('events.get("before_show")');

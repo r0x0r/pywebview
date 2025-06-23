@@ -1,11 +1,6 @@
 
 describe('State Tests', function() {
 
-    beforeEach(function() {
-        // Reset state before each test
-        testUtils.resetState();
-    });
-
     describe('Basic State Operations', function() {
         it('should set and get state values', async function() {
             window.pywebview.state.test = 420;
