@@ -235,19 +235,18 @@ class BrowserView(QMainWindow):
     class NavigationHandler(QWebPage):
         def __init__(self, page):
             super().__init__(page.profile())
-            self.parent = page.parent
+            self._parent = page.parent
 
         def acceptNavigationRequest(self, url, type, is_main_frame):
             if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
                 webbrowser.open(url.toString(), 2, True)
                 return False
             else:
-                self.parent.load_url(url.toString())
+                self._parent.load_url(url.toString())
                 return True
 
     class WebPage(QWebPage):
         def __init__(self, parent=None, profile=None):
-            self.parent = parent
             if is_webengine and profile:
                 super(BrowserView.WebPage, self).__init__(profile, parent.webview)
             else:
