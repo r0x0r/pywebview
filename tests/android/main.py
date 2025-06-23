@@ -95,4 +95,4 @@ if __name__ == '__main__':
 
     api._window = window
     api._dom = window.dom
-    webview.start(debug=True)
+    webview.start(ssl=True)

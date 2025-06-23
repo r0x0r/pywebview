@@ -1,8 +1,5 @@
 
 describe('State Tests', function() {
-    before(async function() {
-        await testUtils.waitForPywebview();
-    });
 
     beforeEach(function() {
         // Reset state before each test

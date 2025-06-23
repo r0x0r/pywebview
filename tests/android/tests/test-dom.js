@@ -1,7 +1,5 @@
 describe.skip('DOM Tests', function() {
     before(async function() {
-        await testUtils.waitForPywebview();
-
         // Set up the DOM HTML content for testing
         await window.pywebview.api.window.evaluate_js(`
             document.querySelector('#test-area').innerHTML = \`

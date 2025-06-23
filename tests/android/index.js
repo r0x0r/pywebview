@@ -1,29 +1,5 @@
 
 window.testUtils = {
-    waitForPywebview: () => {
-        return new Promise((resolve, reject) => {
-          // Check if pywebview.api already exists
-          if (window.pywebview) {
-            resolve();
-            return;
-          }
-
-          // If not, listen for the pywebviewready event
-          const readyListener = () => {
-            window.removeEventListener('pywebviewready', readyListener);
-            resolve();
-          };
-
-          window.addEventListener('pywebviewready', readyListener);
-
-          // Timeout after 10 seconds
-          const timeoutId = setTimeout(() => {
-            window.removeEventListener('pywebviewready', readyListener);
-            reject(new Error('PyWebView not available after 10 seconds'));
-          }, 10000);
-        });
-    },
-
     resetState: () => {
         if (window.pywebview && window.pywebview.state) {
             // Get all keys from state and delete them, except predefined ones

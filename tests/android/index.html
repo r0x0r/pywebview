@@ -20,7 +20,14 @@
     <script src="tests/test-js-api.js"></script>
     <script src="tests/test-state.js"></script>
     <script src="tests/test-window.js"></script>
-    <script>mocha.run();</script>
+
+    <script>
+      if (window.pywebview && Object.keys(window.pywebview.api).length > 0) {
+        mocha.run();
+      } else {
+        window.addEventListener('pywebviewready', mocha.run);
+      }
+    </script>
     <!-- <button onclick="mocha.run()">Run Tests</button> -->
 
     <div id="test-area" styles="visibility: hidden;"></div>

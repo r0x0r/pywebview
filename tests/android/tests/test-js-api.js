@@ -1,9 +1,5 @@
 describe('JS API tests', function() {
 
-    before(async function() {
-        await testUtils.waitForPywebview();
-    });
-
     describe('Basic API Bridge Tests', function() {
         it('should return integer from TestAPI', async function() {
             const result = await window.pywebview.api.test1.getInteger();

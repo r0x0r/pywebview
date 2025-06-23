@@ -1,7 +1,6 @@
 
 describe('Window tests', function() {
     before(async function() {
-        await testUtils.waitForPywebview();
         window.testValue = 420;
     });
 
