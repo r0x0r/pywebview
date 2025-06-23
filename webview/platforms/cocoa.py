@@ -787,10 +787,10 @@ class BrowserView:
         self.resize(width, height, None)
 
     def minimize(self):
-        AppHelper.callLater(self.window.miniaturize_, self)
+        AppHelper.callAfter(self.window.miniaturize_, self)
 
     def restore(self):
-        AppHelper.callLater(self.window.deminiaturize_, self)
+        AppHelper.callAfter(self.window.deminiaturize_, self)
 
     def move(self, x, y):
         flipped_y = self.screen.size.height - y
