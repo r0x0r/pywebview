@@ -1,4 +1,4 @@
-describe.only('JS API tests', function() {
+describe('JS API tests', function() {
     describe('Basic API Bridge Tests', function() {
 
         it('should return integer from TestAPI', async function() {

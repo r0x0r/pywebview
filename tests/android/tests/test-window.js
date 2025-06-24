@@ -1,5 +1,5 @@
 
-describe.only('Window tests', function() {
+describe('Window tests', function() {
     before(async function() {
       window.testValue = 420; // Set a global variable for testing
     })

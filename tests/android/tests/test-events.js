@@ -1,12 +1,4 @@
 describe('Window events tests', function() {
-    before(async function() {
-      await testUtils.wait(5000);
-    })
-
-    beforeEach(function() {
-        debugger
-    })
-
     describe('Event registration tests', function() {
         it('should have all events registered and set to true', async function() {
             const events = await window.pywebview.api.eval('events');
