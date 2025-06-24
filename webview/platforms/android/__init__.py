@@ -284,6 +284,9 @@ def load_html(html_content, base_uri, _):
     app.view.load_data_with_base_url(base_uri, html_content)
 
 
+value_callback = None
+
+
 def evaluate_js(js_code, _, parse_json=True):
     def callback(result):
         nonlocal js_result
@@ -292,7 +295,9 @@ def evaluate_js(js_code, _, parse_json=True):
 
     @run_on_ui_thread
     def _evaluate_js():
-        value_callback = ValueCallback(callback)
+        global value_callback
+        if not value_callback:
+            value_callback = ValueCallback(callback)
         app.view.webview.evaluateJavascript(js_code, value_callback)
 
     lock = Semaphore(0)
