@@ -1,6 +1,6 @@
 [app]
 title = pywebview android tests
-package.name = pywebview.
+package.name = pywebview
 package.domain = com.pywebview.tests
 source.dir = ./
 source.include_exts = py,html,jar,js
@@ -11,7 +11,7 @@ source.exclude_dirs = bin,build,dist
 version = 0.1
 
 # Set here absolute path to pywebview project dir
-requirements = python3,kivy,bottle,proxy_tools,typing_extensions,cryptography,/path/to/pywebview/dir
+requirements = python3,bottle,proxy_tools,typing_extensions,cryptography,/Users/roman/Code/pywebview/
 
 orientation = portrait,landscape
 osx.python_version = 3
