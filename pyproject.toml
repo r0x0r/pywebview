@@ -77,7 +77,10 @@ line_length = 100
 
 [tool.setuptools]
 include-package-data = false
-packages = ["webview", "webview.dom", "webview.js", "webview.lib", "webview.platforms", "webview.__pyinstaller"]
+packages = [
+    "webview", "webview.dom", "webview.js", "webview.lib", "webview.platforms",
+    "webview.platforms.android", "webview.platforms.android.jinterface", "webview.platforms.android.jclass",
+    "webview.__pyinstaller"]
 
 [tool.setuptools.package-data]
 "webview.lib" = ["**/*.dll", "**/*.jar"]
