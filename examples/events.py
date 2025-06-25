@@ -9,10 +9,12 @@ def on_before_show(window):
 def on_closed():
     print('pywebview window is closed')
 
-
 def on_closing():
     print('pywebview window is closing')
 
+def on_initialized(renderer):
+    # return False to cancel initialization
+    print(f'GUI is initialized with renderer: {renderer}')
 
 def on_shown():
     print('pywebview window shown')
@@ -59,6 +61,7 @@ if __name__ == '__main__':
     window.events.closed += on_closed
     window.events.closing += on_closing
     window.events.before_show += on_before_show
+    window.events.initialized += on_initialized
     window.events.shown += on_shown
     window.events.loaded += on_loaded
     window.events.minimized += on_minimized

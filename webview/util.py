@@ -67,12 +67,12 @@ class ImmutableDict(UserDict):
         raise KeyError('Deleting keys is not allowed.')
 
 
-def is_app(url: str | None) -> bool:
+def is_app(url: str | callable | None) -> bool:
     """Returns true if 'url' is a WSGI or ASGI app."""
     return callable(url)
 
 
-def is_local_url(url: str | None) -> bool:
+def is_local_url(url: str | callable | None) -> bool:
     return not ((is_app(url)) or (
             (not url) or (url.startswith('http://')) or (url.startswith('https://')) or url.startswith('file://')))
 
@@ -181,17 +181,22 @@ def inject_pywebview(platform: str, window: Window) -> str:
             functions = {}
 
         for name in dir(obj):
-            full_name = f"{base_name}.{name}" if base_name else name
+            try:
+                full_name = f"{base_name}.{name}" if base_name else name
+                target_obj = getattr(obj, name)
 
-            if name.startswith('_'):
+                if name.startswith('_') or getattr(target_obj, '_serializable', True) == False:
+                    continue
+
+                attr = getattr(obj, name)
+                if inspect.ismethod(attr):
+                    functions[full_name] = get_args(attr)[1:]
+                # If the attribute is a class or a non-callable object, make a recursive call
+                elif inspect.isclass(attr) or (isinstance(attr, object) and not callable(attr) and hasattr(attr, "__module__")):
+                    get_functions(attr, full_name, functions)
+            except Exception as e:
+                logger.error(f'Error while processing {full_name}: {e}')
                 continue
-
-            attr = getattr(obj, name)
-            if inspect.ismethod(attr):
-                functions[full_name] = get_args(attr)[1:]
-            # If the attribute is a class or a non-callable object, make a recursive call
-            elif inspect.isclass(attr) or (isinstance(attr, object) and not callable(attr) and hasattr(attr, "__module__")):
-                get_functions(attr, full_name, functions)
 
         return functions
 

@@ -20,6 +20,9 @@ def window():
 
 def test_response_event(window):
     def on_response(response):
+        if 'favicon' in response.url:
+            return
+
         try:
             assert response.status_code == 200
             assert '127.0.0.1' in response.url

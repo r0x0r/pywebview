@@ -36,6 +36,7 @@ for:
       PYTHON_ARCH: "64"
       APPVEYOR_BAKE_IMAGE: pywebview-visualstudio2022
       PYWEBVIEW_GUI: "cef"
+      PYWEBVIEW_LOG: "error"
     install:
       - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
       - "choco install webview2-runtime --ignore-checksums"
@@ -56,6 +57,7 @@ for:
       PYWEBVIEW_GUI: qt
       DISPLAY: :99
       QT_QPA_PLATFORM: offscreen
+      PYWEBVIEW_LOG: "error"
     install:
       - sudo apt-get update -q --allow-releaseinfo-change
       - sudo apt-get install --no-install-recommends -y xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest
@@ -75,6 +77,7 @@ for:
         - job_name: GTK
     environment:
       PYWEBVIEW_GUI: gtk
+      PYWEBVIEW_LOG: "error"
       DISPLAY: :99
     install:
       - sudo apt-get update -q --allow-releaseinfo-change

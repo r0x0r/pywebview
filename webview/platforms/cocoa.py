@@ -384,6 +384,9 @@ class BrowserView:
 
                 inject_pywebview('cocoa', i.js_bridge.window)
 
+                if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
+                    BrowserView._open_web_inspector(webview)
+
         # Handle JavaScript window.print()
         def userContentController_didReceiveScriptMessage_(self, controller, message):
             if message.body() == 'print':
@@ -606,7 +609,6 @@ class BrowserView:
         self.webview.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
 
-        #config = self.webview.configuration()
         config.userContentController().addScriptMessageHandler_name_(
             self._browserDelegate, 'browserDelegate'
         )
@@ -636,7 +638,7 @@ class BrowserView:
 
         config.preferences().setValue_forKey_(webview_settings['ALLOW_FILE_URLS'], 'allowFileAccessFromFileURLs')
 
-        if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
+        if _state['debug']:
             config.preferences().setValue_forKey_(True, 'developerExtrasEnabled')
 
         self.js_bridge = BrowserView.JSBridge.alloc().initWithObject_(window)
@@ -735,19 +737,13 @@ class BrowserView:
         AppHelper.callAfter(_show)
 
     def hide(self):
-        def _hide():
-            self.window.orderOut_(self.window)
-
-        AppHelper.callAfter(_hide)
+        AppHelper.callAfter(self.window.orderOut_, self.window)
 
     def destroy(self):
         AppHelper.callAfter(self.window.close)
 
     def set_title(self, title):
-        def _set_title():
-            self.window.setTitle_(title)
-
-        AppHelper.callAfter(_set_title)
+        AppHelper.callAfter(self.window.setTitle_, title)
 
     def toggle_fullscreen(self):
         def toggle():
@@ -791,10 +787,10 @@ class BrowserView:
         self.resize(width, height, None)
 
     def minimize(self):
-        self.window.miniaturize_(self)
+        AppHelper.callAfter(self.window.miniaturize_, self)
 
     def restore(self):
-        self.window.deminiaturize_(self)
+        AppHelper.callAfter(self.window.deminiaturize_, self)
 
     def move(self, x, y):
         flipped_y = self.screen.size.height - y
@@ -1288,6 +1284,24 @@ class BrowserView:
         return _objc_so.PyObjCMethodSignature_WithMetaData(
             ctypes.create_string_buffer(signature_str), None, False
         )
+
+    @staticmethod
+    def _open_web_inspector(webview):
+        """
+        Programmatically open the Web Inspector for the given WKWebView.
+        Uses private WebKit APIs that may not work on all macOS versions.
+        """
+        try:
+            if hasattr(webview, '_inspector'):
+                inspector = webview._inspector()
+                if inspector and hasattr(inspector, 'show'):
+                    inspector.show()
+                    return True
+
+            return False
+
+        except Exception as e:
+            return False
 
     @staticmethod
     def quote(string):

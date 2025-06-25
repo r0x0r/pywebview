@@ -53,14 +53,35 @@ __all__ = (
     'Window',
 )
 
-logger = logging.getLogger('pywebview')
-_handler = logging.StreamHandler()
-_formatter = logging.Formatter('[pywebview] %(message)s')
-_handler.setFormatter(_formatter)
-logger.addHandler(_handler)
 
-log_level = logging._nameToLevel[os.environ.get('PYWEBVIEW_LOG', 'info').upper()]
-logger.setLevel(log_level)
+def _setup_logger():
+    """Setup logger with console handler and appropriate log level."""
+
+    logger = logging.getLogger('pywebview')
+
+    # Avoid duplicate setup
+    if logger.handlers:
+        return logger
+
+    # Create and configure handler
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('[pywebview] %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    # Set log level from environment variable with validation
+    log_level_name = os.environ.get('PYWEBVIEW_LOG', 'INFO').upper()
+    try:
+        log_level = getattr(logging, log_level_name)
+        logger.setLevel(log_level)
+    except AttributeError:
+        # Fallback to INFO if invalid level specified
+        logger.setLevel(logging.INFO)
+        logger.warning(f"Invalid log level '{log_level_name}', using INFO instead")
+
+    return logger
+
+logger = _setup_logger()
 
 @module_property
 def OPEN_DIALOG():
@@ -221,7 +242,9 @@ def start(
         )
 
     for window in windows:
-        window._initialize(guilib)
+        should_initialize = not window._initialize(guilib)
+        if should_initialize:
+            return
 
     if ssl:
         for window in windows:
@@ -283,7 +306,7 @@ def create_window(
     server: type[http.ServerType] = http.BottleServer,
     http_port: int | None = None,
     server_args: http.ServerArgs = {},
-) -> Window:
+) -> Window | None:
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -311,7 +334,7 @@ def create_window(
     :param menu: List of menus to be included in the window menu
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
-    :return: window object.
+    :return: window object or None if window initialization is cancelled in the window.events.initialized event
     """
 
     valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
@@ -365,7 +388,8 @@ def create_window(
         else:
             url_prefix, common_path, server = None, None, None
 
-        window._initialize(gui=guilib, server=server)
+        if not window._initialize(gui=guilib, server=server):
+            return
         guilib.create_window(window)
 
     return window

@@ -10,7 +10,9 @@ _Released xx/xx/2025_
 - `All` New `request_sent` and `response_received` events. The events are fired when a HTTP request is sent and a response is received. Request headers can be modified before sending.
 - `All` Window specific menu that can be created via `webview.create_window(menu=webview.menu.Menu)`.
 - `All` Add origin coordinates (x, y) to `webview.screen.Screen` object
+- `All` JS API nested classes can now be omitted from serialization by setting `_serializable = False` class attribute.
 - `Cocoa` New `webview.settings['SHOW_DEFAULT_MENUS']` parameter to omit default menus. True by default. Thanks @mikeylemmon.
+- `Android` New Android Kivyless implementation for improved startup time and smaller package size. Thanks @kengoon.
 - `Android` Fullscreen mode support #1598. Thanks @michelle-avery.
 
 ### 🚀 Improvements
@@ -19,8 +21,9 @@ _Released xx/xx/2025_
 - `All` BREAKING: Deprecated functions `window.get_element` and `window.get_elements` are removed. Use  `window.dom.get_element` and `window.dom.get_elements` instead.
 - `All` BREAKING: `webview.DRAG_REGION_SELECTOR` is deprecated. Use `webview.settings['DRAG_REGION_SELECTOR']` instead.
 - `All` Modify JS API to use callback instead of setInterval #1607. Thanks @qaqFei.
+- `All` When exposing a `Window` object to JS API, `dom`, `events` and `state` objects are omitted.
 - `Cocoa` Add handler for Javascript prompt/input #1567. Thanks @maddyaby.
-- `Winforms` Title bar theme follows system theme changes. Thanks @godcop.
+- `Winforms` Dark mode support with automatic theme changing #1595. Thanks @godcop.
 
 #### 🐞 Bug fixes
 
@@ -28,8 +31,10 @@ _Released xx/xx/2025_
 - `All` Loading URLs with a hash served by local HTTP server. #1574
 - `All` Multiwindow with local-url setups sets wrong server root (BottleServer). Thanks @Sopze92.
 - `Cocoa` Don't terminate app if windows shouldn't close #1580. Thanks @mikeylemmon.
-- `Cocoa` File filter set via <input type="file"> tag.
+- `Cocoa` File filter set via `<input type="file">` tag.
+- `GTK` Fix Javascript exception handling #1648.
 - `QT` Fix user agent string.
+- `QT` Fix QWebPage enums. #1639
 - `EdgeChromium` Fix easy drag
 - `EdgeChromium` Remote Debugging Fails When Both `storage_path` and `REMOTE_DEBUGGING_PORT` are set
 - `EdgeChromium` Fix window transparency. Transparent windows can now react to mouse events.

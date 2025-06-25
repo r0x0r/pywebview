@@ -136,12 +136,16 @@ class HeavyStuffAPI:
 
 
 class NotExposedApi:
+    _serializable = False
+
     def notExposedMethod(self):
         return 'This method is not exposed'
 
+
 class Api:
     heavy_stuff = HeavyStuffAPI()
-    _this_wont_be_exposed = NotExposedApi()
+    _this_wont_be_exposed = HeavyStuffAPI()
+    this_wont_be_exposed = NotExposedApi()
 
     def init(self):
         response = {'message': 'Hello from Python {0}'.format(sys.version)}

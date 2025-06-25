@@ -218,7 +218,11 @@ class BrowserView(QMainWindow):
 
             url = info.requestUrl().toString()
             method = info.requestMethod()
-            headers = {k.data().decode('utf-8'): k.data().decode('utf-8') for k, v in info.httpHeaders().items()}
+
+            if 'httpHeaders' in dir(info):
+                headers = {k.data().decode('utf-8'): k.data().decode('utf-8') for k, v in info.httpHeaders().items()}
+            else:
+                headers = {}
 
             request = Request(url, method, headers)
             self.window.events.request_sent.set(request)
@@ -231,19 +235,18 @@ class BrowserView(QMainWindow):
     class NavigationHandler(QWebPage):
         def __init__(self, page):
             super().__init__(page.profile())
-            self.parent = page.parent
+            self._parent = page.parent
 
         def acceptNavigationRequest(self, url, type, is_main_frame):
             if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
                 webbrowser.open(url.toString(), 2, True)
                 return False
             else:
-                self.parent.load_url(url.toString())
+                self._parent.load_url(url.toString())
                 return True
 
     class WebPage(QWebPage):
         def __init__(self, parent=None, profile=None):
-            self.parent = parent
             if is_webengine and profile:
                 super(BrowserView.WebPage, self).__init__(profile, parent.webview)
             else:
@@ -262,14 +265,13 @@ class BrowserView(QMainWindow):
 
             def onFeaturePermissionRequested(self, url, feature):
                 if feature in (
-                    QWebPage.MediaAudioCapture,
-                    QWebPage.MediaVideoCapture,
-                    QWebPage.MediaAudioVideoCapture,
+                    QWebPage.Feature.MediaAudioCapture,
+                    QWebPage.Feature.MediaVideoCapture,
+                    QWebPage.Feature.MediaAudioVideoCapture,
                 ):
-                    self.setFeaturePermission(url, feature, QWebPage.PermissionGrantedByUser)
+                    self.setFeaturePermission(url, feature, 1) # QWebPage.PermissionGrantedByUser
                 else:
-                    self.setFeaturePermission(url, feature, QWebPage.PermissionDeniedByUser)
-
+                    self.setFeaturePermission(url, feature, 2) # QWebPage.PermissionDeniedByUser
         else:
 
             def acceptNavigationRequest(self, frame, request, type):

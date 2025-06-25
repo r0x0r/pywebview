@@ -4,8 +4,10 @@ from importlib import reload
 @pytest.fixture(autouse=True)
 def reload_webview():
     import webview
+    from webview import http
 
     reload(webview)
+    reload(http)
 
 @pytest.fixture(autouse=True)
 def set_env():

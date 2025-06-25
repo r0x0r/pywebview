@@ -1,0 +1,33 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Android test suite</title>
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css">
+
+  <body>
+    <div id="mocha"></div>
+    <script src="https://unpkg.com/mocha/mocha.js"></script>
+    <script src="https://unpkg.com/chai@4.5.0/chai.js"></script>
+    <script>mocha.setup('bdd')</script>
+    <script>mocha.timeout(10000)</script>
+    <script>expect = chai.expect</script>
+    <script src="index.js"></script>
+
+    <script src="tests/test-events.js"></script>
+    <script src="tests/test-js-api.js"></script>
+    <script src="tests/test-state.js"></script>
+    <script src="tests/test-window.js"></script>
+
+    <script>
+      if (window.pywebview && Object.keys(window.pywebview.api).length > 0) {
+        mocha.run();
+      } else {
+        window.addEventListener('pywebviewready', mocha.run);
+      }
+    </script>
+    <!-- <button onclick="mocha.run()">Run Tests</button> -->
+
+    <div id="test-area" style="visibility: hidden;"></div>
+</html>

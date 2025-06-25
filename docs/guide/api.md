@@ -16,10 +16,10 @@ Get an instance of the currently active window
 webview.create_window(title, url=None, html=None, js_api=None, width=800, height=600,
                       x=None, y=None, screen=None, resizable=True, fullscreen=False,
                       min_size=(200, 100), hidden=False, frameless=False,
-                      easy_drag=True, shadow=False, focus=True, minimized=False, maximized=False,
+                      easy_drag=True, shadow=False, focus=True, minimized=False, maximized=False, menu=[],
                       on_top=False, confirm_close=False, background_color='#FFFFFF',
                       transparent=False, text_select=False, zoomable=False,
-                      draggable=False, server=http.BottleServer, server_args={},
+                      draggable=False, vibrancy=False, server=http.BottleServer, server_args={},
                       localization=None)
 ```
 
@@ -44,6 +44,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `focus` - Create a non-focusable window if False. Default is True.
 * `minimized` - Display window minimized
 * `maximized` - Display window maximized
+* `menu` - A list of `Menu` objects to create a window specific menu. This menu overrides the application menu specified in `webview.start`. Not supported on GTK.
 * `on_top` - Set window to be always on top of other windows. Default is False.
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
@@ -124,8 +125,8 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
-* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.
-* `SHOW_DEFAULT_MENUS` Show default menu on Cocoa. Enabled by default.
+* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.* `SHOW_DEFAULT_MENUS` Show default menu on Cocoa. Enabled by default.
+* `SHOW_DEFAULT_MENUS` Show default menus on Cocoa. Enabled by default.
 
 #### Examples
 
@@ -576,10 +577,10 @@ Create an open file (`webview.FileDialog.OPEN`), open folder (`webview.FileDialo
 
 Return a tuple of selected files, None if cancelled.
 
-  * `allow_multiple=True` enables multiple selection.
-  * `directory` Initial directory.
-  * `save_filename` Default filename for save file dialog.
-  * `file_types` A tuple of supported file type strings in the open file dialog. A file type string must follow this format `"Description (*.ext1;*.ext2...)"`.
+* `allow_multiple=True` enables multiple selection.
+* `directory` Initial directory.
+* `save_filename` Default filename for save file dialog.
+* `file_types` A tuple of supported file type strings in the open file dialog. A file type string must follow this format `"Description (*.ext1;*.ext2...)"`.
 
 If the argument is not specified, then the `"All files (*.*)"` mask is used by default. The 'All files' string can be changed in the localization dictionary.
 
@@ -869,6 +870,12 @@ The event is fired when _pywebview_ window is about to be closed. If confirm_clo
 
 [Example](/examples/events.html)
 
+### window.events.initialized
+
+The event is fired right after GUI is chosen and HTTP server is started (if applicable). The first parameter `renderer` has a value of the chosen GUI library / web renderer. If event handler returns False, the window creation will be cancelled and GUI loop will not be started (for windows created before the GUI loop is started). This event is blocking.
+
+[Example](/examples/events.html)
+
 ### window.events.loaded
 
 The event is fired when DOM is ready.
@@ -972,6 +979,6 @@ With a frameless _pywebview_ window, A window can be moved or dragged by adding 
 <div class='pywebview-drag-region'>Now window can be moved by dragging this DIV.</div>
 ```
 
-The magic class name can be overriden by re-assigning the `webview.settings['DRAG_REGION_SELECTOR']` constant.
+The magic class name can be overriden by re-assigning the `webview.settings['DRAG_REGION_SELECTOR']` property.
 
 [Example](/examples/drag_region.html)
