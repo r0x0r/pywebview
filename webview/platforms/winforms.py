@@ -216,6 +216,26 @@ class BrowserView:
             if icon_handle != 0:
                 self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handle))).Clone()
                 windll.user32.DestroyIcon(icon_handle)
+                logger.debug(f'Set application icon from executable: {sys.executable}')
+
+            # New: Add support for user-provided icon
+            user_icon_path = _state.get('icon')
+            if user_icon_path:
+                logger.debug(f'Checking user icon path: {user_icon_path}')
+                if os.path.exists(user_icon_path):
+                    try:
+                        logger.debug(f'Attempting to load user icon from: {user_icon_path}')
+                        user_icon = Icon(user_icon_path)
+                        self.Icon = user_icon
+                        logger.debug(f'Successfully loaded user icon: {user_icon_path}')
+                    except Exception as e:
+                        logger.warning(f'Failed to load user icon from {user_icon_path}: {e}')
+                        # Fall back to application icon (keep the one already set above)
+                        pass
+                else:
+                    logger.warning(f'User icon file does not exist: {user_icon_path}')
+                    # Fall back to application icon (keep the one already set above)
+                    pass
 
             self.closed = window.events.closed
             self.closing = window.events.closing
