@@ -1,6 +1,6 @@
-__all__ = ('View', 'KeyEvent')
+__all__ = ('View', 'KeyEvent', 'Choreographer')
 
-from jnius import JavaClass, MetaJavaClass, JavaStaticField, JavaMethod
+from jnius import JavaClass, MetaJavaClass, JavaStaticField, JavaMethod, JavaMultipleMethod, JavaStaticMethod
 
 
 class View(JavaClass, metaclass=MetaJavaClass):
@@ -74,3 +74,10 @@ class KeyEvent(JavaClass, metaclass=MetaJavaClass):
     ACTION_DOWN = JavaStaticField('I')
 
     getAction = JavaMethod('()I')
+
+
+class Choreographer(JavaClass, metaclass=MetaJavaClass):
+    __javaclass__ = 'android/view/Choreographer'
+    getInstance = JavaStaticMethod('()Landroid/view/Choreographer;')
+    postFrameCallback = JavaMethod('(Landroid/view/Choreographer$FrameCallback;)V')
+    removeFrameCallback = JavaMethod('(Landroid/view/Choreographer$FrameCallback;)V')

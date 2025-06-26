@@ -1,4 +1,4 @@
-__all__ = ('KeyListener',)
+__all__ = ('KeyListener', 'FrameCallback')
 
 from jnius import PythonJavaClass, java_method
 
@@ -33,3 +33,15 @@ class KeyListener(PythonJavaClass):
     @java_method('(Landroid/view/View;ILandroid/view/KeyEvent;)Z')
     def onKey(self, v, key_code, event):
         return self.listener(v, key_code, event)
+
+
+class FrameCallback(PythonJavaClass):
+    __javacontext__ = 'app'
+    __javainterfaces__ = ['android/view/Choreographer$FrameCallback']
+
+    def __init__(self, do_frame):
+        self.do_frame = do_frame
+
+    @java_method('(J)V')
+    def doFrame(self, frame_time_nanos):
+        self.do_frame(frame_time_nanos)
