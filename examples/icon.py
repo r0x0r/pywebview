@@ -1,5 +1,4 @@
-"""Set window icon using `webview.start(icon=<file_path>). This is supported only on GTK and QT. For other
-platforms, icon is set during freezing."""
+"""Set window icon using `webview.start(icon=<file_path>). Supported on Windows (WinForms), GTK, and QT."""
 
 import webview
 
