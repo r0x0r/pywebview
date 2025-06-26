@@ -1,7 +1,14 @@
+from threading import Semaphore
 from time import sleep
 
 from webview.platforms.android.event import EventDispatcher
 from android.activity import register_activity_lifecycle_callbacks, _activity as activity  # noqa
+from android.runnable import run_on_ui_thread  # noqa
+
+from webview.platforms.android.jclass.concurrent import TimeUnit
+from webview.platforms.android.jclass.os import SystemClock
+from webview.platforms.android.jclass.view import Choreographer
+from webview.platforms.android.jinterface.view import FrameCallback
 
 
 class EventLoop(EventDispatcher):
@@ -24,8 +31,26 @@ class EventLoop(EventDispatcher):
         )
 
     def mainloop(self):
+        choreographer = None
+        frame_callback = None
         while not self.quit and self.status == "created":
-            sleep(1/60)  # Run at 60 FPS
+            def do_frame(_):
+                lock.release()
+
+            @run_on_ui_thread
+            def post_frame():
+                nonlocal choreographer, frame_callback
+
+                if not choreographer:
+                    choreographer = Choreographer.getInstance()
+                if not frame_callback:
+                    frame_callback = FrameCallback(do_frame)
+
+                choreographer.postFrameCallback(frame_callback)
+
+            lock = Semaphore(0)
+            post_frame()
+            lock.acquire()
 
     def close(self):
         self.quit = True
