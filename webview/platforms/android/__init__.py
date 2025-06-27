@@ -218,9 +218,11 @@ class BrowserView:
             self.pywebview_window.closed.set()
         return True
 
+    @run_on_ui_thread
     def get_size(self):
         return self.webview.getWidth(), self.webview.getHeight()
 
+    @run_on_ui_thread
     def get_url(self):
         return self.webview.getUrl()
 
@@ -284,24 +286,28 @@ def load_html(html_content, base_uri, _):
     app.view.load_data_with_base_url(base_uri, html_content)
 
 
-value_callback = None
-
 
 def evaluate_js(js_code, _, parse_json=True):
     def callback(result):
         nonlocal js_result
-        js_result = json.loads(result) if parse_json and result else result
-        lock.release()
+        try:
+            # The result is double-encoded in Android, once by the WebView and once pywebview's stringify
+            js_result = json.loads(result) if result else result
+            js_result = json.loads(js_result) if parse_json and js_result else js_result
+        except Exception as e:
+            logger.exception(f'Error parsing result: {js_result}. Type: {type(js_result)}\n{e}')
+        finally:
+            lock.release()
 
     @run_on_ui_thread
     def _evaluate_js():
-        global value_callback
-        if not value_callback:
-            value_callback = ValueCallback(callback)
+        nonlocal value_callback
+        value_callback = ValueCallback(callback)
         app.view.webview.evaluateJavascript(js_code, value_callback)
 
     lock = Semaphore(0)
     js_result = None
+    value_callback = None
 
     _evaluate_js()
     lock.acquire()
@@ -310,7 +316,6 @@ def evaluate_js(js_code, _, parse_json=True):
 
 def clear_cookies(_):
     CookieManager.getInstance().removeAllCookies(None)
-
 
 def get_cookies(_):
     cookies = []
