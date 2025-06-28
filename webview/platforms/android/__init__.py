@@ -218,13 +218,37 @@ class BrowserView:
             self.pywebview_window.closed.set()
         return True
 
-    @run_on_ui_thread
     def get_size(self):
-        return self.webview.getWidth(), self.webview.getHeight()
+        lock = Semaphore(0)
+        size = None, None
+
+        @run_on_ui_thread
+        def _get_size():
+            nonlocal size
+            size = self.webview.getWidth(), self.webview.getHeight()
+            lock.release()
+
+        _get_size()
+        lock.acquire()
+
+        return size
 
     @run_on_ui_thread
     def get_url(self):
-        return self.webview.getUrl()
+        lock = Semaphore(0)
+        url = None
+
+        @run_on_ui_thread
+        def _get_url():
+            nonlocal url
+            url = self.webview.getUrl()
+            lock.release()
+
+        _get_url()
+        lock.acquire()
+
+        return url
+
 
     @run_on_ui_thread
     def load_url(self, url):
