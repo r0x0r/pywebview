@@ -1,12 +1,8 @@
 from threading import Semaphore
-from time import sleep
 
 from webview.platforms.android.event import EventDispatcher
 from android.activity import register_activity_lifecycle_callbacks, _activity as activity  # noqa
 from android.runnable import run_on_ui_thread  # noqa
-
-from webview.platforms.android.jclass.concurrent import TimeUnit
-from webview.platforms.android.jclass.os import SystemClock
 from webview.platforms.android.jclass.view import Choreographer
 from webview.platforms.android.jinterface.view import FrameCallback
 
