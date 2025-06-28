@@ -263,7 +263,7 @@ class WebView(JavaClass, metaclass=MetaJavaClass):
     enableSlowWholeDocumentDraw = JavaStaticMethod('()V')
 
     clearMatches = JavaMethod('()V')
-    documentHasImages = JavaMethod('Landroid/os/Message;V')
+    documentHasImages = JavaMethod('(Landroid/os/Message;)V')
     setWebViewClient = JavaMethod('(Landroid/webkit/WebViewClient;)V')
     getWebViewClient = JavaMethod('()Landroid/webkit/WebViewClient;')
     getWebViewRenderProcess = JavaMethod('()Landroid/webkit/WebViewRenderProcess;')
