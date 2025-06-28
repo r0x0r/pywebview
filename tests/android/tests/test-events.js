@@ -43,7 +43,6 @@ describe('Window events tests', function() {
     describe('Event timing tests', function() {
         it('should have lifecycle events in logical order', async function() {
             // All these events should be true by the time the test runs
-            debugger
             const beforeLoadState = await window.pywebview.api.eval('events.get("before_load")');
             const loadedState = await window.pywebview.api.eval('events.get("loaded")');
             const beforeShowState = await window.pywebview.api.eval('events.get("before_show")');
