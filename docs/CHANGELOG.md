@@ -40,6 +40,7 @@ _Released xx/xx/2025_
 - `EdgeChromium` Fix window transparency. Transparent windows can now react to mouse events.
 - `Winforms` Fix window placing on a screen
 
+
 ## 5.4
 
 _Released 27/01/2025_

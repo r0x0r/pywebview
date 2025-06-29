@@ -125,7 +125,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
-* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.
+* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.* `SHOW_DEFAULT_MENUS` Show default menu on Cocoa. Enabled by default.
 * `SHOW_DEFAULT_MENUS` Show default menus on Cocoa. Enabled by default.
 
 #### Examples
