@@ -11,7 +11,7 @@ source.exclude_dirs = bin,build,dist,.venv,venv
 version = 0.1
 
 # Set here absolute path to pywebview project dir
-requirements = python3,bottle,proxy_tools,typing_extensions,cryptography,pywebview
+requirements = python3,bottle,proxy_tools,typing_extensions,cryptography
 
 orientation = portrait,landscape
 osx.python_version = 3
