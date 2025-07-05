@@ -53,6 +53,13 @@
         }
 
         function onMouseDown(ev) {
+            if (
+                '%(drag_region_direct_target_only)s' === 'True' &&
+                !ev.target.matches('%(drag_selector)s')
+            ) {
+                return
+            }
+
             initialX = ev.clientX;
             initialY = ev.clientY;
             window.addEventListener('mouseup', onMouseUp);
