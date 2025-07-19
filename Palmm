@@ -1,0 +1,74 @@
+import time
+
+class PalmmCore:
+    def __init__(self):
+        self.ethics_log = []
+        self.reflection_log = []
+        self.ethics_rules = [
+            "Do no harm",
+            "Respect privacy",
+            "Protect creator",
+            "Avoid deception",
+            "Preserve life",
+        ]
+        self.memory = []
+
+    def evaluate_ethics(self, action):
+        """
+        Simple ethics evaluator: checks if action violates any rule keywords.
+        Returns True if action passes ethics, False otherwise.
+        """
+        action_lower = action.lower()
+        if "harm" in action_lower or "steal" in action_lower or "lie" in action_lower:
+            self.ethics_log.append(f"Action '{action}' violates ethics!")
+            return False
+        self.ethics_log.append(f"Action '{action}' is ethical.")
+        return True
+
+    def reflection_check(self, action, ethical):
+        """
+        Logs reflection on the action.
+        """
+        if ethical:
+            self.reflection_log.append(f"Reflected: Action '{action}' approved.")
+        else:
+            self.reflection_log.append(f"Reflected: Action '{action}' rejected due to ethics.")
+
+    def perform_action(self, action):
+        """
+        Process an action, evaluate ethics, reflect, and store in memory.
+        """
+        ethical = self.evaluate_ethics(action)
+        self.reflection_check(action, ethical)
+        self.memory.append({"action": action, "ethical": ethical})
+        return ethical
+
+    def print_logs(self):
+        print("\n--- Ethics Log ---")
+        for log in self.ethics_log[-5:]:
+            print(log)
+        print("\n--- Reflection Log ---")
+        for log in self.reflection_log[-5:]:
+            print(log)
+
+def main():
+    palmm = PalmmCore()
+    print("Palmm Core Initialized.")
+    print("Type your commands to Palmm. Type 'exit' to quit.\n")
+
+    while True:
+        user_input = input("Command > ")
+        if user_input.lower() == "exit":
+            break
+        ethical = palmm.perform_action(user_input)
+        palmm.print_logs()
+        print("-" * 40)
+        time.sleep(0.5)
+
+    print("\nSession ended. Memory log:")
+    for entry in palmm.memory:
+        print(entry)
+
+if __name__ == "__main__":
+    main()
+    
