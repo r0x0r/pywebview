@@ -1,18 +1,41 @@
 import webview
 import logging
+import random
+from bottle import Bottle, static_file, response
 
-try:
-    from jnius import JavaException
-except ImportError:
-    JavaException = Exception
-    detach = lambda: None
+from webview.util import get_app_root
+
+
 
 logger = logging.getLogger('pywebview')
+
+app = Bottle()
+
+@app.route('/')
+def index():
+    resp = static_file('index.html', root=get_app_root())
+    resp.set_cookie('serverCookie', 'test', httponly=True)
+    logger.debug('Serving index.html with serverCookie set')
+
+    return resp
+
+
+@app.route('/<filename:path>')
+def static_files(filename):
+
+    resp = static_file(filename, root=get_app_root())
+
+    if filename.endswith('index.html'):
+        logger.debug(f'Serving {filename} with serverCookie set')
+        resp.set_cookie('serverCookie', 'test', httponly=True)
+
+    return resp
+
+
 
 
 class TestAPI:
     def getRandomNumber(self):
-        import random
         return random.randint(0, 100)
 
     def sayHelloTo(self, name):
@@ -47,8 +70,8 @@ class Api:
         try:
             result = eval(code)
             return result
-        except (JavaException, Exception) as e:
-            logger.error(f'Error evaluating code: {code}\n{e}')
+        except Exception as e:
+            logger.error(f'Error evaluating Python code: {code}\n{e}')
             return None
 
     def get_size(self):
@@ -63,6 +86,7 @@ class Api:
 
     def get_cookies(self):
         cookies = self._window.get_cookies()
+        logger.debug(f'Cookies: {cookies}')
         return [cookie.output() for cookie in cookies]
 
     def clear_cookies(self):
@@ -94,7 +118,7 @@ def set_event(name, value):
 
 if __name__ == '__main__':
     api = Api()
-    window = webview.create_window('Android test suite', './index.html', js_api=api, text_select=True)
+    window = webview.create_window('Android test suite', app, js_api=api, text_select=True)
     create_state(window.state)
 
     # Window events
