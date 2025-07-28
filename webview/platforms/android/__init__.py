@@ -1,5 +1,6 @@
 import logging
 import json
+from http.cookies import SimpleCookie
 from threading import Semaphore
 from urllib.parse import urlparse
 
@@ -60,23 +61,36 @@ class BrowserView:
 
         def webview_callback(event, data):
             if event == 'onPageFinished':
-                inject_pywebview(renderer, self.pywebview_window)
-                cookiemanager = CookieManager.getInstance()
-                if not _state['private_mode']:
-                    cookiemanager.setAcceptCookie(True)
-                    cookiemanager.acceptCookie()
-                    cookiemanager.flush()
-                else:
-                    cookiemanager.setAcceptCookie(False)
+                @run_on_ui_thread
+                def _handle_page_finished():
+                    try:
+                        inject_pywebview(renderer, self.pywebview_window)
+                        # Get fresh CookieManager reference to avoid stale Java object references
+                        cookie_manager = CookieManager.getInstance()
+                        if not _state['private_mode']:
+                            cookie_manager.setAcceptCookie(True)
+                            cookie_manager.acceptCookie()
+                            cookie_manager.flush()
+                        else:
+                            cookie_manager.setAcceptCookie(False)
+                    except Exception as e:
+                        logger.error(f"Error handling page finished: {e}")
+
+                _handle_page_finished()
 
             elif event == 'onCookiesReceived':
-                cookies = json.loads(data)
-                url = cookies['url']
+                try:
+                    cookie_data = json.loads(data) if data else {}
+                    url = cookie_data.get('url', '')
+                    cookies = cookie_data.get('cookies', [])
+                    for cookie_string in cookies:
+                        cookie = SimpleCookie()
+                        cookie.load(cookie_string)
+                        app.view._cookies.append(cookie)
 
-                if url in self._cookies:
-                    self._cookies[url] = list(set(self._cookies[url] + cookies['cookies']))
-                else:
-                    self._cookies[url] = cookies['cookies']
+                except Exception as e:
+                    logger.error(f"Error parsing cookies: {e}")
+
             elif event == 'onReceivedHttpError':
                 response_data = json.loads(data)
                 response = Response(
@@ -86,7 +100,7 @@ class BrowserView:
                 )
                 self.pywebview_window.events.response_received.set(response)
 
-        self._cookies = {}
+        self._cookies = []
         self.webview = WebView(activity)
         webview_settings = self.webview.getSettings()
         webview_settings.setAllowFileAccessFromFileURLs(True)
@@ -170,15 +184,23 @@ class BrowserView:
         self.pywebview_window.events.response_received.set(response)
 
     def dismiss(self):
-        if _state['private_mode']:
-            self.webview.clearHistory()
-            self.webview.clearCache(True)
-            self.webview.clearFormData()
+        @run_on_ui_thread
+        def _dismiss():
+            try:
+                if _state['private_mode']:
+                    self.webview.clearHistory()
+                    self.webview.clearCache(True)
+                    self.webview.clearFormData()
 
-        self.webview.destroy()
-        self.layout = None
-        self.webview = None
-        app.stop()
+                self.webview.destroy()
+                self.layout = None
+                self.webview = None
+            except Exception as e:
+                logger.error(f"Error during dismiss: {e}")
+            finally:
+                app.stop()
+
+        _dismiss()
 
     def _quit_confirmation(self):
         def cancel(dialog, which):
@@ -233,7 +255,6 @@ class BrowserView:
 
         return size
 
-    @run_on_ui_thread
     def get_url(self):
         lock = Semaphore(0)
         url = None
@@ -301,14 +322,13 @@ def setup_app():
 
 
 def load_url(url, _):
-    app.view._cookies = {}
+    app.view._cookies = []
     app.view.load_url(url)
 
 
 def load_html(html_content, base_uri, _):
-    app.view._cookies = {}
+    app.view._cookies = []
     app.view.load_data_with_base_url(base_uri, html_content)
-
 
 
 def evaluate_js(js_code, _, parse_json=True):
@@ -339,33 +359,84 @@ def evaluate_js(js_code, _, parse_json=True):
 
 
 def clear_cookies(_):
-    CookieManager.getInstance().removeAllCookies(None)
+    lock = Semaphore(0)
+
+    @run_on_ui_thread
+    def _clear_cookies():
+        try:
+            # Get fresh CookieManager reference to avoid stale Java object references
+            cookie_manager = CookieManager.getInstance()
+            cookie_manager.removeAllCookies(None)
+        except Exception as e:
+            logger.error(f"Error clearing cookies: {e}")
+        finally:
+            lock.release()
+
+    app.view._cookies = []
+    _clear_cookies()
+    lock.acquire()
+
 
 def get_cookies(_):
-    cookies = []
-    raw_cookies = app.view._cookies
-    full_url = app.view.get_url()
-    url = urlparse(full_url)
-    url = f'{url.scheme}://{url.netloc}'
+    cookies = app.view._cookies
+    cookie_string = evaluate_js(f'document.cookie', None, False)
 
-    if url in raw_cookies:
-        cookies = [create_cookie(c) for c in raw_cookies[url]]
+    try:
+        current_url = app.view.get_url()
 
-    for c in {x for v in raw_cookies.values() for x in v}:
-        cookie = create_cookie(c)
-        domain = next(iter(cookie.values())).get('domain')
+        # Parse URL once outside the loop to avoid repeated parsing
+        parsed_url = urlparse(current_url)
+        domain = parsed_url.netloc
+        is_secure = current_url.startswith('https')
+        base_url = f'{parsed_url.scheme}://{domain}'
 
-        if not domain:
-            continue
+        # Parse the cookie string into individual cookies
+        for cookie_pair in cookie_string.split(';'):
+            cookie_pair = cookie_pair.strip()
+            if '=' in cookie_pair:
+                name, value = cookie_pair.split('=', 1)
+                name = name.strip()
 
-        if domain.startswith('.') and url.endswith(domain.lstrip('.')) or not domain.startswith('.') and url == domain:
-            cookies.append(cookie)
+                existing_cookie = next((c for c in cookies if name in c), None)
+
+                if existing_cookie and existing_cookie[name].value == value.strip():
+                    # If the cookie already exists, skip it
+                    continue
+
+                cookie_dict = {
+                    'name': name,
+                    'expires': None,  # Android does not provide expiration in getCookie
+                    'value': value.strip(),
+                    'domain': domain,
+                    'path': '/',
+                    'secure': is_secure,
+                    'httponly': False
+                }
+
+                cookies.append(create_cookie(cookie_dict))
+    except Exception as e:
+        logger.exception(f"Error getting cookies: {e}")
 
     return cookies
 
 
 def get_current_url(_):
-    return app.view.get_url()
+    lock = Semaphore(0)
+    url = None
+
+    @run_on_ui_thread
+    def _get_current_url():
+        nonlocal url
+        try:
+            url = app.view.get_url()
+        except Exception as e:
+            logger.error(f"Error getting current URL: {e}")
+        finally:
+            lock.release()
+
+    _get_current_url()
+    lock.acquire()
+    return url
 
 
 def get_screens():

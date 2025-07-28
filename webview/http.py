@@ -190,7 +190,9 @@ class SSLWSGIRefServer(bottle.ServerAdapter):
         self.srv = make_server(self.host, self.port, handler, server_cls, handler_cls)
         self.srv.socket = ssl_context.wrap_socket(self.srv.socket, server_side=True)
         self.port = self.srv.server_port  # update port actual port (0 means random)
-        os.unlink(self.pywebview_keyfile)
+
+        if os.path.exists(self.pywebview_keyfile):
+            os.unlink(self.pywebview_keyfile)
         try:
             self.srv.serve_forever()
         except KeyboardInterrupt:

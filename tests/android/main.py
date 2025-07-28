@@ -14,9 +14,7 @@ app = Bottle()
 @app.route('/')
 def index():
     resp = static_file('index.html', root=get_app_root())
-    resp.set_cookie('serverCookie', 'test', httponly=True)
-    logger.debug('Serving index.html with serverCookie set')
-
+    resp.set_cookie('serverCookie', 'test', httponly=True, secure=True, samesite='Strict')
     return resp
 
 
@@ -30,8 +28,6 @@ def static_files(filename):
         resp.set_cookie('serverCookie', 'test', httponly=True)
 
     return resp
-
-
 
 
 class TestAPI:
@@ -131,4 +127,4 @@ if __name__ == '__main__':
 
     api._window = window
     api._dom = window.dom
-    webview.start(ssl=True)
+    webview.start(ssl=True, private_mode=False)

@@ -151,27 +151,22 @@ describe('Window tests', function() {
 
     })
     describe('Cookie tests', function() {
-      beforeEach(function() {
-        testUtils.setCookie('testCookie1', 'value1');
-        testUtils.setCookie('testCookie2', 'value2');
-        testUtils.setCookie('testJson', JSON.stringify({key: 'value', number: 42}));
-      });
 
       it('get_cookies returns cookies', async function() {
         const cookies = await window.pywebview.api.get_cookies();
-        expect(cookies).to.be.an('array').that.has.lengthOf(3);
+        expect(cookies).to.be.an('array').that.has.lengthOf(4);
         const cookieNames = cookies.map(c => {
           // Extract cookie name from Set-Cookie header
           const match = c.match(/^Set-Cookie: ([^=]+)=/);
           return match ? match[1] : null;
         }).filter(Boolean);
 
-        expect(cookieNames).to.include.members(['testCookie1', 'testCookie2', 'testJson']);
+        expect(cookieNames).to.include.members(['testCookie1', 'testCookie2', 'testJson', 'serverCookie']);
       });
 
       it('clear_cookies clears all cookies', async function() {
         const cookies = await window.pywebview.api.get_cookies();
-        expect(cookies).to.be.an('array').that.has.lengthOf(3);
+        expect(cookies).to.be.an('array').that.has.lengthOf(4);
         await window.pywebview.api.clear_cookies();
         const clearedCookies = await window.pywebview.api.get_cookies();
         expect(clearedCookies).to.be.an('array').that.is.empty;

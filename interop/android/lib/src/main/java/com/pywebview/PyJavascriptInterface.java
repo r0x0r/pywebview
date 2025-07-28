@@ -17,7 +17,7 @@ public class PyJavascriptInterface {
       if (this.callbackWrapper != null) {
           this.callbackWrapper.callback(func, params, id);
       } else {
-        Log.e("pywebviewdebug", "No callback");
+        Log.e("python", "No callback");
       }
   }
 
