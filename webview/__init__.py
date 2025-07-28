@@ -223,14 +223,12 @@ def start(
     renderer = guilib.renderer
 
     if ssl:
-        if not server_args:
+        if not server_args or 'keyfile' not in server_args or 'certfile' not in server_args:
             # generate SSL certs and tell the windows to use them
             keyfile, certfile = __generate_ssl_cert()
             server_args['keyfile'] = keyfile
             server_args['certfile'] = certfile
         else:
-            if 'keyfile' not in server_args or 'certfile' not in server_args:
-                raise WebViewException('Both the keyfile and certfile must exist and be match.')
             keyfile = server_args['keyfile']
             certfile = server_args['certfile']
             if not os.path.exists(keyfile):
