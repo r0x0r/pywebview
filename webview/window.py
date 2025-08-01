@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import logging
 import os
+import json
 from collections.abc import Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
@@ -487,6 +488,31 @@ class Window:
             raise JavascriptException(result)
         else:
             return result
+
+    @_pywebview_ready_call
+    def dispatch_custom_event(self, event_name, data=None):
+        """
+        Dispatches a custom JavaScript event with optional data attached as direct properties
+        on the event object.
+
+        :param event_name: Name of the JavaScript event to dispatch.
+        :param data: Dictionary of data to attach directly as properties to the event object.
+        :return: Boolean indicating whether the event was not canceled by any listener (i.e., true if no listener called e.preventDefault()).
+        """
+        
+        js_data = json.dumps(data or {})
+        js = f"""
+        (function() {{
+            const event = new Event("{event_name}", {{ cancelable: true }});
+            const data = {js_data};
+            for (let key in data) {{
+                event[key] = data[key];
+            }}
+            return window.dispatchEvent(event);
+        }})();
+        """
+        return self.gui.evaluate_js(js, self.uid, True)
+
 
     @_shown_call
     def create_confirmation_dialog(self, title: str, message: str) -> bool:
