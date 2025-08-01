@@ -38,7 +38,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
 * `hidden` - Create a window hidden by default. Default is False
 * `frameless` - Create a frameless window. Default is False.
-* `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/guide/api.html#drag-area) for details.
+* `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/api.html#drag-area) for details.
 * `shadow` - Add window shadow. Default is False. _Windows only_.
 * `focus` - Create a non-focusable window if False. Default is True.
 * `minimized` - Display window minimized
@@ -202,7 +202,7 @@ element.classes.toggle('dotted')
 element.append(html, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Insert HTML content to the element as a last child. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
+Insert HTML content to the element as a last child. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values.
 
 ### element.blur
 
@@ -226,7 +226,7 @@ Get element's children elements. Returns a list of `Element` objects.
 element.copy(target=None, mode=webview.dom.ManipulationMode.LastChild, id=None)
 ```
 
-Create a new copy of the element. `target` can be either another `Element` or a DOM selector string. If target is omitted, a copy is created in the current element's parent. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values. The id parameter is stripped from the copy. Optionally you can set the id of the copy by specifying the `id` parameter.
+Create a new copy of the element. `target` can be either another `Element` or a DOM selector string. If target is omitted, a copy is created in the current element's parent. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values. The id parameter is stripped from the copy. Optionally you can set the id of the copy by specifying the `id` parameter.
 
 ### element.empty
 
@@ -282,7 +282,7 @@ Get or set element's id. None if id is not set.
 element.move(target, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Move element to the `target` that can be either another `Element` or a DOM selector string.  To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
+Move element to the `target` that can be either another `Element` or a DOM selector string.  To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values.
 
 #### Examples
 
@@ -805,7 +805,7 @@ Get document's body as an `Element` object
 window.create_element(html, parent=None, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Insert HTML content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omited, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
+Insert HTML content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omited, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values.
 
 ### window.dom.document
 

@@ -5,7 +5,7 @@
 
 I am happy to announce the release of _pywebview 3.0_. _pywebview_ lets you to build GUI for your Python program using HTML, CSS and Javascript, while doing its best  hiding the fact that the GUI is built using a browser. Think of _pywebview_ as lightweight Electron for Python. Unlike Electron, _pywebview_ does not bundle a web renderer, but instead relies on a rendered provided by operating system. _Sidenote: bundling a renderer is still an option though, as in case of CEF_.
 
-If you are new here, head over to [usage guide](/guide/usage.html), [API reference](/guide/api.html), [examples](/examples) and our very own [TODOs app](https://github.com/r0x0r/pywebview/tree/master/examples/todos).
+If you are new here, head over to [usage guide](/guide/usage.html), [API reference](/api.html), [examples](/examples) and our very own [TODOs app](https://github.com/r0x0r/pywebview/tree/master/examples/todos).
 
 Oh and _pywebview_ can be installed with
 
