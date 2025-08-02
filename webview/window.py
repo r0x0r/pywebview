@@ -6,7 +6,7 @@ import os
 from collections.abc import Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
-from threading import Lock
+from threading import Lock, Thread
 from typing import Any, Callable, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
@@ -143,6 +143,10 @@ class Window:
         self.vibrancy = vibrancy
         self.screen = screen
 
+        # Before_closing variables
+        self.___skip_next_before_closed = False
+        self.before_closing_active = False
+
         # Server config
         self._http_port = http_port
         self._server = server
@@ -160,6 +164,8 @@ class Window:
         self.events = EventContainer()
         self.events.closed = Event(self)
         self.events.closing = Event(self, True)
+        self.events.before_closing = None
+        self.events.closing += self.before_closing
         self.events.loaded = Event(self)
         self.events.before_load = Event(self, True)
         self.events.before_show = Event(self, True)
@@ -554,5 +560,42 @@ class Window:
         else:
             return url
 
+    def before_closing(self, *args, **kwargs):
+        """
+        Handler that runs before the window attempts to close.
+
+        If this function returns False, the closing sequence will be aborted,
+        preventing the window from closing. This allows the user to intercept
+        the close event and optionally cancel it.
+
+        Args:
+            *args: Positional arguments passed from the event system.
+            **kwargs: Keyword arguments passed from the event system.
+
+        Returns:
+            bool: Return False to cancel the window close. Return True (or nothing)
+                to allow it to proceed.
+        """
+        if (not self.events.before_closing):
+            return True
+        
+        if (self.before_closing_active):
+            return False
+        
+        if (self.___skip_next_before_closed):
+            self.___skip_next_before_closed = False
+            return True
+
+        def wrapper():
+            self.before_closing_active = True
+            result = self.events.before_closing(*args, **kwargs)
+            self.before_closing_active = False
+            if (result != False):
+                self.___skip_next_before_closed = True
+                self.destroy()
+
+        t = Thread(target=wrapper, daemon=True)
+        t.start()
+        return False
 
 WindowFunc: TypeAlias = Callable[Concatenate[Window, P], T]
