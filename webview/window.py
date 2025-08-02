@@ -3,10 +3,11 @@ from __future__ import annotations
 import inspect
 import logging
 import os
+import json
 from collections.abc import Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
-from threading import Lock
+from threading import Lock, Thread
 from typing import Any, Callable, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
@@ -142,6 +143,10 @@ class Window:
         self.localization_override = localization
         self.vibrancy = vibrancy
         self.screen = screen
+        
+        # Before_closing variables
+        self.___skip_next_before_closed = False
+        self.before_closing_active = False
 
         # Server config
         self._http_port = http_port
@@ -160,6 +165,8 @@ class Window:
         self.events = EventContainer()
         self.events.closed = Event(self)
         self.events.closing = Event(self, True)
+        self.events.before_closing = None
+        self.events.closing += self.before_closing
         self.events.loaded = Event(self)
         self.events.before_load = Event(self, True)
         self.events.before_show = Event(self, True)
@@ -488,6 +495,31 @@ class Window:
         else:
             return result
 
+    @_pywebview_ready_call
+    def dispatch_custom_event(self, event_name, data=None):
+        """
+        Dispatches a custom JavaScript event with optional data attached as direct properties
+        on the event object.
+
+        :param event_name: Name of the JavaScript event to dispatch.
+        :param data: Dictionary of data to attach directly as properties to the event object.
+        :return: Boolean indicating whether the event was not canceled by any listener (i.e., true if no listener called e.preventDefault()).
+        """
+        
+        js_data = json.dumps(data or {})
+        js = f"""
+        (function() {{
+            const event = new Event("{event_name}", {{ cancelable: true }});
+            const data = {js_data};
+            for (let key in data) {{
+                event[key] = data[key];
+            }}
+            return window.dispatchEvent(event);
+        }})();
+        """
+        return self.gui.evaluate_js(js, self.uid, True)
+
+
     @_shown_call
     def create_confirmation_dialog(self, title: str, message: str) -> bool:
         """
@@ -554,5 +586,42 @@ class Window:
         else:
             return url
 
+    def before_closing(self, *args, **kwargs):
+        """
+        Handler that runs before the window attempts to close.
+
+        If this function returns False, the closing sequence will be aborted,
+        preventing the window from closing. This allows the user to intercept
+        the close event and optionally cancel it.
+
+        Args:
+            *args: Positional arguments passed from the event system.
+            **kwargs: Keyword arguments passed from the event system.
+
+        Returns:
+            bool: Return False to cancel the window close. Return True (or nothing)
+                to allow it to proceed.
+        """
+        if (not self.events.before_closing):
+            return True
+        
+        if (self.before_closing_active):
+            return False
+        
+        if (self.___skip_next_before_closed):
+            self.___skip_next_before_closed = False
+            return True
+
+        def wrapper():
+            self.before_closing_active = True
+            result = self.events.before_closing(*args, **kwargs)
+            self.before_closing_active = False
+            if (result != False):
+                self.___skip_next_before_closed = True
+                self.destroy()
+
+        t = Thread(target=wrapper, daemon=True)
+        t.start()
+        return False
 
 WindowFunc: TypeAlias = Callable[Concatenate[Window, P], T]
