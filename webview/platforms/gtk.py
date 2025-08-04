@@ -187,7 +187,7 @@ class BrowserView:
             wvbg.alpha = 0.0
             self.webview.set_background_color(wvbg)
 
-        if _state['debug']:
+        if _state['debug'] or settings['ALLOW_OPEN_DEVTOOLS']:
             webkit_settings.enable_developer_extras = True
 
             if settings['OPEN_DEVTOOLS_IN_DEBUG']:
