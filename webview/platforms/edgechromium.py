@@ -8,8 +8,9 @@ from threading import Semaphore
 
 import clr
 
-from webview import _state, settings as webview_settings
+from webview import Window, _state, settings as webview_settings
 from webview.dom import _dnd_state
+from webview.models import Request, Response
 from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
 
 clr.AddReference('System.Windows.Forms')
@@ -27,7 +28,7 @@ from System.Threading.Tasks import Task, TaskScheduler
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
-from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction, CoreWebView2Environment
+from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction, CoreWebView2Environment, CoreWebView2WebResourceContext
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
@@ -38,7 +39,7 @@ logger = logging.getLogger('pywebview')
 renderer = 'edgechromium'
 
 class EdgeChrome:
-    def __init__(self, form, window, cache_dir):
+    def __init__(self, form: WinForms.Form, window: Window, cache_dir: str):
         self.pywebview_window = window
         self.webview = WebView2()
         props = CoreWebView2CreationProperties()
@@ -90,9 +91,9 @@ class EdgeChrome:
         try:
             shutil.rmtree(self.user_data_folder)
         except Exception as e:
-            logger.exception(e)
+            logger.warning(f'Failed to delete user data folder: {e}')
 
-    def evaluate_js(self, script, parse_json):
+    def evaluate_js(self, script: str, parse_json: bool):
         def _callback(res):
             nonlocal result
             if parse_json and res is not None:
@@ -170,7 +171,7 @@ class EdgeChrome:
         else:
             self.webview.EnsureCoreWebView2Async(None)
 
-    def load_url(self, url):
+    def load_url(self, url: str):
         self.ishtml = False
         self.webview.Source = Uri(url)
 
@@ -230,6 +231,9 @@ class EdgeChrome:
 
         self.webview.CoreWebView2.SourceChanged += self.on_source_changed
         sender.CoreWebView2.NewWindowRequested += self.on_new_window_request
+        sender.CoreWebView2.AddWebResourceRequestedFilter('*', CoreWebView2WebResourceContext.All)
+        sender.CoreWebView2.WebResourceResponseReceived += self.on_web_resource_response
+        sender.CoreWebView2.WebResourceRequested += self.on_web_resource_request
 
         if _state['ssl'] or webview_settings['IGNORE_SSL_ERRORS']:
             sender.CoreWebView2.ServerCertificateErrorDetected += self.on_certificate_error
@@ -290,7 +294,37 @@ class EdgeChrome:
             args.Cancel = True
 
     def on_navigation_start(self, sender, args):
-        pass
+        if self.pywebview_window.transparent:
+            self.form.Show()
+            self.form.Activate()
+
+    def on_web_resource_response(self, sender, args):
+        headers = {}
+        for header in args.Response.Headers.GetEnumerator():
+            headers[header.Key] = header.Value
+
+        response = Response(str(args.Request.Uri), args.Response.StatusCode, headers)
+        self.pywebview_window.events.response_received.set(response)
+
+    def on_web_resource_request(self, sender, args):
+        original_headers = {}
+        for header in args.Request.Headers.GetEnumerator():
+            original_headers[header.Key] = header.Value
+
+        request = Request(str(args.Request.Uri), args.Request.Method, original_headers)
+        self.pywebview_window.events.request_sent.set(request)
+
+        if request.headers == original_headers:
+            return
+
+        extra_headers = {k: v for k, v in request.headers.items() if k not in original_headers or original_headers[k] != v}
+        missing_headers = {k: str(v) for k, v in original_headers.items() if k not in request.headers}
+
+        for k, v in extra_headers.items():
+            args.Request.Headers.SetHeader(k, v)
+
+        for k in missing_headers:
+            args.Request.Headers.RemoveHeader(k)
 
     def on_navigation_completed(self, sender, _):
         url = str(sender.Source)

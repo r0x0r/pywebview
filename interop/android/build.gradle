@@ -21,14 +21,23 @@ android {
         main.java.srcDirs += 'lib/src/main/java'
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
     namespace "com.pywebview"
 }
 
-task androidSourcesJar(type: Jar) {
+task jar(type: Jar) {
     getArchiveClassifier().set('sources')
-    from android.sourceSets.main.java.srcDirs
+    destinationDirectory = file('../../webview/lib')
+    archiveFileName = 'pywebview-android.jar'
+    from "${buildDir}/intermediates/javac/release/classes"
+    dependsOn 'compileReleaseJavaWithJavac'
 }
 
+
 artifacts {
-    archives androidSourcesJar
+    archives jar
 }

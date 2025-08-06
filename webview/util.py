@@ -45,7 +45,6 @@ DEFAULT_HTML = """
 logger = logging.getLogger('pywebview')
 
 
-
 class ImmutableDict(UserDict):
     """"
     A dictionary that does not allow adding new keys or deleting existing ones.
@@ -182,17 +181,22 @@ def inject_pywebview(platform: str, window: Window) -> str:
             functions = {}
 
         for name in dir(obj):
-            full_name = f"{base_name}.{name}" if base_name else name
+            try:
+                full_name = f"{base_name}.{name}" if base_name else name
+                target_obj = getattr(obj, name)
 
-            if name.startswith('_'):
+                if name.startswith('_') or getattr(target_obj, '_serializable', True) == False:
+                    continue
+
+                attr = getattr(obj, name)
+                if inspect.ismethod(attr):
+                    functions[full_name] = get_args(attr)[1:]
+                # If the attribute is a class or a non-callable object, make a recursive call
+                elif inspect.isclass(attr) or (isinstance(attr, object) and not callable(attr) and hasattr(attr, "__module__")):
+                    get_functions(attr, full_name, functions)
+            except Exception as e:
+                logger.error(f'Error while processing {full_name}: {e}')
                 continue
-
-            attr = getattr(obj, name)
-            if inspect.ismethod(attr):
-                functions[full_name] = get_args(attr)[1:]
-            # If the attribute is a class or a non-callable object, make a recursive call
-            elif inspect.isclass(attr) or (isinstance(attr, object) and not callable(attr) and hasattr(attr, "__module__")):
-                get_functions(attr, full_name, functions)
 
         return functions
 
@@ -231,6 +235,11 @@ def inject_pywebview(platform: str, window: Window) -> str:
     thread = Thread(target=generate_js_object)
     thread.start()
 
+
+def inject_state(window: Window):
+    """ Inject state after page is loaded"""
+
+    json_string = json.dumps(window.state)
 
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
     """
@@ -301,6 +310,15 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         del window._callbacks[value_id]
         return
 
+    if func_name == 'pywebviewStateUpdate':
+        window.state.__setattr__(param['key'], param['value'], False)
+        return
+
+    if func_name == 'pywebviewStateDelete':
+        special_key = '__pywebviewHaltUpdate__' + param
+        delattr(window.state, special_key)
+        return
+
     func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
 
     if func is not None:
@@ -345,10 +363,14 @@ def load_js_files(window: Window, platform: str) -> str:
             elif name == 'customize':
                 params = {
                     'text_select': str(window.text_select),
-                    'drag_selector': webview.DRAG_REGION_SELECTOR,
+                    'drag_selector': webview.settings['DRAG_REGION_SELECTOR'],
                     'zoomable': str(window.zoomable),
                     'draggable': str(window.draggable),
                     'easy_drag': str(platform == 'edgechromium' and window.easy_drag and window.frameless)
+                }
+            elif name == 'state':
+                params = {
+                    'state': json.dumps(window.state)
                 }
             elif name == 'finish':
                 finish_script = content
@@ -390,7 +412,7 @@ def sort_js_files(js_files: list[str]) -> list[str]:
     Sorts JS files in the order they should be loaded. Polyfill first, then API, then the rest and
     finally finish.js that fires a pywebviewready event.
     """
-    LOAD_ORDER = { 'polyfill': 0, 'api': 1 }
+    LOAD_ORDER = { 'polyfill': 0, 'api': 1, 'state': 2 }
 
     ordered_js_files = []
     remaining_js_files = []
@@ -512,3 +534,6 @@ def css_to_camel(css_case_string: str) -> str:
 def android_jar_path() -> str:
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', 'pywebview-android.jar')
 
+
+def stringify_headers(headers: dict[str, Any]) -> dict[str, str]:
+    return {k: str(v) for k, v in headers.items()}

@@ -42,24 +42,4 @@ public class PyWebChromeClient extends WebChromeClient {
         return true;
     }
 
-    // @Override
-    // public boolean onJsPrompt(WebView view, String url, String message, String defaultValue, JsPromptResult result) {
-    //     LayoutInflater inflater = LayoutInflater.from(context);
-    //     View promptView = inflater.inflate(R.layout.dialog_js_prompt, null, false);
-    //     TextView messageView = promptView.findViewById(R.id.message);
-    //     messageView.setText(message);
-    //     final EditText valueView = promptView.findViewById(R.id.value);
-    //     valueView.setText(defaultValue);
-
-    //     new AlertDialog.Builder(context)
-    //             .setView(promptView)
-    //             .setPositiveButton(android.R.string.ok, (dialog, which) -> result.confirm(valueView.getText().toString()))
-    //             .setOnCancelListener(dialog -> result.cancel())
-    //             .show();
-
-    //     return true;
-    // }
-
 }
-
-
