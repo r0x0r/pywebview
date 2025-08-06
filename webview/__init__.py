@@ -205,7 +205,7 @@ def start(
     if storage_path:
         __set_storage_path(storage_path)
 
-    if debug:
+    if debug and not os.environ.get('PYWEBVIEW_LOG'):
         logger.setLevel(logging.DEBUG)
 
     if _state['storage_path'] and _state['private_mode'] and not os.path.exists(_state['storage_path']):

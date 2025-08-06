@@ -22,6 +22,8 @@ _Released xx/xx/2025_
 - `All` BREAKING: `webview.DRAG_REGION_SELECTOR` is deprecated. Use `webview.settings['DRAG_REGION_SELECTOR']` instead.
 - `All` Modify JS API to use callback instead of setInterval #1607. Thanks @qaqFei.
 - `All` When exposing a `Window` object to JS API, `dom`, `events` and `state` objects are omitted.
+- `All` Logging level set by `PYWEBVIEW_LOG` environment level takes precedence over `debug` parameter.
+- `Android` New test suite for Android platform.
 - `Cocoa` Add handler for Javascript prompt/input #1567. Thanks @maddyaby.
 - `Winforms` Dark mode support with automatic theme changing #1595. Thanks @godcop.
 
@@ -30,6 +32,9 @@ _Released xx/xx/2025_
 - `All` Better duplicate object detection in JS API serialization.
 - `All` Loading URLs with a hash served by local HTTP server. #1574
 - `All` Multiwindow with local-url setups sets wrong server root (BottleServer). Thanks @Sopze92.
+- `All` SSL support for HTTP apps. Thanks @Gu-f.
+- `Android` Fix JSON-encoded values returned by `window.evaluate_js`.
+- `Android` Fix cookie support.
 - `Cocoa` Don't terminate app if windows shouldn't close #1580. Thanks @mikeylemmon.
 - `Cocoa` File filter set via `<input type="file">` tag.
 - `GTK` Fix Javascript exception handling #1648.
