@@ -2,11 +2,11 @@
 
 ## 6.0
 
-_Released xx/xx/2025_
+_Released 08/08/2025_
 
 ### ⚡ Features
 
-- `All` Shared state management via `window.state` object. The state is automatically updated between Javascript and Python.
+- `All` Shared state management via `window.state` object. State object is automatically updated between Javascript and Python.
 - `All` New `request_sent` and `response_received` events. The events are fired when a HTTP request is sent and a response is received. Request headers can be modified before sending.
 - `All` Window specific menu that can be created via `webview.create_window(menu=webview.menu.Menu)`.
 - `All` Add origin coordinates (x, y) to `webview.screen.Screen` object
@@ -33,6 +33,7 @@ _Released xx/xx/2025_
 - `All` Loading URLs with a hash served by local HTTP server. #1574
 - `All` Multiwindow with local-url setups sets wrong server root (BottleServer). Thanks @Sopze92.
 - `All` SSL support for HTTP apps. Thanks @Gu-f.
+- `All` Fix duplicate logging when webview is imported multiple times.
 - `Android` Fix JSON-encoded values returned by `window.evaluate_js`.
 - `Android` Fix cookie support.
 - `Cocoa` Don't terminate app if windows shouldn't close #1580. Thanks @mikeylemmon.

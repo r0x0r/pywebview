@@ -2,6 +2,13 @@
 # Blog
 
 
+### <span class="date">2025-08-08</span> pywebview 6
+
+Another major installment with _pywebview 6_ featuring new state management, network event handling and window specific menus.<br/>
+[Read more](/blog/pywebview6.html)
+
+
+
 ### <span class="date">2024-03-08</span> pywebview 5
 
 _pywebview_ 5 has landed with Android support and DOM.<br/>
