@@ -3,7 +3,7 @@
 
 # 6.0 is here
 
-I am excited to announce the release of _pywebview 6_. The new version introduces powerful state management, network event handling, and significant improvements to Android support. For a complete changelog, see [here](/changelog).
+I am excited to announce the release of _pywebview 6_. The new version introduces powerful state management, network event handling, and significant improvements to Android support. For a complete changelog, see [here](/CHANGELOG.html).
 
 If you are not familiar with _pywebview_, it's a lightweight Python framework for building modern desktop applications with web technologies. Unlike heavyweight alternatives, _pywebview_ leverages your system's native webview, resulting in smaller binaries and better performance. Write your UI once in HTML, CSS, and JavaScript, then deploy across Windows, macOS, Linux, and Android with the full power of Python at your fingertips. _pywebview_ can be installed with
 

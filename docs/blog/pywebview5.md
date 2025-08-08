@@ -3,7 +3,7 @@
 
 # 5.0 has landed
 
-I am happy to announce the release of _pywebview 5_. The new version introduces three major features: Android support, DOM manipulation and application settings. For a full changelog, see [here](/changelog).
+I am happy to announce the release of _pywebview 5_. The new version introduces three major features: Android support, DOM manipulation and application settings. For a full changelog, see [here](/CHANGELOG.html).
 
 If you are not familiar with _pywebview_, it is a Python library that lets you to build GUI for your Python program using HTML, CSS and Javascript. Available for Windows, macOS, Linux and Android. _pywebview_ can be installed with
 
