@@ -20,7 +20,7 @@ Although on some Linux platforms you may need to install additional libraries. R
 
 ## Develop
 
-Read the basic concepts in [Usage](/guide/usage), dive into [application architecture](/guide/architecture). Explore [API](/guide/api) and check various [examples](/examples)
+Read the basic concepts in [Usage](/guide/usage), dive into [application architecture](/guide/architecture). Explore [API](/api) and check various [examples](/examples)
 
 ## Contribute
 

@@ -63,7 +63,7 @@ The `Window` object provides a number of functions and properties to interact wi
 - `window.restore()`: Restores the window if it is minimized or maximized.
 - `window.destroy()`: Closes the window.
 
-For a complete list of functions, refer to [API](/guide/api)
+For a complete list of functions, refer to [API](/api)
 
 ## Window events
 
