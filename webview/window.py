@@ -17,10 +17,12 @@ import webview.http as http
 from webview.errors import JavascriptException, WebViewException
 from webview.event import Event, EventContainer
 from webview.localization import original_localization
+from webview.menu import Menu
 from webview.util import (base_uri, escape_string, is_app, is_local_url, parse_file_type)
 from webview.dom.dom import DOM
 from webview.dom.element import Element
 from webview.screen import Screen
+from webview.state import State
 
 
 P = ParamSpec('P')
@@ -107,6 +109,7 @@ class Window:
         zoomable: bool = False,
         draggable: bool = False,
         vibrancy: bool = False,
+        menu: list[Menu] = [],
         localization: Mapping[str, str] | None = None,
         http_port: int | None = None,
         server: type[http.ServerType] | None = None,
@@ -142,6 +145,7 @@ class Window:
         self.localization_override = localization
         self.vibrancy = vibrancy
         self.screen = screen
+        self.menu = menu
 
         # Server config
         self._http_port = http_port
@@ -163,20 +167,25 @@ class Window:
         self.events.loaded = Event(self)
         self.events.before_load = Event(self, True)
         self.events.before_show = Event(self, True)
+        self.events.initialized = Event(self, True)
         self.events.shown = Event(self)
         self.events.minimized = Event(self)
         self.events.maximized = Event(self)
         self.events.restored = Event(self)
         self.events.resized = Event(self)
         self.events.moved = Event(self)
+        self.events.request_sent = Event(self)
+        self.events.response_received = Event(self)
+
         self.events._pywebviewready = Event(self)
 
         self._expose_lock = Lock()
         self.dom = DOM(self)
         self.gui = None
         self.native = None # set in the gui after window creation
+        self._state = State(self)
 
-    def _initialize(self, gui, server: http.BottleServer | None = None):
+    def _initialize(self, gui, server: http.BottleServer | None = None, server_args: http.ServerArgs = dict):
         self.gui = gui
 
         self.localization = original_localization.copy()
@@ -188,7 +197,7 @@ class Window:
                 urls=[self.original_url],
                 http_port=self._http_port,
                 server=self._server,
-                **self._server_args,
+                **(self._server_args or server_args),
             )
         elif server is None:
             server = http.global_server
@@ -201,6 +210,9 @@ class Window:
         )
         self.real_url = self._resolve_url(self.original_url)
 
+        abort = self.events.initialized.set(gui.renderer)
+        return not abort
+
     @property
     def width(self) -> int:
         self.events.shown.wait(15)
@@ -212,6 +224,16 @@ class Window:
         self.events.shown.wait(15)
         _, height = self.gui.get_size(self.uid)
         return height
+
+    @property
+    def state(self) -> State:
+        return self._state
+
+    @state.setter
+    def state(self, state: State) -> None:
+        if not isinstance(state, State):
+            raise TypeError('State must be an instance of State class')
+        self._state = state
 
     @property
     def title(self) -> str:
@@ -245,13 +267,6 @@ class Window:
         if hasattr(self, 'gui') and self.gui != None:
             self.gui.set_on_top(self.uid, on_top)
 
-    @_loaded_call
-    def get_elements(self, selector: str) -> list[Element]:
-        logger.warning(
-            'This function is deprecated and will be removed in future releases. Use window.dom.get_elements() instead'
-        )
-        return self.dom.get_elements(selector)
-
     @_shown_call
     def load_url(self, url: str) -> None:
         """
@@ -269,6 +284,7 @@ class Window:
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
+
         logger.debug(f'Loading URL: {self.real_url}')
         self.gui.load_url(self.real_url, self.uid)
 
@@ -375,7 +391,7 @@ class Window:
     @_shown_call
     def maximize(self) -> None:
         """
-        Minimize window.
+        Maximize window.
         """
         self.gui.maximize(self.uid)
 
@@ -510,7 +526,7 @@ class Window:
     ) -> Sequence[str] | None:
         """
         Create a file dialog
-        :param dialog_type: Dialog type: open file (OPEN_DIALOG), save file (SAVE_DIALOG), open folder (OPEN_FOLDER). Default
+        :param dialog_type: Dialog type: open file (FileDialog.OPEN), save file (FileDialog.SAVE), open folder (FileDialog.OPEN). Default
                             is open file.
         :param directory: Initial directory
         :param allow_multiple: Allow multiple selection. Default is false.

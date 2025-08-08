@@ -8,7 +8,7 @@ def save_file_dialog(window):
 
     time.sleep(5)
     result = window.create_file_dialog(
-        webview.SAVE_DIALOG, directory='/', save_filename='test.file'
+        webview.FileDialog.SAVE, directory='/', save_filename='test.file'
     )
     print(result)
 

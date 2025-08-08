@@ -96,9 +96,10 @@ class BottleServer:
             common_path = '.'
         else:
             local_urls = [u.split('#')[0] for u in urls if is_local_url(u)]
-            common_path = (
-                os.path.dirname(os.path.commonpath(local_urls)) if len(local_urls) > 0 else None
-            )
+            common_path = os.path.commonpath(local_urls) if len(local_urls) > 0 else None
+            if common_path is not None and not os.path.isdir(abspath(common_path)):
+                common_path = os.path.dirname(common_path)
+            logger.debug("Comon path for local URLs: %s" % common_path)
             server.root_path = abspath(common_path) if common_path is not None else None
             logger.debug('HTTP server root path: %s' % server.root_path)
             app = bottle.Bottle()
@@ -189,7 +190,9 @@ class SSLWSGIRefServer(bottle.ServerAdapter):
         self.srv = make_server(self.host, self.port, handler, server_cls, handler_cls)
         self.srv.socket = ssl_context.wrap_socket(self.srv.socket, server_side=True)
         self.port = self.srv.server_port  # update port actual port (0 means random)
-        os.unlink(self.pywebview_keyfile)
+
+        if os.path.exists(self.pywebview_keyfile):
+            os.unlink(self.pywebview_keyfile)
         try:
             self.srv.serve_forever()
         except KeyboardInterrupt:

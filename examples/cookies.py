@@ -12,7 +12,6 @@ def read_cookies(window):
 class Api:
     def clearCookies(self):
         window.clear_cookies()
-        print('Cookies cleared')
 
 if __name__ == '__main__':
     window = webview.create_window('Cookie example', 'assets/cookies.html', js_api=Api())

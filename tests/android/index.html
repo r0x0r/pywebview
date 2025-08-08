@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Android test suite</title>
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css">
+    <script>
+      document.cookie = 'testCookie1=value1; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
+      document.cookie = 'testCookie2=value2; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
+      document.cookie = 'testJson=' + JSON.stringify({key: 'value', number: 42}) + '; expires=Thu, 18 Dec 2133 12:00:00 UTC;'; </script>
+    </script>
+
+  <body>
+    <div id="mocha"></div>
+    <script src="https://unpkg.com/mocha/mocha.js"></script>
+    <script src="https://unpkg.com/chai@4.5.0/chai.js"></script>
+    <script>mocha.setup('bdd')</script>
+    <script>mocha.timeout(10000)</script>
+    <script>expect = chai.expect</script>
+    <script src="index.js"></script>
+
+    <script src="tests/test-events.js"></script>
+    <script src="tests/test-js-api.js"></script>
+    <script src="tests/test-state.js"></script>
+    <script src="tests/test-window.js"></script>
+
+    <script>
+      if (window.pywebview && Object.keys(window.pywebview.api).length > 0) {
+        mocha.run();
+      } else {
+        window.addEventListener('pywebviewready', mocha.run);
+      }
+    </script>
+
+    <div id="test-area" style="visibility: hidden;"></div>
+
+    <div style="margin: 20px;">
+      <button id="toggle-eval-button" onclick="togglePythonEvaluator()" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">Show Python Code Evaluator</button>
+    </div>
+
+    <div id="python-eval-section" style="margin: 20px; padding: 20px; border: 1px solid #ccc; border-radius: 5px; display: none;">
+      <h3>Python Code Evaluator</h3>
+      <div style="margin-bottom: 10px;">
+        <label for="python-code">Enter Python code:</label>
+        <br>
+        <textarea id="python-code" rows="6" cols="80" style="width: 100%; font-family: monospace; margin-top: 5px;" placeholder="Enter your Python code here..."></textarea>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <button id="eval-button" onclick="evaluatePythonCode()" style="padding: 8px 16px; background-color: #007acc; color: white; border: none; border-radius: 3px; cursor: pointer;">Execute Code</button>
+        <button onclick="clearResult()" style="padding: 8px 16px; background-color: #666; color: white; border: none; border-radius: 3px; cursor: pointer; margin-left: 10px;">Clear Result</button>
+      </div>
+      <div>
+        <label for="result-area">Result:</label>
+        <br>
+        <div id="result-area" style="width: 100%; min-height: 100px; padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9; font-family: monospace; white-space: pre-wrap; margin-top: 5px;"></div>
+      </div>
+    </div>
+
+    <script>
+      document.cookie = 'testCookie1=value1; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
+      async function evaluatePythonCode() {
+        const codeTextArea = document.getElementById('python-code');
+        const resultArea = document.getElementById('result-area');
+        const evalButton = document.getElementById('eval-button');
+
+        const code = codeTextArea.value.trim();
+
+        if (!code) {
+          resultArea.textContent = 'Please enter some Python code to execute.';
+          resultArea.style.color = '#999';
+          return;
+        }
+
+        // Check if pywebview API is available
+        if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.eval) {
+          resultArea.textContent = 'Error: pywebview.api.eval is not available. Make sure you are running this in a pywebview environment.';
+          resultArea.style.color = 'red';
+          return;
+        }
+
+        try {
+          // Disable button during execution
+          evalButton.disabled = true;
+          evalButton.textContent = 'Executing...';
+
+          // Clear previous result
+          resultArea.textContent = 'Executing...';
+          resultArea.style.color = '#666';
+
+          // Execute the Python code
+          const result = await window.pywebview.api.eval(code);
+
+          // Display the result
+          resultArea.textContent = `Result: ${JSON.stringify(result, null, 2)}`;
+          resultArea.style.color = 'green';
+
+        } catch (error) {
+          // Display error
+          resultArea.textContent = `Error: ${error.message || error}`;
+          resultArea.style.color = 'red';
+        } finally {
+          // Re-enable button
+          evalButton.disabled = false;
+          evalButton.textContent = 'Execute Code';
+        }
+      }
+
+      function clearResult() {
+        document.getElementById('result-area').textContent = '';
+        document.getElementById('result-area').style.color = '#000';
+      }
+
+      function togglePythonEvaluator() {
+        const evalSection = document.getElementById('python-eval-section');
+        const toggleButton = document.getElementById('toggle-eval-button');
+
+        if (evalSection.style.display === 'none') {
+          evalSection.style.display = 'block';
+          toggleButton.textContent = 'Hide Python Code Evaluator';
+          toggleButton.style.backgroundColor = '#dc3545';
+        } else {
+          evalSection.style.display = 'none';
+          toggleButton.textContent = 'Show Python Code Evaluator';
+          toggleButton.style.backgroundColor = '#28a745';
+        }
+      }
+
+      // Allow Ctrl+Enter to execute code
+      document.getElementById('python-code').addEventListener('keydown', function(event) {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+          event.preventDefault();
+          evaluatePythonCode();
+        }
+      });
+    </script>
+
+    <div>
+
+    </div>
+</html>

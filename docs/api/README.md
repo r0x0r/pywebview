@@ -15,10 +15,10 @@ Get an instance of the currently active window
 webview.create_window(title, url=None, html=None, js_api=None, width=800, height=600,
                       x=None, y=None, screen=None, resizable=True, fullscreen=False,
                       min_size=(200, 100), hidden=False, frameless=False,
-                      easy_drag=True, shadow=False, focus=True, minimized=False, maximized=False,
+                      easy_drag=True, shadow=False, focus=True, minimized=False, maximized=False, menu=[],
                       on_top=False, confirm_close=False, background_color='#FFFFFF',
                       transparent=False, text_select=False, zoomable=False,
-                      draggable=False, server=http.BottleServer, server_args={},
+                      draggable=False, vibrancy=False, server=http.BottleServer, server_args={},
                       localization=None)
 ```
 
@@ -38,11 +38,12 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
 * `hidden` - Create a window hidden by default. Default is False
 * `frameless` - Create a frameless window. Default is False.
-* `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/guide/api.html#drag-area) for details.
+* `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/api.html#drag-area) for details.
 * `shadow` - Add window shadow. Default is False. _Windows only_.
 * `focus` - Create a non-focusable window if False. Default is True.
 * `minimized` - Display window minimized
 * `maximized` - Display window maximized
+* `menu` - A list of `Menu` objects to create a window specific menu. This menu overrides the application menu specified in `webview.start`. Not supported on GTK.
 * `on_top` - Set window to be always on top of other windows. Default is False.
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
@@ -106,9 +107,12 @@ Return a list of available displays (as `Screen` objects) with the primary displ
 webview.settings = {
   'ALLOW_DOWNLOADS': False,
   'ALLOW_FILE_URLS': True,
+  'DRAG_REGION_SELECTOR': 'pywebview-drag-region',
   'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
   'OPEN_DEVTOOLS_IN_DEBUG': True,
-  'REMOTE_DEBUGGING_PORT': None
+  'IGNORE_SSL_ERRORS': False,
+  'REMOTE_DEBUGGING_PORT': None,
+  'SHOW_DEFAULT_MENUS': True
 }
 ```
 
@@ -116,9 +120,12 @@ Additional options that override default behaviour of _pywebview_ to address pop
 
 * `ALLOW_DOWNLOADS` Allow file downloads. Disabled by default.
 * `ALLOW_FILE_URLS` Enable `file://` urls. Disabled by default.
+* `DRAG_REGION_SELECTOR` CSS selector for a drag region in easy drag mode. Default selector is `.pywebview-drag-region`.
+* `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
-* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.
+* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`. Disabled by default.* `SHOW_DEFAULT_MENUS` Show default menu on Cocoa. Enabled by default.
+* `SHOW_DEFAULT_MENUS` Show default menus on Cocoa. Enabled by default.
 
 #### Examples
 
@@ -200,7 +207,7 @@ element.classes.toggle('dotted')
 element.append(html, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Insert HTML content to the element as a last child. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
+Insert HTML content to the element as a last child. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values.
 
 ### element.blur
 
@@ -224,7 +231,7 @@ Get element's children elements. Returns a list of `Element` objects.
 element.copy(target=None, mode=webview.dom.ManipulationMode.LastChild, id=None)
 ```
 
-Create a new copy of the element. `target` can be either another `Element` or a DOM selector string. If target is omitted, a copy is created in the current element's parent. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values. The id parameter is stripped from the copy. Optionally you can set the id of the copy by specifying the `id` parameter.
+Create a new copy of the element. `target` can be either another `Element` or a DOM selector string. If target is omitted, a copy is created in the current element's parent. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values. The id parameter is stripped from the copy. Optionally you can set the id of the copy by specifying the `id` parameter.
 
 ### element.empty
 
@@ -280,7 +287,7 @@ Get or set element's id. None if id is not set.
 element.move(target, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Move element to the `target` that can be either another `Element` or a DOM selector string.  To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
+Move element to the `target` that can be either another `Element` or a DOM selector string.  To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values.
 
 #### Examples
 
@@ -466,11 +473,16 @@ Get display height.
 screen.width
 ```
 
+Get display width.
+
+
 ### screen.x
 
 ``` python
 screen.x
 ```
+
+Get X coordinate of the top-left corner of the display.
 
 ### screen.y
 
@@ -478,7 +490,8 @@ screen.x
 screen.y
 ```
 
-Get display width.
+Get Y coordinate of the top-left corner of the display.
+
 
 ## webview.Window
 
@@ -556,17 +569,17 @@ Create a confirmation (Ok / Cancel) dialog.
 ### window.create\_file\_dialog
 
 ``` python
-window.create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=False, save_filename='', file_types=())
+window.create_file_dialog(dialog_type=FileDialog.OPEN, directory='', allow_multiple=False, save_filename='', file_types=())
 ```
 
-Create an open file (`webview.OPEN_DIALOG`), open folder (`webview.FOLDER_DIALOG`) or save file (`webview.SAVE_DIALOG`) dialog.
+Create an open file (`webview.FileDialog.OPEN`), open folder (`webview.FileDialog.FOLDER`) or save file (`webview.FileDialog.OPEN.SAVE`) dialog.
 
 Return a tuple of selected files, None if cancelled.
 
-  * `allow_multiple=True` enables multiple selection.
-  * `directory` Initial directory.
-  * `save_filename` Default filename for save file dialog.
-  * `file_types` A tuple of supported file type strings in the open file dialog. A file type string must follow this format `"Description (*.ext1;*.ext2...)"`.
+* `allow_multiple=True` enables multiple selection.
+* `directory` Initial directory.
+* `save_filename` Default filename for save file dialog.
+* `file_types` A tuple of supported file type strings in the open file dialog. A file type string must follow this format `"Description (*.ext1;*.ext2...)"`.
 
 If the argument is not specified, then the `"All files (*.*)"` mask is used by default. The 'All files' string can be changed in the localization dictionary.
 
@@ -788,7 +801,6 @@ Toggle fullscreen mode on the active monitor.
 
 [Example](/examples/toggle_fullscreen.html)
 
-
 ### window.dom.body
 
 ``` python
@@ -803,7 +815,7 @@ Get document's body as an `Element` object
 window.create_element(html, parent=None, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Insert HTML content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omited, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/guide/api.html#manipulation-mode) for possible values.
+Insert HTML content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omited, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values.
 
 ### window.dom.document
 
@@ -857,6 +869,12 @@ The event is fired when _pywebview_ window is about to be closed. If confirm_clo
 
 [Example](/examples/events.html)
 
+### window.events.initialized
+
+The event is fired right after GUI is chosen and HTTP server is started (if applicable). The first parameter `renderer` has a value of the chosen GUI library / web renderer. If event handler returns False, the window creation will be cancelled and GUI loop will not be started (for windows created before the GUI loop is started). This event is blocking.
+
+[Example](/examples/events.html)
+
 ### window.events.loaded
 
 The event is fired when DOM is ready.
@@ -879,6 +897,31 @@ The event is fired when window is moved.
 
 [Example](/examples/events.html)
 
+### window.events.request_sent
+
+The event is fired when a HTTP request is sent. The event is emitted for every HTTP request, except on macOS where it is emitted only for the main document.
+The event handler can accept a single argument - a `Request` object that contains the following properties:
+
+* `url` - URL of the request
+* `method` - HTTP method
+* `headers` - HTTP request headers as a dictionary. If you mutate mutate headers, modified headers will be used for the request.
+
+[Example](/examples/headers.html)
+
+
+### window.events.response_received
+
+The event is fired when a HTTP response is received. The event is emitted for every HTTP response, except on macOS where it is emitted only for the main document.
+The event handler can accept a single argument - a `Response` object that contains the following properties:
+
+* `url` - URL of the response
+* `status` - HTTP status code
+* `headers` - HTTP response headers as a dictionary
+
+Not supported on QT.
+
+[Example](/examples/headers.html)
+
 ### window.events.restored
 
 The event is fired when window is restored.
@@ -897,11 +940,35 @@ The event is fired when pywebview window is shown.
 
 [Example](/examples/events.html)
 
+### window.state
+
+An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. Object mutations are not detected. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
+
+## Javascript API
+
+_pywebview_ create a global Javascript object `window.pywebview` that has following properties
+
+### window.pywebview
+
+A global Javascript object that exposes the following properties:
+
+* `api` - A namespace for Python functions exposed via `window.expose` or `js_api` argument.
+* `platform` - Current renderer in use.
+* `token` - A CSRF token unique to the session that matches `webview.token` on the Python side.
+* `state` - A shared state object between Python and Javascript.
+
 ## DOM events
 
-_pywebview_ exposes a `window.pywebviewready` DOM event that is fired after `window.pywebview` is created.
+### pywebviewready
+
+_pywebview_ exposes a `window.pywebviewready` event that is fired after `window.pywebview` object is fully created.
 
 [Example](/examples/js_api.html)
+
+### State events
+
+`pywebview.state` is an `EventTarget` object that fires two events `change` and `delete`. To subscribe to an event, use
+`pywebview.state.addEventHandler('change', (e) => {})` or `pywebview.state.addEventHandler('delete', (e) => {})`. State change is stored in the `event.detail` object in form of `{ key, value }`
 
 ## Drag area
 
@@ -911,6 +978,6 @@ With a frameless _pywebview_ window, A window can be moved or dragged by adding 
 <div class='pywebview-drag-region'>Now window can be moved by dragging this DIV.</div>
 ```
 
-The magic class name can be overriden by re-assigning the `webview.DRAG_REGION_SELECTOR` constant.
+The magic class name can be overriden by re-assigning the `webview.settings['DRAG_REGION_SELECTOR']` property.
 
 [Example](/examples/drag_region.html)

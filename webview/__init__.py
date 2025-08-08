@@ -11,6 +11,7 @@ http://github.com/r0x0r/pywebview/
 from __future__ import annotations
 
 import datetime
+import enum
 import logging
 import os
 import re
@@ -29,8 +30,7 @@ from webview.guilib import initialize, GUIType
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import (ImmutableDict, _TOKEN, abspath, base_uri, escape_line_breaks, escape_string,
-                          is_app, is_local_url, parse_file_type)
+from webview.util import ImmutableDict, _TOKEN, abspath, is_app, is_local_url
 from webview.window import Window
 
 __all__ = (
@@ -53,30 +53,69 @@ __all__ = (
     'Window',
 )
 
-logger = logging.getLogger('pywebview')
-_handler = logging.StreamHandler()
-_formatter = logging.Formatter('[pywebview] %(message)s')
-_handler.setFormatter(_formatter)
-logger.addHandler(_handler)
 
-log_level = logging._nameToLevel[os.environ.get('PYWEBVIEW_LOG', 'info').upper()]
-logger.setLevel(log_level)
+def _setup_logger():
+    """Setup logger with console handler and appropriate log level."""
 
-OPEN_DIALOG = 10
-FOLDER_DIALOG = 20
-SAVE_DIALOG = 30
+    logger = logging.getLogger('pywebview')
 
-DRAG_REGION_SELECTOR = '.pywebview-drag-region'
-DEFAULT_HTTP_PORT = 42001
+    # Avoid duplicate setup
+    if logger.handlers:
+        return logger
+
+    # Create and configure handler
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('[pywebview] %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    # Set log level from environment variable with validation
+    log_level_name = os.environ.get('PYWEBVIEW_LOG', 'INFO').upper()
+    try:
+        log_level = getattr(logging, log_level_name)
+        logger.setLevel(log_level)
+    except AttributeError:
+        # Fallback to INFO if invalid level specified
+        logger.setLevel(logging.INFO)
+        logger.warning(f"Invalid log level '{log_level_name}', using INFO instead")
+
+    return logger
+
+logger = _setup_logger()
+
+@module_property
+def OPEN_DIALOG():
+    logger.warning("OPEN_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.OPEN' instead.")
+    return 10
+
+@module_property
+def FOLDER_DIALOG():
+    logger.warning("FOLDER_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.FOLDER' instead.")
+    return 20
+
+@module_property
+def SAVE_DIALOG():
+    logger.warning("SAVE_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.SAVE' instead.")
+    return 30
+
+class FileDialog(enum.IntEnum):
+    OPEN = 10
+    FOLDER = 20
+    SAVE = 30
+
 
 settings = ImmutableDict({
     'ALLOW_DOWNLOADS': False,
     'ALLOW_FILE_URLS': True,
+    'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
+    'DEFAULT_HTTP_PORT': 42001,
     'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
     'OPEN_DEVTOOLS_IN_DEBUG': True,
     'REMOTE_DEBUGGING_PORT': None,
     'IGNORE_SSL_ERRORS': False,
+    'SHOW_DEFAULT_MENUS': True,
 })
+
 
 _state = ImmutableDict({
     'debug': False,
@@ -85,14 +124,21 @@ _state = ImmutableDict({
     'user_agent': None,
     'http_server': False,
     'ssl': False,
-    'icon': None
+    'icon': None,
+    'menu': None
 })
+
+
+@module_property
+def DRAG_REGION_SELECTOR():
+    logger.warning("DRAG_REGION_SELECTOR is deprecated and will be removed in a future version. Use 'settings[\"DRAG_REGION_SELECTOR\"]' instead.")
+    return settings['DRAG_REGION_SELECTOR']
+
 
 guilib = None
 
 token = _TOKEN
 windows: list[Window] = []
-menus: list[Menu] = []
 renderer: str | None = None
 
 
@@ -159,7 +205,7 @@ def start(
     if storage_path:
         __set_storage_path(storage_path)
 
-    if debug:
+    if debug and not os.environ.get('PYWEBVIEW_LOG'):
         logger.setLevel(logging.DEBUG)
 
     if _state['storage_path'] and _state['private_mode'] and not os.path.exists(_state['storage_path']):
@@ -177,26 +223,39 @@ def start(
     renderer = guilib.renderer
 
     if ssl:
-        # generate SSL certs and tell the windows to use them
-        keyfile, certfile = __generate_ssl_cert()
-        server_args['keyfile'] = keyfile
-        server_args['certfile'] = certfile
+        if not server_args or 'keyfile' not in server_args or 'certfile' not in server_args:
+            # generate SSL certs and tell the windows to use them
+            keyfile, certfile = __generate_ssl_cert()
+            server_args['keyfile'] = keyfile
+            server_args['certfile'] = certfile
+        else:
+            keyfile = server_args['keyfile']
+            certfile = server_args['certfile']
+            if not os.path.exists(keyfile):
+                raise WebViewException(f'The {keyfile} does not exist.')
+            if not os.path.exists(certfile):
+                raise WebViewException(f'The {certfile} does not exist.')
+
         _state['ssl'] = True
     else:
         keyfile, certfile = None, None
+        server_args.pop('keyfile', None)
+        server_args.pop('certfile', None)
 
     urls = [w.original_url for w in windows]
     has_local_urls = not not [w.original_url for w in windows if is_local_url(w.original_url)]
     # start the global server if it's not running and we need it
     if (http.global_server is None) and (http_server or has_local_urls):
         if not _state['private_mode'] and not http_port:
-            http_port = DEFAULT_HTTP_PORT
+            http_port = settings['DEFAULT_HTTP_PORT']
         *_, server = http.start_global_server(
             http_port=http_port, urls=urls, server=server, **server_args
         )
 
     for window in windows:
-        window._initialize(guilib)
+        should_initialize = not window._initialize(guilib, server_args=server_args)
+        if should_initialize:
+            return
 
     if ssl:
         for window in windows:
@@ -216,7 +275,9 @@ def start(
         thread.start()
 
     if menu:
-        guilib.set_app_menu(menu)
+        _state['menu'] = menu
+        #guilib.set_app_menu(menu)
+
     guilib.create_window(windows[0])
     # keyfile is deleted by the ServerAdapter right after wrap_socket()
     if certfile:
@@ -251,11 +312,12 @@ def create_window(
     zoomable: bool = False,
     draggable: bool = False,
     vibrancy: bool = False,
+    menu: list[Menu] = [],
     localization: Mapping[str, str] | None = None,
     server: type[http.ServerType] = http.BottleServer,
     http_port: int | None = None,
     server_args: http.ServerArgs = {},
-) -> Window:
+) -> Window | None:
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -280,9 +342,10 @@ def create_window(
     :param background_color: Background color as a hex string that is displayed before the content of webview is loaded. Default is white.
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
+    :param menu: List of menus to be included in the window menu
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
-    :return: window object.
+    :return: window object or None if window initialization is cancelled in the window.events.initialized event
     """
 
     valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
@@ -319,6 +382,7 @@ def create_window(
         zoomable,
         draggable,
         vibrancy,
+        menu,
         localization,
         server=server,
         http_port=http_port,
@@ -335,7 +399,8 @@ def create_window(
         else:
             url_prefix, common_path, server = None, None, None
 
-        window._initialize(gui=guilib, server=server)
+        if not window._initialize(gui=guilib, server=server):
+            return
         guilib.create_window(window)
 
     return window
@@ -429,4 +494,3 @@ def screens() -> list[Screen]:
 
     screens = guilib.get_screens()
     return screens
-

@@ -14,7 +14,7 @@ You probably have a file named `webview.py` in the current directory. Renaming i
 
 ## What renderer is used?
 
-Set `PYWEBVIE_WLOG=debug` environment variable before running your programme. It will display used renderer in the first line of the program output. See available renderers [here](/guide/renderer)
+Set `PYWEBVIEW_LOG=debug` environment variable before running your programme. It will display used renderer in the first line of the program output. See available renderers [here](/guide/renderer)
 
 ## Terminal window receives key events on macOS
 

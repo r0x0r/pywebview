@@ -53,7 +53,7 @@ Application settings must be set before invoking `webview.start()` to have an ef
 
 ## Learn more
 
-Interested in learning more? Head over to [usage guide](/guide/usage.html), [API reference](/guide/api.html) and [examples](/examples)
+Interested in learning more? Head over to [usage guide](/guide/usage.html), [API reference](/api.html) and [examples](/examples)
 
 
 ## Support the project

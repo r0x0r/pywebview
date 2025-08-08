@@ -36,6 +36,7 @@ for:
       PYTHON_ARCH: "64"
       APPVEYOR_BAKE_IMAGE: pywebview-visualstudio2022
       PYWEBVIEW_GUI: "cef"
+      PYWEBVIEW_LOG: "error"
     install:
       - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
       - "choco install webview2-runtime --ignore-checksums"
@@ -56,6 +57,7 @@ for:
       PYWEBVIEW_GUI: qt
       DISPLAY: :99
       QT_QPA_PLATFORM: offscreen
+      PYWEBVIEW_LOG: "error"
     install:
       - sudo apt-get update -q --allow-releaseinfo-change
       - sudo apt-get install --no-install-recommends -y xvfb python3-pyqt5 python3-pyqt5.qtwebkit libqt5webkit5-dev python3-pep8 pyflakes python3-pytest
@@ -75,12 +77,13 @@ for:
         - job_name: GTK
     environment:
       PYWEBVIEW_GUI: gtk
+      PYWEBVIEW_LOG: "error"
       DISPLAY: :99
     install:
       - sudo apt-get update -q --allow-releaseinfo-change
-      - sudo apt-get install --no-install-recommends -y xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes3 python3-pytest
+      - sudo apt-get install --no-install-recommends -y xvfb gir1.2-gtk-3.0 gir1.2-webkit2-4.0 python3-gi python3-gi-cairo python3-pep8 pyflakes3 python3-pytest libgirepository1.0-dev
       - python3 -m pip install --upgrade setuptools==70.0.0
-      - python3 -m pip install proxy_tools pytest bottle typing_extensions pygobject importlib_metadata
+      - python3 -m pip install proxy_tools pytest bottle typing_extensions pygobject==3.50.0 importlib_metadata
     before_test:
       - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset && sleep 3;
     test_script:

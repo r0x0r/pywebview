@@ -45,14 +45,14 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 cef = ["cefpython3"]
-gtk = ["PyGObject", "PyGObject-stubs"]
+gtk = ["PyGObject==3.50.0", "PyGObject-stubs"]
 pyside2 = ["QtPy", "PySide2"]
 pyside6 = ["QtPy", "PySide6"]
 qt = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 qt5 = ["QtPy", "PyQt5", "pyqtwebengine"]
 qt6 = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 android = ["kivy", "jnius"]
-ssl = ["crpytography"]
+ssl = ["cryptography"]
 
 [project.urls]
 Homepage = "https://pywebview.flowrl.com/"
@@ -77,7 +77,10 @@ line_length = 100
 
 [tool.setuptools]
 include-package-data = false
-packages = ["webview", "webview.dom", "webview.js", "webview.lib", "webview.platforms", "webview.__pyinstaller"]
+packages = [
+    "webview", "webview.dom", "webview.js", "webview.lib", "webview.platforms",
+    "webview.platforms.android", "webview.platforms.android.jinterface", "webview.platforms.android.jclass",
+    "webview.__pyinstaller"]
 
 [tool.setuptools.package-data]
 "webview.lib" = ["**/*.dll", "**/*.jar"]
