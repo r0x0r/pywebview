@@ -82,11 +82,11 @@ export default defineUserConfig({
     contributors: false
   }),
   plugins: [
-    // linksCheckPlugin({
-    //   exclude: [
-    //     '/CHANGELOG'
-    //   ],
-    // })
+    linksCheckPlugin({
+      exclude: [
+        '/CHANGELOG'
+      ],
+    })
     // mediumZoomPlugin({
     //   selector: 'img.zoom',
     //   options: {

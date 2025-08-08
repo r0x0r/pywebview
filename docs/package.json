@@ -4,11 +4,12 @@
     "docs:build": "NODE_ENV=production vuepress build . && cp _redirects .vuepress/dist"
   },
   "devDependencies": {
-    "@vuepress/bundler-vite": "^2.0.0-rc.19",
+    "@vuepress/bundler-vite": "^2.0.0-rc.24",
+    "@vuepress/plugin-links-check": "^2.0.0-rc.112",
     "@vuepress/plugin-medium-zoom": "1.9.10",
     "directory-tree": "^3.5.1",
     "sass-embedded": "^1.83.0",
-    "vuepress": "2.0.0-rc.19",
-    "vuepress-theme-hope": "^2.0.0-rc.66"
+    "vuepress": "2.0.0-rc.24",
+    "vuepress-theme-hope": "^2.0.0-rc.94"
   }
 }
