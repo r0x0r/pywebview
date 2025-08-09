@@ -30,7 +30,11 @@ export default defineUserConfig({
     logo: '/logo-no-text.png',
     markdown: {
       align: true,
-      linksCheck: true
+      linksCheck: {
+        exclude: [
+          '/CHANGELOG'
+        ]
+      }
     },
     navbar: [
       { text: 'Guide', link: '/guide/' },
@@ -82,11 +86,6 @@ export default defineUserConfig({
     contributors: false
   }),
   plugins: [
-    linksCheckPlugin({
-      exclude: [
-        '/CHANGELOG'
-      ],
-    })
     // mediumZoomPlugin({
     //   selector: 'img.zoom',
     //   options: {
