@@ -1,7 +1,7 @@
 <template>
   <div class="version-info">
     <p>Current Version: {{ version }}</p>
-    <a href="/CHANGELOG.html" class="vp-hero-action button">View changelog</a>
+    <a href="/CHANGELOG" class="vp-hero-action button">View changelog</a>
   </div>
 </template>
 
