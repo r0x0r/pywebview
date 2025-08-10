@@ -1,7 +1,7 @@
 <template>
   <div class="version-info">
     <p>Current Version: {{ version }}</p>
-    <a href="/CHANGELOG" class="vp-hero-action button">View changelog</a>
+    <button @click="goToChangelog" class="vp-hero-action button">View changelog</button>
   </div>
 </template>
 
@@ -11,6 +11,11 @@ export default {
     version: {
       type: String,
       required: true
+    }
+  },
+  methods: {
+    goToChangelog() {
+      this.$router.push('/CHANGELOG.html')
     }
   }
 }
