@@ -108,6 +108,7 @@ settings = ImmutableDict({
     'ALLOW_DOWNLOADS': False,
     'ALLOW_FILE_URLS': True,
     'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
+    'DRAG_REGION_DIRECT_TARGET_ONLY': False,
     'DEFAULT_HTTP_PORT': 42001,
     'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
     'OPEN_DEVTOOLS_IN_DEBUG': True,
