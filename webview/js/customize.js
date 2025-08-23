@@ -66,10 +66,28 @@
             window.addEventListener('mousemove', onMouseMove);
         }
 
-        var dragBlocks = document.querySelectorAll('%(drag_selector)s');
-        for (var i=0; i < dragBlocks.length; i++) {
-            dragBlocks[i].addEventListener('mousedown', onMouseDown);
+        function onBodyMouseDown(event) {
+            var target = event.target;
+            var dragSelectorElements = document.querySelectorAll('%(drag_selector)s');
+
+            while (target && target !== document.body && target !== document.documentElement) {
+                if (target.nodeType === 1) {
+                    // Check if target matches the drag selector
+                    for (var i = 0; i < dragSelectorElements.length; i++) {
+                        if (dragSelectorElements[i] === target) {
+                            onMouseDown(event);
+                            return;
+                        }
+                    }
+                }
+
+                // If it doesn't match, continue up the DOM tree
+                target = target.parentNode;
+            }
         }
+
+        document.body.addEventListener('mousedown', onBodyMouseDown);
+
             // easy drag for edge chromium
         if ('%(easy_drag)s' === 'True') {
             window.addEventListener('mousedown', onMouseDown);
@@ -93,13 +111,11 @@
 
         // draggable
         if ('%(draggable)s' === 'False') {
-            Array.prototype.slice.call(document.querySelectorAll("img")).forEach(function(img) {
-                img.setAttribute("draggable", false);
-            })
-
-            Array.prototype.slice.call(document.querySelectorAll("a")).forEach(function(a) {
-                a.setAttribute("draggable", false);
-            })
+            document.addEventListener('dragstart', function(e) {
+                if (e.target.tagName === 'IMG' || e.target.tagName === 'A') {
+                    e.preventDefault();
+                }
+            });
         }
     }
 
