@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import platform
+import signal
 import socket
 import sys
 import webbrowser
@@ -65,6 +66,23 @@ _main_window_created.clear()
 os.environ['QT_STYLE_OVERRIDE'] = ''
 _qt6 = True if PYQT6 or PYSIDE6 else False
 _profile_storage_path = _state['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
+
+
+def _sigint_handler(signum, frame):
+    """
+    Handler for SIGINT signal (Ctrl+C).
+
+    Qt applications don't handle SIGINT by default because Python signal handlers
+    can only be called when the Python interpreter is running. Since the Qt event
+    loop runs in C++, signals are noted but handlers aren't called until Python
+    code executes. The timer in create_window() ensures the Python interpreter
+    runs periodically to process pending signals.
+
+    See: https://stackoverflow.com/a/4939113
+    """
+    global _app
+    if _app:
+        _app.quit()
 
 
 class BrowserView(QMainWindow):
@@ -907,6 +925,15 @@ def create_window(window):
             _app_menu = None
 
         _app = QApplication.instance() or QApplication(sys.argv)
+
+        signal.signal(signal.SIGINT, _sigint_handler)
+
+        # Create a timer to periodically allow the Python interpreter to run
+        # This enables the signal handler to be called even when the Qt event loop is running
+        # The timer just calls a no-op function to trigger Python execution
+        timer = QtCore.QTimer()
+        timer.start(500)
+        timer.timeout.connect(lambda: None)
 
         _create()
         _app.exec_()
