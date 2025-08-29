@@ -236,11 +236,6 @@ def inject_pywebview(platform: str, window: Window) -> str:
     thread.start()
 
 
-def inject_state(window: Window):
-    """ Inject state after page is loaded"""
-
-    json_string = json.dumps(window.state)
-
 def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
     """
     Calls a function from the JS API and executes it in Python. The function is executed in a separate
