@@ -1,8 +1,4 @@
-""" Dispatch customs events in js:
-        window.addEventListener("personalEvent", (e) => {
-            console.log("Received from Python:", e.customvalue);
-        });
-"""
+"""pywebview js custom events example"""
 
 import webview
 

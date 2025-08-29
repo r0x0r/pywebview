@@ -159,6 +159,7 @@ class Window:
         self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
         self.events = EventContainer()
+        self.events._window = self  # Assigns the window to the event container
         self.events.closed = Event(self)
         self.events.closing = Event(self, True)
         self.events.loaded = Event(self)
@@ -513,6 +514,24 @@ class Window:
         """
         return self.gui.evaluate_js(js, self.uid, True)
 
+    def _dispatch_python_event(self, event_name: str, *args):
+        """
+        Dispatches a custom Python event on this window.
+        
+        :param event_name: Name of the Python event to dispatch.
+        :param args: Arguments to pass to the event listeners.
+        :return: Boolean indicating whether any event listener returned False.
+        """
+        if hasattr(self, 'events'):
+            try:
+                custom_event = getattr(self.events, event_name)
+                return custom_event(*args)
+            except Exception as e:
+                logger.exception(f'Error dispatching Python event {event_name}: {e}')
+                return False
+        else:
+            logger.error('Window has no events attribute')
+            return False
 
     @_shown_call
     def create_confirmation_dialog(self, title: str, message: str) -> bool:

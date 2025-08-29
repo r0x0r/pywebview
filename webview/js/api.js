@@ -322,4 +322,38 @@ window.pywebview = {
       }, delay);
     };
   },
+
+  /**
+   * Dispatch a custom event from JavaScript to Python
+   * @param {string} eventName - Name of the custom event to dispatch
+   * @param {...*} args - Arguments to pass to the Python event handlers
+   * @returns {Promise} Promise that resolves with the result of the event dispatch
+   */
+  dispatch_custom_event: function (eventName) {
+    if (typeof eventName !== 'string' || eventName.trim() === '') {
+      console.error('dispatch_custom_event: eventName must be a non-empty string');
+      return Promise.reject(new Error('eventName must be a non-empty string'));
+    }
+
+    // Initialize callbacks dictionary for this function if it doesn't exist
+    if (!window.pywebview._returnValuesCallbacks['_dispatch_custom_event']) {
+      window.pywebview._returnValuesCallbacks['_dispatch_custom_event'] = {};
+    }
+
+    // Create a unique ID for this call
+    var __id = (Math.random() + "").substring(2);
+    
+    // Create a promise to handle the async response
+    var promise = new Promise(function(resolve, reject) {
+      window.pywebview._checkValue("_dispatch_custom_event", resolve, reject, __id);
+    });
+    
+    // Collect all arguments except the first one (eventName)
+    var args = Array.prototype.slice.call(arguments, 1);
+    
+    // Call the Python backend to trigger the custom event
+    window.pywebview._jsApiCallback("_dispatch_custom_event", [eventName].concat(args), __id);
+    
+    return promise;
+  },
 };
