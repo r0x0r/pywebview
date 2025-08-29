@@ -408,12 +408,17 @@ def create_window(
 
 
 def __generate_ssl_cert():
-    # https://cryptography.io/en/latest/x509/tutorial/#creating-a-self-signed-certificate
-    from cryptography import x509
-    from cryptography.hazmat.backends import default_backend
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import rsa
-    from cryptography.x509.oid import NameOID
+    try:
+        # https://cryptography.io/en/latest/x509/tutorial/#creating-a-self-signed-certificate
+        from cryptography import x509
+        from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.x509.oid import NameOID
+    except ImportError:
+        raise WebViewException(
+            'SSL support requires cryptography package. Please install it with "pip install cryptography" or "pip install pywebview[ssl]"'
+        )
 
     with tempfile.NamedTemporaryFile(prefix='keyfile_', suffix='.pem', delete=False) as f:
         keyfile = f.name
