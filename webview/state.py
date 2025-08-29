@@ -55,7 +55,7 @@ class State(dict):
             self[key] = value
 
             if not should_update_js:
-                self.__notify_handlers(key, value)
+                self.__notify_handlers(StateEventType.CHANGE, key, value)
                 return
 
             if self.__window.events.loaded.is_set():
