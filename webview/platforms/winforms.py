@@ -190,7 +190,7 @@ class BrowserView:
                 x = int(
                     window.screen.x * self.scale_factor + (window.screen.width - window.initial_width) * self.scale_factor / 2
                     if window.screen.x >= 0
-                    else window.screen.X * self.scale_factor + window.screen.width / 2
+                    else window.screen.x * self.scale_factor + window.screen.width / 2
                 )
                 y = int(window.screen.y * self.scale_factor + (window.screen.height - window.initial_height) * self.scale_factor / 2)
                 self.Location = Point(x, y)
