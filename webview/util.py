@@ -428,7 +428,7 @@ def sort_js_files(js_files: list[str]) -> list[str]:
 
 def escape_string(string: str) -> str:
     return (
-        string.replace('\\', '\\\\').replace('"', r"\"").replace('\n', r'\n').replace('\r', r'\r')
+        string.replace('\\', '\\\\').replace('"', r"\"").replace('\n', r'\n').replace('\r', r'\r').replace('\'', r'\'')
     )
 
 

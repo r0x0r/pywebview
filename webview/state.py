@@ -3,6 +3,8 @@ from typing import Any, Callable
 from typing_extensions import Self
 from threading import Thread
 
+from webview.util import escape_string
+
 try:
     from enum import StrEnum # Python 3.11 and above
 except ImportError:
@@ -27,7 +29,7 @@ class State(dict):
 
     def __update_js(self, key, value):
         special_key = '__pywebviewHaltUpdate__' + key
-        script = f"window.pywebview.state.{special_key} = JSON.parse('{json.dumps(value)}')"
+        script = f"window.pywebview.state.{special_key} = JSON.parse('{escape_string(json.dumps(value))}')"
         self.__window.run_js(script)
 
     def __notify_handlers(self, type, key, value=None):
