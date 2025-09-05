@@ -1,0 +1,42 @@
+{
+  "name": "pywebview-js",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PyWebView JavaScript client library",
+  "main": "dist/pywebview.js",
+  "module": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./api": "./api.js",
+    "./state": "./state.js",
+    "./customize": "./customize.js",
+    "./finish": "./finish.js",
+    "./dist": "./dist/pywebview.js",
+    "./dist/state": "./dist/pywebview-state.js"
+  },
+  "scripts": {
+    "build": "webpack --mode=production",
+    "watch": "webpack --mode=development --watch"
+  },
+  "packageManager": "pnpm@8.0.0",
+  "devDependencies": {
+    "@babel/core": "^7.22.0",
+    "@babel/preset-env": "^7.22.0",
+    "babel-loader": "^9.1.0",
+    "core-js": "^3.31.0",
+    "terser-webpack-plugin": "^5.3.14",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.0"
+  },
+  "keywords": [
+    "pywebview",
+    "webview",
+    "desktop",
+    "gui"
+  ],
+  "author": "Roman Sirokov",
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "domjson": "^0.1.2"
+  }
+}

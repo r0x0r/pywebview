@@ -220,9 +220,11 @@ def inject_pywebview(platform: str, window: Window) -> str:
         try:
             with window._expose_lock:
                 func_list = generate_func()
-                window.run_js(finish_script % {
+                finish_script = open_js_file('pywebview-finish.js', {
                     'functions': json.dumps(func_list)
                 })
+
+                window.run_js(finish_script)
                 window.events.loaded.set()
                 logger.debug('loaded event fired')
         except Exception as e:
@@ -231,7 +233,19 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
     window.events.before_load.set()
     logger.debug('before_load event fired. injecting pywebview object')
-    js_code, finish_script = load_js_files(window, platform)
+    js_code = open_js_file('pywebview-api.js', {
+        'token': _TOKEN,
+        'platform': platform,
+        'uid': window.uid,
+        'text_select': str(window.text_select),
+        'drag_selector': webview.settings['DRAG_REGION_SELECTOR'],
+        'drag_region_direct_target_only': str(webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY']),
+        'zoomable': str(window.zoomable),
+        'draggable': str(window.draggable),
+        'easy_drag': str(platform == 'edgechromium' and window.easy_drag and window.frameless),
+        'state': json.dumps(window.state)
+    })
+
     thread = Thread(target=generate_js_object)
     thread.start()
 
@@ -328,55 +342,19 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         logger.error('Function %s() does not exist', func_name)
 
 
-def load_js_files(window: Window, platform: str) -> str:
+def open_js_file(filename: str, params: dict | None = None) -> str:
     """
-    Load JS files in the order they should be loaded.
-    The order is polyfill, api, the rest and finish.js.
-    Return the concatenated JS code and the finish script, which must be loaded last and
-    separately in order to
+    Opens a JS file and injects parameters into it.
     """
     js_dir = get_js_dir()
-    logger.debug('Loading JS files from %s', js_dir)
-    js_files = glob(os.path.join(js_dir, '**', '*.js'), recursive=True)
-    ordered_js_files = sort_js_files(js_files)
-    js_code = ''
-    finish_script = ''
+    path = os.path.join(js_dir, filename)
 
-    for file in ordered_js_files:
-        with open(file, 'r') as f:
-            name = os.path.splitext(os.path.basename(file))[0]
-            content = f.read()
-            params = {}
-
-            if name == 'api':
-                params = {
-                    'token': _TOKEN,
-                    'platform': platform,
-                    'uid': window.uid,
-                    'js_api_endpoint': window.js_api_endpoint
-                }
-            elif name == 'customize':
-                params = {
-                    'text_select': str(window.text_select),
-                    'drag_selector': webview.settings['DRAG_REGION_SELECTOR'],
-                    'drag_region_direct_target_only': str(webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY']),
-                    'zoomable': str(window.zoomable),
-                    'draggable': str(window.draggable),
-                    'easy_drag': str(platform == 'edgechromium' and window.easy_drag and window.frameless)
-                }
-            elif name == 'state':
-                params = {
-                    'state': json.dumps(window.state)
-                }
-            elif name == 'finish':
-                finish_script = content
-                continue
-            elif name == 'polyfill' and platform != 'mshtml':
-                continue
-
-            js_code += content % params
-
-    return js_code, finish_script
+    with open(path, 'r', encoding='utf-8') as f:
+        content = f.read()
+        if params:
+            return content % params
+        else:
+            return content
 
 
 def get_js_dir() -> str:
@@ -401,29 +379,6 @@ def get_js_dir() -> str:
                     return js_path
 
     raise FileNotFoundError('Cannot find JS directory in %s' % path)
-
-
-def sort_js_files(js_files: list[str]) -> list[str]:
-    """
-    Sorts JS files in the order they should be loaded. Polyfill first, then API, then the rest and
-    finally finish.js that fires a pywebviewready event.
-    """
-    LOAD_ORDER = { 'polyfill': 0, 'api': 1, 'state': 2 }
-
-    ordered_js_files = []
-    remaining_js_files = []
-
-    for file in js_files:
-        basename = os.path.splitext(os.path.basename(file))[0]
-        if basename not in LOAD_ORDER:
-            ordered_js_files.append(file)
-        else:
-            remaining_js_files.append((basename, file))
-
-    for basename, file in sorted(remaining_js_files, key=lambda x: LOAD_ORDER[x[0]]):
-        ordered_js_files.insert(LOAD_ORDER[basename], file)
-
-    return ordered_js_files
 
 
 def escape_string(string: str) -> str:

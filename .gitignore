@@ -30,3 +30,4 @@ docs/examples
 gradle*
 .pypirc
 .env
+node_modules
