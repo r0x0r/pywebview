@@ -62,6 +62,10 @@ def test_events(window):
     run_test(webview, window, events_test)
 
 
+def test_special_char_attributes(window):
+    run_test(webview, window, special_char_attributes_test)
+
+
 def element_test(window):
     child1 = window.dom.get_element('#child1')
 
@@ -266,3 +270,53 @@ def events_test(window):
     sleep(0.1)
     assert button_value == False
     assert window.evaluate_js('Object.keys(pywebview._eventHandlers).length === 0') == True
+
+
+def special_char_attributes_test(window):
+    """Test attributes containing special characters like single quotes and backslashes"""
+    child1 = window.dom.get_element('#child1')
+    
+    # Test setting and getting attributes with double quotes (should work with JSON)
+    child1.attributes['data-double-quote'] = 'value with "double quotes"'
+    assert child1.attributes['data-double-quote'] == 'value with "double quotes"'
+    
+    # Test setting and getting attributes with backslashes (JSON escapes these)
+    child1.attributes['data-backslash'] = 'value with \\backslash'
+    assert child1.attributes['data-backslash'] == 'value with \\backslash'
+    
+    # Test setting and getting attributes with newlines and tabs
+    child1.attributes['data-whitespace'] = "value with\nnewline and\ttab"
+    assert child1.attributes['data-whitespace'] == "value with\nnewline and\ttab"
+    
+    # Test setting and getting attributes with HTML entities
+    child1.attributes['data-html'] = "value with &lt;tags&gt; and &amp; symbols"
+    assert child1.attributes['data-html'] == "value with &lt;tags&gt; and &amp; symbols"
+    
+    # Test setting and getting attributes with Unicode characters
+    child1.attributes['data-unicode'] = "value with unicode: ñáéíóú 中文 🚀"
+    assert child1.attributes['data-unicode'] == "value with unicode: ñáéíóú 中文 🚀"
+    
+    # Test setting and getting attributes with forward slashes
+    child1.attributes['data-slashes'] = "value/with/forward/slashes"
+    assert child1.attributes['data-slashes'] == "value/with/forward/slashes"
+    
+    # Test that all special character attributes are preserved
+    special_attrs = {k: v for k, v in child1.attributes.items() if k.startswith('data-')}
+    expected_attrs = {
+        'data-id': 'blz',  # original attribute
+        'data-double-quote': 'value with "double quotes"',
+        'data-backslash': 'value with \\backslash',
+        'data-whitespace': "value with\nnewline and\ttab",
+        'data-html': "value with &lt;tags&gt; and &amp; symbols",
+        'data-unicode': "value with unicode: ñáéíóú 中文 🚀",
+        'data-slashes': "value/with/forward/slashes"
+    }
+    
+    for key, expected_value in expected_attrs.items():
+        assert key in special_attrs, f"Attribute {key} not found"
+        assert special_attrs[key] == expected_value, f"Attribute {key} value mismatch: expected {expected_value}, got {special_attrs[key]}"
+    
+    # Test clearing special character attributes
+    for key in ['data-double-quote', 'data-backslash', 'data-whitespace', 'data-html', 'data-unicode', 'data-slashes']:
+        del child1.attributes[key]
+        assert child1.attributes[key] == None

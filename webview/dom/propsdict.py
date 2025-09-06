@@ -1,7 +1,7 @@
 import json
 from enum import Enum
 from typing import Any, Dict, Optional, Union
-from webview.util import css_to_camel, escape_quotes
+from webview.util import css_to_camel, escape_string
 
 
 class DOMPropType(Enum):
@@ -21,7 +21,7 @@ class PropsDict:
             converted_style = json.dumps({css_to_camel(key): value for key, value in props.items()})
             self.__element._window.evaluate_js(f"""
                 {self.__element._query_command};
-                var styles = JSON.parse('{converted_style}');
+                var styles = JSON.parse('{escape_string(converted_style)}');
 
                 for (var key in styles) {{
                     element.style[key] = styles[key];
@@ -30,7 +30,7 @@ class PropsDict:
 
         elif type == DOMPropType.Attribute:
             converted_attributes = json.dumps({
-                escape_quotes(key): escape_quotes(value) for key, value in props.items()
+                escape_string(key): escape_string(value) for key, value in props.items()
             })
 
             self.__element._window.evaluate_js(f"""
@@ -143,7 +143,7 @@ class PropsDict:
     def __set_attribute(self, props: Dict[str, Any]):
         self.__element._window.evaluate_js(f"""
             {self.__element._query_command};
-            var values = JSON.parse('{json.dumps(props)}');
+            var values = JSON.parse('{escape_string(json.dumps(props))}');
 
             for (var key in values) {{
                 var value = values[key];
@@ -177,7 +177,7 @@ class PropsDict:
         converted_style = json.dumps({css_to_camel(key): value for key, value in style.items()})
         self.__element._window.evaluate_js(f"""
             {self.__element._query_command};
-            var styles = JSON.parse('{converted_style}');
+            var styles = JSON.parse('{escape_string(converted_style)}');
 
             for (var key in styles) {{
                 var value = styles[key];

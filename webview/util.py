@@ -432,17 +432,6 @@ def escape_string(string: str) -> str:
     )
 
 
-def escape_quotes(string: str) -> str:
-    if isinstance(string, str):
-        return string.replace('"', r"\"").replace("'", r"\'")
-    else:
-        return string
-
-
-def escape_line_breaks(string: str) -> str:
-    return string.replace('\\n', '\\\\n').replace('\\r', '\\\\r')
-
-
 def inject_base_uri(content: str, base_uri: str) -> str:
     pattern = r'<%s(?:[\s]+[^>]*|)>'
     base_tag = f'<base href="{base_uri}">'
