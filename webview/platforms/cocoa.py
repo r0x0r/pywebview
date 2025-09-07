@@ -1106,7 +1106,14 @@ class BrowserView:
                     # Actions must be registered before application start. Otherwise they are disabled.
                     # Menu handler is a workaround to register actions after application start
                     random_id = str(uuid.uuid4())[:6]
-                    action_id = item.function.__name__ + '.' + random_id
+                    # Handle functools.partial objects which don't have __name__ attribute
+                    if hasattr(item.function, '__name__'):
+                        func_name = item.function.__name__
+                    elif hasattr(item.function, 'func') and hasattr(item.function.func, '__name__'):
+                        func_name = item.function.func.__name__
+                    else:
+                        func_name = 'anonymous_function'
+                    action_id = func_name + '.' + random_id
                     menu_handler.register_action(action_id, item.function)
 
                     menu_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
