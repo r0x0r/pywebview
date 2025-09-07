@@ -183,12 +183,14 @@ window.pywebview = {
 
     function serialize(obj, ancestors) {
       try {
-        if (obj instanceof Node)
-          return pywebview.domJSON.toJSON(obj, {
+        if (obj instanceof Window) return 'Window';
+        if (obj instanceof Document) return 'Document';
+        if (obj instanceof Node) {
+          obj = pywebview.domJSON.toJSON(obj, {
             metadata: false,
             serialProperties: true,
           });
-        if (obj instanceof Window) return 'Window';
+        }
 
         var boundSerialize = serialize.bind(obj);
 
@@ -236,7 +238,8 @@ window.pywebview = {
     var startTime = +new Date();
 
     var _serialize = serialize.bind(null);
-    var result = JSON.stringify(_serialize(obj, []));
+    var finalObj = _serialize(obj, []);
+    var result = JSON.stringify(finalObj);
 
     var endTime = +new Date();
     if (timing) {
