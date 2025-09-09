@@ -523,6 +523,7 @@ class Window:
         allow_multiple: bool = False,
         save_filename: str = '',
         file_types: Sequence[str] = tuple(),
+        can_create_directories: bool = True,
     ) -> Sequence[str] | None:
         """
         Create a file dialog
@@ -533,6 +534,7 @@ class Window:
         :param save_filename: Default filename for save file dialog.
         :param file_types: Allowed file types in open file dialog. Should be a tuple of strings in the format:
             filetypes = ('Description (*.extension[;*.extension[;...]])', ...)
+        :param can_create_directories: Allow creating new directories in the dialog (macOS only). Default is true.
         :return: A tuple of selected files, None if cancelled.
         """
         for f in file_types:
@@ -542,7 +544,7 @@ class Window:
             directory = ''
 
         return self.gui.create_file_dialog(
-            dialog_type, directory, allow_multiple, save_filename, file_types, self.uid
+            dialog_type, directory, allow_multiple, save_filename, file_types, can_create_directories, self.uid
         )
 
     def expose(self, *functions: Callable[..., Any]) -> None:
