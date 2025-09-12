@@ -173,12 +173,27 @@ window.pywebview = {
     }
 
     function isArrayLike(a) {
-      return (
-        a &&
-        typeof a[Symbol.iterator] === 'function' &&
-        typeof a.length === 'number' &&
-        typeof a !== 'string'
-      );
+      if (typeof Symbol !== 'undefined' && Symbol.iterator) {
+        return (
+          a &&
+          typeof a[Symbol.iterator] === 'function' &&
+          typeof a.length === 'number' &&
+          typeof a !== 'string'
+        );
+      } else {
+        // IE11 fallback
+        return (
+          a &&
+          typeof a.length === 'number' &&
+          typeof a !== 'string' &&
+          (Array.isArray(a) ||
+           (typeof a === 'object' &&
+        (a.constructor === NodeList ||
+         a.constructor === HTMLCollection ||
+         a.constructor === FileList ||
+         Object.prototype.toString.call(a) === '[object Arguments]')))
+        );
+      }
     }
 
     function serialize(obj, ancestors) {
@@ -214,9 +229,10 @@ window.pywebview = {
         }
 
         if (Array.isArray(obj)) {
-          var arr = obj.map(function (value) {
-            return boundSerialize(value, ancestors);
-          });
+          var arr = [];
+          for (var i = 0; i < obj.length; i++) {
+            arr.push(boundSerialize(obj[i], ancestors));
+          }
           return arr;
         }
 
