@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+import pathlib
+import sys
 import webbrowser
 from threading import Semaphore, Thread, main_thread
 from typing import Any
@@ -40,6 +42,8 @@ webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_
 
 _app = None
 _app_actions = {}  # action_label: function
+
+cert = None
 
 
 class BrowserView:
@@ -130,25 +134,58 @@ class BrowserView:
 
         self.js_bridge = BrowserView.JSBridge(window)
 
-        storage_path = _state['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
+        if _state['private_mode']:
+            # Create ephemeral context for private mode
+            web_context = webkit.WebContext.new_ephemeral()
+        elif _state['storage_path']:
+            storage_path = _state['storage_path']
 
-        if not os.path.exists(storage_path):
-            os.makedirs(storage_path)
+            # Create storage directory if it doesn't exist
+            if not os.path.exists(storage_path):
+                os.makedirs(storage_path)
 
-        web_context = webkit.WebContext.get_default()
+            # Create website data manager with storage directories
+            self.website_data_manager = webkit.WebsiteDataManager(
+                base_data_directory=storage_path,
+                base_cache_directory=os.path.join(storage_path, 'cache'),
+                local_storage_directory=os.path.join(storage_path, 'localstorage'),
+                indexeddb_directory=os.path.join(storage_path, 'indexeddb'),
+                websql_directory=os.path.join(storage_path, 'websql'),
+                hsts_cache_directory=os.path.join(storage_path, 'hsts'),
+                itp_directory=os.path.join(storage_path, 'itp'),
+                service_worker_registrations_directory=os.path.join(storage_path, 'serviceworkers'),
+                dom_cache_directory=os.path.join(storage_path, 'domcache')
+            )
+            web_context = webkit.WebContext.new_with_website_data_manager(self.website_data_manager)
+        else:
+            web_context = webkit.WebContext.get_default()
+
         self.cookie_manager = web_context.get_cookie_manager()
 
         if not _state['private_mode']:
+            script_name = pathlib.Path(sys.argv[0]).name
+            if script_name in ['python', 'python3', '-c', '']:
+                script_name = 'pywebview'
+            storage_path = _state['storage_path'] or os.path.expanduser(f'~/.cache/{script_name}/')
+
             self.cookie_manager.set_persistent_storage(
-                os.path.join(storage_path, 'cookies'), webkit.CookiePersistentStorage.SQLITE
+                os.path.join(storage_path, 'cookies'), webkit.CookiePersistentStorage.TEXT
             )
+
+        if cert:
+            web_context.allow_tls_certificate_for_host(cert, '127.0.0.1')
 
         self.manager = webkit.UserContentManager()
         self.manager.register_script_message_handler('jsBridge')
         self.manager.connect('script-message-received', self.on_js_bridge_call)
 
         self.request_headers_mutated = False
-        self.webview = webkit.WebView().new_with_user_content_manager(self.manager)
+
+        # Create WebView with the configured context
+        self.webview = webkit.WebView(
+            user_content_manager=self.manager,
+            web_context=web_context
+        )
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('decide-policy', self.on_navigation)
@@ -733,9 +770,8 @@ def toggle_fullscreen(uid):
 
 
 def add_tls_cert(certfile):
-    web_context = webkit.WebContext.get_default()
+    global cert
     cert = Gio.TlsCertificate.new_from_file(certfile)
-    web_context.allow_tls_certificate_for_host(cert, '127.0.0.1')
 
 
 def set_on_top(uid, top):
