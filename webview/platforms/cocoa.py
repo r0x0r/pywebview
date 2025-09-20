@@ -32,9 +32,6 @@ info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
 info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
 info['NSRequiresAquaSystemAppearance'] = Foundation.NO  # Enable dark mode support for Mojave
 
-# Dynamic library required by BrowserView.pyobjc_method_signature()
-_objc_so = ctypes.cdll.LoadLibrary(_objc.__file__)
-
 # Fallbacks, in case these constants are not wrapped by PyObjC
 try:
     NSFullSizeContentViewWindowMask = AppKit.NSFullSizeContentViewWindowMask
@@ -190,8 +187,6 @@ class BrowserView:
             alert.setInformativeText_(str(message))
             alert.runModal()
 
-            if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@')
             handler()
 
         def webView_didReceiveAuthenticationChallenge_completionHandler_(
@@ -242,9 +237,6 @@ class BrowserView:
                 FileDialog.OPEN, '', param.allowsMultipleSelection(), '', file_filter, main_thread=True
             )
 
-            if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@@')
-
             if files:
                 urls = [Foundation.NSURL.fileURLWithPath_(i) for i in files]
                 handler(urls)
@@ -269,9 +261,6 @@ class BrowserView:
         ):
             # The event that might have triggered the navigation
             event = AppKit.NSApp.currentEvent()
-
-            if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@i')
 
             # Handle links with the download attribute set to recommend a file name
             if action.shouldPerformDownload() and webview_settings['ALLOW_DOWNLOADS']:
@@ -1276,20 +1265,6 @@ class BrowserView:
         print_op = webview._printOperationWithPrintInfo_(info)
         print_op.runOperationModalForWindow_delegate_didRunSelector_contextInfo_(
             webview.window(), nil, nil, nil
-        )
-
-    @staticmethod
-    def pyobjc_method_signature(signature_str):
-        """
-        Return a PyObjCMethodSignature object for given signature string.
-
-        :param signature_str: A byte string containing the type encoding for the method signature
-        :return: A method signature object, assignable to attributes like __block_signature__
-        :rtype: <type objc._method_signature>
-        """
-        _objc_so.PyObjCMethodSignature_WithMetaData.restype = ctypes.py_object
-        return _objc_so.PyObjCMethodSignature_WithMetaData(
-            ctypes.create_string_buffer(signature_str), None, False
         )
 
     @staticmethod
