@@ -67,7 +67,7 @@ For a complete list of functions, refer to [API](/api)
 
 ## Window events
 
-Window object has these window manipulation and navigation events:  `closed`, `closing`, `loaded`, `before_load`, `before_show`, `shown`, `minimized`, `maximized`, `restored`, `resized`, `moved`. Window events can be found under the  `windod.events` container.
+Window object has these window manipulation and navigation events:  `closed`, `closing`, `loaded`, `before_load`, `before_show`, `shown`, `minimized`, `maximized`, `restored`, `resized`, `moved`. Window events can be found under the  `window.events` container.
 
 To subscribe to an event use the `+=` operator and `-=` for unsubscribing. For example:
 
