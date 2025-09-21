@@ -526,7 +526,7 @@ class Window:
     ) -> Sequence[str] | None:
         """
         Create a file dialog
-        :param dialog_type: Dialog type: open file (FileDialog.OPEN), save file (FileDialog.SAVE), open folder (FileDialog.OPEN). Default
+        :param dialog_type: Dialog type: open file (FileDialog.OPEN), save file (FileDialog.SAVE), open folder (FileDialog.FOLDER). Default
                             is open file.
         :param directory: Initial directory
         :param allow_multiple: Allow multiple selection. Default is false.
