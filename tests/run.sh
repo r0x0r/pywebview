@@ -1,6 +1,5 @@
 #!/bin/bash
 PYTHONPATH=..
-PYWEBVIEW_LOG='debug'
 PYTEST_OPTIONS='-q -s --disable-warnings -r w'
 
 # cd "${0%/*}"

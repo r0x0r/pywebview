@@ -11,7 +11,6 @@ from uuid import uuid4
 import pytest
 
 logger = logging.getLogger('pywebview')
-logger.setLevel(logging.DEBUG)
 
 
 def run_test(
