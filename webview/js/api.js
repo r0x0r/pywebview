@@ -175,9 +175,12 @@ window.pywebview = {
     function isArrayLike(a) {
       return (
         a &&
-        typeof a[Symbol.iterator] === 'function' &&
         typeof a.length === 'number' &&
-        typeof a !== 'string'
+        typeof a !== 'string' &&
+        (Array.isArray(a) ||
+         (typeof a === 'object' &&
+          a.length >= 0 &&
+          (a.length === 0 || (a.length - 1) in a)))
       );
     }
 

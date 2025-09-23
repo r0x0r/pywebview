@@ -16,6 +16,56 @@
   window.CustomEvent = CustomEvent;
 })();
 
+// IE 11 EventTarget polyfill
+(function () {
+  if (typeof window.EventTarget === "function") return false; // If EventTarget exists
+
+  function EventTarget() {
+    this._listeners = {};
+  }
+
+  EventTarget.prototype.addEventListener = function(type, callback) {
+    if (!(type in this._listeners)) {
+      this._listeners[type] = [];
+    }
+    this._listeners[type].push(callback);
+  };
+
+  EventTarget.prototype.removeEventListener = function(type, callback) {
+    if (!(type in this._listeners)) {
+      return;
+    }
+    var stack = this._listeners[type];
+    for (var i = 0, l = stack.length; i < l; i++) {
+      if (stack[i] === callback) {
+        stack.splice(i, 1);
+        return;
+      }
+    }
+  };
+
+  EventTarget.prototype.dispatchEvent = function(event) {
+    if (!(event.type in this._listeners)) {
+      return true;
+    }
+    var stack = this._listeners[event.type].slice();
+
+    for (var i = 0, l = stack.length; i < l; i++) {
+      stack[i].call(this, event);
+    }
+    return !event.defaultPrevented;
+  };
+
+  window.EventTarget = EventTarget;
+})();
+
+// IE 11 Array.isArray polyfill (just in case)
+if (!Array.isArray) {
+  Array.isArray = function(arg) {
+    return Object.prototype.toString.call(arg) === '[object Array]';
+  };
+}
+
 
 /*! Native Promise Only
     v0.8.1 (c) Kyle Simpson

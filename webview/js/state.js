@@ -16,15 +16,15 @@ pywebview.state = (function() {
   var target = createEventTargetFromJSON(initialState);
 
   return new Proxy(target, {
-    get(obj, key) {
-      var value = Reflect.get(obj, key);
+    get: function(obj, key) {
+      var value = obj[key];
       if (typeof(value) == 'function'){
         return value.bind(obj);
       }
       return value;
     },
 
-    set(target, key, value) {
+    set: function(target, key, value) {
       var haltUpdate = false;
       if (key.indexOf('__pywebviewHaltUpdate__') == 0) {
         key = key.replace('__pywebviewHaltUpdate__', '');
@@ -46,23 +46,21 @@ pywebview.state = (function() {
       return true;
     },
 
-    deleteProperty(target, key) {
-      let haltUpdate = false;
+    deleteProperty: function(target, key) {
+      var haltUpdate = false;
       if (key.indexOf('__pywebviewHaltUpdate__') == 0) {
         key = key.replace('__pywebviewHaltUpdate__', '');
         haltUpdate = true;
       }
 
       if (key in target) {
-        const oldValue = target[key];
-        Reflect.deleteProperty(target, key);
-
+        var oldValue = target[key];
         delete target[key];
 
         if (!haltUpdate) {
           pywebview._jsApiCallback('pywebviewStateDelete', key, (Math.random() + "").substring(2));
         }
-        target.dispatchEvent(new CustomEvent('delete', {detail: {key, value: oldValue}}))
+        target.dispatchEvent(new CustomEvent('delete', {detail: {key: key, value: oldValue}}))
         return true;
       }
       return false;
