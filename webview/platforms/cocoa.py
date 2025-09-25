@@ -400,6 +400,24 @@ class BrowserView:
             self.file_dlg.setAllowedFileTypes_(self.filter[option][1])
 
     class WebKitHost(WebKit.WKWebView):
+        def interpretKeyEvents_(self, events):
+            # Override to prevent sound feedback while preserving keyboard functionality
+            # Temporarily disable beep sounds, then call the original implementation
+            original_beep = None
+            try:
+                # Store and replace the beep function
+                if hasattr(AppKit, 'NSBeep'):
+                    original_beep = AppKit.NSBeep
+                    AppKit.NSBeep = lambda: None
+
+                # Call the original implementation to preserve keyboard shortcuts
+                super(BrowserView.WebKitHost, self).interpretKeyEvents_(events)
+
+            finally:
+                # Restore the original beep function
+                if original_beep:
+                    AppKit.NSBeep = original_beep
+
         def performDragOperation_(self, sender):
             if sender.draggingSource() is None and _dnd_state['num_listeners'] > 0:
                 pboard = sender.draggingPasteboard()
@@ -516,7 +534,6 @@ class BrowserView:
                         return
 
             super(BrowserView.WebKitHost, self).keyDown_(event)
-
 
     def __init__(self, window):
         BrowserView.instances[window.uid] = self
