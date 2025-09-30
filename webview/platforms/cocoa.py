@@ -901,7 +901,7 @@ class BrowserView:
         return JSResult.result
 
     def create_file_dialog(
-        self, dialog_type, directory, allow_multiple, save_filename, file_filter, can_create_directories, main_thread=False
+        self, dialog_type, directory, allow_multiple, save_filename, file_filter, main_thread=False
     ):
         def create_dialog(*args):
             dialog_type = args[0]
@@ -934,8 +934,8 @@ class BrowserView:
                 open_dlg.setCanChooseDirectories_(dialog_type == FileDialog.FOLDER)
 
                 # Enable creating new folders in folder dialogs (macOS)
-                if dialog_type == FileDialog.FOLDER and can_create_directories:
-                    open_dlg.setCanCreateDirectories_(can_create_directories)
+                if dialog_type == FileDialog.FOLDER:
+                    open_dlg.setCanCreateDirectories_(True)
 
                 # Enable / disable multiple selection
                 open_dlg.setAllowsMultipleSelection_(allow_multiple)
@@ -1384,7 +1384,7 @@ def create_confirmation_dialog(title, message, uid):
     return result
 
 
-def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, can_create_directories, uid):
+def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
     file_filter = []
 
     # Parse file_types to obtain allowed file extensions
@@ -1394,7 +1394,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         file_filter.append([description, file_extensions or []])
 
     i = BrowserView.instances.get(uid)
-    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter, can_create_directories)
+    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
 def load_url(url, uid):
