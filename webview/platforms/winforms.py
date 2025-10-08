@@ -286,6 +286,16 @@ class BrowserView:
                 DwmSetWindowAttribute(self.Handle.ToInt32(), 20, 0)
                 DwmSetWindowAttribute(self.Handle.ToInt32(), 38, 1)
 
+        def on_webview2_transparency_ready(self):
+            """
+            Called when WebView2 is fully initialized and ready for transparency.
+            """
+            if self.pywebview_window.transparent:
+                # Force WebView2 to establish transparent rendering context
+                # by briefly showing then hiding the window
+                self.Show()
+                self.Hide()
+
         def is_dark_theme(self):
             try:
                 personalize_key = winreg.OpenKey(
@@ -690,13 +700,7 @@ def create_window(window):
             browser.Show()
             browser.Hide()
             browser.Opacity = 1
-        elif window.transparent and is_chromium:
-            # hack to make transparent window work
-            # window is started hidden and shown on Navigating event.
-            # no idea why this works
-            browser.Show()
-            browser.Hide()
-        else:
+        elif not window.transparent or not is_chromium:
             browser.Show()
 
         _main_window_created.set()

@@ -270,6 +270,9 @@ class EdgeChrome:
         if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             sender.CoreWebView2.OpenDevToolsWindow()
 
+        if self.pywebview_window.transparent:
+            self.form.on_webview2_transparency_ready()
+
     def on_download_starting(self, sender, args):
         if not webview_settings['ALLOW_DOWNLOADS']:
             args.Cancel = True
