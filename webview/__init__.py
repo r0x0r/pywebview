@@ -115,6 +115,7 @@ settings = ImmutableDict({
     'REMOTE_DEBUGGING_PORT': None,
     'IGNORE_SSL_ERRORS': False,
     'SHOW_DEFAULT_MENUS': True,
+    'WEBVIEW2_RUNTIME_PATH': None,
 })
 
 

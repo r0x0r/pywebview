@@ -11,7 +11,7 @@ import clr
 from webview import Window, _state, settings as webview_settings
 from webview.dom import _dnd_state
 from webview.models import Request, Response
-from webview.util import DEFAULT_HTML, create_cookie, interop_dll_path, js_bridge_call, inject_pywebview
+from webview.util import DEFAULT_HTML, create_cookie, get_app_root, interop_dll_path, js_bridge_call, inject_pywebview
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
@@ -43,6 +43,20 @@ class EdgeChrome:
         self.pywebview_window = window
         self.webview = WebView2()
         props = CoreWebView2CreationProperties()
+
+        runtime_path = webview_settings['WEBVIEW2_RUNTIME_PATH']
+        if runtime_path:
+            # Support relative paths
+            if not os.path.isabs(runtime_path):
+                runtime_path = os.path.join(get_app_root(), runtime_path)
+
+            # Validate path exists
+            if os.path.exists(runtime_path):
+                props.BrowserExecutableFolder = runtime_path
+                logger.debug(f'Using custom WebView2 runtime: {runtime_path}')
+            else:
+                logger.warning(f'Custom WebView2 runtime path does not exist: {runtime_path}. Using system WebView2.')
+
         props.UserDataFolder = cache_dir
         self.user_data_folder = props.UserDataFolder
         props.set_IsInPrivateModeEnabled(_state['private_mode'])
