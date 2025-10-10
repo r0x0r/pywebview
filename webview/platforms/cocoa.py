@@ -916,6 +916,10 @@ class BrowserView:
                 # Enable the selection of directories in the dialog.
                 open_dlg.setCanChooseDirectories_(dialog_type == FileDialog.FOLDER)
 
+                # Enable creating new folders in folder dialogs (macOS)
+                if dialog_type == FileDialog.FOLDER:
+                    open_dlg.setCanCreateDirectories_(True)
+
                 # Enable / disable multiple selection
                 open_dlg.setAllowsMultipleSelection_(allow_multiple)
 
