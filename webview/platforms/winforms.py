@@ -12,7 +12,7 @@ from threading import Event, Semaphore
 
 import clr
 
-from webview import FileDialog, _state, windows
+from webview import FileDialog, _state, settings, windows
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.screen import Screen
@@ -46,6 +46,9 @@ def _is_new_version(current_version: str, new_version: str) -> bool:
 
 
 def _is_chromium():
+    if settings['WEBVIEW2_RUNTIME_PATH']:
+        return True
+
     def edge_build(key_type, key, description=''):
         try:
             windows_key = None
