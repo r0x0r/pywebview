@@ -966,13 +966,38 @@ class BrowserView:
 
     def _recreate_menus(self, user_menu):
         main_menu = self._clear_main_menu()
-        self._add_app_menu(main_menu)
+
+        # Filter out app menu items (menus with title '__app__')
+        app_menu_items = None
+        regular_menus = None
+
+        if user_menu:
+            app_menu_items = []
+            regular_menus = []
+
+            for menu in user_menu:
+                if isinstance(menu, Menu) and menu.title == '__app__':
+                    # This is an app menu - extract its items
+                    app_menu_items.extend(menu.items)
+                else:
+                    # Regular menu
+                    regular_menus.append(menu)
+
+            # If no app menu items were found, set to None
+            if not app_menu_items:
+                app_menu_items = None
+
+            # If no regular menus, set to None
+            if not regular_menus:
+                regular_menus = None
+
+        self._add_app_menu(main_menu, app_menu_items)
 
         if webview_settings['SHOW_DEFAULT_MENUS']:
             self._add_view_menu(main_menu)
             self._add_edit_menu(main_menu)
 
-        self._add_custom_menu(main_menu, user_menu)
+        self._add_custom_menu(main_menu, regular_menus)
 
         return main_menu
 
@@ -988,7 +1013,7 @@ class BrowserView:
 
         return mainMenu
 
-    def _add_app_menu(self, mainMenu):
+    def _add_app_menu(self, mainMenu, custom_items=None):
         """
         Create a default Cocoa menu that shows 'Services', 'Hide',
         'Hide Others', 'Show All', and 'Quit'. Will append the application name
@@ -1007,6 +1032,11 @@ class BrowserView:
             'orderFrontStandardAboutPanel:',
             '',
         )
+
+        # Add custom app menu items if provided (between About and Services)
+        if custom_items:
+            appMenu.addItem_(AppKit.NSMenuItem.separatorItem())
+            self._process_menu_items(custom_items, appMenu)
 
         appMenu.addItem_(AppKit.NSMenuItem.separatorItem())
 
@@ -1083,6 +1113,44 @@ class BrowserView:
                 title, action, keyEquivalent
             )
 
+    def _process_menu_items(self, menu_items, parent_menu):
+        """
+        Process menu items and add them to the parent menu.
+        Used for both custom menus and app menu items.
+        """
+        for item in menu_items:
+            if isinstance(item, MenuSeparator):
+                parent_menu.addItem_(AppKit.NSMenuItem.separatorItem())
+            elif isinstance(item, MenuAction):
+                # Actions must be registered before application start. Otherwise they are disabled.
+                # Menu handler is a workaround to register actions after application start
+                random_id = str(uuid.uuid4())[:6]
+                # Handle functools.partial objects which don't have __name__ attribute
+                if hasattr(item.function, '__name__'):
+                    func_name = item.function.__name__
+                elif hasattr(item.function, 'func') and hasattr(item.function.func, '__name__'):
+                    func_name = item.function.func.__name__
+                else:
+                    func_name = 'anonymous_function'
+                action_id = func_name + '.' + random_id
+                menu_handler.register_action(action_id, item.function)
+
+                menu_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                    item.title, 'handleMenuAction:', ''
+                )
+                menu_item.setTarget_(menu_handler)
+                menu_item.setRepresentedObject_(action_id)
+                parent_menu.addItem_(menu_item)
+            elif isinstance(item, Menu):
+                submenu = AppKit.NSMenu.alloc().init()
+                submenu.setTitle_(item.title)
+                menu_item = AppKit.NSMenuItem.alloc().init()
+                menu_item.setTitle_(item.title)
+                menu_item.setSubmenu_(submenu)
+                parent_menu.addItem_(menu_item)
+
+                self._process_menu_items(item.items, submenu)
+
     def _add_custom_menu(self, mainMenu, app_menu_list):
         """
         Create a custom menu for the app menu (MacOS bar menu)
@@ -1091,40 +1159,6 @@ class BrowserView:
         if app_menu_list is None:
             return
 
-        def process_menu_items(menu_items, parent_menu):
-            for item in menu_items:
-                if isinstance(item, MenuSeparator):
-                    parent_menu.addItem_(AppKit.NSMenuItem.separatorItem())
-                elif isinstance(item, MenuAction):
-                    # Actions must be registered before application start. Otherwise they are disabled.
-                    # Menu handler is a workaround to register actions after application start
-                    random_id = str(uuid.uuid4())[:6]
-                    # Handle functools.partial objects which don't have __name__ attribute
-                    if hasattr(item.function, '__name__'):
-                        func_name = item.function.__name__
-                    elif hasattr(item.function, 'func') and hasattr(item.function.func, '__name__'):
-                        func_name = item.function.func.__name__
-                    else:
-                        func_name = 'anonymous_function'
-                    action_id = func_name + '.' + random_id
-                    menu_handler.register_action(action_id, item.function)
-
-                    menu_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-                        item.title, 'handleMenuAction:', ''
-                    )
-                    menu_item.setTarget_(menu_handler)
-                    menu_item.setRepresentedObject_(action_id)
-                    parent_menu.addItem_(menu_item)
-                elif isinstance(item, Menu):
-                    submenu = AppKit.NSMenu.alloc().init()
-                    submenu.setTitle_(item.title)
-                    menu_item = AppKit.NSMenuItem.alloc().init()
-                    menu_item.setTitle_(item.title)
-                    menu_item.setSubmenu_(submenu)
-                    parent_menu.addItem_(menu_item)
-
-                    process_menu_items(item.items, submenu)
-
         for app_menu in app_menu_list:
             submenu = AppKit.NSMenu.alloc().init()
             submenu.setTitle_(app_menu.title)
@@ -1132,7 +1166,7 @@ class BrowserView:
             menu_item.setTitle_(app_menu.title)
             menu_item.setSubmenu_(submenu)
             mainMenu.addItem_(menu_item)
-            process_menu_items(app_menu.items, submenu)
+            self._process_menu_items(app_menu.items, submenu)
 
     def _append_app_name(self, val):
         """

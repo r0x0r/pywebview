@@ -1009,6 +1009,9 @@ def create_menu(app_menu_list, menubar):
         return m
 
     for app_menu in app_menu_list:
+        # Ignore '__app__' menus (macOS-only feature)
+        if app_menu.title == '__app__':
+            continue
         menu = create_submenu(app_menu.title, app_menu.items, menubar)
         menubar.addMenu(menu)
 
