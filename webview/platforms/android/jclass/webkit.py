@@ -145,7 +145,7 @@ class CookieManager(JavaClass, metaclass=MetaJavaClass):
 
     getInstance = JavaStaticMethod('()Landroid/webkit/CookieManager;')
     setAcceptCookie = JavaMethod('(Z)V')
-    acceptCookie = JavaMethod('(Z)V')
+    acceptCookie = JavaMethod('()V')
     setAcceptThirdPartyCookies = JavaMethod('(Landroid/webkit/WebView;Z)V')
     acceptThirdPartyCookies = JavaMethod('(Landroid/webkit/WebView;)Z')
     setCookie = JavaMultipleMethod([

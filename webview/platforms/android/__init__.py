@@ -192,6 +192,30 @@ class BrowserView:
                     self.webview.clearCache(True)
                     self.webview.clearFormData()
 
+                if hasattr(self, '_js_interface') and self._js_interface:
+                    self.webview.removeJavascriptInterface('external')
+                    self._js_interface = None
+                    logger.error('Removed JavaScript interface')
+
+                if hasattr(self, '_webview_client') and self._webview_client:
+                    self._webview_client.destroy()
+                    self._webview_client = None
+
+                if hasattr(self, '_webview_callback_wrapper'):
+                    self._webview_callback_wrapper = None
+                if hasattr(self, '_chrome_callback_wrapper'):
+                    self._chrome_callback_wrapper = None
+
+                if hasattr(self, '_js_api_callback_wrapper'):
+                    self._js_api_callback_wrapper = None
+
+                if hasattr(self, '_request_interceptor'):
+                    self._request_interceptor = None
+                    self._download_listener = None
+
+                if hasattr(self, '_key_listener'):
+                    self._key_listener = None
+
                 self.webview.destroy()
                 self.layout = None
                 self.webview = None
@@ -237,7 +261,7 @@ class BrowserView:
             self._quit_confirmation()
         else:
             app.pause()
-            self.pywebview_window.closed.set()
+            self.pywebview_window.events.closed.set()
         return True
 
     def get_size(self):
@@ -286,6 +310,13 @@ class AndroidApp(App):
         self.first_show = True
         super().__init__()
 
+        self.register_event_type('on_create')
+        self.register_event_type('on_destroy')
+        self.register_event_type('on_pause')
+        self.register_event_type('on_resume')
+        self.register_event_type('on_start')
+        self.register_event_type('on_stop')
+
     def build_view(self):
         self.view = BrowserView(self.window)
         return self.view
@@ -297,10 +328,27 @@ class AndroidApp(App):
         logger.debug('pausing initiated')
 
     def on_resume(self, _):
-        logger.debug('resuming')
         self.view.webview.onResume()
         self.view.webview.resumeTimers()
 
+    def on_create(self, activity, saved_instance_state):
+        """Event handler for the `on_create` event which is fired after
+        initialization (after build() has been called) but before the
+        application has started running.
+        """
+
+    def on_destroy(self, _):
+        self.view.dismiss()
+
+    def on_start(self, activity):
+        """Event handler for the `on_start` event which is fired when the
+        application is becoming visible to the user.
+        """
+
+    def on_stop(self, activity):
+        """Event handler for the `on_stop` event which is fired when the
+        application is no longer visible to the user.
+        """
 
 def create_file_dialog(*_):
     logger.warning('Creating file dialogs is not supported on Android')
@@ -333,7 +381,7 @@ def load_html(html_content, base_uri, _):
 
 def evaluate_js(js_code, _, parse_json=True):
     def callback(result):
-        nonlocal js_result
+        nonlocal js_result, value_callback
         try:
             # The result is double-encoded in Android, once by the WebView and once pywebview's stringify
             js_result = json.loads(result) if result else result
@@ -341,13 +389,20 @@ def evaluate_js(js_code, _, parse_json=True):
         except Exception as e:
             logger.exception(f'Error parsing result: {js_result}. Type: {type(js_result)}\n{e}')
         finally:
+            value_callback = None
             lock.release()
 
     @run_on_ui_thread
     def _evaluate_js():
         nonlocal value_callback
-        value_callback = ValueCallback(callback)
-        app.view.webview.evaluateJavascript(js_code, value_callback)
+        try:
+            value_callback = ValueCallback(callback)
+            app.view.webview.evaluateJavascript(js_code, value_callback)
+        except Exception as e:
+            logger.error(f"Error evaluating JavaScript: {e}")
+            # Ensure callback is cleared on error
+            value_callback = None
+            lock.release()
 
     lock = Semaphore(0)
     js_result = None
@@ -363,6 +418,7 @@ def clear_cookies(_):
 
     @run_on_ui_thread
     def _clear_cookies():
+        cookie_manager = None
         try:
             # Get fresh CookieManager reference to avoid stale Java object references
             cookie_manager = CookieManager.getInstance()
@@ -370,6 +426,8 @@ def clear_cookies(_):
         except Exception as e:
             logger.error(f"Error clearing cookies: {e}")
         finally:
+            # Clear the reference to help GC
+            cookie_manager = None
             lock.release()
 
     app.view._cookies = []

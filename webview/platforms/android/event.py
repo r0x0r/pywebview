@@ -65,9 +65,11 @@ class EventDispatcher:
            positional arguments would be collected and forwarded.
         """
         observers: list = self.__event_stack.get(event_type)
-        observers.reverse()
-        for callbacks in observers:
-            callbacks(*args, **kwargs)
+
+        if observers:
+            observers.reverse()
+            for callbacks in observers:
+                callbacks(*args, **kwargs)
 
         handler = getattr(self, event_type)
         return handler(*args, **kwargs)
