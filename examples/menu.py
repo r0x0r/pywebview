@@ -36,7 +36,27 @@ def open_save_file_dialog():
     active_window.create_file_dialog(webview.FileDialog.SAVE, directory='/', save_filename='test.file')
 
 
+def open_preferences():
+    active_window = webview.active_window()
+    if active_window:
+        active_window.load_html('<h1>Preferences</h1><p>App preferences would open here (macOS app menu)</p>')
+
+
+def check_for_updates():
+    active_window = webview.active_window()
+    if active_window:
+        active_window.load_html('<h1>Check for Updates</h1><p>Checking for updates... (macOS app menu)</p>')
+
+
 if __name__ == '__main__':
+    # App menu items (macOS only - appears between About and Services)
+    # On other platforms, this menu is ignored
+    macos_app_menu = Menu('__app__', [
+        MenuAction('Preferences...', open_preferences),
+        MenuSeparator(),
+        MenuAction('Check for Updates', check_for_updates),
+    ])
+
     window_menu = [Menu(
         'Window', [
             MenuAction('Test', test)
@@ -44,6 +64,7 @@ if __name__ == '__main__':
     )]
 
     app_menu = [
+        macos_app_menu,  # macOS app menu items
         Menu(
             'Menu 1',
             [

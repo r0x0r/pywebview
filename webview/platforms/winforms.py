@@ -470,6 +470,9 @@ class BrowserView:
                 top_level_menu = WinForms.MenuStrip()
 
                 for menu in menu_list:
+                    # Ignore '__app__' menus (macOS-only feature)
+                    if isinstance(menu, Menu) and menu.title == '__app__':
+                        continue
                     if isinstance(menu, Menu):
                         top_level_menu.Items.Add(create_submenu(menu.title, menu.items))
                     elif isinstance(menu, MenuAction):

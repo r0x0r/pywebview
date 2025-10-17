@@ -940,6 +940,9 @@ def create_menu(app_menu_list):
     menubar = Gio.Menu()
 
     for app_menu in app_menu_list:
+        # Ignore '__app__' menus (macOS-only feature)
+        if app_menu.title == '__app__':
+            continue
         create_submenu(app_menu.title, app_menu.items, menubar)
 
     return menubar
