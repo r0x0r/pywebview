@@ -1,3 +1,7 @@
+---
+prev: /guide/usage
+---
+
 # Application architecture
 
 There are several way to build your application using _pywebview_:
