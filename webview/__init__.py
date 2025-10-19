@@ -26,11 +26,11 @@ from proxy_tools import module_property
 import webview.http as http
 from webview.errors import JavascriptException, WebViewException
 from webview.event import Event
-from webview.guilib import initialize, GUIType
+from webview.guilib import GUIType, initialize
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import ImmutableDict, _TOKEN, abspath, is_app, is_local_url
+from webview.util import _TOKEN, ImmutableDict, abspath, is_app, is_local_url
 from webview.window import Window
 
 __all__ = (
@@ -81,22 +81,33 @@ def _setup_logger():
 
     return logger
 
+
 logger = _setup_logger()
+
 
 @module_property
 def OPEN_DIALOG():
-    logger.warning("OPEN_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.OPEN' instead.")
+    logger.warning(
+        "OPEN_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.OPEN' instead."
+    )
     return 10
+
 
 @module_property
 def FOLDER_DIALOG():
-    logger.warning("FOLDER_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.FOLDER' instead.")
+    logger.warning(
+        "FOLDER_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.FOLDER' instead."
+    )
     return 20
+
 
 @module_property
 def SAVE_DIALOG():
-    logger.warning("SAVE_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.SAVE' instead.")
+    logger.warning(
+        "SAVE_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.SAVE' instead."
+    )
     return 30
+
 
 class FileDialog(enum.IntEnum):
     OPEN = 10
@@ -104,36 +115,42 @@ class FileDialog(enum.IntEnum):
     SAVE = 30
 
 
-settings = ImmutableDict({
-    'ALLOW_DOWNLOADS': False,
-    'ALLOW_FILE_URLS': True,
-    'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
-    'DRAG_REGION_DIRECT_TARGET_ONLY': False,
-    'DEFAULT_HTTP_PORT': 42001,
-    'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
-    'OPEN_DEVTOOLS_IN_DEBUG': True,
-    'REMOTE_DEBUGGING_PORT': None,
-    'IGNORE_SSL_ERRORS': False,
-    'SHOW_DEFAULT_MENUS': True,
-    'WEBVIEW2_RUNTIME_PATH': None,
-})
+settings = ImmutableDict(
+    {
+        'ALLOW_DOWNLOADS': False,
+        'ALLOW_FILE_URLS': True,
+        'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
+        'DRAG_REGION_DIRECT_TARGET_ONLY': False,
+        'DEFAULT_HTTP_PORT': 42001,
+        'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
+        'OPEN_DEVTOOLS_IN_DEBUG': True,
+        'REMOTE_DEBUGGING_PORT': None,
+        'IGNORE_SSL_ERRORS': False,
+        'SHOW_DEFAULT_MENUS': True,
+        'WEBVIEW2_RUNTIME_PATH': None,
+    }
+)
 
 
-_state = ImmutableDict({
-    'debug': False,
-    'storage_path': None,
-    'private_mode': True,
-    'user_agent': None,
-    'http_server': False,
-    'ssl': False,
-    'icon': None,
-    'menu': None
-})
+_state = ImmutableDict(
+    {
+        'debug': False,
+        'storage_path': None,
+        'private_mode': True,
+        'user_agent': None,
+        'http_server': False,
+        'ssl': False,
+        'icon': None,
+        'menu': None,
+    }
+)
 
 
 @module_property
 def DRAG_REGION_SELECTOR():
-    logger.warning("DRAG_REGION_SELECTOR is deprecated and will be removed in a future version. Use 'settings[\"DRAG_REGION_SELECTOR\"]' instead.")
+    logger.warning(
+        'DRAG_REGION_SELECTOR is deprecated and will be removed in a future version. Use \'settings["DRAG_REGION_SELECTOR"]\' instead.'
+    )
     return settings['DRAG_REGION_SELECTOR']
 
 
@@ -210,7 +227,11 @@ def start(
     if debug and not os.environ.get('PYWEBVIEW_LOG'):
         logger.setLevel(logging.DEBUG)
 
-    if _state['storage_path'] and _state['private_mode'] and not os.path.exists(_state['storage_path']):
+    if (
+        _state['storage_path']
+        and _state['private_mode']
+        and not os.path.exists(_state['storage_path'])
+    ):
         os.makedirs(_state['storage_path'])
 
     original_localization.update(localization)
@@ -278,7 +299,7 @@ def start(
 
     if menu:
         _state['menu'] = menu
-        #guilib.set_app_menu(menu)
+        # guilib.set_app_menu(menu)
 
     guilib.create_window(windows[0])
     # keyfile is deleted by the ServerAdapter right after wrap_socket()
@@ -352,7 +373,7 @@ def create_window(
 
     valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
     if not re.match(valid_color, background_color):
-        raise ValueError('{0} is not a valid hex triplet color'.format(background_color))
+        raise ValueError(f'{background_color} is not a valid hex triplet color')
 
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
@@ -424,9 +445,7 @@ def __generate_ssl_cert():
     with tempfile.NamedTemporaryFile(prefix='keyfile_', suffix='.pem', delete=False) as f:
         keyfile = f.name
         key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend()
+            public_exponent=65537, key_size=2048, backend=default_backend()
         )
         key_pem = key.private_bytes(
             encoding=serialization.Encoding.PEM,

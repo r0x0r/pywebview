@@ -1,15 +1,15 @@
-import webview
 import logging
 import random
-from bottle import Bottle, static_file, response
 
+from bottle import Bottle, static_file
+
+import webview
 from webview.util import get_app_root
-
-
 
 logger = logging.getLogger('pywebview')
 
 app = Bottle()
+
 
 @app.route('/')
 def index():
@@ -20,7 +20,6 @@ def index():
 
 @app.route('/<filename:path>')
 def static_files(filename):
-
     resp = static_file(filename, root=get_app_root())
 
     if filename.endswith('index.html'):
@@ -59,10 +58,9 @@ class TestAPI:
         return {'key1': 'value1', 'key2': 'value2'}
 
 
-
 class Api:
     def eval(self, code):
-        """ Evauate Python code in the context of this module. """
+        """Evaluate Python code in the context of this module."""
         try:
             result = eval(code)
             return result
@@ -104,9 +102,9 @@ def create_state(state):
         'b': [1, 2, 3],
     }
 
-events = {
 
-}
+events = {}
+
 
 def set_event(name, value):
     events[name] = value
@@ -123,7 +121,9 @@ if __name__ == '__main__':
     window.events.before_show += lambda: set_event('before_show', True)
     window.events.shown += lambda: set_event('shown', True)
     window.events.request_sent += lambda request: set_event('request_sent', request.__dict__)
-    window.events.response_received += lambda response: set_event('response_received', response.__dict__)
+    window.events.response_received += lambda response: set_event(
+        'response_received', response.__dict__
+    )
 
     api._window = window
     api._dom = window.dom

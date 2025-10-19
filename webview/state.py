@@ -1,12 +1,13 @@
 import json
-from typing import Any, Callable
-from typing_extensions import Self
 from threading import Thread
+from typing import Any, Callable
+
+from typing_extensions import Self
 
 from webview.util import escape_string
 
 try:
-    from enum import StrEnum # Python 3.11 and above
+    from enum import StrEnum  # Python 3.11 and above
 except ImportError:
     from enum import Enum
 
@@ -20,7 +21,6 @@ class StateEventType(StrEnum):
 
 
 class State(dict):
-
     _serializable = False
 
     def __init__(self, window):
@@ -83,7 +83,7 @@ class State(dict):
 
             if not halt_update:
                 special_key = '__pywebviewHaltUpdate__' + key
-                self.__window.run_js(f"delete window.pywebview.state.{special_key}")
+                self.__window.run_js(f'delete window.pywebview.state.{special_key}')
 
             self.__notify_handlers(StateEventType.DELETE, key, old_value)
 

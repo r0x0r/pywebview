@@ -13,7 +13,7 @@ windows = []
 
 # A simple function to format a description of our servers
 def serverDescription(server):
-    return f"{str(server).replace('<','').replace('>','')}"
+    return f'{str(server).replace("<", "").replace(">", "")}'
 
 
 # Define a couple of simple web apps using Bottle
@@ -29,7 +29,7 @@ app2 = bottle.Bottle()
 
 
 @app2.route('/')
-def hello():
+def hello2():
     head = """  <head>
                     <style type="text/css">
                         table {
@@ -63,12 +63,12 @@ def hello():
                         <tr>
                             <td>Global Server</td>
                             <td>{serverDescription(webview.http.global_server)}</td>
-                            <td>{webview.http.global_server.address if not webview.http.global_server is None else 'None'}</td>
+                            <td>{webview.http.global_server.address if webview.http.global_server is not None else 'None'}</td>
                         </tr>
                         <tr>
                             <td>First Window</td>
                             <td>{serverDescription(windows[0]._server)}</td>
-                            <td>{windows[0]._server.address if not windows[0]._server is None else 'None'}</td>
+                            <td>{windows[0]._server.address if windows[0]._server is not None else 'None'}</td>
                         </tr>
                         <tr>
                             <td>Second Window</td>

@@ -557,4 +557,3 @@ public class PyWebViewClient extends WebViewClient {
         }
     }
 }
-

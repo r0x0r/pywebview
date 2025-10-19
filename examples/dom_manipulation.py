@@ -1,9 +1,11 @@
 """This example demonstrates how to manipulate DOM in Python."""
 
 import random
+
 import webview
 
 rectangles = []
+
 
 def random_color():
     red = random.randint(0, 255)
@@ -12,16 +14,19 @@ def random_color():
 
     return f'rgb({red}, {green}, {blue})'
 
+
 def bind(window):
     def toggle_disabled():
         disabled = None if len(rectangles) > 0 else True
-        remove_button.attributes = { 'disabled': disabled }
-        empty_button.attributes = { 'disabled': disabled }
-        move_button.attributes = { 'disabled': disabled }
+        remove_button.attributes = {'disabled': disabled}
+        empty_button.attributes = {'disabled': disabled}
+        move_button.attributes = {'disabled': disabled}
 
     def create_rectangle(_):
         color = random_color()
-        rectangle = window.dom.create_element(f'<div class="rectangle" style="background-color: {color};"></div>', rectangle_container)
+        rectangle = window.dom.create_element(
+            f'<div class="rectangle" style="background-color: {color};"></div>', rectangle_container
+        )
         rectangles.append(rectangle)
         toggle_disabled()
 
@@ -68,10 +73,10 @@ def bind(window):
     color_button.events.click += change_color
 
 
-
 if __name__ == '__main__':
     window = webview.create_window(
-        'DOM Manipulations Example', html='''
+        'DOM Manipulations Example',
+        html="""
             <html>
                 <head>
                 <style>
@@ -124,6 +129,6 @@ if __name__ == '__main__':
                     <div id="rectangles" class="container"></div>
                 </body>
             </html>
-        '''
+        """,
     )
     webview.start(bind, window)

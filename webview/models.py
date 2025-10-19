@@ -1,7 +1,6 @@
 from copy import copy
 
 
-
 class Request:
     def __init__(self, url: str, method: str, headers: dict) -> None:
         self.url = url

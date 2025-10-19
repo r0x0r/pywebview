@@ -5,10 +5,10 @@ All Java interfaces should go to this package.
 from webview.platforms.android.jinterface.pywebview import (
     EventCallbackWrapper,
     JsApiCallbackWrapper,
-    RequestInterceptor
+    RequestInterceptor,
 )
 from webview.platforms.android.jinterface.view import KeyListener
-from webview.platforms.android.jinterface.webkit import ValueCallback, DownloadListener
+from webview.platforms.android.jinterface.webkit import DownloadListener, ValueCallback
 
 __all__ = (
     'EventCallbackWrapper',
@@ -16,5 +16,5 @@ __all__ = (
     'RequestInterceptor',
     'KeyListener',
     'ValueCallback',
-    'DownloadListener'
+    'DownloadListener',
 )

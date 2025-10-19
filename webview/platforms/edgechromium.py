@@ -8,17 +8,25 @@ from threading import Semaphore
 
 import clr
 
-from webview import Window, _state, settings as webview_settings
+from webview import Window, _state
+from webview import settings as webview_settings
 from webview.dom import _dnd_state
 from webview.models import Request, Response
-from webview.util import DEFAULT_HTML, create_cookie, get_app_root, interop_dll_path, js_bridge_call, inject_pywebview
+from webview.util import (
+    DEFAULT_HTML,
+    create_cookie,
+    get_app_root,
+    inject_pywebview,
+    interop_dll_path,
+    js_bridge_call,
+)
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
 import System.Windows.Forms as WinForms
-from System import Action, Convert, Func, String, Type, Uri, Object
+from System import Action, Convert, Func, Object, String, Type, Uri
 from System.Collections.Generic import List
 from System.Diagnostics import Process
 from System.Drawing import Color
@@ -28,7 +36,11 @@ from System.Threading.Tasks import Task, TaskScheduler
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
-from Microsoft.Web.WebView2.Core import CoreWebView2Cookie, CoreWebView2ServerCertificateErrorAction, CoreWebView2Environment, CoreWebView2WebResourceContext
+from Microsoft.Web.WebView2.Core import (
+    CoreWebView2Cookie,
+    CoreWebView2ServerCertificateErrorAction,
+    CoreWebView2WebResourceContext,
+)
 from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
@@ -37,6 +49,7 @@ for platform in ('win-arm64', 'win-x64', 'win-x86'):
 
 logger = logging.getLogger('pywebview')
 renderer = 'edgechromium'
+
 
 class EdgeChrome:
     def __init__(self, form: WinForms.Form, window: Window, cache_dir: str):
@@ -66,7 +79,9 @@ class EdgeChrome:
             props.AdditionalBrowserArguments += ' --allow-file-access-from-files'
 
         if webview_settings['REMOTE_DEBUGGING_PORT'] is not None:
-            props.AdditionalBrowserArguments += f' --remote-debugging-port={webview_settings["REMOTE_DEBUGGING_PORT"]}'
+            props.AdditionalBrowserArguments += (
+                f' --remote-debugging-port={webview_settings["REMOTE_DEBUGGING_PORT"]}'
+            )
 
         self.webview.CreationProperties = props
 
@@ -82,7 +97,12 @@ class EdgeChrome:
         self.webview.NavigationCompleted += self.on_navigation_completed
         self.webview.WebMessageReceived += self.on_script_notify
         self.syncContextTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext()
-        self.webview.DefaultBackgroundColor = Color.FromArgb(255, int(window.background_color.lstrip("#")[0:2], 16), int(window.background_color.lstrip("#")[2:4], 16), int(window.background_color.lstrip("#")[4:6], 16))
+        self.webview.DefaultBackgroundColor = Color.FromArgb(
+            255,
+            int(window.background_color.lstrip('#')[0:2], 16),
+            int(window.background_color.lstrip('#')[2:4], 16),
+            int(window.background_color.lstrip('#')[4:6], 16),
+        )
 
         if window.transparent:
             self.webview.DefaultBackgroundColor = Color.Transparent
@@ -123,10 +143,14 @@ class EdgeChrome:
         semaphore = Semaphore(0)
 
         try:
-            self.webview.Invoke(Func[Object](lambda: self.webview.ExecuteScriptAsync(script).ContinueWith(
-                Action[Task[String]](lambda task: _callback(json.loads(task.Result))),
-                self.syncContextTaskScheduler,
-            )))
+            self.webview.Invoke(
+                Func[Object](
+                    lambda: self.webview.ExecuteScriptAsync(script).ContinueWith(
+                        Action[Task[String]](lambda task: _callback(json.loads(task.Result))),
+                        self.syncContextTaskScheduler,
+                    )
+                )
+            )
             semaphore.acquire()
         except Exception:
             logger.exception('Error occurred in script')
@@ -205,8 +229,7 @@ class EdgeChrome:
 
                 files = [
                     (os.path.basename(file.Path), file.Path)
-                    for file
-                    in list(additionalObjects)
+                    for file in list(additionalObjects)
                     if 'CoreWebView2File' in str(type(file))
                 ]
                 _dnd_state['paths'] += files
@@ -292,12 +315,19 @@ class EdgeChrome:
         dialog = WinForms.SaveFileDialog()
 
         try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders') as windows_key:
-                dialog.InitialDirectory = winreg.QueryValueEx(windows_key, '{374DE290-123F-4565-9164-39C4925E467B}')[0]
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders',
+            ) as windows_key:
+                dialog.InitialDirectory = winreg.QueryValueEx(
+                    windows_key, '{374DE290-123F-4565-9164-39C4925E467B}'
+                )[0]
         except Exception as e:
             logger.exception(e)
 
-        dialog.Filter = self.pywebview_window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
+        dialog.Filter = (
+            self.pywebview_window.localization['windows.fileFilter.allFiles'] + ' (*.*)|*.*'
+        )
         dialog.RestoreDirectory = True
         dialog.FileName = os.path.basename(args.ResultFilePath)
 
@@ -331,8 +361,14 @@ class EdgeChrome:
         if request.headers == original_headers:
             return
 
-        extra_headers = {k: v for k, v in request.headers.items() if k not in original_headers or original_headers[k] != v}
-        missing_headers = {k: str(v) for k, v in original_headers.items() if k not in request.headers}
+        extra_headers = {
+            k: v
+            for k, v in request.headers.items()
+            if k not in original_headers or original_headers[k] != v
+        }
+        missing_headers = {
+            k: str(v) for k, v in original_headers.items() if k not in request.headers
+        }
 
         for k, v in extra_headers.items():
             args.Request.Headers.SetHeader(k, v)

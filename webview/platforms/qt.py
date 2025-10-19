@@ -11,22 +11,26 @@ from functools import partial
 from threading import Event, Semaphore, Thread
 from uuid import uuid1
 
-from webview import (FileDialog, _state, windows, settings)
+from webview import FileDialog, _state, settings, windows
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.models import Request
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, environ_append
+from webview.util import (
+    DEFAULT_HTML,
+    create_cookie,
+    environ_append,
+    inject_pywebview,
+    js_bridge_call,
+)
 from webview.window import FixPoint, Window
 
-logger = logging.getLogger('pywebview')
 
 from qtpy import QtCore
 
-logger.debug('Using Qt %s' % QtCore.__version__)
 
 from qtpy import PYQT6, PYSIDE6
-from qtpy.QtCore import QJsonValue, QByteArray
+from qtpy.QtCore import QByteArray, QJsonValue
 from qtpy.QtGui import QColor, QIcon, QScreen
 from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
 
@@ -41,12 +45,14 @@ try:
     renderer = 'qtwebengine'
     is_webengine = True
 except ImportError:
-    from PyQt5 import QtWebKitWidgets
     from PyQt5.QtNetwork import QSslCertificate, QSslConfiguration
     from PyQt5.QtWebKitWidgets import QWebPage, QWebView
 
     is_webengine = False
     renderer = 'qtwebkit'
+
+logger = logging.getLogger('pywebview')
+logger.debug('Using Qt %s' % QtCore.__version__)
 
 if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos', 'rhel', 'pop']:
     # I don't know why, but it's a common solution for #890 (White screen displayed)
@@ -56,8 +62,8 @@ if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos'
     # - https://www.google.com/search?q=arch+rstudio+no+sandbox
     # And sometimes it needs two "--no-sandbox" flags
 
-    environ_append("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox", "--no-sandbox")
-    logger.debug("Enable --no-sandbox flag for arch/manjaro/nixos")
+    environ_append('QTWEBENGINE_CHROMIUM_FLAGS', '--no-sandbox', '--no-sandbox')
+    logger.debug('Enable --no-sandbox flag for arch/manjaro/nixos')
 
 _main_window_created = Event()
 _main_window_created.clear()
@@ -65,7 +71,9 @@ _main_window_created.clear()
 # suppress invalid style override error message on some Linux distros
 os.environ['QT_STYLE_OVERRIDE'] = ''
 _qt6 = True if PYQT6 or PYSIDE6 else False
-_profile_storage_path = _state['storage_path'] or os.path.join(os.path.expanduser('~'), '.pywebview')
+_profile_storage_path = _state['storage_path'] or os.path.join(
+    os.path.expanduser('~'), '.pywebview'
+)
 
 
 def _sigint_handler(signum, frame):
@@ -179,8 +187,7 @@ class BrowserView(QMainWindow):
             if e.mimeData().hasUrls and _dnd_state['num_listeners'] > 0:
                 files = [
                     (os.path.basename(value.toString()), value.toString().replace('file://', ''))
-                    for value
-                    in e.mimeData().urls()
+                    for value in e.mimeData().urls()
                     if value.toString().startswith('file://')
                 ]
                 _dnd_state['paths'] += files
@@ -195,8 +202,8 @@ class BrowserView(QMainWindow):
                 BrowserView.instances[uid].raise_()
                 BrowserView.instances[uid].activateWindow()
             except KeyError:
-                title = 'Web Inspector - {}'.format(self.parent().title)
-                url = 'http://localhost:{}'.format(BrowserView.inspector_port)
+                title = f'Web Inspector - {self.parent().title}'
+                url = f'http://localhost:{BrowserView.inspector_port}'
                 window = Window('web_inspector', title, url, '', 700, 500)
                 window.localization = self.parent().localization
 
@@ -238,7 +245,10 @@ class BrowserView(QMainWindow):
             method = info.requestMethod()
 
             if 'httpHeaders' in dir(info):
-                headers = {k.data().decode('utf-8'): k.data().decode('utf-8') for k, v in info.httpHeaders().items()}
+                headers = {
+                    k.data().decode('utf-8'): k.data().decode('utf-8')
+                    for k, v in info.httpHeaders().items()
+                }
             else:
                 headers = {}
 
@@ -247,7 +257,9 @@ class BrowserView(QMainWindow):
 
             if request.headers != headers:
                 for key, value in request.headers.items():
-                    info.setHttpHeader(QByteArray(key.encode('utf-8')), QByteArray(value.encode('utf-8')))
+                    info.setHttpHeader(
+                        QByteArray(key.encode('utf-8')), QByteArray(value.encode('utf-8'))
+                    )
 
     # New-window-requests handler for Qt 5.5+ only
     class NavigationHandler(QWebPage):
@@ -287,9 +299,9 @@ class BrowserView(QMainWindow):
                     QWebPage.Feature.MediaVideoCapture,
                     QWebPage.Feature.MediaAudioVideoCapture,
                 ):
-                    self.setFeaturePermission(url, feature, 1) # QWebPage.PermissionGrantedByUser
+                    self.setFeaturePermission(url, feature, 1)  # QWebPage.PermissionGrantedByUser
                 else:
-                    self.setFeaturePermission(url, feature, 2) # QWebPage.PermissionDeniedByUser
+                    self.setFeaturePermission(url, feature, 2)  # QWebPage.PermissionDeniedByUser
         else:
 
             def acceptNavigationRequest(self, frame, request, type):
@@ -431,7 +443,9 @@ class BrowserView(QMainWindow):
 
         if is_webengine:
             self.profile.settings().setAttribute(
-                QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, settings['ALLOW_FILE_URLS'])
+                QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls,
+                settings['ALLOW_FILE_URLS'],
+            )
 
         self.webview.page().loadFinished.connect(self.on_load_finished)
 
@@ -476,11 +490,11 @@ class BrowserView(QMainWindow):
             self.webview.setHtml(DEFAULT_HTML, QtCore.QUrl(''))
 
         if window.initial_x is not None and window.initial_y is not None:
-            self.move(self.screen.x()+window.initial_x, self.screen.y()+window.initial_y)
+            self.move(self.screen.x() + window.initial_x, self.screen.y() + window.initial_y)
         else:
             offset = -16 if _qt6 else 0
             center = self.screen.center() - self.rect().center()
-            self.move(center.x(), center.y()+offset)
+            self.move(center.x(), center.y() + offset)
 
         if not window.minimized:
             self.activateWindow()
@@ -510,7 +524,10 @@ class BrowserView(QMainWindow):
     def on_file_dialog(self, dialog_type, directory, allow_multiple, save_filename, file_filter):
         if dialog_type == FileDialog.FOLDER:
             self._file_name = QFileDialog.getExistingDirectory(
-                self, self.localization['linux.openFolder'], directory, options=QFileDialog.ShowDirsOnly
+                self,
+                self.localization['linux.openFolder'],
+                directory,
+                options=QFileDialog.ShowDirsOnly,
             )
         elif dialog_type == FileDialog.OPEN:
             if allow_multiple:
@@ -722,7 +739,7 @@ class BrowserView(QMainWindow):
         old_path = download.url().path()
         suffix = QtCore.QFileInfo(old_path).suffix()
         path, _ = QFileDialog.getSaveFileName(
-            self, self.localization['global.saveFile'], old_path, "*." + suffix
+            self, self.localization['global.saveFile'], old_path, '*.' + suffix
         )
         if path:
             download.setPath(path)
@@ -820,7 +837,11 @@ class BrowserView(QMainWindow):
     def evaluate_js(self, script, parse_json):
         result_semaphore = Semaphore(0)
         unique_id = uuid1().hex
-        self._js_results[unique_id] = {'semaphore': result_semaphore, 'result': '', 'parse_json': parse_json }
+        self._js_results[unique_id] = {
+            'semaphore': result_semaphore,
+            'result': '',
+            'parse_json': parse_json,
+        }
 
         self.evaluate_js_trigger.emit(script, unique_id)
         result_semaphore.acquire()
@@ -988,6 +1009,7 @@ def create_menu(app_menu_list, menubar):
         app_menu_list ([webview.menu.Menu])
         menubar (QMenuBar)
     """
+
     def run_action(func):
         Thread(target=func).start()
 
@@ -1102,7 +1124,9 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
     i = BrowserView.instances.get(uid)
     if i:
-        return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
+        return i.create_file_dialog(
+            dialog_type, directory, allow_multiple, save_filename, file_filter
+        )
 
 
 def evaluate_js(script, uid, parse_json=True):
@@ -1131,7 +1155,10 @@ def get_size(uid):
 def get_screens():
     global _app
     _app = QApplication.instance() or QApplication(sys.argv)
-    screens = [Screen(s.geometry().x(), s.geometry().y(), s.geometry().width(), s.geometry().height(), s) for s in _app.screens()]
+    screens = [
+        Screen(s.geometry().x(), s.geometry().y(), s.geometry().width(), s.geometry().height(), s)
+        for s in _app.screens()
+    ]
 
     return screens
 

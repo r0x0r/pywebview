@@ -6,12 +6,12 @@ import webview
 
 
 def move(window):
-    print('Window coordinates are ({0}, {1})'.format(window.x, window.y))
+    print(f'Window coordinates are ({window.x}, {window.y})')
 
     sleep(2)
     window.move(200, 200)
     sleep(1)
-    print('Window coordinates are ({0}, {1})'.format(window.x, window.y))
+    print(f'Window coordinates are ({window.x}, {window.y})')
 
 
 if __name__ == '__main__':

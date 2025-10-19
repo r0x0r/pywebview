@@ -1,6 +1,9 @@
 import os
-import webview
+
 import pytest
+
+import webview
+
 from .util import run_test
 
 

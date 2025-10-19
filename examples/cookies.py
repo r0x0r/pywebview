@@ -13,6 +13,7 @@ class Api:
     def clearCookies(self):
         window.clear_cookies()
 
+
 if __name__ == '__main__':
     window = webview.create_window('Cookie example', 'assets/cookies.html', js_api=Api())
 

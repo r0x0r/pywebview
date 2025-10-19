@@ -14,16 +14,14 @@ from uuid import uuid1
 from typing_extensions import Any, Concatenate, ParamSpec, TypeAlias
 
 import webview.http as http
+from webview.dom.dom import DOM
 from webview.errors import JavascriptException, WebViewException
 from webview.event import Event, EventContainer
 from webview.localization import original_localization
 from webview.menu import Menu
-from webview.util import (base_uri, escape_string, is_app, is_local_url, parse_file_type)
-from webview.dom.dom import DOM
-from webview.dom.element import Element
 from webview.screen import Screen
 from webview.state import State
-
+from webview.util import base_uri, escape_string, is_app, is_local_url, parse_file_type
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -39,7 +37,6 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
 
     @wraps(function)
     def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
-
         event = getattr(self.events, event_type)
 
         try:
@@ -114,7 +111,7 @@ class Window:
         http_port: int | None = None,
         server: type[http.ServerType] | None = None,
         server_args: http.ServerArgs = {},
-        screen: Screen = None
+        screen: Screen = None,
     ) -> None:
         self.uid = uid
         self._title = title
@@ -182,10 +179,12 @@ class Window:
         self._expose_lock = Lock()
         self.dom = DOM(self)
         self.gui = None
-        self.native = None # set in the gui after window creation
+        self.native = None  # set in the gui after window creation
         self._state = State(self)
 
-    def _initialize(self, gui, server: http.BottleServer | None = None, server_args: http.ServerArgs = dict):
+    def _initialize(
+        self, gui, server: http.BottleServer | None = None, server_args: http.ServerArgs = dict
+    ):
         self.gui = gui
 
         self.localization = original_localization.copy()
@@ -202,11 +201,11 @@ class Window:
         elif server is None:
             server = http.global_server
 
-        self._url_prefix = server.address if not server is None else None
-        self._common_path = server.common_path if not server is None else None
+        self._url_prefix = server.address if server is not None else None
+        self._common_path = server.common_path if server is not None else None
         self._server = server
         self.js_api_endpoint = (
-            http.global_server.js_api_endpoint if not http.global_server is None else None
+            http.global_server.js_api_endpoint if http.global_server is not None else None
         )
         self.real_url = self._resolve_url(self.original_url)
 
@@ -276,7 +275,7 @@ class Window:
         :param uid: uid of the target instance
         """
         if ((self._server is None) or (not self._server.running)) and (
-            (is_app(url) or is_local_url(url))
+            is_app(url) or is_local_url(url)
         ):
             self._url_prefix, self._common_path, self.server = http.start_server([url])
 
@@ -304,7 +303,7 @@ class Window:
 
     @_loaded_call
     def load_css(self, stylesheet: str) -> None:
-        """"
+        """ "
         Load a CSS stylesheet into the current web view window
         """
         sanitized_css = stylesheet.replace('\n', '').replace('\r', '').replace('"', "'")
@@ -434,7 +433,6 @@ class Window:
         """
         return self.gui.evaluate_js(script, self.uid, False)
 
-
     @_pywebview_ready_call
     def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None) -> Any:
         """
@@ -452,7 +450,9 @@ class Window:
         self._callbacks[unique_id] = callback
 
         if self.gui.renderer == 'cef':
-            return_result = f'window.external.return_result(pywebview.stringify(value), "{unique_id}");'
+            return_result = (
+                f'window.external.return_result(pywebview.stringify(value), "{unique_id}");'
+            )
         elif self.gui.renderer == 'android-webkit':
             return_result = 'return pywebview.stringify(value);'
         else:

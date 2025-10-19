@@ -1,14 +1,17 @@
-import pytest
-import webview
 from threading import Lock
+
+import pytest
+
+import webview
 
 from .util import run_test, wait_release
 
 
-
 @pytest.fixture
 def window():
-    return webview.create_window('Evaluate JS test', html='<html><body><div id="node">TEST</div></body></html>')
+    return webview.create_window(
+        'Evaluate JS test', html='<html><body><div id="node">TEST</div></body></html>'
+    )
 
 
 def test_state(window):
@@ -86,13 +89,15 @@ def before_start_test(window):
 
 
 def state_from_js_test(window):
-     window.run_js('pywebview.state.test = 420')
-     assert window.state.test == 420
+    window.run_js('pywebview.state.test = 420')
+    assert window.state.test == 420
 
 
 def state_dict_test(window):
-    window.state.test = { 'test1': 'test1', 'test2': 2 }
-    assert window.evaluate_js('JSON.stringify(pywebview.state.test) === JSON.stringify({ "test1": "test1", "test2": 2}) ')
+    window.state.test = {'test1': 'test1', 'test2': 2}
+    assert window.evaluate_js(
+        'JSON.stringify(pywebview.state.test) === JSON.stringify({ "test1": "test1", "test2": 2}) '
+    )
 
 
 def state_none_test(window):
@@ -107,7 +112,7 @@ def persistence_test(window):
     window.load_html('<html><body>Reloaded</body></html>')
     assert window.evaluate_js('pywebview.state.test === 420')
 
-    window.load_url("https://www.example.com")
+    window.load_url('https://www.example.com')
     assert window.evaluate_js('pywebview.state.test === 420')
 
 
@@ -123,6 +128,7 @@ def delete_from_js_test(window):
     assert window.evaluate_js('pywebview.state.test === 420')
     window.run_js('delete pywebview.state.test')
     assert 'test' not in window.state
+
 
 def event_change_test(window):
     def on_change(event, name, value):
@@ -213,13 +219,17 @@ def event_delete_js_test(window):
 
 
 def event_change_from_js_test(window):
-    window.run_js('pywebview.state.addEventListener("change", event => { pywebview.state.result = `${event.detail.key}: ${event.detail.value}` })')
+    window.run_js(
+        'pywebview.state.addEventListener("change", event => { pywebview.state.result = `${event.detail.key}: ${event.detail.value}` })'
+    )
     window.state.test = 0
     assert window.state.result == 'test: 0'
 
 
 def event_delete_from_js_test(window):
-    window.run_js('pywebview.state.addEventListener("delete", event => { pywebview.state.result = event.detail.key })')
+    window.run_js(
+        'pywebview.state.addEventListener("delete", event => { pywebview.state.result = event.detail.key })'
+    )
     window.state.test = 0
     assert window.evaluate_js('pywebview.state.test == 0')
     del window.state.test
@@ -243,24 +253,24 @@ def string_quotes_test(window):
     assert result == """String with 'single' and "double" quotes"""
 
     # Test string with backslashes
-    window.state.backslash_string = "Path\\to\\file\\with\\backslashes"
+    window.state.backslash_string = 'Path\\to\\file\\with\\backslashes'
     result = window.evaluate_js('pywebview.state.backslash_string')
-    assert result == "Path\\to\\file\\with\\backslashes"
+    assert result == 'Path\\to\\file\\with\\backslashes'
 
     # Test string with line breaks
-    window.state.multiline_string = "Line 1\nLine 2\nLine 3"
+    window.state.multiline_string = 'Line 1\nLine 2\nLine 3'
     result = window.evaluate_js('pywebview.state.multiline_string')
-    assert result == "Line 1\nLine 2\nLine 3"
+    assert result == 'Line 1\nLine 2\nLine 3'
 
     # Test string with tabs and carriage returns
-    window.state.special_chars = "Tab\there\tand\rcarriage\rreturn"
+    window.state.special_chars = 'Tab\there\tand\rcarriage\rreturn'
     result = window.evaluate_js('pywebview.state.special_chars')
-    assert result == "Tab\there\tand\rcarriage\rreturn"
+    assert result == 'Tab\there\tand\rcarriage\rreturn'
 
     # Test string with escaped characters
-    window.state.escaped_string = "Quote: \" Backslash: \\ Newline: \n Tab: \t"
+    window.state.escaped_string = 'Quote: " Backslash: \\ Newline: \n Tab: \t'
     result = window.evaluate_js('pywebview.state.escaped_string')
-    assert result == "Quote: \" Backslash: \\ Newline: \n Tab: \t"
+    assert result == 'Quote: " Backslash: \\ Newline: \n Tab: \t'
 
     # Test assignment from JS side with single quotes
     window.run_js('pywebview.state.js_single = "JS string with \'single\' quotes"')
@@ -279,15 +289,19 @@ def string_quotes_test(window):
 
 def string_quotes_from_js_test(window):
     # Test assignment from JS with single quotes inside double quotes
-    window.run_js('pywebview.state.js_single_in_double = "JavaScript string with \'single\' quotes"')
+    window.run_js(
+        'pywebview.state.js_single_in_double = "JavaScript string with \'single\' quotes"'
+    )
     assert window.state.js_single_in_double == "JavaScript string with 'single' quotes"
 
     # Test assignment from JS with double quotes inside single quotes
-    window.run_js('pywebview.state.js_double_in_single = \'JavaScript string with "double" quotes\'')
+    window.run_js(
+        'pywebview.state.js_double_in_single = \'JavaScript string with "double" quotes\''
+    )
     assert window.state.js_double_in_single == 'JavaScript string with "double" quotes'
 
     # Test assignment from JS with escaped single quotes
-    window.run_js('pywebview.state.js_escaped_single = \'String with \\\'escaped\\\' quotes\'')
+    window.run_js("pywebview.state.js_escaped_single = 'String with \\'escaped\\' quotes'")
     assert window.state.js_escaped_single == "String with 'escaped' quotes"
 
     # Test assignment from JS with escaped double quotes
@@ -296,42 +310,50 @@ def string_quotes_from_js_test(window):
 
     # Test assignment from JS with backslashes
     window.run_js('pywebview.state.js_backslash = "C:\\\\Windows\\\\System32\\\\file.txt"')
-    assert window.state.js_backslash == "C:\\Windows\\System32\\file.txt"
+    assert window.state.js_backslash == 'C:\\Windows\\System32\\file.txt'
 
     # Test assignment from JS with line breaks
     window.run_js('pywebview.state.js_multiline = "First line\\nSecond line\\nThird line"')
-    assert window.state.js_multiline == "First line\nSecond line\nThird line"
+    assert window.state.js_multiline == 'First line\nSecond line\nThird line'
 
     # Test assignment from JS with tabs and other escape sequences
     window.run_js('pywebview.state.js_tabs = "Column1\\tColumn2\\tColumn3\\r\\nNew row"')
-    assert window.state.js_tabs == "Column1\tColumn2\tColumn3\r\nNew row"
+    assert window.state.js_tabs == 'Column1\tColumn2\tColumn3\r\nNew row'
 
     # Test assignment from JS with mixed quotes using template literals
-    window.run_js('pywebview.state.js_template = `Template with \'single\' and "double" quotes\\nwith newline`')
-    assert window.state.js_template == """Template with 'single' and "double" quotes\nwith newline"""
+    window.run_js(
+        'pywebview.state.js_template = `Template with \'single\' and "double" quotes\\nwith newline`'
+    )
+    assert (
+        window.state.js_template == """Template with 'single' and "double" quotes\nwith newline"""
+    )
 
     # Test assignment from JS with Unicode characters
-    window.run_js('pywebview.state.js_unicode = "Unicode: \\u0048\\u0065\\u006C\\u006C\\u006F \\u2764\\uFE0F"')
-    assert window.state.js_unicode == "Unicode: Hello ❤️"
+    window.run_js(
+        'pywebview.state.js_unicode = "Unicode: \\u0048\\u0065\\u006C\\u006C\\u006F \\u2764\\uFE0F"'
+    )
+    assert window.state.js_unicode == 'Unicode: Hello ❤️'
 
     # Test assignment from JS with null bytes and control characters
     window.run_js('pywebview.state.js_control = "Before\\u0000null\\u0001control\\u0008backspace"')
-    assert window.state.js_control == "Before\x00null\x01control\x08backspace"
+    assert window.state.js_control == 'Before\x00null\x01control\x08backspace'
 
     # Test that JS-assigned strings are accessible back in JS
     window.run_js('pywebview.state.js_test = "Test\\nfrom\\tJS\\\\path"')
     assert window.evaluate_js('pywebview.state.js_test === "Test\\nfrom\\tJS\\\\path"')
 
     # Test complex string with all special characters from JS
-    window.run_js('''pywebview.state.js_complex = "Line 1 with 'quotes'\\nLine 2 with \\"quotes\\"\\tand\\\\backslash"''')
-    expected = "Line 1 with 'quotes'\nLine 2 with \"quotes\"\tand\\backslash"
+    window.run_js(
+        '''pywebview.state.js_complex = "Line 1 with 'quotes'\\nLine 2 with \\"quotes\\"\\tand\\\\backslash"'''
+    )
+    expected = 'Line 1 with \'quotes\'\nLine 2 with "quotes"\tand\\backslash'
     assert window.state.js_complex == expected
 
     # Test template literal with complex content
-    window.run_js('''pywebview.state.js_template_complex = `Multi-line template
+    window.run_js("""pywebview.state.js_template_complex = `Multi-line template
 with 'single' and "double" quotes
 and backslash: \\\\
-and tab: \\t end`''')
+and tab: \\t end`""")
     expected = """Multi-line template
 with 'single' and "double" quotes
 and backslash: \\

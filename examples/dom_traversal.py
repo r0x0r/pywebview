@@ -19,7 +19,8 @@ def bind(window):
 
 if __name__ == '__main__':
     window = webview.create_window(
-        'DOM Manipulations Example', html='''
+        'DOM Manipulations Example',
+        html="""
             <html>
                 <head>
                 <style>
@@ -54,6 +55,6 @@ if __name__ == '__main__':
                     <button id="blue-previous-button">Get blue's previous element</button>
                 </body>
             </html>
-        '''
+        """,
     )
     webview.start(bind, window)

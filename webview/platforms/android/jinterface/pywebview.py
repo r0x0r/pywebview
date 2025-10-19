@@ -20,6 +20,7 @@ class EventCallbackWrapper(PythonJavaClass):
     callback(event: str, data: str): Calls the provided callback function
     with the given event and data.
     """
+
     __javacontext__ = 'app'
     __javainterfaces__ = ['com/pywebview/EventCallbackWrapper']
 
@@ -45,6 +46,7 @@ class JsApiCallbackWrapper(PythonJavaClass):
     method is triggered. The callable should accept three arguments.
 
     """
+
     __javacontext__ = 'app'
     __javainterfaces__ = ['com/pywebview/JsApiCallbackWrapper']
 
@@ -75,6 +77,7 @@ class RequestInterceptor(PythonJavaClass):
             accept the response URL, HTTP status code, and headers in JSON format.
 
     """
+
     __javacontext__ = 'app'
     __javainterfaces__ = ['com/pywebview/WebViewRequestInterceptor']
 

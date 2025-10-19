@@ -1,8 +1,8 @@
+import json
 
 import webview
-import json
+
 from .util import run_test
-import pytest
 
 test_values = [
     ('int', 1),
@@ -10,11 +10,11 @@ test_values = [
     ('null_value', None),
     ('object', {'key1': 'value', 'key2': 420}),
     ('array', [1, 2, 3]),
-    ('mixed', {'key1': 'value', 'key2': [ 1, 2, {'id': 2}], 'nullValue': None}),
+    ('mixed', {'key1': 'value', 'key2': [1, 2, {'id': 2}], 'nullValue': None}),
     ('boolean', True),
 ]
 
-test_value_string = '\n'.join([ f"var {name} = {json.dumps(value)}" for name, value in test_values])
+test_value_string = '\n'.join([f'var {name} = {json.dumps(value)}' for name, value in test_values])
 
 HTML = f"""
 <!DOCTYPE html>
@@ -42,6 +42,7 @@ var nodes = document.getElementsByTagName("div")
 </html>
 """
 
+
 def test_basic_serialization():
     window = webview.create_window('Basic serialization test', html=HTML)
     run_test(webview, window, serialization)
@@ -61,6 +62,7 @@ def serialization(window):
     for name, expected_value in test_values:
         result = window.evaluate_js(name)
         assert result == expected_value
+
 
 def circular_reference(window):
     result = window.evaluate_js('circular')

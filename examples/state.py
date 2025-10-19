@@ -32,15 +32,19 @@ html = """
 </html>
 """
 
+
 def on_counter_change(type, key, value):
     print(f'Event {type} for {key} value : {value}')
+
 
 def decrease_counter():
     window.state.counter -= 1
 
+
 def on_loaded(window):
     window.expose(decrease_counter)
     window.state += on_counter_change
+
 
 if __name__ == '__main__':
     global window

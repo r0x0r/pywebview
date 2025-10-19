@@ -1,6 +1,6 @@
 __all__ = ('AlertDialogBuilder', 'DownloadManagerRequest')
 
-from jnius import JavaClass, MetaJavaClass, JavaMultipleMethod, JavaMethod, JavaStaticField
+from jnius import JavaClass, JavaMethod, JavaMultipleMethod, JavaStaticField, MetaJavaClass
 
 
 class AlertDialogBuilder(JavaClass, metaclass=MetaJavaClass):
@@ -39,77 +39,169 @@ class AlertDialogBuilder(JavaClass, metaclass=MetaJavaClass):
         create: Constructs an AlertDialog instance without displaying it.
         show: Shows the AlertDialog after construction.
     """
+
     __javaclass__ = 'android/app/AlertDialog$Builder'
     __javaconstructor__ = [
         ('(Landroid/content/Context;)V', False),
-        ('(Landroid/content/Context;I)V', False)
+        ('(Landroid/content/Context;I)V', False),
     ]
-    setTitle = JavaMultipleMethod([
-        ('(I)Landroid/app/AlertDialog$Builder;', False, False),
-        ('(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;', False, False)
-    ])
+    setTitle = JavaMultipleMethod(
+        [
+            ('(I)Landroid/app/AlertDialog$Builder;', False, False),
+            ('(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;', False, False),
+        ]
+    )
     setCustomTitle = JavaMethod('(Landroid/view/View;)Landroid/app/AlertDialog$Builder;')
-    setMessage = JavaMultipleMethod([
-        ('(I)Landroid/app/AlertDialog$Builder;', False, False),
-        ('(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;', False, False)
-    ])
-    setIcon = JavaMultipleMethod([
-        ('(I)Landroid/app/AlertDialog$Builder;', False, False),
-        ('(Landroid/graphics/drawable/Drawable;)Landroid/app/AlertDialog$Builder;', False, False)
-    ])
+    setMessage = JavaMultipleMethod(
+        [
+            ('(I)Landroid/app/AlertDialog$Builder;', False, False),
+            ('(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;', False, False),
+        ]
+    )
+    setIcon = JavaMultipleMethod(
+        [
+            ('(I)Landroid/app/AlertDialog$Builder;', False, False),
+            (
+                '(Landroid/graphics/drawable/Drawable;)Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+        ]
+    )
     setIconAttribute = JavaMethod('(I)Landroid/app/AlertDialog$Builder;')
-    setPositiveButton = JavaMultipleMethod([
-        ('(ILandroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;', False, False),
-        ('(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)'
-         'Landroid/app/AlertDialog$Builder;', False, False)
-    ])
-    setNegativeButton = JavaMultipleMethod([
-        ('(ILandroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;', False, False),
-        ('(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)'
-         'Landroid/app/AlertDialog$Builder;', False, False)
-    ])
-    setNeutralButton = JavaMultipleMethod([
-        ('(ILandroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;', False, False),
-        ('(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)'
-         'Landroid/app/AlertDialog$Builder;', False, False)
-    ])
+    setPositiveButton = JavaMultipleMethod(
+        [
+            (
+                '(ILandroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+            (
+                '(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)'
+                'Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+        ]
+    )
+    setNegativeButton = JavaMultipleMethod(
+        [
+            (
+                '(ILandroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+            (
+                '(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)'
+                'Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+        ]
+    )
+    setNeutralButton = JavaMultipleMethod(
+        [
+            (
+                '(ILandroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+            (
+                '(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)'
+                'Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+        ]
+    )
     setCancelable = JavaMethod('(Z)Landroid/app/AlertDialog$Builder;')
-    setOnCancelListener = JavaMethod('(Landroid/content/DialogInterface$OnCancelListener;)'
-                                     'Landroid/app/AlertDialog$Builder;')
-    setOnDismissListener = JavaMethod('(Landroid/content/DialogInterface$OnDismissListener;)'
-                                      'Landroid/app/AlertDialog$Builder;')
-    setOnKeyListener = JavaMethod('(Landroid/content/DialogInterface$OnKeyListener;)'
-                                  'Landroid/app/AlertDialog$Builder;')
-    setItems = JavaMultipleMethod([
-        ('(ILandroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;', False, False),
-        ('([Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)'
-         'Landroid/app/AlertDialog$Builder;', False, False)
-    ])
-    setAdapter = JavaMethod('(Landroid/widget/ListAdapter;Landroid/content/DialogInterface$OnClickListener;)'
-                            'Landroid/app/AlertDialog$Builder;')
-    setCursor = JavaMethod('(Landroid/database/Cursor;Landroid/content/DialogInterface$OnClickListener;'
-                           'Ljava/lang/String;)Landroid/app/AlertDialog$Builder;')
-    setMultiChoiceItems = JavaMultipleMethod([
-        ('(I[ZLandroid/content/DialogInterface$OnMultiChoiceClickListener;)'
-         'Landroid/app/AlertDialog$Builder;', False, False),
-        ('([Ljava/lang/CharSequence;[ZLandroid/content/DialogInterface$OnMultiChoiceClickListener;)'
-         'Landroid/app/AlertDialog$Builder;', False, False),
-        ('(Landroid/database/Cursor;Ljava/lang/String;'
-         'Ljava/lang/String;Landroid/content/DialogInterface$OnMultiChoiceClickListener;)'
-         'Landroid/app/AlertDialog$Builder;', False, False)
-    ])
-    setSingleChoiceItems = JavaMultipleMethod([
-        ('(IILandroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;', False, False),
-        ('(Landroid/database/Cursor;ILjava/lang/String;Landroid/content/DialogInterface$OnClickListener;)'
-         'Landroid/app/AlertDialog$Builder;', False, False),
-        ('([Ljava/lang/CharSequence;ILandroid/content/DialogInterface$OnClickListener;)'
-         'Landroid/app/AlertDialog$Builder;', False, False),
-        ('(Landroid/widget/ListAdapter;ILandroid/content/DialogInterface$OnClickListener;)', False, False)
-    ])
-    setView = JavaMultipleMethod([
-        ('(I)Landroid/app/AlertDialog$Builder;', False, False),
-        ('(Landroid/view/View;)Landroid/app/AlertDialog$Builder;', False, False)
-    ])
+    setOnCancelListener = JavaMethod(
+        '(Landroid/content/DialogInterface$OnCancelListener;)Landroid/app/AlertDialog$Builder;'
+    )
+    setOnDismissListener = JavaMethod(
+        '(Landroid/content/DialogInterface$OnDismissListener;)Landroid/app/AlertDialog$Builder;'
+    )
+    setOnKeyListener = JavaMethod(
+        '(Landroid/content/DialogInterface$OnKeyListener;)Landroid/app/AlertDialog$Builder;'
+    )
+    setItems = JavaMultipleMethod(
+        [
+            (
+                '(ILandroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+            (
+                '([Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)'
+                'Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+        ]
+    )
+    setAdapter = JavaMethod(
+        '(Landroid/widget/ListAdapter;Landroid/content/DialogInterface$OnClickListener;)'
+        'Landroid/app/AlertDialog$Builder;'
+    )
+    setCursor = JavaMethod(
+        '(Landroid/database/Cursor;Landroid/content/DialogInterface$OnClickListener;'
+        'Ljava/lang/String;)Landroid/app/AlertDialog$Builder;'
+    )
+    setMultiChoiceItems = JavaMultipleMethod(
+        [
+            (
+                '(I[ZLandroid/content/DialogInterface$OnMultiChoiceClickListener;)'
+                'Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+            (
+                '([Ljava/lang/CharSequence;[ZLandroid/content/DialogInterface$OnMultiChoiceClickListener;)'
+                'Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+            (
+                '(Landroid/database/Cursor;Ljava/lang/String;'
+                'Ljava/lang/String;Landroid/content/DialogInterface$OnMultiChoiceClickListener;)'
+                'Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+        ]
+    )
+    setSingleChoiceItems = JavaMultipleMethod(
+        [
+            (
+                '(IILandroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+            (
+                '(Landroid/database/Cursor;ILjava/lang/String;Landroid/content/DialogInterface$OnClickListener;)'
+                'Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+            (
+                '([Ljava/lang/CharSequence;ILandroid/content/DialogInterface$OnClickListener;)'
+                'Landroid/app/AlertDialog$Builder;',
+                False,
+                False,
+            ),
+            (
+                '(Landroid/widget/ListAdapter;ILandroid/content/DialogInterface$OnClickListener;)',
+                False,
+                False,
+            ),
+        ]
+    )
+    setView = JavaMultipleMethod(
+        [
+            ('(I)Landroid/app/AlertDialog$Builder;', False, False),
+            ('(Landroid/view/View;)Landroid/app/AlertDialog$Builder;', False, False),
+        ]
+    )
     setInverseBackgroundForced = JavaMethod('(Z)Landroid/app/AlertDialog$Builder;')
     create = JavaMethod('()Landroid/app/AlertDialog;')
     show = JavaMethod('()Landroid/app/AlertDialog;')
@@ -141,10 +233,9 @@ class DownloadManagerRequest(JavaClass, metaclass=MetaJavaClass):
         VISIBILITY_VISIBLE_NOTIFY_ONLY_COMPLETION: int
             Visibility state where only completion of the download notifies the user.
     """
+
     __javaclass__ = 'android/app/DownloadManager$Request'
-    __javaconstructor__ = [
-        ('(Landroid/net/Uri;)V', False)
-    ]
+    __javaconstructor__ = [('(Landroid/net/Uri;)V', False)]
     NETWORK_MOBILE = JavaStaticField('I')
     NETWORK_WIFI = JavaStaticField('I')
     VISIBILITY_HIDDEN = JavaStaticField('I')
@@ -152,12 +243,17 @@ class DownloadManagerRequest(JavaClass, metaclass=MetaJavaClass):
     VISIBILITY_VISIBLE_NOTIFY_COMPLETED = JavaStaticField('I')
     VISIBILITY_VISIBLE_NOTIFY_ONLY_COMPLETION = JavaStaticField('I')
     setDestinationUri = JavaMethod('(Landroid/net/Uri;)Landroid/app/DownloadManager$Request;')
-    setDestinationInExternalFilesDir = JavaMethod('(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)'
-                                                  'Landroid/app/DownloadManager$Request;')
-    setDestinationInExternalPublicDir = JavaMethod('(Ljava/lang/String;Ljava/lang/String;)'
-                                                   'Landroid/app/DownloadManager$Request;')
+    setDestinationInExternalFilesDir = JavaMethod(
+        '(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)'
+        'Landroid/app/DownloadManager$Request;'
+    )
+    setDestinationInExternalPublicDir = JavaMethod(
+        '(Ljava/lang/String;Ljava/lang/String;)Landroid/app/DownloadManager$Request;'
+    )
     allowScanningByMediaScanner = JavaMethod('()V')
-    addRequestHeader = JavaMethod('(Ljava/lang/String;Ljava/lang/String;)Landroid/app/DownloadManager$Request;')
+    addRequestHeader = JavaMethod(
+        '(Ljava/lang/String;Ljava/lang/String;)Landroid/app/DownloadManager$Request;'
+    )
     setTitle = JavaMethod('(Ljava/lang/CharSequence;)Landroid/app/DownloadManager$Request;')
     setDescription = JavaMethod('(Ljava/lang/CharSequence;)Landroid/app/DownloadManager$Request;')
     setMimeType = JavaMethod('(Ljava/lang/String;)Landroid/app/DownloadManager$Request;')
@@ -169,4 +265,3 @@ class DownloadManagerRequest(JavaClass, metaclass=MetaJavaClass):
     setRequiresDeviceIdle = JavaMethod('(Z)Landroid/app/DownloadManager$Request;')
     setRequiresCharging = JavaMethod('(Z)Landroid/app/DownloadManager$Request;')
     setVisibleInDownloadsUi = JavaMethod('(Z)Landroid/app/DownloadManager$Request;')
-

@@ -21,9 +21,9 @@ def run_test(
     start_args: Dict[str, Any] = {},
     no_destroy: bool = False,
     destroy_delay: float = 0,
-    debug: bool = False
+    debug: bool = False,
 ) -> None:
-    """"
+    """ "
     A test running function that creates a window and runs a thread function in it. Test logic is to be placed in the
     thread function. The function will wait for the thread function to finish and then destroy the window. If the thread
     function raises an exception, the test will fail and the exception will be printed.
@@ -73,16 +73,14 @@ def assert_js(window, func_name, expected_result, *func_args):
     value_id = 'v' + uuid4().hex[:8]
     func_args = str(func_args).replace(',)', ')')
 
-    execute_func = """
-    window.pywebview.api.{0}{1}.then(function(value) {{
-        window.{2} = value
+    execute_func = f"""
+    window.pywebview.api.{func_name}{func_args}.then(function(value) {{
+        window.{value_id} = value
     }}).catch(function() {{
-        window.{2} = 'error'
+        window.{value_id} = 'error'
     }})
-    """.format(
-        func_name, func_args, value_id
-    )
-    check_func = 'window.{0}'.format(value_id)
+    """
+    check_func = f'window.{value_id}'
 
     window.evaluate_js(execute_func)
 
@@ -142,14 +140,15 @@ def wait_release(lock, timeout=3, count=0):
         return False
 
 
-
 def take_screenshot():
     if sys.platform == 'darwin':
-        from subprocess import Popen
         from datetime import datetime
+        from subprocess import Popen
 
         os.makedirs('/tmp/screenshots', exist_ok=True)
-        Popen(['screencapture', '-x', f'/tmp/screenshots/screenshot-{datetime.now().timestamp()}.png']).wait()
+        Popen(
+            ['screencapture', '-x', f'/tmp/screenshots/screenshot-{datetime.now().timestamp()}.png']
+        ).wait()
 
 
 def _destroy_window(_, window, delay):
@@ -171,16 +170,17 @@ def _destroy_window(_, window, delay):
 
 
 def take_screenshot2():
-    from PIL import ImageGrab
     from datetime import datetime
 
+    from PIL import ImageGrab
+
     # Create the directory if it doesn't exist
-    save_dir = "/tmp/screenshots"
+    save_dir = '/tmp/screenshots'
     os.makedirs(save_dir, exist_ok=True)
 
     # Get current timestamp for unique file name
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_name = f"screenshot_pil_{timestamp}.png"
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    file_name = f'screenshot_pil_{timestamp}.png'
 
     # Full path to save the screenshot
     save_path = os.path.join(save_dir, file_name)
@@ -189,7 +189,7 @@ def take_screenshot2():
     screenshot = ImageGrab.grab()
 
     # Save the screenshot
-    screenshot.save(save_path, "PNG")
+    screenshot.save(save_path, 'PNG')
 
-    print(f"Screenshot saved at: {save_path}")
+    print(f'Screenshot saved at: {save_path}')
     return save_path

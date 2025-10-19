@@ -12,4 +12,3 @@ typing_extensions
 proxy_tools
 bottle
 cryptography
-

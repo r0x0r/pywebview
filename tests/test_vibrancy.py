@@ -1,5 +1,7 @@
 import sys
+
 import pytest
+
 import webview
 
 from .util import run_test

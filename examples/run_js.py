@@ -1,7 +1,6 @@
 """Run Javascript code from Python."""
 
 import webview
-from webview.errors import JavascriptException
 
 
 def run_js(window):

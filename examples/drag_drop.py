@@ -7,6 +7,7 @@ from webview.dom import DOMEventHandler
 def on_drag(e):
     pass
 
+
 def on_drop(e):
     files = e['dataTransfer']['files']
     if len(files) == 0:
@@ -24,14 +25,16 @@ def bind(window):
     window.dom.document.events.dragover += DOMEventHandler(on_drag, True, True, debounce=500)
     window.dom.document.events.drop += DOMEventHandler(on_drop, True, True)
 
+
 if __name__ == '__main__':
     window = webview.create_window(
-        'Drag & drop example', html='''
+        'Drag & drop example',
+        html="""
             <html>
                 <body style="height: 100vh;"->
                     <h1>Drag files here</h1>
                 </body>
             </html>
-        '''
+        """,
     )
     webview.start(bind, window)

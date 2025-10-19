@@ -56,25 +56,24 @@ class App(EventDispatcher):
 
     def run(self):
         self.build_view()
-        self._eventloop.status = "created"
+        self._eventloop.status = 'created'
         self._eventloop.mainloop()
 
     @staticmethod
     def get_running_app():
-        """Return the currently running application instance.
-        """
+        """Return the currently running application instance."""
         return App._running_app
 
     def pause(self):
-        '''Pause the application.
+        """Pause the application.
 
         On Android set OS state to pause, Kivy app state follows.
         No functionality on other OS.
         .. versionadded:: 2.2.0
-        '''
+        """
         act.moveTaskToBack(True)
 
     def stop(self):
-        self.dispatch("on_destroy")
+        self.dispatch('on_destroy')
         self._eventloop.close()
         App._running_app = None

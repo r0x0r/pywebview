@@ -124,9 +124,7 @@ class HeavyStuffAPI:
         else:
             then = time.time()
             response = {
-                'message': 'Operation took {0:.1f} seconds on the thread {1}'.format(
-                    (then - now), threading.current_thread()
-                )
+                'message': f'Operation took {then - now:.1f} seconds on the thread {threading.current_thread()}'
             }
         return response
 
@@ -148,19 +146,17 @@ class Api:
     this_wont_be_exposed = NotExposedApi()
 
     def init(self):
-        response = {'message': 'Hello from Python {0}'.format(sys.version)}
+        response = {'message': f'Hello from Python {sys.version}'}
         return response
 
     def getRandomNumber(self):
         response = {
-            'message': 'Here is a random number courtesy of randint: {0}'.format(
-                random.randint(0, 100000000)
-            )
+            'message': f'Here is a random number courtesy of randint: {random.randint(0, 100000000)}'
         }
         return response
 
     def sayHelloTo(self, name):
-        response = {'message': 'Hello {0}!'.format(name)}
+        response = {'message': f'Hello {name}!'}
         return response
 
     def error(self):

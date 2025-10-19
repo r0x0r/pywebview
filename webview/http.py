@@ -20,7 +20,6 @@ import socket
 import ssl
 import threading
 import uuid
-
 from socketserver import ThreadingMixIn
 from typing import TYPE_CHECKING
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
@@ -99,7 +98,7 @@ class BottleServer:
             common_path = os.path.commonpath(local_urls) if len(local_urls) > 0 else None
             if common_path is not None and not os.path.isdir(abspath(common_path)):
                 common_path = os.path.dirname(common_path)
-            logger.debug("Comon path for local URLs: %s" % common_path)
+            logger.debug('Comon path for local URLs: %s' % common_path)
             server.root_path = abspath(common_path) if common_path is not None else None
             logger.debug('HTTP server root path: %s' % server.root_path)
             app = bottle.Bottle()
@@ -107,12 +106,12 @@ class BottleServer:
             @app.post(f'/js_api/{server.uid}')
             def js_api():
                 bottle.response.headers['Access-Control-Allow-Origin'] = '*'
-                bottle.response.headers[
-                    'Access-Control-Allow-Methods'
-                ] = 'PUT, GET, POST, DELETE, OPTIONS'
-                bottle.response.headers[
-                    'Access-Control-Allow-Headers'
-                ] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
+                bottle.response.headers['Access-Control-Allow-Methods'] = (
+                    'PUT, GET, POST, DELETE, OPTIONS'
+                )
+                bottle.response.headers['Access-Control-Allow-Headers'] = (
+                    'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
+                )
 
                 body = json.loads(bottle.request.body.read().decode('utf-8'))
                 if body['uid'] in server.js_callback:
@@ -211,7 +210,7 @@ def start_server(
     server: type[ServerType] = BottleServer,
     **server_args: Unpack[ServerArgs],
 ) -> tuple[str, str | None, BottleServer]:
-    server = server if not server is None else BottleServer
+    server = server if server is not None else BottleServer
     return server.start_server(urls, http_port, **server_args)
 
 

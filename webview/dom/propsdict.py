@@ -1,6 +1,7 @@
 import json
 from enum import Enum
 from typing import Any, Dict, Optional, Union
+
 from webview.util import css_to_camel, escape_string
 
 
@@ -29,9 +30,9 @@ class PropsDict:
             """)
 
         elif type == DOMPropType.Attribute:
-            converted_attributes = json.dumps({
-                escape_string(key): escape_string(value) for key, value in props.items()
-            })
+            converted_attributes = json.dumps(
+                {escape_string(key): escape_string(value) for key, value in props.items()}
+            )
 
             self.__element._window.evaluate_js(f"""
                 {self.__element._query_command};

@@ -5,7 +5,9 @@ from typing import Any, Union
 
 
 class Menu:
-    def __init__(self, title: str, items: list[Union[Menu, MenuAction, MenuSeparator]] = []) -> None:
+    def __init__(
+        self, title: str, items: list[Union[Menu, MenuAction, MenuSeparator]] = []
+    ) -> None:
         """
         Args:
             title: the menu or submenu title

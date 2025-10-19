@@ -1,10 +1,12 @@
 from threading import Lock
+
 import pytest
+from bottle import Bottle, request
 
 import webview
 
 from .util import run_test
-from bottle import Bottle, request
+
 
 @pytest.fixture
 def headers_window():
@@ -49,7 +51,8 @@ def request_test(window, exceptions, lock):
     if len(exceptions) > 0:
         raise exceptions[0]
 
+
 def headers_test(window):
     window.events.loaded.wait()
     headers = window.evaluate_js('document.body.innerText')
-    assert 'Pywebview: test' in headers, f"Expected header not found: {headers}"
+    assert 'Pywebview: test' in headers, f'Expected header not found: {headers}'

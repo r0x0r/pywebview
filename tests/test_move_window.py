@@ -1,9 +1,9 @@
 from threading import Lock
-from time import sleep
-import pytest
+
 import webview
 
 from .util import run_test, wait_release
+
 
 def test_xy():
     window = webview.create_window('xy test', x=200, y=200, width=100, height=100)
@@ -42,4 +42,3 @@ def move_window(window):
     assert lock.acquire(3)
     if exception:
         raise exception
-

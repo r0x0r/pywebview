@@ -7,8 +7,9 @@ from .util import run_test
 
 @pytest.fixture
 def window():
-    return webview.create_window('Run JS test', html='<html><body><div id="node">TEST</div></body></html>')
-
+    return webview.create_window(
+        'Run JS test', html='<html><body><div id="node">TEST</div></body></html>'
+    )
 
 
 def test_string(window):
@@ -18,8 +19,10 @@ def test_string(window):
 def test_int(window):
     run_test(webview, window, int_test)
 
+
 def test_numeric(window):
     run_test(webview, window, numeric_test)
+
 
 def test_stringify(window):
     run_test(webview, window, stringify_test)
@@ -27,7 +30,7 @@ def test_stringify(window):
 
 def string_test(window):
     result = window.run_js(
-    """
+        """
     "this is only a test"
     """
     )
@@ -36,7 +39,7 @@ def string_test(window):
 
 def int_test(window):
     result = window.run_js(
-    """
+        """
     420
     """
     )
@@ -45,7 +48,7 @@ def int_test(window):
 
 def numeric_test(window):
     result = window.run_js(
-    """
+        """
     '420'
     """
     )
@@ -55,7 +58,7 @@ def numeric_test(window):
 def stringify_test(window):
     window.events.loaded.wait()
     result = window.run_js(
-    """
+        """
     var obj = {a: 420};
     var value = pywebview.stringify(obj);
     value;

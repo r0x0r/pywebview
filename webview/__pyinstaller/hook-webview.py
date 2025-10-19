@@ -1,5 +1,5 @@
-from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 from PyInstaller.compat import is_win
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 
 datas = []
 if is_win:

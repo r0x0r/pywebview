@@ -25,6 +25,7 @@ def initialize(forced_gui: GUIType | None = None):
 
         try:
             import webview.platforms.android as guilib
+
             logger.debug('Using Kivy')
             return True
         except (ImportError, ValueError):
@@ -93,9 +94,7 @@ def initialize(forced_gui: GUIType | None = None):
         forced_gui = cast(
             GUIType,
             os.environ['PYWEBVIEW_GUI'].lower()
-            if 'PYWEBVIEW_GUI' in os.environ
-            and os.environ['PYWEBVIEW_GUI'].lower()
-            in GUI_TYPES
+            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in GUI_TYPES
             else forced_gui,
         )
 

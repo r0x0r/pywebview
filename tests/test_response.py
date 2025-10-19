@@ -1,10 +1,12 @@
 from threading import Lock
+
 import pytest
+from bottle import Bottle
 
 import webview
 
 from .util import run_test
-from bottle import Bottle
+
 
 @pytest.fixture
 def window():

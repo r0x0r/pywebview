@@ -1,8 +1,9 @@
 from threading import Semaphore
 
-from webview.platforms.android.event import EventDispatcher
-from android.activity import register_activity_lifecycle_callbacks, _activity as activity  # noqa
+from android.activity import register_activity_lifecycle_callbacks  # noqa
 from android.runnable import run_on_ui_thread  # noqa
+
+from webview.platforms.android.event import EventDispatcher
 from webview.platforms.android.jclass.view import Choreographer
 from webview.platforms.android.jinterface.view import FrameCallback
 
@@ -11,9 +12,10 @@ class EventLoop(EventDispatcher):
     def __init__(self):
         super(EventLoop, self).__init__()
         from webview.platforms.android.app import App
+
         self.app = App.get_running_app()
         self.quit = False
-        self.status = "idle"
+        self.status = 'idle'
         self.resumed = False
         self.destroyed = False
         self.paused = False
@@ -29,7 +31,8 @@ class EventLoop(EventDispatcher):
     def mainloop(self):
         choreographer = None
         frame_callback = None
-        while not self.quit and self.status == "created":
+        while not self.quit and self.status == 'created':
+
             def do_frame(_):
                 lock.release()
 
@@ -50,4 +53,4 @@ class EventLoop(EventDispatcher):
 
     def close(self):
         self.quit = True
-        self.status = "destroyed"
+        self.status = 'destroyed'

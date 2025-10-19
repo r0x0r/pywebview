@@ -1,6 +1,6 @@
 __all__ = ('Uri',)
 
-from jnius import JavaClass, MetaJavaClass, JavaMethod, JavaStaticMethod
+from jnius import JavaClass, JavaMethod, JavaStaticMethod, MetaJavaClass
 
 
 class Uri(JavaClass, metaclass=MetaJavaClass):
@@ -22,6 +22,7 @@ class Uri(JavaClass, metaclass=MetaJavaClass):
             Represents the Java method 'getLastPathSegment' to retrieve the last
             segment of the URI's path.
     """
+
     __javaclass__ = 'android/net/Uri'
     parse = JavaStaticMethod('(Ljava/lang/String;)Landroid/net/Uri;')
     getLastPathSegment = JavaMethod('()Ljava/lang/String;')

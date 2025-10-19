@@ -1,14 +1,15 @@
 """Resize window."""
 
 from time import sleep
+
 import webview
 
 
 def resize(window):
-    print('Window size is ({0}, {1})'.format(window.width, window.height))
+    print(f'Window size is ({window.width}, {window.height})')
     sleep(2)
     window.resize(420, 420)
-    print('Window size is ({0}, {1})'.format(window.width, window.height))
+    print(f'Window size is ({window.width}, {window.height})')
 
 
 if __name__ == '__main__':

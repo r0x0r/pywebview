@@ -4,6 +4,7 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
+
 from __future__ import annotations
 
 import inspect
@@ -13,19 +14,18 @@ import os
 import re
 import sys
 import traceback
+import urllib.parse
 from collections import UserDict
 from glob import glob
 from http.cookies import SimpleCookie
 from platform import architecture
 from threading import Thread
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import webview
-
 from webview.dom import _dnd_state
 from webview.errors import WebViewException
-import urllib.parse
 
 if TYPE_CHECKING:
     from webview.window import Window
@@ -46,7 +46,7 @@ logger = logging.getLogger('pywebview')
 
 
 class ImmutableDict(UserDict):
-    """"
+    """ "
     A dictionary that does not allow adding new keys or deleting existing ones.
     Only existing keys can be modified.
     """
@@ -73,8 +73,15 @@ def is_app(url: str | callable | None) -> bool:
 
 
 def is_local_url(url: str | callable | None) -> bool:
-    return not ((is_app(url)) or (
-            (not url) or (url.startswith('http://')) or (url.startswith('https://')) or url.startswith('file://')))
+    return not (
+        (is_app(url))
+        or (
+            (not url)
+            or (url.startswith('http://'))
+            or (url.startswith('https://'))
+            or url.startswith('file://')
+        )
+    )
 
 
 def needs_server(urls: list[str]) -> bool:
@@ -89,7 +96,7 @@ def get_app_root() -> str:
     if hasattr(sys, '_MEIPASS'):  # Pyinstaller
         return sys._MEIPASS
 
-    if os.getenv('RESOURCEPATH'): # py2app
+    if os.getenv('RESOURCEPATH'):  # py2app
         return os.getenv('RESOURCEPATH')
 
     if getattr(sys, 'frozen', False):  # cx_freeze
@@ -159,7 +166,7 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
 
 
 def inject_pywebview(platform: str, window: Window) -> str:
-    """"
+    """ "
     Generates and injects a global window.pywebview object. The object contains exposed API functions
     as well as utility functions required by pywebview. The function fires before_load event before
     injecting the object and loaded event after the object is injected.
@@ -182,7 +189,7 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
         for name in dir(obj):
             try:
-                full_name = f"{base_name}.{name}" if base_name else name
+                full_name = f'{base_name}.{name}' if base_name else name
                 target_obj = getattr(obj, name)
 
                 if name.startswith('_') or getattr(target_obj, '_serializable', True) == False:
@@ -192,7 +199,9 @@ def inject_pywebview(platform: str, window: Window) -> str:
                 if inspect.ismethod(attr):
                     functions[full_name] = get_args(attr)[1:]
                 # If the attribute is a class or a non-callable object, make a recursive call
-                elif inspect.isclass(attr) or (isinstance(attr, object) and not callable(attr) and hasattr(attr, "__module__")):
+                elif inspect.isclass(attr) or (
+                    isinstance(attr, object) and not callable(attr) and hasattr(attr, '__module__')
+                ):
                     get_functions(attr, full_name, functions)
             except Exception as e:
                 logger.error(f'Error while processing {full_name}: {e}')
@@ -220,9 +229,7 @@ def inject_pywebview(platform: str, window: Window) -> str:
         try:
             with window._expose_lock:
                 func_list = generate_func()
-                window.run_js(finish_script % {
-                    'functions': json.dumps(func_list)
-                })
+                window.run_js(finish_script % {'functions': json.dumps(func_list)})
                 window.events.loaded.set()
                 logger.debug('loaded event fired')
         except Exception as e:
@@ -241,18 +248,21 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
     Calls a function from the JS API and executes it in Python. The function is executed in a separate
     thread to prevent blocking the UI thread. The result is then passed back to the JS API.
     """
+
     def _call():
         try:
             result = func(*func_params)
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
-            retval = f"{{value: \'{result}\'}}"
+            retval = f"{{value: '{result}'}}"
         except Exception as e:
             logger.error(traceback.format_exc())
             error = {'message': str(e), 'name': type(e).__name__, 'stack': traceback.format_exc()}
             result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
-            retval = f"{{isError: true, value: \'{result}\'}}"
+            retval = f"{{isError: true, value: '{result}'}}"
 
-        window.evaluate_js(f'window.pywebview._returnValuesCallbacks["{func_name}"]["{value_id}"]({retval})')
+        window.evaluate_js(
+            f'window.pywebview._returnValuesCallbacks["{func_name}"]["{value_id}"]({retval})'
+        )
 
     def get_nested_attribute(obj: object, attr_str: str):
         attributes = attr_str.split('.')
@@ -277,7 +287,11 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         if event['type'] == 'drop':
             files = event['dataTransfer'].get('files', [])
             for file in files:
-                path = [item for item in _dnd_state['paths'] if urllib.parse.unquote(item[0]) == file['name']]
+                path = [
+                    item
+                    for item in _dnd_state['paths']
+                    if urllib.parse.unquote(item[0]) == file['name']
+                ]
                 if len(path) == 0:
                     continue
 
@@ -297,9 +311,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
             window._callbacks[value_id](value)
         else:
             logger.error(
-                'Async function executed and callback is not callable. Returned value {0}'.format(
-                    value
-                )
+                f'Async function executed and callback is not callable. Returned value {value}'
             )
 
         del window._callbacks[value_id]
@@ -322,8 +334,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
             thread = Thread(target=_call)
             thread.start()
         except Exception:
-            logger.exception(
-                'Error occurred while evaluating function %s', func_name)
+            logger.exception('Error occurred while evaluating function %s', func_name)
     else:
         logger.error('Function %s() does not exist', func_name)
 
@@ -343,7 +354,7 @@ def load_js_files(window: Window, platform: str) -> str:
     finish_script = ''
 
     for file in ordered_js_files:
-        with open(file, 'r') as f:
+        with open(file) as f:
             name = os.path.splitext(os.path.basename(file))[0]
             content = f.read()
             params = {}
@@ -353,21 +364,23 @@ def load_js_files(window: Window, platform: str) -> str:
                     'token': _TOKEN,
                     'platform': platform,
                     'uid': window.uid,
-                    'js_api_endpoint': window.js_api_endpoint
+                    'js_api_endpoint': window.js_api_endpoint,
                 }
             elif name == 'customize':
                 params = {
                     'text_select': str(window.text_select),
                     'drag_selector': webview.settings['DRAG_REGION_SELECTOR'],
-                    'drag_region_direct_target_only': str(webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY']),
+                    'drag_region_direct_target_only': str(
+                        webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY']
+                    ),
                     'zoomable': str(window.zoomable),
                     'draggable': str(window.draggable),
-                    'easy_drag': str(platform == 'edgechromium' and window.easy_drag and window.frameless)
+                    'easy_drag': str(
+                        platform == 'edgechromium' and window.easy_drag and window.frameless
+                    ),
                 }
             elif name == 'state':
-                params = {
-                    'state': json.dumps(window.state)
-                }
+                params = {'state': json.dumps(window.state)}
             elif name == 'finish':
                 finish_script = content
                 continue
@@ -408,7 +421,7 @@ def sort_js_files(js_files: list[str]) -> list[str]:
     Sorts JS files in the order they should be loaded. Polyfill first, then API, then the rest and
     finally finish.js that fires a pywebviewready event.
     """
-    LOAD_ORDER = { 'polyfill': 0, 'api': 1, 'state': 2 }
+    LOAD_ORDER = {'polyfill': 0, 'api': 1, 'state': 2}
 
     ordered_js_files = []
     remaining_js_files = []
@@ -428,7 +441,11 @@ def sort_js_files(js_files: list[str]) -> list[str]:
 
 def escape_string(string: str) -> str:
     return (
-        string.replace('\\', '\\\\').replace('"', r"\"").replace('\n', r'\n').replace('\r', r'\r').replace('\'', r'\'')
+        string.replace('\\', '\\\\')
+        .replace('"', r'\"')
+        .replace('\n', r'\n')
+        .replace('\r', r'\r')
+        .replace("'", r'\'')
     )
 
 
@@ -500,7 +517,7 @@ def interop_dll_path(dll_name: str) -> str:
 
 
 def environ_append(key: str, *values: str, sep=' ') -> None:
-    '''Append values to an environment variable, separated by sep'''
+    """Append values to an environment variable, separated by sep"""
     values = list(values)
 
     existing = os.environ.get(key, '')

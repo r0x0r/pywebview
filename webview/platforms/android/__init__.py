@@ -1,40 +1,39 @@
-import logging
 import json
+import logging
 from http.cookies import SimpleCookie
 from threading import Semaphore
 from urllib.parse import urlparse
 
-from jnius import cast, autoclass
+from android.activity import _activity as activity  # noqa
 from android.runnable import run_on_ui_thread  # noqa
-from android.activity import _activity as activity# noqa
+from jnius import autoclass, cast
 
 from webview import _state, settings
 from webview.models import Request, Response
 from webview.platforms.android.app import App
 from webview.platforms.android.jclass import (
-    CookieManager,
-    WebView,
-    PyWebViewClient,
-    PyWebChromeClient,
-    PyJavascriptInterface,
     AlertDialogBuilder,
+    Context,
+    CookieManager,
     DownloadManagerRequest,
-    Uri,
     Environment,
-    View,
     KeyEvent,
-    Context
+    PyJavascriptInterface,
+    PyWebChromeClient,
+    PyWebViewClient,
+    Uri,
+    View,
+    WebView,
 )
 from webview.platforms.android.jinterface import (
+    DownloadListener,
     EventCallbackWrapper,
-    RequestInterceptor,
     JsApiCallbackWrapper,
     KeyListener,
+    RequestInterceptor,
     ValueCallback,
-    DownloadListener
 )
-from webview.util import create_cookie, js_bridge_call, inject_pywebview
-
+from webview.util import create_cookie, inject_pywebview, js_bridge_call
 
 logger = logging.getLogger('pywebview')
 
@@ -61,6 +60,7 @@ class BrowserView:
 
         def webview_callback(event, data):
             if event == 'onPageFinished':
+
                 @run_on_ui_thread
                 def _handle_page_finished():
                     try:
@@ -74,7 +74,7 @@ class BrowserView:
                         else:
                             cookie_manager.setAcceptCookie(False)
                     except Exception as e:
-                        logger.error(f"Error handling page finished: {e}")
+                        logger.error(f'Error handling page finished: {e}')
 
                 _handle_page_finished()
 
@@ -89,14 +89,14 @@ class BrowserView:
                         app.view._cookies.append(cookie)
 
                 except Exception as e:
-                    logger.error(f"Error parsing cookies: {e}")
+                    logger.error(f'Error parsing cookies: {e}')
 
             elif event == 'onReceivedHttpError':
                 response_data = json.loads(data)
                 response = Response(
                     response_data.get('url', ''),
                     response_data.get('statusCode', 0),
-                    response_data.get('headers', {})
+                    response_data.get('headers', {}),
                 )
                 self.pywebview_window.events.response_received.set(response)
 
@@ -116,7 +116,9 @@ class BrowserView:
 
         self._webview_callback_wrapper = EventCallbackWrapper(webview_callback)
         self._webview_client = webview_client = PyWebViewClient()
-        webview_client.setCallback(self._webview_callback_wrapper, _state['ssl'] or settings['IGNORE_SSL_ERRORS'])
+        webview_client.setCallback(
+            self._webview_callback_wrapper, _state['ssl'] or settings['IGNORE_SSL_ERRORS']
+        )
         self._request_interceptor = RequestInterceptor(self._on_request, self._on_response)
         webview_client.setRequestInterceptor(self._request_interceptor)
 
@@ -133,6 +135,7 @@ class BrowserView:
         self.webview.addJavascriptInterface(js_interface, 'external')
 
         if settings['ALLOW_DOWNLOADS']:
+
             def _on_download_start(url, *_):
                 context = activity.getApplicationContext()
                 visibility = DownloadManagerRequest.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
@@ -142,7 +145,10 @@ class BrowserView:
                 request = DownloadManagerRequest(uri)
                 request.setNotificationVisibility(visibility)
                 request.setDestinationInExternalFilesDir(context, dir_type, filepath)
-                dm = cast("android.app.DownloadManager", activity.getSystemService(Context.DOWNLOAD_SERVICE))
+                dm = cast(
+                    'android.app.DownloadManager',
+                    activity.getSystemService(Context.DOWNLOAD_SERVICE),
+                )
                 dm.enqueue(request)
 
             self._download_listener = DownloadListener(_on_download_start)
@@ -155,7 +161,9 @@ class BrowserView:
         if self.pywebview_window.real_url:
             self.webview.loadUrl(self.pywebview_window.real_url)
         elif self.pywebview_window.html:
-            self.webview.loadDataWithBaseURL(None, self.pywebview_window.html, 'text/html', 'UTF-8', None)
+            self.webview.loadDataWithBaseURL(
+                None, self.pywebview_window.html, 'text/html', 'UTF-8', None
+            )
 
         if self.pywebview_window.fullscreen:
             toggle_fullscreen(self.pywebview_window)
@@ -171,7 +179,11 @@ class BrowserView:
         self.pywebview_window.events.request_sent.set(request)
 
         if request.headers != original_headers:
-            logger.debug('Request headers mutated. Original: %s, Mutated: %s', original_headers, request.headers)
+            logger.debug(
+                'Request headers mutated. Original: %s, Mutated: %s',
+                original_headers,
+                request.headers,
+            )
 
             return json.dumps(request.headers)
 
@@ -220,7 +232,7 @@ class BrowserView:
                 self.layout = None
                 self.webview = None
             except Exception as e:
-                logger.error(f"Error during dismiss: {e}")
+                logger.error(f'Error during dismiss: {e}')
             finally:
                 app.stop()
 
@@ -238,17 +250,19 @@ class BrowserView:
         if self.dialog:
             return
 
-        String = autoclass("java.lang.String")
+        String = autoclass('java.lang.String')
         message = String(self.pywebview_window.localization['global.quitConfirmation'])
         quit_msg = String(self.pywebview_window.localization['global.quit'])
         cancel_msg = String(self.pywebview_window.localization['global.cancel'])
 
-        self.dialog = AlertDialogBuilder(activity) \
-            .setMessage(message) \
-            .setPositiveButton(quit_msg, quit) \
-            .setNegativeButton(cancel_msg, cancel) \
-            .setOnCancelListener(cancel) \
+        self.dialog = (
+            AlertDialogBuilder(activity)
+            .setMessage(message)
+            .setPositiveButton(quit_msg, quit)
+            .setNegativeButton(cancel_msg, cancel)
+            .setOnCancelListener(cancel)
             .show()
+        )
 
     def _back_pressed(self, v, key_code, event):
         if not (event.getAction() == KeyEvent.ACTION_DOWN and key_code == KeyEvent.KEYCODE_BACK):
@@ -293,7 +307,6 @@ class BrowserView:
         lock.acquire()
 
         return url
-
 
     @run_on_ui_thread
     def load_url(self, url):
@@ -350,6 +363,7 @@ class AndroidApp(App):
         application is no longer visible to the user.
         """
 
+
 def create_file_dialog(*_):
     logger.warning('Creating file dialogs is not supported on Android')
 
@@ -399,7 +413,7 @@ def evaluate_js(js_code, _, parse_json=True):
             value_callback = ValueCallback(callback)
             app.view.webview.evaluateJavascript(js_code, value_callback)
         except Exception as e:
-            logger.error(f"Error evaluating JavaScript: {e}")
+            logger.error(f'Error evaluating JavaScript: {e}')
             # Ensure callback is cleared on error
             value_callback = None
             lock.release()
@@ -424,7 +438,7 @@ def clear_cookies(_):
             cookie_manager = CookieManager.getInstance()
             cookie_manager.removeAllCookies(None)
         except Exception as e:
-            logger.error(f"Error clearing cookies: {e}")
+            logger.error(f'Error clearing cookies: {e}')
         finally:
             # Clear the reference to help GC
             cookie_manager = None
@@ -437,7 +451,7 @@ def clear_cookies(_):
 
 def get_cookies(_):
     cookies = app.view._cookies
-    cookie_string = evaluate_js(f'document.cookie', None, False)
+    cookie_string = evaluate_js('document.cookie', None, False)
 
     try:
         current_url = app.view.get_url()
@@ -468,12 +482,12 @@ def get_cookies(_):
                     'domain': domain,
                     'path': '/',
                     'secure': is_secure,
-                    'httponly': False
+                    'httponly': False,
                 }
 
                 cookies.append(create_cookie(cookie_dict))
     except Exception as e:
-        logger.exception(f"Error getting cookies: {e}")
+        logger.exception(f'Error getting cookies: {e}')
 
     return cookies
 
@@ -488,7 +502,7 @@ def get_current_url(_):
         try:
             url = app.view.get_url()
         except Exception as e:
-            logger.error(f"Error getting current URL: {e}")
+            logger.error(f'Error getting current URL: {e}')
         finally:
             lock.release()
 
@@ -552,12 +566,14 @@ def toggle_fullscreen(_):
 
     try:
         if not is_fullscreen:
-            option = (View.SYSTEM_UI_FLAG_FULLSCREEN |
-                      View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                      View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
-                      View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                      View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                      View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+            option = (
+                View.SYSTEM_UI_FLAG_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            )
             app.view.webview.setSystemUiVisibility(option)
             app.view.is_fullscreen = True
         else:
@@ -565,7 +581,7 @@ def toggle_fullscreen(_):
             app.view.webview.setSystemUiVisibility(option)
             app.view.is_fullscreen = False
     except Exception as e:
-        logger.error(f"Error toggling fullscreen: {e}")
+        logger.error(f'Error toggling fullscreen: {e}')
 
 
 def add_tls_cert(certfile):

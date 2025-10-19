@@ -27,7 +27,8 @@ def expose(window):
 
 if __name__ == '__main__':
     window = webview.create_window(
-        'JS Expose Example', html='<html><head></head><body><h1>JS API function Expose</body></html>'
+        'JS Expose Example',
+        html='<html><head></head><body><h1>JS API function Expose</body></html>',
     )
     window.expose(lol, wtf)  # expose functions beforehand
 

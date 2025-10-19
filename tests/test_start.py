@@ -1,5 +1,3 @@
-from time import sleep
-
 import webview
 
 from .util import assert_js, run_test

@@ -24,6 +24,7 @@ class KeyListener(PythonJavaClass):
         - key_code (int): The key code of the key event.
         - event (android.view.KeyEvent): The Android KeyEvent object.
     """
+
     __javacontext__ = 'app'
     __javainterfaces__ = ['android/view/View$OnKeyListener']
 

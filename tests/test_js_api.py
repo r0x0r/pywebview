@@ -7,26 +7,34 @@ from .util import assert_js, run_test
 
 def test_js_bridge():
     api = Api()
-    window = webview.create_window('JSBridge test', html='<html><body>TEST</body></html>', js_api=api)
+    window = webview.create_window(
+        'JSBridge test', html='<html><body>TEST</body></html>', js_api=api
+    )
     run_test(webview, window, js_bridge)
 
 
 def test_exception():
     api = Api()
-    window = webview.create_window('JSBridge test', html='<html><body>TEST</body></html>', js_api=api)
+    window = webview.create_window(
+        'JSBridge test', html='<html><body>TEST</body></html>', js_api=api
+    )
     run_test(webview, window, exception)
 
 
 # This test randomly fails on Windows
 def test_concurrent():
     api = Api()
-    window = webview.create_window('JSBridge test', html='<html><body>TEST</body></html>', js_api=api)
+    window = webview.create_window(
+        'JSBridge test', html='<html><body>TEST</body></html>', js_api=api
+    )
     run_test(webview, window, concurrent)
 
 
 def test_skip_existing():
     api = Api()
-    window = webview.create_window('JSBridge test', html='<html><body>TEST</body></html>', js_api=api)
+    window = webview.create_window(
+        'JSBridge test', html='<html><body>TEST</body></html>', js_api=api
+    )
     run_test(webview, window, skip_existing)
 
 
@@ -37,6 +45,7 @@ class NestedApi:
 
     def get_int_instance(self):
         return 423
+
 
 class Api:
     class ApiTestException(Exception):
@@ -104,6 +113,7 @@ def concurrent(window):
 
     for e in filter(lambda r: r, [f.exception() for f in futures]):
         raise e
+
 
 def skip_existing(window):
     assert window.evaluate_js('window.pywebview.api.nested_instance_duplicate === undefined')

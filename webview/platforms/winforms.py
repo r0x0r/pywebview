@@ -5,8 +5,7 @@ import sys
 import tempfile
 import threading
 import winreg
-from ctypes import windll
-from ctypes import wintypes
+from ctypes import windll, wintypes
 from platform import machine
 from threading import Event, Semaphore
 
@@ -25,15 +24,16 @@ clr.AddReference('System.Threading')
 clr.AddReference('System.Reflection')
 
 import System.Windows.Forms as WinForms
-from System import Environment, Func, Int32, IntPtr, Type, UInt32, Array, Object
-from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF
-from System.Threading import ApartmentState, Thread, ThreadStart
-from System.Reflection import Assembly, BindingFlags
 from Microsoft.Win32 import SystemEvents
+from System import Array, Environment, Func, Int32, IntPtr, Object, Type, UInt32
+from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF
+from System.Reflection import Assembly, BindingFlags
+from System.Threading import ApartmentState, Thread, ThreadStart
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 logger = logging.getLogger('pywebview')
 cache_dir = None
+
 
 def _is_new_version(current_version: str, new_version: str) -> bool:
     new_range = new_version.split('.')
@@ -107,6 +107,7 @@ def _is_chromium():
 
     return False
 
+
 is_cef = forced_gui_ == 'cef'
 is_chromium = not is_cef and _is_chromium() and forced_gui_ != 'mshtml'
 
@@ -137,17 +138,23 @@ else:
 
 def DwmSetWindowAttribute(hwnd, attr, value, size=4):
     DwmSetWindowAttribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
-    DwmSetWindowAttribute.argtypes = [wintypes.HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+    DwmSetWindowAttribute.argtypes = [
+        wintypes.HWND,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+    ]
     return DwmSetWindowAttribute(hwnd, attr, ctypes.byref(ctypes.c_int(value)), size)
 
 
 def ExtendFrameIntoClientArea(hwnd):
     class _MARGINS(ctypes.Structure):
-        _fields_ = [("cxLeftWidth", ctypes.c_int),
-                    ("cxRightWidth", ctypes.c_int),
-                    ("cyTopHeight", ctypes.c_int),
-                    ("cyBottomHeight", ctypes.c_int)
-                    ]
+        _fields_ = [
+            ('cxLeftWidth', ctypes.c_int),
+            ('cxRightWidth', ctypes.c_int),
+            ('cyTopHeight', ctypes.c_int),
+            ('cyBottomHeight', ctypes.c_int),
+        ]
 
     DwmExtendFrameIntoClientArea = ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea
     m = _MARGINS()
@@ -178,7 +185,9 @@ class BrowserView:
 
             # for chromium edge, need this factor to modify the coordinates
             try:
-                self.scale_factor = windll.shcore.GetScaleFactorForDevice(0) / 100 if is_chromium else 1
+                self.scale_factor = (
+                    windll.shcore.GetScaleFactorForDevice(0) / 100 if is_chromium else 1
+                )
             except:
                 self.scale_factor = 1
 
@@ -186,16 +195,20 @@ class BrowserView:
                 self.StartPosition = WinForms.FormStartPosition.Manual
                 self.Location = Point(
                     int(window.initial_x * self.scale_factor),
-                    int(window.initial_y * self.scale_factor)
+                    int(window.initial_y * self.scale_factor),
                 )
             elif window.screen:
                 self.StartPosition = WinForms.FormStartPosition.Manual
                 x = int(
-                    window.screen.x * self.scale_factor + (window.screen.width - window.initial_width) * self.scale_factor / 2
+                    window.screen.x * self.scale_factor
+                    + (window.screen.width - window.initial_width) * self.scale_factor / 2
                     if window.screen.x >= 0
                     else window.screen.x * self.scale_factor + window.screen.width / 2
                 )
-                y = int(window.screen.y * self.scale_factor + (window.screen.height - window.initial_height) * self.scale_factor / 2)
+                y = int(
+                    window.screen.y * self.scale_factor
+                    + (window.screen.height - window.initial_height) * self.scale_factor / 2
+                )
                 self.Location = Point(x, y)
             else:
                 self.StartPosition = WinForms.FormStartPosition.CenterScreen
@@ -261,7 +274,11 @@ class BrowserView:
                 self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
             if not window.focus:
-                windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
+                windll.user32.SetWindowLongW(
+                    self.Handle.ToInt32(),
+                    -20,
+                    windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000,
+                )
 
             self.Activated += self.on_activated
             self.Shown += self.on_shown
@@ -293,11 +310,11 @@ class BrowserView:
             try:
                 personalize_key = winreg.OpenKey(
                     winreg.HKEY_CURRENT_USER,
-                    r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                    r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize',
                     0,
-                    winreg.KEY_READ
+                    winreg.KEY_READ,
                 )
-                system_theme, _ = winreg.QueryValueEx(personalize_key, "SystemUsesLightTheme")
+                system_theme, _ = winreg.QueryValueEx(personalize_key, 'SystemUsesLightTheme')
                 winreg.CloseKey(personalize_key)
                 if system_theme == 0:
                     return True
@@ -309,7 +326,11 @@ class BrowserView:
 
         def on_activated(self, *_):
             if not self.pywebview_window.focus:
-                windll.user32.SetWindowLongW(self.Handle.ToInt32(), -20, windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000)
+                windll.user32.SetWindowLongW(
+                    self.Handle.ToInt32(),
+                    -20,
+                    windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000,
+                )
 
         def on_shown(self, *_):
             if not is_cef:
@@ -514,7 +535,9 @@ class BrowserView:
                     self.WindowState = WinForms.FormWindowState.Normal
                     self.FormBorderStyle = self.old_style
                     self.is_fullscreen = False
-                    valid_location = any(screen == self.old_screen for screen in WinForms.Screen.AllScreens)
+                    valid_location = any(
+                        screen == self.old_screen for screen in WinForms.Screen.AllScreens
+                    )
 
                     if not valid_location:
                         self.Size = self.old_size
@@ -600,18 +623,24 @@ class OpenFolderDialog:
     foldersFilter = 'Folders|\n'
     flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
     windowsFormsAssembly = Assembly.LoadWithPartialName('System.Windows.Forms')
-    iFileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.FileDialogNative+IFileDialog')
+    iFileDialogType = windowsFormsAssembly.GetType(
+        'System.Windows.Forms.FileDialogNative+IFileDialog'
+    )
     OpenFileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.OpenFileDialog')
     FileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.FileDialog')
     createVistaDialogMethodInfo = OpenFileDialogType.GetMethod('CreateVistaDialog', flags)
     onBeforeVistaDialogMethodInfo = OpenFileDialogType.GetMethod('OnBeforeVistaDialog', flags)
     getOptionsMethodInfo = FileDialogType.GetMethod('GetOptions', flags)
     setOptionsMethodInfo = iFileDialogType.GetMethod('SetOptions', flags)
-    fosPickFoldersBitFlag = windowsFormsAssembly.GetType(
-        'System.Windows.Forms.FileDialogNative+FOS').GetField('FOS_PICKFOLDERS').GetValue(None)
+    fosPickFoldersBitFlag = (
+        windowsFormsAssembly.GetType('System.Windows.Forms.FileDialogNative+FOS')
+        .GetField('FOS_PICKFOLDERS')
+        .GetValue(None)
+    )
 
     vistaDialogEventsConstructorInfo = windowsFormsAssembly.GetType(
-        'System.Windows.Forms.FileDialog+VistaDialogEvents').GetConstructor(flags, None, [FileDialogType], [])
+        'System.Windows.Forms.FileDialog+VistaDialogEvents'
+    ).GetConstructor(flags, None, [FileDialogType], [])
     adviseMethodInfo = iFileDialogType.GetMethod('Advise')
     unadviseMethodInfo = iFileDialogType.GetMethod('Unadvise')
     showMethodInfo = iFileDialogType.GetMethod('Show')
@@ -633,14 +662,20 @@ class OpenFolderDialog:
         options = OpenFolderDialog.getOptionsMethodInfo.Invoke(openFileDialog, [])
         options = options.op_BitwiseOr(OpenFolderDialog.fosPickFoldersBitFlag)
         OpenFolderDialog.setOptionsMethodInfo.Invoke(iFileDialog, [options])
-        adviseParametersWithOutputConnectionToken = Array[Object]([
-            OpenFolderDialog.vistaDialogEventsConstructorInfo.Invoke([openFileDialog]),
-            UInt32(0),
-        ])
-        OpenFolderDialog.adviseMethodInfo.Invoke(iFileDialog, adviseParametersWithOutputConnectionToken)
+        adviseParametersWithOutputConnectionToken = Array[Object](
+            [
+                OpenFolderDialog.vistaDialogEventsConstructorInfo.Invoke([openFileDialog]),
+                UInt32(0),
+            ]
+        )
+        OpenFolderDialog.adviseMethodInfo.Invoke(
+            iFileDialog, adviseParametersWithOutputConnectionToken
+        )
         dwCookie = adviseParametersWithOutputConnectionToken.GetValue(1)
         try:
-            result = OpenFolderDialog.showMethodInfo.Invoke(iFileDialog, [parent.Handle if parent else None])
+            result = OpenFolderDialog.showMethodInfo.Invoke(
+                iFileDialog, [parent.Handle if parent else None]
+            )
             if result == 0:
                 return tuple(openFileDialog.FileNames)
 
@@ -649,10 +684,12 @@ class OpenFolderDialog:
         finally:
             OpenFolderDialog.unadviseMethodInfo.Invoke(iFileDialog, [UInt32(dwCookie)])
 
+
 _main_window_created = Event()
 _main_window_created.clear()
 
 _already_set_up_app = False
+
 
 def init_storage():
     global cache_dir
@@ -966,7 +1003,10 @@ def get_size(uid):
 
 
 def get_screens():
-    screens = [Screen(s.Bounds.X, s.Bounds.Y, s.Bounds.Width, s.Bounds.Height, s.WorkingArea) for s in WinForms.Screen.AllScreens]
+    screens = [
+        Screen(s.Bounds.X, s.Bounds.Y, s.Bounds.Width, s.Bounds.Height, s.WorkingArea)
+        for s in WinForms.Screen.AllScreens
+    ]
     return screens
 
 

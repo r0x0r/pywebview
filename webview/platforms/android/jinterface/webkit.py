@@ -19,6 +19,7 @@ class ValueCallback(PythonJavaClass):
     onReceiveValue: This method is invoked when a value is received from Java,
     passing the value to the Python callback function.
     """
+
     __javacontext__ = 'app'
     __javainterfaces__ = ['android/webkit/ValueCallback']
 
@@ -51,6 +52,7 @@ class DownloadListener(PythonJavaClass):
         starts. The function should accept five parameters: url, user_agent, content_disposition,
         mimetype, and content_length.
     """
+
     __javacontext__ = 'app'
     __javainterfaces__ = ['android/webkit/DownloadListener']
 
@@ -60,5 +62,3 @@ class DownloadListener(PythonJavaClass):
     @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;J)V')
     def onDownloadStart(self, url, user_agent, content_disposition, mimetype, content_length):
         self.on_download_start(url, user_agent, content_disposition, mimetype, content_length)
-
-

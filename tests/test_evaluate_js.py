@@ -7,7 +7,9 @@ from .util import run_test
 
 @pytest.fixture
 def window():
-    return webview.create_window('Evaluate JS test', html='<html><body><div id="node">TEST</div></body></html>')
+    return webview.create_window(
+        'Evaluate JS test', html='<html><body><div id="node">TEST</div></body></html>'
+    )
 
 
 def test_mixed(window):
@@ -196,6 +198,7 @@ def node_test(window):
 
     assert node['id'] == 'node'
     assert node['innerText'] == 'TEST'
+
 
 def exception_test(window):
     with pytest.raises(webview.errors.JavascriptException):

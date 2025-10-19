@@ -54,6 +54,7 @@ qt5 = ["QtPy", "PyQt5", "pyqtwebengine"]
 qt6 = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 android = ["kivy", "jnius"]
 ssl = ["cryptography"]
+dev = ["ruff", "pre-commit"]
 
 [project.urls]
 Homepage = "https://pywebview.flowrl.com/"
@@ -70,11 +71,44 @@ exclude = [
     ".*"
 ]
 
-[tool.black]
-line-length = 100
 
-[tool.isort]
-line_length = 100
+[tool.ruff]
+# Same as Black.
+line-length = 100
+indent-width = 4
+
+# Assume Python 3.7+
+target-version = "py37"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = ["E4", "E7", "E9", "F", "I", "UP"]
+ignore = []
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.isort]
+known-first-party = ["webview"]
+
+[tool.ruff.format]
+# Use single quotes for strings.
+quote-style = "single"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
 
 [tool.setuptools]
 include-package-data = false

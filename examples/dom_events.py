@@ -5,6 +5,7 @@ from webview.dom import DOMEventHandler
 
 window = None
 
+
 def click_handler(e):
     print(e)
 
@@ -25,7 +26,7 @@ def scroll_handler(e):
 
 
 def link_handler(e):
-    print(f"Link target is {e['target']['href']}")
+    print(f'Link target is {e["target"]["href"]}')
 
 
 def bind(window):
@@ -38,7 +39,12 @@ def bind(window):
     input.events.input += input_handler
 
     remove_events = window.dom.get_element('#remove')
-    remove_events.on('click', lambda e: remove_handlers(window.dom.document.events.scroll, button.events.click, input.events.input))
+    remove_events.on(
+        'click',
+        lambda e: remove_handlers(
+            window.dom.document.events.scroll, button.events.click, input.events.input
+        ),
+    )
 
     link = window.dom.get_element('#link')
     link.events.click += DOMEventHandler(link_handler, prevent_default=True)
@@ -46,7 +52,8 @@ def bind(window):
 
 if __name__ == '__main__':
     window = webview.create_window(
-        'DOM Event Example', html='''
+        'DOM Event Example',
+        html="""
             <html>
                 <head>
                 <style>
@@ -67,6 +74,6 @@ if __name__ == '__main__':
                     <button id="remove" style="margin-top: 1rem;">Remove events</button>
                 </body>
             </html>
-        '''
+        """,
     )
     webview.start(bind, window)

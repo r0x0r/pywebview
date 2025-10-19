@@ -2,6 +2,7 @@
 
 import webview
 
+
 def on_before_show(window):
     print('Native window object', window.native)
 
@@ -9,12 +10,15 @@ def on_before_show(window):
 def on_closed():
     print('pywebview window is closed')
 
+
 def on_closing():
     print('pywebview window is closing')
+
 
 def on_initialized(renderer):
     # return False to cancel initialization
     print(f'GUI is initialized with renderer: {renderer}')
+
 
 def on_shown():
     print('pywebview window shown')
@@ -33,11 +37,7 @@ def on_maximized():
 
 
 def on_resized(width, height):
-    print(
-        'pywebview window is resized. new dimensions are {width} x {height}'.format(
-            width=width, height=height
-        )
-    )
+    print(f'pywebview window is resized. new dimensions are {width} x {height}')
 
 
 # you can supply optional window argument to access the window object event was triggered on
@@ -50,7 +50,7 @@ def on_loaded(window):
 
 
 def on_moved(x, y):
-    print('pywebview window is moved. new coordinates are x: {x}, y: {y}'.format(x=x, y=y))
+    print(f'pywebview window is moved. new coordinates are x: {x}, y: {y}')
 
 
 if __name__ == '__main__':

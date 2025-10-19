@@ -1,5 +1,6 @@
 import json
 from typing import List, Optional, Union
+
 from webview.dom import ManipulationMode
 from webview.dom.element import Element
 
@@ -27,7 +28,9 @@ class DOM:
     def window(self) -> Element:
         return self._elements.get('window', Element(self.__window, 'window'))
 
-    def create_element(self, html: str, parent: Union[Element, str]=None, mode=ManipulationMode.LastChild) -> Element:
+    def create_element(
+        self, html: str, parent: Union[Element, str] = None, mode=ManipulationMode.LastChild
+    ) -> Element:
         self.__window.events.loaded.wait()
 
         if isinstance(parent, Element):

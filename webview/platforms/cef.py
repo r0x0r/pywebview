@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import sys
-from uuid import uuid4
 import webbrowser
 from copy import copy
 from ctypes import windll
@@ -14,7 +13,7 @@ from time import sleep
 from cefpython3 import cefpython as cef
 
 from webview import _state, settings
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview
+from webview.util import DEFAULT_HTML, create_cookie, inject_pywebview, js_bridge_call
 
 sys.excepthook = cef.ExceptHook
 instances = {}
@@ -37,7 +36,7 @@ def _set_dpi_mode(enabled):
             0,
             winreg.KEY_ALL_ACCESS,
         )
-    except WindowsError:
+    except OSError:
         dpi_support = winreg.CreateKeyEx(
             winreg.HKEY_CURRENT_USER,
             r'Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers',
@@ -70,8 +69,6 @@ class JSBridge:
 
     def call(self, func_name, param, value_id):
         js_bridge_call(self.window, func_name, json.loads(param), value_id)
-
-
 
 
 class CookieVisitor:
@@ -187,7 +184,7 @@ class Browser:
 
     def load_html(self, html):
         self.initialized = False
-        self.browser.LoadUrl('data:text/html,{0}'.format(html))
+        self.browser.LoadUrl(f'data:text/html,{html}')
 
     def focus(self):
         self.browser.SendFocusEvent(True)
@@ -289,9 +286,9 @@ def init(_, cache_dir):
 def create_browser(window, handle, alert_func, parent):
     def _create():
         real_url = (
-            'data:text/html,{0}'.format(window.html)
+            f'data:text/html,{window.html}'
             if window.html
-            else window.real_url or 'data:text/html,{0}'.format(DEFAULT_HTML)
+            else window.real_url or f'data:text/html,{DEFAULT_HTML}'
         )
 
         default_browser_settings = {}

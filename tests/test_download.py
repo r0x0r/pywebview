@@ -1,10 +1,10 @@
+import time
+
 import pytest
 
 import webview
 
-from .util import run_test, assert_js
-
-import time
+from .util import run_test
 
 html = """
 <html>
@@ -17,7 +17,7 @@ html = """
       const blob = new Blob(["Hello, World!"], { type: "text/plain" });
       const url = URL.createObjectURL(blob); // Create an object URL from blob
       a.setAttribute('href', url); // Set "a" element link
-      a.setAttribute('download', 'test_download.txt'); 
+      a.setAttribute('download', 'test_download.txt');
       a.click(); // Start downloading
       a.remove();
     }
@@ -33,9 +33,11 @@ html = """
 </html>
 """
 
+
 @pytest.fixture
 def window():
     return webview.create_window('Download test', html=html)
+
 
 # skip this test by default since it's a manual test that requires user interaction
 @pytest.mark.skip
@@ -43,9 +45,13 @@ def test_download_attribute(window):
     webview.settings['ALLOW_DOWNLOADS'] = True
     run_test(webview, window, download_test)
 
+
 def get_result():
-    res = input("Did the system prompt you for a download with name test_download.txt or download a file by that name? Y/N").upper()
-    return (res == 'Y')
+    res = input(
+        'Did the system prompt you for a download with name test_download.txt or download a file by that name? Y/N'
+    ).upper()
+    return res == 'Y'
+
 
 def download_test(window):
     # this should not cause the browser to navigate away but instead should trigger a download
@@ -58,13 +64,8 @@ def download_test(window):
     assert len(elements) == 1
 
     # wait for download prompt to be dismissed and focus to come back to window
-    while not window.evaluate_js("checkFocus()"):
+    while not window.evaluate_js('checkFocus()'):
         time.sleep(0.5)
 
     # ask user if the test passed
-    assert window.evaluate_js("verify_result();")
-
-
-
-
-
+    assert window.evaluate_js('verify_result();')

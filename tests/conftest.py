@@ -1,5 +1,7 @@
-import pytest
 from importlib import reload
+
+import pytest
+
 
 @pytest.fixture(autouse=True)
 def reload_webview():
@@ -8,6 +10,7 @@ def reload_webview():
 
     reload(webview)
     reload(http)
+
 
 @pytest.fixture(autouse=True)
 def set_env():

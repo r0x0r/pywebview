@@ -8,23 +8,29 @@ from threading import Semaphore
 import clr
 
 from webview import _state
-from webview.util import (DEFAULT_HTML, inject_base_uri, interop_dll_path, js_bridge_call,
-                          inject_pywebview)
+from webview.util import (
+    DEFAULT_HTML,
+    inject_base_uri,
+    inject_pywebview,
+    interop_dll_path,
+    js_bridge_call,
+)
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
-from System import Func, Type
-import System.Windows.Forms as WinForms
+import System.Windows.Forms as WinForms  # noqa: E402
+from System import Func, Type  # noqa: E402
 
 clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
-from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx
+from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx  # noqa: E402
 
 logger = logging.getLogger('pywebview')
 settings = {}
 
 renderer = 'mshtml'
+
 
 def _set_ie_mode():
     """
@@ -44,7 +50,7 @@ def _set_ie_mode():
         ie_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'Software\Microsoft\Internet Explorer')
         try:
             version, _ = winreg.QueryValueEx(ie_key, 'svcVersion')
-        except:
+        except Exception:
             version, _ = winreg.QueryValueEx(ie_key, 'Version')
 
         winreg.CloseKey(ie_key)
@@ -69,7 +75,7 @@ def _set_ie_mode():
             0,
             winreg.KEY_ALL_ACCESS,
         )
-    except WindowsError:
+    except OSError:
         browser_emulation = winreg.CreateKeyEx(
             winreg.HKEY_CURRENT_USER,
             r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION',
@@ -84,7 +90,7 @@ def _set_ie_mode():
             0,
             winreg.KEY_ALL_ACCESS,
         )
-    except WindowsError:
+    except OSError:
         dpi_support = winreg.CreateKeyEx(
             winreg.HKEY_CURRENT_USER,
             r'Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_96DPI_PIXEL',
@@ -226,12 +232,13 @@ class MSHTML:
 
         if _state['debug']:
             document.InvokeScript(
-                'eval', """
+                'eval',
+                """
                     window.console = {
                         log: function(msg) { window.external.console(JSON.stringify(msg)) },
                         error: function(msg) { window.external.console(JSON.stringify(msg)) }
                     }',
-                """
+                """,
             )
 
         if self.first_load:

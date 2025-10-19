@@ -1,6 +1,6 @@
 __all__ = ('Environment',)
 
-from jnius import JavaClass, MetaJavaClass, JavaStaticField
+from jnius import JavaClass, JavaStaticField, MetaJavaClass
 
 
 class Environment(JavaClass, metaclass=MetaJavaClass):
@@ -19,5 +19,6 @@ class Environment(JavaClass, metaclass=MetaJavaClass):
             path for storing user downloads, defined in the Android
             environment.
     """
+
     __javaclass__ = 'android/os/Environment'
     DIRECTORY_DOWNLOADS = JavaStaticField('Ljava/lang/String;')

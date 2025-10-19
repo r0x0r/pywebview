@@ -1,5 +1,4 @@
-""" Enable file downloads
-"""
+"""Enable file downloads"""
 
 import webview
 

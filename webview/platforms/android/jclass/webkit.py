@@ -1,6 +1,19 @@
-__all__ = ('PyWebViewClient', 'PyWebChromeClient', 'PyJavascriptInterface', 'CookieManager', 'WebView')
+__all__ = (
+    'PyWebViewClient',
+    'PyWebChromeClient',
+    'PyJavascriptInterface',
+    'CookieManager',
+    'WebView',
+)
 
-from jnius import JavaClass, MetaJavaClass, JavaMethod, JavaStaticMethod, JavaMultipleMethod, JavaStaticField
+from jnius import (
+    JavaClass,
+    JavaMethod,
+    JavaMultipleMethod,
+    JavaStaticField,
+    JavaStaticMethod,
+    MetaJavaClass,
+)
 
 
 class PyWebViewClient(JavaClass, metaclass=MetaJavaClass):
@@ -25,6 +38,7 @@ class PyWebViewClient(JavaClass, metaclass=MetaJavaClass):
             Sets a request interceptor to manage and modify WebView requests
             before they are processed.
     """
+
     __javaclass__ = 'com/pywebview/PyWebViewClient'
     setCallback = JavaMethod('(Lcom/pywebview/EventCallbackWrapper;Z)V')
     setRequestInterceptor = JavaMethod('(Lcom/pywebview/WebViewRequestInterceptor;)V')
@@ -52,6 +66,7 @@ class PyWebChromeClient(JavaClass, metaclass=MetaJavaClass):
         onJsConfirm: Handles JavaScript confirmation dialogs within a WebView, allowing the
                      Python application to process the user's response to the dialog.
     """
+
     __javaclass__ = 'com/pywebview/PyWebChromeClient'
     setCallback = JavaMethod('(Lcom/pywebview/EventCallbackWrapper;)V')
 
@@ -76,6 +91,7 @@ class PyJavascriptInterface(JavaClass, metaclass=MetaJavaClass):
         call: Executes a specified JavaScript function with provided context
             and arguments.
     """
+
     __javaclass__ = 'com/pywebview/PyJavascriptInterface'
     setCallback = JavaMethod('(Lcom/pywebview/JsApiCallbackWrapper;)V')
     call = JavaMethod('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
@@ -141,6 +157,7 @@ class CookieManager(JavaClass, metaclass=MetaJavaClass):
         setAcceptFileSchemeCookies(accept: bool): Enables or disables the
             acceptance of cookies for file-scheme URLs.
     """
+
     __javaclass__ = 'android/webkit/CookieManager'
 
     getInstance = JavaStaticMethod('()Landroid/webkit/CookieManager;')
@@ -148,10 +165,12 @@ class CookieManager(JavaClass, metaclass=MetaJavaClass):
     acceptCookie = JavaMethod('()V')
     setAcceptThirdPartyCookies = JavaMethod('(Landroid/webkit/WebView;Z)V')
     acceptThirdPartyCookies = JavaMethod('(Landroid/webkit/WebView;)Z')
-    setCookie = JavaMultipleMethod([
-        ('(Ljava/lang/String;Ljava/lang/String;)V', False, False),
-        ('(Ljava/lang/String;Ljava/lang/String;Landroid/webkit/ValueCallback;)V', False, False)
-    ])
+    setCookie = JavaMultipleMethod(
+        [
+            ('(Ljava/lang/String;Ljava/lang/String;)V', False, False),
+            ('(Ljava/lang/String;Ljava/lang/String;Landroid/webkit/ValueCallback;)V', False, False),
+        ]
+    )
     getCookie = JavaMethod('(Ljava/lang/String;)Ljava/lang/String;')
     removeSessionCookie = JavaMethod('()V')
     removeSessionCookies = JavaMethod('(Landroid/webkit/ValueCallback;)V')
@@ -171,7 +190,7 @@ class WebView(JavaClass, metaclass=MetaJavaClass):
         ('(Landroid/content/Context;Landroid/util/AttributeSet;)V', False),
         ('(Landroid/content/Context;Landroid/util/AttributeSet;I)V', False),
         ('(Landroid/content/Context;Landroid/util/AttributeSet;II)V', False),
-        ('(Landroid/content/Context;Landroid/util/AttributeSet;IZ)V', False)
+        ('(Landroid/content/Context;Landroid/util/AttributeSet;IZ)V', False),
     ]
 
     RENDERER_PRIORITY_BOUND = JavaStaticField('I')
@@ -188,26 +207,36 @@ class WebView(JavaClass, metaclass=MetaJavaClass):
     getCertificate = JavaMethod('()Landroid/net/http/SslCertificate;')
     setCertificate = JavaMethod('(Landroid/net/http/SslCertificate;)V')
     savePassword = JavaMethod('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
-    setHttpAuthUsernamePassword = JavaMethod('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
-    getHttpAuthUsernamePassword = JavaMethod('(Ljava/lang/String;Ljava/lang/String;)[Ljava/lang/String;')
+    setHttpAuthUsernamePassword = JavaMethod(
+        '(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V'
+    )
+    getHttpAuthUsernamePassword = JavaMethod(
+        '(Ljava/lang/String;Ljava/lang/String;)[Ljava/lang/String;'
+    )
     destroy = JavaMethod('()V')
     setNetworkAvailable = JavaMethod('(Z)V')
     saveState = JavaMethod('(Landroid/os/Bundle;)Landroid/webkit/WebBackForwardList;')
     restoreState = JavaMethod('(Landroid/os/Bundle;)Landroid/webkit/WebBackForwardList;')
 
-    loadUrl = JavaMultipleMethod([
-        ('(Ljava/lang/String;)V', False, False),
-        ('(Ljava/lang/String;Ljava/util/Map;)V', False, False)
-    ])
+    loadUrl = JavaMultipleMethod(
+        [
+            ('(Ljava/lang/String;)V', False, False),
+            ('(Ljava/lang/String;Ljava/util/Map;)V', False, False),
+        ]
+    )
 
     postUrl = JavaMethod('(Ljava/lang/String;[B)V')
     loadData = JavaMethod('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
-    loadDataWithBaseURL = JavaMethod('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
+    loadDataWithBaseURL = JavaMethod(
+        '(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V'
+    )
     evaluateJavascript = JavaMethod('(Ljava/lang/String;Landroid/webkit/ValueCallback;)V')
-    saveWebArchive = JavaMultipleMethod([
-        ('(Ljava/lang/String;)V', False, False),
-        ('(Ljava/lang/String;ZLandroid/webkit/ValueCallback;)V', False, False)
-    ])
+    saveWebArchive = JavaMultipleMethod(
+        [
+            ('(Ljava/lang/String;)V', False, False),
+            ('(Ljava/lang/String;ZLandroid/webkit/ValueCallback;)V', False, False),
+        ]
+    )
     stopLoading = JavaMethod('()V')
     reload = JavaMethod('()V')
     canGoBack = JavaMethod('()Z')
@@ -222,10 +251,12 @@ class WebView(JavaClass, metaclass=MetaJavaClass):
     postVisualStateCallback = JavaMethod('(JLandroid/webkit/WebView$VisualStateCallback;)V')
     clearView = JavaMethod('()V')
     capturePicture = JavaMethod('()Landroid/graphics/Picture;')
-    createPrintDocumentAdapter = JavaMultipleMethod([
-        ('()Landroid/print/PrintDocumentAdapter;', False, False),
-        ('(Ljava/lang/String;)Landroid/print/PrintDocumentAdapter;', False, False)
-    ])
+    createPrintDocumentAdapter = JavaMultipleMethod(
+        [
+            ('()Landroid/print/PrintDocumentAdapter;', False, False),
+            ('(Ljava/lang/String;)Landroid/print/PrintDocumentAdapter;', False, False),
+        ]
+    )
     getScale = JavaMethod('()F')
     setInitialScale = JavaMethod('(I)V')
     invokeZoomPicker = JavaMethod('()V')
@@ -250,7 +281,9 @@ class WebView(JavaClass, metaclass=MetaJavaClass):
     clearHistory = JavaMethod('()V')
     clearSslPreferences = JavaMethod('()V')
     clearClientCertPreferences = JavaStaticMethod('(Ljava/lang/Runnable;)V')
-    startSafeBrowsing = JavaStaticMethod('(Landroid/content/Context;Landroid/webkit/ValueCallback;)V')
+    startSafeBrowsing = JavaStaticMethod(
+        '(Landroid/content/Context;Landroid/webkit/ValueCallback;)V'
+    )
     setSafeBrowsingWhitelist = JavaStaticMethod('(Ljava/util/List;Landroid/webkit/ValueCallback;)V')
     getSafeBrowsingPrivacyPolicyUrl = JavaStaticMethod('()Landroid/net/Uri;')
     copyBackForwardList = JavaMethod('()Landroid/webkit/WebBackForwardList;')
@@ -268,11 +301,18 @@ class WebView(JavaClass, metaclass=MetaJavaClass):
     getWebViewClient = JavaMethod('()Landroid/webkit/WebViewClient;')
     getWebViewRenderProcess = JavaMethod('()Landroid/webkit/WebViewRenderProcess;')
     setWebViewRenderProcessClient_with_executor = JavaMethod(
-        'Ljava/util/concurrent/Executor;Landroid/webkit/WebViewRenderProcessClient;V')
-    setWebViewRenderProcessClient = JavaMultipleMethod([
-        ('(Ljava/util/concurrent/Executor;Landroid/webkit/WebViewRenderProcessClient;)V', False, False),
-        ('Landroid/webkit/WebViewRenderProcessClient;V', False, False),
-    ])
+        'Ljava/util/concurrent/Executor;Landroid/webkit/WebViewRenderProcessClient;V'
+    )
+    setWebViewRenderProcessClient = JavaMultipleMethod(
+        [
+            (
+                '(Ljava/util/concurrent/Executor;Landroid/webkit/WebViewRenderProcessClient;)V',
+                False,
+                False,
+            ),
+            ('Landroid/webkit/WebViewRenderProcessClient;V', False, False),
+        ]
+    )
     getWebViewRenderProcessClient = JavaMethod('()Landroid/webkit/WebViewRenderProcessClient;')
     setDownloadListener = JavaMethod('(Landroid/webkit/DownloadListener;)V')
     setWebChromeClient = JavaMethod('(Landroid/webkit/WebChromeClient;)V')
@@ -316,7 +356,9 @@ class WebView(JavaClass, metaclass=MetaJavaClass):
     onKeyDown = JavaMethod('(ILandroid/view/KeyEvent;)Z')
     onKeyUp = JavaMethod('(ILandroid/view/KeyEvent;)Z')
     onKeyMultiple = JavaMethod('(IILandroid/view/KeyEvent;)Z')
-    getAccessibilityNodeProvider = JavaMethod('()Landroid/view/accessibility/AccessibilityNodeProvider;')
+    getAccessibilityNodeProvider = JavaMethod(
+        '()Landroid/view/accessibility/AccessibilityNodeProvider;'
+    )
     shouldDelayChildPressedState = JavaMethod('()Z')
     getAccessibilityClassName = JavaMethod('()Ljava/lang/CharSequence;')
     onProvideVirtualStructure = JavaMethod('(Landroid/view/ViewStructure;)V')
@@ -326,15 +368,17 @@ class WebView(JavaClass, metaclass=MetaJavaClass):
     isVisibleToUserForAutofill = JavaMethod('(I)Z')
     onCreateVirtualViewTranslationRequests = JavaMethod('([J[ILjava/util/function/Consumer;)V')
     dispatchCreateViewTranslationRequest = JavaMethod(
-        '(Ljava/util/Map;[ILandroid/view/translation/TranslationCapability;Ljava/util/List;)V')
+        '(Ljava/util/Map;[ILandroid/view/translation/TranslationCapability;Ljava/util/List;)V'
+    )
     onVirtualViewTranslationResponses = JavaMethod('(Landroid/util/LongSparseArray;)V')
     onOverScrolled = JavaMethod('(IIZZ)V')
     onWindowVisibilityChanged = JavaMethod('(I)V')
     onDraw = JavaMethod('(Landroid/graphics/Canvas;)V')
     performLongClick = JavaMethod('()Z')
     onConfigurationChanged = JavaMethod('(Landroid/content/res/Configuration;)V')
-    onCreateInputConnection = JavaMethod('(Landroid/view/inputmethod/EditorInfo;)'
-                                         'Landroid/view/inputmethod/InputConnection;')
+    onCreateInputConnection = JavaMethod(
+        '(Landroid/view/inputmethod/EditorInfo;)Landroid/view/inputmethod/InputConnection;'
+    )
     onDragEvent = JavaMethod('(Landroid/view/DragEvent;)Z')
     onVisibilityChanged = JavaMethod('(Landroid/view/View;I)V')
     onWindowFocusChanged = JavaMethod('(Z)V')
@@ -356,5 +400,3 @@ class WebView(JavaClass, metaclass=MetaJavaClass):
     onCheckIsTextEditor = JavaMethod('()Z')
     onApplyWindowInsets = JavaMethod('(Landroid/view/WindowInsets;)Landroid/view/WindowInsets;')
     onResolvePointerIcon = JavaMethod('(Landroid/view/MotionEvent;I)Landroid/view/PointerIcon;')
-
-

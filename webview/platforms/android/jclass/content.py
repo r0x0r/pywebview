@@ -1,6 +1,6 @@
 __all__ = ('Context',)
 
-from jnius import JavaClass, MetaJavaClass, JavaStaticField
+from jnius import JavaClass, JavaStaticField, MetaJavaClass
 
 
 class Context(JavaClass, metaclass=MetaJavaClass):
@@ -18,5 +18,6 @@ class Context(JavaClass, metaclass=MetaJavaClass):
         DOWNLOAD_SERVICE (JavaStaticField): A static field representing the Java constant
             for the download service.
     """
+
     __javaclass__ = 'android/content/Context'
     DOWNLOAD_SERVICE = JavaStaticField('Ljava/lang/String;')

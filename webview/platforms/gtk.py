@@ -13,7 +13,13 @@ from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.models import Request, Response
 from webview.screen import Screen
-from webview.util import DEFAULT_HTML, create_cookie, js_bridge_call, inject_pywebview, parse_file_type
+from webview.util import (
+    DEFAULT_HTML,
+    create_cookie,
+    inject_pywebview,
+    js_bridge_call,
+    parse_file_type,
+)
 from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
@@ -113,7 +119,7 @@ class BrowserView:
         # Set window background color
         style_provider = gtk.CssProvider()
         style_provider.load_from_data(
-            'GtkWindow {{ background-color: {}; }}'.format(window.background_color).encode()
+            f'GtkWindow {{ background-color: {window.background_color}; }}'.encode()
         )
         gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(), style_provider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
@@ -154,7 +160,7 @@ class BrowserView:
                 hsts_cache_directory=os.path.join(storage_path, 'hsts'),
                 itp_directory=os.path.join(storage_path, 'itp'),
                 service_worker_registrations_directory=os.path.join(storage_path, 'serviceworkers'),
-                dom_cache_directory=os.path.join(storage_path, 'domcache')
+                dom_cache_directory=os.path.join(storage_path, 'domcache'),
             )
             web_context = webkit.WebContext.new_with_website_data_manager(self.website_data_manager)
         else:
@@ -182,10 +188,7 @@ class BrowserView:
         self.request_headers_mutated = False
 
         # Create WebView with the configured context
-        self.webview = webkit.WebView(
-            user_content_manager=self.manager,
-            web_context=web_context
-        )
+        self.webview = webkit.WebView(user_content_manager=self.manager, web_context=web_context)
         self.webview.connect('notify::visible', self.on_webview_ready)
         self.webview.connect('load_changed', self.on_load_finish)
         self.webview.connect('decide-policy', self.on_navigation)
@@ -377,15 +380,21 @@ class BrowserView:
         self.pywebview_window.events.request_sent.set(request_)
 
         if (
-            request_.headers == original_headers or
-            not headers or
-            self.request_headers_mutated or
-            url != self.pywebview_window.real_url
+            request_.headers == original_headers
+            or not headers
+            or self.request_headers_mutated
+            or url != self.pywebview_window.real_url
         ):
             return
 
-        missing_headers = {k: v for k, v in request_.headers.items() if k not in original_headers or original_headers[k] != v}
-        extra_headers = {k: str(v) for k, v in original_headers.items() if k not in request_.headers}
+        missing_headers = {
+            k: v
+            for k, v in request_.headers.items()
+            if k not in original_headers or original_headers[k] != v
+        }
+        extra_headers = {
+            k: str(v) for k, v in original_headers.items() if k not in request_.headers
+        }
 
         for k, v in missing_headers.items():
             headers.append(k, v)
@@ -393,7 +402,7 @@ class BrowserView:
         for k in extra_headers:
             headers.remove(k)
 
-        #headers.append('X-Handled', 'true')
+        # headers.append('X-Handled', 'true')
         webview.stop_loading()
         self.request_headers_mutated = True
         webview.load_request(request)
@@ -505,7 +514,7 @@ class BrowserView:
         self.window.resize(width, height)
 
     def move(self, x, y):
-        self.window.move(self.screen.x+x, self.screen.y+y)
+        self.window.move(self.screen.x + x, self.screen.y + y)
 
     def maximize(self):
         glib.idle_add(self.window.maximize)
@@ -633,21 +642,20 @@ class BrowserView:
         def _evaluate_js():
             try:
                 self.webview.evaluate_javascript(
-                        script=script,
-                        length=len(script),
-                        world_name=None,
-                        source_uri=None,
-                        cancellable=None,
-                        callback=_callback)
+                    script=script,
+                    length=len(script),
+                    world_name=None,
+                    source_uri=None,
+                    cancellable=None,
+                    callback=_callback,
+                )
             except Exception:
                 logger.exception('Error evaluating JavaScript')
                 result_semaphore.release()
 
-
         def _callback(webview, task):
             nonlocal result
             try:
-                s = script
                 value = webview.evaluate_javascript_finish(task)
                 res = self._convert_js_value(value)
 
@@ -700,6 +708,7 @@ class BrowserView:
     def _headers_to_dict(self, headers):
         def _assign(k, v):
             headers_dict[k] = v
+
         headers_dict = {}
 
         if headers:
@@ -733,7 +742,7 @@ def create_window(window):
         create()
 
     if window.uid == 'master':
-        main_thread().pydev_do_not_trace = True # vs code debugger hang fix
+        main_thread().pydev_do_not_trace = True  # vs code debugger hang fix
         _app.connect('activate', create_master_callback)
         _app.run()
         _app = None
@@ -898,7 +907,6 @@ def create_confirmation_dialog(title, message, uid):
 
 
 def create_menu(app_menu_list):
-
     def action_callback(action, parameter):
         function = _app_actions.get(action.get_name())
         if function is None:
@@ -909,15 +917,13 @@ def create_menu(app_menu_list):
     def create_submenu(title, line_items, supermenu, action_prepend=''):
         m = Gio.Menu.new()
         current_section = Gio.Menu.new()
-        action_prepend = '{}_{}'.format(action_prepend, title)
+        action_prepend = f'{action_prepend}_{title}'
         for menu_line_item in line_items:
             if isinstance(menu_line_item, MenuSeparator):
                 m.append_section(None, current_section)
                 current_section = Gio.Menu.new()
             elif isinstance(menu_line_item, MenuAction):
-                action_label = '{}_{}'.format(action_prepend, menu_line_item.title).replace(
-                    ' ', '_'
-                )
+                action_label = f'{action_prepend}_{menu_line_item.title}'.replace(' ', '_')
                 while action_label in _app_actions.keys():
                     action_label += '_'
                 _app_actions[action_label] = menu_line_item.function
@@ -948,12 +954,11 @@ def create_menu(app_menu_list):
     return menubar
 
 
-
 def get_active_window():
     active_window = None
     try:
         active_window = _app.get_active_window()
-    except:
+    except Exception:
         return None
 
     active_window_number = active_window.get_id()

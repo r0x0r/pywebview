@@ -1,6 +1,6 @@
 __all__ = ('View', 'KeyEvent', 'Choreographer')
 
-from jnius import JavaClass, MetaJavaClass, JavaStaticField, JavaMethod, JavaMultipleMethod, JavaStaticMethod
+from jnius import JavaClass, JavaMethod, JavaStaticField, JavaStaticMethod, MetaJavaClass
 
 
 class View(JavaClass, metaclass=MetaJavaClass):
@@ -43,6 +43,7 @@ class View(JavaClass, metaclass=MetaJavaClass):
     SYSTEM_UI_LAYOUT_FLAGS : JavaStaticField
         Combined constant for specifying multiple layout-related flags.
     """
+
     __javaclass__ = 'android/view/View'
     SYSTEM_UI_FLAG_FULLSCREEN = JavaStaticField('I')
     SYSTEM_UI_FLAG_HIDE_NAVIGATION = JavaStaticField('I')
@@ -69,6 +70,7 @@ class KeyEvent(JavaClass, metaclass=MetaJavaClass):
     KEYCODE_BACK : int
         Static field representing the key code for the "Back" button in Android.
     """
+
     __javaclass__ = 'android/view/KeyEvent'
     KEYCODE_BACK = JavaStaticField('I')
     ACTION_DOWN = JavaStaticField('I')

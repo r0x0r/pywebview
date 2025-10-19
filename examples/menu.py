@@ -21,6 +21,7 @@ def test():
     if active_window:
         active_window.load_html('<h1>This is a test!</h1>')
 
+
 def do_nothing():
     pass
 
@@ -33,7 +34,9 @@ def say_this_is_window_2():
 
 def open_save_file_dialog():
     active_window = webview.active_window()
-    active_window.create_file_dialog(webview.FileDialog.SAVE, directory='/', save_filename='test.file')
+    active_window.create_file_dialog(
+        webview.FileDialog.SAVE, directory='/', save_filename='test.file'
+    )
 
 
 def open_preferences():
@@ -82,12 +85,13 @@ if __name__ == '__main__':
         Menu('Menu 2', [MenuAction('This will do nothing', do_nothing)]),
     ]
 
-
     window_1 = webview.create_window(
         'Application Menu Example', 'https://pywebview.flowrl.com/hello'
     )
     window_2 = webview.create_window(
-        'Window Menu Example', html='<h1>Another window to test application menu</h1>', menu=window_menu
+        'Window Menu Example',
+        html='<h1>Another window to test application menu</h1>',
+        menu=window_menu,
     )
 
     webview.start(menu=app_menu)
