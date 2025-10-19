@@ -13,7 +13,7 @@ package.domain = com.pywebview.todos
 source.dir = ./
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,html,jar,css
+source.include_exts = py,png,jpg,kv,atlas,html,jar,css,js
 
 # (list) List of inclusions using pattern matching
 source.include_patterns = assets/*
@@ -37,7 +37,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,pywebview,bottle,proxy-tools,typing_extensions,cryptography
+requirements = python3,bottle,proxy_tools,typing_extensions,cryptography
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
