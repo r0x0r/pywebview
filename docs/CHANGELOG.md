@@ -1,5 +1,33 @@
 # Changelog
 
+## 6.1
+
+_Released xx/10/2025_
+
+### ⚡ Features
+
+- `All` New `webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY'] setting to control whether drag region selector matches only direct targets or any element in the event path. Default is False. Thanks @chrissantamaria
+
+### 🚀 Improvements
+
+- `All` Handle new elements in draggable and drag region client logic. Thanks @chrissantamaria
+- `All` Improve detection of cyclic structures during serialization from JS to Python. #1708
+- `QT` Properly handle SIGINT to quit program allowing to close the window with Ctrl+C in terminal. Thanks @chrissantamaria.
+- `Cocoa` Add support for 'New Folder' button in FOLDER_DIALOG on macOS. Thanks @camdarley. #1710
+
+### 🐞 Bug fixes
+
+- `All` Fix state change event not being fired on state change from JS side #1698
+- `All` Fix state values with special characters not being set properly.
+- `All` Fix special characters handling in HTML attributes and styles in `Element` object.
+- `Cocoa` Support for partial functions in menu actions #1707
+- `Cocoa` Add missing pyobjc-framework-UniformTypeIdentifiers dependency. Thanks @Josef-Haupt.
+- `Cocoa` module 'objc._objc' has no attribute '__file__' after package #1717
+- `GTK` Fix data not being remove on application quit in private mode #1713
+- `Winforms` AttributeError: 'Screen' object has no attribute 'X #1704
+- `MSHTML` Fix MSTML compatibility #1701
+
+
 ## 6.0
 
 _Released 08/08/2025_
@@ -28,7 +56,7 @@ _Released 08/08/2025_
 - `Cocoa` Add handler for Javascript prompt/input #1567. Thanks @maddyaby.
 - `Winforms` Dark mode support with automatic theme changing #1595. Thanks @godcop.
 
-#### 🐞 Bug fixes
+### 🐞 Bug fixes
 
 - `All` Better duplicate object detection in JS API serialization.
 - `All` Loading URLs with a hash served by local HTTP server. #1574
@@ -72,7 +100,7 @@ _Released 27/01/2025_
 - `Cocoa` Improved support for py2app #1565
 - `EdgeChromium` Update webview2 binaries to 1.0.2957.106
 
-#### 🐞 Bug fixes
+### 🐞 Bug fixes
 
 - `HTTP` Fix loading local urls with a hash served by local HTTP server.
 - `EdgeChromium` Delete browser data in private mode on program exit
@@ -87,7 +115,7 @@ _Released 27/01/2025_
 
 _Released 22/10/2024_
 
-#### 🐞 Bug fixes
+### 🐞 Bug fixes
 
 - Fix Pyinstaller compatibility for non-Windows platforms #1508
 - Error occurs when alert() is called with non-string arguments #1506
@@ -98,7 +126,7 @@ _Released 22/10/2024_
 
 _Released 21/10/2024_
 
-#### 🐞 Bug fixes
+### 🐞 Bug fixes
 
 - Fix Pyinstaller compatibility
 
@@ -123,7 +151,7 @@ _Released 16/10/2024_
 - `Windows` Remove white border in a fullscreen window.
 - `Windows` Support multiple selection in open folder dialog.
 
-#### 🐞 Bug fixes
+### 🐞 Bug fixes
 
 - `All` Support for Unicode filenames in drag and drop. Thanks @hustshenl
 - `Cocoa` Fix open file dialog file type selector and all files filter
@@ -148,7 +176,7 @@ _Released 17/08/2024_
 - `EdgeChromium` Replace `window.alert` with a message box implementation.
 - `MSHTML` Convert JS API code to ES5 to be compatible with MSHTML.
 
-#### 🐞 Bug fixes
+### 🐞 Bug fixes
 
 - `All` Add missing return in DOM.body property. Thanks @lanzz.
 - `All` Use json.dumps to serialise the html template in create_element. Thanks @lanzz
