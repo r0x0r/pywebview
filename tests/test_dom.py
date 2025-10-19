@@ -133,8 +133,8 @@ def attributes_test(window):
         ('tabindex', '3'),
     }
     assert child1.attributes.get('class') == 'test'
-    assert child1.attributes.get('class2') == None
-    assert child1.attributes['class2'] == None
+    assert child1.attributes.get('class2') is None
+    assert child1.attributes['class2'] is None
 
     del child1.attributes['class']
     assert dict(child1.attributes) == {'id': 'child1', 'data-id': 'blz', 'tabindex': '3'}
@@ -171,30 +171,30 @@ def style_test(window):
 
 def visibility_test(window):
     child3 = window.dom.get_element('#child3')
-    assert child3.visible == False
+    assert not child3.visible
 
     child3.show()
-    assert child3.visible == True
+    assert child3.visible
 
     child3.hide()
-    assert child3.visible == False
+    assert not child3.visible
 
     child3.toggle()
-    assert child3.visible == True
+    assert child3.visible
 
     child3.toggle()
-    assert child3.visible == False
+    assert not child3.visible
 
 
 def focus_test(window):
     input = window.dom.get_element('#input')
-    assert input.focused == False
+    assert not input.focused
 
     input.focus()
-    assert input.focused == True
+    assert input.focused
 
     input.blur()
-    assert input.focused == False
+    assert not input.focused
 
 
 def traversal_test(window):
@@ -271,7 +271,7 @@ def manipulation_mode_test(window):
     assert container2.children[-1].id == 'child1'
 
     child2.move(container2, mode=webview.dom.ManipulationMode.Replace)
-    assert window.dom.get_element('#container2') == None
+    assert window.dom.get_element('#container2') is None
     assert child2.parent.tag == 'body'
 
 
@@ -286,14 +286,14 @@ def events_test(window):
     button.events.click += click_handler
 
     window.evaluate_js('document.getElementById("button").click()')
-    assert button_value == True
+    assert button_value
 
     button.events.click -= click_handler
     button_value = False
     window.evaluate_js('document.getElementById("button").click()')
     sleep(0.1)
-    assert button_value == False
-    assert window.evaluate_js('Object.keys(pywebview._eventHandlers).length === 0') == True
+    assert not button_value
+    assert window.evaluate_js('Object.keys(pywebview._eventHandlers).length === 0')
 
 
 def special_char_attributes_test(window):
@@ -352,4 +352,4 @@ def special_char_attributes_test(window):
         'data-slashes',
     ]:
         del child1.attributes[key]
-        assert child1.attributes[key] == None
+        assert child1.attributes[key] is None
