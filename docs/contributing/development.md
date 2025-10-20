@@ -18,8 +18,13 @@ cd pywebview
 ``` bash
 virtualenv -p python3 venv
 source venv/bin/activate
-pip install -e .
+pip install -e ".[dev]"
 pip install pytest
+```
+
+* Set up pre-commit hooks
+``` bash
+pre-commit install
 ```
 
 * Hello world
@@ -37,6 +42,13 @@ git checkout -b new-branch master
 
 * Make your changes
 
+* Format and lint your code (this happens automatically with pre-commit)
+``` bash
+# Manual formatting and linting (optional, pre-commit does this automatically)
+ruff check --fix .
+ruff format .
+```
+
 * Run tests
 ``` bash
 pytest tests
@@ -46,7 +58,7 @@ pytest tests
 
 ``` bash
 git add .
-git commit -m "Your commit message goes here"
+git commit -m "Your commit message goes here"  # Pre-commit hooks will run automatically
 git push -u origin new-branch
 ```
 
@@ -70,6 +82,53 @@ pytest tests/test_simple_browser.py
 ```
 
  Tests cover only trivial mistakes, syntax errors, exceptions and such. In other words there is no functional testing. Each test verifies that a pywebview window can be opened and exited without errors when run under different scenarios. Sometimes test fail / stuck randomly. The cause of the issue is not known, any help on resolving random fails is greatly appreciated.
+
+## Code Formatting and Linting
+
+pywebview uses [Ruff](https://docs.astral.sh/ruff/) for code formatting and linting, along with [pre-commit](https://pre-commit.com/) hooks to automatically enforce code quality standards.
+
+### Pre-commit Hooks
+
+Pre-commit hooks are automatically installed when you run `pre-commit install` during setup. They will run automatically before each commit to:
+
+* Fix import sorting
+* Apply consistent code formatting (single quotes, line length, etc.)
+* Check for large files, trailing whitespace, and YAML syntax
+* Run linting checks and apply automatic fixes where possible
+
+### Ruff Configuration
+
+The project uses the following Ruff configuration (defined in `pyproject.toml`):
+
+* **Line length**: 100 characters
+* **Quote style**: Single quotes for strings
+* **Import sorting**: Enabled with `webview` as a known first-party package
+* **Target Python version**: 3.7+
+* **Enabled rules**: Pyflakes (F), pycodestyle (E4, E7, E9), isort (I), and pyupgrade (UP)
+
+### Manual Formatting
+
+While pre-commit hooks handle formatting automatically, you can also run formatting manually:
+
+``` bash
+# Check for linting issues and apply fixes
+ruff check --fix .
+
+# Format code
+ruff format .
+
+# Run all pre-commit hooks manually
+pre-commit run --all-files
+```
+
+### Code Style Guidelines
+
+* Use single quotes for strings (unless the string contains single quotes)
+* Maximum line length of 100 characters
+* Follow PEP 8 conventions
+* Use f-strings instead of `.format()` or `%` formatting where possible
+* Remove unused imports and variables
+* Use `isinstance()` instead of `type()` comparisons
 
 ## Learning
 
