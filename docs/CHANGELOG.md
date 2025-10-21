@@ -7,7 +7,8 @@ _Released 21/10/2025_
 ### ⚡ Features
 
 - `All` New `webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY'] setting to control whether drag region selector matches only direct targets or any element in the event path. Default is False. Thanks @chrissantamaria
-- `macOS` Support for application menu. Thanks @camdarley. #1725
+- `EdgeChromium` Ability to bundle WebView2 runtime with the application via `webview.settings['WEBVIEW2_RUNTIME_PATH']`. Thanks @leovuk
+- `Cocoa` Support for application menu. Thanks @camdarley. #1725
 
 ### 🚀 Improvements
 
