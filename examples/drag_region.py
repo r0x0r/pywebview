@@ -1,3 +1,5 @@
+"""Demonstrates the use of dynamic draggable regions in a frameless window using pywebview."""
+
 import webview
 
 html = """
