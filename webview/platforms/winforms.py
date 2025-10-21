@@ -23,12 +23,12 @@ clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 clr.AddReference('System.Reflection')
 
-import System.Windows.Forms as WinForms
-from Microsoft.Win32 import SystemEvents
-from System import Array, Environment, Func, Int32, IntPtr, Object, Type, UInt32
-from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF
-from System.Reflection import Assembly, BindingFlags
-from System.Threading import ApartmentState, Thread, ThreadStart
+import System.Windows.Forms as WinForms  # noqa: E402
+from Microsoft.Win32 import SystemEvents  # noqa: E402
+from System import Array, Environment, Func, Int32, IntPtr, Object, Type, UInt32  # noqa: E402
+from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF  # noqa: E402
+from System.Reflection import Assembly, BindingFlags  # noqa: E402
+from System.Threading import ApartmentState, Thread, ThreadStart  # noqa: E402
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 logger = logging.getLogger('pywebview')
@@ -51,7 +51,6 @@ def _is_chromium():
 
     def edge_build(key_type, key, description=''):
         try:
-            windows_key = None
             if machine() == 'x86' or key_type == 'HKEY_CURRENT_USER':
                 path = rf'Microsoft\EdgeUpdate\Clients\{key}'
             else:
@@ -188,7 +187,8 @@ class BrowserView:
                 self.scale_factor = (
                     windll.shcore.GetScaleFactorForDevice(0) / 100 if is_chromium else 1
                 )
-            except:
+            except Exception as e:
+                logger.warning(f'Failed to get scale factor: {e}')
                 self.scale_factor = 1
 
             if window.initial_x is not None and window.initial_y is not None:
@@ -846,8 +846,8 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
                 file_path = None
 
         return file_path
-    except:
-        logger.exception('Error invoking %s dialog', dialog_type)
+    except Exception as e:
+        logger.exception(f'Error invoking {dialog_type} dialog: {e}')
         return None
 
 
@@ -902,7 +902,7 @@ def get_active_window():
     active_window = None
     try:
         active_window = WinForms.Form.ActiveForm
-    except:
+    except Exception:
         return None
 
     if active_window:

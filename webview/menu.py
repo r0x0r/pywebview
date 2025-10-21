@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Union
+from typing import Any
 
 
 class Menu:
-    def __init__(
-        self, title: str, items: list[Union[Menu, MenuAction, MenuSeparator]] = []
-    ) -> None:
+    def __init__(self, title: str, items: list[Menu | MenuAction | MenuSeparator] = []) -> None:
         """
         Args:
             title: the menu or submenu title

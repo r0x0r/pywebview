@@ -504,7 +504,7 @@ class BrowserView:
         def keyDown_(self, event):
             if event.modifierFlags() & AppKit.NSCommandKeyMask:
                 responder = self.window().firstResponder()
-                if responder != None:
+                if responder is not None:
                     range_ = responder.selectedRange()
                     hasSelectedText = len(range_) > 0
 
@@ -1138,7 +1138,7 @@ class BrowserView:
             (self.localization['cocoa.menu.paste'], 'paste:', 'v'),
             (self.localization['cocoa.menu.selectAll'], 'selectAll:', 'a'),
         ]:
-            menuItem = editMenu.addItemWithTitle_action_keyEquivalent_(title, action, keyEquivalent)
+            editMenu.addItemWithTitle_action_keyEquivalent_(title, action, keyEquivalent)
 
     def _process_menu_items(self, menu_items, parent_menu):
         """
@@ -1563,7 +1563,7 @@ def get_position(uid):
 
     try:
         _position(coordinates)
-    except:
+    except Exception:
         AppHelper.callAfter(_position, coordinates)
         semaphore.acquire()
 
@@ -1586,7 +1586,7 @@ def get_size(uid):
 
     try:
         _size(dimensions)
-    except:
+    except Exception:
         AppHelper.callAfter(_size, dimensions)
         semaphore.acquire()
 

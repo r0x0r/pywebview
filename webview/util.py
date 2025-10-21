@@ -192,7 +192,7 @@ def inject_pywebview(platform: str, window: Window) -> str:
                 full_name = f'{base_name}.{name}' if base_name else name
                 target_obj = getattr(obj, name)
 
-                if name.startswith('_') or getattr(target_obj, '_serializable', True) == False:
+                if name.startswith('_') or not getattr(target_obj, '_serializable', True):
                     continue
 
                 attr = getattr(obj, name)
@@ -413,7 +413,7 @@ def get_js_dir() -> str:
                 if os.path.exists(js_path):
                     return js_path
 
-    raise FileNotFoundError('Cannot find JS directory in %s' % path)
+    raise FileNotFoundError(f'Cannot find JS directory in {path}')
 
 
 def sort_js_files(js_files: list[str]) -> list[str]:

@@ -1,8 +1,8 @@
-import webview
-
 """
 Create a CEF window with custom Chrome settings. Available only on Windows.
 """
+
+import webview
 
 # To pass custom settings to CEF, import and update settings dict
 from webview.platforms.cef import browser_settings, settings

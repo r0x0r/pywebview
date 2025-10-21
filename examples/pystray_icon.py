@@ -23,7 +23,7 @@ webview_process = None
 
 
 def run_webview():
-    window = webview.create_window('Webview', 'https://pywebview.flowrl.com/hello')
+    webview.create_window('Webview', 'https://pywebview.flowrl.com/hello')
     webview.start()
 
 

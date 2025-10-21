@@ -46,7 +46,7 @@ def _set_dpi_mode(enabled):
 
     try:
         subprocess_path = os.path.join(sys._MEIPASS, 'subprocess.exe')
-    except:
+    except Exception:
         subprocess_path = os.path.join(os.path.dirname(cef.__file__), 'subprocess.exe')
 
     if enabled:
@@ -217,7 +217,7 @@ class LoadHandler:
             else:
                 instance.initialize()
         else:
-            logger.debug('CEF instance is not found %s ' % browser)
+            logger.debug(f'CEF instance is not found {browser}')
 
 
 def _cef_call(func):

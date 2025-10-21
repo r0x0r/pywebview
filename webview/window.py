@@ -11,7 +11,7 @@ from typing import Any, Callable, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
 
-from typing_extensions import Any, Concatenate, ParamSpec, TypeAlias
+from typing_extensions import Concatenate, ParamSpec, TypeAlias
 
 import webview.http as http
 from webview.dom.dom import DOM
@@ -263,7 +263,7 @@ class Window:
     @on_top.setter
     def on_top(self, on_top: bool) -> None:
         self.__on_top = on_top
-        if hasattr(self, 'gui') and self.gui != None:
+        if hasattr(self, 'gui') and self.gui is not None:
             self.gui.set_on_top(self.uid, on_top)
 
     @_shown_call

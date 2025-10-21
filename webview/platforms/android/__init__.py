@@ -81,7 +81,7 @@ class BrowserView:
             elif event == 'onCookiesReceived':
                 try:
                     cookie_data = json.loads(data) if data else {}
-                    url = cookie_data.get('url', '')
+                    # url = cookie_data.get('url', '')
                     cookies = cookie_data.get('cookies', [])
                     for cookie_string in cookies:
                         cookie = SimpleCookie()
@@ -460,7 +460,6 @@ def get_cookies(_):
         parsed_url = urlparse(current_url)
         domain = parsed_url.netloc
         is_secure = current_url.startswith('https')
-        base_url = f'{parsed_url.scheme}://{domain}'
 
         # Parse the cookie string into individual cookies
         for cookie_pair in cookie_string.split(';'):
