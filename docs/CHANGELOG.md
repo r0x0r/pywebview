@@ -2,11 +2,12 @@
 
 ## 6.1
 
-_Released xx/10/2025_
+_Released 21/10/2025_
 
 ### ⚡ Features
 
 - `All` New `webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY'] setting to control whether drag region selector matches only direct targets or any element in the event path. Default is False. Thanks @chrissantamaria
+- `macOS` Support for application menu. Thanks @camdarley. #1725
 
 ### 🚀 Improvements
 
@@ -14,12 +15,15 @@ _Released xx/10/2025_
 - `All` Improve detection of cyclic structures during serialization from JS to Python. #1708
 - `QT` Properly handle SIGINT to quit program allowing to close the window with Ctrl+C in terminal. Thanks @chrissantamaria.
 - `Cocoa` Add support for 'New Folder' button in FOLDER_DIALOG on macOS. Thanks @camdarley. #1710
+- `Dev` Automatic linting and formatting on pre-commit hook installation.
 
 ### 🐞 Bug fixes
 
 - `All` Fix state change event not being fired on state change from JS side #1698
 - `All` Fix state values with special characters not being set properly.
 - `All` Fix special characters handling in HTML attributes and styles in `Element` object.
+- `Android` Fix `window.event.closed` not being fired
+- `Android` Improve cleanup on application exit
 - `Cocoa` Support for partial functions in menu actions #1707
 - `Cocoa` Add missing pyobjc-framework-UniformTypeIdentifiers dependency. Thanks @Josef-Haupt.
 - `Cocoa` module 'objc._objc' has no attribute '__file__' after package #1717

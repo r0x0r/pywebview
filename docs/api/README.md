@@ -108,6 +108,7 @@ webview.settings = {
   'ALLOW_DOWNLOADS': False,
   'ALLOW_FILE_URLS': True,
   'DRAG_REGION_SELECTOR': 'pywebview-drag-region',
+  'DRAG_REGION_DIRECT_TARGET_ONLY': False,
   'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
   'OPEN_DEVTOOLS_IN_DEBUG': True,
   'IGNORE_SSL_ERRORS': False,
@@ -121,6 +122,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `ALLOW_DOWNLOADS` Allow file downloads. Disabled by default.
 * `ALLOW_FILE_URLS` Enable `file://` urls. Disabled by default.
 * `DRAG_REGION_SELECTOR` CSS selector for a drag region in easy drag mode. Default selector is `.pywebview-drag-region`.
+* `DRAG_REGION_DIRECT_TARGET_ONLY` When set to True, only elements that directly match the drag region selector are draggable. When False, child elements of a drag region are also draggable. Default is False.
 * `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
@@ -443,7 +445,7 @@ Used to create an application menu. See [this example](/examples/menu.html) for 
 ### menu.Menu
 
 `Menu(title, items=[])`.
-Instantiate to create a menu that can be either top level menu or a nested menu. `title` is the title of the menu and `items` is a list of actions, separators or other menus.
+Instantiate to create a menu that can be either top level menu or a nested menu. `title` is the title of the menu and `items` is a list of actions, separators or other menus. If title is `"__app__"`, then the menu is treated as an application menu on macOS and ignored on other platforms.
 
 ### menu.MenuAction
 
