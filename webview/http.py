@@ -117,7 +117,7 @@ class BottleServer:
                 if body['uid'] in server.js_callback:
                     return json.dumps(server.js_callback[body['uid']](body))
                 else:
-                    logger.error(f'JS callback function is not set for window {body['uid']}')
+                    logger.error(f'JS callback function is not set for window {body["uid"]}')
 
             @app.route('/')
             @app.route('/<file:path>')
