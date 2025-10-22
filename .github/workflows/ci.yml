@@ -50,22 +50,54 @@ jobs:
         ruff check .
 
   tests:
-    name: Tests
+    name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-        exclude:
-          # Reduce matrix size for CI efficiency
-          - os: windows-latest
+        include:
+          # Ubuntu Qt Backend
+          - name: "Ubuntu Qt"
+            os: ubuntu-20.04
             python-version: '3.8'
-          - os: windows-latest
-            python-version: '3.9'
-          - os: macos-latest
+            gui: qt
+            display: ":99"
+            qt_platform: "offscreen"
+            log_level: "debug"
+
+          # Ubuntu GTK Backend
+          - name: "Ubuntu GTK"
+            os: ubuntu-22.04
             python-version: '3.8'
-          - os: macos-latest
-            python-version: '3.9'
+            gui: gtk
+            display: ":99"
+            log_level: "debug"
+
+          # Windows EdgeChromium
+          - name: "Windows EdgeChromium"
+            os: windows-latest
+            python-version: '3.7'
+            gui: edgechromium
+            log_level: "debug"
+
+          # Windows CEF
+          - name: "Windows CEF"
+            os: windows-latest
+            python-version: '3.7'
+            gui: cef
+            log_level: "debug"
+
+          # macOS
+          - name: "macOS"
+            os: macos-latest
+            python-version: '3.8'
+            log_level: "debug"
+
+    env:
+      PYWEBVIEW_GUI: ${{ matrix.gui }}
+      PYWEBVIEW_LOG: ${{ matrix.log_level }}
+      DISPLAY: ${{ matrix.display }}
+      QT_QPA_PLATFORM: ${{ matrix.qt_platform }}
 
     steps:
     - name: Checkout code
@@ -80,20 +112,109 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.gui }}-${{ hashFiles('**/pyproject.toml') }}
         restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.gui }}-
           ${{ runner.os }}-pip-${{ matrix.python-version }}-
           ${{ runner.os }}-pip-
 
-    - name: Install dependencies
+    # Ubuntu Qt specific setup
+    - name: Install Qt dependencies (Ubuntu Qt)
+      if: matrix.gui == 'qt'
+      run: |
+        sudo apt-get update -q --allow-releaseinfo-change
+        sudo apt-get install --no-install-recommends -y \
+          xvfb \
+          python3-pyqt5 \
+          python3-pyqt5.qtwebkit \
+          libqt5webkit5-dev \
+          python3-pep8 \
+          pyflakes \
+          python3-pytest
+
+    - name: Start Xvfb (Ubuntu Qt)
+      if: matrix.gui == 'qt'
+      run: |
+        sudo /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid \
+          --make-pidfile --background --exec /usr/bin/Xvfb -- :99 \
+          -screen 0 1920x1200x24 -ac +extension GLX +render -noreset
+        sleep 3
+
+    # Ubuntu GTK specific setup
+    - name: Install GTK dependencies (Ubuntu GTK)
+      if: matrix.gui == 'gtk'
+      run: |
+        sudo apt-get update -q --allow-releaseinfo-change
+        sudo apt-get install --no-install-recommends -y \
+          xvfb \
+          gir1.2-gtk-3.0 \
+          gir1.2-webkit2-4.0 \
+          python3-gi \
+          python3-gi-cairo \
+          python3-pep8 \
+          pyflakes3 \
+          python3-pytest \
+          libgirepository1.0-dev
+
+    - name: Start Xvfb (Ubuntu GTK)
+      if: matrix.gui == 'gtk'
+      run: |
+        sudo /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid \
+          --make-pidfile --background --exec /usr/bin/Xvfb -- :99 \
+          -screen 0 1920x1200x24 -ac +extension GLX +render -noreset
+        sleep 3
+
+    # Windows specific setup
+    - name: Install WebView2 Runtime (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install webview2-runtime --ignore-checksums
+
+    # Install Python dependencies
+    - name: Install base dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e .
+        pip install -r requirements.txt
         pip install pytest
+
+    - name: Install Qt dependencies (Ubuntu Qt)
+      if: matrix.gui == 'qt'
+      run: |
+        python -m pip install --upgrade setuptools==70.0.0
+        pip install proxy_tools pytest bottle typing_extensions QtPy PyQt5 pyqtwebengine
+
+    - name: Install GTK dependencies (Ubuntu GTK)
+      if: matrix.gui == 'gtk'
+      run: |
+        python -m pip install --upgrade setuptools==70.0.0
+        pip install proxy_tools pytest bottle typing_extensions pygobject==3.50.0 importlib_metadata
+
+    - name: Install CEF dependencies (Windows CEF)
+      if: matrix.gui == 'cef'
+      run: |
+        pip install cefpython3
+
+    - name: Install macOS dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        pip install pyobjc pytest proxy_tools bottle typing_extensions pillow
 
     - name: Run tests
       run: |
-        python -m pytest tests/ -v --tb=short
+        cd tests
+        python -m pytest -s
+
+    - name: Stop Xvfb (Linux)
+      if: matrix.gui == 'qt' || matrix.gui == 'gtk'
+      run: |
+        sudo killall Xvfb || true
+
+    - name: Upload screenshots (macOS)
+      if: runner.os == 'macOS' && failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-screenshots
+        path: /tmp/screenshots
 
   security:
     name: Security Scan
