@@ -37,18 +37,6 @@ jobs:
       run: |
         pre-commit run --all-files --show-diff-on-failure
 
-    - name: Check import sorting
-      run: |
-        ruff check --select I .
-
-    - name: Check formatting
-      run: |
-        ruff format --check --diff .
-
-    - name: Run linting
-      run: |
-        ruff check .
-
   tests:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
