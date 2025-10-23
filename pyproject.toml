@@ -40,7 +40,7 @@ dependencies = [
     "importlib_resources; python_version < '3.7'",
     "proxy_tools",
     "bottle",
-    "typing_extensions",
+    "typing_extensions"
 ]
 dynamic = ["version"]
 
@@ -52,7 +52,7 @@ pyside6 = ["QtPy", "PySide6"]
 qt = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 qt5 = ["QtPy", "PyQt5", "pyqtwebengine"]
 qt6 = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
-android = ["kivy", "jnius"]
+android = ["jnius"]
 ssl = ["cryptography"]
 dev = ["ruff", "pre-commit"]
 
