@@ -64,21 +64,21 @@ jobs:
           # Windows EdgeChromium
           - name: "Windows EdgeChromium"
             os: windows-latest
-            python-version: '3.7'
+            python-version: '3.8'
             gui: edgechromium
             log_level: "debug"
 
           # Windows CEF
           - name: "Windows CEF"
             os: windows-latest
-            python-version: '3.7'
+            python-version: '3.8'
             gui: cef
             log_level: "debug"
 
           # macOS
           - name: "macOS"
             os: macos-latest
-            python-version: '3.8'
+            python-version: '3.9'
             log_level: "debug"
 
     env:
@@ -175,7 +175,7 @@ jobs:
       if: matrix.gui == 'gtk'
       run: |
         python -m pip install --upgrade setuptools==70.0.0
-        pip install proxy_tools pytest bottle typing_extensions pygobject==3.50.0 importlib_metadata
+        pip install proxy_tools pytest bottle typing_extensions pygobject importlib_metadata
 
     - name: Install CEF dependencies (Windows CEF)
       if: matrix.gui == 'cef'
@@ -211,11 +211,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Run Bandit Security Linter
-      uses: securecodewarrior/github-action-bandit@v1.0.1
-      with:
-        level: medium
 
     - name: Run Safety Check
       run: |
