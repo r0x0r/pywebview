@@ -350,10 +350,12 @@ def string_quotes_from_js_test(window):
     assert window.state.js_complex == expected
 
     # Test template literal with complex content
-    window.run_js("""pywebview.state.js_template_complex = `Multi-line template
+    window.run_js(
+        """pywebview.state.js_template_complex = `Multi-line template
 with 'single' and "double" quotes
 and backslash: \\\\
-and tab: \\t end`""")
+and tab: \\t end`"""
+    )
     expected = """Multi-line template
 with 'single' and "double" quotes
 and backslash: \\

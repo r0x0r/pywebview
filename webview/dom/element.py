@@ -199,7 +199,8 @@ class Element:
     @_exists
     @_ignore_window_document
     def children(self) -> List['Element']:
-        children = self._window.evaluate_js(f"""
+        children = self._window.evaluate_js(
+            f"""
             {self._query_command};
             var children = element.children;
             var nodeIds = []
@@ -209,40 +210,47 @@ class Element:
             }}
 
             nodeIds
-        """)
+        """
+        )
         return [Element(self._window, node_id) for node_id in children]
 
     @property
     @_exists
     @_ignore_window_document
     def parent(self) -> Union['Element', None]:
-        node_id = self._window.evaluate_js(f"""
+        node_id = self._window.evaluate_js(
+            f"""
             {self._query_command};
             var parent = element.parentElement;
             parent ? pywebview._getNodeId(parent) : null
-        """)
+        """
+        )
         return Element(self._window, node_id) if node_id else None
 
     @property
     @_exists
     @_ignore_window_document
     def next(self) -> Union['Element', None]:
-        node_id = self._window.evaluate_js(f"""
+        node_id = self._window.evaluate_js(
+            f"""
             {self._query_command};
             var nextSibling = element.nextElementSibling;
             nextSibling ? pywebview._getNodeId(nextSibling) : null
-        """)
+        """
+        )
         return Element(self._window, node_id) if node_id else None
 
     @property
     @_exists
     @_ignore_window_document
     def previous(self) -> Union['Element', None]:
-        node_id = self._window.evaluate_js(f"""
+        node_id = self._window.evaluate_js(
+            f"""
             {self._query_command};
             var previousSibling = element.previousElementSibling;
             previousSibling ? pywebview._getNodeId(previousSibling) : null
-        """)
+        """
+        )
         return Element(self._window, node_id) if node_id else None
 
     @_exists
@@ -293,12 +301,14 @@ class Element:
         handler_ids = ','.join(
             [f'"{handler_id}"' for handler_id in self._event_handler_ids.values()]
         )
-        self._window.run_js(f"""
+        self._window.run_js(
+            f"""
             var handlerIds = [{handler_ids}];
             handlerIds.forEach(function(handlerId) {{
                 delete pywebview._eventHandlers[handler_id]
             }})
-        """)
+        """
+        )
         self._event_handler_ids = {}
         self._event_handlers = defaultdict(list)
         self._exists = False
@@ -318,7 +328,8 @@ class Element:
         else:
             id_command = 'newElement.removeAttribute("id")'
 
-        node_id = self._window.evaluate_js(f"""
+        node_id = self._window.evaluate_js(
+            f"""
             {self._query_command};
             var target = document.querySelector('[data-pywebview-id=\"{target._node_id}\"]');
             var newElement = element.cloneNode(true);
@@ -328,7 +339,8 @@ class Element:
             var nodeId = pywebview._getNodeId(newElement);
             pywebview._insertNode(newElement, target, '{mode.value}')
             nodeId;
-        """)
+        """
+        )
 
         new_element = Element(self._window, node_id)
         for event, handlers in self._event_handlers.items():
@@ -343,11 +355,13 @@ class Element:
         if isinstance(target, str):
             target = self._window.dom.get_element(target)
 
-        self._window.run_js(f"""
+        self._window.run_js(
+            f"""
             {self._query_command};
             var target = document.querySelector('[data-pywebview-id=\"{target._node_id}\"]');
             pywebview._insertNode(element, target, '{mode.value}')
-        """)
+        """
+        )
         return self
 
     @_exists
@@ -372,7 +386,8 @@ class Element:
             else callback_func
         )
 
-        handler_id = self._window.evaluate_js(f"""
+        handler_id = self._window.evaluate_js(
+            f"""
             {self._query_command};
             var handlerId = null
 
@@ -387,7 +402,8 @@ class Element:
                 element.addEventListener('{event}', pywebview._eventHandlers[handlerId]);
             }};
             handlerId;
-        """)
+        """
+        )
 
         if handler_id:
             self._event_handlers[event].append(callback)
@@ -403,14 +419,16 @@ class Element:
         if not handler_id:
             return
 
-        self._window.run_js(f"""
+        self._window.run_js(
+            f"""
             {self._query_command};
             var callback = pywebview._eventHandlers['{handler_id}'];
             if (element) {{
                 element.removeEventListener('{event}', callback);
                 delete pywebview._eventHandlers['{handler_id}'];
             }}
-        """)
+        """
+        )
 
         del self._event_handler_ids[callback]
         del self._window.dom._elements[self._node_id]
@@ -426,7 +444,8 @@ class Element:
     def __generate_events(self):
         from webview.dom.event import DOMEvent
 
-        events = self._window.evaluate_js(f"""
+        events = self._window.evaluate_js(
+            f"""
             {self._query_command};
             Object
                 .getOwnPropertyNames(element)
@@ -441,7 +460,8 @@ class Element:
                     return !i.indexOf('on') && (element[i] == null || typeof element[i]=='function');
                 }})
                 .map(function(f) {{ return f.substr(2) }});
-        """)
+        """
+        )
 
         for event in events:
             setattr(self.events, event, DOMEvent(event, self))
