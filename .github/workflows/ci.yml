@@ -2,9 +2,9 @@ name: Comprehensive CI
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [ '*' ]
   push:
-    branches: [ master ]
+    branches: [ '*' ]
 
 jobs:
   code-quality:
