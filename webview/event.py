@@ -15,7 +15,7 @@ logger = logging.getLogger('pywebview')
 
 
 class EventContainer:
-    _serializable = False#sdfsdf
+    _serializable = False
 
     if TYPE_CHECKING:
 
