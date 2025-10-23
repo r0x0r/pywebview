@@ -211,7 +211,7 @@ jobs:
 
     - name: Upload screenshots (macOS)
       if: runner.os == 'macOS' && failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: macos-screenshots
         path: /tmp/screenshots
