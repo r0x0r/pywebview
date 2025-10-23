@@ -1,3 +1,7 @@
+---
+next: /guide/architecture
+---
+
 # Usage
 
 ## Basics

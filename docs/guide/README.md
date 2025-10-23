@@ -1,3 +1,7 @@
+---
+next: /guide/installation
+---
+
 # Introduction
 
 _pywebview_ is a lightweight native webview wrapper that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. _pywebview_ ships with a built-in HTTP server, DOM support in Python and window management functionality.
