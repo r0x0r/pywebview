@@ -46,7 +46,7 @@ jobs:
         include:
           # Ubuntu Qt Backend
           - name: "Ubuntu Qt"
-            os: ubuntu-20.04
+            os: ubuntu-22.04
             python-version: '3.8'
             gui: qt
             display: ":99"
@@ -56,7 +56,7 @@ jobs:
           # Ubuntu GTK Backend
           - name: "Ubuntu GTK"
             os: ubuntu-22.04
-            python-version: '3.8'
+            python-version: '3.9'
             gui: gtk
             display: ":99"
             log_level: "debug"
