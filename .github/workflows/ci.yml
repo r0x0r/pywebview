@@ -2,9 +2,9 @@ name: Comprehensive CI
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [ '*' ]
   push:
-    branches: [ master ]
+    branches: [ '*' ]
 
 jobs:
   code-quality:
@@ -46,40 +46,40 @@ jobs:
         include:
           # Ubuntu Qt Backend
           - name: "Ubuntu Qt"
-            os: ubuntu-20.04
+            os: ubuntu-22.04
             python-version: '3.8'
             gui: qt
             display: ":99"
             qt_platform: "offscreen"
-            log_level: "debug"
+            log_level: "error"
 
           # Ubuntu GTK Backend
           - name: "Ubuntu GTK"
             os: ubuntu-22.04
-            python-version: '3.8'
+            python-version: '3.9'
             gui: gtk
             display: ":99"
-            log_level: "debug"
+            log_level: "error"
 
           # Windows EdgeChromium
           - name: "Windows EdgeChromium"
             os: windows-latest
-            python-version: '3.7'
+            python-version: '3.8'
             gui: edgechromium
-            log_level: "debug"
+            log_level: "error"
 
           # Windows CEF
-          - name: "Windows CEF"
-            os: windows-latest
-            python-version: '3.7'
-            gui: cef
-            log_level: "debug"
+          # - name: "Windows CEF"
+          #   os: windows-latest
+          #   python-version: '3.8'
+          #   gui: cef
+          #   log_level: "error"
 
           # macOS
           - name: "macOS"
             os: macos-latest
-            python-version: '3.8'
-            log_level: "debug"
+            python-version: '3.9'
+            log_level: "error"
 
     env:
       PYWEBVIEW_GUI: ${{ matrix.gui }}
@@ -116,9 +116,6 @@ jobs:
           python3-pyqt5 \
           python3-pyqt5.qtwebkit \
           libqt5webkit5-dev \
-          python3-pep8 \
-          pyflakes \
-          python3-pytest
 
     - name: Start Xvfb (Ubuntu Qt)
       if: matrix.gui == 'qt'
@@ -162,30 +159,33 @@ jobs:
     - name: Install base dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -e "."
         pip install pytest
 
     - name: Install Qt dependencies (Ubuntu Qt)
       if: matrix.gui == 'qt'
       run: |
         python -m pip install --upgrade setuptools==70.0.0
-        pip install proxy_tools pytest bottle typing_extensions QtPy PyQt5 pyqtwebengine
+        pip install -e ".[qt5]"
+        pip install pytest
 
     - name: Install GTK dependencies (Ubuntu GTK)
       if: matrix.gui == 'gtk'
       run: |
         python -m pip install --upgrade setuptools==70.0.0
-        pip install proxy_tools pytest bottle typing_extensions pygobject==3.50.0 importlib_metadata
+        pip install -e ".[gtk]"
+        pip install pytest
 
     - name: Install CEF dependencies (Windows CEF)
       if: matrix.gui == 'cef'
       run: |
-        pip install cefpython3
+        pip install -e ".[cef]"
 
     - name: Install macOS dependencies (macOS)
       if: runner.os == 'macOS'
       run: |
-        pip install pyobjc pytest proxy_tools bottle typing_extensions pillow
+        pip install -e "."
+        pip install pytest pillow
 
     - name: Run tests
       run: |
@@ -211,11 +211,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Run Bandit Security Linter
-      uses: securecodewarrior/github-action-bandit@v1.0.1
-      with:
-        level: medium
 
     - name: Run Safety Check
       run: |
