@@ -50,7 +50,7 @@ except ImportError:
 logger = logging.getLogger('pywebview')
 logger.debug(f'Using Qt {QtCore.__version__}')
 
-if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos', 'rhel', 'pop']:
+if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos', 'rhel', 'pop', 'kali']:
     # I don't know why, but it's a common solution for #890 (White screen displayed)
     # such as:
     # - https://github.com/LCA-ActivityBrowser/activity-browser/pull/954/files
