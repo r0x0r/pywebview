@@ -905,6 +905,11 @@ def setup_app():
     global _app
     if settings['IGNORE_SSL_ERRORS']:
         environ_append('QTWEBENGINE_CHROMIUM_FLAGS', '--ignore-certificate-errors')
+    if settings['REMOTE_DEBUGGING_PORT']:
+        environ_append(
+            'QTWEBENGINE_CHROMIUM_FLAGS',
+            f'--remote-debugging-port={settings["REMOTE_DEBUGGING_PORT"]}',
+        )
     _app = QApplication.instance() or QApplication(sys.argv)
 
 
