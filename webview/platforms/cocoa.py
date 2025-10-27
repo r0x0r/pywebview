@@ -79,10 +79,13 @@ class BrowserView:
         def windowDidBecomeKey_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
 
-            if i.menu and BrowserView.current_menu != i.menu:
+            if i and i.menu and BrowserView.current_menu != i.menu:
                 BrowserView.current_menu = i.menu
                 new_menu = i._recreate_menus(BrowserView.current_menu)
                 BrowserView.app.setMainMenu_(new_menu)
+
+            if not i:
+                logger.error('No BrowserView instance found for windowDidBecomeKey_')
 
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
