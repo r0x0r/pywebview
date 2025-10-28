@@ -108,6 +108,12 @@ class BrowserView:
             i.webview.removeFromSuperview()
             i.webview = None
 
+            # release everything we retained in __init__
+            i._browserDelegate.release()
+            i._windowDelegate.release()
+            i._appDelegate.release()
+            i.window.release()
+
             i.closed.set()
             if BrowserView.instances == {}:
                 BrowserView.app.stop_(self)
