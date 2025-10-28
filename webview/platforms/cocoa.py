@@ -498,7 +498,7 @@ class BrowserView:
                 if not _state['debug']:
                     return
 
-            super(BrowserView.WebKitHost, self).mouseDown_(event)
+            super(BrowserView.WebKitHost, self).mouseDragged_(event)
 
         def willOpenMenu_withEvent_(self, menu, event):
             if not _state['debug']:
