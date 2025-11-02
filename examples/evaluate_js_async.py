@@ -1,8 +1,8 @@
-import webview
-
 """
 Run asynchronous Javascript code and invoke a callback.
 """
+
+import webview
 
 
 def callback(result):

@@ -1,13 +1,13 @@
+"""
+Create an application without a HTTP server. The application uses Javascript API object to communicate between Python and Javascript.
+"""
+
 import random
 import sys
 import threading
 import time
 
 import webview
-
-"""
-Create an application without a HTTP server. The application uses Javascript API object to communicate between Python and Javascript.
-"""
 
 html = """
 <!DOCTYPE html>

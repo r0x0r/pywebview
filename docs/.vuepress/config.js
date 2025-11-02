@@ -83,9 +83,16 @@ export default defineUserConfig({
         'documentation'
       ]
     },
-    contributors: false
+    contributors: false,
+    toc: false,
   }),
   plugins: [
+    [
+      '@vuepress/plugin-icon',
+      {
+        assets: "iconify",
+      },
+    ],
     // mediumZoomPlugin({
     //   selector: 'img.zoom',
     //   options: {

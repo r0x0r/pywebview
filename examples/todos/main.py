@@ -7,16 +7,16 @@ An example of serverless app architecture
 
 class Api:
     def addItem(self, title):
-        print('Added item %s' % title)
+        print(f'Added item {title}')
 
     def removeItem(self, item):
-        print('Removed item %s' % item)
+        print(f'Removed item {item}')
 
     def editItem(self, item):
-        print('Edited item %s' % item)
+        print(f'Edited item {item}')
 
     def toggleItem(self, item):
-        print('Toggled item %s' % item)
+        print(f'Toggled item {item}')
 
     def toggleFullscreen(self):
         webview.windows[0].toggle_fullscreen()

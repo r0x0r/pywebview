@@ -25,7 +25,7 @@ from webview.window import FixPoint, Window
 logger = logging.getLogger('pywebview')
 os.environ['EGL_LOG_LEVEL'] = 'fatal'
 
-import gi
+import gi  # noqa: E402
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
@@ -38,10 +38,10 @@ except ValueError:
     gi.require_version('WebKit2', '4.0')
     gi.require_version('Soup', '2.4')
 
-from gi.repository import Gdk, Gio
-from gi.repository import GLib as glib
-from gi.repository import Gtk as gtk
-from gi.repository import WebKit2 as webkit
+from gi.repository import Gdk, Gio  # noqa: E402
+from gi.repository import GLib as glib  # noqa: E402
+from gi.repository import Gtk as gtk  # noqa: E402
+from gi.repository import WebKit2 as webkit  # noqa: E402
 
 renderer = 'gtkwebkit2'
 webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
@@ -437,7 +437,7 @@ class BrowserView:
             download.cancel()
 
     def on_navigation(self, webview, decision, decision_type):
-        if type(decision) == webkit.NavigationPolicyDecision:
+        if type(decision) is webkit.NavigationPolicyDecision:
             uri = decision.get_navigation_action().get_request().get_uri()
 
             if decision.get_navigation_action().get_frame_name() == '_blank':
@@ -446,7 +446,7 @@ class BrowserView:
                     decision.ignore()
                 else:
                     self.load_url(uri)
-        elif type(decision) == webkit.ResponsePolicyDecision:
+        elif type(decision) is webkit.ResponsePolicyDecision:
             if not decision.is_mime_type_supported():
                 self._download_filename = decision.get_response().get_suggested_filename()
                 decision.download()

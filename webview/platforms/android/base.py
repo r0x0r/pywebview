@@ -10,7 +10,7 @@ from webview.platforms.android.jinterface.view import FrameCallback
 
 class EventLoop(EventDispatcher):
     def __init__(self):
-        super(EventLoop, self).__init__()
+        super().__init__()
         from webview.platforms.android.app import App
 
         self.app = App.get_running_app()

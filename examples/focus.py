@@ -1,8 +1,8 @@
-import webview
-
 """
 Create a non-focusable window that can be useful for onscreen floating tools.
 """
+
+import webview
 
 if __name__ == '__main__':
     webview.create_window(

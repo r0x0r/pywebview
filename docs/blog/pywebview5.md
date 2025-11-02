@@ -31,7 +31,7 @@ button.events.click += click_handler
 button.classes.toggle('hidden')
 ```
 
-See [events](/examples/dom_events.md), [manipulation](/examples/dom_manipulation.md), [events](/traversal/dom_traversal.md) for complete examples.
+See [events](/examples/dom_events.md), [manipulation](/examples/dom_manipulation.md), [traversal](/examples/dom_traversal.md) for complete examples.
 
 A much requested feature is a full file path support for drag and drop operations. _pywebview_ enhances `DropEvent` by introducing `event['dataTransfer']['files'][0]['pywebviewFullPath']` that has full absolute path of a dropped file(s). The full path is available only on Python's side.
 

@@ -40,7 +40,7 @@ dependencies = [
     "importlib_resources; python_version < '3.7'",
     "proxy_tools",
     "bottle",
-    "typing_extensions",
+    "typing_extensions"
 ]
 dynamic = ["version"]
 
@@ -52,7 +52,7 @@ pyside6 = ["QtPy", "PySide6"]
 qt = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 qt5 = ["QtPy", "PyQt5", "pyqtwebengine"]
 qt6 = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
-android = ["kivy", "jnius"]
+android = ["jnius"]
 ssl = ["cryptography"]
 dev = ["ruff", "pre-commit"]
 
@@ -71,14 +71,13 @@ exclude = [
     ".*"
 ]
 
-
 [tool.ruff]
 # Same as Black.
 line-length = 100
 indent-width = 4
 
-# Assume Python 3.7+
-target-version = "py37"
+# Assume Python 3.8+
+target-version = "py38"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
@@ -125,6 +124,8 @@ packages = [
 [tool.setuptools_scm]
 write_to = "webview/_version.py"
 
+[tool.uv.extra-build-dependencies]
+jnius = ["Cython"]
 
 [project.entry-points."pyinstaller40"]
 hook-dirs = "webview.__pyinstaller:get_hook_dirs"

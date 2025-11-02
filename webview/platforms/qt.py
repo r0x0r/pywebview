@@ -11,6 +11,11 @@ from functools import partial
 from threading import Event, Semaphore, Thread
 from uuid import uuid1
 
+from qtpy import PYQT6, PYSIDE6, QtCore
+from qtpy.QtCore import QByteArray, QJsonValue
+from qtpy.QtGui import QColor, QIcon, QScreen
+from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
+
 from webview import FileDialog, _state, settings, windows
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
@@ -24,15 +29,6 @@ from webview.util import (
     js_bridge_call,
 )
 from webview.window import FixPoint, Window
-
-
-from qtpy import QtCore
-
-
-from qtpy import PYQT6, PYSIDE6
-from qtpy.QtCore import QByteArray, QJsonValue
-from qtpy.QtGui import QColor, QIcon, QScreen
-from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
 
 try:
     from qtpy.QtNetwork import QSslCertificate, QSslConfiguration
@@ -52,7 +48,7 @@ except ImportError:
     renderer = 'qtwebkit'
 
 logger = logging.getLogger('pywebview')
-logger.debug('Using Qt %s' % QtCore.__version__)
+logger.debug(f'Using Qt {QtCore.__version__}')
 
 if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos', 'rhel', 'pop']:
     # I don't know why, but it's a common solution for #890 (White screen displayed)
@@ -321,7 +317,7 @@ class BrowserView(QMainWindow):
             return self.nav_handler
 
     def __init__(self, window):
-        super(BrowserView, self).__init__()
+        super().__init__()
         BrowserView.instances[window.uid] = self
         self.uid = window.uid
         self.pywebview_window = window
@@ -890,9 +886,9 @@ class BrowserView(QMainWindow):
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.bind(('localhost', port))
                 port_available = True
-            except:
+            except Exception as e:
                 port_available = False
-                logger.warning('Port %s is in use' % port)
+                logger.warning(f'Port {port} is in use: {e}')
                 port += 1
             finally:
                 sock.close()
@@ -909,6 +905,11 @@ def setup_app():
     global _app
     if settings['IGNORE_SSL_ERRORS']:
         environ_append('QTWEBENGINE_CHROMIUM_FLAGS', '--ignore-certificate-errors')
+    if settings['REMOTE_DEBUGGING_PORT']:
+        environ_append(
+            'QTWEBENGINE_CHROMIUM_FLAGS',
+            f'--remote-debugging-port={settings["REMOTE_DEBUGGING_PORT"]}',
+        )
     _app = QApplication.instance() or QApplication(sys.argv)
 
 
@@ -1042,7 +1043,8 @@ def get_active_window():
     active_window = None
     try:
         active_window = _app.activeWindow()
-    except:
+    except Exception as e:
+        logger.warning(f'Failed to get active window: {e}')
         return None
 
     if active_window:

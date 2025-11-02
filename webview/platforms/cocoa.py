@@ -79,10 +79,13 @@ class BrowserView:
         def windowDidBecomeKey_(self, notification):
             i = BrowserView.get_instance('window', notification.object())
 
-            if i.menu and BrowserView.current_menu != i.menu:
+            if i and i.menu and BrowserView.current_menu != i.menu:
                 BrowserView.current_menu = i.menu
                 new_menu = i._recreate_menus(BrowserView.current_menu)
                 BrowserView.app.setMainMenu_(new_menu)
+
+            if not i:
+                logger.error('No BrowserView instance found for windowDidBecomeKey_')
 
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
@@ -104,6 +107,12 @@ class BrowserView:
             i.webview.loadHTMLString_baseURL_('', None)
             i.webview.removeFromSuperview()
             i.webview = None
+
+            # release everything we retained in __init__
+            i._browserDelegate.release()
+            i._windowDelegate.release()
+            i._appDelegate.release()
+            i.window.release()
 
             i.closed.set()
             if BrowserView.instances == {}:
@@ -495,7 +504,7 @@ class BrowserView:
                 if not _state['debug']:
                     return
 
-            super(BrowserView.WebKitHost, self).mouseDown_(event)
+            super(BrowserView.WebKitHost, self).mouseDragged_(event)
 
         def willOpenMenu_withEvent_(self, menu, event):
             if not _state['debug']:
@@ -504,7 +513,7 @@ class BrowserView:
         def keyDown_(self, event):
             if event.modifierFlags() & AppKit.NSCommandKeyMask:
                 responder = self.window().firstResponder()
-                if responder != None:
+                if responder is not None:
                     range_ = responder.selectedRange()
                     hasSelectedText = len(range_) > 0
 
@@ -1138,7 +1147,7 @@ class BrowserView:
             (self.localization['cocoa.menu.paste'], 'paste:', 'v'),
             (self.localization['cocoa.menu.selectAll'], 'selectAll:', 'a'),
         ]:
-            menuItem = editMenu.addItemWithTitle_action_keyEquivalent_(title, action, keyEquivalent)
+            editMenu.addItemWithTitle_action_keyEquivalent_(title, action, keyEquivalent)
 
     def _process_menu_items(self, menu_items, parent_menu):
         """
@@ -1563,7 +1572,7 @@ def get_position(uid):
 
     try:
         _position(coordinates)
-    except:
+    except Exception:
         AppHelper.callAfter(_position, coordinates)
         semaphore.acquire()
 
@@ -1586,7 +1595,7 @@ def get_size(uid):
 
     try:
         _size(dimensions)
-    except:
+    except Exception:
         AppHelper.callAfter(_size, dimensions)
         semaphore.acquire()
 

@@ -1,3 +1,7 @@
+"""
+Demonstrate usage of the state object to share state between Python and JavaScript.
+"""
+
 import webview
 
 html = """

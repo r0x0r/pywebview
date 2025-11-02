@@ -4,6 +4,21 @@ on android. It will be responsible for defining android and api signature to red
 the over head cost of pyjnius finding all signatures by itself.
 """
 
+__all__ = [
+    'AlertDialogBuilder',
+    'DownloadManagerRequest',
+    'Context',
+    'Uri',
+    'Environment',
+    'KeyEvent',
+    'View',
+    'CookieManager',
+    'PyJavascriptInterface',
+    'PyWebChromeClient',
+    'PyWebViewClient',
+    'WebView',
+]
+
 from webview.platforms.android.jclass.app import AlertDialogBuilder, DownloadManagerRequest
 from webview.platforms.android.jclass.content import Context
 from webview.platforms.android.jclass.net import Uri

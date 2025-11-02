@@ -1,8 +1,8 @@
-import webview
-
 """
 Loading custom CSS in a webview window
 """
+
+import webview
 
 
 def load_css(window):

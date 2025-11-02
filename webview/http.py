@@ -47,7 +47,7 @@ def _get_random_port() -> int:
             try:
                 sock.bind(('localhost', port))
             except OSError:
-                logger.warning('Port %s is in use' % port)
+                logger.warning(f'Port {port} is in use')
                 continue
             else:
                 return port
@@ -98,9 +98,9 @@ class BottleServer:
             common_path = os.path.commonpath(local_urls) if len(local_urls) > 0 else None
             if common_path is not None and not os.path.isdir(abspath(common_path)):
                 common_path = os.path.dirname(common_path)
-            logger.debug('Comon path for local URLs: %s' % common_path)
+            logger.debug(f'Common path for local URLs: {common_path}')
             server.root_path = abspath(common_path) if common_path is not None else None
-            logger.debug('HTTP server root path: %s' % server.root_path)
+            logger.debug(f'HTTP server root path: {server.root_path}')
             app = bottle.Bottle()
 
             @app.post(f'/js_api/{server.uid}')
@@ -117,7 +117,7 @@ class BottleServer:
                 if body['uid'] in server.js_callback:
                     return json.dumps(server.js_callback[body['uid']](body))
                 else:
-                    logger.error('JS callback function is not set for window %s' % body['uid'])
+                    logger.error(f'JS callback function is not set for window {body["uid"]}')
 
             @app.route('/')
             @app.route('/<file:path>')

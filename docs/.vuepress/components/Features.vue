@@ -77,7 +77,7 @@ export default {
 .wrapper {
   margin: 3rem 0;
   padding-top: 3rem;
-  background-image: url('/light-bg.png');
+  background: #fbfbfb;
   background-repeat: repeat;
   position: relative;
   width: 100vw;
@@ -88,7 +88,7 @@ export default {
   overflow: visible;
 
   [data-theme="dark"] & {
-    background-image: url('/prism.png');
+    background: #242429;
   }
 }
 
@@ -112,16 +112,20 @@ h2 {
 
 .highlights-grid {
   display: grid;
-  grid-template-columns: repeat(2, 0.9fr);
+  grid-template-columns: repeat(2, 0.7fr);
   justify-content: center;
-  gap: 1rem;
+  column-gap: 6rem;
+  row-gap: 2rem;
+
+  padding: 0 2rem;
   @media (max-width: 600px) {
     grid-template-columns: 1fr;
+    padding: 0 1rem;
   }
 }
 
 .highlight-item {
-  padding: 16px;
+  padding: 0 16px ;
   border-radius: 8px;
   min-width: 100px;
   display: flex;

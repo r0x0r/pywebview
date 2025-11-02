@@ -25,23 +25,23 @@ clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 
-import System.Windows.Forms as WinForms
-from System import Action, Convert, Func, Object, String, Type, Uri
-from System.Collections.Generic import List
-from System.Diagnostics import Process
-from System.Drawing import Color
-from System.Globalization import CultureInfo
-from System.Threading.Tasks import Task, TaskScheduler
+import System.Windows.Forms as WinForms  # noqa: E402
+from System import Action, Convert, Func, Object, String, Type, Uri  # noqa: E402
+from System.Collections.Generic import List  # noqa: E402
+from System.Diagnostics import Process  # noqa: E402
+from System.Drawing import Color  # noqa: E402
+from System.Globalization import CultureInfo  # noqa: E402
+from System.Threading.Tasks import Task, TaskScheduler  # noqa: E402
 
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
 
-from Microsoft.Web.WebView2.Core import (
+from Microsoft.Web.WebView2.Core import (  # noqa: E402
     CoreWebView2Cookie,
     CoreWebView2ServerCertificateErrorAction,
     CoreWebView2WebResourceContext,
 )
-from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2
+from Microsoft.Web.WebView2.WinForms import CoreWebView2CreationProperties, WebView2  # noqa: E402
 
 for platform in ('win-arm64', 'win-x64', 'win-x86'):
     os.environ['Path'] += ';' + interop_dll_path(platform)
@@ -68,7 +68,9 @@ class EdgeChrome:
                 props.BrowserExecutableFolder = runtime_path
                 logger.debug(f'Using custom WebView2 runtime: {runtime_path}')
             else:
-                logger.warning(f'Custom WebView2 runtime path does not exist: {runtime_path}. Using system WebView2.')
+                logger.warning(
+                    f'Custom WebView2 runtime path does not exist: {runtime_path}. Using system WebView2.'
+                )
 
         props.UserDataFolder = cache_dir
         self.user_data_folder = props.UserDataFolder

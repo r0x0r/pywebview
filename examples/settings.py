@@ -1,9 +1,8 @@
-import webview
-
 """
 Use application flags to modify default behaviour of pywebview
 """
 
+import webview
 
 html = """
   <html>

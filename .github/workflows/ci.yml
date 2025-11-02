@@ -1,0 +1,218 @@
+name: Comprehensive CI
+
+on:
+  pull_request:
+    branches: [ '*' ]
+  push:
+    branches: [ '*' ]
+
+jobs:
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Run pre-commit hooks
+      run: |
+        pre-commit run --all-files --show-diff-on-failure
+
+  tests:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Ubuntu Qt Backend
+          - name: "Ubuntu Qt"
+            os: ubuntu-22.04
+            python-version: '3.8'
+            gui: qt
+            display: ":99"
+            qt_platform: "offscreen"
+            log_level: "error"
+
+          # Ubuntu GTK Backend
+          - name: "Ubuntu GTK"
+            os: ubuntu-22.04
+            python-version: '3.9'
+            gui: gtk
+            display: ":99"
+            log_level: "error"
+
+          # Windows EdgeChromium
+          - name: "Windows EdgeChromium"
+            os: windows-latest
+            python-version: '3.8'
+            gui: edgechromium
+            log_level: "error"
+
+          # Windows CEF
+          # - name: "Windows CEF"
+          #   os: windows-latest
+          #   python-version: '3.8'
+          #   gui: cef
+          #   log_level: "error"
+
+          # macOS
+          - name: "macOS"
+            os: macos-latest
+            python-version: '3.9'
+            log_level: "error"
+
+    env:
+      PYWEBVIEW_GUI: ${{ matrix.gui }}
+      PYWEBVIEW_LOG: ${{ matrix.log_level }}
+      DISPLAY: ${{ matrix.display }}
+      QT_QPA_PLATFORM: ${{ matrix.qt_platform }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.gui }}-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.gui }}-
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-
+
+    # Ubuntu Qt specific setup
+    - name: Install Qt dependencies (Ubuntu Qt)
+      if: matrix.gui == 'qt'
+      run: |
+        sudo apt-get update -q --allow-releaseinfo-change
+        sudo apt-get install --no-install-recommends -y \
+          xvfb \
+          python3-pyqt5 \
+          python3-pyqt5.qtwebkit \
+          libqt5webkit5-dev \
+
+    - name: Start Xvfb (Ubuntu Qt)
+      if: matrix.gui == 'qt'
+      run: |
+        sudo /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid \
+          --make-pidfile --background --exec /usr/bin/Xvfb -- :99 \
+          -screen 0 1920x1200x24 -ac +extension GLX +render -noreset
+        sleep 3
+
+    # Ubuntu GTK specific setup
+    - name: Install GTK dependencies (Ubuntu GTK)
+      if: matrix.gui == 'gtk'
+      run: |
+        sudo apt-get update -q --allow-releaseinfo-change
+        sudo apt-get install --no-install-recommends -y \
+          xvfb \
+          gir1.2-gtk-3.0 \
+          gir1.2-webkit2-4.0 \
+          python3-gi \
+          python3-gi-cairo \
+          python3-pep8 \
+          pyflakes3 \
+          python3-pytest \
+          libgirepository1.0-dev
+
+    - name: Start Xvfb (Ubuntu GTK)
+      if: matrix.gui == 'gtk'
+      run: |
+        sudo /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid \
+          --make-pidfile --background --exec /usr/bin/Xvfb -- :99 \
+          -screen 0 1920x1200x24 -ac +extension GLX +render -noreset
+        sleep 3
+
+    # Windows specific setup
+    - name: Install WebView2 Runtime (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install webview2-runtime --ignore-checksums
+
+    # Install Python dependencies
+    - name: Install base dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e "."
+        pip install pytest
+
+    - name: Install Qt dependencies (Ubuntu Qt)
+      if: matrix.gui == 'qt'
+      run: |
+        python -m pip install --upgrade setuptools==70.0.0
+        pip install -e ".[qt5]"
+        pip install pytest
+
+    - name: Install GTK dependencies (Ubuntu GTK)
+      if: matrix.gui == 'gtk'
+      run: |
+        python -m pip install --upgrade setuptools==70.0.0
+        pip install -e ".[gtk]"
+        pip install pytest
+
+    - name: Install CEF dependencies (Windows CEF)
+      if: matrix.gui == 'cef'
+      run: |
+        pip install -e ".[cef]"
+
+    - name: Install macOS dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        pip install -e "."
+        pip install pytest pillow
+
+    - name: Run tests
+      run: |
+        cd tests
+        python -m pytest -s
+
+    - name: Stop Xvfb (Linux)
+      if: matrix.gui == 'qt' || matrix.gui == 'gtk'
+      run: |
+        sudo killall Xvfb || true
+
+    - name: Upload screenshots (macOS)
+      if: runner.os == 'macOS' && failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-screenshots
+        path: /tmp/screenshots
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Safety Check
+      run: |
+        pip install safety
+        safety check --json || true  # Don't fail on safety issues for now

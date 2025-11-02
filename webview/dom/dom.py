@@ -42,22 +42,26 @@ class DOM:
         if not isinstance(html, str):
             html = str(html)
 
-        node_id = self.__window.evaluate_js(f"""
+        node_id = self.__window.evaluate_js(
+            f"""
             {parent_command};
             var template = document.createElement('template');
             template.innerHTML = {json.dumps(html)}.trim();
             var newElement = template.content.firstChild;
             pywebview._insertNode(newElement, element, '{mode.value}')
             pywebview._getNodeId(newElement);
-        """)
+        """
+        )
 
         return Element(self.__window, node_id)
 
     def get_element(self, selector: str) -> Optional[Element]:
-        node_id = self.__window.evaluate_js(f"""
+        node_id = self.__window.evaluate_js(
+            f"""
             var element = document.querySelector('{selector}');
             pywebview._getNodeId(element);
-        """)
+        """
+        )
 
         return Element(self.__window, node_id) if node_id else None
 

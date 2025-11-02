@@ -113,7 +113,6 @@ def create_test_window(
             destroy_event.set()
 
     if not no_destroy:
-        args = (thread_param,) if thread_param else ()
         destroy_event = _destroy_window(webview, window, destroy_delay)
 
         t = threading.Thread(target=thread)

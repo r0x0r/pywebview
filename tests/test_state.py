@@ -79,6 +79,26 @@ def test_string_quotes_from_js(window):
     run_test(webview, window, string_quotes_from_js_test)
 
 
+def test_state_dictionary_access(window):
+    """Test dictionary-style access: state['key']"""
+    run_test(webview, window, dictionary_access_test)
+
+
+def test_state_dictionary_assignment(window):
+    """Test dictionary-style assignment: state['key'] = value"""
+    run_test(webview, window, dictionary_assignment_test)
+
+
+def test_state_dictionary_deletion(window):
+    """Test dictionary-style deletion: del state['key']"""
+    run_test(webview, window, dictionary_deletion_test)
+
+
+def test_state_mixed_access(window):
+    """Test mixing attribute and dictionary access"""
+    run_test(webview, window, mixed_access_test)
+
+
 def state_test(window):
     window.state.test = 420
     assert window.evaluate_js('pywebview.state.test === 420')
@@ -350,12 +370,79 @@ def string_quotes_from_js_test(window):
     assert window.state.js_complex == expected
 
     # Test template literal with complex content
-    window.run_js("""pywebview.state.js_template_complex = `Multi-line template
+    window.run_js(
+        """pywebview.state.js_template_complex = `Multi-line template
 with 'single' and "double" quotes
 and backslash: \\\\
-and tab: \\t end`""")
+and tab: \\t end`"""
+    )
     expected = """Multi-line template
 with 'single' and "double" quotes
 and backslash: \\
 and tab: \t end"""
     assert window.state.js_template_complex == expected
+
+
+def dictionary_access_test(window):
+    """Test getting values using dictionary syntax"""
+    # Set via attribute, get via dictionary
+    window.state.test_key = 'test_value'
+    assert window.state['test_key'] == 'test_value'
+
+    # Set via dictionary, get via dictionary
+    window.state['another_key'] = 'another_value'
+    assert window.state['another_key'] == 'another_value'
+
+
+def dictionary_assignment_test(window):
+    """Test setting values using dictionary syntax"""
+    # Dictionary-style assignment
+    window.state['name'] = 'John'
+    window.state['age'] = 30
+    window.state['data'] = {'nested': 'object'}
+
+    # Verify via attribute access
+    assert window.state.name == 'John'
+    assert window.state.age == 30
+    assert window.state.data == {'nested': 'object'}
+
+    # Verify in JavaScript
+    assert window.evaluate_js('pywebview.state.name === "John"')
+    assert window.evaluate_js('pywebview.state.age === 30')
+
+
+def dictionary_deletion_test(window):
+    """Test deleting values using dictionary syntax"""
+    # Set some values
+    window.state['temp1'] = 'value1'
+    window.state['temp2'] = 'value2'
+
+    # Delete using dictionary syntax
+    del window.state['temp1']
+
+    # Verify deletion
+    assert 'temp1' not in window.state
+    assert 'temp2' in window.state
+
+    # Test KeyError for non-existent key
+    with pytest.raises(KeyError):
+        del window.state['nonexistent']
+
+
+def mixed_access_test(window):
+    """Test mixing attribute and dictionary access patterns"""
+    # Set via attribute, access both ways
+    window.state.attr_set = 'attribute_value'
+    assert window.state.attr_set == 'attribute_value'
+    assert window.state['attr_set'] == 'attribute_value'
+
+    # Set via dictionary, access both ways
+    window.state['dict_set'] = 'dictionary_value'
+    assert window.state['dict_set'] == 'dictionary_value'
+    assert window.state.dict_set == 'dictionary_value'
+
+    # Test dictionary methods
+    keys = list(window.state.keys())
+    assert 'attr_set' in keys
+    assert 'dict_set' in keys
+    assert len(window.state) >= 2
