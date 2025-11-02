@@ -45,7 +45,14 @@ This project thrives thanks to the contributions of our community. [[Learn how t
 
 <a href="https://github.com/r0x0r/pywebview/graphs/contributors"><img src="https://opencollective.com/pywebview/contributors.svg?width=890&button=false" /></a>
 
-### Financial Contributors
+### Sponsors
+
+
+<a href="https://www.lambdatest.com/?utm_source=pywebview&utm_medium=sponsor" target="_blank">
+    <img src="https://www.lambdatest.com/blue-logo.png" style="vertical-align: middle; padding: 1rem 0 8rem 0;" width="250" height="45" />
+</a>
+
+
 
 Become a financial contributor and help us sustain our community. More donation options are outlined on the [Donating](https://pywebview.flowrl.com/contributing/donating.html) page.
 

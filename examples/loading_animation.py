@@ -1,9 +1,8 @@
-import webview
-
 """
 Create a loading animation that is displayed before application is loaded.
 """
 
+import webview
 
 html = """
     <style>

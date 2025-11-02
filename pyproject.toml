@@ -71,7 +71,6 @@ exclude = [
     ".*"
 ]
 
-
 [tool.ruff]
 # Same as Black.
 line-length = 100
@@ -125,6 +124,8 @@ packages = [
 [tool.setuptools_scm]
 write_to = "webview/_version.py"
 
+[tool.uv.extra-build-dependencies]
+jnius = ["Cython"]
 
 [project.entry-points."pyinstaller40"]
 hook-dirs = "webview.__pyinstaller:get_hook_dirs"

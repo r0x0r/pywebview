@@ -1,9 +1,8 @@
-import webview
-
 """
 Demonstrate a difference between different link types
 """
 
+import webview
 
 html = """
   <html>

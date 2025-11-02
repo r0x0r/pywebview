@@ -1,3 +1,7 @@
+"""
+Create a frameless window with draggable regions.
+"""
+
 import webview
 
 html = """
