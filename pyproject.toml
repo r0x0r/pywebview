@@ -24,20 +24,22 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: User Interfaces",
 ]
 dependencies = [
     "pythonnet;sys_platform=='win32'",
-    "pyobjc-core;sys_platform=='darwin'",
-    "pyobjc-framework-Cocoa;sys_platform=='darwin'",
-    "pyobjc-framework-Quartz;sys_platform=='darwin'",
-    "pyobjc-framework-WebKit;sys_platform=='darwin'",
-    "pyobjc-framework-security;sys_platform=='darwin'",
-    "pyobjc-framework-UniformTypeIdentifiers;sys_platform=='darwin'",
+    "pyobjc-core>=9.0;sys_platform=='darwin'",
+    "pyobjc-framework-Cocoa>=9.0;sys_platform=='darwin'",
+    "pyobjc-framework-Quartz>=9.0;sys_platform=='darwin'",
+    "pyobjc-framework-WebKit>=9.0;sys_platform=='darwin'",
+    "pyobjc-framework-security>=9.0;sys_platform=='darwin'",
+    "pyobjc-framework-UniformTypeIdentifiers>=9.0;sys_platform=='darwin'",
     "QtPy;sys_platform=='openbsd6'",
-    "importlib_resources; python_version < '3.7'",
+    "importlib_resources; python_version < '3.9'",
     "proxy_tools",
     "bottle",
     "typing_extensions"
@@ -54,7 +56,7 @@ qt5 = ["QtPy", "PyQt5", "pyqtwebengine"]
 qt6 = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 android = ["jnius"]
 ssl = ["cryptography"]
-dev = ["ruff", "pre-commit"]
+dev = ["ruff", "pre-commit", "pytest", "build", "twine"]
 
 [project.urls]
 Homepage = "https://pywebview.flowrl.com/"
@@ -123,6 +125,12 @@ packages = [
 
 [tool.setuptools_scm]
 write_to = "webview/_version.py"
+
+[tool.uv]
+# Prefer pre-compiled wheels for better installation experience
+resolution = "highest"
+# Use index strategy that prefers wheels over source distributions
+index-strategy = "unsafe-best-match"
 
 [tool.uv.extra-build-dependencies]
 jnius = ["Cython"]
