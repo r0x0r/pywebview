@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import json
 import logging
 import sys
 import webbrowser
 from ctypes import windll
 from threading import Semaphore
+from typing import Any
 
 import clr
 
@@ -27,7 +30,7 @@ clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
 from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx  # noqa: E402
 
 logger = logging.getLogger('pywebview')
-settings = {}
+settings: dict[str, Any] = {}
 
 renderer = 'mshtml'
 

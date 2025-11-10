@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -5,10 +7,14 @@ import shutil
 import webbrowser
 import winreg
 from threading import Semaphore
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from webview.window import Window
 
 import clr
 
-from webview import Window, _state
+from webview import _state
 from webview import settings as webview_settings
 from webview.dom import _dnd_state
 from webview.models import Request, Response
@@ -90,7 +96,7 @@ class EdgeChrome:
         self.form = form
         form.Controls.Add(self.webview)
 
-        self.js_results = {}
+        self.js_results: dict[str, Any] = {}
         self.js_result_semaphore = Semaphore(0)
         self.webview.Dock = WinForms.DockStyle.Fill
         self.webview.BringToFront()

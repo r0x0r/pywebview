@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import json
 import logging
 from http.cookies import SimpleCookie
 from threading import Semaphore
+from typing import Any
 from urllib.parse import urlparse
 
 from android.activity import _activity as activity  # noqa
@@ -42,7 +45,7 @@ app = None
 
 
 class BrowserView:
-    def __init__(self, window):
+    def __init__(self, window: Any) -> None:
         self.pywebview_window = window
         self.webview = None
         self.dialog = None
@@ -51,14 +54,14 @@ class BrowserView:
         self.create_webview()
 
     @run_on_ui_thread
-    def create_webview(self):
-        def js_api_handler(func, params, id):
+    def create_webview(self) -> None:
+        def js_api_handler(func: str, params: str, id: str) -> None:
             js_bridge_call(self.pywebview_window, func, json.loads(params), id)
 
-        def chrome_callback(event, data):
+        def chrome_callback(event: str, data: Any) -> None:
             print(event, data)
 
-        def webview_callback(event, data):
+        def webview_callback(event: str, data: Any) -> None:
             if event == 'onPageFinished':
 
                 @run_on_ui_thread
@@ -100,7 +103,7 @@ class BrowserView:
                 )
                 self.pywebview_window.events.response_received.set(response)
 
-        self._cookies = []
+        self._cookies: list[Any] = []
         self.webview = WebView(activity)
         webview_settings = self.webview.getSettings()
         webview_settings.setAllowFileAccessFromFileURLs(True)
@@ -136,7 +139,7 @@ class BrowserView:
 
         if settings['ALLOW_DOWNLOADS']:
 
-            def _on_download_start(url, *_):
+            def _on_download_start(url: str, *_: Any) -> None:
                 context = activity.getApplicationContext()
                 visibility = DownloadManagerRequest.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
                 dir_type = Environment.DIRECTORY_DOWNLOADS
@@ -171,7 +174,7 @@ class BrowserView:
         self.pywebview_window.events.shown.set()
         activity.setContentView(self.webview)
 
-    def _on_request(self, url: str, method: str, headers_json: str):
+    def _on_request(self, url: str, method: str, headers_json: str) -> str | None:
         headers = json.loads(headers_json) if headers_json else {}
         original_headers = headers.copy()
 
@@ -189,15 +192,15 @@ class BrowserView:
 
         return None
 
-    def _on_response(self, url: str, status_code: int, headers_json: str):
+    def _on_response(self, url: str, status_code: int, headers_json: str) -> None:
         headers = json.loads(headers_json) if headers_json else {}
 
         response = Response(url, status_code, headers)
         self.pywebview_window.events.response_received.set(response)
 
-    def dismiss(self):
+    def dismiss(self) -> None:
         @run_on_ui_thread
-        def _dismiss():
+        def _dismiss() -> None:
             try:
                 if _state['private_mode']:
                     self.webview.clearHistory()
@@ -238,11 +241,11 @@ class BrowserView:
 
         _dismiss()
 
-    def _quit_confirmation(self):
-        def cancel(dialog, which):
+    def _quit_confirmation(self) -> None:
+        def cancel(dialog: Any, which: Any) -> None:
             self.dialog = None
 
-        def quit(dialog, which):
+        def quit(dialog: Any, which: Any) -> None:
             self.pywebview_window.closed.set()
             self.dialog = None
             app.stop()
@@ -264,7 +267,7 @@ class BrowserView:
             .show()
         )
 
-    def _back_pressed(self, v, key_code, event):
+    def _back_pressed(self, v: Any, key_code: int, event: Any) -> bool:
         if not (event.getAction() == KeyEvent.ACTION_DOWN and key_code == KeyEvent.KEYCODE_BACK):
             return False
         elif self.webview.canGoBack():
@@ -278,12 +281,12 @@ class BrowserView:
             self.pywebview_window.events.closed.set()
         return True
 
-    def get_size(self):
+    def get_size(self) -> tuple[int, int]:
         lock = Semaphore(0)
         size = None, None
 
         @run_on_ui_thread
-        def _get_size():
+        def _get_size() -> None:
             nonlocal size
             size = self.webview.getWidth(), self.webview.getHeight()
             lock.release()
@@ -293,12 +296,12 @@ class BrowserView:
 
         return size
 
-    def get_url(self):
+    def get_url(self) -> str | None:
         lock = Semaphore(0)
         url = None
 
         @run_on_ui_thread
-        def _get_url():
+        def _get_url() -> None:
             nonlocal url
             url = self.webview.getUrl()
             lock.release()
@@ -309,16 +312,16 @@ class BrowserView:
         return url
 
     @run_on_ui_thread
-    def load_url(self, url):
+    def load_url(self, url: str) -> None:
         self.webview.loadUrl(url)
 
     @run_on_ui_thread
-    def load_data_with_base_url(self, base_uri, html_content):
+    def load_data_with_base_url(self, base_uri: str, html_content: str) -> None:
         self.webview.loadDataWithBaseURL(base_uri, html_content, 'text/html', 'UTF-8', None)
 
 
 class AndroidApp(App):
-    def __init__(self, window):
+    def __init__(self, window: Any) -> None:
         self.window = window
         self.first_show = True
         super().__init__()
@@ -330,7 +333,7 @@ class AndroidApp(App):
         self.register_event_type('on_start')
         self.register_event_type('on_stop')
 
-    def build_view(self):
+    def build_view(self) -> BrowserView:
         self.view = BrowserView(self.window)
         return self.view
 

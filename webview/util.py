@@ -20,7 +20,7 @@ from glob import glob
 from http.cookies import SimpleCookie
 from platform import architecture
 from threading import Thread
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 from uuid import uuid4
 
 import webview
@@ -51,28 +51,28 @@ class ImmutableDict(UserDict):
     Only existing keys can be modified.
     """
 
-    def __init__(self, initial_data=None, **kwargs):
+    def __init__(self, initial_data: dict[Any, Any] | None = None, **kwargs: Any) -> None:
         self.data = {}
         if initial_data:
             self.data.update(initial_data)
         if kwargs:
             self.data.update(kwargs)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: Any) -> None:
         if key not in self.data:
             raise KeyError(f"Cannot add new key '{key}'. Only existing keys can be modified.")
         super().__setitem__(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         raise KeyError('Deleting keys is not allowed.')
 
 
-def is_app(url: str | callable | None) -> bool:
+def is_app(url: str | Callable[..., Any] | None) -> bool:
     """Returns true if 'url' is a WSGI or ASGI app."""
     return callable(url)
 
 
-def is_local_url(url: str | callable | None) -> bool:
+def is_local_url(url: str | Callable[..., Any] | None) -> bool:
     return not (
         (is_app(url))
         or (
@@ -96,8 +96,9 @@ def get_app_root() -> str:
     if hasattr(sys, '_MEIPASS'):  # Pyinstaller
         return sys._MEIPASS
 
-    if os.getenv('RESOURCEPATH'):  # py2app
-        return os.getenv('RESOURCEPATH')
+    resource_path = os.getenv('RESOURCEPATH')
+    if resource_path:  # py2app
+        return resource_path
 
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
@@ -106,7 +107,9 @@ def get_app_root() -> str:
         return os.path.join(os.path.dirname(__file__), '..', 'tests')
 
     if hasattr(sys, 'getandroidapilevel'):
-        return os.getenv('ANDROID_APP_PATH')
+        android_path = os.getenv('ANDROID_APP_PATH')
+        if android_path:
+            return android_path
 
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -130,7 +133,7 @@ def base_uri(relative_path: str = '') -> str:
     return f'file://{os.path.join(base_path, relative_path)}'
 
 
-def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
+def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie:
     if isinstance(input_, dict):
         cookie = SimpleCookie()
         name = input_['name']
@@ -165,7 +168,7 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def inject_pywebview(platform: str, window: Window) -> str:
+def inject_pywebview(platform: str, window: Window) -> None:
     """ "
     Generates and injects a global window.pywebview object. The object contains exposed API functions
     as well as utility functions required by pywebview. The function fires before_load event before
@@ -173,11 +176,13 @@ def inject_pywebview(platform: str, window: Window) -> str:
     """
     exposed_objects = []
 
-    def get_args(func: object):
+    def get_args(func: object) -> list[str]:
         params = list(inspect.getfullargspec(func).args)
         return params
 
-    def get_functions(obj: object, base_name: str = '', functions: dict[str, object] = None):
+    def get_functions(
+        obj: object, base_name: str = '', functions: dict[str, object] | None = None
+    ) -> dict[str, object]:
         obj_id = id(obj)
         if obj_id in exposed_objects:
             return functions
@@ -209,7 +214,7 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
         return functions
 
-    def generate_func():
+    def generate_func() -> list[dict[str, Any]]:
         functions = get_functions(window._js_api)
 
         if len(window._functions) > 0:
@@ -221,7 +226,7 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
         return [{'func': name, 'params': params} for name, params in functions.items()]
 
-    def generate_js_object():
+    def generate_js_object() -> None:
         window.run_js(js_code)
         window.events._pywebviewready.set()
         logger.debug('_pywebviewready event fired')
@@ -249,7 +254,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
     thread to prevent blocking the UI thread. The result is then passed back to the JS API.
     """
 
-    def _call():
+    def _call() -> None:
         try:
             result = func(*func_params)
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
@@ -264,7 +269,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
             f'window.pywebview._returnValuesCallbacks["{func_name}"]["{value_id}"]({retval})'
         )
 
-    def get_nested_attribute(obj: object, attr_str: str):
+    def get_nested_attribute(obj: object, attr_str: str) -> Any:
         attributes = attr_str.split('.')
         for attr in attributes:
             obj = getattr(obj, attr, None)
@@ -339,7 +344,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         logger.error('Function %s() does not exist', func_name)
 
 
-def load_js_files(window: Window, platform: str) -> str:
+def load_js_files(window: Window, platform: str) -> tuple[str, str]:
     """
     Load JS files in the order they should be loaded.
     The order is polyfill, api, the rest and finish.js.

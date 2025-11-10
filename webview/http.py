@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import TypeVar, cast
+from typing import Any, TypeVar, cast
 
 if sys.platform == 'win32' and ('pythonw.exe' in sys.executable or getattr(sys, 'frozen', False)):
     # bottle.py versions prior to 0.12.23 (the latest on PyPi as of Feb 2023) require stdout and
@@ -36,7 +36,16 @@ WRHT_co = TypeVar('WRHT_co', bound=WSGIRequestHandler, covariant=True)
 WST_co = TypeVar('WST_co', bound=WSGIServer, covariant=True)
 
 logger = logging.getLogger('pywebview')
-global_server = None
+global_server: BottleServer | None = None
+
+
+class ServerArgs(TypedDict, total=False):
+    """Arguments for HTTP server configuration"""
+
+    keyfile: str | None
+    certfile: str | None
+    handler_class: type[WSGIRequestHandler]
+    server_class: type[WSGIServer]
 
 
 def _get_random_port() -> int:
@@ -74,12 +83,14 @@ class ThreadedAdapter(bottle.ServerAdapter):
 
 class BottleServer:
     def __init__(self) -> None:
-        self.root_path = '/'
+        self.root_path: str | None = '/'
         self.running = False
-        self.address = None
-        self.js_callback = {}
-        self.js_api_endpoint = None
+        self.address: str | None = None
+        self.js_callback: dict[str, Any] = {}
+        self.js_api_endpoint: str | None = None
         self.uid = str(uuid.uuid1())
+        self.port: int | None = None
+        self.thread: threading.Thread | None = None
 
     @classmethod
     def start_server(
@@ -104,7 +115,7 @@ class BottleServer:
             app = bottle.Bottle()
 
             @app.post(f'/js_api/{server.uid}')
-            def js_api():
+            def js_api() -> str:
                 bottle.response.headers['Access-Control-Allow-Origin'] = '*'
                 bottle.response.headers['Access-Control-Allow-Methods'] = (
                     'PUT, GET, POST, DELETE, OPTIONS'
@@ -118,10 +129,11 @@ class BottleServer:
                     return json.dumps(server.js_callback[body['uid']](body))
                 else:
                     logger.error(f'JS callback function is not set for window {body["uid"]}')
+                    return ''
 
             @app.route('/')
             @app.route('/<file:path>')
-            def asset(file):
+            def asset(file: str) -> Any:
                 if not server.root_path:
                     return ''
                 bottle.response.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
@@ -199,28 +211,25 @@ class SSLWSGIRefServer(bottle.ServerAdapter):
             raise
 
 
-class ServerArgs(TypedDict, total=False):
-    keyfile: None
-    certfile: None
-
-
 def start_server(
     urls: list[str],
     http_port: int | None = None,
     server: type[ServerType] = BottleServer,
     **server_args: Unpack[ServerArgs],
 ) -> tuple[str, str | None, BottleServer]:
-    server = server if server is not None else BottleServer
-    return server.start_server(urls, http_port, **server_args)
+    server_cls = server if server is not None else BottleServer
+    return server_cls.start_server(urls, http_port, **server_args)
 
 
 def start_global_server(
     http_port: int | None = None,
-    urls: list[str] = ['.'],
+    urls: list[str] | None = None,
     server: type[ServerType] = BottleServer,
     **server_args: Unpack[ServerArgs],
 ) -> tuple[str, str | None, BottleServer]:
     global global_server
+    if urls is None:
+        urls = ['.']
     address, common_path, global_server = start_server(
         urls=urls, http_port=http_port, server=server, **server_args
     )

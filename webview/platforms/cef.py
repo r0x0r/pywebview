@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -9,6 +11,7 @@ from ctypes import windll
 from functools import wraps
 from threading import Event
 from time import sleep
+from typing import Any
 
 from cefpython3 import cefpython as cef
 
@@ -16,12 +19,12 @@ from webview import _state, settings
 from webview.util import DEFAULT_HTML, create_cookie, inject_pywebview, js_bridge_call
 
 sys.excepthook = cef.ExceptHook
-instances = {}
+instances: dict[str, Any] = {}
 
 logger = logging.getLogger(__name__)
 
-browser_settings = {}
-command_line_switches = {}
+browser_settings: dict[str, Any] = {}
+command_line_switches: dict[str, Any] = {}
 renderer = 'cef'
 
 

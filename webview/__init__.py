@@ -206,11 +206,12 @@ def start(
     """
     global guilib, renderer
 
-    def _create_children(other_windows):
-        if not windows[0].events.shown.wait(10):
-            raise WebViewException('Main window failed to load')
+    def _create_children(windows: list[Window]) -> None:
+        """
+        Create child windows
+        """
 
-        for window in other_windows:
+        for window in windows:
             guilib.create_window(window)
 
     _state['debug'] = debug
@@ -429,7 +430,7 @@ def create_window(
     return window
 
 
-def __generate_ssl_cert():
+def __generate_ssl_cert() -> tuple[str, str]:
     try:
         # https://cryptography.io/en/latest/x509/tutorial/#creating-a-self-signed-certificate
         from cryptography import x509
@@ -485,7 +486,7 @@ def __generate_ssl_cert():
     return keyfile, certfile
 
 
-def __set_storage_path(storage_path):
+def __set_storage_path(storage_path: str) -> None:
     e = WebViewException(f'Storage path {storage_path} is not writable')
 
     if not os.path.exists(storage_path):

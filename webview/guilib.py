@@ -19,8 +19,8 @@ guilib: ModuleType | None = None
 forced_gui_: GUIType | None = None
 
 
-def initialize(forced_gui: GUIType | None = None):
-    def import_android():
+def initialize(forced_gui: GUIType | None = None) -> ModuleType:
+    def import_android() -> bool:
         global guilib
 
         try:
@@ -32,7 +32,7 @@ def initialize(forced_gui: GUIType | None = None):
             logger.exception('Kivy cannot be loaded')
             return False
 
-    def import_gtk():
+    def import_gtk() -> bool:
         global guilib
 
         try:
@@ -44,7 +44,7 @@ def initialize(forced_gui: GUIType | None = None):
             logger.exception('GTK cannot be loaded')
             return False
 
-    def import_qt():
+    def import_qt() -> bool:
         global guilib
 
         try:
@@ -55,7 +55,7 @@ def initialize(forced_gui: GUIType | None = None):
             logger.exception('QT cannot be loaded')
             return False
 
-    def import_cocoa():
+    def import_cocoa() -> bool:
         global guilib
 
         try:
@@ -67,7 +67,7 @@ def initialize(forced_gui: GUIType | None = None):
 
             return False
 
-    def import_winforms():
+    def import_winforms() -> bool:
         global guilib
 
         try:

@@ -1,19 +1,24 @@
+from __future__ import annotations
+
 import json
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING
 
 from webview.dom import ManipulationMode
 from webview.dom.element import Element
+
+if TYPE_CHECKING:
+    from webview.window import Window
 
 
 class DOM:
     _serializable = False
 
-    def __init__(self, window):
+    def __init__(self, window: Window) -> None:
         self.__window = window
         window.events.loaded += self.__on_loaded
-        self._elements = {}
+        self._elements: dict[str, Element] = {}
 
-    def __on_loaded(self):
+    def __on_loaded(self) -> None:
         self._elements = {}
 
     @property
@@ -29,7 +34,10 @@ class DOM:
         return self._elements.get('window', Element(self.__window, 'window'))
 
     def create_element(
-        self, html: str, parent: Union[Element, str] = None, mode=ManipulationMode.LastChild
+        self,
+        html: str,
+        parent: Element | str | None = None,
+        mode: ManipulationMode = ManipulationMode.LastChild,
     ) -> Element:
         self.__window.events.loaded.wait()
 
@@ -55,7 +63,7 @@ class DOM:
 
         return Element(self.__window, node_id)
 
-    def get_element(self, selector: str) -> Optional[Element]:
+    def get_element(self, selector: str) -> Element | None:
         node_id = self.__window.evaluate_js(
             f"""
             var element = document.querySelector('{selector}');
@@ -65,7 +73,7 @@ class DOM:
 
         return Element(self.__window, node_id) if node_id else None
 
-    def get_elements(self, selector: str) -> List[Element]:
+    def get_elements(self, selector: str) -> list[Element]:
         code = f"""
             var elements = document.querySelectorAll('{selector}');
             nodeIds = [];

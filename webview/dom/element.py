@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable
 
 from webview.dom import DOMEventHandler, ManipulationMode, _dnd_state
 from webview.dom.classlist import ClassList
@@ -9,12 +11,15 @@ from webview.dom.propsdict import DOMPropType, PropsDict
 from webview.errors import JavascriptException
 from webview.event import EventContainer
 
+if TYPE_CHECKING:
+    from webview.window import Window
+
 logger = logging.getLogger('pywebview')
 
 
-def _ignore_window_document(func):
+def _ignore_window_document(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         if args[0]._node_id in ('window', 'document'):
             return None
 
@@ -23,9 +28,9 @@ def _ignore_window_document(func):
     return wrapper
 
 
-def _exists(func):
+def _exists(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         if not args[0]._exists:
             logger.warning(f'Element with id {args[0]._node_id} has been removed')
             return
@@ -43,7 +48,7 @@ def _exists(func):
 
 
 class Element:
-    def __init__(self, window, node_id) -> None:
+    def __init__(self, window: Window, node_id: str) -> None:
         self._window = window
         self.events = EventContainer()
         self._node_id = node_id
@@ -64,8 +69,8 @@ class Element:
                 throw new Error('Element with pywebview-id {self._node_id} not found', {{ cause: 'ELEMENT_NOT_FOUND' }});
             }}
         """.replace('\n', '')
-        self._event_handlers = defaultdict(list)
-        self._event_handler_ids = {}
+        self._event_handlers: dict[str, list[Any]] = defaultdict(list)
+        self._event_handler_ids: dict[str, Any] = {}
         self._exists = True
         self._classes = ClassList(self)
         self._style = PropsDict(self, DOMPropType.Style)
@@ -83,7 +88,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def id(self) -> Optional[str]:
+    def id(self) -> str | None:
         return self._window.evaluate_js(f'{self._query_command}; element.id')
 
     @id.setter
@@ -99,24 +104,24 @@ class Element:
         return self._classes
 
     @classes.setter
-    def classes(self, classes: Iterable) -> None:
+    def classes(self, classes: Any) -> None:
         self._classes = ClassList(self, classes)
 
     @property
     @_exists
     @_ignore_window_document
-    def attributes(self) -> Dict[str, Any]:
+    def attributes(self) -> dict[str, Any]:
         return self._attributes
 
     @attributes.setter
     @_exists
     @_ignore_window_document
-    def attributes(self, attributes: Dict[str, Any]) -> None:
+    def attributes(self, attributes: dict[str, Any]) -> None:
         self._attributes = PropsDict(self, DOMPropType.Attribute, attributes)
 
     @property
     @_exists
-    def node(self) -> Dict[str, Any]:
+    def node(self) -> dict[str, Any]:
         return self._window.evaluate_js(
             f'{self._query_command}; var r2 = pywebview._processElements([element])[0]; r2'
         )
@@ -124,13 +129,13 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def style(self) -> Dict[str, Any]:
+    def style(self) -> dict[str, Any]:
         return self._style
 
     @style.setter
     @_exists
     @_ignore_window_document
-    def style(self, style: Dict[str, Any]) -> None:
+    def style(self, style: dict[str, Any]) -> None:
         self._style = PropsDict(self, DOMPropType.Style, style)
 
     @property
@@ -198,7 +203,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def children(self) -> List['Element']:
+    def children(self) -> list[Element]:
         children = self._window.evaluate_js(
             f"""
             {self._query_command};
@@ -217,7 +222,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def parent(self) -> Union['Element', None]:
+    def parent(self) -> Element | None:
         node_id = self._window.evaluate_js(
             f"""
             {self._query_command};
@@ -230,7 +235,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def next(self) -> Union['Element', None]:
+    def next(self) -> Element | None:
         node_id = self._window.evaluate_js(
             f"""
             {self._query_command};
@@ -243,7 +248,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def previous(self) -> Union['Element', None]:
+    def previous(self) -> Element | None:
         node_id = self._window.evaluate_js(
             f"""
             {self._query_command};
@@ -282,7 +287,7 @@ class Element:
 
     @_exists
     @_ignore_window_document
-    def append(self, html: str, mode=ManipulationMode.LastChild) -> 'Element':
+    def append(self, html: str, mode=ManipulationMode.LastChild) -> Element:
         return self._window.dom.create_element(html, self, mode)
 
     @_exists
@@ -316,8 +321,11 @@ class Element:
     @_exists
     @_ignore_window_document
     def copy(
-        self, target: Union[str, 'Element'] = None, mode=ManipulationMode.LastChild, id: str = None
-    ) -> 'Element':
+        self,
+        target: str | Element | None = None,
+        mode: ManipulationMode = ManipulationMode.LastChild,
+        id: str | None = None,
+    ) -> Element:
         if isinstance(target, str):
             target = self._window.dom.get_element(target)
         elif target is None:
@@ -351,7 +359,9 @@ class Element:
 
     @_exists
     @_ignore_window_document
-    def move(self, target: Union[str, 'Element'], mode=ManipulationMode.LastChild) -> 'Element':
+    def move(
+        self, target: str | Element, mode: ManipulationMode = ManipulationMode.LastChild
+    ) -> Element:
         if isinstance(target, str):
             target = self._window.dom.get_element(target)
 
@@ -365,7 +375,7 @@ class Element:
         return self
 
     @_exists
-    def on(self, event: str, callback: Union[Callable, DOMEventHandler]) -> None:
+    def on(self, event: str, callback: Callable | DOMEventHandler) -> None:
         if self._node_id not in self._window.dom._elements:
             self._window.dom._elements[self._node_id] = self
 
@@ -480,5 +490,5 @@ class Element:
             return self.node['outerHTML']
 
     @_exists
-    def __eq__(self, other: 'Element') -> bool:
+    def __eq__(self, other: Element) -> bool:
         return hasattr(other, '_node_id') and self._node_id == other._node_id

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -9,6 +11,7 @@ import webbrowser
 from copy import copy, deepcopy
 from functools import partial
 from threading import Event, Semaphore, Thread
+from typing import Any
 from uuid import uuid1
 
 from qtpy import PYQT6, PYSIDE6, QtCore
@@ -90,11 +93,11 @@ def _sigint_handler(signum, frame):
 
 
 class BrowserView(QMainWindow):
-    instances = {}
-    inspector_port = None  # The localhost port at which the Remote debugger listens
+    instances: dict[str, Any] = {}
+    inspector_port: int | None = None  # The localhost port at which the Remote debugger listens
 
-    global_menubar_other_objects = []
-    global_menubar_top_menus = []
+    global_menubar_other_objects: list[Any] = []
+    global_menubar_top_menus: list[Any] = []
 
     create_window_trigger = QtCore.Signal(object)
     set_title_trigger = QtCore.Signal(str)

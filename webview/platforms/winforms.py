@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import ctypes
 import logging
 import os
@@ -8,6 +10,7 @@ import winreg
 from ctypes import windll, wintypes
 from platform import machine
 from threading import Event, Semaphore
+from typing import Any
 
 import clr
 
@@ -32,7 +35,7 @@ from System.Threading import ApartmentState, Thread, ThreadStart  # noqa: E402
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 logger = logging.getLogger('pywebview')
-cache_dir = None
+cache_dir: str | None = None
 
 
 def _is_new_version(current_version: str, new_version: str) -> bool:
@@ -165,7 +168,7 @@ def ExtendFrameIntoClientArea(hwnd):
 
 
 class BrowserView:
-    instances = {}
+    instances: dict[str, Any] = {}
 
     class BrowserForm(WinForms.Form):
         def __init__(self, window, cache_dir):

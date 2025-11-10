@@ -1,5 +1,8 @@
+from typing import Any
+
+
 class EventDispatcher:
-    __event_stack = {}
+    __event_stack: dict[str, Any] = {}
 
     def register_event_type(self, event_type):
         """Register an event type with the dispatcher.

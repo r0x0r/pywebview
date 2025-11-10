@@ -7,6 +7,7 @@ import urllib
 import uuid
 import webbrowser
 from threading import Semaphore, Thread, main_thread
+from typing import Any
 
 import AppKit
 import Foundation
@@ -54,10 +55,10 @@ renderer = 'wkwebview'
 
 
 class BrowserView:
-    instances = {}
+    instances: dict[str, Any] = {}
     app = AppKit.NSApplication.sharedApplication()
     app.setActivationPolicy_(0)
-    current_menu = None
+    current_menu: list[Menu] | None = None
 
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
 

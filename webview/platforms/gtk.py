@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -5,8 +7,11 @@ import pathlib
 import sys
 import webbrowser
 from threading import Semaphore, Thread, main_thread
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid1
+
+if TYPE_CHECKING:
+    from webview.window import Window
 
 from webview import FileDialog, _state, settings, windows
 from webview.dom import _dnd_state
@@ -20,7 +25,7 @@ from webview.util import (
     js_bridge_call,
     parse_file_type,
 )
-from webview.window import FixPoint, Window
+from webview.window import FixPoint
 
 logger = logging.getLogger('pywebview')
 os.environ['EGL_LOG_LEVEL'] = 'fatal'
@@ -46,14 +51,14 @@ from gi.repository import WebKit2 as webkit  # noqa: E402
 renderer = 'gtkwebkit2'
 webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
 
-_app = None
-_app_actions = {}  # action_label: function
+_app: Any = None
+_app_actions: dict[str, Any] = {}  # action_label: function
 
-cert = None
+cert: Any = None
 
 
 class BrowserView:
-    instances = {}
+    instances: dict[str, Any] = {}
 
     class JSBridge:
         def __init__(self, window: Window) -> None:
@@ -74,7 +79,7 @@ class BrowserView:
         self.pywebview_window = window
 
         self.is_fullscreen = False
-        self.js_results = {}
+        self.js_results: dict[str, Any] = {}
 
         self.window = gtk.ApplicationWindow(title=window.title, application=_app)
         self.pywebview_window.native = self.window
