@@ -110,9 +110,11 @@ class Window:
         localization: Mapping[str, str] | None = None,
         http_port: int | None = None,
         server: type[http.ServerType] | None = None,
-        server_args: http.ServerArgs = {},
-        screen: Screen = None,
+        server_args: http.ServerArgs | None = None,
+        screen: Screen | None = None,
     ) -> None:
+        if server_args is None:
+            server_args = {}
         self.uid = uid
         self._title = title
         self.original_url = None if html else url  # original URL provided by user
@@ -178,8 +180,8 @@ class Window:
 
         self._expose_lock = Lock()
         self.dom = DOM(self)
-        self.gui = None
-        self.native = None  # set in the gui after window creation
+        self.gui: Any = None
+        self.native: Any = None  # set in the gui after window creation
         self._state = State(self)
 
     def _initialize(
