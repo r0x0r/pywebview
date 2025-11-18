@@ -968,7 +968,7 @@
 	 * Give it an ID of a model and a checkbox and it will update the item
 	 * in storage based on the checkbox's state.
 	 *
-	 * @param {number} id The ID of the element to complete or uncomplete
+	 * @param {number} id The ID of the element to complete or incomplete
 	 * @param {object} checkbox The checkbox to check the state of complete
 	 *                          or not
 	 * @param {boolean|undefined} silent Prevent re-filtering the todo items
