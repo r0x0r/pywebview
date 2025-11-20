@@ -971,7 +971,7 @@ _pywebview_ exposes a `window.pywebviewready` event that is fired after `window.
 ### State events
 
 `pywebview.state` is an `EventTarget` object that fires two events `change` and `delete`. To subscribe to an event, use
-`pywebview.state.addEventHandler('change', (e) => {})` or `pywebview.state.addEventHandler('delete', (e) => {})`. State change is stored in the `event.detail` object in form of `{ key, value }`
+`pywebview.state.addEventListener('change', (e) => {})` or `pywebview.state.addEventListener('delete', (e) => {})`. State change is stored in the `event.detail` object in form of `{ key, value }`
 
 ## Drag area
 
