@@ -157,7 +157,7 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     :param file_type: file type string 'description (*.file_extension1;*.file_extension2)' as required by file filter in create_file_dialog
     :return: (description, file extensions) tuple
     """
-    valid_file_filter = r'^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*\.\w+)*)\)$'
+    valid_file_filter = r'^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*(?:\.(?:\w+|\*))*)*)\)$'
     match = re.search(valid_file_filter, file_type)
 
     if match:
