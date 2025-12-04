@@ -37,7 +37,7 @@ def run_webview(shared_dict):
     """Function to run webview in a separate process with shared state."""
 
     def on_counter_change(type, key, value):
-        print(f'Webview process - Event {type} for {key} value: {value}')
+        print(f'Webview process - {key}: {value}')
 
     def sync_from_shared_state():
         """Sync webview state from shared dictionary."""
@@ -67,7 +67,6 @@ def run_webview(shared_dict):
         sync_thread = threading.Thread(target=periodic_sync, daemon=True)
         sync_thread.start()
 
-    global window
     window = webview.create_window('Multiprocess State Example', html=html)
     window.state.counter = shared_dict.get('counter', 0)
     window.state.message = shared_dict.get('message', 'Waiting...')
