@@ -225,12 +225,15 @@ class BrowserView:
             self.old_state = self.WindowState
 
             # Application icon
-            handle = kernel32.GetModuleHandleW(None)
-            icon_handle = windll.shell32.ExtractIconW(handle, sys.executable, 0)
+            if _state['icon'] and os.path.isfile(_state['icon']):
+                self.Icon = Icon(_state['icon'])
+            else:
+                handle = kernel32.GetModuleHandleW(None)
+                icon_handle = windll.shell32.ExtractIconW(handle, sys.executable, 0)
 
-            if icon_handle != 0:
-                self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handle))).Clone()
-                windll.user32.DestroyIcon(icon_handle)
+                if icon_handle != 0:
+                    self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handle))).Clone()
+                    windll.user32.DestroyIcon(icon_handle)
 
             self.closed = window.events.closed
             self.closing = window.events.closing
