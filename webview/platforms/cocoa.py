@@ -632,6 +632,10 @@ class BrowserView:
 
         self.datastore = WebKit.WKWebsiteDataStore.defaultDataStore()
 
+        if _state['icon'] and os.path.isfile(_state['icon']):
+            ns_image = AppKit.NSImage.alloc().initByReferencingFile_(_state['icon'])
+            BrowserView.app.setApplicationIconImage_(ns_image)
+
         if _state['private_mode']:
             # nonPersisentDataStore preserves cookies for some unknown reason. For this reason we use default datastore
             # and clear all the cookies beforehand
