@@ -13,7 +13,6 @@ _pywebview_ provides advanced features like window manipulation functionality, e
 
 _pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/).
 
-# Getting started
 
 ## Install
 
@@ -33,24 +32,23 @@ webview.start()
 
 Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.com/guide), exploring [examples](https://pywebview.flowrl.com/examples) or [contributing](https://pywebview.flowrl.com/contributing). If React is your thing, get started right away with [React boilerplate](https://github.com/r0x0r/pywebview-react-boilerplate).
 
-# Contribution
 
-### Consulting services
+## Consulting services
 
 If your company is looking for support with _pywebview_ or needs a hand with full-stack development, the author of _pywebview_ is available for hire. As a VAT-registered EU based professional, I specialize in a wide range of technologies, including JavaScript/TypeScript, React/Vue, Python, GIS, SQL databases, API integration, CI/CD pipelines and cloud solutions. For inquiries about availability and pricing details, reach out to roman@maumau.fi.
 
-### Code Contributors
-
-This project thrives thanks to the contributions of our community. [[Learn how to contribute](docs/contributing/README.md)].
-
-<a href="https://github.com/r0x0r/pywebview/graphs/contributors"><img src="https://opencollective.com/pywebview/contributors.svg?width=890&button=false" /></a>
-
-### Sponsors
+## Sponsors
 
 
 <a href="https://www.lambdatest.com/?utm_source=pywebview&utm_medium=sponsor" target="_blank">
     <img src="https://www.lambdatest.com/blue-logo.png" style="vertical-align: middle; padding: 1rem 0 8rem 0;" width="250" height="45" />
 </a><br/><br/><br/>
+
+## Code Contributors
+
+This project thrives thanks to the contributions of our community. [[Learn how to contribute](docs/contributing/README.md)].
+
+<a href="https://github.com/r0x0r/pywebview/graphs/contributors"><img src="https://opencollective.com/pywebview/contributors.svg?width=890&button=false" /></a>
 
 
 
