@@ -317,7 +317,7 @@ class BrowserView:
                     0,
                     winreg.KEY_READ,
                 )
-                system_theme, _ = winreg.QueryValueEx(personalize_key, 'SystemUsesLightTheme')
+                system_theme, _ = winreg.QueryValueEx(personalize_key, 'AppsUseLightTheme')
                 winreg.CloseKey(personalize_key)
                 if system_theme == 0:
                     return True
