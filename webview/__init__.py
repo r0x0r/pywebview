@@ -242,6 +242,9 @@ def start(
     if len(windows) == 0:
         raise WebViewException('You must create a window first before calling this function.')
 
+    if menu:
+        _state['menu'] = menu
+
     guilib = initialize(gui)
     renderer = guilib.renderer
 
@@ -296,10 +299,6 @@ def start(
         else:
             thread = threading.Thread(target=func)
         thread.start()
-
-    if menu:
-        _state['menu'] = menu
-        # guilib.set_app_menu(menu)
 
     guilib.create_window(windows[0])
     # keyfile is deleted by the ServerAdapter right after wrap_socket()
