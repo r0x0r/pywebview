@@ -674,8 +674,12 @@ class BrowserView(QMainWindow):
             # Keep the top of the window in the same place
             geo.setY(geo.y() + geo.height() - height)
 
+        geo.setWidth(width)
+        geo.setHeight(height)
         self.setGeometry(geo)
-        self.setFixedSize(width, height)
+
+        if not self.pywebview_window.resizable:
+            self.setFixedSize(width, height)
 
     def on_window_move(self, x, y):
         self.move(x, y)
