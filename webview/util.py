@@ -196,7 +196,7 @@ def inject_pywebview(platform: str, window: Window) -> str:
                     continue
 
                 attr = getattr(obj, name)
-                if inspect.ismethod(attr):
+                if inspect.ismethod(attr) or inspect.isfunction(attr):
                     functions[full_name] = get_args(attr)[1:]
                 # If the attribute is a class or a non-callable object, make a recursive call
                 elif inspect.isclass(attr) or (
