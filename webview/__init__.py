@@ -315,7 +315,7 @@ def create_window(
     height: int = 600,
     x: int | None = None,
     y: int | None = None,
-    screen: Screen = None,
+    screen: Screen | None = None,
     resizable: bool = True,
     fullscreen: bool = False,
     min_size: tuple[int, int] = (200, 100),
