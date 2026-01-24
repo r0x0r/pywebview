@@ -5,4 +5,4 @@ import webview
 
 if __name__ == '__main__':
     window = webview.create_window('Set window icon', 'https://pywebview.flowrl.com/hello')
-    webview.start(icon='../logo/logo.png')
+    webview.start(icon='../assets/logo.png')

@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     start_webview_process()
 
-    image = Image.open('logo/logo.png')
+    image = Image.open('assets/logo.png')
     menu = Menu(MenuItem('Open', on_open), MenuItem('Exit', on_exit))
     icon = Icon('Pystray', image, menu=menu)
     icon.run()
