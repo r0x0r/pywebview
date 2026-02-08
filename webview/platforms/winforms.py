@@ -139,10 +139,10 @@ def DwmSetWindowAttribute(hwnd, attr, value, size=4):
 
 def ExtendFrameIntoClientArea(hwnd):
     class _MARGINS(ctypes.Structure):
-        _fields_ = [("cxLeftWidth", ctypes.c_int),
-                    ("cxRightWidth", ctypes.c_int),
-                    ("cyTopHeight", ctypes.c_int),
-                    ("cyBottomHeight", ctypes.c_int)
+        _fields_ = [('cxLeftWidth', ctypes.c_int),
+                    ('cxRightWidth', ctypes.c_int),
+                    ('cyTopHeight', ctypes.c_int),
+                    ('cyBottomHeight', ctypes.c_int)
                     ]
 
     DwmExtendFrameIntoClientArea = ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea
@@ -234,6 +234,11 @@ class BrowserView:
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
+                # Define resize border width for frameless windows
+                self.resize_border_width = 5
+            else:
+                self.frameless = False
+                self.resize_border_width = 0
 
             if window.menu or _state['menu']:
                 self.set_window_menu(window.menu or _state['menu'])
@@ -614,72 +619,121 @@ class BrowserView:
 
 
         def WndProc(self, hwnd, msg, w_param, l_param):
-            #print(f"Message: {msg}")
-            # WM_NCHITTEST message
-            if msg != 0x201:  # WM_NCHITTEST
-                return CallWindowProc(self.original_wndproc, hwnd, msg, w_param, l_param)
-            #Check if we're using Edge Chromium (where click-through would be applicable)
-            if not is_chromium or not self.pywebview_window.transparent:
-                return
-            # Find Chrome widget window
-            chrome_widget = self.browser.webview.Handle.ToInt32()
-            if not chrome_widget:
-                return CallWindowProc(self.original_wndproc, hwnd, msg, w_param, l_param)
+            WM_NCHITTEST = 0x0084
+            WM_LBUTTONDOWN = 0x0201
 
-            click_through = True
+            # Handle frameless window resizing
+            if msg == WM_NCHITTEST and self.frameless and self.pywebview_window.resizable:
+                # Get cursor position in client coordinates
+                x = l_param & 0xFFFF
+                y = (l_param >> 16) & 0xFFFF
 
-            # Get cursor position
-            point = wintypes.POINT()
-            windll.user32.GetCursorPos(ctypes.byref(point))
-            windll.user32.ScreenToClient(chrome_widget, ctypes.byref(point))
+                # Convert screen coordinates to client coordinates
+                point = wintypes.POINT(x, y)
+                windll.user32.ScreenToClient(hwnd, ctypes.byref(point))
 
+                # Hit test constants
+                HTCLIENT = 1
+                HTLEFT = 10
+                HTRIGHT = 11
+                HTTOP = 12
+                HTTOPLEFT = 13
+                HTTOPRIGHT = 14
+                HTBOTTOM = 15
+                HTBOTTOMLEFT = 16
+                HTBOTTOMRIGHT = 17
 
-            # TODO: Implement check for HTML elements with the browser API
-            # For now, we're implementing just the caption check
+                border = self.resize_border_width
 
-            # Check if cursor is over caption area
-            if click_through:
+                # Get client size
                 rect = wintypes.RECT()
-                windll.user32.GetWindowRect(hwnd, ctypes.byref(rect))
+                windll.user32.GetClientRect(hwnd, ctypes.byref(rect))
+                width = rect.right - rect.left
+                height = rect.bottom - rect.top
 
-                # Calculate caption height
-                caption_height = windll.user32.GetSystemMetrics(32)  # SM_CYDLGFRAME
-                caption_height += windll.user32.GetSystemMetrics(4)  # SM_CYCAPTION
+                # Check corners first (they take priority)
+                if point.x < border and point.y < border:
+                    return HTTOPLEFT
+                elif point.x >= width - border and point.y < border:
+                    return HTTOPRIGHT
+                elif point.x < border and point.y >= height - border:
+                    return HTBOTTOMLEFT
+                elif point.x >= width - border and point.y >= height - border:
+                    return HTBOTTOMRIGHT
+                # Check edges
+                elif point.x < border:
+                    return HTLEFT
+                elif point.x >= width - border:
+                    return HTRIGHT
+                elif point.y < border:
+                    return HTTOP
+                elif point.y >= height - border:
+                    return HTBOTTOM
 
-                # Set bottom of caption area
-                rect.bottom = rect.top + caption_height
+            # Handle transparent window click-through
+            if msg == WM_LBUTTONDOWN:
+                # Check if we're using Edge Chromium (where click-through would be applicable)
+                if not is_chromium or not self.pywebview_window.transparent:
+                    return CallWindowProc(self.original_wndproc, hwnd, msg, w_param, l_param)
 
-                # Get cursor position again for window rect check
-                cursor_point = wintypes.POINT()
-                windll.user32.GetCursorPos(ctypes.byref(cursor_point))
+                # Find Chrome widget window
+                chrome_widget = self.browser.webview.Handle.ToInt32()
+                if not chrome_widget:
+                    return CallWindowProc(self.original_wndproc, hwnd, msg, w_param, l_param)
 
-                # Check if cursor is in the caption area
-                if (cursor_point.x >= rect.left and cursor_point.x <= rect.right and
-                    cursor_point.y >= rect.top and cursor_point.y <= rect.bottom):
-                    click_through = False
+                click_through = True
 
-            # Toggle WS_EX_TRANSPARENT style based on click_through value
-            # Store state in a class variable
-            if not hasattr(self, 'cur_click_through'):
-                self.cur_click_through = False
+                # Get cursor position
+                point = wintypes.POINT()
+                windll.user32.GetCursorPos(ctypes.byref(point))
+                windll.user32.ScreenToClient(chrome_widget, ctypes.byref(point))
 
-            if click_through != self.cur_click_through:
-                self.cur_click_through = click_through
+                # TODO: Implement check for HTML elements with the browser API
+                # For now, we're implementing just the caption check
 
-            # Get current extended window style
-            WS_EX_TRANSPARENT = 0x00000020
-            GWL_EXSTYLE = -20
+                # Check if cursor is over caption area
+                if click_through:
+                    rect = wintypes.RECT()
+                    windll.user32.GetWindowRect(hwnd, ctypes.byref(rect))
 
-            current_style = windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+                    # Calculate caption height
+                    caption_height = windll.user32.GetSystemMetrics(32)  # SM_CYDLGFRAME
+                    caption_height += windll.user32.GetSystemMetrics(4)  # SM_CYCAPTION
 
-            if click_through:
-                new_style = current_style | WS_EX_TRANSPARENT
-            else:
-                new_style = current_style & ~WS_EX_TRANSPARENT
+                    # Set bottom of caption area
+                    rect.bottom = rect.top + caption_height
 
-            windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, new_style)
+                    # Get cursor position again for window rect check
+                    cursor_point = wintypes.POINT()
+                    windll.user32.GetCursorPos(ctypes.byref(cursor_point))
 
-            # Call the original window procedure
+                    # Check if cursor is in the caption area
+                    if (cursor_point.x >= rect.left and cursor_point.x <= rect.right and
+                        cursor_point.y >= rect.top and cursor_point.y <= rect.bottom):
+                        click_through = False
+
+                # Toggle WS_EX_TRANSPARENT style based on click_through value
+                # Store state in a class variable
+                if not hasattr(self, 'cur_click_through'):
+                    self.cur_click_through = False
+
+                if click_through != self.cur_click_through:
+                    self.cur_click_through = click_through
+
+                # Get current extended window style
+                WS_EX_TRANSPARENT = 0x00000020
+                GWL_EXSTYLE = -20
+
+                current_style = windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+
+                if click_through:
+                    new_style = current_style | WS_EX_TRANSPARENT
+                else:
+                    new_style = current_style & ~WS_EX_TRANSPARENT
+
+                windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, new_style)
+
+            # Call the original window procedure for all other messages
             return CallWindowProc(self.original_wndproc, hwnd, msg, w_param, l_param)
 
 
