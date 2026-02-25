@@ -973,7 +973,27 @@ class BrowserView:
                         except ImportError:
                             UTType = None  # Fallback if UTType is not available
 
-                        open_dlg.setAllowedContentTypes_([UTType.typeWithMIMEType_(file_filter[0])])
+                        if UTType is not None:
+                            # Map wildcard MIME types to supertype UTIs because
+                            # typeWithMIMEType_ returns unusable dynamic types for them.
+                            _wildcard_uti = {
+                                'image/*': 'public.image',
+                                'video/*': 'public.movie',
+                                'audio/*': 'public.audio',
+                                'text/*':  'public.text',
+                            }
+                            content_types = []
+                            for mime in file_filter:
+                                mime_str = str(mime)
+                                uti_id = _wildcard_uti.get(mime_str)
+                                if uti_id:
+                                    ut = UTType.typeWithIdentifier_(uti_id)
+                                else:
+                                    ut = UTType.typeWithMIMEType_(mime_str)
+                                if ut is not None and not str(ut).startswith('dyn.'):
+                                    content_types.append(ut)
+                            if content_types:
+                                open_dlg.setAllowedContentTypes_(content_types)
                     else:
                         open_dlg.setAllowedFileTypes_(file_filter[0][1])
 
