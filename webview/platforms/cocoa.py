@@ -980,7 +980,7 @@ class BrowserView:
                                 'image/*': 'public.image',
                                 'video/*': 'public.movie',
                                 'audio/*': 'public.audio',
-                                'text/*':  'public.text',
+                                'text/*': 'public.text',
                             }
                             content_types = []
                             for mime in file_filter:
