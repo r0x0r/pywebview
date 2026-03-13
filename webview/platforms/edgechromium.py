@@ -119,12 +119,12 @@ class EdgeChrome:
         if not _state['private_mode']:
             return
 
-        process_id = Convert.ToInt32(self.webview.CoreWebView2.BrowserProcessId)
-        process = Process.GetProcessById(process_id)
-        self.webview.Dispose()
-        process.WaitForExit(3000)
-
         try:
+            process_id = Convert.ToInt32(self.webview.CoreWebView2.BrowserProcessId)
+            process = Process.GetProcessById(process_id)
+            self.webview.Dispose()
+            process.WaitForExit(3000)
+
             shutil.rmtree(self.user_data_folder)
         except Exception as e:
             logger.warning(f'Failed to delete user data folder: {e}')
