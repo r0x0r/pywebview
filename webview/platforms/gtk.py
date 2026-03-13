@@ -365,11 +365,11 @@ class BrowserView:
         self.pywebview_window.events.response_received.set(response_)
 
     def on_request(self, webview, resource, request):
-        if len(self.pywebview_window.events.request_sent) == 0:
-            return
-
         if len(self.pywebview_window.events.response_received) > 0:
             resource.connect('notify::response', self.on_response)
+
+        if len(self.pywebview_window.events.request_sent) == 0:
+            return
 
         headers = request.get_http_headers()
         original_headers = self._headers_to_dict(headers)
