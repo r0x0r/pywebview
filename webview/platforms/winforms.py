@@ -10,7 +10,11 @@ from ctypes import windll, wintypes
 from platform import machine
 from threading import Event, Semaphore
 
-import clr
+try:
+    import clr
+except:
+    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
+    import clr
 
 from webview import FileDialog, _state, settings, windows
 from webview.guilib import forced_gui_

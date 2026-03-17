@@ -5,7 +5,12 @@ import webbrowser
 from ctypes import windll
 from threading import Semaphore
 
-import clr
+try:
+    import clr
+except:
+    import os
+    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
+    import clr
 
 from webview import _state
 from webview.util import (
