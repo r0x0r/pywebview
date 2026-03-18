@@ -6,7 +6,11 @@ import webbrowser
 import winreg
 from threading import Semaphore
 
-import clr
+try:
+    import clr
+except Exception:
+    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
+    import clr
 
 from webview import Window, _state
 from webview import settings as webview_settings
