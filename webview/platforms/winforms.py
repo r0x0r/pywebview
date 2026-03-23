@@ -1055,5 +1055,12 @@ def get_screens():
     return screens
 
 
+def get_hwnd(uid):
+    i = BrowserView.instances.get(uid)
+    if i:
+        return int(i.Handle.ToInt64())
+    return None
+
+
 def add_tls_cert(_):
     return
