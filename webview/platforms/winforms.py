@@ -27,6 +27,8 @@ clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 clr.AddReference('System.Reflection')
+if os.environ.get('PYTHONNET_RUNTIME') == 'coreclr':
+    clr.AddReference('Microsoft.Win32.SystemEvents')
 
 import System.Windows.Forms as WinForms  # noqa: E402
 from Microsoft.Win32 import SystemEvents  # noqa: E402
@@ -84,14 +86,17 @@ def _is_chromium():
 
         return '0'
 
+    is_coreclr = os.environ.get('PYTHONNET_RUNTIME') == 'coreclr'
+    net_key = None
     try:
-        net_key = winreg.OpenKey(
-            winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full'
-        )
-        version, _ = winreg.QueryValueEx(net_key, 'Release')
+        if not is_coreclr:
+            net_key = winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full'
+            )
+            version, _ = winreg.QueryValueEx(net_key, 'Release')
 
-        if version < 394802:  # .NET 4.6.2
-            return False
+            if version < 394802:  # .NET 4.6.2
+                return False
 
         build_versions = [
             {
@@ -121,7 +126,8 @@ def _is_chromium():
     except Exception as e:
         logger.exception(e)
     finally:
-        winreg.CloseKey(net_key)
+        if net_key is not None:
+            winreg.CloseKey(net_key)
 
     return False
 
@@ -487,10 +493,8 @@ class BrowserView:
                 def create_action_item(menu_line_item):
                     action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
                     # Don't run action function on main thread
-                    action_item.Click += (
-                        lambda _, __, menu_line_item=menu_line_item: threading.Thread(
-                            target=menu_line_item.function
-                        ).start()
+                    action_item.Click += lambda _, __, menu_line_item=menu_line_item: (
+                        threading.Thread(target=menu_line_item.function).start()
                     )
                     return action_item
 
@@ -641,70 +645,103 @@ class BrowserView:
         WinForms.MessageBox.Show(str(message))
 
 
-class OpenFolderDialog:
-    foldersFilter = 'Folders|\n'
-    flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
-    windowsFormsAssembly = Assembly.LoadWithPartialName('System.Windows.Forms')
-    iFileDialogType = windowsFormsAssembly.GetType(
-        'System.Windows.Forms.FileDialogNative+IFileDialog'
-    )
-    OpenFileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.OpenFileDialog')
-    FileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.FileDialog')
-    createVistaDialogMethodInfo = OpenFileDialogType.GetMethod('CreateVistaDialog', flags)
-    onBeforeVistaDialogMethodInfo = OpenFileDialogType.GetMethod('OnBeforeVistaDialog', flags)
-    getOptionsMethodInfo = FileDialogType.GetMethod('GetOptions', flags)
-    setOptionsMethodInfo = iFileDialogType.GetMethod('SetOptions', flags)
-    fosPickFoldersBitFlag = (
-        windowsFormsAssembly.GetType('System.Windows.Forms.FileDialogNative+FOS')
-        .GetField('FOS_PICKFOLDERS')
-        .GetValue(None)
-    )
+if os.environ.get('PYTHONNET_RUNTIME') != 'coreclr':
 
-    vistaDialogEventsConstructorInfo = windowsFormsAssembly.GetType(
-        'System.Windows.Forms.FileDialog+VistaDialogEvents'
-    ).GetConstructor(flags, None, [FileDialogType], [])
-    adviseMethodInfo = iFileDialogType.GetMethod('Advise')
-    unadviseMethodInfo = iFileDialogType.GetMethod('Unadvise')
-    showMethodInfo = iFileDialogType.GetMethod('Show')
+    class OpenFolderDialog:
+        """Folder picker dialog using FileDialogNative reflection.
 
-    @classmethod
-    def show(cls, parent=None, initialDirectory=None, allow_multiple=False, title=None):
-        openFileDialog = WinForms.OpenFileDialog()
-        openFileDialog.InitialDirectory = initialDirectory
-        openFileDialog.Title = title
-        openFileDialog.Filter = OpenFolderDialog.foldersFilter
-        openFileDialog.AddExtension = False
-        openFileDialog.CheckFileExists = False
-        openFileDialog.DereferenceLinks = True
-        openFileDialog.Multiselect = allow_multiple
-        openFileDialog.RestoreDirectory = True
+        Used on .NET Framework where the internal FileDialogNative types
+        are available. Supports multiple folder selection.
+        """
 
-        iFileDialog = OpenFolderDialog.createVistaDialogMethodInfo.Invoke(openFileDialog, [])
-        OpenFolderDialog.onBeforeVistaDialogMethodInfo.Invoke(openFileDialog, [iFileDialog])
-        options = OpenFolderDialog.getOptionsMethodInfo.Invoke(openFileDialog, [])
-        options = options.op_BitwiseOr(OpenFolderDialog.fosPickFoldersBitFlag)
-        OpenFolderDialog.setOptionsMethodInfo.Invoke(iFileDialog, [options])
-        adviseParametersWithOutputConnectionToken = Array[Object](
-            [
-                OpenFolderDialog.vistaDialogEventsConstructorInfo.Invoke([openFileDialog]),
-                UInt32(0),
-            ]
+        foldersFilter = 'Folders|\n'
+        flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+        windowsFormsAssembly = Assembly.LoadWithPartialName('System.Windows.Forms')
+        iFileDialogType = windowsFormsAssembly.GetType(
+            'System.Windows.Forms.FileDialogNative+IFileDialog'
         )
-        OpenFolderDialog.adviseMethodInfo.Invoke(
-            iFileDialog, adviseParametersWithOutputConnectionToken
+        OpenFileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.OpenFileDialog')
+        FileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.FileDialog')
+        createVistaDialogMethodInfo = OpenFileDialogType.GetMethod('CreateVistaDialog', flags)
+        onBeforeVistaDialogMethodInfo = OpenFileDialogType.GetMethod('OnBeforeVistaDialog', flags)
+        getOptionsMethodInfo = FileDialogType.GetMethod('GetOptions', flags)
+        setOptionsMethodInfo = iFileDialogType.GetMethod('SetOptions', flags)
+        fosPickFoldersBitFlag = (
+            windowsFormsAssembly.GetType('System.Windows.Forms.FileDialogNative+FOS')
+            .GetField('FOS_PICKFOLDERS')
+            .GetValue(None)
         )
-        dwCookie = adviseParametersWithOutputConnectionToken.GetValue(1)
-        try:
-            result = OpenFolderDialog.showMethodInfo.Invoke(
-                iFileDialog, [parent.Handle if parent else None]
+
+        vistaDialogEventsConstructorInfo = windowsFormsAssembly.GetType(
+            'System.Windows.Forms.FileDialog+VistaDialogEvents'
+        ).GetConstructor(flags, None, [FileDialogType], [])
+        adviseMethodInfo = iFileDialogType.GetMethod('Advise')
+        unadviseMethodInfo = iFileDialogType.GetMethod('Unadvise')
+        showMethodInfo = iFileDialogType.GetMethod('Show')
+
+        @classmethod
+        def show(cls, parent=None, initialDirectory=None, allow_multiple=False, title=None):
+            openFileDialog = WinForms.OpenFileDialog()
+            openFileDialog.InitialDirectory = initialDirectory
+            openFileDialog.Title = title
+            openFileDialog.Filter = OpenFolderDialog.foldersFilter
+            openFileDialog.AddExtension = False
+            openFileDialog.CheckFileExists = False
+            openFileDialog.DereferenceLinks = True
+            openFileDialog.Multiselect = allow_multiple
+            openFileDialog.RestoreDirectory = True
+
+            iFileDialog = OpenFolderDialog.createVistaDialogMethodInfo.Invoke(openFileDialog, [])
+            OpenFolderDialog.onBeforeVistaDialogMethodInfo.Invoke(openFileDialog, [iFileDialog])
+            options = OpenFolderDialog.getOptionsMethodInfo.Invoke(openFileDialog, [])
+            options = options.op_BitwiseOr(OpenFolderDialog.fosPickFoldersBitFlag)
+            OpenFolderDialog.setOptionsMethodInfo.Invoke(iFileDialog, [options])
+            adviseParametersWithOutputConnectionToken = Array[Object](
+                [
+                    OpenFolderDialog.vistaDialogEventsConstructorInfo.Invoke([openFileDialog]),
+                    UInt32(0),
+                ]
             )
-            if result == 0:
-                return tuple(openFileDialog.FileNames)
+            OpenFolderDialog.adviseMethodInfo.Invoke(
+                iFileDialog, adviseParametersWithOutputConnectionToken
+            )
+            dwCookie = adviseParametersWithOutputConnectionToken.GetValue(1)
+            try:
+                result = OpenFolderDialog.showMethodInfo.Invoke(
+                    iFileDialog, [parent.Handle if parent else None]
+                )
+                if result == 0:
+                    return tuple(openFileDialog.FileNames)
+
+                return None
+
+            finally:
+                OpenFolderDialog.unadviseMethodInfo.Invoke(iFileDialog, [UInt32(dwCookie)])
+
+else:
+
+    class OpenFolderDialog:
+        """Folder picker dialog using FolderBrowserDialog.
+
+        Used on coreclr (.NET 8) where the internal FileDialogNative types
+        don't exist. FolderBrowserDialog does not support multiple folder
+        selection; the allow_multiple parameter is accepted but ignored.
+        """
+
+        @classmethod
+        def show(cls, parent=None, initialDirectory=None, allow_multiple=False, title=None):
+            dlg = WinForms.FolderBrowserDialog()
+            if title:
+                dlg.Description = title
+                dlg.UseDescriptionForTitle = True
+            if initialDirectory:
+                dlg.SelectedPath = initialDirectory
+
+            result = dlg.ShowDialog()
+            if result == WinForms.DialogResult.OK:
+                return (dlg.SelectedPath,)
 
             return None
-
-        finally:
-            OpenFolderDialog.unadviseMethodInfo.Invoke(iFileDialog, [UInt32(dwCookie)])
 
 
 _main_window_created = Event()
