@@ -10,12 +10,16 @@ from ctypes import windll, wintypes
 from platform import machine
 from threading import Event, Semaphore
 
+try:
+    import clr
+except Exception:
+    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
+    import clr
+
 from webview import FileDialog, _state, settings, windows
-from webview.clr_runtime import is_coreclr
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms import win32
-from webview.platforms._pythonnet import clr  # selects the runtime, loads pythonnet
 from webview.screen import Screen
 from webview.util import inject_base_uri, parse_file_type
 from webview.window import FixPoint
@@ -24,7 +28,7 @@ clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 clr.AddReference('System.Reflection')
-if is_coreclr():
+if os.environ.get('PYTHONNET_RUNTIME') == 'coreclr':
     clr.AddReference('Microsoft.Win32.SystemEvents')
 
 import System.Windows.Forms as WinForms  # noqa: E402
@@ -83,13 +87,10 @@ def _is_chromium():
 
         return '0'
 
-    # This key records the .NET Framework install, so it answers nothing under
-    # coreclr and is absent altogether on ARM64, where reading it would report
-    # no Chromium and drop us to MSHTML. It then stays unopened, which is why
-    # the close in the finally is guarded.
+    is_coreclr = os.environ.get('PYTHONNET_RUNTIME') == 'coreclr'
     net_key = None
     try:
-        if not is_coreclr():
+        if not is_coreclr:
             net_key = winreg.OpenKey(
                 winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full'
             )
@@ -693,7 +694,7 @@ class BrowserView:
         WinForms.MessageBox.Show(str(message))
 
 
-if not is_coreclr():
+if os.environ.get('PYTHONNET_RUNTIME') != 'coreclr':
 
     class OpenFolderDialog:
         """Folder picker dialog using FileDialogNative reflection.
@@ -771,16 +772,9 @@ else:
     class OpenFolderDialog:
         """Folder picker dialog using FolderBrowserDialog.
 
-        Used on coreclr, where the internal FileDialogNative types the
-        .NET Framework variant reflects on do not exist.
-
-        allow_multiple is honoured where the runtime can: FolderBrowserDialog
-        gained Multiselect and SelectedPaths in .NET 9, and pywebview supports
-        .NET 6 upwards, so the members are probed for rather than assumed. On
-        an older runtime a single folder is returned.
-
-        A single path still comes back wrapped in a tuple, so that both
-        variants return the same shape.
+        Used on coreclr (.NET 8) where the internal FileDialogNative types
+        don't exist. FolderBrowserDialog does not support multiple folder
+        selection; the allow_multiple parameter is accepted but ignored.
         """
 
         @classmethod
@@ -791,14 +785,9 @@ else:
                 dlg.UseDescriptionForTitle = True
             if initialDirectory:
                 dlg.SelectedPath = initialDirectory
-            if allow_multiple and hasattr(dlg, 'Multiselect'):
-                dlg.Multiselect = True
 
             result = dlg.ShowDialog()
             if result == WinForms.DialogResult.OK:
-                if allow_multiple and hasattr(dlg, 'SelectedPaths'):
-                    return tuple(dlg.SelectedPaths)
-
                 return (dlg.SelectedPath,)
 
             return None
