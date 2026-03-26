@@ -89,24 +89,33 @@ class BrowserView:
 
         def windowShouldClose_(self, window):
             i = BrowserView.get_instance('window', window)
+            if not i:
+                return Foundation.YES
             return BrowserView.should_close(i.pywebview_window)
 
         def windowWillClose_(self, notification):
             # Delete the closed instance from the dict
             i = BrowserView.get_instance('window', notification.object())
+            if not i:
+                return
+
             del BrowserView.instances[i.uid]
 
             if i.pywebview_window in windows:
                 windows.remove(i.pywebview_window)
 
-            i.webview.setNavigationDelegate_(None)
-            i.webview.setUIDelegate_(None)
+            # Clear delegates before releasing to prevent callbacks on freed objects
+            i.window.setDelegate_(None)
 
-            # this seems to be a bug in WkWebView, so we need to load blank html
-            # see https://stackoverflow.com/questions/27410413/wkwebview-embed-video-keeps-playing-sound-after-release
-            i.webview.loadHTMLString_baseURL_('', None)
-            i.webview.removeFromSuperview()
-            i.webview = None
+            if i.webview:
+                i.webview.setNavigationDelegate_(None)
+                i.webview.setUIDelegate_(None)
+
+                # this seems to be a bug in WkWebView, so we need to load blank html
+                # see https://stackoverflow.com/questions/27410413/wkwebview-embed-video-keeps-playing-sound-after-release
+                i.webview.loadHTMLString_baseURL_('', None)
+                i.webview.removeFromSuperview()
+                i.webview = None
 
             # release everything we retained in __init__
             i._browserDelegate.release()
@@ -1271,10 +1280,11 @@ class BrowserView:
         """
         for i in list(BrowserView.instances.values()):
             try:
-                if getattr(i, attr) == value:
+                instance_value = getattr(i, attr, None)
+                if instance_value is not None and instance_value == value:
                     return i
-            except AttributeError:
-                break
+            except Exception:
+                continue
 
         return None
 
