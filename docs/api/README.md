@@ -153,6 +153,8 @@ DOMEventHandler(callback, prevent_default=False, stop_propagation=False, stop_im
 
 A container for an event handler used to control propagation or default behaviour of the event. If `debounce` is greater than zero, Python event handler is debounced by a specified number of milliseconds. This can be useful for events like `dragover` and `mouseover` that generate a constant stream of events resulting in poor performance.
 
+`DOMEventHandler` can be used to get a full path of droppped files in `drop` event on the Python side. The file path information is stored in `event['dataTransfer']['files'][0]['pywebviewFullPath']` property of the event object. See [this example](/examples/drag_drop.html) for details.
+
 #### Examples
 
 ``` python
