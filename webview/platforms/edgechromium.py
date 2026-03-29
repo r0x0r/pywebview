@@ -6,7 +6,11 @@ import webbrowser
 import winreg
 from threading import Semaphore
 
-import clr
+try:
+    import clr
+except Exception:
+    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
+    import clr
 
 from webview import Window, _state
 from webview import settings as webview_settings
@@ -119,12 +123,12 @@ class EdgeChrome:
         if not _state['private_mode']:
             return
 
-        process_id = Convert.ToInt32(self.webview.CoreWebView2.BrowserProcessId)
-        process = Process.GetProcessById(process_id)
-        self.webview.Dispose()
-        process.WaitForExit(3000)
-
         try:
+            process_id = Convert.ToInt32(self.webview.CoreWebView2.BrowserProcessId)
+            process = Process.GetProcessById(process_id)
+            self.webview.Dispose()
+            process.WaitForExit(3000)
+
             shutil.rmtree(self.user_data_folder)
         except Exception as e:
             logger.warning(f'Failed to delete user data folder: {e}')

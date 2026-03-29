@@ -1,4 +1,4 @@
-<p align='center'><img src='logo/logo.png' width=480 alt='pywebview logo'/></p>
+<p align='center'><img src='assets/logo.png' width=480 alt='pywebview logo'/></p>
 
 <p align='center'><a href="https://opencollective.com/pywebview" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/pywebview/all/badge.svg?label=financial+contributors" /></a> <img src="https://badge.fury.io/py/pywebview.svg" alt="PyPI version" /> <img src="https://img.shields.io/pypi/dm/pywebview" alt="PyPI downloads" /> <a href="https://ci.appveyor.com/project/r0x0r/pywebview"><img src="https://ci.appveyor.com/api/projects/status/nu6mbhvbq03wudxd/branch/master?svg=true" alt="Build status" /></a>
 
@@ -33,16 +33,10 @@ webview.start()
 Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.com/guide), exploring [examples](https://pywebview.flowrl.com/examples) or [contributing](https://pywebview.flowrl.com/contributing). If React is your thing, get started right away with [React boilerplate](https://github.com/r0x0r/pywebview-react-boilerplate).
 
 
-## Consulting services
-
-If your company is looking for support with _pywebview_ or needs a hand with full-stack development, the author of _pywebview_ is available for hire. As a VAT-registered EU based professional, I specialize in a wide range of technologies, including JavaScript/TypeScript, React/Vue, Python, GIS, SQL databases, API integration, CI/CD pipelines and cloud solutions. For inquiries about availability and pricing details, reach out to roman@maumau.fi.
-
 ## Sponsors
 
+[![TestMu AI Sponsor](/assets/testmuai.svg)](https://www.testmu.ai/?utm_source=pywebview&utm_medium=sponsor)
 
-<a href="https://www.lambdatest.com/?utm_source=pywebview&utm_medium=sponsor" target="_blank">
-    <img src="https://www.lambdatest.com/blue-logo.png" style="vertical-align: middle; padding: 1rem 0 8rem 0;" width="250" height="45" />
-</a><br/><br/><br/>
 
 ## Code Contributors
 
@@ -50,7 +44,11 @@ This project thrives thanks to the contributions of our community. [[Learn how t
 
 <a href="https://github.com/r0x0r/pywebview/graphs/contributors"><img src="https://opencollective.com/pywebview/contributors.svg?width=890&button=false" /></a>
 
+## Consulting services
 
+If your company is looking for support with _pywebview_ or needs a hand with full-stack development, the author of _pywebview_ is available for hire. As a VAT-registered EU based professional, I specialize in a wide range of technologies, including JavaScript/TypeScript, React/Vue, Python, GIS, SQL databases, API integration, CI/CD pipelines and cloud solutions. For inquiries about availability and pricing details, reach out to roman@maumau.fi.
+
+## Donate
 
 Become a financial contributor and help us sustain our community. More donation options are outlined on the [Donating](https://pywebview.flowrl.com/contributing/donating.html) page.
 

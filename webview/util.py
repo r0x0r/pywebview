@@ -157,7 +157,7 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     :param file_type: file type string 'description (*.file_extension1;*.file_extension2)' as required by file filter in create_file_dialog
     :return: (description, file extensions) tuple
     """
-    valid_file_filter = r'^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*\.\w+)*)\)$'
+    valid_file_filter = r'^([\w ]+)\((\*(?:\.(?:\w+|\*))*(?:;\*(?:\.(?:\w+|\*))*)*)\)$'
     match = re.search(valid_file_filter, file_type)
 
     if match:
@@ -190,13 +190,14 @@ def inject_pywebview(platform: str, window: Window) -> str:
         for name in dir(obj):
             try:
                 full_name = f'{base_name}.{name}' if base_name else name
-                target_obj = getattr(obj, name)
-
-                if name.startswith('_') or not getattr(target_obj, '_serializable', True):
+                if name.startswith('_'):
                     continue
 
                 attr = getattr(obj, name)
-                if inspect.ismethod(attr):
+                if not getattr(attr, '_serializable', True):
+                    continue
+
+                if inspect.ismethod(attr) or inspect.isfunction(attr):
                     functions[full_name] = get_args(attr)[1:]
                 # If the attribute is a class or a non-callable object, make a recursive call
                 elif inspect.isclass(attr) or (

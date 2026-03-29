@@ -29,7 +29,10 @@ class DOM:
         return self._elements.get('window', Element(self.__window, 'window'))
 
     def create_element(
-        self, html: str, parent: Union[Element, str] = None, mode=ManipulationMode.LastChild
+        self,
+        html: str,
+        parent: Optional[Union[Element, str]] = None,
+        mode: ManipulationMode = ManipulationMode.LastChild,
     ) -> Element:
         self.__window.events.loaded.wait()
 

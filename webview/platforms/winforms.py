@@ -1,6 +1,7 @@
 import ctypes
 import logging
 import os
+import signal
 import sys
 import tempfile
 import threading
@@ -9,7 +10,11 @@ from ctypes import windll, wintypes
 from platform import machine
 from threading import Event, Semaphore
 
-import clr
+try:
+    import clr
+except Exception:
+    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
+    import clr
 
 from webview import FileDialog, _state, settings, windows
 from webview.guilib import forced_gui_
@@ -33,6 +38,20 @@ from System.Threading import ApartmentState, Thread, ThreadStart  # noqa: E402
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 logger = logging.getLogger('pywebview')
 cache_dir = None
+_sigint_received = False
+
+
+def _sigint_handler(signum, frame):
+    """
+    Handler for SIGINT signal (Ctrl+C).
+
+    Sets a flag that's checked by the timer in the GUI thread. This is necessary because
+    the signal handler runs in the main thread, but Application.Exit() must be called
+    from the GUI thread. The timer in create_window() checks this flag periodically and
+    exits the application when it's set.
+    """
+    global _sigint_received
+    _sigint_received = True
 
 
 def _is_new_version(current_version: str, new_version: str) -> bool:
@@ -225,12 +244,15 @@ class BrowserView:
             self.old_state = self.WindowState
 
             # Application icon
-            handle = kernel32.GetModuleHandleW(None)
-            icon_handle = windll.shell32.ExtractIconW(handle, sys.executable, 0)
+            if _state['icon'] and os.path.isfile(_state['icon']):
+                self.Icon = Icon(_state['icon'])
+            else:
+                handle = kernel32.GetModuleHandleW(None)
+                icon_handle = windll.shell32.ExtractIconW(handle, sys.executable, 0)
 
-            if icon_handle != 0:
-                self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handle))).Clone()
-                windll.user32.DestroyIcon(icon_handle)
+                if icon_handle != 0:
+                    self.Icon = Icon.FromHandle(IntPtr.op_Explicit(Int32(icon_handle))).Clone()
+                    windll.user32.DestroyIcon(icon_handle)
 
             self.closed = window.events.closed
             self.closing = window.events.closing
@@ -314,7 +336,7 @@ class BrowserView:
                     0,
                     winreg.KEY_READ,
                 )
-                system_theme, _ = winreg.QueryValueEx(personalize_key, 'SystemUsesLightTheme')
+                system_theme, _ = winreg.QueryValueEx(personalize_key, 'AppsUseLightTheme')
                 winreg.CloseKey(personalize_key)
                 if system_theme == 0:
                     return True
@@ -745,11 +767,28 @@ def create_window(window):
         _main_window_created.set()
 
         if window.uid == 'master':
+
+            def timer_tick(sender, e):
+                # Check if SIGINT was received and exit from GUI thread
+                global _sigint_received
+                if _sigint_received:
+                    app.Exit()
+
+            # Create a timer to periodically allow the Python interpreter to run
+            # This enables the signal handler to be called even when the WinForms event loop is running
+            timer = WinForms.Timer()
+            timer.Interval = 500  # 500ms
+            timer.Tick += timer_tick
+            timer.Start()
+
             app.Run()
 
     app = WinForms.Application
 
     if window.uid == 'master':
+        # Set up Ctrl+C handler in main thread (before starting GUI thread)
+        signal.signal(signal.SIGINT, _sigint_handler)
+
         if is_chromium:
             init_storage()
 
@@ -762,7 +801,13 @@ def create_window(window):
         thread = Thread(ThreadStart(create))
         thread.SetApartmentState(ApartmentState.STA)
         thread.Start()
-        thread.Join()
+
+        # Don't use thread.Join() as it blocks the main thread indefinitely,
+        # preventing signal handlers from being processed. Instead, periodically
+        # check if the thread is still alive, which allows the Python interpreter
+        # to process pending signals (like SIGINT from Ctrl+C)
+        while thread.IsAlive:
+            thread.Join(500)
 
     else:
         _main_window_created.wait()

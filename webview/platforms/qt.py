@@ -61,6 +61,7 @@ if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos'
     environ_append('QTWEBENGINE_CHROMIUM_FLAGS', '--no-sandbox', '--no-sandbox')
     logger.debug('Enable --no-sandbox flag for arch/manjaro/nixos')
 
+_app_menu = None
 _main_window_created = Event()
 _main_window_created.clear()
 
@@ -120,7 +121,7 @@ class BrowserView(QMainWindow):
 
         def __init__(self, parent):
             super(BrowserView.JSBridge, self).__init__()
-            self.parent = parent
+            self._parent = parent
             self.window = parent.pywebview_window
 
         @QtCore.Slot(str, qtype, str, result=str)
@@ -129,7 +130,7 @@ class BrowserView(QMainWindow):
             param = BrowserView._convert_string(param)
 
             if func_name == '_pywebviewAlert':
-                QMessageBox.information(self.parent, 'Message', str(param))
+                QMessageBox.information(self._parent, 'Message', str(param))
             else:
                 return js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
@@ -215,7 +216,7 @@ class BrowserView(QMainWindow):
         def mouseMoveEvent(self, event):
             parent = self.parent()
             if (
-                parent.frameless and parent.easy_drag and event.buttons().value == 1
+                parent.frameless and parent.easy_drag and event.buttons() & QtCore.Qt.LeftButton
             ):  # left button is pressed
                 parent.move(event.globalPos() - self.drag_pos)
 
@@ -674,8 +675,12 @@ class BrowserView(QMainWindow):
             # Keep the top of the window in the same place
             geo.setY(geo.y() + geo.height() - height)
 
+        geo.setWidth(width)
+        geo.setHeight(height)
         self.setGeometry(geo)
-        self.setFixedSize(width, height)
+
+        if not self.pywebview_window.resizable:
+            self.setFixedSize(width, height)
 
     def on_window_move(self, x, y):
         self.move(x, y)

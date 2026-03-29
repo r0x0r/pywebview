@@ -4,6 +4,6 @@ include webview/js/**/*.js
 exclude docs/**/*
 exclude examples/**/*
 exclude tests/**/*
-exclude logo/**/*
+exclude assets/**/*
 exclude appveyor.yml
 exclude interop/**/*

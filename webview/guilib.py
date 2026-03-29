@@ -5,9 +5,9 @@ import os
 import platform
 import sys
 from types import ModuleType
-from typing import Any, Callable, cast, get_args
+from typing import Any, Callable, cast
 
-from typing_extensions import Literal, TypeAlias
+from typing_extensions import Literal, TypeAlias, get_args
 
 from webview import WebViewException
 
