@@ -101,18 +101,14 @@ class BrowserView:
 
             i.webview.setNavigationDelegate_(None)
             i.webview.setUIDelegate_(None)
+            if BrowserView.app.delegate() == i._appDelegate:
+                BrowserView.app.setDelegate_(None)
 
             # this seems to be a bug in WkWebView, so we need to load blank html
             # see https://stackoverflow.com/questions/27410413/wkwebview-embed-video-keeps-playing-sound-after-release
             i.webview.loadHTMLString_baseURL_('', None)
             i.webview.removeFromSuperview()
             i.webview = None
-
-            # release everything we retained in __init__
-            i._browserDelegate.release()
-            i._windowDelegate.release()
-            i._appDelegate.release()
-            i.window.release()
 
             i.closed.set()
             if BrowserView.instances == {}:
@@ -589,14 +585,8 @@ class BrowserView:
 
         self.menu = window.menu or _state['menu']
 
-        # The allocated resources are retained because we would explicitly delete
-        # this instance when its window is closed
-        self.window = (
-            BrowserView.WindowHost.alloc()
-            .initWithContentRect_styleMask_backing_defer_(
-                rect, window_mask, AppKit.NSBackingStoreBuffered, False
-            )
-            .retain()
+        self.window = BrowserView.WindowHost.alloc().initWithContentRect_styleMask_backing_defer_(
+            rect, window_mask, AppKit.NSBackingStoreBuffered, False
         )
         self.window.setReleasedWhenClosed_(False)
         self.pywebview_window.native = self.window
@@ -613,14 +603,12 @@ class BrowserView:
         self.window.setFrame_display_(frame, True)
 
         config = WebKit.WKWebViewConfiguration.alloc().init()
-        self.webview = (
-            BrowserView.WebKitHost.alloc().initWithFrame_configuration_(rect, config).retain()
-        )
+        self.webview = BrowserView.WebKitHost.alloc().initWithFrame_configuration_(rect, config)
         self.webview.pywebview_window = window
 
-        self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
-        self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
-        self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
+        self._browserDelegate = BrowserView.BrowserDelegate.alloc().init()
+        self._windowDelegate = BrowserView.WindowDelegate.alloc().init()
+        self._appDelegate = BrowserView.AppDelegate.alloc().init()
 
         BrowserView.app.setDelegate_(self._appDelegate)
         self.webview.setUIDelegate_(self._browserDelegate)
