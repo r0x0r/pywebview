@@ -60,6 +60,7 @@ class BrowserView:
     current_menu = None
 
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
+    _shared_app_delegate = None
 
     class AppDelegate(AppKit.NSObject):
         def applicationShouldTerminate_(self, app):
@@ -101,8 +102,6 @@ class BrowserView:
 
             i.webview.setNavigationDelegate_(None)
             i.webview.setUIDelegate_(None)
-            if BrowserView.app.delegate() == i._appDelegate:
-                BrowserView.app.setDelegate_(None)
 
             # this seems to be a bug in WkWebView, so we need to load blank html
             # see https://stackoverflow.com/questions/27410413/wkwebview-embed-video-keeps-playing-sound-after-release
@@ -112,6 +111,8 @@ class BrowserView:
 
             i.closed.set()
             if BrowserView.instances == {}:
+                BrowserView.app.setDelegate_(None)
+                BrowserView._shared_app_delegate = None
                 BrowserView.app.stop_(self)
                 BrowserView.app.abortModal()
 
@@ -608,9 +609,10 @@ class BrowserView:
 
         self._browserDelegate = BrowserView.BrowserDelegate.alloc().init()
         self._windowDelegate = BrowserView.WindowDelegate.alloc().init()
-        self._appDelegate = BrowserView.AppDelegate.alloc().init()
 
-        BrowserView.app.setDelegate_(self._appDelegate)
+        if BrowserView._shared_app_delegate is None:
+            BrowserView._shared_app_delegate = BrowserView.AppDelegate.alloc().init()
+        BrowserView.app.setDelegate_(BrowserView._shared_app_delegate)
         self.webview.setUIDelegate_(self._browserDelegate)
         self.webview.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
