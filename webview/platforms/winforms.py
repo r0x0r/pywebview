@@ -756,11 +756,15 @@ def create_window(window):
             browser.Hide()
             browser.Opacity = 1
         elif window.transparent and is_chromium:
-            # hack to make transparent window work
-            # window is started hidden and shown on Navigating event.
-            # no idea why this works
-            browser.Show()
-            browser.Hide()
+            def on_shown():
+                _user32 = ctypes.windll.user32
+                _hwnd = window.native.Handle.ToInt32()
+                
+                _style = _user32.GetWindowLongW(_hwnd,-20)
+                _user32.SetWindowLongW(_hwnd,-20,_style | 0x80000)
+
+                _user32.SetLayeredWindowAttributes(_hwnd,0,180,0x2)
+            window.events.shown  += on_shown
         else:
             browser.Show()
 
