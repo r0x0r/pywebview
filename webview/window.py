@@ -225,12 +225,6 @@ class Window:
         return height
 
     @property
-    def hwnd(self) -> int | None:
-        if self.gui is not None:
-            return self.gui.get_hwnd(self.uid)
-        return None
-
-    @property
     def state(self) -> State:
         return self._state
 
