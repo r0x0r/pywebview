@@ -28,3 +28,7 @@ virtualenv pywebview_env -p python3
 ## Frozen executable is too big
 
 Big executable size is caused by packager picking up unnecessary dependencies. For example if you have `PyQt` installed but use Winforms on Windows, Pyinstaller will bundle both frameworks. To avoid this in Pyinstaller, use `--exclude-module` option to explicitly omit the module.
+
+## How do I get a full path of dropped files in `drop` event?
+
+Use `DOMEventHandler` and subscribe to the `drop` event. The file path information is stored in `event['dataTransfer']['files'][0]['pywebviewFullPath']` property of the event object. See [this example](/examples/drag_drop.html) for details.
