@@ -722,7 +722,7 @@ Move window to a new position.
 ### window.native
 
 ``` python
-window.native.Handle # get application window handle on Windows
+window.native.Handle.ToInt32() # get application window handle on Windows
 ```
 
 Get a native window object. This can be useful for applying custom styling to the window. Object type depends on the platform
