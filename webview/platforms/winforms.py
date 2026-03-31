@@ -759,8 +759,12 @@ def create_window(window):
             # hack to make transparent window work
             # window is started hidden and shown on Navigating event.
             # no idea why this works
-            browser.Show()
-            browser.Hide()
+            browser.Opacity = 0
+            def on_loaded():
+                browser.Opacity = 1
+                window.hide()
+                window.show()
+            window.events.loaded += on_loaded
         else:
             browser.Show()
 
