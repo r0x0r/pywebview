@@ -35,4 +35,4 @@ Another approach is using JS API bridge and serving static content with a built-
 
 ## Serverless
 
-- Finally you can do without a web server altogther by loading HTML using `webview.create_window(...html='')` or `window.load_html`. This approach has got limitations though, as file system does not exist in the context of the loaded page. Images and other assets can be loaded only inline using Base64.
+By loading HTML using `webview.create_window(...html='')` or `window.load_html` you can avoid using a web server altogether. This approach has limitations however, as the file system does not exist in the context of the loaded page. Images and other assets can be loaded only inline using Base64.
