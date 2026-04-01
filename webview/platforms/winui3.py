@@ -114,6 +114,7 @@ from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms.win32 import (
     get_app_icon_handle,
     get_roaming_app_data_path,
+    install_mouse_wheel_hook,
     set_window_noactivate,
     show_save_file_dialog,
 )
@@ -128,15 +129,17 @@ from webview.util import (
 from webview.window import FixPoint
 from webview.window import Window as _Window
 
-logger = logging.getLogger("pywebview")
+logger = logging.getLogger('pywebview')
 cache_dir: str | None = None
-renderer = "winui3"
+renderer = 'winui3'
+
+logger.debug('Using WinUI 3 / Chromium')
 
 
 class EdgeChrome:
     def __init__(self, form: Window, window: _Window, cache_dir: str):
         self.pywebview_window = window
-        self.webview = form.content.as_(Grid).find_name("webview").as_(WebView2)
+        self.webview = form.content.as_(Grid).find_name('webview').as_(WebView2)
         self.form = form
 
         self.js_result_semaphore = Semaphore(0)
@@ -146,9 +149,9 @@ class EdgeChrome:
         self.webview.add_web_message_received(self.on_script_notify)
         self.webview.default_background_color = Color(
             255,
-            int(window.background_color.lstrip("#")[0:2], 16),
-            int(window.background_color.lstrip("#")[2:4], 16),
-            int(window.background_color.lstrip("#")[4:6], 16),
+            int(window.background_color.lstrip('#')[0:2], 16),
+            int(window.background_color.lstrip('#')[2:4], 16),
+            int(window.background_color.lstrip('#')[4:6], 16),
         )
 
         if window.transparent:
@@ -159,25 +162,17 @@ class EdgeChrome:
         self.html: str = DEFAULT_HTML
 
         env_options = CoreWebView2EnvironmentOptions()
-        env_options.additional_browser_arguments = (
-            "--disable-features=ElasticOverscroll"
-        )
+        env_options.additional_browser_arguments = '--disable-features=ElasticOverscroll'
 
-        if webview_settings["ALLOW_FILE_URLS"]:
-            env_options.additional_browser_arguments += (
-                " --allow-file-access-from-files"
-            )
+        if webview_settings['ALLOW_FILE_URLS']:
+            env_options.additional_browser_arguments += ' --allow-file-access-from-files'
 
-        env_op = CoreWebView2Environment.create_with_options_async(
-            "", cache_dir, env_options
-        )
+        env_op = CoreWebView2Environment.create_with_options_async('', cache_dir, env_options)
 
-        def on_env_op_completed(
-            op: IAsyncOperation[CoreWebView2Environment], status: AsyncStatus
-        ):
+        def on_env_op_completed(op: IAsyncOperation[CoreWebView2Environment], status: AsyncStatus):
             if status == AsyncStatus.ERROR:
                 logger.error(
-                    "Error creating CoreWebView2Environment: %r",
+                    'Error creating CoreWebView2Environment: %r',
                     WinError(op.error_code.value),
                 )
                 return
@@ -185,19 +180,15 @@ class EdgeChrome:
             env = op.get_results()
 
             ctrl_options = env.create_core_webview2_controller_options()
-            ctrl_options.is_in_private_mode_enabled = _state["private_mode"]
+            ctrl_options.is_in_private_mode_enabled = _state['private_mode']
 
-            ensure_op = (
-                self.webview.ensure_core_webview2_with_environment_and_options_async(
-                    env, ctrl_options
-                )
+            ensure_op = self.webview.ensure_core_webview2_with_environment_and_options_async(
+                env, ctrl_options
             )
 
             def on_ensure_op_completed(op: IAsyncAction, status: AsyncStatus):
                 if status == AsyncStatus.ERROR:
-                    logger.error(
-                        "Error creating CoreWebView2: %r", WinError(op.error_code.value)
-                    )
+                    logger.error('Error creating CoreWebView2: %r', WinError(op.error_code.value))
                     return
 
                 _main_window_created.set()
@@ -231,7 +222,7 @@ class EdgeChrome:
                 def on_completed(op: IAsyncOperation[str], status: AsyncStatus):
                     if status == AsyncStatus.ERROR:
                         logger.error(
-                            "Error executing script: %r",
+                            'Error executing script: %r',
                             WinError(op.error_code.value),
                         )
                     elif status == AsyncStatus.COMPLETED:
@@ -240,11 +231,11 @@ class EdgeChrome:
                 op.completed = on_completed
 
             if not self.webview.dispatcher_queue.try_enqueue(callback):
-                raise RuntimeError("Failed to enqueue dispatcher callback")
+                raise RuntimeError('Failed to enqueue dispatcher callback')
 
             semaphore.acquire()
         except Exception:
-            logger.exception("Error occurred in script")
+            logger.exception('Error occurred in script')
             semaphore.release()
 
         return result
@@ -264,14 +255,14 @@ class EdgeChrome:
                 )
                 try:
                     data = {
-                        "name": c.name,
-                        "value": c.value,
-                        "path": c.path,
-                        "domain": c.domain,
-                        "expires": str(c.expires),
-                        "secure": c.is_secure,
-                        "httponly": c.is_http_only,
-                        "samesite": same_site,
+                        'name': c.name,
+                        'value': c.value,
+                        'path': c.path,
+                        'domain': c.domain,
+                        'expires': str(c.expires),
+                        'secure': c.is_secure,
+                        'httponly': c.is_http_only,
+                        'samesite': same_site,
                     }
 
                     cookie = create_cookie(data)
@@ -281,14 +272,12 @@ class EdgeChrome:
 
             semaphore.release()
 
-        op = self.webview.core_webview2.cookie_manager.get_cookies_async(self.url or "")
+        op = self.webview.core_webview2.cookie_manager.get_cookies_async(self.url or '')
 
-        def on_op_completed(
-            op: IAsyncOperation[Sequence[CoreWebView2Cookie]], status: AsyncStatus
-        ):
+        def on_op_completed(op: IAsyncOperation[Sequence[CoreWebView2Cookie]], status: AsyncStatus):
             if status == AsyncStatus.ERROR:
                 logger.error(
-                    "Error getting cookies: %r",
+                    'Error getting cookies: %r',
                     WinError(op.error_code.value),
                 )
                 return
@@ -299,7 +288,7 @@ class EdgeChrome:
                     _parse_cookies(_cookies)
 
                 if not self.webview.dispatcher_queue.try_enqueue(callback):
-                    raise RuntimeError("Failed to enqueue dispatcher callback")
+                    raise RuntimeError('Failed to enqueue dispatcher callback')
 
         op.completed = on_op_completed
 
@@ -324,14 +313,12 @@ class EdgeChrome:
     ):
         args.action = CoreWebView2ServerCertificateErrorAction.ALWAYS_ALLOW
 
-    def on_script_notify(
-        self, sender: WebView2, args: CoreWebView2WebMessageReceivedEventArgs
-    ):
+    def on_script_notify(self, sender: WebView2, args: CoreWebView2WebMessageReceivedEventArgs):
         try:
             return_value = args.web_message_as_json
 
             if return_value == '"FilesDropped"':
-                if _dnd_state["num_listeners"] == 0:
+                if _dnd_state['num_listeners'] == 0:
                     return
                 additional_objects = args.additional_objects
                 if not additional_objects:
@@ -342,32 +329,28 @@ class EdgeChrome:
                     for file in [
                         obj.as_(CoreWebView2File)
                         for obj in additional_objects
-                        if obj._runtime_class_name_ == "CoreWebView2File"
+                        if obj._runtime_class_name_ == 'CoreWebView2File'
                     ]
                 ]
-                _dnd_state["paths"] += files
+                _dnd_state['paths'] += files
                 return
 
             func_name, func_param, value_id = json.loads(return_value)
             func_param = json.loads(func_param)
 
-            if func_name == "_pywebviewAlert":
+            if func_name == '_pywebviewAlert':
                 dialog = ContentDialog()
                 dialog.xaml_root = self.webview.xaml_root
                 dialog.content = box_string(str(func_param))
-                dialog.close_button_text = self.pywebview_window.localization[
-                    "global.ok"
-                ]
+                dialog.close_button_text = self.pywebview_window.localization['global.ok']
                 dialog.default_button = ContentDialogButton.CLOSE
 
                 op = dialog.show_async()
 
-                def on_completed(
-                    op: IAsyncOperation[ContentDialogResult], status: AsyncStatus
-                ):
+                def on_completed(op: IAsyncOperation[ContentDialogResult], status: AsyncStatus):
                     if status == AsyncStatus.ERROR:
                         logger.error(
-                            "Error showing ContentDialog: %r",
+                            'Error showing ContentDialog: %r',
                             WinError(op.error_code.value),
                         )
                         return
@@ -378,35 +361,31 @@ class EdgeChrome:
                         op.get_results()
 
                 op.completed = on_completed
-            elif func_name == "console":
+            elif func_name == 'console':
                 print(func_param)
             else:
                 js_bridge_call(self.pywebview_window, func_name, func_param, value_id)
         except Exception:
-            logger.exception("Exception occurred during on_script_notify")
+            logger.exception('Exception occurred during on_script_notify')
 
     def on_new_window_request(
         self, sender: CoreWebView2, args: CoreWebView2NewWindowRequestedEventArgs
     ):
         args.handled = True
 
-        if webview_settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"]:
+        if webview_settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
             webbrowser.open(args.uri)
         else:
             self.load_url(args.uri)
 
-    def on_source_changed(
-        self, sender: CoreWebView2, args: CoreWebView2SourceChangedEventArgs
-    ):
+    def on_source_changed(self, sender: CoreWebView2, args: CoreWebView2SourceChangedEventArgs):
         self.url = sender.source or None
         self.ishtml = False
 
-    def on_webview_ready(
-        self, sender: WebView2, args: CoreWebView2InitializedEventArgs
-    ):
+    def on_webview_ready(self, sender: WebView2, args: CoreWebView2InitializedEventArgs):
         if args.exception.value:
             logger.error(
-                "WebView2 initialization failed with exception:\n%s",
+                'WebView2 initialization failed with exception:\n%s',
                 WinError(args.exception.value).strerror,
             )
             return
@@ -414,29 +393,27 @@ class EdgeChrome:
         sender.core_webview2.add_source_changed(self.on_source_changed)
         sender.core_webview2.add_new_window_requested(self.on_new_window_request)
 
-        if _state["ssl"]:
-            sender.core_webview2.add_server_certificate_error_detected(
-                self.on_certificate_error
-            )
+        if _state['ssl']:
+            sender.core_webview2.add_server_certificate_error_detected(self.on_certificate_error)
 
         sender.core_webview2.add_download_starting(self.on_download_starting)
 
         settings = sender.core_webview2.settings
-        settings.are_browser_accelerator_keys_enabled = _state["debug"]
-        settings.are_default_context_menus_enabled = _state["debug"]
+        settings.are_browser_accelerator_keys_enabled = _state['debug']
+        settings.are_default_context_menus_enabled = _state['debug']
         settings.are_default_script_dialogs_enabled = True
-        settings.are_dev_tools_enabled = _state["debug"]
+        settings.are_dev_tools_enabled = _state['debug']
         settings.is_built_in_error_page_enabled = True
         settings.is_script_enabled = True
         settings.is_web_message_enabled = True
-        settings.is_status_bar_enabled = _state["debug"]
+        settings.is_status_bar_enabled = _state['debug']
         settings.is_swipe_navigation_enabled = False
         settings.is_zoom_control_enabled = True
 
-        if _state["user_agent"]:
-            settings.user_agent = _state["user_agent"]
+        if _state['user_agent']:
+            settings.user_agent = _state['user_agent']
 
-        if _state["private_mode"]:
+        if _state['private_mode']:
             # cookies persist even if UserDataFolder is in memory. We have to delete cookies manually.
             sender.core_webview2.cookie_manager.delete_all_cookies()
 
@@ -444,11 +421,11 @@ class EdgeChrome:
             self.load_url(self.pywebview_window.real_url)
         elif self.pywebview_window.html:
             self.html = self.pywebview_window.html
-            self.load_html(self.pywebview_window.html, "")
+            self.load_html(self.pywebview_window.html, '')
         else:
-            self.load_html(DEFAULT_HTML, "")
+            self.load_html(DEFAULT_HTML, '')
 
-        if _state["debug"] and webview_settings["OPEN_DEVTOOLS_IN_DEBUG"]:
+        if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             sender.core_webview2.open_dev_tools_window()
 
     def on_download_starting(
@@ -456,14 +433,14 @@ class EdgeChrome:
     ):
         args.cancel = True
 
-        if not webview_settings["ALLOW_DOWNLOADS"]:
+        if not webview_settings['ALLOW_DOWNLOADS']:
             return
 
         path = show_save_file_dialog(
             self.form.app_window.id.value,
             os.path.basename(args.result_file_path),
-            self.pywebview_window.localization["windows.fileFilter.allFiles"],
-            "*.*",
+            self.pywebview_window.localization['windows.fileFilter.allFiles'],
+            '*.*',
         )
         if path is None:
             return
@@ -471,9 +448,7 @@ class EdgeChrome:
         args.result_file_path = path
         args.cancel = False
 
-    def on_navigation_start(
-        self, sender: WebView2, args: CoreWebView2NavigationStartingEventArgs
-    ):
+    def on_navigation_start(self, sender: WebView2, args: CoreWebView2NavigationStartingEventArgs):
         pass
 
     def on_navigation_completed(
@@ -503,8 +478,13 @@ _WINDOW_XAML = """
 """
 
 
+class WinUIWindow(Window):
+    # this wrapper is used for setting native.webview property
+    pass
+
+
 class BrowserView:
-    instances: dict[str, "BrowserForm"] = {}
+    instances: dict[str, 'BrowserForm'] = {}
 
     app_menu_list: Iterable[Menu] = []
 
@@ -513,11 +493,16 @@ class BrowserView:
             self._is_active = False
             self.uid = window.uid
             self.pywebview_window = window
-            self.window = Window()
+            self.window = WinUIWindow()
             self.handle = get_window_from_window_id(self.window.app_window.id)
             self.real_url = None
+            # WinUI3's XAML layer swallows WM_MOUSEWHEEL before it reaches WebView2.
+            # A WH_MOUSE_LL global hook intercepts wheel events and posts them directly
+            # to the WebView2 Chrome_WidgetWin_0 input HWND. The returned tuple must
+            # stay alive to prevent the ctypes callback and hook handle from being GC'd.
+            self._wheel_hook = install_mouse_wheel_hook(self.handle)
 
-            self.pywebview_window.native = self
+            self.pywebview_window.native = self.window
 
             self.window.title = window.title
             self.window.content = XamlReader.load(_WINDOW_XAML).as_(UIElement)
@@ -544,9 +529,7 @@ class BrowserView:
                 self.window.app_window.move((x, y))
 
             self.full_screen_presenter = FullScreenPresenter.create()
-            self.overlapped_presenter = self.window.app_window.presenter.as_(
-                OverlappedPresenter
-            )
+            self.overlapped_presenter = self.window.app_window.presenter.as_(OverlappedPresenter)
             self.overlapped_presenter.is_resizable = window.resizable
             self.old_state = self.overlapped_presenter.state
 
@@ -574,7 +557,7 @@ class BrowserView:
                 self.set_window_menu(BrowserView.app_menu_list)
 
             self.browser = EdgeChrome(self.window, window, cache_dir)
-            self.webview = self.browser.webview
+            self.window.webview = self.browser.webview
 
             # if (
             #     window.transparent and self.browser
@@ -598,12 +581,10 @@ class BrowserView:
             self.localization = window.localization
 
         def __str__(self):
-            return f"<Window object with {self.handle} handle>"
+            return f'<Window object with {self.handle} handle>'
 
         def on_activated(self, sender: Object, args: WindowActivatedEventArgs):
-            self._is_active = (
-                args.window_activation_state != WindowActivationState.DEACTIVATED
-            )
+            self._is_active = args.window_activation_state != WindowActivationState.DEACTIVATED
             self.pywebview_window.events.shown.set()
 
             if not self._is_active:
@@ -644,18 +625,16 @@ class BrowserView:
 
                 self.pywebview_window.events.closing += disable_close
                 dialog = self.create_confirmation_dialog(
-                    self.window.title, self.localization["global.quitConfirmation"]
+                    self.window.title, self.localization['global.quitConfirmation']
                 )
                 op = dialog.show_async()
 
-                def on_completed(
-                    op: IAsyncOperation[ContentDialogResult], status: AsyncStatus
-                ):
+                def on_completed(op: IAsyncOperation[ContentDialogResult], status: AsyncStatus):
                     self.pywebview_window.events.closing -= disable_close
 
                     if status == AsyncStatus.ERROR:
                         logger.error(
-                            "Error showing ContentDialog: %r",
+                            'Error showing ContentDialog: %r',
                             WinError(op.error_code.value),
                         )
                         return
@@ -676,19 +655,11 @@ class BrowserView:
 
         def on_changed(self, sender: AppWindow, args: AppWindowChangedEventArgs):
             if self.overlapped_presenter.state != self.old_state:
-                if (
-                    self.overlapped_presenter.state
-                    == OverlappedPresenterState.MAXIMIZED
-                ):
+                if self.overlapped_presenter.state == OverlappedPresenterState.MAXIMIZED:
                     self.pywebview_window.events.maximized.set()
-                elif (
-                    self.overlapped_presenter.state
-                    == OverlappedPresenterState.MINIMIZED
-                ):
+                elif self.overlapped_presenter.state == OverlappedPresenterState.MINIMIZED:
                     self.pywebview_window.events.minimized.set()
-                elif (
-                    self.overlapped_presenter.state == OverlappedPresenterState.RESTORED
-                ):
+                elif self.overlapped_presenter.state == OverlappedPresenterState.RESTORED:
                     self.pywebview_window.events.restored.set()
 
                 self.old_state = self.overlapped_presenter.state
@@ -705,15 +676,15 @@ class BrowserView:
             dialog.xaml_root = self.window.content.xaml_root
             dialog.title = box_string(title)
             dialog.content = box_string(message)
-            dialog.primary_button_text = self.localization["global.ok"]
-            dialog.close_button_text = self.localization["global.cancel"]
+            dialog.primary_button_text = self.localization['global.ok']
+            dialog.close_button_text = self.localization['global.cancel']
             dialog.default_button = ContentDialogButton.PRIMARY
 
             return dialog
 
         @staticmethod
         def invoke_on_ui_thread(func):
-            def wrapper(self: "BrowserView.BrowserForm", *args, **kwargs):
+            def wrapper(self: 'BrowserView.BrowserForm', *args, **kwargs):
                 if self.window.dispatcher_queue.has_thread_access:
                     return func(self, *args, **kwargs)
 
@@ -729,7 +700,7 @@ class BrowserView:
                         event.set()
 
                 if not self.window.dispatcher_queue.try_enqueue(invoke):
-                    raise RuntimeError("Failed to enqueue dispatcher callback")
+                    raise RuntimeError('Failed to enqueue dispatcher callback')
 
                 event.wait()
 
@@ -776,9 +747,7 @@ class BrowserView:
                 action_item.text = action.title
 
                 # Don't run action function on main thread
-                action_item.add_click(
-                    lambda s, e: threading.Thread(target=action.function).start()
-                )
+                action_item.add_click(lambda s, e: threading.Thread(target=action.function).start())
 
                 return action_item
 
@@ -820,9 +789,7 @@ class BrowserView:
 
                 return m
 
-            top_level_menu = (
-                self.window.content.as_(Grid).find_name("menu").as_(MenuBar)
-            )
+            top_level_menu = self.window.content.as_(Grid).find_name('menu').as_(MenuBar)
             top_level_menu.visibility = Visibility.VISIBLE
 
             for menu in menu_list:
@@ -830,10 +797,7 @@ class BrowserView:
 
         @invoke_on_ui_thread
         def toggle_fullscreen(self):
-            if (
-                self.window.app_window.presenter.kind
-                == AppWindowPresenterKind.FULL_SCREEN
-            ):
+            if self.window.app_window.presenter.kind == AppWindowPresenterKind.FULL_SCREEN:
                 self.window.app_window.set_presenter(self.overlapped_presenter)
             else:
                 self.window.app_window.set_presenter(self.full_screen_presenter)
@@ -890,7 +854,7 @@ _app_exit_stack = contextlib.ExitStack()
 def init_storage():
     global cache_dir
 
-    if not _state["private_mode"] or _state["storage_path"]:
+    if not _state['private_mode'] or _state['storage_path']:
         try:
             try:
                 # Only succeeds if the current process has package identity.
@@ -902,12 +866,12 @@ def init_storage():
 
                 data_folder = get_roaming_app_data_path()
 
-            cache_dir = _state["storage_path"] or os.path.join(data_folder, "pywebview")
+            cache_dir = _state['storage_path'] or os.path.join(data_folder, 'pywebview')
 
             if not os.path.exists(cache_dir):
                 os.makedirs(cache_dir)
         except Exception:
-            logger.exception(f"Cache directory {cache_dir} creation failed")
+            logger.exception(f'Cache directory {cache_dir} creation failed')
     else:
         _cache_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         atexit.register(_cache_dir.cleanup)
@@ -926,9 +890,7 @@ def setup_app():
 
     init_apartment(ApartmentType.SINGLE_THREADED)
     _app_exit_stack.callback(uninit_apartment)
-    _app_exit_stack.enter_context(
-        initialize(options=InitializeOptions.ON_NO_MATCH_SHOW_UI)
-    )
+    _app_exit_stack.enter_context(initialize(options=InitializeOptions.ON_NO_MATCH_SHOW_UI))
 
     _app_setup = True
 
@@ -950,7 +912,7 @@ def create_window(window: _Window):
             elif window.minimized:
                 browser.overlapped_presenter.minimize()
 
-    if window.uid == "master":
+    if window.uid == 'master':
         init_storage()
 
         def init_app(_: ApplicationInitializationCallbackParams):
@@ -966,9 +928,7 @@ def create_window(window: _Window):
 
                     create()
 
-                def get_xaml_type(
-                    self, type: TypeName | tuple[str, TypeKind]
-                ) -> IXamlType:
+                def get_xaml_type(self, type: TypeName | tuple[str, TypeKind]) -> IXamlType:
                     return self._provider.get_xaml_type(type)
 
                 def get_xaml_type_by_full_name(self, full_name: str) -> IXamlType:
@@ -986,7 +946,7 @@ def create_window(window: _Window):
         i = list(BrowserView.instances.values())[0]  # arbitrary instance
 
         if not i.window.dispatcher_queue.try_enqueue(create):
-            raise RuntimeError("Failed to enqueue callback")
+            raise RuntimeError('Failed to enqueue callback')
 
 
 def set_title(title: str, uid: str):
@@ -1024,7 +984,7 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
         op.completed = on_completed
 
     if not i.window.dispatcher_queue.try_enqueue(callback):
-        raise RuntimeError("Failed to enqueue callback")
+        raise RuntimeError('Failed to enqueue callback')
 
     wait([fut])
 
@@ -1044,7 +1004,7 @@ def create_file_dialog(
         return None
 
     if not directory:
-        directory = os.environ["HOMEPATH"]
+        directory = os.environ['HOMEPATH']
 
     # FIXME: These Windows App SDK doesn't allow setting the starting location
     # https://github.com/microsoft/WindowsAppSDK/issues/88
@@ -1062,7 +1022,7 @@ def create_file_dialog(
 
             # FIXME: This doesn't work with the Windows App SDK
             if allow_multiple:
-                raise NotImplementedError("Multiple folders not supported")
+                raise NotImplementedError('Multiple folders not supported')
 
             op = picker.pick_single_folder_async()
 
@@ -1085,16 +1045,14 @@ def create_file_dialog(
             picker.suggested_start_location = PickerLocationId.DOWNLOADS
 
             if len(file_types) > 0:
-                picker.file_type_filter.append("*")
+                picker.file_type_filter.append('*')
             else:
-                picker.file_type_filter.append("*")
+                picker.file_type_filter.append('*')
 
             if allow_multiple:
                 op = picker.pick_multiple_files_async()
 
-                def on_completed1(
-                    op: IAsyncOperation[Sequence[StorageFile]], status: AsyncStatus
-                ):
+                def on_completed1(op: IAsyncOperation[Sequence[StorageFile]], status: AsyncStatus):
                     if status == AsyncStatus.ERROR:
                         fut.set_exception(WinError(op.error_code.value))
                     elif status == AsyncStatus.CANCELED:
@@ -1107,9 +1065,7 @@ def create_file_dialog(
             else:
                 op = picker.pick_single_file_async()
 
-                def on_completed2(
-                    op: IAsyncOperation[StorageFile], status: AsyncStatus
-                ):
+                def on_completed2(op: IAsyncOperation[StorageFile], status: AsyncStatus):
                     if status == AsyncStatus.ERROR:
                         fut.set_exception(WinError(op.error_code.value))
                     elif status == AsyncStatus.CANCELED:
@@ -1135,7 +1091,7 @@ def create_file_dialog(
                 )
             else:
                 # winui3 doesn't allow wildcard file types in save dialog
-                picker.file_type_choices[""] = ["."]
+                picker.file_type_choices[''] = ['.']
 
             op = picker.pick_save_file_async()
 
@@ -1156,10 +1112,10 @@ def create_file_dialog(
             op.completed = on_completed
 
     else:
-        raise ValueError("Invalid dialog type")
+        raise ValueError('Invalid dialog type')
 
     if not i.window.dispatcher_queue.try_enqueue(callback):
-        raise RuntimeError("Failed to enqueue callback")
+        raise RuntimeError('Failed to enqueue callback')
 
     wait([fut])
 
