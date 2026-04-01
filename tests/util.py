@@ -53,10 +53,10 @@ def run_test(
 
         if not queue.empty():
             e = queue.get()
-            pytest.fail(e)
+            pytest.fail(str(e))
 
     except Exception as e:
-        pytest.fail(e)
+        pytest.fail(str(e))
 
 
 def assert_js(window, func_name, expected_result, *func_args):
