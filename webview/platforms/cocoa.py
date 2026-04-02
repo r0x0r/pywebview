@@ -93,15 +93,17 @@ class BrowserView:
             return BrowserView.should_close(i.pywebview_window)
 
         def windowWillClose_(self, notification):
-            # Delete the closed instance from the dict
             i = BrowserView.get_instance('window', notification.object())
+
+            # Clear delegates before removing from instances dict so no
+            # callbacks can arrive after get_instance would return None.
+            i.webview.setNavigationDelegate_(None)
+            i.webview.setUIDelegate_(None)
+
             del BrowserView.instances[i.uid]
 
             if i.pywebview_window in windows:
                 windows.remove(i.pywebview_window)
-
-            i.webview.setNavigationDelegate_(None)
-            i.webview.setUIDelegate_(None)
 
             # this seems to be a bug in WkWebView, so we need to load blank html
             # see https://stackoverflow.com/questions/27410413/wkwebview-embed-video-keeps-playing-sound-after-release
