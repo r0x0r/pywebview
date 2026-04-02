@@ -598,6 +598,7 @@ class BrowserView:
             )
             .retain()
         )
+        self.window.setReleasedWhenClosed_(False)
         self.pywebview_window.native = self.window
 
         self.window.focus = window.focus
