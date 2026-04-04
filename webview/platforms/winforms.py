@@ -756,15 +756,14 @@ def create_window(window):
             browser.Hide()
             browser.Opacity = 1
         elif window.transparent and is_chromium:
-            def on_shown():
-                _user32 = ctypes.windll.user32
-                _hwnd = window.native.Handle.ToInt32()
-                
-                _style = _user32.GetWindowLongW(_hwnd,-20)
-                _user32.SetWindowLongW(_hwnd,-20,_style | 0x80000)
+            browser.Opacity = 0
 
-                _user32.SetLayeredWindowAttributes(_hwnd,0,180,0x2)
-            window.events.shown  += on_shown
+            def on_loaded(sender=None, args=None):
+                browser.Opacity = 1
+                window.hide()
+                window.show()
+
+            window.events.loaded += on_loaded
         else:
             browser.Show()
 
