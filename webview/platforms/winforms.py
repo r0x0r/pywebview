@@ -758,7 +758,7 @@ def create_window(window):
         elif window.transparent and is_chromium:
             browser.Opacity = 0
 
-            def on_loaded(sender=None, args=None):
+            def on_loaded(window):
                 browser.Opacity = 1
                 window.hide()
                 window.show()
