@@ -3,11 +3,12 @@ import contextlib
 import json
 import logging
 import os
+import sys
 import tempfile
 import threading
 import webbrowser
 from concurrent.futures import Future, wait
-from ctypes import WinError
+from ctypes import WinError, windll
 from http.cookies import SimpleCookie
 from threading import Event, Semaphore
 from typing import Iterable, Optional, Sequence, Union, cast
@@ -47,7 +48,7 @@ from winrt.windows.storage.pickers import (
 from winrt.windows.ui import Color, Colors
 from winrt.windows.ui.xaml.interop import TypeKind, TypeName
 from winui3.microsoft.ui import DisplayId
-from winui3.microsoft.ui.interop import get_icon_id_from_icon, get_window_from_window_id
+from winui3.microsoft.ui.interop import get_window_from_window_id
 from winui3.microsoft.ui.windowing import (
     AppWindow,
     AppWindowChangedEventArgs,
@@ -112,11 +113,7 @@ from webview import (
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms.win32 import (
-    get_app_icon_handle,
-    get_roaming_app_data_path,
     install_mouse_wheel_hook,
-    set_window_noactivate,
-    show_save_file_dialog,
 )
 from webview.screen import Screen
 from webview.util import (
@@ -436,16 +433,31 @@ class EdgeChrome:
         if not webview_settings['ALLOW_DOWNLOADS']:
             return
 
-        path = show_save_file_dialog(
-            self.form.app_window.id.value,
-            os.path.basename(args.result_file_path),
-            self.pywebview_window.localization['windows.fileFilter.allFiles'],
-            '*.*',
-        )
-        if path is None:
+        picker = FileSavePicker()
+        initialize_with_window(picker, self.form.app_window.id.value)
+        picker.suggested_start_location = PickerLocationId.DOWNLOADS
+        picker.suggested_file_name = os.path.basename(args.result_file_path)
+        picker.file_type_choices['*'] = ['.']
+
+        future: Future[Optional[StorageFile]] = Future()
+        operation = picker.pick_save_file_async()
+
+        def on_completed(op: IAsyncOperation[StorageFile], status: AsyncStatus):
+            if status == AsyncStatus.ERROR:
+                future.set_exception(WinError(op.error_code.value))
+            elif status == AsyncStatus.CANCELED:
+                future.set_result(None)
+            elif status == AsyncStatus.COMPLETED:
+                future.set_result(op.get_results())
+
+        operation.completed = on_completed
+        wait([future])
+
+        selected_file = future.result()
+        if selected_file is None:
             return
 
-        args.result_file_path = path
+        args.result_file_path = selected_file.path
         args.cancel = False
 
     def on_navigation_start(self, sender: WebView2, args: CoreWebView2NavigationStartingEventArgs):
@@ -538,14 +550,15 @@ class BrowserView:
                 IconShowOptions.SHOW_ICON_AND_SYSTEM_MENU
             )
 
-            icon_handle = get_app_icon_handle()
-            icon_id = get_icon_id_from_icon(icon_handle)
-            self.window.app_window.set_icon_with_icon_id(icon_id)
-            # app_window doesn't take a reference, so don't call DestroyIcon(icon_handle)!
+            # Application icon
+            if _state['icon'] and os.path.isfile(_state['icon']):
+                self.window.app_window.set_icon(_state['icon'])
+            else:
+                self.window.app_window.set_icon(sys.executable)
 
             self.url = window.real_url
 
-            # self.TopMost = window.on_top
+            self.overlapped_presenter.is_always_on_top = window.on_top
 
             if window.fullscreen:
                 self.toggle_fullscreen()
@@ -553,24 +566,18 @@ class BrowserView:
             if window.frameless:
                 self.overlapped_presenter.set_border_and_title_bar(False, False)
 
-            if BrowserView.app_menu_list:
-                self.set_window_menu(BrowserView.app_menu_list)
+            menu = window.menu or _state['menu'] or BrowserView.app_menu_list
+            if menu:
+                self.set_window_menu(menu)
 
             self.browser = EdgeChrome(self.window, window, cache_dir)
             self.window.webview = self.browser.webview
-
-            # if (
-            #     window.transparent and self.browser
-            # ):  # window transparency is supported only with EdgeChromium
-            #     self.BackColor = Color.FromArgb(255,255,0,0)
-            #     self.TransparencyKey = Color.FromArgb(255,255,0,0)
-            #     self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
-            #     self.browser.DefaultBackgroundColor = Color.Transparent
-            # else:
-            #     self.BackColor = ColorTranslator.FromHtml(window.background_color)
-
             if not window.focus:
-                set_window_noactivate(self.handle)
+                windll.user32.SetWindowLongW(
+                    self.handle,
+                    -20,
+                    windll.user32.GetWindowLongW(self.handle, -20) | 0x8000000,
+                )
 
             self.window.add_activated(self.on_activated)
             self.window.add_closed(self.on_close)
@@ -591,7 +598,7 @@ class BrowserView:
                 return
 
             if not self.pywebview_window.focus:
-                set_window_noactivate(self.handle)
+                self.window.app_window.show_with_activation(False)
 
         def on_close(self, sender: Object, args: WindowEventArgs):
             # stop waiting for JS result
@@ -790,10 +797,17 @@ class BrowserView:
                 return m
 
             top_level_menu = self.window.content.as_(Grid).find_name('menu').as_(MenuBar)
-            top_level_menu.visibility = Visibility.VISIBLE
+            top_level_menu.items.clear()
+            has_items = False
 
             for menu in menu_list:
+                # '__app__' is a macOS-only menu container.
+                if isinstance(menu, Menu) and menu.title == '__app__':
+                    continue
                 top_level_menu.items.append(create_menu_item(menu))
+                has_items = True
+
+            top_level_menu.visibility = Visibility.VISIBLE if has_items else Visibility.COLLAPSED
 
         @invoke_on_ui_thread
         def toggle_fullscreen(self):
@@ -864,7 +878,7 @@ def init_storage():
                 if ex.winerror != -2147009196:  # The process has no package identity.
                     raise
 
-                data_folder = get_roaming_app_data_path()
+                data_folder = os.environ.get('APPDATA') or os.path.expanduser('~')
 
             cache_dir = _state['storage_path'] or os.path.join(data_folder, 'pywebview')
 
@@ -892,6 +906,9 @@ def setup_app():
     _app_exit_stack.callback(uninit_apartment)
     _app_exit_stack.enter_context(initialize(options=InitializeOptions.ON_NO_MATCH_SHOW_UI))
 
+    # Ensure cleanup happens even if Application.start() doesn't return normally
+    atexit.register(_app_exit_stack.close)
+
     _app_setup = True
 
 
@@ -906,6 +923,8 @@ def create_window(window: _Window):
             browser.window.app_window.hide()
         else:
             browser.window.activate()
+            # Set shown event immediately after activation to ensure tests don't hang
+            window.events.shown.set()
 
             if window.maximized:
                 browser.overlapped_presenter.maximize()

@@ -20,7 +20,9 @@ venv*
 .pytest_cache
 __pycache__
 .python-version
-.venv/
+.ruff-cache
+.mypy_cache
+.venv*
 _version.py
 docs/examples
 /main.py
