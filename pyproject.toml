@@ -38,7 +38,17 @@ dependencies = [
     "pyobjc-framework-WebKit>=9.0;sys_platform=='darwin'",
     "pyobjc-framework-security>=9.0;sys_platform=='darwin'",
     "pyobjc-framework-UniformTypeIdentifiers>=9.0;sys_platform=='darwin'",
-    "pythonnet;sys_platform=='win32' and platform_machine!='ARM64'",
+    "pythonnet;sys_platform=='win32'",
+    "QtPy;sys_platform=='openbsd6'",
+    "importlib_resources; python_version < '3.9'",
+    "proxy_tools",
+    "bottle",
+    "typing_extensions"
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+winui3 = [
     "winrt-runtime>=3.1;sys_platform=='win32'",
     "winrt-Windows.Foundation>=3.1;sys_platform=='win32'",
     "winrt-Windows.Foundation.Collections>=3.1;sys_platform=='win32'",
@@ -58,16 +68,7 @@ dependencies = [
     "winui3-Microsoft.UI.Xaml.XamlTypeInfo>=3.1;sys_platform=='win32'",
     "winui3-Microsoft.Windows.ApplicationModel.DynamicDependency.Bootstrap>=3.1;sys_platform=='win32'",
     "winui3-Microsoft.Windows.Storage>=3.1;sys_platform=='win32'",
-    "win32more;sys_platform=='win32'",
-    "QtPy;sys_platform=='openbsd6'",
-    "importlib_resources; python_version < '3.9'",
-    "proxy_tools",
-    "bottle",
-    "typing_extensions"
 ]
-dynamic = ["version"]
-
-[project.optional-dependencies]
 cef = ["cefpython3"]
 gtk = ["PyGObject==3.50.0", "PyGObject-stubs"]
 pyside2 = ["QtPy", "PySide2"]
