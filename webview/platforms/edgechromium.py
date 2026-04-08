@@ -5,7 +5,9 @@ import shutil
 import webbrowser
 import winreg
 from threading import Semaphore
-
+import uuid
+import threading
+import time
 try:
     import clr
 except Exception:
@@ -116,7 +118,8 @@ class EdgeChrome:
         self.url = None
         self.ishtml = False
         self.html = DEFAULT_HTML
-
+        self.on_navigation_completed_id = None
+        self.check_on_navigation_completed_id = None
         self.webview.EnsureCoreWebView2Async(None)
 
     def clear_user_data(self):
@@ -218,6 +221,21 @@ class EdgeChrome:
     def load_url(self, url: str):
         self.ishtml = False
         self.webview.Source = Uri(url)
+
+        self.on_navigation_completed_id = uuid.uuid4()
+        self.check_on_navigation_completed_id
+        
+        def check_on_navigation_completed():
+            t = time.time()
+            while True:
+                if self.on_navigation_completed_id == self.check_on_navigation_completed_id:
+                    break
+                elif time.time() - t >= 15:
+                    self.on_navigation_completed(self.webview, None)
+                    break
+                time.sleep(0.1)
+
+        threading.Thread(target=check_on_navigation_completed, daemon=True).start()
 
     def on_certificate_error(self, _, args):
         args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
@@ -383,6 +401,7 @@ class EdgeChrome:
             args.Request.Headers.RemoveHeader(k)
 
     def on_navigation_completed(self, sender, _):
+        self.check_on_navigation_completed_id = self.on_navigation_completed_id
         url = str(sender.Source)
         self.url = None if self.ishtml else url
 
