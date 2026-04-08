@@ -10,17 +10,17 @@ Works on Windows only (WinUI 3 backend).
 
 import webview
 
-_TITLE_BAR_HEIGHT = 48
-
 # The Grid named "TitleBar" is registered as the draggable caption region.
 # Columns 0 and 3 are padding stubs; their widths are set in the Loaded
 # handler to match AppWindowTitleBar.LeftInset / RightInset so that the
 # custom button aligns exactly with the system caption buttons (min/max/close).
-_TITLE_BAR_XAML = f"""\
+# Height is intentionally omitted here and set in on_loaded from the real OS
+# title bar height (physical pixels / scale) rounded to an integer, which
+# prevents sub-pixel layout and keeps text / icons crisp.
+_TITLE_BAR_XAML = """\
 <Grid
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    Name="TitleBar"
-    Height="{_TITLE_BAR_HEIGHT}">
+    Name="TitleBar">
     <Grid.ColumnDefinitions>
         <ColumnDefinition Width="0"/>
         <ColumnDefinition Width="*"/>
@@ -65,10 +65,11 @@ _TITLE_BAR_XAML = f"""\
 """
 
 # Inline XAML for the extra RowDefinition that holds the title bar.
+# Height is Auto here and updated to the exact logical height in on_loaded.
 _TITLE_ROW_XAML = (
     '<RowDefinition'
     ' xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"'
-    f' Height="{_TITLE_BAR_HEIGHT}"/>'
+    ' Height="Auto"/>'
 )
 
 _HTML_CONTENT = """\
@@ -137,17 +138,23 @@ def on_before_show(window):
         tb = sender.as_(Grid)
         scale = tb.xaml_root.rasterization_scale
 
+        # Round to the nearest integer logical pixel so all elements sit on
+        # exact pixel boundaries — prevents blurry text and icons.
+        logical_height = round(win.app_window.title_bar.height / scale)
+        tb.height = logical_height
+        root.row_definitions[0].height = GridLength(logical_height, GridUnitType.PIXEL)
+
         tb.column_definitions[0].width = GridLength(
-            win.app_window.title_bar.left_inset / scale, GridUnitType.PIXEL
+            round(win.app_window.title_bar.left_inset / scale), GridUnitType.PIXEL
         )
         tb.column_definitions[3].width = GridLength(
-            win.app_window.title_bar.right_inset / scale, GridUnitType.PIXEL
+            round(win.app_window.title_bar.right_inset / scale), GridUnitType.PIXEL
         )
 
         button = tb.find_name('FullscreenButton')
         if button:
             button = button.as_(Button)
-            button.height = win.app_window.title_bar.height / scale
+            button.height = logical_height
             try:
                 from winrt.windows.graphics import RectInt32
                 from winui3.microsoft.ui.input import (

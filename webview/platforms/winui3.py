@@ -509,14 +509,25 @@ class BrowserView:
 
             self.window.title = window.title
             self.window.content = XamlReader.load(_WINDOW_XAML).as_(UIElement)
-            self.window.app_window.resize((window.initial_width, window.initial_height))
+            scale = self._scale
+            self.window.app_window.resize(
+                (
+                    int(window.initial_width * scale),
+                    int(window.initial_height * scale),
+                )
+            )
 
             # TODO: No APIs yet for minimum size
             # https://github.com/microsoft/microsoft-ui-xaml/issues/7296
             # self.MinimumSize = Size(window.min_size[0], window.min_size[1])
 
             if window.initial_x is not None and window.initial_y is not None:
-                self.window.app_window.move((window.initial_x, window.initial_y))
+                self.window.app_window.move(
+                    (
+                        int(window.initial_x * scale),
+                        int(window.initial_y * scale),
+                    )
+                )
             elif window.screen:
                 did = cast(DisplayId, window.screen.frame)
                 area = DisplayArea.get_from_display_id(did)
@@ -580,6 +591,11 @@ class BrowserView:
 
         def __str__(self):
             return f'<Window object with {self.handle} handle>'
+
+        @property
+        def _scale(self) -> float:
+            """Logical-to-physical pixel scale for the monitor this window is on."""
+            return windll.user32.GetDpiForWindow(self.handle) / 96
 
         def on_activated(self, sender: Object, args: WindowActivatedEventArgs):
             self._is_active = args.window_activation_state != WindowActivationState.DEACTIVATED
@@ -663,8 +679,9 @@ class BrowserView:
 
                 self.old_state = self.overlapped_presenter.state
             elif args.did_position_change:
+                scale = self._scale
                 x, y = self.window.app_window.position.unpack()
-                self.pywebview_window.events.moved.set(x, y)
+                self.pywebview_window.events.moved.set(int(x / scale), int(y / scale))
 
         def evaluate_js(self, script: str, parse_json: bool):
             result = self.browser.evaluate_js(script, parse_json)
@@ -814,27 +831,35 @@ class BrowserView:
 
         @invoke_on_ui_thread
         def get_size(self):
-            return self.window.app_window.size.unpack()
+            scale = self._scale
+            w, h = self.window.app_window.size.unpack()
+            return (int(w / scale), int(h / scale))
 
         @invoke_on_ui_thread
         def resize(self, width: int, height: int, fix_point: FixPoint):
+            scale = self._scale
+            phys_w = int(width * scale)
+            phys_h = int(height * scale)
             x, y = self.window.app_window.position.unpack()
 
             if fix_point & FixPoint.EAST:
-                x += self.window.app_window.size.width - width
+                x += self.window.app_window.size.width - phys_w
 
             if fix_point & FixPoint.SOUTH:
-                y += self.window.app_window.size.height - height
+                y += self.window.app_window.size.height - phys_h
 
-            self.window.app_window.move_and_resize((x, y, width, height))
+            self.window.app_window.move_and_resize((x, y, phys_w, phys_h))
 
         @invoke_on_ui_thread
         def get_position(self):
-            return self.window.app_window.position.unpack()
+            scale = self._scale
+            x, y = self.window.app_window.position.unpack()
+            return (int(x / scale), int(y / scale))
 
         @invoke_on_ui_thread
         def move(self, x: int, y: int):
-            self.window.app_window.move((x, y))
+            scale = self._scale
+            self.window.app_window.move((int(x * scale), int(y * scale)))
 
         @invoke_on_ui_thread
         def maximize(self):
@@ -893,6 +918,12 @@ def setup_app():
 
     if _app_setup:
         return
+
+    # System-DPI-aware mode stops the XAML compositor from being upscaled by
+    # Windows, keeping text and icons crisp.  The newer per-monitor-v2 context
+    # (-4) appears to conflict with how the Python WinRT bindings initialise
+    # their own DPI context, so we use the older SetProcessDPIAware() instead.
+    windll.user32.SetProcessDPIAware()
 
     init_apartment(ApartmentType.SINGLE_THREADED)
     _app_exit_stack.callback(uninit_apartment)
