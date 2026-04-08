@@ -254,4 +254,5 @@ jobs:
     - name: Run WinUI3 tests
       shell: pwsh
       run: |
-        ./tests/run.ps1
+        cd tests
+        ./run.ps1
