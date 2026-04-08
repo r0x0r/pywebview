@@ -11,7 +11,9 @@ from typing_extensions import Literal, TypeAlias, get_args
 
 from webview import WebViewException
 
-GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android', 'cocoa', 'winui3']
+GUIType: TypeAlias = Literal[
+    'qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android', 'cocoa', 'winui3'
+]
 GUI_TYPES = list(get_args(GUIType))
 
 logger = logging.getLogger('pywebview')
@@ -145,7 +147,9 @@ def initialize(forced_gui: GUIType | None = None):
             guis = [import_winforms, import_winui3]
 
         if not try_import(guis):
-            raise WebViewException('You must have pythonnet or Windows App runtime installed in order to use pywebview.')
+            raise WebViewException(
+                'You must have pythonnet or Windows App runtime installed in order to use pywebview.'
+            )
     else:
         raise WebViewException(
             'Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.'
