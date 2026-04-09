@@ -94,12 +94,6 @@ class WinFormsEdgeChrome(WebView2Core):
 
         self.webview.EnsureCoreWebView2Async(None)
 
-    def _get_browser_process_id(self) -> int:
-        return int(self.webview.CoreWebView2.BrowserProcessId)
-
-    def _release_webview(self):
-        self.webview.Dispose()
-
     def evaluate_js(self, script: str, parse_json: bool):
         def _callback(res):
             nonlocal result

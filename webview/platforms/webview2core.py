@@ -111,20 +111,21 @@ class WebView2Core(ABC):
         except Exception:
             return None
 
-    def clear_user_data(self):
+    def clear_user_data(self, process_id: int) -> None:
         if not _state['private_mode']:
             return
 
         try:
-            process_id = self._get_browser_process_id()
-            self._release_webview()
+            handle = None
 
-            handle = ctypes.windll.kernel32.OpenProcess(0x00100000, False, process_id)
+            if process_id:
+                handle = ctypes.windll.kernel32.OpenProcess(0x00100000, False, process_id)
             if handle:
-                ctypes.windll.kernel32.WaitForSingleObject(handle, 3000)
+                ctypes.windll.kernel32.WaitForSingleObject(handle, 5000)
                 ctypes.windll.kernel32.CloseHandle(handle)
 
             shutil.rmtree(self.user_data_folder)
+            logger.debug(f'Cleared user data folder: {self.user_data_folder}')
         except Exception as e:
             logger.warning(f'Failed to delete user data folder: {e}')
 
@@ -156,10 +157,3 @@ class WebView2Core(ABC):
 
     @abstractmethod
     def get_cookies(self, cookies, semaphore): ...
-
-    @abstractmethod
-    def _get_browser_process_id(self) -> int: ...
-
-    def _release_webview(self):
-        """Called before waiting for the browser process to exit. Override to dispose the webview."""
-        pass

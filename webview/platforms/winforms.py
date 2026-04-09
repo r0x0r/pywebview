@@ -374,7 +374,7 @@ class BrowserView:
                     CEF.shutdown()
                 elif is_chromium:
                     self.hide()
-                    self.browser.clear_user_data()
+                    self.browser.clear_user_data(process_id)
 
                 WinForms.Application.Exit()
 
@@ -384,6 +384,9 @@ class BrowserView:
 
             if is_cef:
                 CEF.close_window(self.uid)
+            elif is_chromium:
+                process_id = int(self.browser.webview.CoreWebView2.BrowserProcessId)
+                self.browser.webview.Dispose()
 
             del BrowserView.instances[self.uid]
 

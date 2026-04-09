@@ -213,8 +213,13 @@ class WinUI3EdgeChrome(WebView2Core):
                             'Error executing script: %r',
                             WinError(op.error_code.value),
                         )
+                        _callback(None)
                     elif status == AsyncStatus.COMPLETED:
-                        _callback(json.loads(op.get_results()))
+                        try:
+                            _callback(json.loads(op.get_results()))
+                        except Exception:
+                            logger.exception('Error parsing script result')
+                            _callback(None)
 
                 op.completed = on_completed
 
@@ -448,9 +453,6 @@ class WinUI3EdgeChrome(WebView2Core):
         for k in missing:
             args.request.headers.remove_header(k)
 
-    def _get_browser_process_id(self) -> int:
-        return int(self.webview.core_webview2.browser_process_id)
-
     def on_navigation_start(self, sender: WebView2, args: CoreWebView2NavigationStartingEventArgs):
         pass
 
@@ -476,6 +478,7 @@ _WINDOW_XAML = """
 
     <MenuBar Name="menu" Grid.Row="0" Grid.ColumnSpan="2" Visibility="collapsed"/>
     <WebView2 Name="webview" Grid.Row="1" Grid.ColumnSpan="2"
+        AllowDrop="True"
         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
 </Grid>
 """
@@ -608,9 +611,10 @@ class BrowserView:
                 self.window.app_window.show_with_activation(False)
 
         def on_close(self, sender: Object, args: WindowEventArgs):
-            # stop waiting for JS result
             self.browser.js_result_semaphore.release()
-            self.browser.clear_user_data()
+
+            process_id = int(self.browser.webview.core_webview2.browser_process_id)
+            self.browser.webview.close()
 
             del BrowserView.instances[self.uid]
 
@@ -621,6 +625,7 @@ class BrowserView:
             self.pywebview_window.events.closed.set()
 
             if len(BrowserView.instances) == 0:
+                self.browser.clear_user_data(process_id)
                 Application.current.exit()
 
         def on_closing(self, sender: AppWindow, args: AppWindowClosingEventArgs):
@@ -891,18 +896,15 @@ def init_storage():
                 # Only succeeds if the current process has package identity.
                 app_data = ApplicationData.get_default()
                 data_folder = app_data.shared_local_path
-            except OSError as ex:
-                if ex.winerror != -2147009196:  # The process has no package identity.
-                    raise
-
+            except OSError:
                 data_folder = os.environ.get('APPDATA') or os.path.expanduser('~')
 
             cache_dir = _state['storage_path'] or os.path.join(data_folder, 'pywebview')
 
             if not os.path.exists(cache_dir):
                 os.makedirs(cache_dir)
-        except Exception:
-            logger.exception(f'Cache directory {cache_dir} creation failed')
+        except Exception as ex:
+            logger.exception(f'Cache directory creation failed: {ex}')
     else:
         _cache_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         atexit.register(_cache_dir.cleanup)
