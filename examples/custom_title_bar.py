@@ -10,13 +10,6 @@ Works on Windows only (WinUI 3 backend).
 
 import webview
 
-# The Grid named "TitleBar" is registered as the draggable caption region.
-# Columns 0 and 3 are padding stubs; their widths are set in the Loaded
-# handler to match AppWindowTitleBar.LeftInset / RightInset so that the
-# custom button aligns exactly with the system caption buttons (min/max/close).
-# Height is intentionally omitted here and set in on_loaded from the real OS
-# title bar height (physical pixels / scale) rounded to an integer, which
-# prevents sub-pixel layout and keeps text / icons crisp.
 _TITLE_BAR_XAML = """\
 <Grid
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -130,10 +123,7 @@ def on_before_show(window):
     # 5. After the first layout pass:
     #    a) Set the left/right padding columns to match the system caption
     #       button insets so the custom button sits flush against them.
-    #    b) Set the but,ton height to match title_bar.height at current DPI.
-    #    c) Register the button's bounding rect as a Passthrough region via
-    #       InputNonClientPointerSource so that single clicks are delivered
-    #       to the button instead of being swallowed by drag detection.
+    #    b) Set the button height to match title_bar.height at current DPI.
     def on_loaded(sender, _args):
         tb = sender.as_(Grid)
         scale = tb.xaml_root.rasterization_scale
@@ -151,36 +141,12 @@ def on_before_show(window):
             round(win.app_window.title_bar.right_inset / scale), GridUnitType.PIXEL
         )
 
-        button = tb.find_name('FullscreenButton')
-        if button:
-            button = button.as_(Button)
-            button.height = logical_height
-            try:
-                from winrt.windows.graphics import RectInt32
-                from winui3.microsoft.ui.input import (
-                    InputNonClientPointerSource,
-                    NonClientRegionKind,
-                )
+        fullscreen_button.height = logical_height
 
-                transform = button.transform_to_visual(None)
-                origin = transform.transform_point((0.0, 0.0))
-                rect = RectInt32(
-                    int(origin.x * scale),
-                    int(origin.y * scale),
-                    int(button.actual_width * scale),
-                    int(button.actual_height * scale),
-                )
-                source = InputNonClientPointerSource.get_for_window_id(win.app_window.id)
-                source.set_region_rects(NonClientRegionKind.PASSTHROUGH, [rect])
-            except (ImportError, AttributeError):
-                pass  # passthrough region not available in this winui3 version
-
-    title_bar.add_loaded(on_loaded)
-
-    # 6. Wire up the Fullscreen button.
     fullscreen_button = title_bar.find_name('FullscreenButton')
-    if fullscreen_button:
-        fullscreen_button.as_(Button).add_click(lambda _s, _e: window.toggle_fullscreen())
+    fullscreen_button = fullscreen_button.as_(Button)
+    fullscreen_button.add_click(lambda _s, _e: window.toggle_fullscreen())
+    title_bar.add_loaded(on_loaded)
 
 
 if __name__ == '__main__':
