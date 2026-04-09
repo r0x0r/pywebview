@@ -327,7 +327,7 @@ class WinUI3EdgeChrome(WebView2Core):
             for file in [
                 obj.as_(CoreWebView2File)
                 for obj in additional_objects
-                if obj._runtime_class_name_ == 'CoreWebView2File'
+                if obj._runtime_class_name_.endswith('CoreWebView2File')
             ]
         ]
 
