@@ -2,11 +2,12 @@ import json
 import logging
 import os
 import shutil
+import time
+import uuid
 import webbrowser
 import winreg
 from threading import Semaphore, Thread
-import uuid
-import time
+
 try:
     import clr
 except Exception:
@@ -221,6 +222,7 @@ class EdgeChrome:
         self.ishtml = False
         self.webview.Source = Uri(url)
         self.on_navigation_completed_id = uuid.uuid4()
+
         def check_on_navigation_completed():
             t = time.time()
             while True:
@@ -230,6 +232,7 @@ class EdgeChrome:
                     self.on_navigation_completed(self.webview, None)
                     break
                 time.sleep(0.1)
+
         Thread(target=check_on_navigation_completed, daemon=True).start()
 
     def on_certificate_error(self, _, args):
