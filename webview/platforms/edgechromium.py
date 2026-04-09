@@ -4,9 +4,8 @@ import os
 import shutil
 import webbrowser
 import winreg
-from threading import Semaphore
+from threading import Semaphore, Thread
 import uuid
-import threading
 import time
 try:
     import clr
@@ -221,9 +220,7 @@ class EdgeChrome:
     def load_url(self, url: str):
         self.ishtml = False
         self.webview.Source = Uri(url)
-
         self.on_navigation_completed_id = uuid.uuid4()
-        
         def check_on_navigation_completed():
             t = time.time()
             while True:
@@ -233,8 +230,7 @@ class EdgeChrome:
                     self.on_navigation_completed(self.webview, None)
                     break
                 time.sleep(0.1)
-
-        threading.Thread(target=check_on_navigation_completed, daemon=True).start()
+        Thread(target=check_on_navigation_completed, daemon=True).start()
 
     def on_certificate_error(self, _, args):
         args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
