@@ -7,7 +7,7 @@ name = "pywebview"
 authors = [{ name = "Roman Sirokov", email = "roman@flowrl.com" }]
 description = "Build GUI for your Python program with JavaScript, HTML, and CSS"
 keywords = ["gui", "webkit", "html", "web"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 classifiers = [
     "Intended Audience :: Developers",
@@ -19,9 +19,6 @@ classifiers = [
     "Environment :: X11 Applications :: Qt",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -40,7 +37,7 @@ dependencies = [
     "pyobjc-framework-UniformTypeIdentifiers>=9.0;sys_platform=='darwin'",
     "pythonnet;sys_platform=='win32'",
     "QtPy;sys_platform=='openbsd6'",
-    "importlib_resources; python_version < '3.9'",
+    "importlib_resources; python_version < '3.10'",
     "proxy_tools",
     "bottle",
     "typing_extensions"
@@ -100,8 +97,8 @@ exclude = [
 line-length = 100
 indent-width = 4
 
-# Assume Python 3.8+
-target-version = "py38"
+# Assume Python 3.10+
+target-version = "py310"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.

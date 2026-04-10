@@ -49,7 +49,7 @@ jobs:
           # Ubuntu Qt Backend
           - name: "Ubuntu Qt"
             os: ubuntu-22.04
-            python-version: '3.9'
+            python-version: '3.10'
             gui: qt
             display: ":99"
             qt_platform: "offscreen"
@@ -58,7 +58,7 @@ jobs:
           # Ubuntu GTK Backend
           - name: "Ubuntu GTK"
             os: ubuntu-22.04
-            python-version: '3.9'
+            python-version: '3.10'
             gui: gtk
             display: ":99"
             log_level: "error"
@@ -66,7 +66,7 @@ jobs:
           # Windows EdgeChromium
           - name: "Windows EdgeChromium"
             os: windows-latest
-            python-version: '3.9'
+            python-version: '3.10'
             gui: edgechromium
             log_level: "error"
 
@@ -80,7 +80,7 @@ jobs:
           # macOS
           - name: "macOS"
             os: macos-latest
-            python-version: '3.9'
+            python-version: '3.10'
             log_level: "error"
 
     env:
@@ -232,7 +232,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.10'
 
     - name: Install WebView2 Runtime
       run: |
