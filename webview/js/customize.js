@@ -60,6 +60,11 @@
                 return
             }
 
+            if (platform === 'edgechromium' || platform === 'winui3') {
+                window.pywebview._jsApiCallback('pywebviewStartDrag', [], 'drag');
+                return;
+            }
+
             initialX = ev.clientX;
             initialY = ev.clientY;
             window.addEventListener('mouseup', onMouseUp);
