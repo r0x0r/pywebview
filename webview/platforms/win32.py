@@ -54,6 +54,8 @@ _user32.ReleaseCapture.restype = wintypes.BOOL
 _user32.ReleaseCapture.argtypes = []
 _user32.SendMessageW.restype = ctypes.c_ssize_t
 _user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+_user32.IsZoomed.restype = wintypes.BOOL
+_user32.IsZoomed.argtypes = [wintypes.HWND]
 _user32.GetWindowRect.restype = wintypes.BOOL
 _user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 # Available since Windows 8.1 – converts physical screen px to process-logical px.
@@ -197,9 +199,12 @@ def start_drag(hwnd: int) -> None:
     """Initiate a native window drag (title-bar grab) via Win32.
 
     For hwnds with a mouse hook installed (WinUI3), the drag is handled
-    inside the hook using SetWindowPos.  For other hwnds (WinForms), the
+    inside the hook using SetWindowPos. For other hwnds (WinForms), the
     standard ReleaseCapture / WM_NCLBUTTONDOWN approach is used.
     """
+    if _user32.IsZoomed(hwnd):
+        return
+
     drag = _drag_states.get(hwnd)
     if drag is not None:
         rect = wintypes.RECT()
