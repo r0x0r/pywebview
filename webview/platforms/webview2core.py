@@ -10,6 +10,7 @@ from webview import _state
 from webview import settings as webview_settings
 from webview.dom import _dnd_state
 from webview.models import Request, Response
+from webview.platforms.win32 import start_drag
 from webview.util import DEFAULT_HTML, js_bridge_call
 
 logger = logging.getLogger('pywebview')
@@ -73,6 +74,8 @@ class WebView2Core(ABC):
 
         if func_name == '_pywebviewAlert':
             self._show_alert(str(func_param))
+        elif func_name == 'pywebviewStartDrag':
+            start_drag(self._drag_hwnd)
         elif func_name == 'console':
             print(func_param)
         else:

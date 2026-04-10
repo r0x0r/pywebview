@@ -114,9 +114,7 @@ from webview import (
 )
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms.webview2core import WebView2Core
-from webview.platforms.win32 import (
-    install_mouse_wheel_hook,
-)
+from webview.platforms.win32 import install_mouse_hook
 from webview.screen import Screen
 from webview.util import (
     create_cookie,
@@ -139,6 +137,7 @@ class WinUI3EdgeChrome(WebView2Core):
 
         self.webview = form.content.as_(Grid).find_name('webview').as_(WebView2)
         self.form = form
+        self._drag_hwnd = get_window_from_window_id(form.app_window.id)
         self.user_data_folder = cache_dir
 
         self.webview.add_core_webview2_initialized(self.on_webview_ready)
@@ -504,9 +503,10 @@ class BrowserView:
             self.real_url = None
             # WinUI3's XAML layer swallows WM_MOUSEWHEEL before it reaches WebView2.
             # A WH_MOUSE_LL global hook intercepts wheel events and posts them directly
-            # to the WebView2 Chrome_WidgetWin_0 input HWND. The returned tuple must
+            # to the WebView2 Chrome_WidgetWin_0 input HWND.  The same hook also handles
+            # frameless-window dragging via SetWindowPos.  The returned references must
             # stay alive to prevent the ctypes callback and hook handle from being GC'd.
-            self._wheel_hook = install_mouse_wheel_hook(self.handle)
+            self._mouse_hook = install_mouse_hook(self.handle)
 
             self.pywebview_window.native = self.window
 

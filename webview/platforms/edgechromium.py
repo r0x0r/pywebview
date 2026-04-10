@@ -75,6 +75,7 @@ class WinFormsEdgeChrome(WebView2Core):
         self.webview.CreationProperties = props
 
         self.form = form
+        self._drag_hwnd = form.Handle.ToInt32()
         form.Controls.Add(self.webview)
 
         self.js_results = {}
