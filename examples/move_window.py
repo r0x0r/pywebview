@@ -24,6 +24,7 @@ def move(window):
 
     sleep(2)
     window.move(new_x, new_y)
+    print(f'Moving window to ({new_x}, {new_y})...')
     sleep(1)
     print(f'Window coordinates are now ({window.x}, {window.y})')
 

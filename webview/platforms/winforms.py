@@ -425,7 +425,10 @@ class BrowserView:
             self.pywebview_window.events.resized.set(self.Width, self.Height)
 
         def on_move(self, sender, args):
-            self.pywebview_window.events.moved.set(self.Location.X, self.Location.Y)
+            self.pywebview_window.events.moved.set(
+                int(self.Location.X / self.scale_factor),
+                int(self.Location.Y / self.scale_factor),
+            )
 
         def evaluate_js(self, script, parse_json):
             result = self.browser.evaluate_js(script, parse_json)
@@ -1037,7 +1040,7 @@ def evaluate_js(script, uid, parse_json, result_id=None):
 def get_position(uid):
     i = BrowserView.instances.get(uid)
     if i:
-        return i.Left, i.Top
+        return int(i.Left / i.scale_factor), int(i.Top / i.scale_factor)
 
 
 def get_size(uid):
