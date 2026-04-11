@@ -60,7 +60,10 @@ _user32.GetWindowRect.restype = wintypes.BOOL
 _user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 # Available since Windows 8.1 – converts physical screen px to process-logical px.
 _user32.PhysicalToLogicalPointForPerMonitorDPI.restype = wintypes.BOOL
-_user32.PhysicalToLogicalPointForPerMonitorDPI.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
+_user32.PhysicalToLogicalPointForPerMonitorDPI.argtypes = [
+    wintypes.HWND,
+    ctypes.POINTER(wintypes.POINT),
+]
 _user32.SetWindowPos.restype = wintypes.BOOL
 _user32.SetWindowPos.argtypes = [
     wintypes.HWND,
@@ -158,10 +161,13 @@ def install_mouse_hook(hwnd: int):
                     pt = wintypes.POINT(hs.pt_x, hs.pt_y)
                     _user32.PhysicalToLogicalPointForPerMonitorDPI(hwnd, ctypes.byref(pt))
                     _user32.SetWindowPos(
-                        hwnd, 0,
+                        hwnd,
+                        0,
                         _drag[3] + pt.x - _drag[1],
                         _drag[4] + pt.y - _drag[2],
-                        0, 0, _SWP_NOSIZE | _SWP_NOZORDER | _SWP_NOACTIVATE,
+                        0,
+                        0,
+                        _SWP_NOSIZE | _SWP_NOZORDER | _SWP_NOACTIVATE,
                     )
                     # fall through so the OS commits the cursor position
 
