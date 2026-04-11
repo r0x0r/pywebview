@@ -31,7 +31,7 @@ clr.AddReference('System.Reflection')
 import System.Windows.Forms as WinForms  # noqa: E402
 from Microsoft.Win32 import SystemEvents  # noqa: E402
 from System import Array, Environment, Func, Int32, IntPtr, Object, Type, UInt32  # noqa: E402
-from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF  # noqa: E402
+from System.Drawing import Color, ColorTranslator, Icon, Point, Size  # noqa: E402
 from System.Reflection import Assembly, BindingFlags  # noqa: E402
 from System.Threading import ApartmentState, Thread, ThreadStart  # noqa: E402
 
@@ -196,37 +196,25 @@ class BrowserView:
             self.Text = window.title
             self.Size = Size(window.initial_width, window.initial_height)
             self.MinimumSize = Size(window.min_size[0], window.min_size[1])
-
-            self.AutoScaleDimensions = SizeF(96.0, 96.0)
-            self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
             hwnd = self.Handle.ToInt32()
-
-            # for chromium edge, need this factor to modify the coordinates
-            try:
-                self.scale_factor = (
-                    windll.shcore.GetScaleFactorForDevice(0) / 100 if is_chromium else 1
-                )
-            except Exception as e:
-                logger.warning(f'Failed to get scale factor: {e}')
-                self.scale_factor = 1
 
             if window.initial_x is not None and window.initial_y is not None:
                 self.StartPosition = WinForms.FormStartPosition.Manual
                 self.Location = Point(
-                    int(window.initial_x * self.scale_factor),
-                    int(window.initial_y * self.scale_factor),
+                    int(window.initial_x),
+                    int(window.initial_y),
                 )
             elif window.screen:
                 self.StartPosition = WinForms.FormStartPosition.Manual
                 x = int(
-                    window.screen.x * self.scale_factor
-                    + (window.screen.width - window.initial_width) * self.scale_factor / 2
+                    window.screen.x
+                    + (window.screen.width - window.initial_width) / 2
                     if window.screen.x >= 0
-                    else window.screen.x * self.scale_factor + window.screen.width / 2
+                    else window.screen.x + window.screen.width / 2
                 )
                 y = int(
-                    window.screen.y * self.scale_factor
-                    + (window.screen.height - window.initial_height) * self.scale_factor / 2
+                    window.screen.y
+                    + (window.screen.height - window.initial_height) / 2
                 )
                 self.Location = Point(x, y)
             else:
@@ -426,8 +414,8 @@ class BrowserView:
 
         def on_move(self, sender, args):
             self.pywebview_window.events.moved.set(
-                int(self.Location.X / self.scale_factor),
-                int(self.Location.Y / self.scale_factor),
+                self.Location.X,
+                self.Location.Y,
             )
 
         def evaluate_js(self, script, parse_json):
@@ -597,29 +585,15 @@ class BrowserView:
             SWP_NOSIZE = 0x0001  # Retains the current size
             SWP_NOZORDER = 0x0004  # Retains the current Z order
             SWP_SHOWWINDOW = 0x0040  # Displays the window
-            if self.scale_factor != 1:
-                # The coordinates needed to be scaled
-                x_modified = x * self.scale_factor
-                y_modified = y * self.scale_factor
-                windll.user32.SetWindowPos(
-                    self.Handle.ToInt32(),
-                    None,
-                    int(x_modified),
-                    int(y_modified),
-                    None,
-                    None,
-                    SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW,
-                )
-            else:
-                windll.user32.SetWindowPos(
-                    self.Handle.ToInt32(),
-                    None,
-                    int(x),
-                    int(y),
-                    None,
-                    None,
-                    SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW,
-                )
+            windll.user32.SetWindowPos(
+                self.Handle.ToInt32(),
+                None,
+                int(x),
+                int(y),
+                None,
+                None,
+                SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW,
+            )
 
         def maximize(self):
             def _maximize():
@@ -1040,7 +1014,7 @@ def evaluate_js(script, uid, parse_json, result_id=None):
 def get_position(uid):
     i = BrowserView.instances.get(uid)
     if i:
-        return int(i.Left / i.scale_factor), int(i.Top / i.scale_factor)
+        return i.Left, i.Top
 
 
 def get_size(uid):
