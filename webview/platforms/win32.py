@@ -56,6 +56,9 @@ _user32.SendMessageW.restype = ctypes.c_ssize_t
 _user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
 _user32.GetWindowRect.restype = wintypes.BOOL
 _user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+# Available since Windows 8.1 – converts physical screen px to process-logical px.
+_user32.PhysicalToLogicalPointForPerMonitorDPI.restype = wintypes.BOOL
+_user32.PhysicalToLogicalPointForPerMonitorDPI.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
 _user32.SetWindowPos.restype = wintypes.BOOL
 _user32.SetWindowPos.argtypes = [
     wintypes.HWND,
@@ -124,8 +127,8 @@ def install_mouse_hook(hwnd: int):
     # Use a list with a sentinel so we distinguish "not yet searched" (None)
     # from "searched and not found" (0).
     input_hwnd_cache: list = [None]
-    # Drag state: [phase, cursor_start_x, cursor_start_y, win_start_x, win_start_y]
-    # phase: 0=inactive, 1=pending (waiting for first WM_MOUSEMOVE), 2=active
+    # Drag state: [active, cursor_start_x, cursor_start_y, win_start_x, win_start_y]
+    # active: 0=inactive, 1=dragging
     _drag: list = [0, 0, 0, 0, 0]
     _drag_states[hwnd] = _drag
 
@@ -143,26 +146,22 @@ def install_mouse_hook(hwnd: int):
                 if wParam == _WM_LBUTTONUP:
                     _drag[0] = 0
                 elif wParam == _WM_MOUSEMOVE:
+                    # MSLLHOOKSTRUCT.pt is in per-monitor physical pixels; convert to
+                    # logical so it matches GetWindowRect / SetWindowPos coordinates.
+                    # Do NOT suppress (return 1) — suppressing prevents the OS from
+                    # committing the cursor position, causing oscillation on every move.
                     hs = ctypes.cast(
                         ctypes.c_void_p(lParam), ctypes.POINTER(_MSLLHOOKSTRUCT)
                     ).contents
-                    if _drag[0] == 1:
-                        # Pending → active: record start cursor from the hook
-                        # struct so coordinates are in the same physical space.
-                        _drag[0] = 2
-                        _drag[1] = hs.pt_x
-                        _drag[2] = hs.pt_y
-                    else:
-                        _user32.SetWindowPos(
-                            hwnd,
-                            0,
-                            _drag[3] + hs.pt_x - _drag[1],
-                            _drag[4] + hs.pt_y - _drag[2],
-                            0,
-                            0,
-                            _SWP_NOSIZE | _SWP_NOZORDER | _SWP_NOACTIVATE,
-                        )
-                    return 1  # suppress so Chrome doesn't also handle the move
+                    pt = wintypes.POINT(hs.pt_x, hs.pt_y)
+                    _user32.PhysicalToLogicalPointForPerMonitorDPI(hwnd, ctypes.byref(pt))
+                    _user32.SetWindowPos(
+                        hwnd, 0,
+                        _drag[3] + pt.x - _drag[1],
+                        _drag[4] + pt.y - _drag[2],
+                        0, 0, _SWP_NOSIZE | _SWP_NOZORDER | _SWP_NOACTIVATE,
+                    )
+                    # fall through so the OS commits the cursor position
 
             # ── Mouse-wheel forwarding ───────────────────────────────
             if wParam in (_WM_MOUSEWHEEL, _WM_MOUSEHWHEEL):
@@ -205,7 +204,11 @@ def start_drag(hwnd: int) -> None:
     if drag is not None:
         rect = wintypes.RECT()
         _user32.GetWindowRect(hwnd, ctypes.byref(rect))
-        drag[0] = 1  # pending — hook captures start cursor on first WM_MOUSEMOVE
+        cursor = wintypes.POINT()
+        _user32.GetCursorPos(ctypes.byref(cursor))
+        drag[0] = 1
+        drag[1] = cursor.x
+        drag[2] = cursor.y
         drag[3] = rect.left
         drag[4] = rect.top
     else:
