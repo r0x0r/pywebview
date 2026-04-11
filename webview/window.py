@@ -3,15 +3,15 @@ from __future__ import annotations
 import inspect
 import logging
 import os
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
 from threading import Lock
-from typing import Any, Callable, TypeVar
+from typing import Any, Concatenate, TypeAlias, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
 
-from typing_extensions import Concatenate, ParamSpec, TypeAlias
+from typing_extensions import ParamSpec
 
 import webview.http as http
 from webview.dom.dom import DOM

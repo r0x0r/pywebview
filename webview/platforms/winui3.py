@@ -6,11 +6,12 @@ import os
 import sys
 import tempfile
 import threading
+from collections.abc import Iterable, Sequence
 from concurrent.futures import Future, wait
 from ctypes import WinError, windll
 from http.cookies import SimpleCookie
 from threading import Event, Semaphore
-from typing import Iterable, Optional, Sequence, Union, cast
+from typing import cast
 
 from webview2.microsoft.web.webview2.core import (
     CoreWebView2,
@@ -410,7 +411,7 @@ class WinUI3EdgeChrome(WebView2Core):
         picker.suggested_file_name = os.path.basename(args.result_file_path)
         picker.file_type_choices['*'] = ['.']
 
-        future: Future[Optional[StorageFile]] = Future()
+        future: Future[StorageFile | None] = Future()
         operation = picker.pick_save_file_async()
 
         def on_completed(op: IAsyncOperation[StorageFile], status: AsyncStatus):
@@ -774,8 +775,8 @@ class BrowserView:
 
             def create_submenu(
                 title: str,
-                line_items: Iterable[Union[Menu, MenuAction, MenuSeparator]],
-                supermenu: Optional[MenuFlyoutSubItem] = None,
+                line_items: Iterable[Menu | MenuAction | MenuSeparator],
+                supermenu: MenuFlyoutSubItem | None = None,
             ) -> MenuFlyoutSubItem:
                 m = MenuFlyoutSubItem()
                 m.text = title

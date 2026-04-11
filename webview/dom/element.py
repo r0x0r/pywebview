@@ -1,7 +1,8 @@
 import logging
 from collections import defaultdict
+from collections.abc import Callable, Iterable
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Union
 
 from webview.dom import DOMEventHandler, ManipulationMode, _dnd_state
 from webview.dom.classlist import ClassList
@@ -83,7 +84,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def id(self) -> Optional[str]:
+    def id(self) -> str | None:
         return self._window.evaluate_js(f'{self._query_command}; element.id')
 
     @id.setter
@@ -105,18 +106,18 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def attributes(self) -> Dict[str, Any]:
+    def attributes(self) -> dict[str, Any]:
         return self._attributes
 
     @attributes.setter
     @_exists
     @_ignore_window_document
-    def attributes(self, attributes: Dict[str, Any]) -> None:
+    def attributes(self, attributes: dict[str, Any]) -> None:
         self._attributes = PropsDict(self, DOMPropType.Attribute, attributes)
 
     @property
     @_exists
-    def node(self) -> Dict[str, Any]:
+    def node(self) -> dict[str, Any]:
         return self._window.evaluate_js(
             f'{self._query_command}; var r2 = pywebview._processElements([element])[0]; r2'
         )
@@ -124,13 +125,13 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def style(self) -> Dict[str, Any]:
+    def style(self) -> dict[str, Any]:
         return self._style
 
     @style.setter
     @_exists
     @_ignore_window_document
-    def style(self, style: Dict[str, Any]) -> None:
+    def style(self, style: dict[str, Any]) -> None:
         self._style = PropsDict(self, DOMPropType.Style, style)
 
     @property
@@ -198,7 +199,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def children(self) -> List['Element']:
+    def children(self) -> list['Element']:
         children = self._window.evaluate_js(
             f"""
             {self._query_command};
@@ -365,7 +366,7 @@ class Element:
         return self
 
     @_exists
-    def on(self, event: str, callback: Union[Callable, DOMEventHandler]) -> None:
+    def on(self, event: str, callback: Callable | DOMEventHandler) -> None:
         if self._node_id not in self._window.dom._elements:
             self._window.dom._elements[self._node_id] = self
 

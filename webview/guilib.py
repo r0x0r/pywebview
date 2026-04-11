@@ -4,10 +4,9 @@ import logging
 import os
 import platform
 import sys
+from collections.abc import Callable
 from types import ModuleType
-from typing import Any, Callable, cast
-
-from typing_extensions import Literal, TypeAlias, get_args
+from typing import Any, Literal, TypeAlias, cast, get_args
 
 from webview import WebViewException
 
