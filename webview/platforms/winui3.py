@@ -1,5 +1,6 @@
 import atexit
 import contextlib
+import ctypes
 import json
 import logging
 import os
@@ -13,6 +14,7 @@ from http.cookies import SimpleCookie
 from threading import Event, Semaphore
 from typing import cast
 
+import wintypes
 from webview2.microsoft.web.webview2.core import (
     CoreWebView2,
     CoreWebView2Cookie,
@@ -1304,16 +1306,46 @@ def get_screens():
     # get by index. https://github.com/microsoft/microsoft-ui-xaml/issues/6454
     all_displays = DisplayArea.find_all()
 
-    return [
-        Screen(
-            da.outer_bounds.x,
-            da.outer_bounds.y,
-            da.outer_bounds.width,
-            da.outer_bounds.height,
-            da.display_id,
+    screens = []
+    for i in range(len(all_displays)):
+        da = all_displays[i]
+
+        # Get DPI for this monitor
+        try:
+            # Use MonitorFromPoint to get HMONITOR for this display
+            point = wintypes.POINT(da.outer_bounds.x, da.outer_bounds.y)
+            hmonitor = windll.user32.MonitorFromPoint(
+                ctypes.c_longlong(point.x | (point.y << 32)),
+                2,  # MONITOR_DEFAULTTONEAREST
+            )
+
+            # Get DPI for this monitor
+            dpi_x = ctypes.c_uint()
+            dpi_y = ctypes.c_uint()
+            # MDT_EFFECTIVE_DPI = 0
+            hr = windll.shcore.GetDpiForMonitor(
+                hmonitor, 0, ctypes.byref(dpi_x), ctypes.byref(dpi_y)
+            )
+
+            if hr == 0:  # S_OK
+                scale = dpi_x.value / 96.0
+            else:
+                scale = 1.0
+        except Exception:
+            scale = 1.0
+
+        screens.append(
+            Screen(
+                da.outer_bounds.x,
+                da.outer_bounds.y,
+                da.outer_bounds.width,
+                da.outer_bounds.height,
+                da.display_id,
+                scale,
+            )
         )
-        for da in (all_displays[i] for i in range(len(all_displays)))
-    ]
+
+    return screens
 
 
 def add_tls_cert(_):
