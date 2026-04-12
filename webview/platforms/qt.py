@@ -1163,7 +1163,14 @@ def get_screens():
     global _app
     _app = QApplication.instance() or QApplication(sys.argv)
     screens = [
-        Screen(s.geometry().x(), s.geometry().y(), s.geometry().width(), s.geometry().height(), s)
+        Screen(
+            s.geometry().x(),
+            s.geometry().y(),
+            s.geometry().width(),
+            s.geometry().height(),
+            s,
+            s.devicePixelRatio(),
+        )
         for s in _app.screens()
     ]
 

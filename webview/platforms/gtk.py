@@ -1040,7 +1040,11 @@ def get_screens():
     n = display.get_n_monitors()
     monitors = [Gdk.Display.get_monitor(display, i) for i in range(n)]
     geometries = [Gdk.Monitor.get_geometry(m) for m in monitors]
-    screens = [Screen(geom.x, geom.y, geom.width, geom.height, geom) for geom in geometries]
+    scales = [Gdk.Monitor.get_scale_factor(m) for m in monitors]
+    screens = [
+        Screen(geom.x, geom.y, geom.width, geom.height, geom, scale)
+        for geom, scale in zip(geometries, scales)
+    ]
 
     return screens
 

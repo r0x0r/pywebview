@@ -1627,6 +1627,7 @@ def get_screens():
             s.frame().size.width,
             s.frame().size.height,
             s.frame(),
+            s.backingScaleFactor(),
         )
         for s in AppKit.NSScreen.screens()
     ]
