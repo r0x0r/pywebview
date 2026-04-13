@@ -9,12 +9,11 @@ import tempfile
 import threading
 from collections.abc import Iterable, Sequence
 from concurrent.futures import Future, wait
-from ctypes import WinError, windll
+from ctypes import WinError, windll, wintypes
 from http.cookies import SimpleCookie
 from threading import Event, Semaphore
 from typing import cast
 
-import wintypes
 from webview2.microsoft.web.webview2.core import (
     CoreWebView2,
     CoreWebView2Cookie,
