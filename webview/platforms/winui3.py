@@ -1,6 +1,5 @@
 import atexit
 import contextlib
-import ctypes
 import json
 import logging
 import os
@@ -9,7 +8,7 @@ import tempfile
 import threading
 from collections.abc import Iterable, Sequence
 from concurrent.futures import Future, wait
-from ctypes import WinError, windll, wintypes
+from ctypes import WinError, windll
 from http.cookies import SimpleCookie
 from threading import Event, Semaphore
 from typing import cast
@@ -116,7 +115,7 @@ from webview import (
 )
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms.webview2core import WebView2Core
-from webview.platforms.win32 import install_mouse_hook
+from webview.platforms.win32 import get_monitor_scale, install_mouse_hook
 from webview.screen import Screen
 from webview.util import (
     create_cookie,
@@ -1303,6 +1302,7 @@ def get_size(uid: str):
 
 
 def get_screens():
+    """Get all screens with coordinates in logical pixels."""
     # Can't directly iterate return value of find_all(). Workaround is to
     # get by index. https://github.com/microsoft/microsoft-ui-xaml/issues/6454
     all_displays = DisplayArea.find_all()
@@ -1311,36 +1311,26 @@ def get_screens():
     for i in range(len(all_displays)):
         da = all_displays[i]
 
-        # Get DPI for this monitor
-        try:
-            # Use MonitorFromPoint to get HMONITOR for this display
-            point = wintypes.POINT(da.outer_bounds.x, da.outer_bounds.y)
-            hmonitor = windll.user32.MonitorFromPoint(
-                ctypes.c_longlong(point.x | (point.y << 32)),
-                2,  # MONITOR_DEFAULTTONEAREST
-            )
+        # DisplayArea.outer_bounds returns physical pixels, unlike WinForms
+        # Screen.Bounds which returns logical pixels. We need to convert.
+        phys_x = da.outer_bounds.x
+        phys_y = da.outer_bounds.y
+        phys_width = da.outer_bounds.width
+        phys_height = da.outer_bounds.height
 
-            # Get DPI for this monitor
-            dpi_x = ctypes.c_uint()
-            dpi_y = ctypes.c_uint()
-            # MDT_EFFECTIVE_DPI = 0
-            hr = windll.shcore.GetDpiForMonitor(
-                hmonitor, 0, ctypes.byref(dpi_x), ctypes.byref(dpi_y)
-            )
+        scale = get_monitor_scale(phys_x, phys_y, phys_width, phys_height)
 
-            if hr == 0:  # S_OK
-                scale = dpi_x.value / 96.0
-            else:
-                scale = 1.0
-        except Exception:
-            scale = 1.0
+        logical_x = int(phys_x / scale)
+        logical_y = int(phys_y / scale)
+        logical_width = int(phys_width / scale)
+        logical_height = int(phys_height / scale)
 
         screens.append(
             Screen(
-                da.outer_bounds.x,
-                da.outer_bounds.y,
-                da.outer_bounds.width,
-                da.outer_bounds.height,
+                logical_x,
+                logical_y,
+                logical_width,
+                logical_height,
                 da.display_id,
                 scale,
             )
