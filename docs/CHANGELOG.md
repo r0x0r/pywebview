@@ -1,5 +1,53 @@
 # Changelog
 
+## 6.2
+
+_Released 13/04/2026_
+
+
+### ⚡ Features
+
+- `All` Display scaling support for `Screen` class. Screen objects now report proper DPI-aware dimensions. New properties include `scale`, `dpi`, `physical_x`, `physical_y`, `physical_width` and `physical_height`.
+- `All` New `multiprocess` example demonstrating multi-process architecture with a non-blocking architecture.
+- `All` Support for state index notation (eg. `window.state["attribute"]`) for easier state access.
+- `All` Bump minimum Python version to 3.8.
+
+
+
+### 🚀 Improvements
+
+- `All` Support for static methods for JS API exposure. Thanks @ivanovmatveywork. [#1770](https://github.com/r0x0r/pywebview/issues/1770)
+- `Cocoa` Improved file picker to use all MIME types from accept attribute in NSOpenPanel. Wildcard types (image/*, video/*) are now properly mapped to their supertype UTIs. Thanks @JMHSV. [#1781](https://github.com/r0x0r/pywebview/issues/1781) [#1780](https://github.com/r0x0r/pywebview/issues/1780)
+- `Cocoa` Icon support. Thanks @sevilla. [#1757](https://github.com/r0x0r/pywebview/issues/1757)
+- `Winforms` Icon support. Thanks @sevilla. [#1755](https://github.com/r0x0r/pywebview/issues/1755)
+- `Winforms` Improved theme detection using AppsUseLightTheme registry key instead of SystemUsesLightTheme. Thanks @Mnaisuka. [#1760](https://github.com/r0x0r/pywebview/issues/1760)
+- `Winforms` Fallback to coreclr when netfx runtime is not found. Thanks @HZBHZB1234. [#1791](https://github.com/r0x0r/pywebview/issues/1791)
+- `EdgeChromium` Update WebView2 to 1.0.3856.49
+- `QT` Support for `REMOTE_DEBUGGING_PORT` via `webview.settings['REMOTE_DEBUGGING_PORT']`. Thanks @cybergrind. [#1740](https://github.com/r0x0r/pywebview/issues/1740)
+
+### 🐞 Bug fixes
+
+- `All` Fix file pattern parsing in file dialogs.
+- `All` Fix `window.expose` race condition.
+- `All` Fix 'WindowsPath' object has no attribute '_hash'. Thanks @jonathanbluhm. [#1762](https://github.com/r0x0r/pywebview/issues/1762) [#1776](https://github.com/r0x0r/pywebview/issues/1776)
+- `Cocoa` Fix use-after-free crash on macOS ARM64 by disabling releasedWhenClosed. NSWindow now properly manages retain count. Thanks @smparkes. [#1799](https://github.com/r0x0r/pywebview/issues/1799)
+- `Cocoa` Fix single app delegate - use a single shared AppDelegate instead of one per window. Thanks @smparkes. [#1801](https://github.com/r0x0r/pywebview/issues/1801)
+- `Cocoa` Clear delegates before removing from instances dict in windowWillClose_ to prevent callbacks after window closure. Thanks @smparkes. [#1802](https://github.com/r0x0r/pywinsebview/issues/1802)
+- `Cocoa` Fix input file accept parameter handling. [#1604](https://github.com/r0x0r/pywebview/issues/1604)
+- `Cocoa` Prevent crash in windowDidBecomeKey_ when window is closed.
+- `Cocoa` Release retained instances on window close to prevent memory leaks in macOS Tahoe. Thanks @alecharing. [#1743](https://github.com/r0x0r/pywebview/issues/1743)
+- `Cocoa` Fix macOS drag handler. Thanks @alecharing. [#1742](https://github.com/r0x0r/pywebview/issues/1742)
+- `Winforms` Fix window position scaling for proper multi-monitor support.
+- `Winforms` Fix logical pixels calculation for DPI-aware rendering.
+- `Winforms` Fix Ctrl+C signal handling.
+- `QT` Fix resize problem.
+- `QT` Fix mousemove exception and other minor issues.
+- `GTK` Fix menu rendering.
+- `GTK` Fix response_received events when there's no request_sent event. Thanks @jmuchemb. [#1784](https://github.com/r0x0r/pywebview/issues/1784)
+- `GTK` Fix background color not being applied correctly. [#1811](https://github.com/r0x0r/pywebview/issues/1811)
+- `EdgeChromium` Better exception handling in clear_user_data.
+
+
 ## 6.1
 
 _Released 21/10/2025_
