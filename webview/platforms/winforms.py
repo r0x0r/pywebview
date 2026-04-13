@@ -19,6 +19,7 @@ except Exception:
 from webview import FileDialog, _state, settings, windows
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
+from webview.platforms import win32
 from webview.screen import Screen
 from webview.util import inject_base_uri, parse_file_type
 from webview.window import FixPoint
@@ -1079,41 +1080,20 @@ def get_screens():
     screens = []
 
     for s in WinForms.Screen.AllScreens:
-        # WinForms.Screen.Bounds returns physical pixels on high-DPI systems
-        # We need to convert to logical pixels for API consistency
-        # Try to get DPI for this monitor
-        try:
-            # Use MonitorFromPoint to get HMONITOR for this screen
-            # Point at top-left of screen's bounds
-            point = wintypes.POINT(s.Bounds.X, s.Bounds.Y)
-            hmonitor = windll.user32.MonitorFromPoint(
-                ctypes.c_longlong(point.x | (point.y << 32)),
-                2,  # MONITOR_DEFAULTTONEAREST
-            )
+        # Get logical size from Bounds (already DPI-aware scaled due to SetProcessDPIAware)
+        logical_width = s.Bounds.Width
+        logical_height = s.Bounds.Height
 
-            # Get DPI for this monitor
-            dpi_x = ctypes.c_uint()
-            dpi_y = ctypes.c_uint()
-            # MDT_EFFECTIVE_DPI = 0
-            hr = windll.shcore.GetDpiForMonitor(
-                hmonitor, 0, ctypes.byref(dpi_x), ctypes.byref(dpi_y)
-            )
+        # Get scale factor by comparing physical vs logical resolution
+        scale = win32.get_screen_scale(s.DeviceName, logical_width, logical_height)
 
-            if hr == 0:  # S_OK
-                scale = dpi_x.value / 96.0
-            else:
-                scale = 1.0
-        except Exception as e:
-            logger.debug(f'Failed to get DPI for monitor, using scale 1.0: {e}')
-            scale = 1.0
-
-        # Convert physical pixels to logical pixels
+        # Bounds are already in logical pixels due to SetProcessDPIAware
         screens.append(
             Screen(
-                int(s.Bounds.X / scale),
-                int(s.Bounds.Y / scale),
-                int(s.Bounds.Width / scale),
-                int(s.Bounds.Height / scale),
+                s.Bounds.X,
+                s.Bounds.Y,
+                logical_width,
+                logical_height,
                 s.WorkingArea,
                 scale,
             )
