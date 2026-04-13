@@ -60,6 +60,7 @@ class BrowserView:
     current_menu = None
 
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
+    _shared_app_delegate = None
 
     class AppDelegate(AppKit.NSObject):
         def applicationShouldTerminate_(self, app):
@@ -92,15 +93,17 @@ class BrowserView:
             return BrowserView.should_close(i.pywebview_window)
 
         def windowWillClose_(self, notification):
-            # Delete the closed instance from the dict
             i = BrowserView.get_instance('window', notification.object())
+
+            # Clear delegates before removing from instances dict so no
+            # callbacks can arrive after get_instance would return None.
+            i.webview.setNavigationDelegate_(None)
+            i.webview.setUIDelegate_(None)
+
             del BrowserView.instances[i.uid]
 
             if i.pywebview_window in windows:
                 windows.remove(i.pywebview_window)
-
-            i.webview.setNavigationDelegate_(None)
-            i.webview.setUIDelegate_(None)
 
             # this seems to be a bug in WkWebView, so we need to load blank html
             # see https://stackoverflow.com/questions/27410413/wkwebview-embed-video-keeps-playing-sound-after-release
@@ -108,14 +111,10 @@ class BrowserView:
             i.webview.removeFromSuperview()
             i.webview = None
 
-            # release everything we retained in __init__
-            i._browserDelegate.release()
-            i._windowDelegate.release()
-            i._appDelegate.release()
-            i.window.release()
-
             i.closed.set()
             if BrowserView.instances == {}:
+                BrowserView.app.setDelegate_(None)
+                BrowserView._shared_app_delegate = None
                 BrowserView.app.stop_(self)
                 BrowserView.app.abortModal()
 
@@ -589,15 +588,10 @@ class BrowserView:
 
         self.menu = window.menu or _state['menu']
 
-        # The allocated resources are retained because we would explicitly delete
-        # this instance when its window is closed
-        self.window = (
-            BrowserView.WindowHost.alloc()
-            .initWithContentRect_styleMask_backing_defer_(
-                rect, window_mask, AppKit.NSBackingStoreBuffered, False
-            )
-            .retain()
+        self.window = BrowserView.WindowHost.alloc().initWithContentRect_styleMask_backing_defer_(
+            rect, window_mask, AppKit.NSBackingStoreBuffered, False
         )
+        self.window.setReleasedWhenClosed_(False)
         self.pywebview_window.native = self.window
 
         self.window.focus = window.focus
@@ -612,16 +606,15 @@ class BrowserView:
         self.window.setFrame_display_(frame, True)
 
         config = WebKit.WKWebViewConfiguration.alloc().init()
-        self.webview = (
-            BrowserView.WebKitHost.alloc().initWithFrame_configuration_(rect, config).retain()
-        )
+        self.webview = BrowserView.WebKitHost.alloc().initWithFrame_configuration_(rect, config)
         self.webview.pywebview_window = window
 
-        self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
-        self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
-        self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
+        self._browserDelegate = BrowserView.BrowserDelegate.alloc().init()
+        self._windowDelegate = BrowserView.WindowDelegate.alloc().init()
 
-        BrowserView.app.setDelegate_(self._appDelegate)
+        if BrowserView._shared_app_delegate is None:
+            BrowserView._shared_app_delegate = BrowserView.AppDelegate.alloc().init()
+        BrowserView.app.setDelegate_(BrowserView._shared_app_delegate)
         self.webview.setUIDelegate_(self._browserDelegate)
         self.webview.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
@@ -1634,6 +1627,7 @@ def get_screens():
             s.frame().size.width,
             s.frame().size.height,
             s.frame(),
+            s.backingScaleFactor(),
         )
         for s in AppKit.NSScreen.screens()
     ]

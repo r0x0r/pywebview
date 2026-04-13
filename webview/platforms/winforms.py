@@ -194,41 +194,36 @@ class BrowserView:
             self.pywebview_window.native = self
             self.real_url = None
             self.Text = window.title
-            self.Size = Size(window.initial_width, window.initial_height)
-            self.MinimumSize = Size(window.min_size[0], window.min_size[1])
+            # Store initial window size as logical pixels, will be converted later
+            self._initial_width = window.initial_width
+            self._initial_height = window.initial_height
 
             self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
             hwnd = self.Handle.ToInt32()
 
-            # for chromium edge, need this factor to modify the coordinates
-            try:
-                self.scale_factor = (
-                    windll.shcore.GetScaleFactorForDevice(0) / 100 if is_chromium else 1
-                )
-            except Exception as e:
-                logger.warning(f'Failed to get scale factor: {e}')
-                self.scale_factor = 1
+            # Set the initial size now that we have a window handle and can get DPI
+            # Size and MinimumSize need to be in physical pixels
+            scale = self._scale
+            self.Size = Size(int(window.initial_width * scale), int(window.initial_height * scale))
+            self.MinimumSize = Size(
+                int(window.min_size[0] * scale), int(window.min_size[1] * scale)
+            )
 
             if window.initial_x is not None and window.initial_y is not None:
                 self.StartPosition = WinForms.FormStartPosition.Manual
+                # Convert logical pixel coordinates to physical for WinForms
                 self.Location = Point(
-                    int(window.initial_x * self.scale_factor),
-                    int(window.initial_y * self.scale_factor),
+                    int(window.initial_x * scale),
+                    int(window.initial_y * scale),
                 )
             elif window.screen:
                 self.StartPosition = WinForms.FormStartPosition.Manual
-                x = int(
-                    window.screen.x * self.scale_factor
-                    + (window.screen.width - window.initial_width) * self.scale_factor / 2
-                    if window.screen.x >= 0
-                    else window.screen.x * self.scale_factor + window.screen.width / 2
-                )
-                y = int(
-                    window.screen.y * self.scale_factor
-                    + (window.screen.height - window.initial_height) * self.scale_factor / 2
-                )
-                self.Location = Point(x, y)
+                # Screen coordinates are in logical pixels, center the window
+                # Calculate center position in logical pixels first, then convert to physical
+                logical_x = window.screen.x + (window.screen.width - window.initial_width) // 2
+                logical_y = window.screen.y + (window.screen.height - window.initial_height) // 2
+                self.Location = Point(int(logical_x * scale), int(logical_y * scale))
             else:
                 self.StartPosition = WinForms.FormStartPosition.CenterScreen
 
@@ -316,6 +311,20 @@ class BrowserView:
 
         def __str__(self):
             return f'<System.Windows.Forms object with {self.Handle} handle>'
+
+        @property
+        def _scale(self):
+            """Logical-to-physical pixel scale for the monitor this window is on."""
+            if is_chromium:
+                try:
+                    # Use per-window DPI for accurate multi-monitor support
+                    return windll.user32.GetDpiForWindow(self.Handle.ToInt32()) / 96
+                except Exception as e:
+                    logger.warning(f'Failed to get DPI for window: {e}')
+                    return 1.0
+            else:
+                # MSHTML doesn't need scaling
+                return 1.0
 
         def on_system_theme_changed(self, sender, e):
             self.update_title_bar_theme()
@@ -422,10 +431,19 @@ class BrowserView:
             if is_cef:
                 CEF.resize(self.Width, self.Height, self.uid)
 
-            self.pywebview_window.events.resized.set(self.Width, self.Height)
+            # Convert physical pixel dimensions to logical pixels for the API
+            scale = self._scale
+            self.pywebview_window.events.resized.set(
+                int(self.Width / scale), int(self.Height / scale)
+            )
 
         def on_move(self, sender, args):
-            self.pywebview_window.events.moved.set(self.Location.X, self.Location.Y)
+            # Convert physical pixel location to logical pixels for the API
+            scale = self._scale
+            self.pywebview_window.events.moved.set(
+                int(self.Location.X / scale),
+                int(self.Location.Y / scale),
+            )
 
         def evaluate_js(self, script, parse_json):
             result = self.browser.evaluate_js(script, parse_json)
@@ -579,44 +597,49 @@ class BrowserView:
                 _toggle()
 
         def resize(self, width, height, fix_point):
+            # Input width/height are in logical pixels, need to convert to physical
+            scale = self._scale
+            phys_width = int(width * scale)
+            phys_height = int(height * scale)
+
+            # Location is already in physical pixels
             x = self.Location.X
             y = self.Location.Y
 
             if fix_point & FixPoint.EAST:
-                x = x + self.Width - width
+                x = x + self.Width - phys_width
 
             if fix_point & FixPoint.SOUTH:
-                y = y + self.Height - height
+                y = y + self.Height - phys_height
 
-            windll.user32.SetWindowPos(self.Handle.ToInt32(), None, x, y, width, height, 64)
+            windll.user32.SetWindowPos(
+                self.Handle.ToInt32(), None, x, y, phys_width, phys_height, 64
+            )
 
         def move(self, x, y):
+            # Input x/y are in logical pixels, need to convert to physical
             SWP_NOSIZE = 0x0001  # Retains the current size
             SWP_NOZORDER = 0x0004  # Retains the current Z order
             SWP_SHOWWINDOW = 0x0040  # Displays the window
-            if self.scale_factor != 1:
-                # The coordinates needed to be scaled
-                x_modified = x * self.scale_factor
-                y_modified = y * self.scale_factor
-                windll.user32.SetWindowPos(
-                    self.Handle.ToInt32(),
-                    None,
-                    int(x_modified),
-                    int(y_modified),
-                    None,
-                    None,
-                    SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW,
-                )
+
+            scale = self._scale
+            if scale != 1:
+                # Convert logical pixels to physical pixels
+                x_phys = int(x * scale)
+                y_phys = int(y * scale)
             else:
-                windll.user32.SetWindowPos(
-                    self.Handle.ToInt32(),
-                    None,
-                    int(x),
-                    int(y),
-                    None,
-                    None,
-                    SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW,
-                )
+                x_phys = int(x)
+                y_phys = int(y)
+
+            windll.user32.SetWindowPos(
+                self.Handle.ToInt32(),
+                None,
+                x_phys,
+                y_phys,
+                None,
+                None,
+                SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW,
+            )
 
         def maximize(self):
             def _maximize():
@@ -1037,21 +1060,65 @@ def evaluate_js(script, uid, parse_json, result_id=None):
 def get_position(uid):
     i = BrowserView.instances.get(uid)
     if i:
-        return i.Left, i.Top
+        # Convert physical pixel position to logical pixels
+        scale = i._scale
+        return int(i.Left / scale), int(i.Top / scale)
 
 
 def get_size(uid):
     i = BrowserView.instances.get(uid)
     if i:
+        # Size is in physical pixels, convert to logical pixels
         size = i.Size
-        return size.Width, size.Height
+        scale = i._scale
+        return int(size.Width / scale), int(size.Height / scale)
 
 
 def get_screens():
-    screens = [
-        Screen(s.Bounds.X, s.Bounds.Y, s.Bounds.Width, s.Bounds.Height, s.WorkingArea)
-        for s in WinForms.Screen.AllScreens
-    ]
+    """Get all screens with coordinates in logical pixels."""
+    screens = []
+
+    for s in WinForms.Screen.AllScreens:
+        # WinForms.Screen.Bounds returns physical pixels on high-DPI systems
+        # We need to convert to logical pixels for API consistency
+        # Try to get DPI for this monitor
+        try:
+            # Use MonitorFromPoint to get HMONITOR for this screen
+            # Point at top-left of screen's bounds
+            point = wintypes.POINT(s.Bounds.X, s.Bounds.Y)
+            hmonitor = windll.user32.MonitorFromPoint(
+                ctypes.c_longlong(point.x | (point.y << 32)),
+                2,  # MONITOR_DEFAULTTONEAREST
+            )
+
+            # Get DPI for this monitor
+            dpi_x = ctypes.c_uint()
+            dpi_y = ctypes.c_uint()
+            # MDT_EFFECTIVE_DPI = 0
+            hr = windll.shcore.GetDpiForMonitor(
+                hmonitor, 0, ctypes.byref(dpi_x), ctypes.byref(dpi_y)
+            )
+
+            if hr == 0:  # S_OK
+                scale = dpi_x.value / 96.0
+            else:
+                scale = 1.0
+        except Exception as e:
+            logger.debug(f'Failed to get DPI for monitor, using scale 1.0: {e}')
+            scale = 1.0
+
+        # Convert physical pixels to logical pixels
+        screens.append(
+            Screen(
+                int(s.Bounds.X / scale),
+                int(s.Bounds.Y / scale),
+                int(s.Bounds.Width / scale),
+                int(s.Bounds.Height / scale),
+                s.WorkingArea,
+                scale,
+            )
+        )
+
     return screens
 
 

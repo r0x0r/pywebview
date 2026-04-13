@@ -224,13 +224,13 @@ def inject_pywebview(platform: str, window: Window) -> str:
 
     def generate_js_object():
         window.run_js(js_code)
-        window.events._pywebviewready.set()
         logger.debug('_pywebviewready event fired')
 
         try:
             with window._expose_lock:
                 func_list = generate_func()
                 window.run_js(finish_script % {'functions': json.dumps(func_list)})
+                window.events._pywebviewready.set()
                 window.events.loaded.set()
                 logger.debug('loaded event fired')
         except Exception as e:

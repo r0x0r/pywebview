@@ -125,11 +125,24 @@ class BrowserView:
             Gdk.Screen.get_default(), style_provider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
+        # Also set background color directly on ScrolledWindow
+        self.background_rgba = self._hex_to_rgba(window.background_color)
+
         if window.menu:
             logger.warning('Window specific menu is not supported on GTK')
 
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_policy(gtk.PolicyType.NEVER, gtk.PolicyType.NEVER)
+
+        # Set scrolled window background color using CSS
+        scrolled_style_provider = gtk.CssProvider()
+        scrolled_style_provider.load_from_data(
+            f'* {{ background-color: {window.background_color}; }}'.encode()
+        )
+        scrolled_window.get_style_context().add_provider(
+            scrolled_style_provider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+
         self.window.add(scrolled_window)
 
         self.window.connect('delete-event', self.close_window)
@@ -227,10 +240,14 @@ class BrowserView:
         self.transparent = window.transparent
         if window.transparent:
             configure_transparency(self.window)
+            configure_transparency(scrolled_window)
             configure_transparency(self.webview)
             wvbg = self.webview.get_background_color()
             wvbg.alpha = 0.0
             self.webview.set_background_color(wvbg)
+        else:
+            # Set webview background color for non-transparent windows
+            self.webview.set_background_color(self.background_rgba)
 
         if _state['debug']:
             webkit_settings.enable_developer_extras = True
@@ -715,6 +732,21 @@ class BrowserView:
             headers.foreach(_assign)
         return headers_dict
 
+    def _hex_to_rgba(self, hex_color):
+        """Convert hex color (#RRGGBB or #RGB) to Gdk.RGBA object."""
+        hex_color = hex_color.lstrip('#')
+
+        # Convert 3-digit to 6-digit format
+        if len(hex_color) == 3:
+            hex_color = ''.join([c * 2 for c in hex_color])
+
+        # Parse hex values
+        r = int(hex_color[0:2], 16) / 255.0
+        g = int(hex_color[2:4], 16) / 255.0
+        b = int(hex_color[4:6], 16) / 255.0
+
+        return Gdk.RGBA(r, g, b, 1.0)
+
 
 def setup_app():
     def set_menubar(app):
@@ -1040,7 +1072,11 @@ def get_screens():
     n = display.get_n_monitors()
     monitors = [Gdk.Display.get_monitor(display, i) for i in range(n)]
     geometries = [Gdk.Monitor.get_geometry(m) for m in monitors]
-    screens = [Screen(geom.x, geom.y, geom.width, geom.height, geom) for geom in geometries]
+    scales = [Gdk.Monitor.get_scale_factor(m) for m in monitors]
+    screens = [
+        Screen(geom.x, geom.y, geom.width, geom.height, geom, scale)
+        for geom, scale in zip(geometries, scales)
+    ]
 
     return screens
 
