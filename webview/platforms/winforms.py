@@ -1112,8 +1112,7 @@ def get_screens():
         logical_width = s.Bounds.Width
         logical_height = s.Bounds.Height
 
-        # Get scale factor by comparing physical vs logical resolution
-        scale = win32.get_screen_scale(s.DeviceName, logical_width, logical_height)
+        scale = win32.get_monitor_scale(s.Bounds.X, s.Bounds.Y, logical_width, logical_height)
 
         # Bounds are already in logical pixels due to SetProcessDPIAware
         screens.append(

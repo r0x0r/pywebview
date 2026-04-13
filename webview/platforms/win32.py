@@ -77,6 +77,12 @@ _user32.SetWindowPos.argtypes = [
 ]
 _user32.GetKeyState.restype = wintypes.SHORT
 _user32.GetKeyState.argtypes = [ctypes.c_int]
+_user32.MonitorFromRect.restype = wintypes.HANDLE
+_user32.MonitorFromRect.argtypes = [ctypes.POINTER(wintypes.RECT), wintypes.DWORD]
+_user32.GetMonitorInfoW.restype = wintypes.BOOL
+_user32.GetMonitorInfoW.argtypes = [wintypes.HANDLE, ctypes.c_void_p]
+_user32.EnumDisplaySettingsW.restype = wintypes.BOOL
+_user32.EnumDisplaySettingsW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, ctypes.c_void_p]
 
 _LowLevelMouseProcType = ctypes.WINFUNCTYPE(
     ctypes.c_ssize_t, ctypes.c_int, wintypes.WPARAM, ctypes.c_void_p
@@ -317,3 +323,115 @@ def start_drag(hwnd: int) -> None:
     else:
         _user32.ReleaseCapture()
         _user32.SendMessageW(hwnd, _WM_NCLBUTTONDOWN, _HT_CAPTION, 0)
+
+
+class _MONITORINFOEX(ctypes.Structure):
+    _fields_ = [
+        ('cbSize', wintypes.DWORD),
+        ('rcMonitor', wintypes.RECT),
+        ('rcWork', wintypes.RECT),
+        ('dwFlags', wintypes.DWORD),
+        ('szDevice', wintypes.WCHAR * 32),
+    ]
+
+
+class _DEVMODE(ctypes.Structure):
+    _fields_ = [
+        ('dmDeviceName', wintypes.WCHAR * 32),
+        ('dmSpecVersion', wintypes.WORD),
+        ('dmDriverVersion', wintypes.WORD),
+        ('dmSize', wintypes.WORD),
+        ('dmDriverExtra', wintypes.WORD),
+        ('dmFields', wintypes.DWORD),
+        ('dmPositionX', wintypes.LONG),
+        ('dmPositionY', wintypes.LONG),
+        ('dmDisplayOrientation', wintypes.DWORD),
+        ('dmDisplayFixedOutput', wintypes.DWORD),
+        ('dmColor', wintypes.SHORT),
+        ('dmDuplex', wintypes.SHORT),
+        ('dmYResolution', wintypes.SHORT),
+        ('dmTTOption', wintypes.SHORT),
+        ('dmCollate', wintypes.SHORT),
+        ('dmFormName', wintypes.WCHAR * 32),
+        ('dmLogPixels', wintypes.WORD),
+        ('dmBitsPerPel', wintypes.DWORD),
+        ('dmPelsWidth', wintypes.DWORD),
+        ('dmPelsHeight', wintypes.DWORD),
+        ('dmDisplayFlags', wintypes.DWORD),
+        ('dmDisplayFrequency', wintypes.DWORD),
+        ('dmICMMethod', wintypes.DWORD),
+        ('dmICMIntent', wintypes.DWORD),
+        ('dmMediaType', wintypes.DWORD),
+        ('dmDitherType', wintypes.DWORD),
+        ('dmReserved1', wintypes.DWORD),
+        ('dmReserved2', wintypes.DWORD),
+        ('dmPanningWidth', wintypes.DWORD),
+        ('dmPanningHeight', wintypes.DWORD),
+    ]
+
+
+def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
+    """
+    Get the DPI scale factor for the monitor containing the given rectangle.
+
+    Two independent methods are tried because the correct one depends on the
+    calling thread's DPI-awareness context:
+
+    * **System-DPI-aware** (WinForms): ``GetDpiForMonitor`` returns 96
+      regardless of actual scaling, but ``rcMonitor`` from
+      ``GetMonitorInfoW`` is in logical pixels so the physical/logical ratio
+      gives the correct scale.
+    * **Per-monitor-DPI-aware** (WinUI3 / WinRT threads): ``rcMonitor`` is
+      in physical pixels (ratio = 1.0) but ``GetDpiForMonitor`` returns the
+      real DPI.
+
+    Taking the ``max`` of both results picks whichever method detected
+    scaling.
+
+    The coordinates can be in either logical or physical pixels —
+    ``MonitorFromRect`` with ``MONITOR_DEFAULTTONEAREST`` will resolve to the
+    correct monitor in both cases.
+
+    Returns:
+        The scale factor (e.g., 1.0, 1.5, 2.0, etc.)
+    """
+    try:
+        rect = wintypes.RECT(x, y, x + width, y + height)
+        hmonitor = _user32.MonitorFromRect(ctypes.byref(rect), 2)  # MONITOR_DEFAULTTONEAREST
+        if not hmonitor:
+            return 1.0
+
+        # Method 1: GetDpiForMonitor (works in per-monitor-DPI-aware contexts)
+        scale_from_dpi = 1.0
+        try:
+            dpi_x = wintypes.UINT()
+            dpi_y = wintypes.UINT()
+            hr = ctypes.windll.shcore.GetDpiForMonitor(
+                hmonitor, 0, ctypes.byref(dpi_x), ctypes.byref(dpi_y)
+            )
+            if hr == 0 and dpi_x.value > 0:
+                scale_from_dpi = dpi_x.value / 96.0
+        except Exception:
+            pass
+
+        # Method 2: physical / logical ratio (works in system-DPI-aware contexts)
+        scale_from_ratio = 1.0
+        try:
+            mi = _MONITORINFOEX()
+            mi.cbSize = ctypes.sizeof(_MONITORINFOEX)
+            if _user32.GetMonitorInfoW(hmonitor, ctypes.byref(mi)):
+                logical_width = mi.rcMonitor.right - mi.rcMonitor.left
+                dm = _DEVMODE()
+                dm.dmSize = ctypes.sizeof(_DEVMODE)
+                if _user32.EnumDisplaySettingsW(mi.szDevice, -1, ctypes.byref(dm)):
+                    if logical_width > 0:
+                        scale_from_ratio = dm.dmPelsWidth / logical_width
+        except Exception:
+            pass
+
+        return max(scale_from_dpi, scale_from_ratio)
+
+    except Exception as e:
+        _log.debug(f'Failed to get monitor scale: {e}')
+
+    return 1.0
