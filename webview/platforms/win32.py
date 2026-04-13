@@ -14,6 +14,7 @@ _WH_MOUSE_LL = 14
 _SWP_NOSIZE = 0x0001
 _SWP_NOZORDER = 0x0004
 _SWP_NOACTIVATE = 0x0010
+_VK_LBUTTON = 0x01
 
 
 class _MSLLHOOKSTRUCT(ctypes.Structure):
@@ -74,6 +75,8 @@ _user32.SetWindowPos.argtypes = [
     ctypes.c_int,
     wintypes.UINT,
 ]
+_user32.GetKeyState.restype = wintypes.SHORT
+_user32.GetKeyState.argtypes = [ctypes.c_int]
 
 _LowLevelMouseProcType = ctypes.WINFUNCTYPE(
     ctypes.c_ssize_t, ctypes.c_int, wintypes.WPARAM, ctypes.c_void_p
@@ -209,6 +212,10 @@ def start_drag(hwnd: int) -> None:
     standard ReleaseCapture / WM_NCLBUTTONDOWN approach is used.
     """
     if _user32.IsZoomed(hwnd):
+        return
+
+    # Only start drag if left mouse button is pressed
+    if not (_user32.GetKeyState(_VK_LBUTTON) & 0x8000):
         return
 
     drag = _drag_states.get(hwnd)
