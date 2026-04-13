@@ -28,14 +28,14 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point. Alternatively a WSGI server object can be passed to start a local web server.
 * `html` - HTML code to load. If both URL and HTML are specified, HTML takes precedence.
 * `js_api` - Expose a python object to the Javascript domain of the current `pywebview` window. Methods of the `js_api` object can be invoked from Javascript by calling `window.pywebview.api.<methodname>(<parameters>)` functions. Exposed function return a promise that return once function returns. Only basic Python objects (like int, str, dict, ...) can be returned to Javascript.
-* `width` - Window width. Default is 800px.
-* `height` - Window height. Default is 600px.
-* `x` - Window x coordinate. Default is centered.
-* `y` - Window y coordinate. Default is centered.
+* `width` - Window width in logical pixels. Default is 800px.
+* `height` - Window height in logical pixels. Default is 600px.
+* `x` - Window x coordinate in logical pixels. Default is centered.
+* `y` - Window y coordinate in logical pixels. Default is centered.
 * `screen` - Screen to display window on. `screen` is a screen instance returned by `webview.screens`.
 * `resizable` - Whether window can be resized. Default is True
 * `fullscreen` - Start in fullscreen mode. Default is False
-* `min_size` - a (width, height) tuple that specifies a minimum window size. Default is 200x100
+* `min_size` - a (width, height) tuple that specifies a minimum window size in logical pixels. Default is 200x100
 * `hidden` - Create a window hidden by default. Default is False
 * `frameless` - Create a frameless window. Default is False.
 * `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/api.html#drag-area) for details.
@@ -51,7 +51,6 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) CSS property.
 * `zoomable` - Enable document zooming. Default is False
 * `draggable` - Enable image and link object dragging. Default is False
-server=http.BottleServer, server_args
 * `vibrancy` - Enable window vibrancy. Default is False. macOS only.
 * `server` - A custom WSGI server instance for this window. Defaults to BottleServer.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
@@ -82,7 +81,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `server` - A custom WSGI server instance. Defaults to BottleServer.
 * `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server. You need to have `cryptography` pip dependency installed in order to use `ssl`. It is not installed by default.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
-* `icon` - path to application icon. Available only for GTK / QT. For other platforms icon should be specified via a bundler.
+* `icon` - path to application icon. Generally icon should be specified during bundling, but if you need to set it manually, you can use this parameter. Supported formats are `.ico` on Windows and `.icns` on macOS. On Linux support depends on the desktop environment, but generally `.png` icons are supported.
 
 #### Examples
 
@@ -126,7 +125,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
-* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium` or `qt`. Disabled by default.* `SHOW_DEFAULT_MENUS` Show default menu on Cocoa. Enabled by default.
+* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium` or `qt`. Disabled by default.
 * `SHOW_DEFAULT_MENUS` Show default menus on Cocoa. Enabled by default.
 * `WEBVIEW2_RUNTIME_PATH` Path to WebView2 runtime. You can use relative paths, which will be resolved relative to the application entry point with support of path resolution for most bundlers. If not set, the system installed runtime is used if present.
 
@@ -464,13 +463,15 @@ Instantiate to create a menu separator.
 
 Represents a display found on the systems. A list of `Screen` objects is returned by `webview.screens` property.
 
+All coordinate and dimension properties (`x`, `y`, `width`, `height`) are in logical pixels. Use the `physical_*` properties to access physical pixel values.
+
 ### screen.height
 
 ``` python
 screen.height
 ```
 
-Get display height.
+Get display height in logical pixels.
 
 ### screen.width
 
@@ -478,8 +479,7 @@ Get display height.
 screen.width
 ```
 
-Get display width.
-
+Get display width in logical pixels.
 
 ### screen.x
 
@@ -487,7 +487,7 @@ Get display width.
 screen.x
 ```
 
-Get X coordinate of the top-left corner of the display.
+Get X coordinate of the top-left corner of the display in logical pixels.
 
 ### screen.y
 
@@ -495,7 +495,55 @@ Get X coordinate of the top-left corner of the display.
 screen.y
 ```
 
-Get Y coordinate of the top-left corner of the display.
+Get Y coordinate of the top-left corner of the display in logical pixels.
+
+### screen.scale
+
+``` python
+screen.scale
+```
+
+Get the scale factor (DPI scale) for this display. For example, a value of `2.0` indicates a Retina or HiDPI display with 2x scaling, while `1.0` indicates a standard DPI display.
+
+### screen.physical_width
+
+``` python
+screen.physical_width
+```
+
+Get display width in physical pixels. Equal to `width * scale`.
+
+### screen.physical_height
+
+``` python
+screen.physical_height
+```
+
+Get display height in physical pixels. Equal to `height * scale`.
+
+### screen.physical_x
+
+``` python
+screen.physical_x
+```
+
+Get X coordinate of the top-left corner of the display in physical pixels. Equal to `x * scale`.
+
+### screen.physical_y
+
+``` python
+screen.physical_y
+```
+
+Get Y coordinate of the top-left corner of the display in physical pixels. Equal to `y * scale`.
+
+### screen.dpi
+
+``` python
+screen.dpi
+```
+
+Get the DPI (dots per inch) for this display. Calculated as `scale * 96`. Standard DPI is 96, so a 2x scaled display would report 192 DPI.
 
 
 ## webview.Window
@@ -524,7 +572,7 @@ Get or set whether the window is always on top.
 window.x
 ```
 
-Get X coordinate of the top-left corrner of the window.
+Get X coordinate of the top-left corner of the window in logical pixels.
 
 ### window.y
 
@@ -532,7 +580,7 @@ Get X coordinate of the top-left corrner of the window.
 window.y
 ```
 
-Get Y coordinate of the top-left corrner of the window.
+Get Y coordinate of the top-left corner of the window in logical pixels. For macOS Y-coordinate is measured from the bottom of the screen, but for consistency with other platforms it is converted to a coordinate system with Y=0 at the top of the screen.
 
 ### window.width
 
@@ -540,7 +588,7 @@ Get Y coordinate of the top-left corrner of the window.
 window.width
 ```
 
-Get width of the window
+Get width of the window in logical pixels.
 
 ### window.height
 
@@ -548,7 +596,7 @@ Get width of the window
 window.height
 ```
 
-Get height of the window
+Get height of the window in logical pixels.
 
 ### window.clear_cookies
 
@@ -714,7 +762,7 @@ Minimize window.
 window.move(x, y)
 ```
 
-Move window to a new position.
+Move window to a new position. `x` and `y` are in logical pixels.
 
 [Example](/examples/move_window.html)
 
@@ -751,7 +799,7 @@ You can also each platform's WebView object via `window.native.webview`. WebView
 window.resize(width, height, fix_point=FixPoint.NORTH | FixPoint.WEST)
 ```
 
-Resize window. Optional parameter fix_point specifies in respect to which point the window is resized. The parameter accepts values of the `webview.window.FixPoint` enum (`NORTH`, `SOUTH`, `EAST`, `WEST`)
+Resize window. `width` and `height` are in logical pixels. Optional parameter fix_point specifies in respect to which point the window is resized. The parameter accepts values of the `webview.window.FixPoint` enum (`NORTH`, `SOUTH`, `EAST`, `WEST`)
 
 [Example](/examples/minimize.html)
 
@@ -947,7 +995,7 @@ The event is fired when pywebview window is shown.
 
 ### window.state
 
-An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. Object mutations are not detected. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
+An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. Both class (`state.<property>`) and index (`state['property']`) notations are supported. Object mutations are not detected. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
 
 ## Javascript API
 
