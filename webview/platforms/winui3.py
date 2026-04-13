@@ -49,7 +49,7 @@ from winrt.windows.storage.pickers import (
     FolderPicker,
     PickerLocationId,
 )
-from winrt.windows.ui import Color, Colors
+from winrt.windows.ui import Color
 from winrt.windows.ui.xaml.interop import TypeKind, TypeName
 from winui3.microsoft.ui import DisplayId
 from winui3.microsoft.ui.interop import get_window_from_window_id
@@ -151,7 +151,9 @@ class WinUI3EdgeChrome(WebView2Core):
         self.webview.default_background_color = Color(255, r, g, b)
 
         if window.transparent:
-            self.webview.default_background_color = Colors.transparent
+            logger.warning(
+                'Transparent background is not supported on WinUI 3. See https://github.com/microsoft/microsoft-ui-xaml/issues/2992 or https://github.com/microsoft/microsoft-ui-xaml/issues/6527.'
+            )
 
         env_options = CoreWebView2EnvironmentOptions()
         env_options.additional_browser_arguments = self._build_browser_args()
