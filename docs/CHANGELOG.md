@@ -1,5 +1,15 @@
 # Changelog
 
+## 6.2.1
+
+_Released 15/04/2026_
+
+
+### 🐞 Bug fixes
+
+- `Winforms` Fix screen scale reporting in `Screen` object.
+
+
 ## 6.2
 
 _Released 13/04/2026_
