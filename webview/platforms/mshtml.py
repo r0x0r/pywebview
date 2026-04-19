@@ -163,6 +163,7 @@ class MSHTML:
             self.first_load = False
 
         self.cancel_back = False
+        self._load_timeout = False
         self.webview.PreviewKeyDown += self.on_preview_keydown
         self.webview.Navigating += self.on_navigating
         self.webview.NewWindow3 += self.on_new_window
@@ -203,6 +204,7 @@ class MSHTML:
         self.webview.DocumentText = inject_base_uri(content, base_uri)
 
     def load_url(self, url):
+        self._load_timeout = True
         self.webview.Navigate(url)
 
     def on_preview_keydown(self, _, args):
@@ -234,6 +236,7 @@ class MSHTML:
             self.cancel_back = False
 
     def on_document_completed(self, _, args):
+        self._load_timeout = False
         document = self.webview.Document
 
         if _state['debug']:

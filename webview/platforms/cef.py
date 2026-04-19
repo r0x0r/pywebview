@@ -105,11 +105,13 @@ class Browser:
         self.eval_events = {}
         self.js_bridge = JSBridge(window, self.eval_events)
         self.initialized = False
+        self._load_timeout = False
 
     def initialize(self):
         if self.initialized:
             return
 
+        self._load_timeout = False
         self.cookie_manager = cef.CookieManager.GetGlobalManager()
         self.cookie_visitor = CookieVisitor()
 
@@ -179,6 +181,7 @@ class Browser:
         return self.browser.GetUrl()
 
     def load_url(self, url):
+        self._load_timeout = True
         self.initialized = False
         self.browser.LoadUrl(url)
 

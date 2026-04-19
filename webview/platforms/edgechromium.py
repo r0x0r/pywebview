@@ -116,6 +116,7 @@ class EdgeChrome:
         self.url = None
         self.ishtml = False
         self.html = DEFAULT_HTML
+        self._load_timeout = False
 
         self.webview.EnsureCoreWebView2Async(None)
 
@@ -216,6 +217,7 @@ class EdgeChrome:
             self.webview.EnsureCoreWebView2Async(None)
 
     def load_url(self, url: str):
+        self._load_timeout = True
         self.ishtml = False
         self.webview.Source = Uri(url)
 
@@ -383,6 +385,7 @@ class EdgeChrome:
             args.Request.Headers.RemoveHeader(k)
 
     def on_navigation_completed(self, sender, _):
+        self._load_timeout = False
         url = str(sender.Source)
         self.url = None if self.ishtml else url
 

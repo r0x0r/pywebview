@@ -21,7 +21,14 @@ from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
 from webview.state import State
-from webview.util import base_uri, escape_string, is_app, is_local_url, parse_file_type
+from webview.util import (
+    base_uri,
+    escape_string,
+    inject_pywebview,
+    is_app,
+    is_local_url,
+    parse_file_type,
+)
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -41,7 +48,13 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
 
         try:
             if not event.wait(20):
-                raise WebViewException('Main window failed to start')
+                if hasattr(self.native, 'browser') and getattr(
+                    self.native.browser, '_load_timeout', False
+                ):
+                    self.native.browser._load_timeout = False
+                    inject_pywebview(self.gui.renderer, self)
+                else:
+                    raise WebViewException('Main window failed to start')
 
             if self.gui is None:
                 raise WebViewException('GUI is not initialized')
