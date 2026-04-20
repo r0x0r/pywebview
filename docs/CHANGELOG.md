@@ -28,8 +28,8 @@ _Released 13/04/2026_
 
 - `All` Support for static methods for JS API exposure. Thanks @ivanovmatveywork. [#1770](https://github.com/r0x0r/pywebview/issues/1770)
 - `Cocoa` Improved file picker to use all MIME types from accept attribute in NSOpenPanel. Wildcard types (image/*, video/*) are now properly mapped to their supertype UTIs. Thanks @JMHSV. [#1781](https://github.com/r0x0r/pywebview/issues/1781) [#1780](https://github.com/r0x0r/pywebview/issues/1780)
-- `Cocoa` Icon support. Thanks @sevilla. [#1757](https://github.com/r0x0r/pywebview/issues/1757)
-- `Winforms` Icon support. Thanks @sevilla. [#1755](https://github.com/r0x0r/pywebview/issues/1755)
+- `Cocoa` Icon support. Thanks @paco-sevilla. [#1757](https://github.com/r0x0r/pywebview/issues/1757)
+- `Winforms` Icon support. Thanks @paco-sevilla. [#1755](https://github.com/r0x0r/pywebview/issues/1755)
 - `Winforms` Improved theme detection using AppsUseLightTheme registry key instead of SystemUsesLightTheme. Thanks @Mnaisuka. [#1760](https://github.com/r0x0r/pywebview/issues/1760)
 - `Winforms` Fallback to coreclr when netfx runtime is not found. Thanks @HZBHZB1234. [#1791](https://github.com/r0x0r/pywebview/issues/1791)
 - `EdgeChromium` Update WebView2 to 1.0.3856.49
