@@ -435,3 +435,152 @@ def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
         _log.debug(f'Failed to get monitor scale: {e}')
 
     return 1.0
+
+
+def pick_folders_win32(hwnd: int) -> list[str] | None:
+    """
+    Show a multi-folder-selection dialog via IFileOpenDialog (Win32 COM).
+
+    Must be called on a COM-initialised (STA) thread.
+    Returns a list of selected folder paths, or None if the user cancelled.
+    """
+    _ole32 = ctypes.windll.ole32
+
+    class _GUID(ctypes.Structure):
+        _fields_ = [
+            ('Data1', wintypes.DWORD),
+            ('Data2', wintypes.WORD),
+            ('Data3', wintypes.WORD),
+            ('Data4', ctypes.c_ubyte * 8),
+        ]
+
+    def _guid(s: str) -> _GUID:
+        s = s.strip('{}').replace('-', '')
+        g = _GUID()
+        g.Data1 = int(s[0:8], 16)
+        g.Data2 = int(s[8:12], 16)
+        g.Data3 = int(s[12:16], 16)
+        for i, b in enumerate(bytes.fromhex(s[16:])):
+            g.Data4[i] = b
+        return g
+
+    CLSID_FileOpenDialog = _guid('{DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7}')
+    IID_IFileOpenDialog = _guid('{D57C7288-D4AD-4768-BE02-9D969532D960}')
+
+    FOS_PICKFOLDERS = 0x00000020
+    FOS_ALLOWMULTISELECT = 0x00000200
+    FOS_FORCEFILESYSTEM = 0x00000040
+    CLSCTX_INPROC_SERVER = 1
+    # (int)0x80058000 — the SIGDN_FILESYSPATH enum value
+    SIGDN_FILESYSPATH = ctypes.c_int32(0x80058000).value
+    # HRESULT_FROM_WIN32(ERROR_CANCELLED) — user dismissed the dialog
+    _E_CANCELLED = ctypes.c_int32(0x800704C7).value
+    _HRESULT = ctypes.c_long
+
+    # IFileOpenDialog vtable indices
+    # IUnknown (0-2) + IModalWindow (3) + IFileDialog (4-26) + IFileOpenDialog (27-28)
+    _VTBL_RELEASE = 2  # IUnknown::Release
+    _VTBL_SHOW = 3  # IModalWindow::Show
+    _VTBL_SET_OPTIONS = 9  # IFileDialog::SetOptions
+    _VTBL_GET_OPTIONS = 10  # IFileDialog::GetOptions
+    _VTBL_GET_RESULTS = 27  # IFileOpenDialog::GetResults
+    # IShellItemArray vtable indices (IUnknown 0-2 + own methods 3+)
+    _VTBL_SA_GET_COUNT = 7  # IShellItemArray::GetCount
+    _VTBL_SA_GET_ITEM = 8  # IShellItemArray::GetItemAt
+    # IShellItem vtable indices
+    _VTBL_SI_DISP_NAME = 5  # IShellItem::GetDisplayName
+
+    def _fn(obj, idx, restype, *argtypes):
+        """Return the COM method at vtable[idx] as a callable."""
+        vtbl = ctypes.cast(
+            ctypes.cast(obj, ctypes.POINTER(ctypes.c_void_p))[0],
+            ctypes.POINTER(ctypes.c_void_p),
+        )
+        return ctypes.WINFUNCTYPE(restype, ctypes.c_void_p, *argtypes)(vtbl[idx])
+
+    def _release(obj):
+        vtbl = ctypes.cast(
+            ctypes.cast(obj, ctypes.POINTER(ctypes.c_void_p))[0],
+            ctypes.POINTER(ctypes.c_void_p),
+        )
+        ctypes.WINFUNCTYPE(ctypes.c_ulong, ctypes.c_void_p)(vtbl[_VTBL_RELEASE])(obj)
+
+    dialog = ctypes.c_void_p()
+    hr = _ole32.CoCreateInstance(
+        ctypes.byref(CLSID_FileOpenDialog),
+        None,
+        CLSCTX_INPROC_SERVER,
+        ctypes.byref(IID_IFileOpenDialog),
+        ctypes.byref(dialog),
+    )
+    if hr:
+        raise ctypes.WinError(ctypes.c_uint32(hr).value)
+
+    try:
+        options = ctypes.c_uint32()
+        hr = _fn(dialog, _VTBL_GET_OPTIONS, _HRESULT, ctypes.POINTER(ctypes.c_uint32))(
+            dialog, ctypes.byref(options)
+        )
+        if hr:
+            raise ctypes.WinError(ctypes.c_uint32(hr).value)
+
+        hr = _fn(dialog, _VTBL_SET_OPTIONS, _HRESULT, ctypes.c_uint32)(
+            dialog, options.value | FOS_PICKFOLDERS | FOS_ALLOWMULTISELECT | FOS_FORCEFILESYSTEM
+        )
+        if hr:
+            raise ctypes.WinError(ctypes.c_uint32(hr).value)
+
+        # Show() blocks, pumping its own message loop, until the dialog is dismissed.
+        hr = _fn(dialog, _VTBL_SHOW, _HRESULT, wintypes.HWND)(dialog, hwnd)
+        if hr == _E_CANCELLED:
+            return None
+        if hr:
+            raise ctypes.WinError(ctypes.c_uint32(hr).value)
+
+        item_array = ctypes.c_void_p()
+        hr = _fn(dialog, _VTBL_GET_RESULTS, _HRESULT, ctypes.POINTER(ctypes.c_void_p))(
+            dialog, ctypes.byref(item_array)
+        )
+        if hr:
+            raise ctypes.WinError(ctypes.c_uint32(hr).value)
+
+        try:
+            count = ctypes.c_uint32()
+            hr = _fn(item_array, _VTBL_SA_GET_COUNT, _HRESULT, ctypes.POINTER(ctypes.c_uint32))(
+                item_array, ctypes.byref(count)
+            )
+            if hr:
+                raise ctypes.WinError(ctypes.c_uint32(hr).value)
+
+            paths: list[str] = []
+            for i in range(count.value):
+                item = ctypes.c_void_p()
+                hr = _fn(
+                    item_array,
+                    _VTBL_SA_GET_ITEM,
+                    _HRESULT,
+                    ctypes.c_uint32,
+                    ctypes.POINTER(ctypes.c_void_p),
+                )(item_array, i, ctypes.byref(item))
+                if hr:
+                    continue
+                try:
+                    path_ptr = ctypes.c_void_p()
+                    hr = _fn(
+                        item,
+                        _VTBL_SI_DISP_NAME,
+                        _HRESULT,
+                        ctypes.c_int32,
+                        ctypes.POINTER(ctypes.c_void_p),
+                    )(item, SIGDN_FILESYSPATH, ctypes.byref(path_ptr))
+                    if hr == 0 and path_ptr.value:
+                        paths.append(ctypes.wstring_at(path_ptr.value))
+                        _ole32.CoTaskMemFree(path_ptr)
+                finally:
+                    _release(item)
+
+            return paths
+        finally:
+            _release(item_array)
+    finally:
+        _release(dialog)

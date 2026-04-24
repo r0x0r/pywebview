@@ -115,7 +115,7 @@ from webview import (
 )
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms.webview2core import WebView2Core
-from webview.platforms.win32 import get_monitor_scale, install_mouse_hook
+from webview.platforms.win32 import get_monitor_scale, install_mouse_hook, pick_folders_win32
 from webview.screen import Screen
 from webview.util import (
     create_cookie,
@@ -1067,9 +1067,12 @@ def create_file_dialog(
             initialize_with_window(picker, i.handle)
             picker.suggested_start_location = PickerLocationId.DOWNLOADS
 
-            # FIXME: This doesn't work with the Windows App SDK
             if allow_multiple:
-                raise NotImplementedError('Multiple folders not supported')
+                # FolderPicker has no multi-select API in the Windows App SDK;
+                # fall back to IFileOpenDialog (Win32 COM) which does.
+                folders = pick_folders_win32(i.handle)
+                fut.set_result(tuple(folders) if folders is not None else None)
+                return
 
             op = picker.pick_single_folder_async()
 
