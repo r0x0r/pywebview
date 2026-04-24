@@ -573,6 +573,17 @@ class BrowserView:
 
             if window.frameless:
                 self.overlapped_presenter.set_border_and_title_bar(False, False)
+                # set_border_and_title_bar can add WS_EX_TOOLWINDOW / strip
+                # WS_EX_APPWINDOW, which causes Appium/WinAppDriver (and the
+                # Windows shell) to skip the window during enumeration.
+                # Explicitly restore WS_EX_APPWINDOW so automation tools can
+                # still find the window.
+                _GWL_EXSTYLE = -20
+                _WS_EX_TOOLWINDOW = 0x00000080
+                _WS_EX_APPWINDOW = 0x00040000
+                ex_style = windll.user32.GetWindowLongW(self.handle, _GWL_EXSTYLE)
+                ex_style = (ex_style & ~_WS_EX_TOOLWINDOW) | _WS_EX_APPWINDOW
+                windll.user32.SetWindowLongW(self.handle, _GWL_EXSTYLE, ex_style)
 
             menu = window.menu or _state['menu'] or BrowserView.app_menu_list
             if menu:
