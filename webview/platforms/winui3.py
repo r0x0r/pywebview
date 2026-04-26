@@ -104,9 +104,7 @@ from winui3.microsoft.windows.applicationmodel.dynamicdependency.bootstrap impor
 from winui3.microsoft.windows.storage import ApplicationData
 
 from webview import (
-    FOLDER_DIALOG,
-    OPEN_DIALOG,
-    SAVE_DIALOG,
+    FileDialog,
     _state,
     windows,
 )
@@ -1049,6 +1047,144 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
     return fut.result()
 
 
+def _folder_dialog_callback(
+    handle: int, allow_multiple: bool, fut: 'Future[str | tuple[str] | None]'
+):
+    def callback():
+        picker = FolderPicker()
+        initialize_with_window(picker, handle)
+        picker.suggested_start_location = PickerLocationId.DOWNLOADS
+
+        if allow_multiple:
+            # FolderPicker has no multi-select API in the Windows App SDK;
+            # fall back to IFileOpenDialog (Win32 COM) which does.
+            folders = pick_folders_win32(handle)
+            fut.set_result(tuple(folders) if folders is not None else None)
+            return
+
+        op = picker.pick_single_folder_async()
+
+        def on_completed(op: IAsyncOperation[StorageFolder], status: AsyncStatus):
+            if status == AsyncStatus.ERROR:
+                fut.set_exception(WinError(op.error_code.value))
+            elif status == AsyncStatus.CANCELED:
+                fut.cancel()
+            elif status == AsyncStatus.COMPLETED:
+                result = op.get_results()
+                if not result:
+                    fut.set_result(None)
+                    return
+                fut.set_result(result.path)
+
+        op.completed = on_completed
+
+    return callback
+
+
+def _open_dialog_callback(
+    handle: int,
+    allow_multiple: bool,
+    file_types: list[str],
+    fut: 'Future[str | tuple[str] | None]',
+):
+    def callback():
+        picker = FileOpenPicker()
+        initialize_with_window(picker, handle)
+        picker.suggested_start_location = PickerLocationId.DOWNLOADS
+
+        if file_types:
+            parsed_exts: list[str] = []
+            for _, exts in [parse_file_type(f) for f in file_types]:
+                for ext in exts.split(';'):
+                    stripped = ext[1:]  # '*.jpg' → '.jpg'; '*.*'/'*' → '.*'/''
+                    if not stripped or '*' in stripped:
+                        parsed_exts = ['*']  # any wildcard → allow all
+                        break
+                    parsed_exts.append(stripped)
+                if parsed_exts == ['*']:
+                    break
+            for ext in parsed_exts:
+                picker.file_type_filter.append(ext)
+        else:
+            picker.file_type_filter.append('*')
+
+        if allow_multiple:
+            op = picker.pick_multiple_files_async()
+
+            def on_completed(op: IAsyncOperation[Sequence[StorageFile]], status: AsyncStatus):
+                if status == AsyncStatus.ERROR:
+                    fut.set_exception(WinError(op.error_code.value))
+                elif status == AsyncStatus.CANCELED:
+                    fut.cancel()
+                elif status == AsyncStatus.COMPLETED:
+                    result = op.get_results()
+                    if result is None:
+                        fut.set_result(None)
+                        return
+                    fut.set_result([f.path for f in result])
+
+            op.completed = on_completed
+        else:
+            op = picker.pick_single_file_async()
+
+            def on_completed(op: IAsyncOperation[StorageFile], status: AsyncStatus):
+                if status == AsyncStatus.ERROR:
+                    fut.set_exception(WinError(op.error_code.value))
+                elif status == AsyncStatus.CANCELED:
+                    fut.cancel()
+                elif status == AsyncStatus.COMPLETED:
+                    result = op.get_results()
+                    if not result:
+                        fut.set_result(None)
+                        return
+                    fut.set_result(result.path)
+
+            op.completed = on_completed
+
+    return callback
+
+
+def _save_dialog_callback(
+    handle: int,
+    uid: str,
+    save_filename: str,
+    file_types: list[str],
+    fut: 'Future[str | tuple[str] | None]',
+):
+    def callback():
+        picker = FileSavePicker()
+        initialize_with_window(picker, handle)
+        picker.suggested_start_location = PickerLocationId.DOWNLOADS
+        picker.settings_identifier = uid
+        picker.suggested_file_name = save_filename
+
+        if file_types:
+            picker.file_type_choices.update(
+                {k: [v[1:]] for k, v in [parse_file_type(f) for f in file_types]}
+            )
+        else:
+            # winui3 doesn't allow wildcard file types in save dialog
+            picker.file_type_choices[''] = ['.']
+
+        op = picker.pick_save_file_async()
+
+        def on_completed(op: IAsyncOperation[StorageFile], status: AsyncStatus):
+            if status == AsyncStatus.ERROR:
+                fut.set_exception(WinError(op.error_code.value))
+            elif status == AsyncStatus.CANCELED:
+                fut.cancel()
+            elif status == AsyncStatus.COMPLETED:
+                result = op.get_results()
+                if not result:
+                    fut.set_result(None)
+                    return
+                fut.set_result(result.path)
+
+        op.completed = on_completed
+
+    return callback
+
+
 def create_file_dialog(
     dialog_type: int,
     directory: str,
@@ -1069,109 +1205,14 @@ def create_file_dialog(
     # Likely, we will need to replace these with win32 calls
     # https://learn.microsoft.com/en-us/uwp/api/windows.storage.pickers.filesavepicker?view=winrt-26100#in-a-desktop-app-that-requires-elevation
 
-    fut = Future[str | tuple[str] | None]()
+    fut: Future[str | tuple[str] | None] = Future()
 
-    if dialog_type == FOLDER_DIALOG:
-
-        def callback():
-            picker = FolderPicker()
-            initialize_with_window(picker, i.handle)
-            picker.suggested_start_location = PickerLocationId.DOWNLOADS
-
-            if allow_multiple:
-                # FolderPicker has no multi-select API in the Windows App SDK;
-                # fall back to IFileOpenDialog (Win32 COM) which does.
-                folders = pick_folders_win32(i.handle)
-                fut.set_result(tuple(folders) if folders is not None else None)
-                return
-
-            op = picker.pick_single_folder_async()
-
-            def on_completed(op: IAsyncOperation[StorageFolder], status: AsyncStatus):
-                if status == AsyncStatus.ERROR:
-                    fut.set_exception(WinError(op.error_code.value))
-                elif status == AsyncStatus.CANCELED:
-                    fut.cancel()
-                elif status == AsyncStatus.COMPLETED:
-                    result = op.get_results()
-                    fut.set_result(result.path)
-
-            op.completed = on_completed
-
-    elif dialog_type == OPEN_DIALOG:
-
-        def callback():
-            picker = FileOpenPicker()
-            initialize_with_window(picker, i.handle)
-            picker.suggested_start_location = PickerLocationId.DOWNLOADS
-
-            if len(file_types) > 0:
-                picker.file_type_filter.append('*')
-            else:
-                picker.file_type_filter.append('*')
-
-            if allow_multiple:
-                op = picker.pick_multiple_files_async()
-
-                def on_completed1(op: IAsyncOperation[Sequence[StorageFile]], status: AsyncStatus):
-                    if status == AsyncStatus.ERROR:
-                        fut.set_exception(WinError(op.error_code.value))
-                    elif status == AsyncStatus.CANCELED:
-                        fut.cancel()
-                    elif status == AsyncStatus.COMPLETED:
-                        result = op.get_results()
-                        fut.set_result([f.path for f in result])
-
-                op.completed = on_completed1
-            else:
-                op = picker.pick_single_file_async()
-
-                def on_completed2(op: IAsyncOperation[StorageFile], status: AsyncStatus):
-                    if status == AsyncStatus.ERROR:
-                        fut.set_exception(WinError(op.error_code.value))
-                    elif status == AsyncStatus.CANCELED:
-                        fut.cancel()
-                    elif status == AsyncStatus.COMPLETED:
-                        result = op.get_results()
-                        fut.set_result(result.path)
-
-                op.completed = on_completed2
-
-    elif dialog_type == SAVE_DIALOG:
-
-        def callback():
-            picker = FileSavePicker()
-            initialize_with_window(picker, i.handle)
-            picker.suggested_start_location = PickerLocationId.DOWNLOADS
-            picker.settings_identifier = uid
-            picker.suggested_file_name = save_filename
-
-            if len(file_types) > 0:
-                picker.file_type_choices.update(
-                    {k: [v[1:]] for k, v in [parse_file_type(f) for f in file_types]}
-                )
-            else:
-                # winui3 doesn't allow wildcard file types in save dialog
-                picker.file_type_choices[''] = ['.']
-
-            op = picker.pick_save_file_async()
-
-            def on_completed(op: IAsyncOperation[StorageFile], status: AsyncStatus):
-                if status == AsyncStatus.ERROR:
-                    fut.set_exception(WinError(op.error_code.value))
-                elif status == AsyncStatus.CANCELED:
-                    fut.cancel()
-                elif status == AsyncStatus.COMPLETED:
-                    result = op.get_results()
-
-                    if not result:
-                        fut.set_result(None)
-                        return
-
-                    fut.set_result(result.path)
-
-            op.completed = on_completed
-
+    if dialog_type == FileDialog.FOLDER:
+        callback = _folder_dialog_callback(i.handle, allow_multiple, fut)
+    elif dialog_type == FileDialog.OPEN:
+        callback = _open_dialog_callback(i.handle, allow_multiple, file_types, fut)
+    elif dialog_type == FileDialog.SAVE:
+        callback = _save_dialog_callback(i.handle, uid, save_filename, file_types, fut)
     else:
         raise ValueError('Invalid dialog type')
 
