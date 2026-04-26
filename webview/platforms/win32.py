@@ -15,6 +15,8 @@ _SWP_NOSIZE = 0x0001
 _SWP_NOZORDER = 0x0004
 _SWP_NOACTIVATE = 0x0010
 _VK_LBUTTON = 0x01
+_SW_RESTORE = 9
+_DRAG_TOLERANCE = 5  # px; suppresses accidental micro-drags on click
 
 
 class _MSLLHOOKSTRUCT(ctypes.Structure):
@@ -77,6 +79,8 @@ _user32.SetWindowPos.argtypes = [
 ]
 _user32.GetKeyState.restype = wintypes.SHORT
 _user32.GetKeyState.argtypes = [ctypes.c_int]
+_user32.ShowWindow.restype = wintypes.BOOL
+_user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
 _user32.MonitorFromRect.restype = wintypes.HANDLE
 _user32.MonitorFromRect.argtypes = [ctypes.POINTER(wintypes.RECT), wintypes.DWORD]
 _user32.GetMonitorInfoW.restype = wintypes.BOOL
@@ -141,9 +145,9 @@ def install_mouse_hook(hwnd: int):
     # Use a list with a sentinel so we distinguish "not yet searched" (None)
     # from "searched and not found" (0).
     input_hwnd_cache: list = [None]
-    # Drag state: [active, cursor_start_x, cursor_start_y, win_start_x, win_start_y]
-    # active: 0=inactive, 1=dragging
-    _drag: list = [0, 0, 0, 0, 0]
+    # Drag state: [active, cursor_start_x, cursor_start_y, win_start_x, win_start_y, was_zoomed]
+    # active: 0=inactive, 1=dragging, 2=pending (within tolerance)
+    _drag: list = [0, 0, 0, 0, 0, 0]
     _drag_states[hwnd] = _drag
 
     def _get_input_hwnd() -> int | None:
@@ -169,15 +173,29 @@ def install_mouse_hook(hwnd: int):
                     ).contents
                     pt = wintypes.POINT(hs.pt_x, hs.pt_y)
                     _user32.PhysicalToLogicalPointForPerMonitorDPI(hwnd, ctypes.byref(pt))
-                    _user32.SetWindowPos(
-                        hwnd,
-                        0,
-                        _drag[3] + pt.x - _drag[1],
-                        _drag[4] + pt.y - _drag[2],
-                        0,
-                        0,
-                        _SWP_NOSIZE | _SWP_NOZORDER | _SWP_NOACTIVATE,
-                    )
+                    if _drag[0] == 2:  # pending — promote to active once tolerance exceeded
+                        dx = pt.x - _drag[1]
+                        dy = pt.y - _drag[2]
+                        if dx * dx + dy * dy >= _DRAG_TOLERANCE * _DRAG_TOLERANCE:
+                            if _drag[5]:  # restore maximized window now that drag is confirmed
+                                _user32.ShowWindow(hwnd, _SW_RESTORE)
+                                rect = wintypes.RECT()
+                                _user32.GetWindowRect(hwnd, ctypes.byref(rect))
+                                _drag[1] = pt.x
+                                _drag[2] = pt.y
+                                _drag[3] = rect.left
+                                _drag[4] = rect.top
+                            _drag[0] = 1
+                    if _drag[0] == 1:
+                        _user32.SetWindowPos(
+                            hwnd,
+                            0,
+                            _drag[3] + pt.x - _drag[1],
+                            _drag[4] + pt.y - _drag[2],
+                            0,
+                            0,
+                            _SWP_NOSIZE | _SWP_NOZORDER | _SWP_NOACTIVATE,
+                        )
                     # fall through so the OS commits the cursor position
 
             # ── Mouse-wheel forwarding ───────────────────────────────
@@ -302,9 +320,6 @@ def start_drag(hwnd: int) -> None:
     inside the hook using SetWindowPos. For other hwnds (WinForms), the
     standard ReleaseCapture / WM_NCLBUTTONDOWN approach is used.
     """
-    if _user32.IsZoomed(hwnd):
-        return
-
     # Only start drag if left mouse button is pressed
     if not (_user32.GetKeyState(_VK_LBUTTON) & 0x8000):
         return
@@ -315,12 +330,14 @@ def start_drag(hwnd: int) -> None:
         _user32.GetWindowRect(hwnd, ctypes.byref(rect))
         cursor = wintypes.POINT()
         _user32.GetCursorPos(ctypes.byref(cursor))
-        drag[0] = 1
+        drag[0] = 2  # pending — move only after tolerance exceeded
         drag[1] = cursor.x
         drag[2] = cursor.y
         drag[3] = rect.left
         drag[4] = rect.top
+        drag[5] = 1 if _user32.IsZoomed(hwnd) else 0
     else:
+        # WM_NCLBUTTONDOWN causes the OS to restore-and-drag a maximized window.
         _user32.ReleaseCapture()
         _user32.SendMessageW(hwnd, _WM_NCLBUTTONDOWN, _HT_CAPTION, 0)
 
