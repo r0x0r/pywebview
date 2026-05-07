@@ -654,8 +654,8 @@ class BrowserView:
                 None,
                 x_phys,
                 y_phys,
-                None,
-                None,
+                0,
+                0,
                 SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW,
             )
 

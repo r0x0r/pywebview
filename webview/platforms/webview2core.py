@@ -30,6 +30,7 @@ class WebView2Core(ABC):
         self.ishtml = False
         self.html = DEFAULT_HTML
         self.js_result_semaphore = Semaphore(0)
+        self.user_data_folder: str | None = None
 
     def get_current_url(self):
         return self.url
