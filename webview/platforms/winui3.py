@@ -113,7 +113,15 @@ from webview import (
 )
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms.webview2core import WebView2Core
-from webview.platforms.win32 import get_monitor_scale, install_mouse_hook, pick_folders_win32
+from webview.platforms.win32 import (
+    GWL_EXSTYLE,
+    WS_EX_APPWINDOW,
+    WS_EX_TOOLWINDOW,
+    get_monitor_scale,
+    install_mouse_hook,
+    pick_folders_win32,
+    uninstall_mouse_hook,
+)
 from webview.screen import Screen
 from webview.util import (
     create_cookie,
@@ -128,6 +136,19 @@ cache_dir: str | None = None
 renderer = 'winui3'
 
 logger.debug('Using WinUI 3 / Chromium')
+
+
+def _enqueue(dispatcher_queue, callback) -> bool:
+    """Enqueue ``callback`` on the UI thread, logging on failure.
+
+    Returns True on success, False if the queue rejected the callback (e.g. the
+    UI thread is shutting down). Callers should treat False as a terminal
+    condition and release any waiters they own.
+    """
+    if dispatcher_queue.try_enqueue(callback):
+        return True
+    logger.error('Failed to enqueue dispatcher callback')
+    return False
 
 
 class WinUI3EdgeChrome(WebView2Core):
@@ -202,9 +223,8 @@ class WinUI3EdgeChrome(WebView2Core):
 
             semaphore.release()
 
-        try:
-
-            def callback():
+        def callback():
+            try:
                 op = self.webview.execute_script_async(script)
 
                 def on_completed(op: IAsyncOperation[str], status: AsyncStatus):
@@ -222,66 +242,82 @@ class WinUI3EdgeChrome(WebView2Core):
                             _callback(None)
 
                 op.completed = on_completed
+            except Exception:
+                logger.exception('Error occurred in script')
+                _callback(None)
 
-            if not self.webview.dispatcher_queue.try_enqueue(callback):
-                raise RuntimeError('Failed to enqueue dispatcher callback')
+        if not _enqueue(self.webview.dispatcher_queue, callback):
+            return None
 
-            semaphore.acquire()
-        except Exception:
-            logger.exception('Error occurred in script')
-            semaphore.release()
-
+        semaphore.acquire()
         return result
 
     def clear_cookies(self):
         self.webview.core_webview2.cookie_manager.delete_all_cookies()
 
-    def get_cookies(self, semaphore: Semaphore, cookies: list[SimpleCookie]):
+    def get_cookies(self, cookies: list[SimpleCookie], semaphore: Semaphore):
         def _parse_cookies(_cookies: Sequence[CoreWebView2Cookie]):
             # cookies must be accessed in the main thread, otherwise an exception is thrown
             # https://github.com/MicrosoftEdge/WebView2Feedback/issues/1976
-            for c in _cookies:
-                same_site = (
-                    None
-                    if c.same_site == CoreWebView2CookieSameSiteKind.NONE
-                    else c.same_site.name.lower()
-                )
-                try:
-                    data = {
-                        'name': c.name,
-                        'value': c.value,
-                        'path': c.path,
-                        'domain': c.domain,
-                        'expires': str(c.expires),
-                        'secure': c.is_secure,
-                        'httponly': c.is_http_only,
-                        'samesite': same_site,
-                    }
+            try:
+                for c in _cookies:
+                    try:
+                        # Some WinRT bindings expose `same_site` as a plain int
+                        # rather than the enum object — normalize via the enum
+                        # constructor so .name is always available.
+                        kind = CoreWebView2CookieSameSiteKind(c.same_site)
+                        same_site = (
+                            None
+                            if kind == CoreWebView2CookieSameSiteKind.NONE
+                            else kind.name.lower()
+                        )
+                        data = {
+                            'name': c.name,
+                            'value': c.value,
+                            'path': c.path,
+                            'domain': c.domain,
+                            'expires': str(c.expires),
+                            'secure': c.is_secure,
+                            'httponly': c.is_http_only,
+                            'samesite': same_site,
+                        }
 
-                    cookie = create_cookie(data)
-                    cookies.append(cookie)
-                except Exception as e:
-                    logger.exception(e)
+                        cookie = create_cookie(data)
+                        cookies.append(cookie)
+                    except Exception as e:
+                        logger.exception(e)
+            finally:
+                semaphore.release()
 
+        try:
+            op = self.webview.core_webview2.cookie_manager.get_cookies_async(self.url or '')
+        except Exception:
+            logger.exception('Error requesting cookies')
             semaphore.release()
-
-        op = self.webview.core_webview2.cookie_manager.get_cookies_async(self.url or '')
+            return
 
         def on_op_completed(op: IAsyncOperation[Sequence[CoreWebView2Cookie]], status: AsyncStatus):
-            if status == AsyncStatus.ERROR:
-                logger.error(
-                    'Error getting cookies: %r',
-                    WinError(op.error_code.value),
-                )
-                return
-            elif status == AsyncStatus.COMPLETED:
-                _cookies = op.get_results()
+            try:
+                if status == AsyncStatus.ERROR:
+                    logger.error(
+                        'Error getting cookies: %r',
+                        WinError(op.error_code.value),
+                    )
+                    semaphore.release()
+                    return
+                elif status == AsyncStatus.COMPLETED:
+                    _cookies = op.get_results()
 
-                def callback():
-                    _parse_cookies(_cookies)
+                    def callback():
+                        _parse_cookies(_cookies)
 
-                if not self.webview.dispatcher_queue.try_enqueue(callback):
-                    raise RuntimeError('Failed to enqueue dispatcher callback')
+                    if not _enqueue(self.webview.dispatcher_queue, callback):
+                        semaphore.release()
+                else:
+                    semaphore.release()
+            except Exception:
+                logger.exception('Error in cookie completion handler')
+                semaphore.release()
 
         op.completed = on_op_completed
 
@@ -576,12 +612,9 @@ class BrowserView:
                 # Windows shell) to skip the window during enumeration.
                 # Explicitly restore WS_EX_APPWINDOW so automation tools can
                 # still find the window.
-                _GWL_EXSTYLE = -20
-                _WS_EX_TOOLWINDOW = 0x00000080
-                _WS_EX_APPWINDOW = 0x00040000
-                ex_style = windll.user32.GetWindowLongW(self.handle, _GWL_EXSTYLE)
-                ex_style = (ex_style & ~_WS_EX_TOOLWINDOW) | _WS_EX_APPWINDOW
-                windll.user32.SetWindowLongW(self.handle, _GWL_EXSTYLE, ex_style)
+                ex_style = windll.user32.GetWindowLongW(self.handle, GWL_EXSTYLE)
+                ex_style = (ex_style & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW
+                windll.user32.SetWindowLongW(self.handle, GWL_EXSTYLE, ex_style)
 
             menu = window.menu or _state['menu'] or BrowserView.app_menu_list
             if menu:
@@ -624,6 +657,9 @@ class BrowserView:
 
         def on_close(self, sender: Object, args: WindowEventArgs):
             self.browser.js_result_semaphore.release()
+
+            uninstall_mouse_hook(self.handle, getattr(self, '_mouse_hook', None))
+            self._mouse_hook = None
 
             process_id = int(self.browser.webview.core_webview2.browser_process_id)
             self.browser.webview.close()
@@ -732,7 +768,7 @@ class BrowserView:
                     finally:
                         event.set()
 
-                if not self.window.dispatcher_queue.try_enqueue(invoke):
+                if not _enqueue(self.window.dispatcher_queue, invoke):
                     raise RuntimeError('Failed to enqueue dispatcher callback')
 
                 event.wait()
@@ -750,8 +786,8 @@ class BrowserView:
             self.browser.clear_cookies()
 
         @invoke_on_ui_thread
-        def get_cookies(self, semaphore: Semaphore, cookies: list[SimpleCookie]):
-            self.browser.get_cookies(semaphore, cookies)
+        def get_cookies(self, cookies: list[SimpleCookie], semaphore: Semaphore):
+            self.browser.get_cookies(cookies, semaphore)
 
         @invoke_on_ui_thread
         def load_html(self, content: str, base_uri: str):
@@ -1001,7 +1037,7 @@ def create_window(window: _Window):
         _main_window_created.wait()
         i = list(BrowserView.instances.values())[0]  # arbitrary instance
 
-        if not i.window.dispatcher_queue.try_enqueue(create):
+        if not _enqueue(i.window.dispatcher_queue, create):
             raise RuntimeError('Failed to enqueue callback')
 
 
@@ -1032,15 +1068,15 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
             if status == AsyncStatus.ERROR:
                 fut.set_exception(WinError(op.error_code.value))
             elif status == AsyncStatus.CANCELED:
-                fut.cancel()
+                fut.set_result(False)
             elif status == AsyncStatus.COMPLETED:
                 result = op.get_results()
                 fut.set_result(result == ContentDialogResult.PRIMARY)
 
         op.completed = on_completed
 
-    if not i.window.dispatcher_queue.try_enqueue(callback):
-        raise RuntimeError('Failed to enqueue callback')
+    if not _enqueue(i.window.dispatcher_queue, callback):
+        return None
 
     wait([fut])
 
@@ -1068,7 +1104,7 @@ def _folder_dialog_callback(
             if status == AsyncStatus.ERROR:
                 fut.set_exception(WinError(op.error_code.value))
             elif status == AsyncStatus.CANCELED:
-                fut.cancel()
+                fut.set_result(None)
             elif status == AsyncStatus.COMPLETED:
                 result = op.get_results()
                 if not result:
@@ -1115,7 +1151,7 @@ def _open_dialog_callback(
                 if status == AsyncStatus.ERROR:
                     fut.set_exception(WinError(op.error_code.value))
                 elif status == AsyncStatus.CANCELED:
-                    fut.cancel()
+                    fut.set_result(None)
                 elif status == AsyncStatus.COMPLETED:
                     result = op.get_results()
                     if result is None:
@@ -1131,7 +1167,7 @@ def _open_dialog_callback(
                 if status == AsyncStatus.ERROR:
                     fut.set_exception(WinError(op.error_code.value))
                 elif status == AsyncStatus.CANCELED:
-                    fut.cancel()
+                    fut.set_result(None)
                 elif status == AsyncStatus.COMPLETED:
                     result = op.get_results()
                     if not result:
@@ -1172,7 +1208,7 @@ def _save_dialog_callback(
             if status == AsyncStatus.ERROR:
                 fut.set_exception(WinError(op.error_code.value))
             elif status == AsyncStatus.CANCELED:
-                fut.cancel()
+                fut.set_result(None)
             elif status == AsyncStatus.COMPLETED:
                 result = op.get_results()
                 if not result:
@@ -1216,8 +1252,8 @@ def create_file_dialog(
     else:
         raise ValueError('Invalid dialog type')
 
-    if not i.window.dispatcher_queue.try_enqueue(callback):
-        raise RuntimeError('Failed to enqueue callback')
+    if not _enqueue(i.window.dispatcher_queue, callback):
+        return None
 
     wait([fut])
 
@@ -1238,7 +1274,7 @@ def get_cookies(uid: str):
     semaphore = Semaphore(0)
     cookies: list[SimpleCookie] = []
 
-    i.get_cookies(semaphore, cookies)
+    i.get_cookies(cookies, semaphore)
 
     semaphore.acquire()
 
