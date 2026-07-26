@@ -148,7 +148,8 @@ class EdgeChrome:
         client_w = self.form.ClientSize.Width
         client_h = self.form.ClientSize.Height
         self.webview.Bounds = Rectangle(
-            border, border,
+            border, 
+            border,
             max(client_w - 2 * border, 0),
             max(client_h - 2 * border, 0),
         )
