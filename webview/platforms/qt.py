@@ -913,7 +913,7 @@ def setup_app():
     if settings['REMOTE_DEBUGGING_PORT']:
         environ_append(
             'QTWEBENGINE_CHROMIUM_FLAGS',
-            f'--remote-debugging-port={settings['REMOTE_DEBUGGING_PORT']}',
+            f'--remote-debugging-port={settings["REMOTE_DEBUGGING_PORT"]}',
         )
     _app = QApplication.instance() or QApplication(sys.argv)
 

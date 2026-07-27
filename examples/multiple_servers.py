@@ -13,7 +13,7 @@ windows = []
 
 # A simple function to format a description of our servers
 def serverDescription(server):
-    return f'{str(server).replace('<', '').replace('>', '')}'
+    return f'{str(server).replace("<", "").replace(">", "")}'
 
 
 # Define a couple of simple web apps using Bottle
