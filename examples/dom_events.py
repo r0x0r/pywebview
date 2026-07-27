@@ -26,7 +26,7 @@ def scroll_handler(e):
 
 
 def link_handler(e):
-    print(f'Link target is {e["target"]["href"]}')
+    print(f'Link target is {e['target']['href']}')
 
 
 def bind(window):

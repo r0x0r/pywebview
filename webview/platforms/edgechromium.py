@@ -86,7 +86,7 @@ class EdgeChrome:
 
         if webview_settings['REMOTE_DEBUGGING_PORT'] is not None:
             props.AdditionalBrowserArguments += (
-                f' --remote-debugging-port={webview_settings["REMOTE_DEBUGGING_PORT"]}'
+                f' --remote-debugging-port={webview_settings['REMOTE_DEBUGGING_PORT']}'
             )
 
         self.webview.CreationProperties = props
@@ -148,7 +148,7 @@ class EdgeChrome:
         client_w = self.form.ClientSize.Width
         client_h = self.form.ClientSize.Height
         self.webview.Bounds = Rectangle(
-            border, 
+            border,
             border,
             max(client_w - 2 * border, 0),
             max(client_h - 2 * border, 0),
