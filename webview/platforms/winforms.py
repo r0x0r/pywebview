@@ -373,7 +373,10 @@ class BrowserView:
             # because EdgeChrome reads self._frameless_resize_border to decide
             # whether to reserve a non-client border for system resize.
             if window.frameless and window.resizable:
-                self._install_frameless_resize()
+                try:
+                    self._install_frameless_resize()
+                except Exception as e:
+                    logger.warning('Failed to install frameless resize support: %s', e)
 
             if is_cef:
                 self.browser = None
@@ -444,102 +447,100 @@ class BrowserView:
             earlier for the shadow) and ``WS_THICKFRAME`` is added back so the
             system resize modal loop works.
             """
-            hwnd = self.Handle.ToInt32()
+            try:
+                hwnd = self.Handle.ToInt32()
 
-            sm_cxframe = windll.user32.GetSystemMetrics(32)  # SM_CXFRAME
-            sm_cxpadborder = windll.user32.GetSystemMetrics(92)  # SM_CXPADDEDBORDER
-            frame_size = sm_cxframe + sm_cxpadborder
-            diagonal_width = frame_size * 2 + windll.user32.GetSystemMetrics(5)  # SM_CXBORDER
+                sm_cxframe = windll.user32.GetSystemMetrics(32)  # SM_CXFRAME
+                sm_cxpadborder = windll.user32.GetSystemMetrics(92)  # SM_CXPADDEDBORDER
+                frame_size = sm_cxframe + sm_cxpadborder
+                diagonal_width = frame_size * 2 + windll.user32.GetSystemMetrics(5)  # SM_CXBORDER
 
-            def _hit_test_client(hwnd, lparam):
-                screen_x = ctypes.c_short(lparam & 0xFFFF).value
-                screen_y = ctypes.c_short((lparam >> 16) & 0xFFFF).value
+                def _hit_test_client(hwnd, lparam):
+                    screen_x = ctypes.c_short(lparam & 0xFFFF).value
+                    screen_y = ctypes.c_short((lparam >> 16) & 0xFFFF).value
 
-                pt = wintypes.POINT()
-                pt.x = screen_x
-                pt.y = screen_y
-                windll.user32.ScreenToClient(wintypes.HWND(hwnd), ctypes.byref(pt))
+                    pt = wintypes.POINT()
+                    pt.x = screen_x
+                    pt.y = screen_y
+                    windll.user32.ScreenToClient(wintypes.HWND(hwnd), ctypes.byref(pt))
 
-                rect = wintypes.RECT()
-                windll.user32.GetClientRect(wintypes.HWND(hwnd), ctypes.byref(rect))
-                width = rect.right - rect.left
-                height = rect.bottom - rect.top
+                    rect = wintypes.RECT()
+                    windll.user32.GetClientRect(wintypes.HWND(hwnd), ctypes.byref(rect))
+                    width = rect.right - rect.left
+                    height = rect.bottom - rect.top
 
-                on_top = pt.y < frame_size
-                on_bottom = pt.y >= height - frame_size
-                on_left = pt.x < diagonal_width
-                on_right = pt.x >= width - diagonal_width
+                    on_top = pt.y < frame_size
+                    on_bottom = pt.y >= height - frame_size
+                    on_left = pt.x < diagonal_width
+                    on_right = pt.x >= width - diagonal_width
 
-                if on_top and on_left:
-                    return _HTTOPLEFT
-                if on_top and on_right:
-                    return _HTTOPRIGHT
-                if on_bottom and on_left:
-                    return _HTBOTTOMLEFT
-                if on_bottom and on_right:
-                    return _HTBOTTOMRIGHT
-                if on_top:
-                    return _HTTOP
-                if on_bottom:
-                    return _HTBOTTOM
-                if pt.x < frame_size:
-                    return _HTLEFT
-                if pt.x >= width - frame_size:
-                    return _HTRIGHT
-                return _HTCLIENT
+                    if on_top and on_left:
+                        return _HTTOPLEFT
+                    if on_top and on_right:
+                        return _HTTOPRIGHT
+                    if on_bottom and on_left:
+                        return _HTBOTTOMLEFT
+                    if on_bottom and on_right:
+                        return _HTBOTTOMRIGHT
+                    if on_top:
+                        return _HTTOP
+                    if on_bottom:
+                        return _HTBOTTOM
+                    if pt.x < frame_size:
+                        return _HTLEFT
+                    if pt.x >= width - frame_size:
+                        return _HTRIGHT
+                    return _HTCLIENT
 
-            parent_original = _get_window_long_ptr(hwnd, _GWLP_WNDPROC)
+                parent_original = _get_window_long_ptr(hwnd, _GWLP_WNDPROC)
 
-            def parent_wnd_proc(hwnd, msg, wparam, lparam):
-                if msg == _WM_NCACTIVATE:
-                    # Pass -1 as lParam (HRGN) so DefWindowProc does not
-                    # repaint the non-client border on activation changes.
+                def parent_wnd_proc(hwnd, msg, wparam, lparam):
+                    if msg == _WM_NCACTIVATE:
+                        return _CallWindowProcW(
+                            ctypes.c_void_p(parent_original),
+                            wintypes.HWND(hwnd),
+                            msg,
+                            wparam,
+                            -1,
+                        )
+                    elif msg == _WM_NCCALCSIZE and wparam:
+                        return 0
+                    elif msg in (_WM_NCUAHDRAWCAPTION, _WM_NCUAHDRAWFRAME):
+                        return 0
+                    elif msg == _WM_NCHITTEST:
+                        if windll.user32.IsZoomed(wintypes.HWND(hwnd)):
+                            return _HTCLIENT
+                        hit = _hit_test_client(hwnd, lparam)
+                        if hit != _HTCLIENT:
+                            return hit
+                    elif msg == _WM_SETCURSOR:
+                        hit_test = (wparam >> 16) & 0xFFFF
+                        cursor_id = _RESIZE_CURSORS.get(hit_test)
+                        if cursor_id is not None:
+                            cursor_handle = windll.user32.LoadCursorW(0, cursor_id)
+                            windll.user32.SetCursor(cursor_handle)
+                            return 1
+
                     return _CallWindowProcW(
                         ctypes.c_void_p(parent_original),
                         wintypes.HWND(hwnd),
                         msg,
                         wparam,
-                        -1,
+                        lparam,
                     )
-                elif msg == _WM_NCCALCSIZE and wparam:
-                    return 0
-                elif msg in (_WM_NCUAHDRAWCAPTION, _WM_NCUAHDRAWFRAME):
-                    # These undocumented messages draw the themed window
-                    # border. Block them to prevent a border from appearing
-                    # over the client area of a frameless window.
-                    return 0
-                elif msg == _WM_NCHITTEST:
-                    if windll.user32.IsZoomed(wintypes.HWND(hwnd)):
-                        return _HTCLIENT
-                    hit = _hit_test_client(hwnd, lparam)
-                    if hit != _HTCLIENT:
-                        return hit
-                elif msg == _WM_SETCURSOR:
-                    hit_test = (wparam >> 16) & 0xFFFF
-                    cursor_id = _RESIZE_CURSORS.get(hit_test)
-                    if cursor_id is not None:
-                        cursor_handle = windll.user32.LoadCursorW(0, cursor_id)
-                        windll.user32.SetCursor(cursor_handle)
-                        return 1
 
-                return _CallWindowProcW(
-                    ctypes.c_void_p(parent_original),
-                    wintypes.HWND(hwnd),
-                    msg,
-                    wparam,
-                    lparam,
+                parent_callback = _WNDPROC(parent_wnd_proc)
+                self._frameless_resize_parent_ref = parent_callback
+                _set_window_long_ptr(
+                    hwnd, _GWLP_WNDPROC, ctypes.cast(parent_callback, ctypes.c_void_p).value
                 )
 
-            parent_callback = _WNDPROC(parent_wnd_proc)
-            self._frameless_resize_parent_ref = parent_callback
-            _set_window_long_ptr(
-                hwnd, _GWLP_WNDPROC, ctypes.cast(parent_callback, ctypes.c_void_p).value
-            )
+                style = _get_window_long_ptr(hwnd, _GWL_STYLE)
+                _set_window_long_ptr(hwnd, _GWL_STYLE, style | _WS_THICKFRAME)
 
-            style = _get_window_long_ptr(hwnd, _GWL_STYLE)
-            _set_window_long_ptr(hwnd, _GWL_STYLE, style | _WS_THICKFRAME)
-
-            self._frameless_resize_border = frame_size
+                self._frameless_resize_border = frame_size
+            except Exception as e:
+                logger.warning('Frameless resize setup failed: %s', e)
 
         def __str__(self):
             return f'<System.Windows.Forms object with {self.Handle} handle>'
