@@ -33,7 +33,7 @@ import System.Windows.Forms as WinForms  # noqa: E402
 from System import Action, Convert, Func, Object, String, Type, Uri  # noqa: E402
 from System.Collections.Generic import List  # noqa: E402
 from System.Diagnostics import Process  # noqa: E402
-from System.Drawing import Color  # noqa: E402
+from System.Drawing import Color, Rectangle  # noqa: E402
 from System.Globalization import CultureInfo  # noqa: E402
 from System.Threading.Tasks import Task, TaskScheduler  # noqa: E402
 
@@ -86,7 +86,7 @@ class EdgeChrome:
 
         if webview_settings['REMOTE_DEBUGGING_PORT'] is not None:
             props.AdditionalBrowserArguments += (
-                f' --remote-debugging-port={webview_settings["REMOTE_DEBUGGING_PORT"]}'
+                f" --remote-debugging-port={webview_settings['REMOTE_DEBUGGING_PORT']}"
             )
 
         self.webview.CreationProperties = props
@@ -96,7 +96,23 @@ class EdgeChrome:
 
         self.js_results = {}
         self.js_result_semaphore = Semaphore(0)
-        self.webview.Dock = WinForms.DockStyle.Fill
+
+        # When the form is frameless but resizable, the parent keeps a thin
+        # non-client border (see BrowserForm._install_frameless_resize) so the
+        # system can run its resize modal loop. The WebView2 control must not
+        # cover that border, otherwise the cursor never reaches the parent's
+        # non-client area. In that case we avoid Dock=Fill and manually size
+        # the control to the form's client area, re-locating it on every
+        # resize. Otherwise Dock=Fill is used as before.
+        self._frameless_resizable = bool(
+            getattr(window, 'frameless', False) and getattr(window, 'resizable', True)
+        )
+        if self._frameless_resizable:
+            self.webview.Dock = getattr(WinForms.DockStyle, 'None')
+            self._layout_webview()
+            form.Resize += self._on_form_resize
+        else:
+            self.webview.Dock = WinForms.DockStyle.Fill
         self.webview.BringToFront()
         self.webview.CoreWebView2InitializationCompleted += self.on_webview_ready
         self.webview.NavigationStarting += self.on_navigation_start
@@ -118,6 +134,30 @@ class EdgeChrome:
         self.html = DEFAULT_HTML
 
         self.webview.EnsureCoreWebView2Async(None)
+
+    def _layout_webview(self):
+        """Position the WebView2 control inside the form's client area.
+
+        When the form is frameless + resizable, the parent keeps a thin
+        non-client border for system resize hit-testing. We place the
+        WebView2 control flush against the client area so it does not cover
+        that border. The border width is read from the form when present
+        (set by BrowserForm._install_frameless_resize) and defaults to 0.
+        """
+        border = getattr(self.form, '_frameless_resize_border', 0)
+        client_w = self.form.ClientSize.Width
+        client_h = self.form.ClientSize.Height
+        self.webview.Bounds = Rectangle(
+            border,
+            border,
+            max(client_w - 2 * border, 0),
+            max(client_h - 2 * border, 0),
+        )
+
+    def _on_form_resize(self, sender, e):
+        """Keep the WebView2 control aligned to the client area on resize."""
+        if self._frameless_resizable:
+            self._layout_webview()
 
     def clear_user_data(self):
         if not _state['private_mode']:
