@@ -28,7 +28,7 @@ Get started by [installing _pywebview_](/guide/installation), explore [documenta
 
 ## Sponsors
 
-<a href=" https://www.testmuai.com/?utm_medium=sponsor&utm_source=pywebview" target="_blank">
+<a href="https://www.testmuai.com/?utm_medium=sponsor&utm_source=pywebview" target="_blank">
     <img src="https://github.com/r0x0r/pywebview/raw/master/assets/testmuai.svg" style="vertical-align: middle; padding: 1rem 0 8rem 0;" width="250" height="45" />
 </a>
 
