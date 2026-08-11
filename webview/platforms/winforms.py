@@ -201,10 +201,14 @@ class BrowserView:
 
             self.AutoScaleDimensions = SizeF(96.0, 96.0)
             self.AutoScaleMode = WinForms.AutoScaleMode.Dpi
-            hwnd = self.Handle.ToInt32()
 
-            # Set the initial size now that we have a window handle and can get DPI
-            # Size and MinimumSize need to be in physical pixels
+            # Always use Manual before Handle is accessed so WinForms never tries
+            # to auto-center with the default form size (CenterScreen in
+            # OnHandleCreated runs before we set self.Size, so the window gets
+            # centered for the wrong dimensions and ends up off-screen).
+            self.StartPosition = WinForms.FormStartPosition.Manual
+
+            # Now safe to access Handle / DPI.
             scale = self._scale
             self.Size = Size(int(window.initial_width * scale), int(window.initial_height * scale))
             self.MinimumSize = Size(
@@ -212,21 +216,21 @@ class BrowserView:
             )
 
             if window.initial_x is not None and window.initial_y is not None:
-                self.StartPosition = WinForms.FormStartPosition.Manual
                 # Convert logical pixel coordinates to physical for WinForms
                 self.Location = Point(
                     int(window.initial_x * scale),
                     int(window.initial_y * scale),
                 )
             elif window.screen:
-                self.StartPosition = WinForms.FormStartPosition.Manual
                 # Screen coordinates are in logical pixels, center the window
                 # Calculate center position in logical pixels first, then convert to physical
                 logical_x = window.screen.x + (window.screen.width - window.initial_width) // 2
                 logical_y = window.screen.y + (window.screen.height - window.initial_height) // 2
                 self.Location = Point(int(logical_x * scale), int(logical_y * scale))
             else:
-                self.StartPosition = WinForms.FormStartPosition.CenterScreen
+                # Size is now correct; CenterToScreen() uses the actual current
+                # size and places the window in the middle of the primary screen.
+                self.CenterToScreen()
 
             if not window.resizable:
                 self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
@@ -260,6 +264,8 @@ class BrowserView:
             self.is_fullscreen = False
             if window.fullscreen:
                 self.toggle_fullscreen()
+
+            hwnd = self.Handle.ToInt32()
 
             if window.shadow and not window.transparent:
                 # Should do this before set frameless

@@ -35,7 +35,7 @@ Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.
 
 ## Sponsors
 
-[![TestMu AI Sponsor](/assets/testmuai.svg)](https://www.testmu.ai/?utm_source=pywebview&utm_medium=sponsor)
+[![TestMu AI Sponsor](/assets/testmuai.svg)](https://www.testmuai.com/?utm_medium=sponsor&utm_source=pywebview)
 
 
 ## Code Contributors
