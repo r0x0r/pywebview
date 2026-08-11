@@ -119,7 +119,7 @@ packages = [
     "webview.__pyinstaller"]
 
 [tool.setuptools.package-data]
-"webview.lib" = ["**/*.dll", "**/*.jar"]
+"webview.lib" = ["**/*.dll", "**/*.jar", "**/*.json"]
 "webview.js" = ["**/*.js"]
 "webview" = ["py.typed"]
 

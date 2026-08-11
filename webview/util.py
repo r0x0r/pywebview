@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import webview
+from webview.clr_runtime import interop_subdir
 from webview.dom import _dnd_state
 from webview.errors import WebViewException
 
@@ -485,32 +486,48 @@ def interop_dll_path(dll_name: str) -> str:
             else 'WebBrowserInterop.x86.dll'
         )
 
+    subdir = interop_subdir()
+
+    def find_in(directory: str) -> str | None:
+        """Assemblies that ship per target framework live in a subdirectory
+        named for the active runtime; the flat copy is the netfx one."""
+        if subdir:
+            path = os.path.join(directory, subdir, dll_name)
+            if os.path.exists(path):
+                return path
+
+        path = os.path.join(directory, dll_name)
+        return path if os.path.exists(path) else None
+
     # Unfrozen path
-    dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', dll_name)
-    if os.path.exists(dll_path):
+    lib_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
+    dll_path = find_in(lib_dir)
+    if dll_path:
         return dll_path
 
-    dll_path = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), 'lib', 'runtimes', dll_name, 'native'
-    )
+    # Native loader directory, addressed by runtime identifier rather than name
+    dll_path = os.path.join(lib_dir, 'runtimes', dll_name, 'native')
     if os.path.exists(dll_path):
         return dll_path
 
     # Frozen path, dll in the same dir as the executable
-    dll_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), dll_name)
-    if os.path.exists(dll_path):
+    dll_path = find_in(os.path.dirname(os.path.realpath(sys.argv[0])))
+    if dll_path:
         return dll_path
 
     try:
         # Frozen path packed as onefile
+        base_dir = None
         if hasattr(sys, '_MEIPASS'):  # Pyinstaller
-            dll_path = os.path.join(sys._MEIPASS, dll_name)
+            base_dir = sys._MEIPASS
 
         elif getattr(sys, 'frozen', False):  # cx_freeze
-            dll_path = os.path.join(sys.executable, dll_name)
+            base_dir = sys.executable
 
-        if os.path.exists(dll_path):
-            return dll_path
+        if base_dir:
+            dll_path = find_in(base_dir)
+            if dll_path:
+                return dll_path
     except Exception:
         pass
 

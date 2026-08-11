@@ -10,16 +10,12 @@ from ctypes import windll, wintypes
 from platform import machine
 from threading import Event, Semaphore
 
-try:
-    import clr
-except Exception:
-    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
-    import clr
-
 from webview import FileDialog, _state, settings, windows
+from webview.clr_runtime import is_coreclr
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms import win32
+from webview.platforms._pythonnet import clr  # selects the runtime, loads pythonnet
 from webview.screen import Screen
 from webview.util import inject_base_uri, parse_file_type
 from webview.window import FixPoint
@@ -28,7 +24,7 @@ clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 clr.AddReference('System.Reflection')
-if os.environ.get('PYTHONNET_RUNTIME') == 'coreclr':
+if is_coreclr():
     clr.AddReference('Microsoft.Win32.SystemEvents')
 
 import System.Windows.Forms as WinForms  # noqa: E402
@@ -91,10 +87,9 @@ def _is_chromium():
     # coreclr and is absent altogether on ARM64, where reading it would report
     # no Chromium and drop us to MSHTML. It then stays unopened, which is why
     # the close in the finally is guarded.
-    is_coreclr = os.environ.get('PYTHONNET_RUNTIME') == 'coreclr'
     net_key = None
     try:
-        if not is_coreclr:
+        if not is_coreclr():
             net_key = winreg.OpenKey(
                 winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full'
             )
@@ -681,7 +676,7 @@ class BrowserView:
         WinForms.MessageBox.Show(str(message))
 
 
-if os.environ.get('PYTHONNET_RUNTIME') != 'coreclr':
+if not is_coreclr():
 
     class OpenFolderDialog:
         """Folder picker dialog using FileDialogNative reflection.

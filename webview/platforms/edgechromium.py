@@ -6,16 +6,11 @@ import webbrowser
 import winreg
 from threading import Semaphore
 
-try:
-    import clr
-except Exception:
-    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
-    import clr
-
 from webview import Window, _state
 from webview import settings as webview_settings
 from webview.dom import _dnd_state
 from webview.models import Request, Response
+from webview.platforms._pythonnet import clr  # selects the runtime, loads pythonnet
 from webview.util import (
     DEFAULT_HTML,
     create_cookie,
