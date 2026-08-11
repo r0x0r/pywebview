@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 
@@ -53,9 +54,22 @@ class TestSelectRuntime:
         assert os.environ['PYTHONNET_RUNTIME'] == 'netfx'
 
     def test_raises_when_neither_runtime_loads(self):
+        """Reporting only the netfx failure hides the useful half: coreclr is
+        the runtime pywebview wants, so why it was rejected is the diagnosis."""
         load = loader_that_fails_on('coreclr', 'netfx')
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError) as excinfo:
             select_runtime(load)
+
+        message = str(excinfo.value)
+        assert 'no coreclr available' in message
+        assert 'no netfx available' in message
+
+    def test_a_successful_fallback_still_reports_why(self, caplog):
+        load = loader_that_fails_on('coreclr')
+        with caplog.at_level(logging.DEBUG, logger='pywebview'):
+            assert select_runtime(load) == 'netfx'
+
+        assert 'no coreclr available' in caplog.text
 
     def test_explicit_runtime_choice_is_honoured(self, monkeypatch):
         monkeypatch.setenv('PYTHONNET_RUNTIME', 'netfx')
