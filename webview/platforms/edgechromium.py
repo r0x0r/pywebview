@@ -4,14 +4,9 @@ import os
 from threading import Semaphore
 from uuid import uuid1
 
-try:
-    import clr
-except Exception:
-    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
-    import clr
-
 from webview import Window, _state
 from webview import settings as webview_settings
+from webview.platforms._pythonnet import clr  # selects the runtime, loads pythonnet
 from webview.platforms.webview2core import WebView2Core
 from webview.util import (
     create_cookie,
