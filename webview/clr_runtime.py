@@ -21,6 +21,7 @@ An embedder that has already chosen a runtime -- by setting
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 from typing import Callable
@@ -30,6 +31,8 @@ from typing import Callable
 CORECLR_INTEROP_SUBDIR = 'netcoreapp3.0'
 
 RUNTIME_CONFIG = 'pywebview-runtimeconfig.json'
+
+logger = logging.getLogger('pywebview')
 
 
 def runtimeconfig_path() -> str:
@@ -82,9 +85,21 @@ def select_runtime(load: Callable[[str], None] = _load) -> str:
     os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
     try:
         load('coreclr')
-    except BaseException:
+    except BaseException as coreclr_error:
+        logger.debug('coreclr unavailable, falling back to netfx: %s', coreclr_error)
+
         os.environ['PYTHONNET_RUNTIME'] = 'netfx'
-        load('netfx')
+        try:
+            load('netfx')
+        except BaseException as netfx_error:
+            # Reporting only the netfx failure hides the useful half: coreclr
+            # is the runtime pywebview wants, so why it was rejected is the
+            # diagnosis. .NET Framework is simply absent on ARM64.
+            raise RuntimeError(
+                f'Could not load pythonnet on either runtime. '
+                f'coreclr: {coreclr_error}. netfx: {netfx_error}.'
+            ) from coreclr_error
+
         return 'netfx'
 
     return 'coreclr'
