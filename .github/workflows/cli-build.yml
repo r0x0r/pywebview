@@ -1,0 +1,215 @@
+name: CLI Build Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'feature/cli-toolchain' ]
+  pull_request:
+    paths:
+      - 'webview/cli/**'
+      - 'webview/bundler/**'
+      - '.github/workflows/cli-build.yml'
+      - 'pyproject.toml'
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: deb
+            artifact_glob: dist/installers/*.deb
+          - os: windows-latest
+            target: msi
+            artifact_glob: dist/installers/*.msi
+          - os: macos-latest
+            target: dmg
+            artifact_glob: dist/installers/*.dmg
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pywebview[cli]
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[cli]"
+
+      - name: Install WiX Toolset (Windows)
+        if: runner.os == 'Windows'
+        # Pinned to 5.x: WiX v6+ requires accepting the Open Source
+        # Maintenance Fee EULA before the CLI will run non-interactively.
+        # v5's CLI still targets the same v4 .wxs schema our template uses.
+        run: dotnet tool install --global wix --version 5.0.2
+
+      - name: Scaffold test app
+        shell: bash
+        run: |
+          pywebview init testapp --name "CLI Smoke Test" --identifier com.example.clismoketest --yes
+
+      - name: Set bundle target
+        shell: python
+        run: |
+          import json
+          path = 'testapp/pywebview.conf.json'
+          with open(path) as f:
+              config = json.load(f)
+          config['bundle']['targets'] = ['${{ matrix.target }}']
+          with open(path, 'w') as f:
+              json.dump(config, f, indent=2)
+
+      - name: Run doctor
+        working-directory: testapp
+        run: pywebview doctor
+        continue-on-error: true
+
+      - name: Build
+        working-directory: testapp
+        run: pywebview build
+
+      - name: Verify installer artifact was produced
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(testapp/${{ matrix.artifact_glob }})
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No installer artifact matched testapp/${{ matrix.artifact_glob }}"
+            find testapp/dist -type f
+            exit 1
+          fi
+          echo "Found installer artifact(s):"
+          printf '%s\n' "${files[@]}"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          path: testapp/${{ matrix.artifact_glob }}
+
+  android:
+    name: android
+    # Pinned to 22.04: python-for-android's libffi recipe uses an old
+    # configure.ac that fails under 24.04's newer autotools ("configure.ac:
+    # error: possibly undefined macro: LT_SYS_SYMBOL_USCORE" during
+    # autoreconf) -- a known python-for-android/Ubuntu-24.04 incompatibility.
+    runs-on: ubuntu-22.04
+    # buildozer/python-for-android compiles native recipes from scratch on a
+    # cold cache -- this routinely takes far longer than the desktop
+    # installer jobs above, so it's kept as its own decoupled job rather
+    # than folded into the fast desktop matrix.
+    timeout-minutes: 45
+
+    # python-for-android's own dependency-install step runs an unconditional
+    # `pip install -U pip` inside a fresh venv it creates. That self-upgrade
+    # replaces pip's own files while pip is still executing, which corrupts
+    # the running process's imports -- reproduced with two different target
+    # versions, each producing a different broken-import error, so the
+    # hazard is the live self-replace itself, not one bad release.
+    # PIP_CONSTRAINT forces every pip invocation in this job -- including
+    # p4a's internal self-upgrade -- to resolve "pip" to the version the
+    # venv already has, turning that upgrade into a no-op.
+    env:
+      PIP_CONSTRAINT: ${{ github.workspace }}/pip-constraints.txt
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # buildozer/python-for-android tooling is more battle-tested on
+          # 3.11 than 3.12 at the time of writing.
+          python-version: '3.11'
+
+      - name: Set up Java 17
+        # The runner ships multiple JDKs; without this, gradlew resolved
+        # JAVA_HOME to Java 11 and failed: "Android Gradle plugin requires
+        # Java 17 to run. You are currently using Java 11." Found via a
+        # live run -- setup-java pins JAVA_HOME reliably instead of relying
+        # on whichever JDK happens to be selected by default.
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Write pip constraint
+        # Pinned to whatever `python -m venv` already bundles via ensurepip
+        # for this Python version (confirmed via a live run: "Successfully
+        # installed pip-24.0" right after venv creation), not just "a known
+        # -good version" -- constraining to a *different* version (26.1.2)
+        # still triggered a real uninstall/reinstall of the running pip
+        # (visible as "Attempting uninstall: pip / Found existing
+        # installation: pip 24.0"), and produced a different broken-import
+        # failure each time, pointing at pip replacing its own files while
+        # executing as the actual hazard, not any one bad release. Matching
+        # the already-installed version makes p4a's `pip install -U pip`
+        # a no-op instead.
+        run: echo "pip==24.0" > pip-constraints.txt
+
+      - name: Install system build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            git zip unzip openjdk-17-jdk autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev cmake libffi-dev libssl-dev
+
+      - name: Install pywebview[cli] and buildozer
+        # No `pip install --upgrade pip` here: PIP_CONSTRAINT is job-scoped
+        # and pins pip==24.0, so an explicit upgrade would just fight the
+        # constraint for no benefit -- the pip actions/setup-python ships is
+        # already sufficient for these installs.
+        run: |
+          pip install -e ".[cli]"
+          pip install buildozer cython
+
+      - name: Scaffold test app
+        run: pywebview init testapp --name "CLI Smoke Test" --identifier com.example.clismoketest --yes
+
+      - name: Set bundle target
+        shell: python
+        run: |
+          import json
+          path = 'testapp/pywebview.conf.json'
+          with open(path) as f:
+              config = json.load(f)
+          config['bundle']['targets'] = ['android']
+          with open(path, 'w') as f:
+              json.dump(config, f, indent=2)
+
+      - name: Run doctor
+        working-directory: testapp
+        run: pywebview doctor
+        continue-on-error: true
+
+      - name: Build android
+        working-directory: testapp
+        run: pywebview build --target android
+
+      - name: Verify apk artifact was produced
+        shell: bash
+        run: |
+          shopt -s nullglob
+          apks=(testapp/bin/*.apk)
+          if [ ${#apks[@]} -eq 0 ]; then
+            echo "No .apk found in testapp/bin"
+            find testapp/bin -type f 2>/dev/null
+            exit 1
+          fi
+          echo "Found .apk artifact(s):"
+          printf '%s\n' "${apks[@]}"
+
+      - name: Upload apk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-android
+          path: testapp/bin/*.apk

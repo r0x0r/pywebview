@@ -66,6 +66,7 @@ export default defineUserConfig({
             '/guide/dom',
             '/guide/faq',
             '/guide/interdomain',
+            '/guide/cli',
             '/guide/freezing',
             '/guide/security',
             '/guide/web_engine',

@@ -1,5 +1,7 @@
 # Freezing
 
+For a scaffolded project with automated PyInstaller freezing and native installer generation (.msi, .dmg, .deb, AppImage), see the [CLI toolchain](cli.md) (`pip install pywebview[cli]`). This page covers the manual, tool-by-tool setup that the CLI builds on.
+
 ## Android
 
 pywebview is designed to be built with [buildozer](https://buildozer.readthedocs.io/en/latest/). You need to include following lines in your `buildozer.spec` to bundle pywebview correctly

@@ -56,11 +56,15 @@ qt5 = ["QtPy", "PyQt5", "pyqtwebengine"]
 qt6 = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 android = ["jnius"]
 ssl = ["cryptography"]
+cli = ["click>=8", "watchfiles", "jinja2", "Pillow", "pyinstaller", "tomli; python_version<'3.11'"]
 dev = ["ruff", "pre-commit", "pytest", "build", "twine"]
 
 [project.urls]
 Homepage = "https://pywebview.flowrl.com/"
 Repository = "https://github.com/r0x0r/pywebview"
+
+[project.scripts]
+pywebview = "webview.cli.__main__:main"
 
 [tool.build-system]
 exclude = [
@@ -116,12 +120,14 @@ include-package-data = false
 packages = [
     "webview", "webview.dom", "webview.js", "webview.lib", "webview.platforms",
     "webview.platforms.android", "webview.platforms.android.jinterface", "webview.platforms.android.jclass",
-    "webview.__pyinstaller"]
+    "webview.__pyinstaller", "webview.cli", "webview.cli.commands", "webview.bundler"]
 
 [tool.setuptools.package-data]
 "webview.lib" = ["**/*.dll", "**/*.jar"]
 "webview.js" = ["**/*.js"]
 "webview" = ["py.typed"]
+"webview.cli" = ["schemas/*.json", "templates/**/*"]
+"webview.bundler" = ["templates/*.jinja"]
 
 [tool.setuptools_scm]
 write_to = "webview/_version.py"

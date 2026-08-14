@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="{{ product_name }}"
+           Manufacturer="{{ product_name }}"
+           Version="{{ version }}"
+           UpgradeCode="{{ upgrade_code }}">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of {{ product_name }} is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="INSTALLFOLDER" Name="{{ product_name }}">
+        <Component Id="MainExecutable" Guid="*">
+          <File Id="MainEXE" Source="{{ source_dir }}\{{ exe_name }}" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="{{ product_name }}" Level="1">
+      <ComponentRef Id="MainExecutable" />
+    </Feature>
+  </Package>
+</Wix>

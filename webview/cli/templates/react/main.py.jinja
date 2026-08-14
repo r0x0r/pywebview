@@ -1,0 +1,26 @@
+import os
+
+import webview
+from webview.cli import devreload
+from webview.cli.config import load as load_config
+
+CONFIG = load_config(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pywebview.conf.json'))
+
+
+def main() -> None:
+    is_dev = os.environ.get('PYWEBVIEW_DEV') == '1'
+    dev_url = CONFIG.get('frontendDev', {}).get('url')
+
+    if is_dev and dev_url:
+        url = dev_url
+    else:
+        frontend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), CONFIG['frontendDist'])
+        url = os.path.join(frontend_dir, 'index.html')
+
+    window = webview.create_window(url=url, **CONFIG['window'])
+    devreload.maybe_start(window)
+    webview.start(debug=is_dev)
+
+
+if __name__ == '__main__':
+    main()

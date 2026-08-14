@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "pywebview.conf.json",
+  "type": "object",
+  "required": ["productName", "version", "identifier", "entry"],
+  "properties": {
+    "productName": { "type": "string" },
+    "version": { "type": "string" },
+    "identifier": { "type": "string", "description": "Reverse-DNS bundle identifier, e.g. com.example.app" },
+    "entry": { "type": "string", "description": "Python entry point that calls webview.start()" },
+    "frontendDist": { "type": "string" },
+    "frontendDev": {
+      "type": "object",
+      "properties": {
+        "command": { "type": ["string", "null"] },
+        "url": { "type": ["string", "null"] },
+        "watch": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "window": {
+      "type": "object",
+      "description": "Passthrough of webview.create_window() kwargs",
+      "properties": {
+        "title": { "type": "string" },
+        "width": { "type": "integer" },
+        "height": { "type": "integer" },
+        "resizable": { "type": "boolean" },
+        "frameless": { "type": "boolean" }
+      }
+    },
+    "bundle": {
+      "type": "object",
+      "properties": {
+        "targets": {
+          "type": "array",
+          "items": { "enum": ["msi", "nsis", "dmg", "deb", "appimage", "android"] }
+        },
+        "icon": { "type": ["string", "null"] },
+        "resources": { "type": "array", "items": { "type": "string" } },
+        "pyinstaller": {
+          "type": "object",
+          "properties": {
+            "onefile": { "type": "boolean" },
+            "excludes": { "type": "array", "items": { "type": "string" } },
+            "extraArgs": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "windows": {
+          "type": "object",
+          "properties": {
+            "webview2RuntimePath": { "type": ["string", "null"] },
+            "webview2InstallMode": {
+              "enum": ["downloadBootstrapper", "embedBootstrapper", "offlineInstaller", "skip"]
+            }
+          }
+        },
+        "linux": {
+          "type": "object",
+          "properties": {
+            "webkitgtkPackage": { "type": "string" },
+            "debDepends": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "macos": {
+          "type": "object",
+          "properties": {
+            "minimumSystemVersion": { "type": "string" },
+            "signingIdentity": { "type": ["string", "null"] },
+            "entitlements": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "mobile": {
+      "type": "object",
+      "properties": {
+        "android": {
+          "type": "object",
+          "properties": {
+            "buildozerSpecOverrides": { "type": "object" }
+          }
+        },
+        "ios": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  }
+}
