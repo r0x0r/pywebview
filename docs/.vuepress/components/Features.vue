@@ -64,6 +64,41 @@ export default {
               title: "Bundler friendly",
               details: "Easily integrate with popular bundlers like pyinstaller, nuitka, and py2app, streamlining the packaging and distribution of your applications.",
               icon: "package"
+            },
+            {
+              title: "CLI toolchain",
+              details: "Scaffold, develop, and package apps into native installers (.msi, .dmg, .deb, .apk) with a single pywebview command-line tool.",
+              icon: "terminal"
+            },
+            {
+              title: "Native notifications",
+              details: "Show native OS notifications on macOS, Windows, and Linux with a single webview.notify() call.",
+              icon: "notifications"
+            },
+            {
+              title: "Secure credential storage",
+              details: "Store secrets in the OS-native keychain -- macOS Keychain, Windows DPAPI, or Linux Secret Service -- via webview.keyring.",
+              icon: "key"
+            },
+            {
+              title: "Settings persistence",
+              details: "Persist app settings to a simple JSON-backed key-value store with webview.store, no extra dependency required.",
+              icon: "save"
+            },
+            {
+              title: "System tray icons",
+              details: "Add a native tray or menu bar icon with a context menu built from the same Menu API used for your window.",
+              icon: "apps"
+            },
+            {
+              title: "Global keyboard shortcuts",
+              details: "Register hotkeys that fire even when no pywebview window is focused, with webview.shortcuts.",
+              icon: "keyboard"
+            },
+            {
+              title: "Single-instance enforcement",
+              details: "Detect an already-running instance of your app and forward the new launch's arguments to it instead of opening a duplicate window.",
+              icon: "verified"
             }
           ]
         }
