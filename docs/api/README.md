@@ -9,6 +9,26 @@ webview.active_window()
 
 Get an instance of the currently active window
 
+## webview.notify
+
+``` python
+webview.notify(title, message, app_name='pywebview')
+```
+
+Display a native OS notification (macOS Notification Center, Windows toast/balloon, or Linux via `libnotify`/`notify-send`).
+
+* `title` Notification title
+* `message` Notification body text
+* `app_name` Application name shown in the notification. Only used on Windows and Linux.
+
+Raises `webview.WebViewException` if no supported notification backend is available on the current platform (e.g. `libnotify` is not installed on Linux).
+
+#### Examples
+
+``` python
+webview.notify('Download complete', 'your_file.zip has finished downloading')
+```
+
 ## webview.create_window
 
 ``` python
@@ -141,6 +161,46 @@ webview.token
 ```
 
 A CSRF token property unique to the session. The same token is exposed as `window.pywebview.token`. See [Security](/guide/security.md) for usage details.
+
+## webview.keyring
+
+Secure credential storage backed by each OS's native mechanism: macOS Keychain, Windows DPAPI, or Linux Secret Service. On Linux, if no Secret Service implementation (e.g. GNOME Keyring, KWallet) is reachable, `webview.keyring` transparently falls back to an encrypted file under `~/.pywebview/keyring`, which requires the `cryptography` package (`pip install pywebview[keyring]`).
+
+### webview.keyring.set_password
+
+``` python
+webview.keyring.set_password(service, username, password)
+```
+
+Store a password in the OS-native secure credential store.
+
+* `service` Name of the service/application the credential belongs to.
+* `username` Username or account identifier associated with the credential.
+* `password` Secret value to store.
+
+### webview.keyring.get_password
+
+``` python
+webview.keyring.get_password(service, username)
+```
+
+Retrieve a password from the OS-native secure credential store. Returns `None` if no credential is found.
+
+### webview.keyring.delete_password
+
+``` python
+webview.keyring.delete_password(service, username)
+```
+
+Delete a password from the OS-native secure credential store. No-op if the credential does not exist.
+
+#### Examples
+
+``` python
+webview.keyring.set_password('my-app', 'alice', 'hunter2')
+password = webview.keyring.get_password('my-app', 'alice')
+webview.keyring.delete_password('my-app', 'alice')
+```
 
 ## webview.store
 

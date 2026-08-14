@@ -24,6 +24,7 @@ from uuid import uuid4
 from proxy_tools import module_property
 
 import webview.http as http
+import webview.keyring  # noqa: F401 -- exposes webview.keyring.* as a namespace
 import webview.store  # noqa: F401 -- exposes webview.store.* as a namespace
 import webview.tray  # noqa: F401 -- exposes webview.tray.* as a namespace
 from webview.errors import JavascriptException, WebViewException
@@ -31,6 +32,7 @@ from webview.event import Event
 from webview.guilib import GUIType, initialize
 from webview.localization import original_localization
 from webview.menu import Menu
+from webview.notification import notify
 from webview.screen import Screen
 from webview.util import _TOKEN, ImmutableDict, abspath, is_app, is_local_url
 from webview.window import Window
@@ -40,6 +42,7 @@ __all__ = (
     'active_window',
     'start',
     'create_window',
+    'notify',
     'token',
     'renderer',
     'screens',
