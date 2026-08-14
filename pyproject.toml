@@ -57,6 +57,7 @@ qt6 = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 android = ["jnius"]
 ssl = ["cryptography"]
 keyring = ["cryptography;sys_platform=='linux'"]
+shortcuts = ["python-xlib;sys_platform=='linux'"]
 cli = ["click>=8", "watchfiles", "jinja2", "Pillow", "pyinstaller", "tomli; python_version<'3.11'"]
 dev = ["ruff", "pre-commit", "pytest", "build", "twine"]
 

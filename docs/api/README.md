@@ -29,6 +29,34 @@ Raises `webview.WebViewException` if no supported notification backend is availa
 webview.notify('Download complete', 'your_file.zip has finished downloading')
 ```
 
+## webview.enforce_single_instance
+
+``` python
+webview.enforce_single_instance(on_second_instance=None, identifier='pywebview')
+```
+
+Ensure only one instance of the app is running at a time. Call this near the start of your app, before creating any windows.
+
+* `on_second_instance` Callback invoked (only in the primary instance) with the second launch's `sys.argv`, whenever another instance of the app is started while this one is still running. A common use is to bring the app's window to the front.
+* `identifier` Unique identifier for this app, used to derive the IPC address (a named pipe on Windows, a Unix domain socket elsewhere, under `webview.util.app_data_dir()`). Must be the same across launches you want to treat as the same app.
+
+Returns `True` if this is the primary instance, `False` otherwise -- if `False`, this launch's `sys.argv` has already been forwarded to the primary instance and the caller should return/exit without creating any windows.
+
+#### Examples
+
+``` python
+def bring_to_front(argv):
+    window = webview.active_window()
+    if window:
+        window.restore()
+
+if not webview.enforce_single_instance(on_second_instance=bring_to_front):
+    sys.exit(0)
+
+window = webview.create_window('My App', 'index.html')
+webview.start()
+```
+
 ## webview.create_window
 
 ``` python
@@ -317,6 +345,55 @@ tray_icon = webview.tray.create_tray_icon(
         MenuAction('Quit', on_quit),
     ],
 )
+```
+
+## webview.shortcuts
+
+Global keyboard shortcuts: hotkeys that fire even when no pywebview window is focused. On Linux this requires X11 (`pip install pywebview[shortcuts]`) -- there is no portable Wayland equivalent without a compositor-specific portal, so it is not supported under Wayland.
+
+Shortcut strings are `+`-separated, e.g. `"ctrl+shift+s"` or `"cmdorctrl+k"` (`cmdorctrl` resolves to `super`/Cmd on macOS, `ctrl` elsewhere). Supported modifiers: `ctrl`/`control`, `alt`/`option`, `shift`, `super`/`cmd`/`command`/`win`/`meta`. Supported keys: single alphanumeric characters, `f1`-`f12`, `space`, `tab`, `escape`/`esc`, `enter`/`return`, `up`/`down`/`left`/`right`, `backspace`, `delete`.
+
+### webview.shortcuts.register
+
+``` python
+webview.shortcuts.register(shortcut, callback)
+```
+
+Register a global keyboard shortcut. Fires `callback` (in a background thread, with no arguments) whenever the shortcut is pressed. Raises `webview.WebViewException` if the shortcut is already registered or uses an unsupported modifier/key.
+
+### webview.shortcuts.unregister
+
+``` python
+webview.shortcuts.unregister(shortcut)
+```
+
+Unregister a previously registered global shortcut. No-op if not registered.
+
+### webview.shortcuts.unregister_all
+
+``` python
+webview.shortcuts.unregister_all()
+```
+
+Unregister all currently registered global shortcuts.
+
+### webview.shortcuts.is_registered
+
+``` python
+webview.shortcuts.is_registered(shortcut)
+```
+
+Check whether a shortcut is currently registered.
+
+#### Examples
+
+``` python
+def on_toggle():
+    window = webview.active_window()
+    if window:
+        window.show()
+
+webview.shortcuts.register('cmdorctrl+shift+p', on_toggle)
 ```
 
 ## webview.dom
