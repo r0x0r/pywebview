@@ -142,6 +142,123 @@ webview.token
 
 A CSRF token property unique to the session. The same token is exposed as `window.pywebview.token`. See [Security](/guide/security.md) for usage details.
 
+## webview.store
+
+A JSON-backed key-value store for application settings, persisted under `webview.util.app_data_dir()` (`~/.pywebview/store.json` on macOS/Linux, `%APPDATA%\pywebview\store.json` on Windows) by default. For secrets (passwords, tokens), use `webview.keyring` instead -- `webview.store` is unencrypted, plain JSON.
+
+### webview.store.get
+
+``` python
+webview.store.get(key, default=None)
+```
+
+Get a value from the default store. Returns `default` if the key does not exist.
+
+### webview.store.set
+
+``` python
+webview.store.set(key, value)
+```
+
+Set a value in the default store. `value` must be JSON-serializable.
+
+### webview.store.has
+
+``` python
+webview.store.has(key)
+```
+
+Check whether a key exists in the default store.
+
+### webview.store.delete
+
+``` python
+webview.store.delete(key)
+```
+
+Delete a key from the default store. No-op if the key does not exist.
+
+### webview.store.keys
+
+``` python
+webview.store.keys()
+```
+
+List all keys currently in the default store.
+
+### webview.store.clear
+
+``` python
+webview.store.clear()
+```
+
+Remove all keys from the default store.
+
+### webview.store.Store
+
+``` python
+webview.store.Store(path=None)
+```
+
+A store backed by a custom file path, for apps that want more than one store (the module-level `webview.store.get`/`set`/... functions operate on a single default `Store` instance). Has the same `get`/`set`/`has`/`delete`/`keys`/`clear` methods as the module-level functions.
+
+#### Examples
+
+``` python
+webview.store.set('theme', 'dark')
+theme = webview.store.get('theme', default='light')
+
+settings = webview.store.Store('/path/to/custom-settings.json')
+settings.set('window_width', 1024)
+```
+
+## webview.tray
+
+System tray / menu bar icon support.
+
+### webview.tray.create_tray_icon
+
+``` python
+webview.tray.create_tray_icon(icon_path, menu_items=None, on_click=None, tooltip='pywebview')
+```
+
+Create and show a system tray icon. Must be called after the native GUI loop has started (i.e. after `webview.start()` has begun running), since the tray icon is driven by the same native event loop as the window backend. Returns a `TrayIcon` instance.
+
+* `icon_path` Path to the icon image file (`.ico` on Windows, any image format AppKit/GTK can load on macOS/Linux).
+* `menu_items` A list of `MenuAction`/`MenuSeparator` instances (the same classes used for the window menu bar, see `webview.Menu`) shown in the tray icon's context menu.
+* `on_click` Callback invoked when the tray icon itself is clicked. Not supported identically on every platform -- on macOS a click always opens the menu if one is set.
+* `tooltip` Tooltip text shown on hover.
+
+On Linux, this uses `Gtk.StatusIcon`, which has been deprecated since GTK 3.14 and may not render on some desktop environments (e.g. stock GNOME without a shell extension) -- it's used regardless since it requires nothing beyond the `gtk` extra already needed for the GTK window backend.
+
+### webview.tray.TrayIcon
+
+* `tray_icon.set_menu(menu_items)` Replace the tray icon's context menu.
+* `tray_icon.set_icon(icon_path)` Change the tray icon's image.
+* `tray_icon.set_tooltip(tooltip)` Change the tray icon's tooltip text.
+* `tray_icon.remove()` Remove the tray icon.
+
+#### Examples
+
+``` python
+from webview.menu import MenuAction, MenuSeparator
+
+def on_open():
+    window.show()
+
+def on_quit():
+    window.destroy()
+
+tray_icon = webview.tray.create_tray_icon(
+    'icon.png',
+    menu_items=[
+        MenuAction('Open', on_open),
+        MenuSeparator(),
+        MenuAction('Quit', on_quit),
+    ],
+)
+```
+
 ## webview.dom
 
 ### webview.dom.DOMEventHandler

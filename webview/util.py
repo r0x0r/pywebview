@@ -111,6 +111,20 @@ def get_app_root() -> str:
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
+def app_data_dir() -> str:
+    """
+    Default pywebview application data directory, used by features like
+    webview.store and webview.keyring's Linux fallback for storing files
+    outside of window storage_path (e.g. `~/.pywebview` cookies/local
+    storage). ``~/.pywebview`` on macOS/Linux, ``%APPDATA%\\pywebview`` on
+    Windows.
+    """
+    if sys.platform == 'win32':
+        base = os.environ.get('APPDATA') or os.path.expanduser('~')
+        return os.path.join(base, 'pywebview')
+    return os.path.expanduser('~/.pywebview')
+
+
 def abspath(path: str) -> str:
     """
     Make path absolute, using the application root
