@@ -3,10 +3,10 @@ requires = ["setuptools", "setuptools_scm[toml]"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pywebview"
+name = "pywebview2"
 authors = [{ name = "Roman Sirokov", email = "roman@flowrl.com" }]
-description = "Build GUI for your Python program with JavaScript, HTML, and CSS"
-keywords = ["gui", "webkit", "html", "web"]
+description = "Build GUI for your Python program with JavaScript, HTML, and CSS, with a Tauri-inspired CLI and bundler"
+keywords = ["gui", "webkit", "html", "web", "tauri"]
 requires-python = ">=3.8"
 license = { file = "LICENSE" }
 classifiers = [
@@ -62,11 +62,11 @@ cli = ["click>=8", "watchfiles", "jinja2", "Pillow", "pyinstaller", "tomli; pyth
 dev = ["ruff", "pre-commit", "pytest", "build", "twine"]
 
 [project.urls]
-Homepage = "https://pywebview.flowrl.com/"
-Repository = "https://github.com/r0x0r/pywebview"
+Homepage = "https://github.com/imattau/pywebview2"
+Repository = "https://github.com/imattau/pywebview2"
 
 [project.scripts]
-pywebview = "webview.cli.__main__:main"
+pywebview2 = "webview.cli.__main__:main"
 
 [tool.build-system]
 exclude = [

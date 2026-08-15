@@ -3,7 +3,7 @@ Android packaging: templates buildozer.spec and shells out to buildozer.
 
 Wraps buildozer the same way freeze.py wraps PyInstaller for desktop -- this
 module only generates config and orchestrates the external tool, it never
-reimplements python-for-android. pywebview's existing Android backend
+reimplements python-for-android. pywebview2's existing Android backend
 (webview/platforms/android/, Kivy/pyjnius-based) and guilib.py's Android
 detection are untouched; this only adds packaging orchestration around the
 already-documented buildozer workflow (see docs/guide/freezing.md and
@@ -19,7 +19,7 @@ import subprocess
 from typing import Any
 
 # python3 pinned rather than left open: an unpinned python3 recipe resolves
-# to the newest CPython p4a supports, and pip's install of pywebview's pure
+# to the newest CPython p4a supports, and pip's install of pywebview2's pure
 # -Python deps for that Android-arch/version wheel tag combination is prone
 # to breaking on the newest releases (e.g. "not a supported wheel on this
 # platform" for a brand-new cp3xx android_24_arm64_v8a tag). 3.11 is a more
@@ -30,7 +30,7 @@ from typing import Any
 # from the python3 pin alone. An exact patch version is required: p4a
 # resolves this to a CPython git tag (https://github.com/python/cpython/
 # archive/refs/tags/v<version>.tar.gz) and "v3.11" alone is not a real tag.
-DEFAULT_REQUIREMENTS = 'python3==3.11.9,hostpython3==3.11.9,kivy,pywebview'
+DEFAULT_REQUIREMENTS = 'python3==3.11.9,hostpython3==3.11.9,kivy,pywebview2'
 
 DEFAULT_APP_SECTION = {
     'source.include_exts': 'py,png,jpg,kv,atlas,html,jar,css,js',
@@ -108,7 +108,7 @@ def build(config: dict[str, Any], project_dir: str, release: bool = False) -> st
     """
     Write buildozer.spec and run `buildozer android debug|release`. Returns
     the path to the produced .apk. Requires buildozer plus the Android
-    SDK/NDK/Java to actually be installed -- run `pywebview doctor` to check.
+    SDK/NDK/Java to actually be installed -- run `pywebview2 doctor` to check.
     """
     entry_name = os.path.basename(config['entry'])
     if entry_name != 'main.py':

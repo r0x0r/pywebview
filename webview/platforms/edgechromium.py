@@ -51,7 +51,7 @@ for platform in ('win-arm64', 'win-x64', 'win-x86'):
     os.environ['Path'] += ';' + interop_dll_path(platform)
 
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 renderer = 'edgechromium'
 
 

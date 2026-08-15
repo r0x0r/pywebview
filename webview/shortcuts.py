@@ -2,9 +2,9 @@
 (C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
-http://github.com/r0x0r/pywebview/
+http://github.com/imattau/pywebview2/
 
-Global keyboard shortcuts: hotkeys that fire even when no pywebview window
+Global keyboard shortcuts: hotkeys that fire even when no pywebview2 window
 is focused. Implemented natively per platform: RegisterHotKey via ctypes
 (Windows), the Carbon Event Manager via ctypes (macOS -- deprecated but
 still functional and, unlike the modern replacement, doesn't require
@@ -65,7 +65,7 @@ def _parse_shortcut(shortcut: str) -> tuple[frozenset[str], str]:
 def register(shortcut: str, callback: Callable[[], None]) -> None:
     """
     Register a global keyboard shortcut. Fires `callback` (in a background
-    thread) whenever the shortcut is pressed, even if no pywebview window is
+    thread) whenever the shortcut is pressed, even if no pywebview2 window is
     focused.
 
     :param shortcut: A '+'-separated shortcut string, e.g. "ctrl+shift+s" or
@@ -536,7 +536,7 @@ def _linux_import_xlib():
     except ImportError as e:
         raise WebViewException(
             'Global shortcuts require python-xlib on Linux (X11 only -- not supported under '
-            'Wayland). Install it with "pip install pywebview[shortcuts]".'
+            'Wayland). Install it with "pip install pywebview2[shortcuts]".'
         ) from e
     return X, XK, Display
 

@@ -1,3 +1,3 @@
 window.addEventListener('pywebviewready', () => {
-  console.log('pywebview is ready');
+  console.log('pywebview2 is ready');
 });

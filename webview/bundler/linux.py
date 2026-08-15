@@ -16,7 +16,7 @@ from typing import Any
 
 from webview.bundler._templating import render
 
-logger_prefix = '[pywebview build]'
+logger_prefix = '[pywebview2 build]'
 
 
 class InstallerError(Exception):

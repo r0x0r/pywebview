@@ -2,7 +2,7 @@
 (C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
-http://github.com/r0x0r/pywebview/
+http://github.com/imattau/pywebview2/
 
 System tray / menu bar icon support.
 
@@ -34,7 +34,7 @@ class TrayIcon:
         icon_path: str,
         menu_items: list[MenuAction | MenuSeparator] | None = None,
         on_click: Callable[[], None] | None = None,
-        tooltip: str = 'pywebview',
+        tooltip: str = 'pywebview2',
     ) -> None:
         self.icon_path = icon_path
         self.menu_items = menu_items or []
@@ -66,7 +66,7 @@ def create_tray_icon(
     icon_path: str,
     menu_items: list[MenuAction | MenuSeparator] | None = None,
     on_click: Callable[[], None] | None = None,
-    tooltip: str = 'pywebview',
+    tooltip: str = 'pywebview2',
 ) -> TrayIcon:
     """
     Create and show a system tray / menu bar icon. Must be called after the

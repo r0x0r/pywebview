@@ -72,7 +72,7 @@ class TestRegistryDispatch:
     unregister functions are faked out here rather than exercising the real
     native backend (which may not have its optional dependency installed,
     e.g. python-xlib on a Linux CI job that didn't install
-    pywebview[shortcuts]).
+    pywebview2[shortcuts]).
     """
 
     @pytest.fixture(autouse=True)

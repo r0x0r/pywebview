@@ -14,7 +14,7 @@ from webview import WebViewException
 GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android', 'cocoa']
 GUI_TYPES = list(get_args(GUIType))
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 guilib: ModuleType | None = None
 forced_gui_: GUIType | None = None
 
@@ -93,8 +93,8 @@ def initialize(forced_gui: GUIType | None = None):
         forced_gui = 'qt' if 'KDE_FULL_SESSION' in os.environ else None
         forced_gui = cast(
             GUIType,
-            os.environ['PYWEBVIEW_GUI'].lower()
-            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in GUI_TYPES
+            os.environ['PYWEBVIEW2_GUI'].lower()
+            if 'PYWEBVIEW2_GUI' in os.environ and os.environ['PYWEBVIEW2_GUI'].lower() in GUI_TYPES
             else forced_gui,
         )
 

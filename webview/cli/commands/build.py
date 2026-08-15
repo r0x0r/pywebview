@@ -46,7 +46,7 @@ def build(config_path: str | None, targets: tuple[str, ...], dist_dir: str, rele
     if not requested_targets:
         click.echo('No bundle.targets configured; skipping installer generation.')
         click.echo(
-            'Set "bundle.targets" in pywebview.conf.json or pass --target to build installers.'
+            'Set "bundle.targets" in pywebview2.conf.json or pass --target to build installers.'
         )
         return
 

@@ -2,7 +2,7 @@ import ctypes
 import logging as _logging
 from ctypes import wintypes
 
-_log = _logging.getLogger('pywebview')
+_log = _logging.getLogger('pywebview2')
 
 
 _user32 = ctypes.windll.user32

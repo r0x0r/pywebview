@@ -2,7 +2,7 @@
 (C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
-http://github.com/r0x0r/pywebview/
+http://github.com/imattau/pywebview2/
 
 Cross-platform secure credential storage, backed by each OS's native
 mechanism: macOS Keychain, Windows DPAPI, and Linux Secret Service (with an
@@ -18,7 +18,7 @@ import sys
 from webview.errors import WebViewException
 from webview.util import app_data_dir
 
-_SERVICE_LABEL = 'pywebview'
+_SERVICE_LABEL = 'pywebview2'
 
 
 def set_password(service: str, username: str, password: str) -> None:
@@ -228,7 +228,7 @@ def _windows_delete_password(service: str, username: str) -> None:
 
 # -- Linux: Secret Service (via libsecret, if the system typelib is present) ---------------
 # with an encrypted-file fallback (via the `cryptography` package, `pip install
-# pywebview[keyring]`) when no Secret Service implementation is reachable.
+# pywebview2[keyring]`) when no Secret Service implementation is reachable.
 
 _secret_schema = None
 
@@ -239,7 +239,7 @@ def _linux_get_secret_schema():
 
     if _secret_schema is None:
         _secret_schema = Secret.Schema.new(
-            'org.pywebview.Password',
+            'org.pywebview2.Password',
             Secret.SchemaFlags.NONE,
             {
                 'service': Secret.SchemaAttributeType.STRING,
@@ -331,7 +331,7 @@ def _linux_keyring_unavailable_error() -> WebViewException:
     return WebViewException(
         'No Secret Service implementation found and the cryptography package is not '
         'installed for the encrypted-file fallback. Install libsecret (e.g. the '
-        '"gir1.2-secret-1" system package) or run "pip install pywebview[keyring]".'
+        '"gir1.2-secret-1" system package) or run "pip install pywebview2[keyring]".'
     )
 
 

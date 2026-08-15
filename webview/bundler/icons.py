@@ -15,13 +15,13 @@ def generate(source_path: str, output_dir: str) -> list[str]:
     """
     Generate icon.ico, icon.icns, and a set of icon-<size>.png files from
     source_path into output_dir. Returns the list of generated file paths.
-    Requires Pillow (pip install pywebview[cli]).
+    Requires Pillow (pip install pywebview2[cli]).
     """
     try:
         from PIL import Image
     except ImportError as e:
         raise RuntimeError(
-            'Icon generation requires Pillow. Install it with `pip install pywebview[cli]`.'
+            'Icon generation requires Pillow. Install it with `pip install pywebview2[cli]`.'
         ) from e
 
     if not os.path.exists(source_path):

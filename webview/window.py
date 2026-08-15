@@ -26,7 +26,7 @@ from webview.util import base_uri, escape_string, is_app, is_local_url, parse_fi
 P = ParamSpec('P')
 T = TypeVar('T')
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 
 
 def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:

@@ -47,7 +47,7 @@ try:
 except AttributeError:
     NSWindowTitleHidden = 1
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 logger.debug('Using Cocoa')
 
 renderer = 'wkwebview'

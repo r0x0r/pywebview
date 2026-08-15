@@ -2,7 +2,7 @@
 (C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
-http://github.com/r0x0r/pywebview/
+http://github.com/imattau/pywebview2/
 
 A simple JSON-backed persistent key-value store for application settings,
 distinct from webview.keyring (which is for secrets, not plain preferences).

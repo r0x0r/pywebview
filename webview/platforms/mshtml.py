@@ -32,7 +32,7 @@ from System import Func, Type  # noqa: E402
 clr.AddReference(interop_dll_path('WebBrowserInterop.dll'))
 from WebBrowserInterop import IWebBrowserInterop, WebBrowserEx  # noqa: E402
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 settings = {}
 
 renderer = 'mshtml'

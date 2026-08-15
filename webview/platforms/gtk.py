@@ -22,7 +22,7 @@ from webview.util import (
 )
 from webview.window import FixPoint, Window
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 os.environ['EGL_LOG_LEVEL'] = 'fatal'
 
 import gi  # noqa: E402

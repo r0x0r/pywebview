@@ -1,5 +1,5 @@
 """
-Loader and validator for pywebview.conf.json.
+Loader and validator for pywebview2.conf.json.
 """
 
 from __future__ import annotations
@@ -8,7 +8,7 @@ import json
 import os
 from typing import Any
 
-CONFIG_FILENAME = 'pywebview.conf.json'
+CONFIG_FILENAME = 'pywebview2.conf.json'
 
 DEFAULT_CONFIG: dict[str, Any] = {
     'productName': 'MyApp',
@@ -75,7 +75,7 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
 
 
 def find_config(start_dir: str | None = None) -> str | None:
-    """Look for pywebview.conf.json in start_dir (default cwd)."""
+    """Look for pywebview2.conf.json in start_dir (default cwd)."""
     directory = start_dir or os.getcwd()
     path = os.path.join(directory, CONFIG_FILENAME)
     return path if os.path.exists(path) else None
@@ -83,13 +83,13 @@ def find_config(start_dir: str | None = None) -> str | None:
 
 def load(path: str | None = None) -> dict[str, Any]:
     """
-    Load and validate pywebview.conf.json, merging it over DEFAULT_CONFIG so
+    Load and validate pywebview2.conf.json, merging it over DEFAULT_CONFIG so
     partial configs are valid. Raises ConfigError on missing file or invalid JSON.
     """
     config_path = path or find_config()
     if not config_path or not os.path.exists(config_path):
         raise ConfigError(
-            f'{CONFIG_FILENAME} not found. Run `pywebview init` to create a new project.'
+            f'{CONFIG_FILENAME} not found. Run `pywebview2 init` to create a new project.'
         )
 
     with open(config_path, encoding='utf-8') as f:

@@ -1,5 +1,5 @@
 """
-pywebview CLI entry point: `pywebview init | dev | build | icon | doctor | config`
+pywebview2 CLI entry point: `pywebview2 init | dev | build | icon | doctor | config`
 """
 
 from __future__ import annotations
@@ -15,9 +15,9 @@ from webview.cli.commands.init import init
 
 
 @click.group()
-@click.version_option(package_name='pywebview')
+@click.version_option(package_name='pywebview2')
 def main() -> None:
-    """pywebview project scaffolding, dev server, and installer builder."""
+    """pywebview2 project scaffolding, dev server, and installer builder."""
 
 
 main.add_command(init)

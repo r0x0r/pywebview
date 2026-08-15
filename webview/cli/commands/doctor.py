@@ -7,7 +7,7 @@ from webview.bundler.doctor import run_all
 
 @click.command()
 def doctor() -> None:
-    """Check the local environment for pywebview CLI/build prerequisites."""
+    """Check the local environment for pywebview2 CLI/build prerequisites."""
     results = run_all()
     any_failed = False
 

@@ -39,7 +39,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install pywebview[cli]
+      - name: Install pywebview2[cli]
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[cli]"
@@ -54,13 +54,13 @@ jobs:
       - name: Scaffold test app
         shell: bash
         run: |
-          pywebview init testapp --name "CLI Smoke Test" --identifier com.example.clismoketest --yes
+          pywebview2 init testapp --name "CLI Smoke Test" --identifier com.example.clismoketest --yes
 
       - name: Set bundle target
         shell: python
         run: |
           import json
-          path = 'testapp/pywebview.conf.json'
+          path = 'testapp/pywebview2.conf.json'
           with open(path) as f:
               config = json.load(f)
           config['bundle']['targets'] = ['${{ matrix.target }}']
@@ -69,12 +69,12 @@ jobs:
 
       - name: Run doctor
         working-directory: testapp
-        run: pywebview doctor
+        run: pywebview2 doctor
         continue-on-error: true
 
       - name: Build
         working-directory: testapp
-        run: pywebview build
+        run: pywebview2 build
 
       - name: Verify installer artifact was produced
         shell: bash
@@ -163,7 +163,7 @@ jobs:
             git zip unzip openjdk-17-jdk autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev cmake libffi-dev libssl-dev
 
-      - name: Install pywebview[cli] and buildozer
+      - name: Install pywebview2[cli] and buildozer
         # No `pip install --upgrade pip` here: PIP_CONSTRAINT is job-scoped
         # and pins pip==24.0, so an explicit upgrade would just fight the
         # constraint for no benefit -- the pip actions/setup-python ships is
@@ -173,13 +173,13 @@ jobs:
           pip install buildozer cython
 
       - name: Scaffold test app
-        run: pywebview init testapp --name "CLI Smoke Test" --identifier com.example.clismoketest --yes
+        run: pywebview2 init testapp --name "CLI Smoke Test" --identifier com.example.clismoketest --yes
 
       - name: Set bundle target
         shell: python
         run: |
           import json
-          path = 'testapp/pywebview.conf.json'
+          path = 'testapp/pywebview2.conf.json'
           with open(path) as f:
               config = json.load(f)
           config['bundle']['targets'] = ['android']
@@ -188,12 +188,12 @@ jobs:
 
       - name: Run doctor
         working-directory: testapp
-        run: pywebview doctor
+        run: pywebview2 doctor
         continue-on-error: true
 
       - name: Build android
         working-directory: testapp
-        run: pywebview build --target android
+        run: pywebview2 build --target android
 
       - name: Verify apk artifact was produced
         shell: bash

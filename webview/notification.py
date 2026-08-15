@@ -2,7 +2,7 @@
 (C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
-http://github.com/r0x0r/pywebview/
+http://github.com/imattau/pywebview2/
 
 Cross-platform native OS notification support.
 """
@@ -18,7 +18,7 @@ import time
 from webview.errors import WebViewException
 
 
-def notify(title: str, message: str, app_name: str = 'pywebview') -> None:
+def notify(title: str, message: str, app_name: str = 'pywebview2') -> None:
     """
     Display a native OS notification.
 

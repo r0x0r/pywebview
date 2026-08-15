@@ -2,7 +2,7 @@
 (C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
-http://github.com/r0x0r/pywebview/
+http://github.com/imattau/pywebview2/
 
 Single-instance enforcement: detect whether another instance of the app is
 already running and, if so, forward this launch's command-line arguments to
@@ -35,7 +35,7 @@ def _authkey(identifier: str) -> bytes:
     # for the multiprocessing.connection handshake to succeed -- they are
     # separate OS processes, each with its own random default authkey, so
     # one must be derived deterministically from `identifier` instead.
-    return hashlib.sha256(f'pywebview-single-instance-{identifier}'.encode()).digest()
+    return hashlib.sha256(f'pywebview2-single-instance-{identifier}'.encode()).digest()
 
 
 def _try_connect(address: str, authkey: bytes) -> Connection | None:
@@ -47,7 +47,7 @@ def _try_connect(address: str, authkey: bytes) -> Connection | None:
 
 def enforce_single_instance(
     on_second_instance: Callable[[list[str]], None] | None = None,
-    identifier: str = 'pywebview',
+    identifier: str = 'pywebview2',
 ) -> bool:
     """
     Ensure only one instance of the app is running at a time.

@@ -88,13 +88,13 @@ def dev(config_path: str | None, no_watch: bool) -> None:
     reload_token = secrets.token_hex(16)
 
     env = os.environ.copy()
-    env['PYWEBVIEW_DEV'] = '1'
-    env['PYWEBVIEW_DEV_RELOAD_PORT'] = str(reload_port)
-    env['PYWEBVIEW_DEV_RELOAD_TOKEN'] = reload_token
+    env['PYWEBVIEW2_DEV'] = '1'
+    env['PYWEBVIEW2_DEV_RELOAD_PORT'] = str(reload_port)
+    env['PYWEBVIEW2_DEV_RELOAD_TOKEN'] = reload_token
 
     app_process = None
     try:
-        click.echo(f'Running {entry_path} (PYWEBVIEW_DEV=1)...')
+        click.echo(f'Running {entry_path} (PYWEBVIEW2_DEV=1)...')
         app_process = _start_app(entry_path, project_dir, env)
 
         if no_watch:
@@ -106,8 +106,8 @@ def dev(config_path: str | None, no_watch: bool) -> None:
             import watchfiles
         except ImportError as e:
             raise click.ClickException(
-                'watchfiles is required for `pywebview dev` file watching. '
-                'Install it with `pip install pywebview[cli]`.'
+                'watchfiles is required for `pywebview2 dev` file watching. '
+                'Install it with `pip install pywebview2[cli]`.'
             ) from e
 
         python_watch_dir = os.path.dirname(entry_path) or project_dir

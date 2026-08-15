@@ -31,12 +31,12 @@ def _default_identifier(name: str) -> str:
 def init(
     path: str, template_name: str, product_name: str | None, identifier: str | None, yes: bool
 ) -> None:
-    """Scaffold a new pywebview project."""
+    """Scaffold a new pywebview2 project."""
     target_dir = os.path.abspath(path)
     os.makedirs(target_dir, exist_ok=True)
 
     if os.listdir(target_dir):
-        existing_conf = os.path.join(target_dir, 'pywebview.conf.json')
+        existing_conf = os.path.join(target_dir, 'pywebview2.conf.json')
         if os.path.exists(existing_conf):
             raise click.ClickException(f'{existing_conf} already exists, refusing to overwrite.')
 
@@ -81,11 +81,11 @@ def init(
                 with open(dest_path, 'wb') as dest_f:
                     dest_f.write(data)
 
-    click.echo(f'Created new pywebview project in {target_dir}')
+    click.echo(f'Created new pywebview2 project in {target_dir}')
     click.echo('Next steps:')
     if target_dir != os.getcwd():
         click.echo(f'  cd {os.path.relpath(target_dir)}')
-    click.echo('  pip install pywebview[cli]')
+    click.echo('  pip install pywebview2[cli]')
     if template_name in ('vue', 'react'):
         click.echo('  npm --prefix frontend install')
-    click.echo('  pywebview dev')
+    click.echo('  pywebview2 dev')

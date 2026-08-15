@@ -1,0 +1,83 @@
+proxy_tools
+bottle
+typing_extensions
+
+[:python_version < "3.9"]
+importlib_resources
+
+[:sys_platform == "darwin"]
+pyobjc-core>=9.0
+pyobjc-framework-Cocoa>=9.0
+pyobjc-framework-Quartz>=9.0
+pyobjc-framework-WebKit>=9.0
+pyobjc-framework-security>=9.0
+pyobjc-framework-UniformTypeIdentifiers>=9.0
+
+[:sys_platform == "openbsd6"]
+QtPy
+
+[:sys_platform == "win32"]
+pythonnet
+
+[android]
+jnius
+
+[cef]
+cefpython3
+
+[cli]
+click>=8
+watchfiles
+jinja2
+Pillow
+pyinstaller
+
+[cli:python_version < "3.11"]
+tomli
+
+[dev]
+ruff
+pre-commit
+pytest
+build
+twine
+
+[gtk]
+PyGObject==3.50.0
+PyGObject-stubs
+
+[keyring]
+
+[keyring:sys_platform == "linux"]
+cryptography
+
+[pyside2]
+QtPy
+PySide2
+
+[pyside6]
+QtPy
+PySide6
+
+[qt]
+QtPy
+PyQt6
+PyQt6-WebEngine
+
+[qt5]
+QtPy
+PyQt5
+pyqtwebengine
+
+[qt6]
+QtPy
+PyQt6
+PyQt6-WebEngine
+
+[shortcuts]
+
+[shortcuts:sys_platform == "linux"]
+python-xlib
+
+[ssl]
+cryptography

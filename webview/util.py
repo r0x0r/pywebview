@@ -2,7 +2,7 @@
 (C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
-http://github.com/r0x0r/pywebview/
+http://github.com/imattau/pywebview2/
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ DEFAULT_HTML = """
     </html>
 """
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 
 
 class ImmutableDict(UserDict):
@@ -102,7 +102,7 @@ def get_app_root() -> str:
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
 
-    if 'pytest' in sys.modules and os.getenv('PYWEBVIEW_TEST'):
+    if 'pytest' in sys.modules and os.getenv('PYWEBVIEW2_TEST'):
         return os.path.join(os.path.dirname(__file__), '..', 'tests')
 
     if hasattr(sys, 'getandroidapilevel'):
@@ -113,16 +113,16 @@ def get_app_root() -> str:
 
 def app_data_dir() -> str:
     """
-    Default pywebview application data directory, used by features like
+    Default pywebview2 application data directory, used by features like
     webview.store and webview.keyring's Linux fallback for storing files
-    outside of window storage_path (e.g. `~/.pywebview` cookies/local
-    storage). ``~/.pywebview`` on macOS/Linux, ``%APPDATA%\\pywebview`` on
+    outside of window storage_path (e.g. `~/.pywebview2` cookies/local
+    storage). ``~/.pywebview2`` on macOS/Linux, ``%APPDATA%\\pywebview2`` on
     Windows.
     """
     if sys.platform == 'win32':
         base = os.environ.get('APPDATA') or os.path.expanduser('~')
-        return os.path.join(base, 'pywebview')
-    return os.path.expanduser('~/.pywebview')
+        return os.path.join(base, 'pywebview2')
+    return os.path.expanduser('~/.pywebview2')
 
 
 def abspath(path: str) -> str:

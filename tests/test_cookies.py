@@ -17,7 +17,7 @@ def test_get_cookies(window):
 
 
 @pytest.mark.skipif(
-    os.environ.get('PYWEBVIEW_GUI') in ['qt', 'cocoa'],
+    os.environ.get('PYWEBVIEW2_GUI') in ['qt', 'cocoa'],
     reason='This test crashes QT and fails on Cocoa',
 )
 def test_clear_cookies(window):

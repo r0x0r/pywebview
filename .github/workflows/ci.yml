@@ -84,8 +84,8 @@ jobs:
             log_level: "error"
 
     env:
-      PYWEBVIEW_GUI: ${{ matrix.gui }}
-      PYWEBVIEW_LOG: ${{ matrix.log_level }}
+      PYWEBVIEW2_GUI: ${{ matrix.gui }}
+      PYWEBVIEW2_LOG: ${{ matrix.log_level }}
       DISPLAY: ${{ matrix.display }}
       QT_QPA_PLATFORM: ${{ matrix.qt_platform }}
 

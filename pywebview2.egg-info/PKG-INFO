@@ -1,0 +1,116 @@
+Metadata-Version: 2.4
+Name: pywebview2
+Version: 0.1.dev2449+g0c2855ebd.d20260815
+Summary: Build GUI for your Python program with JavaScript, HTML, and CSS, with a Tauri-inspired CLI and bundler
+Author-email: Roman Sirokov <roman@flowrl.com>
+License: BSD 3-Clause License
+        
+        Copyright (c) 2014-2017, Roman Sirokov
+        All rights reserved.
+        
+        Redistribution and use in source and binary forms, with or without
+        modification, are permitted provided that the following conditions are met:
+        
+        * Redistributions of source code must retain the above copyright notice, this
+          list of conditions and the following disclaimer.
+        
+        * Redistributions in binary form must reproduce the above copyright notice,
+          this list of conditions and the following disclaimer in the documentation
+          and/or other materials provided with the distribution.
+        
+        * Neither the name of the copyright holder nor the names of its
+          contributors may be used to endorse or promote products derived from
+          this software without specific prior written permission.
+        
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+        AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+        IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+        FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+        DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+        SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+        CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+        OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+        OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+        
+Project-URL: Homepage, https://github.com/imattau/pywebview2
+Project-URL: Repository, https://github.com/imattau/pywebview2
+Keywords: gui,webkit,html,web,tauri
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Environment :: MacOS X
+Classifier: Environment :: Win32 (MS Windows)
+Classifier: Environment :: X11 Applications :: GTK
+Classifier: Environment :: X11 Applications :: Qt
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Software Development :: User Interfaces
+Requires-Python: >=3.8
+License-File: LICENSE
+Requires-Dist: pythonnet; sys_platform == "win32"
+Requires-Dist: pyobjc-core>=9.0; sys_platform == "darwin"
+Requires-Dist: pyobjc-framework-Cocoa>=9.0; sys_platform == "darwin"
+Requires-Dist: pyobjc-framework-Quartz>=9.0; sys_platform == "darwin"
+Requires-Dist: pyobjc-framework-WebKit>=9.0; sys_platform == "darwin"
+Requires-Dist: pyobjc-framework-security>=9.0; sys_platform == "darwin"
+Requires-Dist: pyobjc-framework-UniformTypeIdentifiers>=9.0; sys_platform == "darwin"
+Requires-Dist: QtPy; sys_platform == "openbsd6"
+Requires-Dist: importlib_resources; python_version < "3.9"
+Requires-Dist: proxy_tools
+Requires-Dist: bottle
+Requires-Dist: typing_extensions
+Provides-Extra: cef
+Requires-Dist: cefpython3; extra == "cef"
+Provides-Extra: gtk
+Requires-Dist: PyGObject==3.50.0; extra == "gtk"
+Requires-Dist: PyGObject-stubs; extra == "gtk"
+Provides-Extra: pyside2
+Requires-Dist: QtPy; extra == "pyside2"
+Requires-Dist: PySide2; extra == "pyside2"
+Provides-Extra: pyside6
+Requires-Dist: QtPy; extra == "pyside6"
+Requires-Dist: PySide6; extra == "pyside6"
+Provides-Extra: qt
+Requires-Dist: QtPy; extra == "qt"
+Requires-Dist: PyQt6; extra == "qt"
+Requires-Dist: PyQt6-WebEngine; extra == "qt"
+Provides-Extra: qt5
+Requires-Dist: QtPy; extra == "qt5"
+Requires-Dist: PyQt5; extra == "qt5"
+Requires-Dist: pyqtwebengine; extra == "qt5"
+Provides-Extra: qt6
+Requires-Dist: QtPy; extra == "qt6"
+Requires-Dist: PyQt6; extra == "qt6"
+Requires-Dist: PyQt6-WebEngine; extra == "qt6"
+Provides-Extra: android
+Requires-Dist: jnius; extra == "android"
+Provides-Extra: ssl
+Requires-Dist: cryptography; extra == "ssl"
+Provides-Extra: keyring
+Requires-Dist: cryptography; sys_platform == "linux" and extra == "keyring"
+Provides-Extra: shortcuts
+Requires-Dist: python-xlib; sys_platform == "linux" and extra == "shortcuts"
+Provides-Extra: cli
+Requires-Dist: click>=8; extra == "cli"
+Requires-Dist: watchfiles; extra == "cli"
+Requires-Dist: jinja2; extra == "cli"
+Requires-Dist: Pillow; extra == "cli"
+Requires-Dist: pyinstaller; extra == "cli"
+Requires-Dist: tomli; python_version < "3.11" and extra == "cli"
+Provides-Extra: dev
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: pre-commit; extra == "dev"
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: build; extra == "dev"
+Requires-Dist: twine; extra == "dev"
+Dynamic: license-file

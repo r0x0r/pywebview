@@ -35,7 +35,7 @@ from webview.platforms.android.jinterface import (
 )
 from webview.util import create_cookie, inject_pywebview, js_bridge_call
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 
 renderer = 'android-webkit'
 app = None

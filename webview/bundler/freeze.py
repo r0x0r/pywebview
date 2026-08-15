@@ -1,5 +1,5 @@
 """
-PyInstaller orchestration: turn a pywebview.conf.json + project dir into a
+PyInstaller orchestration: turn a pywebview2.conf.json + project dir into a
 frozen executable. Relies on webview/__pyinstaller/hook-webview.py being
 auto-discovered via the `pyinstaller40.hook-dirs` entry point already
 registered in pyproject.toml -- this module never touches that hook directly.

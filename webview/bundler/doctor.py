@@ -1,5 +1,5 @@
 """
-Environment checks for the pywebview CLI: which backend/tools are available.
+Environment checks for the pywebview2 CLI: which backend/tools are available.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ def check_python() -> CheckResult:
     return CheckResult('Python', ok, version)
 
 
-def check_pywebview_backend() -> CheckResult:
+def check_pywebview2_backend() -> CheckResult:
     # `webview/__init__.py` reassigns the package-level `guilib` name to a
     # runtime state variable, shadowing the `webview.guilib` submodule
     # attribute -- so the submodule must be pulled from sys.modules rather
@@ -41,9 +41,9 @@ def check_pywebview_backend() -> CheckResult:
             'webview.guilib'
         )
         backend = guilib_module.initialize()
-        return CheckResult('pywebview backend', True, backend.renderer)
+        return CheckResult('pywebview2 backend', True, backend.renderer)
     except Exception as e:
-        return CheckResult('pywebview backend', False, str(e))
+        return CheckResult('pywebview2 backend', False, str(e))
 
 
 def check_pyinstaller() -> CheckResult:
@@ -110,7 +110,7 @@ def check_android_tools() -> list[CheckResult]:
 
 
 def run_all() -> list[CheckResult]:
-    results = [check_python(), check_pywebview_backend(), check_pyinstaller()]
+    results = [check_python(), check_pywebview2_backend(), check_pyinstaller()]
 
     system = platform.system()
     if system == 'Windows':

@@ -1,5 +1,5 @@
 ### Specification
-- pywebview version:
+- pywebview2 version:
 - operating system:
 - web renderer:
 
