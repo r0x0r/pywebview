@@ -1,5 +1,0 @@
-[console_scripts]
-pywebview2 = webview.cli.__main__:main
-
-[pyinstaller40]
-hook-dirs = webview.__pyinstaller:get_hook_dirs
