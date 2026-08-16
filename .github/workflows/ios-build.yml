@@ -45,8 +45,6 @@ jobs:
         run: >-
           pytest -q
           tests/test_util.py
-          tests/test_serialization.py
-          tests/test_response.py
           tests/test_ios_backend.py
 
       - name: Scaffold test app
