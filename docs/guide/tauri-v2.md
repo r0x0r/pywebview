@@ -223,7 +223,9 @@ Android requires Buildozer, the Android SDK/NDK, and Java. The Android entry
 point must be named `main.py`. The command generates `buildozer.spec` and
 applies `mobile.android.buildozerSpecOverrides` before invoking Buildozer.
 
-There is currently no iOS target.
+The iOS target currently builds the native simulator host through Xcode on a
+macOS GitHub Actions runner. Embedded Python runtime packaging and signed
+device/IPA export are still separate follow-up work.
 
 ## GitHub Actions builds
 

@@ -5,7 +5,7 @@ import platform
 
 import click
 
-from webview.bundler import android, freeze, linux, macos, windows
+from webview.bundler import android, freeze, ios, linux, macos, windows
 from webview.cli.config import ConfigError
 from webview.cli.config import load as load_config
 
@@ -27,14 +27,14 @@ def build(config_path: str | None, targets: tuple[str, ...], dist_dir: str, rele
     requested_targets = list(targets) or config['bundle'].get('targets', [])
 
     android_requested = 'android' in requested_targets
-    desktop_targets = [t for t in requested_targets if t != 'android']
+    ios_requested = 'ios' in requested_targets
+    desktop_targets = [t for t in requested_targets if t not in {'android', 'ios'}]
 
     built = []
     installers_dir = os.path.join(dist_dir, 'installers')
 
-    # Android is built by buildozer/python-for-android directly from source,
-    # not from PyInstaller output -- skip the freeze step entirely when it's
-    # the only requested target.
+    # Mobile targets are built from source by their native toolchains, not from
+    # PyInstaller output -- skip the freeze step when they are the only target.
     if not requested_targets or desktop_targets:
         click.echo(f"Freezing {config['entry']} with PyInstaller...")
         try:
@@ -94,6 +94,17 @@ def build(config_path: str | None, targets: tuple[str, ...], dist_dir: str, rele
             click.echo(f'  ! android incomplete: {e}')
         except Exception as e:
             click.echo(f'  ! android failed: {e}')
+
+    if ios_requested:
+        click.echo('Building ios simulator host...')
+        try:
+            ios_path = ios.build(config, project_dir, dist_dir)
+            click.echo(f'  -> {ios_path}')
+            built.append(ios_path)
+        except ios.IOSBuildError as e:
+            click.echo(f'  ! ios incomplete: {e}')
+        except Exception as e:
+            click.echo(f'  ! ios failed: {e}')
 
     if built:
         click.echo(f'\nBuilt {len(built)} artifact(s)')

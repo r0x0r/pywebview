@@ -33,7 +33,7 @@
       "properties": {
         "targets": {
           "type": "array",
-          "items": { "enum": ["msi", "nsis", "dmg", "deb", "appimage", "android"] }
+          "items": { "enum": ["msi", "nsis", "dmg", "deb", "appimage", "android", "ios"] }
         },
         "icon": { "type": ["string", "null"] },
         "resources": { "type": "array", "items": { "type": "string" } },
@@ -83,7 +83,11 @@
         "ios": {
           "type": "object",
           "properties": {
-            "enabled": { "type": "boolean" }
+            "enabled": { "type": "boolean" },
+            "deploymentTarget": { "type": "string" },
+            "scheme": { "type": ["string", "null"] },
+            "signingTeam": { "type": ["string", "null"] },
+            "exportMethod": { "type": "string" }
           }
         }
       }

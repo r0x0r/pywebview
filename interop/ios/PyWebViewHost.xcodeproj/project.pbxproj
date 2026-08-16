@@ -1,0 +1,76 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A00000010000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000110000000000000001 /* AppDelegate.swift */; };
+		A00000010000000000000002 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000110000000000000002 /* SceneDelegate.swift */; };
+		A00000010000000000000003 /* PyWebViewBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000110000000000000003 /* PyWebViewBridge.swift */; };
+		A00000010000000000000004 /* PyWebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000110000000000000004 /* PyWebViewController.swift */; };
+		A00000010000000000000005 /* PyWebViewRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000110000000000000005 /* PyWebViewRuntime.swift */; };
+		A00000010000000000000009 /* EmbeddedPyWebViewRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000110000000000000013 /* EmbeddedPyWebViewRuntime.swift */; };
+		A00000010000000000000010 /* PyWebViewPythonRuntime.m in Sources */ = {isa = PBXBuildFile; fileRef = A00000110000000000000011 /* PyWebViewPythonRuntime.m */; };
+		A00000010000000000000011 /* pywebview_ios_module.m in Sources */ = {isa = PBXBuildFile; fileRef = A00000110000000000000014 /* pywebview_ios_module.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A00000110000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A00000110000000000000002 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		A00000110000000000000003 /* PyWebViewBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyWebViewBridge.swift; sourceTree = "<group>"; };
+		A00000110000000000000004 /* PyWebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyWebViewController.swift; sourceTree = "<group>"; };
+		A00000110000000000000005 /* PyWebViewRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyWebViewRuntime.swift; sourceTree = "<group>"; };
+		A00000110000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A00000110000000000000007 /* PyWebViewHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PyWebViewHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000110000000000000011 /* PyWebViewPythonRuntime.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = runtime/PyWebViewPythonRuntime.m; sourceTree = "<group>"; };
+		A00000110000000000000012 /* PyWebViewHost-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PyWebViewHost-Bridging-Header.h; sourceTree = "<group>"; };
+		A00000110000000000000013 /* EmbeddedPyWebViewRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedPyWebViewRuntime.swift; sourceTree = "<group>"; };
+		A00000110000000000000014 /* pywebview_ios_module.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = runtime/pywebview_ios_module.m; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A00000210000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000310000000000000001 = {isa = PBXGroup; children = (A00000310000000000000002, A00000310000000000000003,); sourceTree = "<group>"; };
+		A00000310000000000000002 /* Sources */ = {isa = PBXGroup; children = (A00000110000000000000001, A00000110000000000000002, A00000110000000000000003, A00000110000000000000004, A00000110000000000000005, A00000110000000000000011, A00000110000000000000013, A00000110000000000000014,); name = Sources; path = .; sourceTree = "<group>"; };
+		A00000310000000000000003 /* Supporting Files */ = {isa = PBXGroup; children = (A00000110000000000000006, A00000110000000000000012,); name = "Supporting Files"; path = .; sourceTree = "<group>"; };
+		A00000310000000000000004 /* Products */ = {isa = PBXGroup; children = (A00000110000000000000007,); name = Products; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A00000410000000000000001 /* PyWebViewHost */ = {isa = PBXNativeTarget; buildConfigurationList = A00000610000000000000002; buildPhases = (A00000210000000000000002, A00000210000000000000001, A00000210000000000000003, A00000210000000000000004,); buildRules = (); dependencies = (); name = PyWebViewHost; productName = PyWebViewHost; productReference = A00000110000000000000007; productType = "com.apple.product-type.application"; };
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000510000000000000001 /* Project object */ = {isa = PBXProject; attributes = {LastUpgradeCheck = 1600;}; buildConfigurationList = A00000610000000000000001; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; mainGroup = A00000310000000000000001; productRefGroup = A00000310000000000000004; projectDirPath = ""; projectRoot = ""; targets = (A00000410000000000000001,); };
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A00000210000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A00000210000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000010000000000000001, A00000010000000000000002, A00000010000000000000003, A00000010000000000000004, A00000010000000000000005, A00000010000000000000009, A00000010000000000000010, A00000010000000000000011,); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A00000210000000000000004 /* Process Python libraries */ = {isa = PBXShellScriptBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/sh; shellScript = "/bin/sh \"${PROJECT_DIR}/scripts/process_python.sh\"\n"; };
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A00000710000000000000001 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/Python.xcframework/*/Python.framework/Headers"; INFOPLIST_FILE = Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 15.0; PRODUCT_BUNDLE_IDENTIFIER = "com.pywebview.host"; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SWIFT_OBJC_BRIDGING_HEADER = "PyWebViewHost-Bridging-Header.h"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2";}; name = Debug; };
+		A00000710000000000000002 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/Python.xcframework/*/Python.framework/Headers"; INFOPLIST_FILE = Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 15.0; PRODUCT_BUNDLE_IDENTIFIER = "com.pywebview.host"; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SWIFT_OBJC_BRIDGING_HEADER = "PyWebViewHost-Bridging-Header.h"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2";}; name = Release; };
+		A00000710000000000000003 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_IDENTITY = ""; SWIFT_OPTIMIZATION_LEVEL = "-Onone";}; name = Debug; };
+		A00000710000000000000004 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {}; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A00000610000000000000001 /* Build configuration list for PBXProject */ = {isa = XCConfigurationList; buildConfigurations = (A00000710000000000000001, A00000710000000000000002,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A00000610000000000000002 /* Build configuration list for PBXNativeTarget */ = {isa = XCConfigurationList; buildConfigurations = (A00000710000000000000003, A00000710000000000000004,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000510000000000000001 /* Project object */;
+}

@@ -53,7 +53,13 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     'mobile': {
         'android': {'buildozerSpecOverrides': {}},
-        'ios': {'enabled': False},
+        'ios': {
+            'enabled': False,
+            'deploymentTarget': '15.0',
+            'scheme': None,
+            'signingTeam': None,
+            'exportMethod': 'development',
+        },
     },
 }
 
@@ -109,7 +115,7 @@ def validate(config: dict[str, Any]) -> None:
     if missing:
         raise ConfigError(f"Missing required config keys: {', '.join(missing)}")
 
-    valid_targets = {'msi', 'nsis', 'dmg', 'deb', 'appimage', 'android'}
+    valid_targets = {'msi', 'nsis', 'dmg', 'deb', 'appimage', 'android', 'ios'}
     targets = config.get('bundle', {}).get('targets', [])
     invalid = set(targets) - valid_targets
     if invalid:

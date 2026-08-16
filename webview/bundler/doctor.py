@@ -69,6 +69,12 @@ def check_windows_tools() -> list[CheckResult]:
 def check_macos_tools() -> list[CheckResult]:
     return [
         CheckResult('hdiutil', _has_executable('hdiutil'), 'required for .dmg (ships with macOS)'),
+        CheckResult(
+            'xcodebuild', _has_executable('xcodebuild'), 'required for iOS and macOS native builds'
+        ),
+        CheckResult(
+            'xcrun', _has_executable('xcrun'), 'required for iOS SDK and simulator tooling'
+        ),
     ]
 
 
