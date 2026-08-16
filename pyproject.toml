@@ -9,9 +9,10 @@ description = "Build GUI for your Python program with JavaScript, HTML, and CSS,
 readme = "README.md"
 keywords = ["gui", "webkit", "html", "web", "tauri"]
 requires-python = ">=3.8"
-license = "BSD-3-Clause"
+license = { file = "LICENSE" }
 classifiers = [
     "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Environment :: MacOS X",
     "Environment :: Win32 (MS Windows)",
