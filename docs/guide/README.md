@@ -32,7 +32,10 @@ webview.start()
 
 ## Develop
 
-Read the basic concepts in [Usage](/guide/usage), dive into [application architecture](/guide/architecture). Explore [API](/api) and check various [examples](/examples)
+For the Tauri-inspired project, development, and packaging workflow, see the
+[Tauri-inspired workflow](/guide/tauri-v2). Then read the basic concepts in
+[Usage](/guide/usage), dive into [application architecture](/guide/architecture),
+explore the [API](/api), and check the various [examples](/examples).
 
 ## Contribute
 
