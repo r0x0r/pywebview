@@ -107,13 +107,13 @@ def load(path: str | None = None) -> dict[str, Any]:
 def validate(config: dict[str, Any]) -> None:
     missing = [key for key in REQUIRED_TOP_LEVEL_KEYS if not config.get(key)]
     if missing:
-        raise ConfigError(f'Missing required config keys: {', '.join(missing)}')
+        raise ConfigError(f"Missing required config keys: {', '.join(missing)}")
 
     valid_targets = {'msi', 'nsis', 'dmg', 'deb', 'appimage', 'android'}
     targets = config.get('bundle', {}).get('targets', [])
     invalid = set(targets) - valid_targets
     if invalid:
         raise ConfigError(
-            f'Invalid bundle.targets entries: {', '.join(sorted(invalid))}. '
-            f'Valid targets: {', '.join(sorted(valid_targets))}'
+            f"Invalid bundle.targets entries: {', '.join(sorted(invalid))}. "
+            f"Valid targets: {', '.join(sorted(valid_targets))}"
         )

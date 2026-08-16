@@ -87,7 +87,7 @@ def build_deb(config: dict[str, Any], source_dir: str, output_dir: str) -> str:
     ) as f:
         f.write(desktop_content)
 
-    deb_path = os.path.join(output_dir, f'{package_name}_{config['version']}_amd64.deb')
+    deb_path = os.path.join(output_dir, f"{package_name}_{config['version']}_amd64.deb")
 
     if not shutil.which('dpkg-deb'):
         raise InstallerError(
@@ -141,7 +141,7 @@ def build_appimage(config: dict[str, Any], source_dir: str, output_dir: str) -> 
             'install appimagetool to build the AppImage.'
         )
 
-    appimage_path = os.path.join(output_dir, f'{package_name}-{config['version']}-x86_64.AppImage')
+    appimage_path = os.path.join(output_dir, f"{package_name}-{config['version']}-x86_64.AppImage")
     subprocess.run([appimagetool, appdir, appimage_path], check=True)
 
     return appimage_path

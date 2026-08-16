@@ -36,7 +36,7 @@ def build(config_path: str | None, targets: tuple[str, ...], dist_dir: str, rele
     # not from PyInstaller output -- skip the freeze step entirely when it's
     # the only requested target.
     if not requested_targets or desktop_targets:
-        click.echo(f'Freezing {config['entry']} with PyInstaller...')
+        click.echo(f"Freezing {config['entry']} with PyInstaller...")
         try:
             source_dir = freeze.freeze(config, project_dir, dist_dir)
         except freeze.FreezeError as e:
