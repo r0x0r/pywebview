@@ -58,7 +58,7 @@ def test_ios_bundler_adds_frontend_resource(tmp_path):
 
     project = tmp_path / 'project.pbxproj'
     project.write_text(
-        '''
+        """
 /* Begin PBXBuildFile section */
 /* End PBXBuildFile section */
 /* Begin PBXFileReference section */
@@ -66,7 +66,7 @@ def test_ios_bundler_adds_frontend_resource(tmp_path):
 children = (A00000110000000000000006,); name = "Supporting Files";
 buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;
 /* End PBXResourcesBuildPhase section */
-''',
+""",
         encoding='utf-8',
     )
 

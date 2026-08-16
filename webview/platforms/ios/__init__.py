@@ -18,9 +18,7 @@ renderer = 'ios'
 try:
     import pywebview_ios as native
 except ImportError as e:  # pragma: no cover - only executed by an iOS app
-    raise ImportError(
-        'The pywebview_ios native module is required for the iOS backend.'
-    ) from e
+    raise ImportError('The pywebview_ios native module is required for the iOS backend.') from e
 
 
 def setup_app():

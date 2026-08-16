@@ -11,7 +11,9 @@ from typing_extensions import Literal, TypeAlias, get_args
 
 from webview import WebViewException
 
-GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android', 'cocoa', 'ios']
+GUIType: TypeAlias = Literal[
+    'qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android', 'cocoa', 'ios'
+]
 GUI_TYPES = list(get_args(GUIType))
 
 logger = logging.getLogger('pywebview2')
