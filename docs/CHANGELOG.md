@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+_Released 16/08/2026_
+
+### 🚀 Improvements
+
+- `Docs` Document the Tauri-inspired project, development, packaging, and GitHub Actions workflows.
+
 ## 6.2.1
 
 _Released 15/04/2026_

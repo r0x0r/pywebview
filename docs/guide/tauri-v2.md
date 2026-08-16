@@ -225,6 +225,34 @@ applies `mobile.android.buildozerSpecOverrides` before invoking Buildozer.
 
 There is currently no iOS target.
 
+## GitHub Actions builds
+
+The repository includes a GitHub Actions smoke-test workflow for the CLI
+toolchain: [`cli-build.yml`](https://github.com/imattau/pywebview2/blob/master/.github/workflows/cli-build.yml).
+It creates a fresh project with `pywebview2 init`, runs `pywebview2 doctor`,
+and builds the platform package using `pywebview2 build`.
+
+The workflow currently builds these targets on their native GitHub-hosted
+runners:
+
+| Runner | Target | Artifact |
+| --- | --- | --- |
+| Ubuntu 22.04 | Android | APK |
+| Ubuntu latest | Linux | `.deb` |
+| Windows latest | Windows | `.msi` |
+| macOS latest | macOS | `.dmg` |
+
+The resulting installers and APKs are uploaded as workflow artifacts. The
+workflow can be started from the repository's Actions tab with
+`workflow_dispatch`. It also runs for pull requests that change the CLI,
+bundler, packaging configuration, or the workflow itself. Its push trigger is
+currently limited to the `feature/cli-toolchain` branch.
+
+The repository's broader [`ci.yml`](https://github.com/imattau/pywebview2/blob/master/.github/workflows/ci.yml)
+workflow is separate from packaging. It runs code-quality checks and tests
+the Ubuntu Qt, Ubuntu GTK, Windows EdgeChromium, and macOS backends. It does
+not produce release installers.
+
 ## Tauri-inspired comparison and current limits
 
 The workflow provides the project-level parts of the Tauri model:
