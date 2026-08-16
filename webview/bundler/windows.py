@@ -37,8 +37,23 @@ def build_msi(config: dict[str, Any], source_dir: str, output_dir: str) -> str:
     exe_name = _find_exe(source_dir, product_name)
     upgrade_code = str(uuid.uuid5(uuid.NAMESPACE_DNS, config['identifier']))
 
+    # WiX v4 replaced the whole candle/light CLI with a single `wix build`
+    # command, and its .wxs schema changed along with it (simplified
+    # <Package>/<StandardDirectory> authoring under the
+    # http://wixtoolset.org/schemas/v4/wxs namespace, vs. v3's
+    # <Product>/<Directory Id="TARGETDIR"> authoring under
+    # http://schemas.microsoft.com/wix/2006/wi). The two are not
+    # interchangeable -- feeding a v4-schema document to v3's candle.exe
+    # fails immediately with CNDL0199 ("incorrect namespace"), so the
+    # template picked here has to match whichever toolchain build_msi()
+    # is actually about to invoke below, not just whichever happens to be
+    # written first.
+    wix_exe = shutil.which('wix')
+    has_legacy_wix = bool(shutil.which('candle') and shutil.which('light'))
+    template_name = 'app.v3.wxs.jinja' if (has_legacy_wix and not wix_exe) else 'app.wxs.jinja'
+
     wxs_content = render(
-        'app.wxs.jinja',
+        template_name,
         product_name=product_name,
         version=config['version'],
         upgrade_code=upgrade_code,
@@ -52,16 +67,15 @@ def build_msi(config: dict[str, Any], source_dir: str, output_dir: str) -> str:
         f.write(wxs_content)
 
     msi_path = os.path.join(output_dir, f'{product_name}.msi')
-    wix_exe = shutil.which('wix')
     if wix_exe:
         subprocess.run([wix_exe, 'build', wxs_path, '-o', msi_path], check=True)
-    elif shutil.which('candle') and shutil.which('light'):
+    elif has_legacy_wix:
         wixobj_path = os.path.join(output_dir, f'{product_name}.wixobj')
         subprocess.run(['candle', wxs_path, '-o', wixobj_path], check=True)
         subprocess.run(['light', wixobj_path, '-o', msi_path], check=True)
     else:
         raise InstallerError(
-            f'WiX Toolset not found on PATH. Generated {wxs_path}; '
+            f'WiX Toolset not found on PATH. Generated {wxs_path} (WiX v4 schema); '
             'install WiX (v3: candle/light, v4+: wix) to build the .msi.'
         )
 
