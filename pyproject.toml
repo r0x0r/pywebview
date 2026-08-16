@@ -6,12 +6,12 @@ build-backend = "setuptools.build_meta"
 name = "pywebview2"
 authors = [{ name = "Roman Sirokov", email = "roman@flowrl.com" }]
 description = "Build GUI for your Python program with JavaScript, HTML, and CSS, with a Tauri-inspired CLI and bundler"
+readme = "README.md"
 keywords = ["gui", "webkit", "html", "web", "tauri"]
 requires-python = ">=3.8"
-license = { file = "LICENSE" }
+license = "BSD-3-Clause"
 classifiers = [
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Environment :: MacOS X",
     "Environment :: Win32 (MS Windows)",
@@ -133,6 +133,7 @@ packages = [
 
 [tool.setuptools_scm]
 write_to = "webview/_version.py"
+local_scheme = "no-local-version"
 
 [tool.uv]
 # Prefer pre-compiled wheels for better installation experience
