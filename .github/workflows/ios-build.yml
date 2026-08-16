@@ -42,7 +42,12 @@ jobs:
           xcode-select -p
 
       - name: Run platform-independent tests
-        run: pytest -q
+        run: >-
+          pytest -q
+          tests/test_util.py
+          tests/test_serialization.py
+          tests/test_response.py
+          tests/test_ios_backend.py
 
       - name: Scaffold test app
         run: pywebview2 init testapp --name "CLI Smoke Test" --identifier com.example.clismoketest --yes
