@@ -123,6 +123,7 @@ include-package-data = false
 packages = [
     "webview", "webview.dom", "webview.js", "webview.lib", "webview.platforms",
     "webview.platforms.android", "webview.platforms.android.jinterface", "webview.platforms.android.jclass",
+    "webview.platforms.ios",
     "webview.__pyinstaller", "webview.cli", "webview.cli.commands", "webview.bundler"]
 
 [tool.setuptools.package-data]

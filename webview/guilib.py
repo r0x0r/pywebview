@@ -11,7 +11,9 @@ from typing_extensions import Literal, TypeAlias, get_args
 
 from webview import WebViewException
 
-GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android', 'cocoa']
+GUIType: TypeAlias = Literal[
+    'qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android', 'cocoa', 'ios'
+]
 GUI_TYPES = list(get_args(GUIType))
 
 logger = logging.getLogger('pywebview2')
@@ -30,6 +32,18 @@ def initialize(forced_gui: GUIType | None = None):
             return True
         except (ImportError, ValueError):
             logger.exception('Kivy cannot be loaded')
+            return False
+
+    def import_ios():
+        global guilib
+
+        try:
+            import webview.platforms.ios as guilib
+
+            logger.debug('Using iOS WKWebView')
+            return True
+        except (ImportError, ValueError):
+            logger.exception('iOS native bridge cannot be loaded')
             return False
 
     def import_gtk():
@@ -100,7 +114,13 @@ def initialize(forced_gui: GUIType | None = None):
 
     forced_gui_ = forced_gui
 
-    if platform.system() == 'Darwin':
+    if sys.platform == 'ios':
+        if not try_import([import_ios]):
+            raise WebViewException(
+                'The pywebview iOS native bridge is not available in this application.'
+            )
+
+    elif platform.system() == 'Darwin':
         if forced_gui == 'qt':
             guis = [import_qt, import_cocoa]
         else:
@@ -135,7 +155,7 @@ def initialize(forced_gui: GUIType | None = None):
             raise WebViewException('You must have pythonnet installed in order to use pywebview.')
     else:
         raise WebViewException(
-            'Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.'
+            'Unsupported platform. Only Windows, Linux, OS X, OpenBSD and iOS are supported.'
         )
 
     guilib.setup_app()

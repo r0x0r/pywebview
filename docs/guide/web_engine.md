@@ -5,6 +5,7 @@ The following renderers are used on each platform
 | Platform | Code         | Renderer | Provider                                          | Browser compatibility |
 |----------|--------------|----------|---------------------------------------------------|-----------------------|
 | Android  |              | WebKit   |                                                   | Ever-green Chromium   |
+| iOS      | ios          | WebKit   | WebKit.WKWebView (native host)                    |                       |
 | GTK      | gtk          | WebKit   | WebKit2 (minimum version >2.2)                    |                       |
 | macOS    |              | WebKit   | WebKit.WKWebView (bundled with OS)                |                       |
 | QT       | qt           | WebKit   | QtWebEngine / QtWebKit                            |                       |
