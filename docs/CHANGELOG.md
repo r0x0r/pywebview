@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.5
+
+_Released 17/08/2026_
+
+### 🐞 Bug fixes
+
+- `Android` Remove the unnecessary Kivy requirement from generated Buildozer
+  projects and make Android WebView teardown safe during activity destruction.
+- `Docs` Update Android packaging guidance for the Kivyless backend.
+
 ## 0.1.4
 
 _Released 17/08/2026_
