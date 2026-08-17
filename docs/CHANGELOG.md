@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.6
+
+_Released 17/08/2026_
+
+### 🐞 Bug fixes
+
+- `GTK` Restore the upstream `.pywebview-drag-region` default so existing
+  frameless applications retain drag-region behavior after the package rename.
+
 ## 0.1.5
 
 _Released 17/08/2026_
