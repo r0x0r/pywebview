@@ -154,7 +154,7 @@ Return a list of available displays (as `Screen` objects) with the primary displ
 webview.settings = {
   'ALLOW_DOWNLOADS': False,
   'ALLOW_FILE_URLS': True,
-  'DRAG_REGION_SELECTOR': 'pywebview-drag-region',
+  'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
   'DRAG_REGION_DIRECT_TARGET_ONLY': False,
   'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
   'OPEN_DEVTOOLS_IN_DEBUG': True,
