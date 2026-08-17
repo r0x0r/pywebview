@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.3
+
+_Released 17/08/2026_
+
+### 🚀 Improvements
+
+- `CLI` Run configured frontend production builds before desktop packaging.
+- `CLI` Improve build failure reporting, target-specific environment checks,
+  configuration validation, and frontend process cleanup.
+- `Docs` Refresh the pywebview2 CLI and Tauri-inspired workflow documentation.
+
 ## 0.1.2
 
 _Released 17/08/2026_
