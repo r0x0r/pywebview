@@ -4,7 +4,7 @@ Android packaging: templates buildozer.spec and shells out to buildozer.
 Wraps buildozer the same way freeze.py wraps PyInstaller for desktop -- this
 module only generates config and orchestrates the external tool, it never
 reimplements python-for-android. pywebview2's existing Android backend
-(webview/platforms/android/, Kivy/pyjnius-based) and guilib.py's Android
+(webview/platforms/android/, python-for-Android/pyjnius-based) and guilib.py's Android
 detection are untouched; this only adds packaging orchestration around the
 already-documented buildozer workflow (see docs/guide/freezing.md and
 examples/todos/buildozer.spec).
@@ -30,7 +30,10 @@ from typing import Any
 # from the python3 pin alone. An exact patch version is required: p4a
 # resolves this to a CPython git tag (https://github.com/python/cpython/
 # archive/refs/tags/v<version>.tar.gz) and "v3.11" alone is not a real tag.
-DEFAULT_REQUIREMENTS = 'python3==3.11.9,hostpython3==3.11.9,kivy,pywebview2'
+# The Android backend uses python-for-Android's SDL2 bootstrap and pyjnius,
+# but it does not use Kivy. Including Kivy pulls its native widgets and
+# lifecycle into the APK even though pywebview owns the Android lifecycle.
+DEFAULT_REQUIREMENTS = 'python3==3.11.9,hostpython3==3.11.9,pywebview2'
 
 DEFAULT_APP_SECTION = {
     'source.include_exts': 'py,png,jpg,kv,atlas,html,jar,css,js',
