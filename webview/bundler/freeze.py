@@ -41,20 +41,37 @@ class FreezeError(Exception):
 # output after PyInstaller runs, so it resolves from the host consistently
 # -- the same place webkit2gtk/gudev were already unavoidably coming from.
 _LINUX_GTK_STACK_PREFIXES = (
-    'libglib-2.0', 'libgobject-2.0', 'libgio-2.0', 'libgmodule-2.0',
+    'libglib-2.0',
+    'libgobject-2.0',
+    'libgio-2.0',
+    'libgmodule-2.0',
     'libgirepository-1.0',
     # GIO module plugins, dlopen'd by libgio-2.0 itself at runtime -- same
     # "must match whatever glib is actually active" requirement.
-    'libgioenvironmentproxy', 'libgiognomeproxy', 'libgiognutls',
-    'libgiolibproxy', 'libdconfsettings',
-    'libgtk-3', 'libgdk-3', 'libgdk_pixbuf-2.0', 'libpixbufloader-',
-    'libatk-1.0', 'libatk-bridge-2.0',
-    'libpango-1.0', 'libpangocairo-1.0', 'libpangoft2-1.0',
-    'libcairo-gobject', 'libcairo.so',  # plain libcairo too: gtk/pango's
+    'libgioenvironmentproxy',
+    'libgiognomeproxy',
+    'libgiognutls',
+    'libgiolibproxy',
+    'libdconfsettings',
+    'libgtk-3',
+    'libgdk-3',
+    'libgdk_pixbuf-2.0',
+    'libpixbufloader-',
+    'libatk-1.0',
+    'libatk-bridge-2.0',
+    'libpango-1.0',
+    'libpangocairo-1.0',
+    'libpangoft2-1.0',
+    'libcairo-gobject',
+    'libcairo.so',  # plain libcairo too: gtk/pango's
     # own dependency, and they're being forced to the host here just the
     # same -- leaving only the -gobject binding bundled would just move
     # this exact mismatch down one layer instead of removing it.
-    'libharfbuzz', 'libepoxy', 'libfribidi', 'libthai', 'libdatrie',
+    'libharfbuzz',
+    'libepoxy',
+    'libfribidi',
+    'libthai',
+    'libdatrie',
     'libgraphite2',
 )
 
