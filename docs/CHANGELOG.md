@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.2
+
+_Released 17/08/2026_
+
+### 🚀 Improvements
+
+- `iOS` Add the initial native iOS host, Python runtime packaging path, and
+  GitHub Actions simulator validation workflow.
+- `CLI` Add iOS project scaffolding and simulator build support.
+
 ## 0.1.1
 
 _Released 16/08/2026_
