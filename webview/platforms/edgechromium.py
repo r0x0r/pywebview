@@ -285,7 +285,10 @@ class EdgeChrome:
 
         settings = sender.CoreWebView2.Settings
         settings.AreBrowserAcceleratorKeysEnabled = _state['debug']
-        settings.AreDefaultContextMenusEnabled = _state['debug']
+        enable_context_menu = webview_settings['ENABLE_CONTEXT_MENU']
+        if enable_context_menu is None:
+            enable_context_menu = _state['debug']
+        settings.AreDefaultContextMenusEnabled = enable_context_menu
         settings.AreDefaultScriptDialogsEnabled = True
         settings.AreDevToolsEnabled = _state['debug']
         settings.IsBuiltInErrorPageEnabled = True

@@ -139,6 +139,15 @@ settings = ImmutableDict(
         'IGNORE_SSL_ERRORS': False,
         'SHOW_DEFAULT_MENUS': True,
         'WEBVIEW2_RUNTIME_PATH': None,
+        # Every backend used to tie the native right-click context menu
+        # (copy/paste, etc.) to the `debug` flag on webview.start(), so
+        # production apps running with debug=False lost basic copy/paste
+        # entirely, not just the "Inspect Element" devtools entry -- the
+        # two are unrelated to an end user. None preserves that original
+        # behavior (follow `debug`) for backward compat; True/False force
+        # the context menu on/off regardless of `debug`, letting an app
+        # ship a normal right-click menu without exposing devtools.
+        'ENABLE_CONTEXT_MENU': None,
     }
 )
 

@@ -254,7 +254,11 @@ class BrowserView:
 
             if settings['OPEN_DEVTOOLS_IN_DEBUG']:
                 self.webview.get_inspector().show()
-        else:
+
+        enable_context_menu = settings['ENABLE_CONTEXT_MENU']
+        if enable_context_menu is None:
+            enable_context_menu = _state['debug']
+        if not enable_context_menu:
             self.webview.connect('context-menu', lambda a, b, c, d: True)  # Disable context menu
 
         if _state['private_mode']:
