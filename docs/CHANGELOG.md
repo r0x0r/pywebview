@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.4
+
+_Released 17/08/2026_
+
+### 🐞 Bug fixes
+
+- `Linux` Fix AppImage GTK/GLib bundling conflicts by resolving the stack from
+  the host system.
+- `iOS` Fix Swift error handling for the embedded Python runtime and include
+  the Python processing script required by Xcode builds.
+- `CI` Restore the CLI extra and formatting checks in the comprehensive build.
+
 ## 0.1.3
 
 _Released 17/08/2026_
