@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import signal
 import subprocess
 import sys
 import urllib.error
@@ -52,6 +53,37 @@ def _stop_app(process: subprocess.Popen) -> None:
         process.wait()
 
 
+def _start_frontend(command: str, project_dir: str) -> subprocess.Popen:
+    kwargs = {'shell': True, 'cwd': project_dir}
+    if os.name == 'nt':
+        kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        kwargs['start_new_session'] = True
+    return subprocess.Popen(command, **kwargs)
+
+
+def _stop_frontend(process: subprocess.Popen) -> None:
+    if process.poll() is not None:
+        return
+    if os.name == 'nt':
+        subprocess.run(
+            ['taskkill', '/PID', str(process.pid), '/T', '/F'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
+
+
 @click.command()
 @click.option('--config', 'config_path', default=None, type=click.Path(exists=True))
 @click.option('--no-watch', is_flag=True, help='Run once without watching for file changes')
@@ -78,10 +110,10 @@ def dev(config_path: str | None, no_watch: bool) -> None:
     frontend_process = None
     if dev_command and dev_url:
         click.echo(f'Starting frontend dev server: {dev_command}')
-        frontend_process = subprocess.Popen(dev_command, shell=True, cwd=project_dir)
+        frontend_process = _start_frontend(dev_command, project_dir)
         click.echo(f'Waiting for {dev_url} to become reachable...')
         if not wait_for_url(dev_url):
-            frontend_process.terminate()
+            _stop_frontend(frontend_process)
             raise click.ClickException(f'Frontend dev server did not become reachable at {dev_url}')
 
     reload_port = pick_free_port()
@@ -141,4 +173,4 @@ def dev(config_path: str | None, no_watch: bool) -> None:
         if app_process is not None:
             _stop_app(app_process)
         if frontend_process is not None:
-            frontend_process.terminate()
+            _stop_frontend(frontend_process)

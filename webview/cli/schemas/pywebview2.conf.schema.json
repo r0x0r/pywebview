@@ -17,6 +17,12 @@
         "watch": { "type": "array", "items": { "type": "string" } }
       }
     },
+    "frontendBuild": {
+      "type": "object",
+      "properties": {
+        "command": { "type": ["string", "null"] }
+      }
+    },
     "window": {
       "type": "object",
       "description": "Passthrough of webview.create_window() kwargs",

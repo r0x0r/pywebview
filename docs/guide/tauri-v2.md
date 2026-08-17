@@ -85,6 +85,7 @@ The important fields are:
 | `frontendDev.command` | Optional command for a frontend dev server |
 | `frontendDev.url` | URL loaded while development mode is active |
 | `frontendDev.watch` | Frontend paths watched for reloads |
+| `frontendBuild.command` | Optional frontend production build run before desktop packaging |
 | `window` | Arguments passed to `webview.create_window` |
 | `bundle.targets` | Installer formats to produce |
 | `bundle.resources` | Files or directories passed to PyInstaller as data |
@@ -130,7 +131,8 @@ per-run token.
 
 For a vanilla project, `frontendDev.command` and `frontendDev.url` are empty,
 so changes to local frontend files are reloaded directly. Vue and React
-scaffolds use Vite on `http://localhost:5173`.
+scaffolds use Vite on `http://localhost:5173` and run their Vite production
+build automatically before desktop packaging.
 
 ## Build desktop installers
 
@@ -150,8 +152,9 @@ Then build on the matching host operating system:
 pywebview2 build
 ```
 
-The build first creates a PyInstaller application in `dist/`, then writes
-installers to `dist/installers/`.
+If configured, the build first runs the frontend production command. It then
+creates a PyInstaller application in `dist/`, then writes installers to
+`dist/installers/`.
 
 | Target | Host OS | Additional tool |
 | --- | --- | --- |

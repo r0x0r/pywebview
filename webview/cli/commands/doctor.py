@@ -4,11 +4,17 @@ import click
 
 from webview.bundler.doctor import run_all
 
+VALID_TARGETS = {'msi', 'nsis', 'dmg', 'deb', 'appimage', 'android', 'ios'}
+
 
 @click.command()
-def doctor() -> None:
+@click.option('--target', 'targets', multiple=True, help='Check prerequisites for this target')
+def doctor(targets: tuple[str, ...]) -> None:
     """Check the local environment for pywebview2 CLI/build prerequisites."""
-    results = run_all()
+    invalid_targets = set(targets) - VALID_TARGETS
+    if invalid_targets:
+        raise click.ClickException(f'Unknown target(s): {", ".join(sorted(invalid_targets))}')
+    results = run_all(targets or None)
     any_failed = False
 
     for result in results:
@@ -21,3 +27,5 @@ def doctor() -> None:
         click.echo(
             '\nSome checks failed. Missing tools only block the build targets that need them.'
         )
+        if targets:
+            raise click.exceptions.Exit(1)

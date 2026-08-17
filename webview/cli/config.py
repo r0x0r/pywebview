@@ -21,6 +21,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
         'url': None,
         'watch': ['frontend'],
     },
+    'frontendBuild': {
+        'command': None,
+    },
     'window': {
         'title': 'MyApp',
         'width': 1024,
@@ -104,6 +107,9 @@ def load(path: str | None = None) -> dict[str, Any]:
         except json.JSONDecodeError as e:
             raise ConfigError(f'Invalid JSON in {config_path}: {e}') from e
 
+    if not isinstance(raw, dict):
+        raise ConfigError(f'Configuration root in {config_path} must be a JSON object')
+
     raw.pop('$schema', None)
     config = _deep_merge(DEFAULT_CONFIG, raw)
     validate(config)
@@ -116,10 +122,28 @@ def validate(config: dict[str, Any]) -> None:
         raise ConfigError(f"Missing required config keys: {', '.join(missing)}")
 
     valid_targets = {'msi', 'nsis', 'dmg', 'deb', 'appimage', 'android', 'ios'}
-    targets = config.get('bundle', {}).get('targets', [])
+    bundle = config.get('bundle', {})
+    if not isinstance(bundle, dict):
+        raise ConfigError('bundle must be an object')
+    targets = bundle.get('targets', [])
+    if not isinstance(targets, list) or not all(isinstance(target, str) for target in targets):
+        raise ConfigError('bundle.targets must be an array of strings')
     invalid = set(targets) - valid_targets
     if invalid:
         raise ConfigError(
             f"Invalid bundle.targets entries: {', '.join(sorted(invalid))}. "
             f"Valid targets: {', '.join(sorted(valid_targets))}"
         )
+
+    identifier = config.get('identifier', '')
+    identifier_parts = identifier.split('.') if isinstance(identifier, str) else []
+    if len(identifier_parts) < 2 or any(
+        not part or not (part[0].isalnum() and part[-1].isalnum()) for part in identifier_parts
+    ):
+        raise ConfigError('identifier must use reverse-DNS notation, e.g. com.example.app')
+
+    frontend_build = config.get('frontendBuild', {})
+    if not isinstance(frontend_build, dict) or not isinstance(
+        frontend_build.get('command'), (str, type(None))
+    ):
+        raise ConfigError('frontendBuild.command must be a string or null')

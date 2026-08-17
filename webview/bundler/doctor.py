@@ -115,16 +115,19 @@ def check_android_tools() -> list[CheckResult]:
     ]
 
 
-def run_all() -> list[CheckResult]:
+def run_all(targets: tuple[str, ...] | list[str] | None = None) -> list[CheckResult]:
     results = [check_python(), check_pywebview2_backend(), check_pyinstaller()]
 
     system = platform.system()
-    if system == 'Windows':
+    selected = set(targets or ())
+    check_all = not selected
+    if system == 'Windows' and (check_all or selected & {'msi', 'nsis'}):
         results += check_windows_tools()
-    elif system == 'Darwin':
+    elif system == 'Darwin' and (check_all or selected & {'dmg', 'ios'}):
         results += check_macos_tools()
-    elif system == 'Linux':
+    elif system == 'Linux' and (check_all or selected & {'deb', 'appimage'}):
         results += check_linux_tools()
 
-    results += check_android_tools()
+    if check_all or 'android' in selected:
+        results += check_android_tools()
     return results
