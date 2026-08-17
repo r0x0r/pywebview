@@ -56,7 +56,9 @@ def test_build_frontend_runs_command_and_checks_output(tmp_path, monkeypatch):
 
 def test_run_all_only_checks_selected_platform_tools(monkeypatch):
     monkeypatch.setattr(doctor_checks.platform, 'system', lambda: 'Linux')
-    monkeypatch.setattr(doctor_checks, 'check_python', lambda: doctor_checks.CheckResult('python', True, 'ok'))
+    monkeypatch.setattr(
+        doctor_checks, 'check_python', lambda: doctor_checks.CheckResult('python', True, 'ok')
+    )
     monkeypatch.setattr(
         doctor_checks,
         'check_pywebview2_backend',
