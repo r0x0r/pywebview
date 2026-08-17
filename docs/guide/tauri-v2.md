@@ -163,6 +163,7 @@ creates a PyInstaller application in `dist/`, then writes installers to
 | `dmg` | macOS | `hdiutil` (included with macOS) |
 | `deb` | Linux | `dpkg-deb` |
 | `appimage` | Linux | `appimagetool` |
+| `ios` | macOS | Xcode (`xcodebuild`), simulator host |
 
 Targets can also be supplied without editing the configuration:
 
@@ -228,7 +229,30 @@ applies `mobile.android.buildozerSpecOverrides` before invoking Buildozer.
 
 The iOS target currently builds the native simulator host through Xcode on a
 macOS GitHub Actions runner. Embedded Python runtime packaging and signed
-device/IPA export are still separate follow-up work.
+device/IPA export are still separate follow-up work. It is not a desktop
+installer target and currently produces an iOS Simulator `.app` bundle.
+
+## Build iOS
+
+iOS builds require macOS and Xcode. Configure the iOS target and invoke the
+CLI from the project directory:
+
+```json
+{
+  "bundle": {
+    "targets": ["ios"]
+  }
+}
+```
+
+```bash
+pywebview2 build --target ios
+```
+
+The result is written below `dist/ios/` as a simulator application. To embed
+a `Python.xcframework` during the build, set
+`PYWEBVIEW_IOS_PYTHON_XCFRAMEWORK` to the framework directory. Signed device
+builds and IPA export are not automated yet.
 
 ## GitHub Actions builds
 
@@ -247,7 +271,11 @@ runners:
 | Windows latest | Windows | `.msi` |
 | macOS latest | macOS | `.dmg` |
 
-The resulting installers and APKs are uploaded as workflow artifacts. The
+The separate [`ios-build.yml`](https://github.com/imattau/pywebview2/blob/master/.github/workflows/ios-build.yml)
+workflow validates the native iOS simulator host and uploads the generated
+`.app` bundle. It can optionally build and embed a Python runtime.
+
+The resulting installers, APKs, and simulator apps are uploaded as workflow artifacts. The
 workflow can be started from the repository's Actions tab with
 `workflow_dispatch`. It also runs for pull requests that change the CLI,
 bundler, packaging configuration, or the workflow itself. Its push trigger is
