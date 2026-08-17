@@ -147,4 +147,6 @@ def build(config_path: str | None, targets: tuple[str, ...], dist_dir: str, rele
     if built:
         click.echo(f'\nBuilt {len(built)} artifact(s)')
     if failures:
-        raise click.ClickException('Build failed:\n' + '\n'.join(f'  - {failure}' for failure in failures))
+        raise click.ClickException(
+            'Build failed:\n' + '\n'.join(f'  - {failure}' for failure in failures)
+        )
