@@ -7,11 +7,11 @@ For a scaffolded project with automated PyInstaller freezing and native installe
 pywebview is designed to be built with [buildozer](https://buildozer.readthedocs.io/en/latest/). You need to include following lines in your `buildozer.spec` to bundle pywebview correctly
 
 ``` ini
-requirements = python3,kivy,pywebview
+requirements = python3,pywebview2
 android.add_jars = <path_to_pywebview-android.jar>
 ```
 
-`pywebview-android.jar` is shipped with `pywebview` and can be found under `site-packages/pywebview/lib`. To get its full path type
+`pywebview-android.jar` is shipped with `pywebview2` and can be found under `site-packages/pywebview/lib`. To get its full path type
 
 ``` python
 from webview import util

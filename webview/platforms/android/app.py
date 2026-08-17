@@ -12,6 +12,7 @@ class App(EventDispatcher):
         App._running_app = self
         super().__init__(**kwargs)
         self._eventloop = EventLoop()
+        self._stopping = False
 
         #: The *root* widget returned by the :meth:`build_view`
         self.root = None
@@ -67,13 +68,21 @@ class App(EventDispatcher):
     def pause(self):
         """Pause the application.
 
-        On Android set OS state to pause, Kivy app state follows.
+        On Android set OS state to pause and move the task to the background.
         No functionality on other OS.
         .. versionadded:: 2.2.0
         """
         act.moveTaskToBack(True)
 
     def stop(self):
-        self.dispatch('on_destroy')
-        self._eventloop.close()
-        App._running_app = None
+        # Activity destruction can enter the view cleanup path, which used to
+        # call app.stop() again through BrowserView.dismiss().
+        if self._stopping:
+            return
+
+        self._stopping = True
+        try:
+            self.dispatch('on_destroy')
+        finally:
+            self._eventloop.close()
+            App._running_app = None

@@ -53,7 +53,7 @@ Runs `frontendBuild.command` when configured, freezes the app with PyInstaller (
 
 WebKitGTK (Linux) cannot be bundled; `.deb` declares it via `Depends:` and AppImage builds print a warning that it must already be present on the target system. WebView2 (Windows) is provisioned per `bundle.windows.webview2InstallMode`.
 
-`android` skips the PyInstaller freeze step (buildozer/python-for-android does its own build) and instead templates a `buildozer.spec` from `mobile.android.buildozerSpecOverrides` and runs `buildozer android debug` (or `--release` for a release build). The entry point must be named `main.py`, which buildozer requires. This wraps the existing manual buildozer workflow described in [Freezing](freezing.md#android) -- pywebview's Android backend itself (Kivy/pyjnius-based) is unchanged.
+`android` skips the PyInstaller freeze step (buildozer/python-for-android does its own build) and instead templates a `buildozer.spec` from `mobile.android.buildozerSpecOverrides` and runs `buildozer android debug` (or `--release` for a release build). The entry point must be named `main.py`, which buildozer requires. This wraps the existing manual buildozer workflow described in [Freezing](freezing.md#android) -- pywebview's Android backend itself (python-for-Android/pyjnius-based) is unchanged.
 
 ## `pywebview2 icon`
 

@@ -84,4 +84,4 @@ Starting from Ubuntu Disco Dingo _pywebview_ can be installed via `apt` on Debia
 
 ### Android
 
-For Android development, refer to Kivy's [packaging instructions for Android](https://kivy.org/doc/stable-1.10.1/guide/packaging-android.html).
+For Android development, refer to the [Android packaging guide](freezing.md#android).
