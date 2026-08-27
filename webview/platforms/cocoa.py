@@ -192,6 +192,9 @@ class BrowserView:
             else:
                 completionHandler(None)
 
+            # Balance the explicit retain() made when this delegate was assigned.
+            self.release()
+
     class BrowserDelegate(AppKit.NSObject):
         # Display a JavaScript alert panel containing the specified message
         def webView_runJavaScriptAlertPanelWithMessage_initiatedByFrame_completionHandler_(
