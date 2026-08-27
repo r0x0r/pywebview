@@ -5,6 +5,7 @@ import shutil
 import webbrowser
 import winreg
 from threading import Semaphore
+from uuid import uuid1
 
 try:
     import clr
@@ -95,7 +96,6 @@ class EdgeChrome:
         form.Controls.Add(self.webview)
 
         self.js_results = {}
-        self.js_result_semaphore = Semaphore(0)
         self.webview.Dock = WinForms.DockStyle.Fill
         self.webview.BringToFront()
         self.webview.CoreWebView2InitializationCompleted += self.on_webview_ready
@@ -150,6 +150,8 @@ class EdgeChrome:
 
         result = None
         semaphore = Semaphore(0)
+        unique_id = uuid1().hex
+        self.js_results[unique_id] = {'semaphore': semaphore}
 
         try:
             self.webview.Invoke(
@@ -164,6 +166,8 @@ class EdgeChrome:
         except Exception:
             logger.exception('Error occurred in script')
             semaphore.release()
+        finally:
+            del self.js_results[unique_id]
 
         return result
 

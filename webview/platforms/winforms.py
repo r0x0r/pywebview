@@ -388,8 +388,9 @@ class BrowserView:
                 WinForms.Application.Exit()
 
             if not is_cef:
-                # stop waiting for JS result
-                self.browser.js_result_semaphore.release()
+                # stop waiting for any pending JS results
+                for res in list(self.browser.js_results.values()):
+                    res['semaphore'].release()
 
             if is_cef:
                 CEF.close_window(self.uid)
@@ -1052,9 +1053,9 @@ def destroy_window(uid):
     if not i:
         return
 
+    # i.Close() synchronously raises FormClosed, which runs on_close() and
+    # already releases any pending JS results before Invoke() returns here.
     i.Invoke(Func[Type](_close))
-    if not is_cef:
-        i.browser.js_result_semaphore.release()
 
 
 def evaluate_js(script, uid, parse_json, result_id=None):
