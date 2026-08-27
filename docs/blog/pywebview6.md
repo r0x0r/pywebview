@@ -103,7 +103,7 @@ Version 6 includes several breaking changes that modernize the API and removes d
 
 ## Learn more
 
-Ready to explore _pywebview 6_? Check out the [usage guide](/guide/usage.html), [API reference](/guide/api.html) and [examples](/examples) to get started with the new features.
+Ready to explore _pywebview 6_? Check out the [usage guide](/guide/usage.html), [API reference](/api.html) and [examples](/examples) to get started with the new features.
 
 ## Support the project
 
