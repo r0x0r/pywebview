@@ -968,7 +968,7 @@ The event is fired when a HTTP response is received. The event is emitted for ev
 The event handler can accept a single argument - a `Response` object that contains the following properties:
 
 * `url` - URL of the response
-* `status` - HTTP status code
+* `status_code` - HTTP status code
 * `headers` - HTTP response headers as a dictionary
 
 Not supported on QT.
