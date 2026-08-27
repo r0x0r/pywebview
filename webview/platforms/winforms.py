@@ -879,7 +879,9 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         return
 
     if not directory:
-        directory = os.environ['HOMEPATH']
+        directory = os.environ.get('USERPROFILE') or (
+            os.environ.get('HOMEDRIVE', '') + os.environ.get('HOMEPATH', '')
+        )
 
     try:
         if dialog_type == FileDialog.FOLDER:
