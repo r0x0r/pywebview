@@ -243,7 +243,7 @@ class BrowserView(QMainWindow):
 
             if 'httpHeaders' in dir(info):
                 headers = {
-                    k.data().decode('utf-8'): k.data().decode('utf-8')
+                    k.data().decode('utf-8'): v.data().decode('utf-8')
                     for k, v in info.httpHeaders().items()
                 }
             else:
