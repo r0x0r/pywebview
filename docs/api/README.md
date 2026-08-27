@@ -85,7 +85,7 @@ Start a GUI loop and display previously created windows. This function must be c
 
 #### Examples
 
-* [Simple window](/examples/open_url.html)
+* [Simple window](/examples/simple_browser.html)
 * [Multi-window](/examples/multiple_windows.html)
 
 ## webview.screens
@@ -702,7 +702,7 @@ window.hide()
 
 Hide the window.
 
-[Example](/examples/show_hide.html)
+[Example](/examples/hide_window.html)
 
 
 ### window.load_css
@@ -713,7 +713,7 @@ window.load_css(css)
 
 Load CSS as a string.
 
-[Example](/examples/css_load.html)
+[Example](/examples/load_css.html)
 
 
 ### window.load_html
@@ -724,7 +724,7 @@ window.load_html(content, base_uri=base_uri())
 
 Load HTML code. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way.
 
-[Example](/examples/html_load.html)
+[Example](/examples/load_html.html)
 
 ### window.load_url
 
@@ -801,7 +801,7 @@ window.resize(width, height, fix_point=FixPoint.NORTH | FixPoint.WEST)
 
 Resize window. `width` and `height` are in logical pixels. Optional parameter fix_point specifies in respect to which point the window is resized. The parameter accepts values of the `webview.window.FixPoint` enum (`NORTH`, `SOUTH`, `EAST`, `WEST`)
 
-[Example](/examples/minimize.html)
+[Example](/examples/window_state.html)
 
 ### window.restore
 
@@ -811,7 +811,7 @@ window.restore()
 
 Restore minimized window.
 
-[Example](/examples/minimize.html)
+[Example](/examples/window_state.html)
 
 ### window.run_js
 
@@ -842,7 +842,7 @@ window.show()
 
 Show the window if it is hidden. Has no effect otherwise
 
-[Example](/examples/show_hide.html)
+[Example](/examples/hide_window.html)
 
 ### window.toggle_fullscreen
 
