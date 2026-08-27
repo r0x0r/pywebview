@@ -85,6 +85,7 @@ def _is_chromium():
 
         return '0'
 
+    net_key = None
     try:
         net_key = winreg.OpenKey(
             winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full'
@@ -122,7 +123,8 @@ def _is_chromium():
     except Exception as e:
         logger.exception(e)
     finally:
-        winreg.CloseKey(net_key)
+        if net_key is not None:
+            winreg.CloseKey(net_key)
 
     return False
 
