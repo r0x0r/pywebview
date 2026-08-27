@@ -299,7 +299,7 @@ class BrowserView:
             if result == gtk.ResponseType.CANCEL:
                 return True
 
-        for res in self.js_results.values():
+        for res in list(self.js_results.values()):
             res['semaphore'].release()
 
         self.window.destroy()
@@ -689,10 +689,13 @@ class BrowserView:
 
             result_semaphore.release()
 
+        unique_id = uuid1().hex
         result_semaphore = Semaphore(0)
         result = None
+        self.js_results[unique_id] = {'semaphore': result_semaphore}
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
+        del self.js_results[unique_id]
 
         return result
 
