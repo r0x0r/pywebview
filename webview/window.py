@@ -40,16 +40,13 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
     def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
         event = getattr(self.events, event_type)
 
-        try:
-            if not event.wait(20):
-                raise WebViewException('Main window failed to start')
+        if not event.wait(20):
+            raise WebViewException('Main window failed to start')
 
-            if self.gui is None:
-                raise WebViewException('GUI is not initialized')
+        if self.gui is None:
+            raise WebViewException('GUI is not initialized')
 
-            return function(self, *args, **kwargs)
-        except NameError:
-            raise WebViewException('Create a web view window first, before invoking this function')
+        return function(self, *args, **kwargs)
 
     return wrapper
 
