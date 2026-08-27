@@ -60,11 +60,22 @@ def _set_dpi_mode(enabled):
 class JSBridge:
     def __init__(self, window, eval_events):
         self.results = {}
+        self.parse_json = {}
         self.window = window
         self.eval_events = eval_events
 
     def return_result(self, result, uid):
-        self.results[uid] = json.loads(result) if result else None
+        parse_json = self.parse_json.pop(uid, True)
+
+        if parse_json and result:
+            try:
+                self.results[uid] = json.loads(result)
+            except Exception:
+                logger.exception('Failed to parse JSON: %s', result)
+                self.results[uid] = result
+        else:
+            self.results[uid] = result
+
         self.eval_events[uid].set()
 
     def call(self, func_name, param, value_id):
@@ -142,6 +153,7 @@ class Browser:
         self.eval_events[unique_id] = Event()
 
         if unique_id:
+            self.js_bridge.parse_json[unique_id] = parse_json
             eval_script = f"""
                 try {{
                     {code}
