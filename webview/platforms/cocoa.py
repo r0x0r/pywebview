@@ -100,6 +100,13 @@ class BrowserView:
             i.webview.setNavigationDelegate_(None)
             i.webview.setUIDelegate_(None)
 
+            # WKUserContentController holds a strong reference to registered
+            # script message handlers; remove them so the webview/window can
+            # actually be released.
+            user_content_controller = i.webview.configuration().userContentController()
+            user_content_controller.removeScriptMessageHandlerForName_('browserDelegate')
+            user_content_controller.removeScriptMessageHandlerForName_('jsBridge')
+
             del BrowserView.instances[i.uid]
 
             if i.pywebview_window in windows:
