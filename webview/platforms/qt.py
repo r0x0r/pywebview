@@ -722,7 +722,12 @@ class BrowserView(QMainWindow):
             else:
                 self.webview.page().runJavaScript(script, return_result)
         except TypeError:
-            self.webview.page().runJavaScript(script)  # PySide2 & PySide6
+            # Some PySide2 & PySide6 versions raise TypeError when a Python
+            # callable is passed as the result callback. Fire the script
+            # without one, and unblock the waiting caller with no result
+            # instead of leaving it blocked on the semaphore forever.
+            self.webview.page().runJavaScript(script)
+            return_result(None)
         except AttributeError:
             result = self.webview.page().mainFrame().evaluateJavaScript(script)
             return_result(result)
