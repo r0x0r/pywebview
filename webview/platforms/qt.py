@@ -508,7 +508,9 @@ class BrowserView(QMainWindow):
 
     def on_confirmation_dialog(self, title, message, uuid):
         uuid_ = BrowserView._convert_string(uuid)
-        reply = QMessageBox.question(self, title, message, QMessageBox.Cancel, QMessageBox.Ok)
+        reply = QMessageBox.question(
+            self, title, message, QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Cancel
+        )
 
         confirmation_dialog_result = self._confirmation_dialog_results[uuid_]
 
@@ -593,7 +595,7 @@ class BrowserView(QMainWindow):
                 self,
                 self.title,
                 self.localization['global.quitConfirmation'],
-                QMessageBox.Yes,
+                QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No,
             )
 
