@@ -103,11 +103,14 @@ class EdgeChrome:
         self.webview.NavigationCompleted += self.on_navigation_completed
         self.webview.WebMessageReceived += self.on_script_notify
         self.syncContextTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext()
+        hex_color = window.background_color.lstrip('#')
+        if len(hex_color) == 3:
+            hex_color = ''.join([c * 2 for c in hex_color])
         self.webview.DefaultBackgroundColor = Color.FromArgb(
             255,
-            int(window.background_color.lstrip('#')[0:2], 16),
-            int(window.background_color.lstrip('#')[2:4], 16),
-            int(window.background_color.lstrip('#')[4:6], 16),
+            int(hex_color[0:2], 16),
+            int(hex_color[2:4], 16),
+            int(hex_color[4:6], 16),
         )
 
         if window.transparent:
