@@ -716,6 +716,8 @@ class BrowserView:
 
         self.pywebview_window.events.before_show.set()
 
+        self.url = None
+
         if window.real_url:
             self.url = window.real_url
             self.load_url(window.real_url)
@@ -840,7 +842,7 @@ class BrowserView:
         def handler(cookies):
             for c in cookies:
                 domain = c.domain()[1:] if c.domain().startswith('.') else c.domain()
-                if domain not in self.url:
+                if self.url and domain not in self.url:
                     continue
 
                 data = {
