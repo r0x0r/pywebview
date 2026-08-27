@@ -308,7 +308,7 @@ class Element:
             f"""
             var handlerIds = [{handler_ids}];
             handlerIds.forEach(function(handlerId) {{
-                delete pywebview._eventHandlers[handler_id]
+                delete pywebview._eventHandlers[handlerId]
             }})
         """
         )
