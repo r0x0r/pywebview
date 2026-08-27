@@ -628,7 +628,7 @@ Create a confirmation (Ok / Cancel) dialog.
 window.create_file_dialog(dialog_type=FileDialog.OPEN, directory='', allow_multiple=False, save_filename='', file_types=())
 ```
 
-Create an open file (`webview.FileDialog.OPEN`), open folder (`webview.FileDialog.FOLDER`) or save file (`webview.FileDialog.OPEN.SAVE`) dialog.
+Create an open file (`webview.FileDialog.OPEN`), open folder (`webview.FileDialog.FOLDER`) or save file (`webview.FileDialog.SAVE`) dialog.
 
 Return a tuple of selected files, None if cancelled.
 
