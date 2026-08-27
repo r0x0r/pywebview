@@ -289,7 +289,7 @@ class BrowserView:
         if self.pywebview_window.confirm_close:
             dialog = gtk.MessageDialog(
                 parent=self.window,
-                flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+                flags=gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT,
                 type=gtk.MessageType.QUESTION,
                 buttons=gtk.ButtonsType.OK_CANCEL,
                 message_format=self.localization['global.quitConfirmation'],
@@ -549,7 +549,7 @@ class BrowserView:
     def create_confirmation_dialog(self, title, message):
         dialog = gtk.MessageDialog(
             parent=self.window,
-            flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+            flags=gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT,
             type=gtk.MessageType.QUESTION,
             text=title,
             message_format=message,
@@ -699,7 +699,7 @@ class BrowserView:
     def message_box(self, message):
         dialog = gtk.MessageDialog(
             parent=self.window,
-            flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+            flags=gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT,
             type=gtk.MessageType.INFO,
             buttons=gtk.ButtonsType.OK,
             message_format=message,
