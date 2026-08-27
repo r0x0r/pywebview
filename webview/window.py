@@ -106,11 +106,11 @@ class Window:
         zoomable: bool = False,
         draggable: bool = False,
         vibrancy: bool = False,
-        menu: list[Menu] = [],
+        menu: list[Menu] | None = None,
         localization: Mapping[str, str] | None = None,
         http_port: int | None = None,
         server: type[http.ServerType] | None = None,
-        server_args: http.ServerArgs = {},
+        server_args: http.ServerArgs | None = None,
         screen: Screen = None,
     ) -> None:
         self.uid = uid
@@ -142,12 +142,12 @@ class Window:
         self.localization_override = localization
         self.vibrancy = vibrancy
         self.screen = screen
-        self.menu = menu
+        self.menu = menu if menu is not None else []
 
         # Server config
         self._http_port = http_port
         self._server_class = server
-        self._server_args = server_args
+        self._server_args = server_args if server_args is not None else {}
 
         # HTTP server path magic
         self._url_prefix = None
@@ -183,7 +183,10 @@ class Window:
         self._state = State(self)
 
     def _initialize(
-        self, gui, server: http.BottleServer | None = None, server_args: http.ServerArgs = dict
+        self,
+        gui,
+        server: http.BottleServer | None = None,
+        server_args: http.ServerArgs | None = None,
     ):
         self.gui = gui
 
@@ -196,7 +199,7 @@ class Window:
                 urls=[self.original_url],
                 http_port=self._http_port,
                 server=self._server_class,
-                **(self._server_args or server_args),
+                **(self._server_args or server_args or {}),
             )
         elif server is None:
             server = http.global_server

@@ -164,7 +164,7 @@ renderer: str | None = None
 def start(
     func: Callable[..., None] | None = None,
     args: Iterable[Any] | None = None,
-    localization: dict[str, str] = {},
+    localization: dict[str, str] | None = None,
     gui: GUIType | None = None,
     debug: bool = False,
     http_server: bool = False,
@@ -172,9 +172,9 @@ def start(
     user_agent: str | None = None,
     private_mode: bool = True,
     storage_path: str | None = None,
-    menu: list[Menu] = [],
+    menu: list[Menu] | None = None,
     server: type[http.ServerType] = http.BottleServer,
-    server_args: dict[Any, Any] = {},
+    server_args: dict[Any, Any] | None = None,
     ssl: bool = False,
     icon: str | None = None,
 ):
@@ -205,6 +205,10 @@ def start(
     :param icon: Path to the icon file. Supported only on GTK/QT.
     """
     global guilib, renderer
+
+    localization = localization if localization is not None else {}
+    menu = menu if menu is not None else []
+    server_args = server_args if server_args is not None else {}
 
     def _create_children(other_windows):
         if not windows[0].events.shown.wait(10):
@@ -334,11 +338,11 @@ def create_window(
     zoomable: bool = False,
     draggable: bool = False,
     vibrancy: bool = False,
-    menu: list[Menu] = [],
+    menu: list[Menu] | None = None,
     localization: Mapping[str, str] | None = None,
     server: type[http.ServerType] = http.BottleServer,
     http_port: int | None = None,
-    server_args: http.ServerArgs = {},
+    server_args: http.ServerArgs | None = None,
 ) -> Window | None:
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
@@ -373,6 +377,8 @@ def create_window(
     valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
     if not re.match(valid_color, background_color):
         raise ValueError(f'{background_color} is not a valid hex triplet color')
+
+    server_args = server_args if server_args is not None else {}
 
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
