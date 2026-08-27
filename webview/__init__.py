@@ -1,6 +1,6 @@
 """
 pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its
-own dedicated window. Works on Windows, OS X and Linux and compatible with Python 2 and 3.
+own dedicated window. Works on Windows, OS X, Linux and Android.
 
 (C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
