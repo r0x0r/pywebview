@@ -6,7 +6,7 @@ Starting from 5.0 _pywebview_ has got support for basic DOM manipulation, traver
 
 ``` python
 element = window.dom.create_element('<div>new element</div>') # insert a new element as body's last child
-element = window.dom.create_element('<h1>Warning</h1>' parent='#container', mode=ManipulationMode.FirstChild) # insert a new element to #containaer as a first child
+element = window.dom.create_element('<h1>Warning</h1>', parent='#container', mode=ManipulationMode.FirstChild) # insert a new element to #containaer as a first child
 ```
 
 Manipulation Mode can be one of following `LastChild`, `FirstChild`, `Before`, `After` or `Replace`. `LastChild` is a default value.
