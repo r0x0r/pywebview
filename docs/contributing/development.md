@@ -103,7 +103,7 @@ The project uses the following Ruff configuration (defined in `pyproject.toml`):
 * **Line length**: 100 characters
 * **Quote style**: Single quotes for strings
 * **Import sorting**: Enabled with `webview` as a known first-party package
-* **Target Python version**: 3.7+
+* **Target Python version**: 3.8+
 * **Enabled rules**: Pyflakes (F), pycodestyle (E4, E7, E9), isort (I), and pyupgrade (UP)
 
 ### Manual Formatting
