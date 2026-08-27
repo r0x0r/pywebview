@@ -53,6 +53,12 @@ logger.debug('Using Cocoa')
 renderer = 'wkwebview'
 
 
+def _primary_screen_height():
+    """Height of the primary screen, ie. screens()[0], not the focused mainScreen()."""
+    screens = AppKit.NSScreen.screens()
+    return screens[0].frame().size.height if screens else 0
+
+
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
@@ -158,8 +164,7 @@ class BrowserView:
             i = BrowserView.get_instance('window', notification.object())
             if i:
                 frame = i.window.frame()
-                screen = i.window.screen().frame()
-                flipped_y = screen.size.height - frame.size.height - frame.origin.y
+                flipped_y = _primary_screen_height() - frame.origin.y - frame.size.height
                 i.pywebview_window.events.moved.set(frame.origin.x, flipped_y)
 
     class JSBridge(AppKit.NSObject):
@@ -677,7 +682,9 @@ class BrowserView:
         self.window.setFrameOrigin_(self.screen.origin)
 
         if window.initial_x is not None and window.initial_y is not None:
-            self.move(window.initial_x, window.initial_y)
+            # initial_x / initial_y are relative to the target screen, move expects absolute
+            screen_top = _primary_screen_height() - self.screen.origin.y - self.screen.size.height
+            self.move(self.screen.origin.x + window.initial_x, screen_top + window.initial_y)
         else:
             self.center()
 
@@ -821,10 +828,7 @@ class BrowserView:
         AppHelper.callAfter(self.window.deminiaturize_, self)
 
     def move(self, x, y):
-        flipped_y = self.screen.size.height - y
-        self.window.setFrameTopLeftPoint_(
-            AppKit.NSPoint(self.screen.origin.x + x, self.screen.origin.y + flipped_y)
-        )
+        self.window.setFrameTopLeftPoint_(AppKit.NSPoint(x, _primary_screen_height() - y))
 
     def center(self):
         window_frame = self.window.frame()
@@ -1581,15 +1585,9 @@ def evaluate_js(script, uid, parse_json=True):
 
 def get_position(uid):
     def _position(coordinates):
-        screen_frame = i.screen
-
-        if screen_frame is None:
-            raise RuntimeError('Failed to obtain screen')
-
-        window = i.window
-        frame = window.frame()
+        frame = i.window.frame()
         coordinates[0] = int(frame.origin.x)
-        coordinates[1] = int(screen_frame.size.height - frame.origin.y - frame.size.height)
+        coordinates[1] = int(_primary_screen_height() - frame.origin.y - frame.size.height)
         semaphore.release()
 
     coordinates = [None, None]
