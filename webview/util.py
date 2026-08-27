@@ -381,7 +381,7 @@ def load_js_files(window: Window, platform: str) -> str:
                     ),
                 }
             elif name == 'state':
-                params = {'state': json.dumps(window.state)}
+                params = {'state': escape_string(json.dumps(window.state))}
             elif name == 'finish':
                 finish_script = content
                 continue
