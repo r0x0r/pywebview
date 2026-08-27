@@ -239,7 +239,7 @@ class BrowserView:
         def webView_runOpenPanelWithParameters_initiatedByFrame_completionHandler_(
             self, webview, param, frame, handler
         ):
-            i = list(BrowserView.instances.values())[0]
+            i = BrowserView.get_instance('webview', webview)
             file_filter = param._acceptedMIMETypes()
 
             files = i.create_file_dialog(
