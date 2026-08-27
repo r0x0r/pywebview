@@ -308,6 +308,10 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
     if func_name == 'pywebviewAsyncCallback':
         value = json.loads(param) if param is not None else None
 
+        if value_id not in window._callbacks:
+            logger.warning(f'No callback registered for value_id {value_id}. Ignoring.')
+            return
+
         if callable(window._callbacks[value_id]):
             window._callbacks[value_id](value)
         else:
