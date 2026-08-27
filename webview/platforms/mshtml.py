@@ -243,12 +243,14 @@ class MSHTML:
         if _state['debug']:
             document.InvokeScript(
                 'eval',
-                """
+                (
+                    """
                     window.console = {
                         log: function(msg) { window.external.console(JSON.stringify(msg)) },
                         error: function(msg) { window.external.console(JSON.stringify(msg)) }
-                    }',
-                """,
+                    }
+                    """,
+                ),
             )
 
         if self.first_load:
