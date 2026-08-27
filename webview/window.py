@@ -21,7 +21,8 @@ from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
 from webview.state import State
-from webview.util import base_uri, escape_string, is_app, is_local_url, parse_file_type
+from webview.util import base_uri as get_base_uri
+from webview.util import escape_string, is_app, is_local_url, parse_file_type
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -291,13 +292,16 @@ class Window:
         self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
-    def load_html(self, html: str, base_uri: str = base_uri()) -> None:
+    def load_html(self, html: str, base_uri: str | None = None) -> None:
         """
         Load a new HTML content into a previously created WebView window. This function must be invoked after WebView windows is
         created with create_window(). Otherwise an exception is thrown.
         :param html: HTML content to load.
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         """
+        if base_uri is None:
+            base_uri = get_base_uri()
+
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
