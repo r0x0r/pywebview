@@ -8,6 +8,7 @@ from webview.dom.classlist import ClassList
 from webview.dom.propsdict import DOMPropType, PropsDict
 from webview.errors import JavascriptException
 from webview.event import EventContainer
+from webview.util import escape_string
 
 logger = logging.getLogger('pywebview')
 
@@ -90,7 +91,7 @@ class Element:
     @_exists
     @_ignore_window_document
     def id(self, id: str) -> None:
-        self._window.run_js(f"{self._query_command}; element.id = '{id}'")
+        self._window.run_js(f"{self._query_command}; element.id = '{escape_string(id)}'")
 
     @property
     @_exists
@@ -155,7 +156,9 @@ class Element:
     @_exists
     @_ignore_window_document
     def text(self, text: str) -> None:
-        self._window.run_js(f"{self._query_command}; element.textContent = '{text}'")
+        self._window.run_js(
+            f"{self._query_command}; element.textContent = '{escape_string(text)}'"
+        )
 
     @property
     @_exists
@@ -182,7 +185,7 @@ class Element:
     @_ignore_window_document
     def value(self, value: str) -> None:
         self._window.run_js(
-            f"{self._query_command}; if ('value' in element) {{ element.value = '{value}' }}"
+            f"{self._query_command}; if ('value' in element) {{ element.value = '{escape_string(value)}' }}"
         )
 
     @_exists
@@ -324,7 +327,7 @@ class Element:
             target = self.parent
 
         if id:
-            id_command = f'newElement.id = "{id}"'
+            id_command = f'newElement.id = "{escape_string(id)}"'
         else:
             id_command = 'newElement.removeAttribute("id")'
 
@@ -399,7 +402,7 @@ class Element:
                     {debounced_func};
                 }}
 
-                element.addEventListener('{event}', pywebview._eventHandlers[handlerId]);
+                element.addEventListener('{escape_string(event)}', pywebview._eventHandlers[handlerId]);
             }};
             handlerId;
         """
@@ -424,7 +427,7 @@ class Element:
             {self._query_command};
             var callback = pywebview._eventHandlers['{handler_id}'];
             if (element) {{
-                element.removeEventListener('{event}', callback);
+                element.removeEventListener('{escape_string(event)}', callback);
                 delete pywebview._eventHandlers['{handler_id}'];
             }}
         """

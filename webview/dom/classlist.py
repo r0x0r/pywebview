@@ -1,26 +1,29 @@
+from webview.util import escape_string
+
+
 class ClassList:
     def __init__(self, element, classes=None):
         self.__element = element
 
         if classes:
-            classes = ' '.join(classes)
+            classes = escape_string(' '.join(classes))
             self.__element._window.evaluate_js(
                 f"{self.__element._query_command}; element.className = '{classes}'"
             )
 
     def append(self, cls):
         self.__element._window.run_js(
-            f"{self.__element._query_command}; element.classList.add('{cls}')"
+            f"{self.__element._query_command}; element.classList.add('{escape_string(cls)}')"
         )
 
     def remove(self, cls):
         self.__element._window.run_js(
-            f"{self.__element._query_command}; element.classList.remove('{cls}')"
+            f"{self.__element._query_command}; element.classList.remove('{escape_string(cls)}')"
         )
 
     def toggle(self, cls):
         self.__element._window.run_js(
-            f"{self.__element._query_command}; element.classList.toggle('{cls}')"
+            f"{self.__element._query_command}; element.classList.toggle('{escape_string(cls)}')"
         )
 
     def __get_classes(self):
