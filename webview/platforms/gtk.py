@@ -331,7 +331,7 @@ class BrowserView:
         return False
 
     def on_window_state_change(self, window, window_state):
-        if window_state.changed_mask == Gdk.WindowState.ICONIFIED:
+        if window_state.changed_mask & Gdk.WindowState.ICONIFIED:
             if (
                 Gdk.WindowState.ICONIFIED & window_state.new_window_state
                 == Gdk.WindowState.ICONIFIED
@@ -340,7 +340,7 @@ class BrowserView:
             else:
                 self.pywebview_window.events.restored.set()
 
-        elif window_state.changed_mask == Gdk.WindowState.MAXIMIZED:
+        if window_state.changed_mask & Gdk.WindowState.MAXIMIZED:
             if (
                 Gdk.WindowState.MAXIMIZED & window_state.new_window_state
                 == Gdk.WindowState.MAXIMIZED
