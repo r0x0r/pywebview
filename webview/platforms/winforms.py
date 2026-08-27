@@ -546,6 +546,11 @@ class BrowserView:
                     elif isinstance(menu, MenuAction):
                         top_level_menu.Items.Add(create_action_item(menu))
 
+                top_level_menu.MenuActivate += lambda s, e: top_level_menu.Focus()
+                top_level_menu.MenuDeactivate += lambda s, e: (
+                    CEF.focus(self.uid) if is_cef else self.browser.webview.Focus()
+                )
+
                 self.Controls.Add(top_level_menu)
 
             if self.InvokeRequired:
