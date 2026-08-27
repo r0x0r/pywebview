@@ -2,12 +2,8 @@
 
 ## Supported Versions
 
-Versions lower than 3.0 are not supported.
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 3.x   | :white_check_mark: |
-| < 3.0    | :x:                |
+Only the latest released version of pywebview is supported. See the
+[changelog](https://pywebview.flowrl.com/CHANGELOG) for the current version.
 
 ## Reporting a Vulnerability
 
