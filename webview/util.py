@@ -141,7 +141,7 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
         cookie[name]['secure'] = input_['secure']
         cookie[name]['httponly'] = input_['httponly']
 
-        if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
+        if sys.version_info >= (3, 8):
             cookie[name]['samesite'] = input_.get('samesite')
 
         return cookie
