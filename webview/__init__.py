@@ -422,8 +422,11 @@ def create_window(
 
     # This immediately creates the window only if `start` has already been called
     if threading.current_thread().name != 'MainThread' and guilib:
-        if is_app(url) or is_local_url(url) and not server.is_running:
-            _, _, server = http.start_server([url], server=server, **server_args)
+        if is_app(url) or is_local_url(url):
+            if http.global_server is not None and http.global_server.is_running:
+                server = http.global_server
+            else:
+                _, _, server = http.start_server([url], server=server, **server_args)
         else:
             server = None
 
