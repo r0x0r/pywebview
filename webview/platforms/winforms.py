@@ -184,6 +184,96 @@ def ExtendFrameIntoClientArea(hwnd):
     return DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(m))
 
 
+# --- Frameless resizable window support -------------------------------------
+# When a window is frameless (FormBorderStyle = None), WinForms strips
+# WS_THICKFRAME from the window style, so the system no longer offers resize
+# handles at the edges. To keep ``resizable=True`` working for frameless
+# windows we subclass the window procedure and answer ``WM_NCHITTEST``
+# ourselves, returning the appropriate edge hit-test code when the cursor is
+# near a window border. ``WM_SETCURSOR`` is handled as well so the system
+# shows the sizing cursor. WS_THICKFRAME is added back to the style so the
+# system resize modal loop engages once it receives the edge hit-test result.
+
+_WM_NCHITTEST = 0x0084
+_WM_SETCURSOR = 0x0020
+_WM_NCCALCSIZE = 0x0083
+_WM_NCACTIVATE = 0x0086
+_WM_NCPAINT = 0x0085
+_WM_NCUAHDRAWCAPTION = 0x00AE
+_WM_NCUAHDRAWFRAME = 0x00AF
+
+_HTCLIENT = 1
+_HTLEFT = 10
+_HTRIGHT = 11
+_HTTOP = 12
+_HTTOPLEFT = 13
+_HTTOPRIGHT = 14
+_HTBOTTOM = 15
+_HTBOTTOMLEFT = 16
+_HTBOTTOMRIGHT = 17
+
+_IDC_SIZENS = 32645
+_IDC_SIZEWE = 32644
+_IDC_SIZENWSE = 32642
+_IDC_SIZENESW = 32643
+
+_RESIZE_CURSORS = {
+    _HTLEFT: _IDC_SIZEWE,
+    _HTRIGHT: _IDC_SIZEWE,
+    _HTTOP: _IDC_SIZENS,
+    _HTBOTTOM: _IDC_SIZENS,
+    _HTTOPLEFT: _IDC_SIZENWSE,
+    _HTTOPRIGHT: _IDC_SIZENESW,
+    _HTBOTTOMLEFT: _IDC_SIZENESW,
+    _HTBOTTOMRIGHT: _IDC_SIZENWSE,
+}
+
+_GWLP_WNDPROC = -4
+_GWL_STYLE = -16
+_WS_THICKFRAME = 0x00040000
+
+_WNDPROC = ctypes.WINFUNCTYPE(
+    ctypes.c_ssize_t, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM
+)
+
+_GetWindowLongPtrW = windll.user32.GetWindowLongPtrW
+_GetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int]
+_GetWindowLongPtrW.restype = ctypes.c_void_p
+_SetWindowLongPtrW = windll.user32.SetWindowLongPtrW
+_SetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_void_p]
+_SetWindowLongPtrW.restype = ctypes.c_void_p
+_GetWindowLongW = windll.user32.GetWindowLongW
+_GetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int]
+_GetWindowLongW.restype = ctypes.c_long
+_SetWindowLongW = windll.user32.SetWindowLongW
+_SetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_long]
+_SetWindowLongW.restype = ctypes.c_long
+_CallWindowProcW = windll.user32.CallWindowProcW
+_CallWindowProcW.argtypes = [
+    ctypes.c_void_p,
+    wintypes.HWND,
+    wintypes.UINT,
+    wintypes.WPARAM,
+    wintypes.LPARAM,
+]
+_CallWindowProcW.restype = ctypes.c_ssize_t
+
+
+def _get_window_long_ptr(hwnd, index):
+    """Get a pointer-sized window attribute, 32/64-bit safe."""
+    if ctypes.sizeof(ctypes.c_void_p) == 8:
+        return _GetWindowLongPtrW(wintypes.HWND(hwnd), index)
+    return _GetWindowLongW(wintypes.HWND(hwnd), index)
+
+
+def _set_window_long_ptr(hwnd, index, value):
+    """Set a pointer-sized window attribute, 32/64-bit safe."""
+    if ctypes.sizeof(ctypes.c_void_p) == 8:
+        _SetWindowLongPtrW(wintypes.HWND(hwnd), index, ctypes.c_void_p(value))
+    else:
+        _SetWindowLongW(wintypes.HWND(hwnd), index, ctypes.c_long(value))
+
+
 class BrowserView:
     instances = {}
 
@@ -279,6 +369,15 @@ class BrowserView:
             if window.menu or _state['menu']:
                 self.set_window_menu(window.menu or _state['menu'])
 
+            # Install frameless resize support *before* creating the browser,
+            # because EdgeChrome reads self._frameless_resize_border to decide
+            # whether to reserve a non-client border for system resize.
+            if window.frameless and window.resizable:
+                try:
+                    self._install_frameless_resize()
+                except Exception as e:
+                    logger.warning('Failed to install frameless resize support: %s', e)
+
             if is_cef:
                 self.browser = None
                 CEF.create_browser(window, hwnd, BrowserView.alert, self)
@@ -315,6 +414,133 @@ class BrowserView:
 
             self.update_title_bar_theme()
             SystemEvents.UserPreferenceChanged += self.on_system_theme_changed
+
+        def _install_frameless_resize(self):
+            """Enable resizing for a frameless window.
+
+            WinForms strips ``WS_THICKFRAME`` when ``FormBorderStyle = None``,
+            so the system no longer offers resize handles at the edges. We add
+            the style back and subclass the window procedure to make the window
+            behave like a frameless window that is still resizable and keeps
+            its native shadow.
+
+            The implementation follows the approach used by Electron (and the
+            reference ``borderless-window`` sample):
+
+            * ``WM_NCACTIVATE`` — pass ``-1`` as the update region so
+              DefWindowProc does not repaint the non-client border on
+              activation changes.
+            * ``WM_NCCALCSIZE`` — return 0 so the client area fills the whole
+              window (no non-client area is visible).
+            * ``WM_NCPAINT`` — forwarded to DefWindowProc so DWM still draws
+              the window shadow (blocking it would remove the shadow too).
+            * ``WM_NCUAHDRAWCAPTION`` / ``WM_NCUAHDRAWFRAME`` — these
+              undocumented messages draw the themed window border. Block them
+              to prevent the border from being drawn over the client area.
+            * ``WM_NCHITTEST`` — answered with edge hit-test codes computed in
+              client coordinates, so the system engages its resize modal loop
+              when the cursor is near a window edge.
+            * ``WM_SETCURSOR`` — shows the appropriate sizing cursor based on
+              the hit-test result.
+
+            ``DWMWA_NCRENDERING_POLICY`` is left at ``DWMNCRP_ENABLED`` (set
+            earlier for the shadow) and ``WS_THICKFRAME`` is added back so the
+            system resize modal loop works.
+            """
+            try:
+                hwnd = self.Handle.ToInt32()
+
+                sm_cxframe = windll.user32.GetSystemMetrics(32)  # SM_CXFRAME
+                sm_cxpadborder = windll.user32.GetSystemMetrics(92)  # SM_CXPADDEDBORDER
+                frame_size = sm_cxframe + sm_cxpadborder
+                diagonal_width = frame_size * 2 + windll.user32.GetSystemMetrics(5)  # SM_CXBORDER
+
+                def _hit_test_client(hwnd, lparam):
+                    screen_x = ctypes.c_short(lparam & 0xFFFF).value
+                    screen_y = ctypes.c_short((lparam >> 16) & 0xFFFF).value
+
+                    pt = wintypes.POINT()
+                    pt.x = screen_x
+                    pt.y = screen_y
+                    windll.user32.ScreenToClient(wintypes.HWND(hwnd), ctypes.byref(pt))
+
+                    rect = wintypes.RECT()
+                    windll.user32.GetClientRect(wintypes.HWND(hwnd), ctypes.byref(rect))
+                    width = rect.right - rect.left
+                    height = rect.bottom - rect.top
+
+                    on_top = pt.y < frame_size
+                    on_bottom = pt.y >= height - frame_size
+                    on_left = pt.x < diagonal_width
+                    on_right = pt.x >= width - diagonal_width
+
+                    if on_top and on_left:
+                        return _HTTOPLEFT
+                    if on_top and on_right:
+                        return _HTTOPRIGHT
+                    if on_bottom and on_left:
+                        return _HTBOTTOMLEFT
+                    if on_bottom and on_right:
+                        return _HTBOTTOMRIGHT
+                    if on_top:
+                        return _HTTOP
+                    if on_bottom:
+                        return _HTBOTTOM
+                    if pt.x < frame_size:
+                        return _HTLEFT
+                    if pt.x >= width - frame_size:
+                        return _HTRIGHT
+                    return _HTCLIENT
+
+                parent_original = _get_window_long_ptr(hwnd, _GWLP_WNDPROC)
+
+                def parent_wnd_proc(hwnd, msg, wparam, lparam):
+                    if msg == _WM_NCACTIVATE:
+                        return _CallWindowProcW(
+                            ctypes.c_void_p(parent_original),
+                            wintypes.HWND(hwnd),
+                            msg,
+                            wparam,
+                            -1,
+                        )
+                    elif msg == _WM_NCCALCSIZE and wparam:
+                        return 0
+                    elif msg in (_WM_NCUAHDRAWCAPTION, _WM_NCUAHDRAWFRAME):
+                        return 0
+                    elif msg == _WM_NCHITTEST:
+                        if windll.user32.IsZoomed(wintypes.HWND(hwnd)):
+                            return _HTCLIENT
+                        hit = _hit_test_client(hwnd, lparam)
+                        if hit != _HTCLIENT:
+                            return hit
+                    elif msg == _WM_SETCURSOR:
+                        hit_test = (wparam >> 16) & 0xFFFF
+                        cursor_id = _RESIZE_CURSORS.get(hit_test)
+                        if cursor_id is not None:
+                            cursor_handle = windll.user32.LoadCursorW(0, cursor_id)
+                            windll.user32.SetCursor(cursor_handle)
+                            return 1
+
+                    return _CallWindowProcW(
+                        ctypes.c_void_p(parent_original),
+                        wintypes.HWND(hwnd),
+                        msg,
+                        wparam,
+                        lparam,
+                    )
+
+                parent_callback = _WNDPROC(parent_wnd_proc)
+                self._frameless_resize_parent_ref = parent_callback
+                _set_window_long_ptr(
+                    hwnd, _GWLP_WNDPROC, ctypes.cast(parent_callback, ctypes.c_void_p).value
+                )
+
+                style = _get_window_long_ptr(hwnd, _GWL_STYLE)
+                _set_window_long_ptr(hwnd, _GWL_STYLE, style | _WS_THICKFRAME)
+
+                self._frameless_resize_border = frame_size
+            except Exception as e:
+                logger.warning('Frameless resize setup failed: %s', e)
 
         def __str__(self):
             return f'<System.Windows.Forms object with {self.Handle} handle>'
