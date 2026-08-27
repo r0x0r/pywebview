@@ -410,14 +410,14 @@ class Element:
 
         if handler_id:
             self._event_handlers[event].append(callback)
-            self._event_handler_ids[callback] = handler_id
+            self._event_handler_ids[(event, callback)] = handler_id
 
         if event == 'drop':
             _dnd_state['num_listeners'] += 1
 
     @_exists
     def off(self, event: str, callback: Callable) -> None:
-        handler_id = self._event_handler_ids.get(callback)
+        handler_id = self._event_handler_ids.get((event, callback))
 
         if not handler_id:
             return
@@ -433,7 +433,7 @@ class Element:
         """
         )
 
-        del self._event_handler_ids[callback]
+        del self._event_handler_ids[(event, callback)]
 
         for handler in self._event_handlers[event]:
             if handler == callback:
