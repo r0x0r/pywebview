@@ -32,9 +32,7 @@ class PropsDict:
             )
 
         elif type == DOMPropType.Attribute:
-            converted_attributes = json.dumps(
-                {escape_string(key): escape_string(value) for key, value in props.items()}
-            )
+            converted_attributes = escape_string(json.dumps(props))
 
             self.__element._window.evaluate_js(
                 f"""
