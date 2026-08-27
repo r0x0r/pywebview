@@ -51,7 +51,7 @@ def initialize(forced_gui: GUIType | None = None):
             import webview.platforms.qt as guilib
 
             return True
-        except ImportError:
+        except (ImportError, ValueError):
             logger.exception('QT cannot be loaded')
             return False
 
@@ -62,7 +62,7 @@ def initialize(forced_gui: GUIType | None = None):
             import webview.platforms.cocoa as guilib
 
             return True
-        except ImportError:
+        except (ImportError, ValueError):
             logger.exception('PyObjC cannot be loaded')
 
             return False
@@ -74,7 +74,7 @@ def initialize(forced_gui: GUIType | None = None):
             import webview.platforms.winforms as guilib
 
             return True
-        except ImportError:
+        except (ImportError, RuntimeError):
             logger.exception('pythonnet cannot be loaded')
             return False
 
