@@ -214,14 +214,14 @@ class Window:
         return not abort
 
     @property
+    @_shown_call
     def width(self) -> int:
-        self.events.shown.wait(15)
         width, _ = self.gui.get_size(self.uid)
         return width
 
     @property
+    @_shown_call
     def height(self) -> int:
-        self.events.shown.wait(15)
         _, height = self.gui.get_size(self.uid)
         return height
 
@@ -240,20 +240,20 @@ class Window:
         return self._title
 
     @title.setter
+    @_loaded_call
     def title(self, title: str) -> None:
-        self.events.loaded.wait(15)
         self._title = title
         self.gui.set_title(title, self.uid)
 
     @property
+    @_shown_call
     def x(self) -> int:
-        self.events.shown.wait(15)
         x, _ = self.gui.get_position(self.uid)
         return x
 
     @property
+    @_shown_call
     def y(self) -> int:
-        self.events.shown.wait(15)
         _, y = self.gui.get_position(self.uid)
         return y
 
