@@ -434,11 +434,13 @@ class Element:
         )
 
         del self._event_handler_ids[callback]
-        del self._window.dom._elements[self._node_id]
 
         for handler in self._event_handlers[event]:
             if handler == callback:
                 self._event_handlers[event].remove(handler)
+
+        if not self._event_handler_ids:
+            self._window.dom._elements.pop(self._node_id, None)
 
         if event == 'drop':
             _dnd_state['num_listeners'] = max(0, _dnd_state['num_listeners'] - 1)
