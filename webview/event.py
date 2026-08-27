@@ -43,12 +43,12 @@ class Event:
                         value = func(self._window, *args, **kwargs)
                     else:
                         value = func(*args, **kwargs)
-                    return_values.add(value)
+                    return_values.append(value)
 
                 except Exception as e:
                     logger.exception(e)
 
-        return_values: set[Any] = set()
+        return_values: list[Any] = []
 
         if len(self._items):
             if self._should_lock:
