@@ -165,10 +165,11 @@ class Browser:
             self.browser.ExecuteJavascript(eval_script)
             self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
 
-            result = copy(self.js_bridge.results[unique_id])
+            result = copy(self.js_bridge.results.get(unique_id))
 
             del self.eval_events[unique_id]
-            del self.js_bridge.results[unique_id]
+            self.js_bridge.results.pop(unique_id, None)
+            self.js_bridge.parse_json.pop(unique_id, None)
 
             return result
         else:
@@ -386,6 +387,11 @@ def resize(width, height, uid):
 @_cef_call
 def close_window(uid):
     instance = instances[uid]
+
+    # unblock any evaluate_js() calls still waiting on a result
+    for event in list(instance.eval_events.values()):
+        event.set()
+
     instance.close()
     del instances[uid]
 
