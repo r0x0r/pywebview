@@ -320,7 +320,10 @@ class BrowserView:
                 value = value.strip()
                 if value.startswith('file://'):
                     # Handle 'file://' URIs (e.g., `file:///home/user/file.txt`)
-                    path = value.replace('file://', '')
+                    try:
+                        path, _ = glib.filename_from_uri(value)
+                    except Exception:
+                        path = value.replace('file://', '')
                     files.append((os.path.basename(path), path))
                 elif value.startswith('/') and os.path.exists(value):
                     # Handle direct paths (e.g., `/home/user/file.txt`)
