@@ -106,13 +106,15 @@ Return a list of available displays (as `Screen` objects) with the primary displ
 webview.settings = {
   'ALLOW_DOWNLOADS': False,
   'ALLOW_FILE_URLS': True,
-  'DRAG_REGION_SELECTOR': 'pywebview-drag-region',
+  'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
   'DRAG_REGION_DIRECT_TARGET_ONLY': False,
+  'DEFAULT_HTTP_PORT': 42001,
   'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
   'OPEN_DEVTOOLS_IN_DEBUG': True,
-  'IGNORE_SSL_ERRORS': False,
   'REMOTE_DEBUGGING_PORT': None,
-  'SHOW_DEFAULT_MENUS': True
+  'IGNORE_SSL_ERRORS': False,
+  'SHOW_DEFAULT_MENUS': True,
+  'WEBVIEW2_RUNTIME_PATH': None
 }
 ```
 
@@ -122,6 +124,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `ALLOW_FILE_URLS` Enable `file://` urls. Disabled by default.
 * `DRAG_REGION_SELECTOR` CSS selector for a drag region in easy drag mode. Default selector is `.pywebview-drag-region`.
 * `DRAG_REGION_DIRECT_TARGET_ONLY` When set to True, only elements that directly match the drag region selector are draggable. When False, child elements of a drag region are also draggable. Default is False.
+* `DEFAULT_HTTP_PORT` Port used for the internal HTTP server when private mode is disabled and no explicit port is given. Default is 42001.
 * `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
