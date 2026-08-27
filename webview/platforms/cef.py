@@ -9,6 +9,7 @@ from ctypes import windll
 from functools import wraps
 from threading import Event
 from time import sleep
+from urllib.parse import quote
 
 from cefpython3 import cefpython as cef
 
@@ -197,7 +198,7 @@ class Browser:
 
     def load_html(self, html):
         self.initialized = False
-        self.browser.LoadUrl(f'data:text/html,{html}')
+        self.browser.LoadUrl(f'data:text/html,{quote(html)}')
 
     def focus(self):
         self.browser.SendFocusEvent(True)
@@ -299,9 +300,9 @@ def init(_, cache_dir):
 def create_browser(window, handle, alert_func, parent):
     def _create():
         real_url = (
-            f'data:text/html,{window.html}'
+            f'data:text/html,{quote(window.html)}'
             if window.html
-            else window.real_url or f'data:text/html,{DEFAULT_HTML}'
+            else window.real_url or f'data:text/html,{quote(DEFAULT_HTML)}'
         )
 
         default_browser_settings = {}
