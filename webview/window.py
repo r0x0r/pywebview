@@ -146,7 +146,7 @@ class Window:
 
         # Server config
         self._http_port = http_port
-        self._server = server
+        self._server_class = server
         self._server_args = server_args
 
         # HTTP server path magic
@@ -195,7 +195,7 @@ class Window:
             *_, server = http.start_server(
                 urls=[self.original_url],
                 http_port=self._http_port,
-                server=self._server,
+                server=self._server_class,
                 **(self._server_args or server_args),
             )
         elif server is None:
