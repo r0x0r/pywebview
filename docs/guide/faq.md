@@ -2,7 +2,7 @@
 
 ## How do I set an application icon?
 
-For macOS, Windows, and Android, the application icon is set via a bundler and embedded in the resulting executable. For GTK and QT, you can set the application icon using `webview.start(icon=icon_path)`, but you might need some additional adjustments to get your icon visible depending on the window manager you use.
+For Android, the application icon is set via a bundler and embedded in the resulting executable. On other platforms, you can set the application icon using `webview.start(icon=icon_path)`, but on GTK you might need some additional adjustments to get your icon visible depending on the window manager you use.
 
 ## Why does _pywebview_ have to run on a main thread?
 

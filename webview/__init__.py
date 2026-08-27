@@ -202,7 +202,7 @@ def start(
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :param ssl: Enable SSL for local HTTP server. Default is False.
-    :param icon: Path to the icon file. Supported only on GTK/QT.
+    :param icon: Path to the icon file. Supported on GTK, QT, macOS and Windows.
     """
     global guilib, renderer
 
