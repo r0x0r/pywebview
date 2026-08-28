@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from webview.dom import ManipulationMode
 from webview.dom.element import Element
@@ -9,12 +9,12 @@ from webview.util import escape_string
 class DOM:
     _serializable = False
 
-    def __init__(self, window):
+    def __init__(self, window: Any) -> None:
         self.__window = window
         window.events.loaded += self.__on_loaded
         self._elements = {}
 
-    def __on_loaded(self):
+    def __on_loaded(self) -> None:
         self._elements = {}
 
     @property

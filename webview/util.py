@@ -51,19 +51,19 @@ class ImmutableDict(UserDict):
     Only existing keys can be modified.
     """
 
-    def __init__(self, initial_data=None, **kwargs):
+    def __init__(self, initial_data: dict[Any, Any] | None = None, **kwargs: Any) -> None:
         self.data = {}
         if initial_data:
             self.data.update(initial_data)
         if kwargs:
             self.data.update(kwargs)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: Any) -> None:
         if key not in self.data:
             raise KeyError(f"Cannot add new key '{key}'. Only existing keys can be modified.")
         super().__setitem__(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         raise KeyError('Deleting keys is not allowed.')
 
 
@@ -140,9 +140,7 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
         cookie[name]['expires'] = input_['expires']
         cookie[name]['secure'] = input_['secure']
         cookie[name]['httponly'] = input_['httponly']
-
-        if sys.version_info >= (3, 8):
-            cookie[name]['samesite'] = input_.get('samesite')
+        cookie[name]['samesite'] = input_.get('samesite')
 
         return cookie
 
@@ -165,7 +163,7 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def inject_pywebview(platform: str, window: Window) -> str:
+def inject_pywebview(platform: str, window: Window) -> None:
     """ "
     Generates and injects a global window.pywebview object. The object contains exposed API functions
     as well as utility functions required by pywebview. The function fires before_load event before
@@ -344,7 +342,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         logger.error('Function %s() does not exist', func_name)
 
 
-def load_js_files(window: Window, platform: str) -> str:
+def load_js_files(window: Window, platform: str) -> tuple[str, str]:
     """
     Load JS files in the order they should be loaded.
     The order is polyfill, api, the rest and finish.js.

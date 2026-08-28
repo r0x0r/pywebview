@@ -18,7 +18,7 @@ class DOMEventHandler:
         stop_propagation: bool = False,
         stop_immediate_propagation: bool = False,
         debounce: int = 0,
-    ):
+    ) -> None:
         self.__callback = callback
         self.__prevent_default = prevent_default
         self.__stop_propagation = stop_propagation
@@ -26,23 +26,23 @@ class DOMEventHandler:
         self.__debounce = debounce
 
     @property
-    def callback(self):
+    def callback(self) -> Callable:
         return self.__callback
 
     @property
-    def prevent_default(self):
+    def prevent_default(self) -> bool:
         return self.__prevent_default
 
     @property
-    def stop_propagation(self):
+    def stop_propagation(self) -> bool:
         return self.__stop_propagation
 
     @property
-    def stop_immediate_propagation(self):
+    def stop_immediate_propagation(self) -> bool:
         return self.__stop_immediate_propagation
 
     @property
-    def debounce(self):
+    def debounce(self) -> int:
         return self.__debounce
 
 

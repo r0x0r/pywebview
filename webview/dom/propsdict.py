@@ -51,43 +51,43 @@ class PropsDict:
             """
             )
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         data = self.__get_data()
         return data.get(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         if self.__type == DOMPropType.Style:
             self.__set_style({key: value})
         elif self.__type == DOMPropType.Attribute:
             self.__set_attribute({key: value})
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         if self.__type == DOMPropType.Style:
             self.__set_style({key: ''})
         elif self.__type == DOMPropType.Attribute:
             self.__set_attribute({key: None})
 
-    def __contains__(self, key):
+    def __contains__(self, key: str) -> bool:
         data = self.__get_data()
         return key in data
 
-    def keys(self):
+    def keys(self) -> Any:
         data = self.__get_data()
         return data.keys()
 
-    def values(self):
+    def values(self) -> Any:
         data = self.__get_data()
         return data.values()
 
-    def items(self):
+    def items(self) -> Any:
         data = self.__get_data()
         return data.items()
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         data = self.__get_data()
         return data.get(key, default)
 
-    def clear(self):
+    def clear(self) -> None:
         data = self.__get_data()
 
         for key in data.keys():
@@ -98,28 +98,28 @@ class PropsDict:
         elif self.__type == DOMPropType.Attribute:
             self.__set_attribute(data)
 
-    def copy(self):
+    def copy(self) -> Dict[str, Any]:
         return self.__get_data()
 
-    def update(self, other_dict: Dict[str, Union[str, int, float, None]]):
+    def update(self, other_dict: Dict[str, Union[str, int, float, None]]) -> None:
         if self.__type == DOMPropType.Style:
             self.__set_style(other_dict)
         elif self.__type == DOMPropType.Attribute:
             self.__set_attribute(other_dict)
 
-    def pop(self, key, default=None):
+    def pop(self, key: str, default: Any = None) -> Any:
         data = self.__get_data()
         return data.pop(key, default)
 
-    def popitem(self):
+    def popitem(self) -> tuple[str, Any]:
         data = self.__get_data()
         return data.popitem()
 
-    def __str__(self):
+    def __str__(self) -> str:
         data = self.__get_data()
         return str(data)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         data = self.__get_data()
         return repr(data)
 
@@ -145,7 +145,7 @@ class PropsDict:
         """
         )
 
-    def __set_attribute(self, props: Dict[str, Any]):
+    def __set_attribute(self, props: Dict[str, Any]) -> None:
         self.__element._window.evaluate_js(
             f"""
             {self.__element._query_command};
@@ -182,7 +182,7 @@ class PropsDict:
         """
         )
 
-    def __set_style(self, style: Dict[str, Any]):
+    def __set_style(self, style: Dict[str, Any]) -> None:
         converted_style = json.dumps({css_to_camel(key): value for key, value in style.items()})
         self.__element._window.evaluate_js(
             f"""

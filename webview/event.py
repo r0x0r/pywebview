@@ -27,7 +27,7 @@ class EventContainer:
 
 
 class Event:
-    def __init__(self, window, should_lock: bool = False) -> None:
+    def __init__(self, window: Any, should_lock: bool = False) -> None:
         self._items: list[Callable[..., Any]] = []
         self._should_lock = should_lock
         self._event = threading.Event()

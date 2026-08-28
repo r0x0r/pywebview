@@ -54,7 +54,7 @@ __all__ = (
 )
 
 
-def _setup_logger():
+def _setup_logger() -> logging.Logger:
     """Setup logger with console handler and appropriate log level."""
 
     logger = logging.getLogger('pywebview')
@@ -437,7 +437,7 @@ def create_window(
     return window
 
 
-def __generate_ssl_cert():
+def __generate_ssl_cert() -> tuple[str, str]:
     try:
         # https://cryptography.io/en/latest/x509/tutorial/#creating-a-self-signed-certificate
         from cryptography import x509
@@ -493,7 +493,7 @@ def __generate_ssl_cert():
     return keyfile, certfile
 
 
-def __set_storage_path(storage_path):
+def __set_storage_path(storage_path: str) -> None:
     e = WebViewException(f'Storage path {storage_path} is not writable')
 
     if not os.path.exists(storage_path):

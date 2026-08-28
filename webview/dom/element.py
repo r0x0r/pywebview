@@ -44,7 +44,7 @@ def _exists(func):
 
 
 class Element:
-    def __init__(self, window, node_id) -> None:
+    def __init__(self, window: Any, node_id: str) -> None:
         self._window = window
         self.events = EventContainer()
         self._node_id = node_id
@@ -156,9 +156,7 @@ class Element:
     @_exists
     @_ignore_window_document
     def text(self, text: str) -> None:
-        self._window.run_js(
-            f"{self._query_command}; element.textContent = '{escape_string(text)}'"
-        )
+        self._window.run_js(f"{self._query_command}; element.textContent = '{escape_string(text)}'")
 
     @property
     @_exists
@@ -285,7 +283,7 @@ class Element:
 
     @_exists
     @_ignore_window_document
-    def append(self, html: str, mode=ManipulationMode.LastChild) -> 'Element':
+    def append(self, html: str, mode: ManipulationMode = ManipulationMode.LastChild) -> 'Element':
         return self._window.dom.create_element(html, self, mode)
 
     @_exists
@@ -319,7 +317,10 @@ class Element:
     @_exists
     @_ignore_window_document
     def copy(
-        self, target: Union[str, 'Element'] = None, mode=ManipulationMode.LastChild, id: str = None
+        self,
+        target: Union[str, 'Element'] = None,
+        mode: ManipulationMode = ManipulationMode.LastChild,
+        id: str = None,
     ) -> 'Element':
         if isinstance(target, str):
             target = self._window.dom.get_element(target)
@@ -354,7 +355,9 @@ class Element:
 
     @_exists
     @_ignore_window_document
-    def move(self, target: Union[str, 'Element'], mode=ManipulationMode.LastChild) -> 'Element':
+    def move(
+        self, target: Union[str, 'Element'], mode: ManipulationMode = ManipulationMode.LastChild
+    ) -> 'Element':
         if isinstance(target, str):
             target = self._window.dom.get_element(target)
 

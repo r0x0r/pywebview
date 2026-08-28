@@ -55,11 +55,15 @@ qt5 = ["QtPy", "PyQt5", "pyqtwebengine"]
 qt6 = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 android = ["jnius"]
 ssl = ["cryptography"]
-dev = ["ruff", "pre-commit", "pytest", "build", "twine"]
+dev = ["ruff", "pre-commit", "pytest", "pytest-timeout", "build", "twine"]
 
 [project.urls]
 Homepage = "https://pywebview.flowrl.com/"
 Repository = "https://github.com/r0x0r/pywebview"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+timeout = 60
 
 [tool.build-system]
 exclude = [
