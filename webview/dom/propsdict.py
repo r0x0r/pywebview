@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import json
 from enum import Enum
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from webview.util import css_to_camel, escape_string
 
@@ -11,7 +13,7 @@ class DOMPropType(Enum):
 
 
 class PropsDict:
-    def __init__(self, element, type: DOMPropType, props: Optional[Dict[str, Any]] = None):
+    def __init__(self, element, type: DOMPropType, props: dict[str, Any] | None = None):
         self.__element = element
         self.__type = type
 
@@ -98,10 +100,10 @@ class PropsDict:
         elif self.__type == DOMPropType.Attribute:
             self.__set_attribute(data)
 
-    def copy(self) -> Dict[str, Any]:
+    def copy(self) -> dict[str, Any]:
         return self.__get_data()
 
-    def update(self, other_dict: Dict[str, Union[str, int, float, None]]) -> None:
+    def update(self, other_dict: dict[str, str | int | float | None]) -> None:
         if self.__type == DOMPropType.Style:
             self.__set_style(other_dict)
         elif self.__type == DOMPropType.Attribute:
@@ -123,13 +125,13 @@ class PropsDict:
         data = self.__get_data()
         return repr(data)
 
-    def __get_data(self) -> Dict[str, Any]:
+    def __get_data(self) -> dict[str, Any]:
         if self.__type == DOMPropType.Style:
             return self.__get_style()
         elif self.__type == DOMPropType.Attribute:
             return self.__get_attributes()
 
-    def __get_attributes(self) -> Dict[str, Any]:
+    def __get_attributes(self) -> dict[str, Any]:
         return self.__element._window.evaluate_js(
             f"""
             {self.__element._query_command};
@@ -145,7 +147,7 @@ class PropsDict:
         """
         )
 
-    def __set_attribute(self, props: Dict[str, Any]) -> None:
+    def __set_attribute(self, props: dict[str, Any]) -> None:
         self.__element._window.evaluate_js(
             f"""
             {self.__element._query_command};
@@ -162,7 +164,7 @@ class PropsDict:
         """
         )
 
-    def __get_style(self) -> Dict[str, Any]:
+    def __get_style(self) -> dict[str, Any]:
         return self.__element._window.evaluate_js(
             f"""
             {self.__element._query_command};
@@ -182,7 +184,7 @@ class PropsDict:
         """
         )
 
-    def __set_style(self, style: Dict[str, Any]) -> None:
+    def __set_style(self, style: dict[str, Any]) -> None:
         converted_style = json.dumps({css_to_camel(key): value for key, value in style.items()})
         self.__element._window.evaluate_js(
             f"""
