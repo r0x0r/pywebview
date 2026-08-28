@@ -46,6 +46,7 @@ def run_test(
         if debug:
             start_args = {**start_args, 'debug': True}
 
+        time.sleep(1)
         create_test_window(
             webview, window, thread_func, queue, param, start_args, no_destroy, destroy_delay
         )
