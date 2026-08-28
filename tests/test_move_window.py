@@ -36,6 +36,7 @@ def move_window(window):
 
     lock = Lock()
     exception = False
+    lock.acquire()
     window.events.moved += moved
     window.move(300, 300)
 

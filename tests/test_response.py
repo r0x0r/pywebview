@@ -37,11 +37,12 @@ def test_response_event(window):
 
     lock = Lock()
     exceptions = []
+    lock.acquire()
     window.events.response_received += on_response
     run_test(webview, window, response_test, (exceptions, lock))
 
 
 def response_test(window, exceptions, lock):
-    lock.acquire()
+    assert lock.acquire(timeout=10)
     if len(exceptions) > 0:
         raise exceptions[0]

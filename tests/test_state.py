@@ -164,6 +164,7 @@ def event_change_test(window):
 
     lock = Lock()
     exception = False
+    lock.acquire()
     window.state += on_change
     window.state.test = 420
     assert lock.acquire(3)
@@ -185,6 +186,7 @@ def event_change_js_test(window):
 
     lock = Lock()
     exception = False
+    lock.acquire()
     window.state += on_change
     window.evaluate_js('pywebview.state.test = 420')
     assert lock.acquire(3)
@@ -208,6 +210,7 @@ def event_delete_test(window):
     lock = Lock()
     window.state.test = 420
     window.state += on_delete
+    lock.acquire()
     del window.state.test
     assert lock.acquire(3)
 
@@ -231,6 +234,7 @@ def event_delete_js_test(window):
     exception = False
     window.state.test = 420
     window.state += on_delete
+    lock.acquire()
     window.evaluate_js('delete pywebview.state.test')
     assert lock.acquire(3)
 
