@@ -24,6 +24,7 @@ from webview.util import (
     DEFAULT_HTML,
     create_cookie,
     inject_pywebview,
+    is_test_mode,
     js_bridge_call,
     parse_file_type,
     stringify_headers,
@@ -59,17 +60,12 @@ def _primary_screen_height():
     return screens[0].frame().size.height if screens else 0
 
 
-def _is_test_mode():
-    """During the test suite (PYWEBVIEW_TEST) windows should not steal system focus."""
-    return bool(os.environ.get('PYWEBVIEW_TEST'))
-
-
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
     # In test mode use the Accessory activation policy so the app does not become the
     # foreground application and grab keyboard focus from the developer's active window.
-    app.setActivationPolicy_(1 if _is_test_mode() else 0)
+    app.setActivationPolicy_(1 if is_test_mode() else 0)
     current_menu = None
 
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
@@ -769,7 +765,7 @@ class BrowserView:
             new_menu = self._recreate_menus(self.menu)
             BrowserView.app.setMainMenu_(new_menu)
 
-            if not _is_test_mode():
+            if not is_test_mode():
                 BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             AppHelper.installMachInterrupt()
             BrowserView.app.run()
@@ -777,7 +773,7 @@ class BrowserView:
     def show(self):
         def _show():
             self.window.makeKeyAndOrderFront_(self.window)
-            if not _is_test_mode():
+            if not is_test_mode():
                 BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
 
         AppHelper.callAfter(_show)

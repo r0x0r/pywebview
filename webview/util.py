@@ -112,6 +112,11 @@ def get_app_root() -> str:
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
+def is_test_mode():
+    """During the test suite (PYWEBVIEW_TEST) windows should not steal system focus."""
+    return bool(os.environ.get('PYWEBVIEW_TEST'))
+
+
 def abspath(path: str) -> str:
     """
     Make path absolute, using the application root
