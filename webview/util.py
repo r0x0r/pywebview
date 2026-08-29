@@ -7,6 +7,7 @@ http://github.com/r0x0r/pywebview/
 
 from __future__ import annotations
 
+import hmac
 import inspect
 import json
 import logging
@@ -242,11 +243,17 @@ def inject_pywebview(platform: str, window: Window) -> None:
     thread.start()
 
 
-def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
+def js_bridge_call(
+    window: Window, func_name: str, param: Any, value_id: str, token: str | None = None
+) -> None:
     """
     Calls a function from the JS API and executes it in Python. The function is executed in a separate
     thread to prevent blocking the UI thread. The result is then passed back to the JS API.
     """
+
+    if token is not None and not hmac.compare_digest(str(token), _TOKEN):
+        logger.error('Rejected JS bridge call with an invalid token')
+        return
 
     def _call():
         try:
@@ -449,6 +456,8 @@ def escape_string(string: str) -> str:
         .replace('\n', r'\n')
         .replace('\r', r'\r')
         .replace("'", r'\'')
+        .replace('\u2028', r'\u2028')
+        .replace('\u2029', r'\u2029')
     )
 
 

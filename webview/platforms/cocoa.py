@@ -59,10 +59,17 @@ def _primary_screen_height():
     return screens[0].frame().size.height if screens else 0
 
 
+def _is_test_mode():
+    """During the test suite (PYWEBVIEW_TEST) windows should not steal system focus."""
+    return bool(os.environ.get('PYWEBVIEW_TEST'))
+
+
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
-    app.setActivationPolicy_(0)
+    # In test mode use the Accessory activation policy so the app does not become the
+    # foreground application and grab keyboard focus from the developer's active window.
+    app.setActivationPolicy_(1 if _is_test_mode() else 0)
     current_menu = None
 
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
@@ -177,7 +184,9 @@ class BrowserView:
             body = json.loads(message.body())
             if body['params'] is WebKit.WebUndefined.undefined():
                 body['params'] = None
-            js_bridge_call(self.window, body['funcName'], body['params'], body['id'])
+            js_bridge_call(
+                self.window, body['funcName'], body['params'], body['id'], body.get('token', '')
+            )
 
     class DownloadDelegate(AppKit.NSObject):
         # Download delegate to handle links with download attribute set
@@ -760,14 +769,16 @@ class BrowserView:
             new_menu = self._recreate_menus(self.menu)
             BrowserView.app.setMainMenu_(new_menu)
 
-            BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
+            if not _is_test_mode():
+                BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             AppHelper.installMachInterrupt()
             BrowserView.app.run()
 
     def show(self):
         def _show():
             self.window.makeKeyAndOrderFront_(self.window)
-            BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
+            if not _is_test_mode():
+                BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
 
         AppHelper.callAfter(_show)
 

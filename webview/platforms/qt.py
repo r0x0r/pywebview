@@ -124,15 +124,15 @@ class BrowserView(QMainWindow):
             self._parent = parent
             self.window = parent.pywebview_window
 
-        @QtCore.Slot(str, qtype, str, result=str)
-        def call(self, func_name, param, value_id):
+        @QtCore.Slot(str, qtype, str, str, result=str)
+        def call(self, func_name, param, value_id, token):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
 
             if func_name == '_pywebviewAlert':
                 QMessageBox.information(self._parent, 'Message', str(param))
             else:
-                return js_bridge_call(self.window, func_name, json.loads(param), value_id)
+                return js_bridge_call(self.window, func_name, json.loads(param), value_id, token)
 
     class WebView(QWebView):
         def __init__(self, parent=None):

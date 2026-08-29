@@ -79,8 +79,8 @@ class JSBridge:
 
         self.eval_events[uid].set()
 
-    def call(self, func_name, param, value_id):
-        js_bridge_call(self.window, func_name, json.loads(param), value_id)
+    def call(self, func_name, param, value_id, token=''):
+        js_bridge_call(self.window, func_name, json.loads(param), value_id, token)
 
 
 class CookieVisitor:

@@ -81,12 +81,14 @@ window.pywebview = {
   },
 
   _jsApiCallback: function (funcName, params, id) {
+    var token = window.pywebview.token;
     switch (window.pywebview.platform) {
       case 'mshtml':
+        return window.external.call(funcName, pywebview.stringify(params), id);
       case 'cef':
       case 'qtwebkit':
       case 'android-webkit':
-        return window.external.call(funcName, pywebview.stringify(params), id);
+        return window.external.call(funcName, pywebview.stringify(params), id, token);
       case 'edgechromium':
         // Full file path support for WebView2
         if (
@@ -103,12 +105,13 @@ window.pywebview = {
           funcName,
           pywebview.stringify(params),
           id,
+          token,
         ]);
       case 'cocoa':
       case 'gtkwebkit2':
         return window.webkit.messageHandlers.jsBridge.postMessage(
           pywebview.stringify(
-            { funcName: funcName, params: params, id: id }
+            { funcName: funcName, params: params, id: id, token: token }
           )
         );
       case 'qtwebengine':
@@ -117,14 +120,16 @@ window.pywebview = {
             window.pywebview._QWebChannel.objects.external.call(
               funcName,
               pywebview.stringify(params),
-              id
+              id,
+              token
             );
           }, 100);
         } else {
           window.pywebview._QWebChannel.objects.external.call(
             funcName,
             pywebview.stringify(params),
-            id
+            id,
+            token
           );
         }
         break;

@@ -248,14 +248,17 @@ class EdgeChrome:
                 _dnd_state['paths'] += files
                 return
 
-            func_name, func_param, value_id = json.loads(return_value)
-            func_param = json.loads(func_param)
+            message = json.loads(return_value)
+            func_name = message[0]
+            func_param = json.loads(message[1])
+            value_id = message[2]
+            token = message[3] if len(message) > 3 else ''
             if func_name == '_pywebviewAlert':
                 WinForms.MessageBox.Show(str(func_param))
             elif func_name == 'console':
                 print(func_param)
             else:
-                js_bridge_call(self.pywebview_window, func_name, func_param, value_id)
+                js_bridge_call(self.pywebview_window, func_name, func_param, value_id, token)
         except Exception:
             logger.exception('Exception occurred during on_script_notify')
 

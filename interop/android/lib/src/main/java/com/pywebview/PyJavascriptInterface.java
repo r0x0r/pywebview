@@ -13,9 +13,9 @@ public class PyJavascriptInterface {
   }
 
   @JavascriptInterface
-  public void call(String func, String params, String id) {
+  public void call(String func, String params, String id, String token) {
       if (this.callbackWrapper != null) {
-          this.callbackWrapper.callback(func, params, id);
+          this.callbackWrapper.callback(func, params, id, token);
       } else {
         Log.e("python", "No callback");
       }

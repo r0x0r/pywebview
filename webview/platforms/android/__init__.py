@@ -52,8 +52,8 @@ class BrowserView:
 
     @run_on_ui_thread
     def create_webview(self):
-        def js_api_handler(func, params, id):
-            js_bridge_call(self.pywebview_window, func, json.loads(params), id)
+        def js_api_handler(func, params, id, token):
+            js_bridge_call(self.pywebview_window, func, json.loads(params), id, token)
 
         def chrome_callback(event, data):
             print(event, data)

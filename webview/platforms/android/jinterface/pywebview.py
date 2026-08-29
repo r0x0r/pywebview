@@ -43,7 +43,7 @@ class JsApiCallbackWrapper(PythonJavaClass):
 
     Attributes:
     callback (Callable): A Python callable that gets executed when the callback
-    method is triggered. The callable should accept three arguments.
+    method is triggered. The callable should accept four arguments.
 
     """
 
@@ -53,9 +53,9 @@ class JsApiCallbackWrapper(PythonJavaClass):
     def __init__(self, callback):
         self.callback_wrapper = callback
 
-    @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
-    def callback(self, func, params, id):
-        self.callback_wrapper(func, params, id)
+    @java_method('(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V')
+    def callback(self, func, params, id, token):
+        self.callback_wrapper(func, params, id, token)
 
 
 class RequestInterceptor(PythonJavaClass):

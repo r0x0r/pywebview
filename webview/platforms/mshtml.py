@@ -122,7 +122,6 @@ class MSHTML:
         window = None
 
         def call(self, func_name, param, value_id):
-            print(func_name, param)
             return js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
         def alert(self, message):

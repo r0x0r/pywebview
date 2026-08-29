@@ -358,7 +358,13 @@ class BrowserView:
         if body['funcName'] == '_pywebviewAlert':
             self.message_box(body['params'])
         else:
-            js_bridge_call(self.pywebview_window, body['funcName'], body['params'], body['id'])
+            js_bridge_call(
+                self.pywebview_window,
+                body['funcName'],
+                body['params'],
+                body['id'],
+                body.get('token', ''),
+            )
 
     def on_window_resize(self, window, allocation):
         if allocation.width != self._last_width or allocation.height != self._last_height:
