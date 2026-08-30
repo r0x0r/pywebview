@@ -1,4 +1,4 @@
-"""Set window icon using `webview.start(icon=<file_path>). This is supported on GTK, QT, macOS and Windows.
+"""Set window icon using `webview.start(icon=<file_path>)`. This is supported on GTK, QT, macOS and Windows.
 On Android, icon is set during freezing."""
 
 import webview

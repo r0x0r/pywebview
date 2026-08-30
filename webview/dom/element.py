@@ -1,3 +1,4 @@
+import json
 import logging
 from collections import defaultdict
 from functools import wraps
@@ -328,7 +329,7 @@ class Element:
             target = self.parent
 
         if id:
-            id_command = f'newElement.id = "{escape_string(id)}"'
+            id_command = f'newElement.id = {json.dumps(id)}'
         else:
             id_command = 'newElement.removeAttribute("id")'
 

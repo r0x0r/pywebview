@@ -3,7 +3,6 @@ from typing import Any, List, Optional, Union
 
 from webview.dom import ManipulationMode
 from webview.dom.element import Element
-from webview.util import escape_string
 
 
 class DOM:
@@ -40,7 +39,7 @@ class DOM:
         if isinstance(parent, Element):
             parent_command = parent._query_command
         elif isinstance(parent, str):
-            parent_command = f'var element = document.querySelector("{escape_string(parent)}");'
+            parent_command = f'var element = document.querySelector({json.dumps(parent)});'
         else:
             parent_command = 'var element = document.body;'
         if not isinstance(html, str):
@@ -62,7 +61,7 @@ class DOM:
     def get_element(self, selector: str) -> Optional[Element]:
         node_id = self.__window.evaluate_js(
             f"""
-            var element = document.querySelector('{escape_string(selector)}');
+            var element = document.querySelector({json.dumps(selector)});
             pywebview._getNodeId(element);
         """
         )
@@ -71,7 +70,7 @@ class DOM:
 
     def get_elements(self, selector: str) -> List[Element]:
         code = f"""
-            var elements = document.querySelectorAll('{escape_string(selector)}');
+            var elements = document.querySelectorAll({json.dumps(selector)});
             nodeIds = [];
             for (var i = 0; i < elements.length; i++) {{
                 var nodeId = pywebview._getNodeId(elements[i]);
