@@ -209,6 +209,7 @@ def start(
     localization = localization if localization is not None else {}
     menu = menu if menu is not None else []
     server_args = server_args if server_args is not None else {}
+    generated_ssl_cert = False
 
     def _create_children(other_windows):
         if not windows[0].events.shown.wait(10):
@@ -256,6 +257,7 @@ def start(
         if not server_args or 'keyfile' not in server_args or 'certfile' not in server_args:
             # generate SSL certs and tell the windows to use them
             keyfile, certfile = __generate_ssl_cert()
+            generated_ssl_cert = True
             server_args['keyfile'] = keyfile
             server_args['certfile'] = certfile
         else:
@@ -304,10 +306,13 @@ def start(
             thread = threading.Thread(target=func)
         thread.start()
 
-    guilib.create_window(windows[0])
-    # keyfile is deleted by the ServerAdapter right after wrap_socket()
-    if certfile:
-        os.unlink(certfile)
+    try:
+        guilib.create_window(windows[0])
+    finally:
+        if generated_ssl_cert:
+            for path in (keyfile, certfile):
+                if os.path.exists(path):
+                    os.unlink(path)
 
 
 def create_window(

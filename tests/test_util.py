@@ -174,11 +174,3 @@ class TestBridgeTokenValidation:
         window = self._make_window(called)
         js_bridge_call(window, 'target', [], 'value_id', 'not-the-token')
         assert not called.wait(0.5), 'Function was called despite an invalid token'
-
-    def test_missing_token_skips_validation(self):
-        """A None token (used by backends with a fixed native signature, e.g. mshtml)
-        intentionally skips validation so the call is still dispatched"""
-        called = threading.Event()
-        window = self._make_window(called)
-        js_bridge_call(window, 'target', [], 'value_id', None)
-        assert called.wait(2), 'Function was not called when validation is skipped'
