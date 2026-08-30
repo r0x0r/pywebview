@@ -11,7 +11,7 @@ generateExamples(path.resolve(__dirname, '../../examples'), path.resolve(__dirna
 const examples = dirTree(path.resolve(__dirname, '../examples'), { extensions: /\.md/ });
 
 export default defineUserConfig({
-  title: 'pywebview',
+  title: 'pywebview2',
   description: 'Build GUI for your Python program with JavaScript, HTML, and CSS',
   port: 8082,
   bundler: viteBundler({
@@ -22,7 +22,7 @@ export default defineUserConfig({
     ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=cloud,code,devices,folder,grid_view,package,sync,widgets' }],
   ],
   theme: hopeTheme({
-    repo: 'r0x0r/pywebview',
+    repo: 'imattau/pywebview2',
     docsDir: 'docs',
     docsBranch: 'docs',
     editLinks: true,
@@ -66,6 +66,7 @@ export default defineUserConfig({
             '/guide/dom',
             '/guide/faq',
             '/guide/interdomain',
+            '/guide/cli',
             '/guide/freezing',
             '/guide/security',
             '/guide/web_engine',

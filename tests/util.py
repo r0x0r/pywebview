@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import pytest
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 
 
 def run_test(

@@ -51,7 +51,7 @@ for platform in ('win-arm64', 'win-x64', 'win-x86'):
     os.environ['Path'] += ';' + interop_dll_path(platform)
 
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 renderer = 'edgechromium'
 
 
@@ -86,7 +86,7 @@ class EdgeChrome:
 
         if webview_settings['REMOTE_DEBUGGING_PORT'] is not None:
             props.AdditionalBrowserArguments += (
-                f' --remote-debugging-port={webview_settings["REMOTE_DEBUGGING_PORT"]}'
+                f" --remote-debugging-port={webview_settings['REMOTE_DEBUGGING_PORT']}"
             )
 
         self.webview.CreationProperties = props
@@ -285,7 +285,10 @@ class EdgeChrome:
 
         settings = sender.CoreWebView2.Settings
         settings.AreBrowserAcceleratorKeysEnabled = _state['debug']
-        settings.AreDefaultContextMenusEnabled = _state['debug']
+        enable_context_menu = webview_settings['ENABLE_CONTEXT_MENU']
+        if enable_context_menu is None:
+            enable_context_menu = _state['debug']
+        settings.AreDefaultContextMenusEnabled = enable_context_menu
         settings.AreDefaultScriptDialogsEnabled = True
         settings.AreDevToolsEnabled = _state['debug']
         settings.IsBuiltInErrorPageEnabled = True

@@ -1,6 +1,6 @@
 $RootPath = Split-Path $PSScriptRoot
 ${env:PYTHONPATH='$RootPath'}
-${env:PYWEBVIEW_LOG='info'}
+${env:PYWEBVIEW2_LOG='info'}
 $tests = Get-ChildItem -Path $PSScriptRoot -Filter 'test_*.py' | ForEach-Object { $_.Name }
 
 if (Test-Path __pycache__) {

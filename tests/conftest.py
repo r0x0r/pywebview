@@ -16,10 +16,10 @@ def reload_webview():
 def set_env():
     import os
 
-    os.environ['PYWEBVIEW_TEST'] = 'true'
+    os.environ['PYWEBVIEW2_TEST'] = 'true'
 
 
 # @pytest.fixture(autouse=True)
 # def set_gui():
 #     import os
-#     os.environ['PYWEBVIEW_GUI'] = 'qt'
+#     os.environ['PYWEBVIEW2_GUI'] = 'qt'

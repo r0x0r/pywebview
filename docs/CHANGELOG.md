@@ -1,5 +1,65 @@
 # Changelog
 
+## 0.1.6
+
+_Released 17/08/2026_
+
+### 🐞 Bug fixes
+
+- `GTK` Restore the upstream `.pywebview-drag-region` default so existing
+  frameless applications retain drag-region behavior after the package rename.
+
+## 0.1.5
+
+_Released 17/08/2026_
+
+### 🐞 Bug fixes
+
+- `Android` Remove the unnecessary Kivy requirement from generated Buildozer
+  projects and make Android WebView teardown safe during activity destruction.
+- `Docs` Update Android packaging guidance for the Kivyless backend.
+
+## 0.1.4
+
+_Released 17/08/2026_
+
+### 🐞 Bug fixes
+
+- `Linux` Fix AppImage GTK/GLib bundling conflicts by resolving the stack from
+  the host system.
+- `iOS` Fix Swift error handling for the embedded Python runtime and include
+  the Python processing script required by Xcode builds.
+- `CI` Restore the CLI extra and formatting checks in the comprehensive build.
+
+## 0.1.3
+
+_Released 17/08/2026_
+
+### 🚀 Improvements
+
+- `CLI` Run configured frontend production builds before desktop packaging.
+- `CLI` Improve build failure reporting, target-specific environment checks,
+  configuration validation, and frontend process cleanup.
+- `Docs` Refresh the pywebview2 CLI and Tauri-inspired workflow documentation.
+
+## 0.1.2
+
+_Released 17/08/2026_
+
+### 🚀 Improvements
+
+- `iOS` Add the initial native iOS host, Python runtime packaging path, and
+  GitHub Actions simulator validation workflow.
+- `CLI` Add iOS project scaffolding and simulator build support.
+
+## 0.1.1
+
+_Released 16/08/2026_
+
+### 🚀 Improvements
+
+- `Docs` Document the Tauri-inspired project, development, packaging, and GitHub Actions workflows.
+
 ## 6.2.1
 
 _Released 15/04/2026_

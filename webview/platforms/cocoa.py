@@ -47,7 +47,7 @@ try:
 except AttributeError:
     NSWindowTitleHidden = 1
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 logger.debug('Using Cocoa')
 
 renderer = 'wkwebview'
@@ -511,7 +511,10 @@ class BrowserView:
             super(BrowserView.WebKitHost, self).mouseDragged_(event)
 
         def willOpenMenu_withEvent_(self, menu, event):
-            if not _state['debug']:
+            enable_context_menu = webview_settings['ENABLE_CONTEXT_MENU']
+            if enable_context_menu is None:
+                enable_context_menu = _state['debug']
+            if not enable_context_menu:
                 menu.removeAllItems()
 
         def keyDown_(self, event):

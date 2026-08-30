@@ -106,6 +106,7 @@ window.pywebview = {
         ]);
       case 'cocoa':
       case 'gtkwebkit2':
+      case 'ios':
         return window.webkit.messageHandlers.jsBridge.postMessage(
           pywebview.stringify(
             { funcName: funcName, params: params, id: id }

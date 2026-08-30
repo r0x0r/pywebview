@@ -1,0 +1,20 @@
+Name "{{ product_name }}"
+OutFile "{{ output_path }}"
+InstallDir "$PROGRAMFILES\{{ product_name }}"
+RequestExecutionLevel admin
+
+Page directory
+Page instfiles
+
+Section "Install"
+    SetOutPath "$INSTDIR"
+    File /r "{{ source_dir }}\*.*"
+    WriteUninstaller "$INSTDIR\uninstall.exe"
+    CreateShortcut "$SMPROGRAMS\{{ product_name }}.lnk" "$INSTDIR\{{ exe_name }}"
+SectionEnd
+
+Section "Uninstall"
+    Delete "$INSTDIR\uninstall.exe"
+    RMDir /r "$INSTDIR"
+    Delete "$SMPROGRAMS\{{ product_name }}.lnk"
+SectionEnd

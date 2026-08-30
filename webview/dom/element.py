@@ -9,7 +9,7 @@ from webview.dom.propsdict import DOMPropType, PropsDict
 from webview.errors import JavascriptException
 from webview.event import EventContainer
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 
 
 def _ignore_window_document(func):

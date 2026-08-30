@@ -9,6 +9,54 @@ webview.active_window()
 
 Get an instance of the currently active window
 
+## webview.notify
+
+``` python
+webview.notify(title, message, app_name='pywebview')
+```
+
+Display a native OS notification (macOS Notification Center, Windows toast/balloon, or Linux via `libnotify`/`notify-send`).
+
+* `title` Notification title
+* `message` Notification body text
+* `app_name` Application name shown in the notification. Only used on Windows and Linux.
+
+Raises `webview.WebViewException` if no supported notification backend is available on the current platform (e.g. `libnotify` is not installed on Linux).
+
+#### Examples
+
+``` python
+webview.notify('Download complete', 'your_file.zip has finished downloading')
+```
+
+## webview.enforce_single_instance
+
+``` python
+webview.enforce_single_instance(on_second_instance=None, identifier='pywebview')
+```
+
+Ensure only one instance of the app is running at a time. Call this near the start of your app, before creating any windows.
+
+* `on_second_instance` Callback invoked (only in the primary instance) with the second launch's `sys.argv`, whenever another instance of the app is started while this one is still running. A common use is to bring the app's window to the front.
+* `identifier` Unique identifier for this app, used to derive the IPC address (a named pipe on Windows, a Unix domain socket elsewhere, under `webview.util.app_data_dir()`). Must be the same across launches you want to treat as the same app.
+
+Returns `True` if this is the primary instance, `False` otherwise -- if `False`, this launch's `sys.argv` has already been forwarded to the primary instance and the caller should return/exit without creating any windows.
+
+#### Examples
+
+``` python
+def bring_to_front(argv):
+    window = webview.active_window()
+    if window:
+        window.restore()
+
+if not webview.enforce_single_instance(on_second_instance=bring_to_front):
+    sys.exit(0)
+
+window = webview.create_window('My App', 'index.html')
+webview.start()
+```
+
 ## webview.create_window
 
 ``` python
@@ -106,7 +154,7 @@ Return a list of available displays (as `Screen` objects) with the primary displ
 webview.settings = {
   'ALLOW_DOWNLOADS': False,
   'ALLOW_FILE_URLS': True,
-  'DRAG_REGION_SELECTOR': 'pywebview-drag-region',
+  'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
   'DRAG_REGION_DIRECT_TARGET_ONLY': False,
   'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
   'OPEN_DEVTOOLS_IN_DEBUG': True,
@@ -141,6 +189,212 @@ webview.token
 ```
 
 A CSRF token property unique to the session. The same token is exposed as `window.pywebview.token`. See [Security](/guide/security.md) for usage details.
+
+## webview.keyring
+
+Secure credential storage backed by each OS's native mechanism: macOS Keychain, Windows DPAPI, or Linux Secret Service. On Linux, if no Secret Service implementation (e.g. GNOME Keyring, KWallet) is reachable, `webview.keyring` transparently falls back to an encrypted file under `~/.pywebview/keyring`, which requires the `cryptography` package (`pip install pywebview[keyring]`).
+
+### webview.keyring.set_password
+
+``` python
+webview.keyring.set_password(service, username, password)
+```
+
+Store a password in the OS-native secure credential store.
+
+* `service` Name of the service/application the credential belongs to.
+* `username` Username or account identifier associated with the credential.
+* `password` Secret value to store.
+
+### webview.keyring.get_password
+
+``` python
+webview.keyring.get_password(service, username)
+```
+
+Retrieve a password from the OS-native secure credential store. Returns `None` if no credential is found.
+
+### webview.keyring.delete_password
+
+``` python
+webview.keyring.delete_password(service, username)
+```
+
+Delete a password from the OS-native secure credential store. No-op if the credential does not exist.
+
+#### Examples
+
+``` python
+webview.keyring.set_password('my-app', 'alice', 'hunter2')
+password = webview.keyring.get_password('my-app', 'alice')
+webview.keyring.delete_password('my-app', 'alice')
+```
+
+## webview.store
+
+A JSON-backed key-value store for application settings, persisted under `webview.util.app_data_dir()` (`~/.pywebview/store.json` on macOS/Linux, `%APPDATA%\pywebview\store.json` on Windows) by default. For secrets (passwords, tokens), use `webview.keyring` instead -- `webview.store` is unencrypted, plain JSON.
+
+### webview.store.get
+
+``` python
+webview.store.get(key, default=None)
+```
+
+Get a value from the default store. Returns `default` if the key does not exist.
+
+### webview.store.set
+
+``` python
+webview.store.set(key, value)
+```
+
+Set a value in the default store. `value` must be JSON-serializable.
+
+### webview.store.has
+
+``` python
+webview.store.has(key)
+```
+
+Check whether a key exists in the default store.
+
+### webview.store.delete
+
+``` python
+webview.store.delete(key)
+```
+
+Delete a key from the default store. No-op if the key does not exist.
+
+### webview.store.keys
+
+``` python
+webview.store.keys()
+```
+
+List all keys currently in the default store.
+
+### webview.store.clear
+
+``` python
+webview.store.clear()
+```
+
+Remove all keys from the default store.
+
+### webview.store.Store
+
+``` python
+webview.store.Store(path=None)
+```
+
+A store backed by a custom file path, for apps that want more than one store (the module-level `webview.store.get`/`set`/... functions operate on a single default `Store` instance). Has the same `get`/`set`/`has`/`delete`/`keys`/`clear` methods as the module-level functions.
+
+#### Examples
+
+``` python
+webview.store.set('theme', 'dark')
+theme = webview.store.get('theme', default='light')
+
+settings = webview.store.Store('/path/to/custom-settings.json')
+settings.set('window_width', 1024)
+```
+
+## webview.tray
+
+System tray / menu bar icon support.
+
+### webview.tray.create_tray_icon
+
+``` python
+webview.tray.create_tray_icon(icon_path, menu_items=None, on_click=None, tooltip='pywebview')
+```
+
+Create and show a system tray icon. Must be called after the native GUI loop has started (i.e. after `webview.start()` has begun running), since the tray icon is driven by the same native event loop as the window backend. Returns a `TrayIcon` instance.
+
+* `icon_path` Path to the icon image file (`.ico` on Windows, any image format AppKit/GTK can load on macOS/Linux).
+* `menu_items` A list of `MenuAction`/`MenuSeparator` instances (the same classes used for the window menu bar, see `webview.Menu`) shown in the tray icon's context menu.
+* `on_click` Callback invoked when the tray icon itself is clicked. Not supported identically on every platform -- on macOS a click always opens the menu if one is set.
+* `tooltip` Tooltip text shown on hover.
+
+On Linux, this uses `Gtk.StatusIcon`, which has been deprecated since GTK 3.14 and may not render on some desktop environments (e.g. stock GNOME without a shell extension) -- it's used regardless since it requires nothing beyond the `gtk` extra already needed for the GTK window backend.
+
+### webview.tray.TrayIcon
+
+* `tray_icon.set_menu(menu_items)` Replace the tray icon's context menu.
+* `tray_icon.set_icon(icon_path)` Change the tray icon's image.
+* `tray_icon.set_tooltip(tooltip)` Change the tray icon's tooltip text.
+* `tray_icon.remove()` Remove the tray icon.
+
+#### Examples
+
+``` python
+from webview.menu import MenuAction, MenuSeparator
+
+def on_open():
+    window.show()
+
+def on_quit():
+    window.destroy()
+
+tray_icon = webview.tray.create_tray_icon(
+    'icon.png',
+    menu_items=[
+        MenuAction('Open', on_open),
+        MenuSeparator(),
+        MenuAction('Quit', on_quit),
+    ],
+)
+```
+
+## webview.shortcuts
+
+Global keyboard shortcuts: hotkeys that fire even when no pywebview window is focused. On Linux this requires X11 (`pip install pywebview[shortcuts]`) -- there is no portable Wayland equivalent without a compositor-specific portal, so it is not supported under Wayland.
+
+Shortcut strings are `+`-separated, e.g. `"ctrl+shift+s"` or `"cmdorctrl+k"` (`cmdorctrl` resolves to `super`/Cmd on macOS, `ctrl` elsewhere). Supported modifiers: `ctrl`/`control`, `alt`/`option`, `shift`, `super`/`cmd`/`command`/`win`/`meta`. Supported keys: single alphanumeric characters, `f1`-`f12`, `space`, `tab`, `escape`/`esc`, `enter`/`return`, `up`/`down`/`left`/`right`, `backspace`, `delete`.
+
+### webview.shortcuts.register
+
+``` python
+webview.shortcuts.register(shortcut, callback)
+```
+
+Register a global keyboard shortcut. Fires `callback` (in a background thread, with no arguments) whenever the shortcut is pressed. Raises `webview.WebViewException` if the shortcut is already registered or uses an unsupported modifier/key.
+
+### webview.shortcuts.unregister
+
+``` python
+webview.shortcuts.unregister(shortcut)
+```
+
+Unregister a previously registered global shortcut. No-op if not registered.
+
+### webview.shortcuts.unregister_all
+
+``` python
+webview.shortcuts.unregister_all()
+```
+
+Unregister all currently registered global shortcuts.
+
+### webview.shortcuts.is_registered
+
+``` python
+webview.shortcuts.is_registered(shortcut)
+```
+
+Check whether a shortcut is currently registered.
+
+#### Examples
+
+``` python
+def on_toggle():
+    window = webview.active_window()
+    if window:
+        window.show()
+
+webview.shortcuts.register('cmdorctrl+shift+p', on_toggle)
+```
 
 ## webview.dom
 

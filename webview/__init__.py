@@ -1,11 +1,11 @@
 """
-pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its
+pywebview2 is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its
 own dedicated window. Works on Windows, OS X and Linux and compatible with Python 2 and 3.
 
 (C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
 
-http://github.com/r0x0r/pywebview/
+http://github.com/imattau/pywebview2/
 """
 
 from __future__ import annotations
@@ -24,12 +24,18 @@ from uuid import uuid4
 from proxy_tools import module_property
 
 import webview.http as http
+import webview.keyring  # noqa: F401 -- exposes webview.keyring.* as a namespace
+import webview.shortcuts  # noqa: F401 -- exposes webview.shortcuts.* as a namespace
+import webview.store  # noqa: F401 -- exposes webview.store.* as a namespace
+import webview.tray  # noqa: F401 -- exposes webview.tray.* as a namespace
 from webview.errors import JavascriptException, WebViewException
 from webview.event import Event
 from webview.guilib import GUIType, initialize
 from webview.localization import original_localization
 from webview.menu import Menu
+from webview.notification import notify
 from webview.screen import Screen
+from webview.single_instance import enforce_single_instance
 from webview.util import _TOKEN, ImmutableDict, abspath, is_app, is_local_url
 from webview.window import Window
 
@@ -38,6 +44,8 @@ __all__ = (
     'active_window',
     'start',
     'create_window',
+    'notify',
+    'enforce_single_instance',
     'token',
     'renderer',
     'screens',
@@ -57,7 +65,7 @@ __all__ = (
 def _setup_logger():
     """Setup logger with console handler and appropriate log level."""
 
-    logger = logging.getLogger('pywebview')
+    logger = logging.getLogger('pywebview2')
 
     # Avoid duplicate setup
     if logger.handlers:
@@ -65,12 +73,12 @@ def _setup_logger():
 
     # Create and configure handler
     handler = logging.StreamHandler()
-    formatter = logging.Formatter('[pywebview] %(message)s')
+    formatter = logging.Formatter('[pywebview2] %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
     # Set log level from environment variable with validation
-    log_level_name = os.environ.get('PYWEBVIEW_LOG', 'INFO').upper()
+    log_level_name = os.environ.get('PYWEBVIEW2_LOG', 'INFO').upper()
     try:
         log_level = getattr(logging, log_level_name)
         logger.setLevel(log_level)
@@ -119,6 +127,9 @@ settings = ImmutableDict(
     {
         'ALLOW_DOWNLOADS': False,
         'ALLOW_FILE_URLS': True,
+        # Keep the upstream selector for compatibility with existing apps.
+        # The package rename to pywebview2 must not break frameless windows
+        # that already use .pywebview-drag-region.
         'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
         'DRAG_REGION_DIRECT_TARGET_ONLY': False,
         'DEFAULT_HTTP_PORT': 42001,
@@ -128,6 +139,15 @@ settings = ImmutableDict(
         'IGNORE_SSL_ERRORS': False,
         'SHOW_DEFAULT_MENUS': True,
         'WEBVIEW2_RUNTIME_PATH': None,
+        # Every backend used to tie the native right-click context menu
+        # (copy/paste, etc.) to the `debug` flag on webview.start(), so
+        # production apps running with debug=False lost basic copy/paste
+        # entirely, not just the "Inspect Element" devtools entry -- the
+        # two are unrelated to an end user. None preserves that original
+        # behavior (follow `debug`) for backward compat; True/False force
+        # the context menu on/off regardless of `debug`, letting an app
+        # ship a normal right-click menu without exposing devtools.
+        'ENABLE_CONTEXT_MENU': None,
     }
 )
 
@@ -224,7 +244,7 @@ def start(
     if storage_path:
         __set_storage_path(storage_path)
 
-    if debug and not os.environ.get('PYWEBVIEW_LOG'):
+    if debug and not os.environ.get('PYWEBVIEW2_LOG'):
         logger.setLevel(logging.DEBUG)
 
     if (
@@ -237,7 +257,7 @@ def start(
     original_localization.update(localization)
 
     if threading.current_thread().name != 'MainThread':
-        raise WebViewException('pywebview must be run on a main thread.')
+        raise WebViewException('pywebview2 must be run on a main thread.')
 
     if len(windows) == 0:
         raise WebViewException('You must create a window first before calling this function.')
@@ -438,7 +458,7 @@ def __generate_ssl_cert():
         from cryptography.x509.oid import NameOID
     except ImportError:
         raise WebViewException(
-            'SSL support requires cryptography package. Please install it with "pip install cryptography" or "pip install pywebview[ssl]"'
+            'SSL support requires cryptography package. Please install it with "pip install cryptography" or "pip install pywebview2[ssl]"'
         )
 
     with tempfile.NamedTemporaryFile(prefix='keyfile_', suffix='.pem', delete=False) as f:
@@ -460,7 +480,7 @@ def __generate_ssl_cert():
                 x509.NameAttribute(NameOID.COUNTRY_NAME, 'US'),
                 x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, 'California'),
                 x509.NameAttribute(NameOID.LOCALITY_NAME, 'San Francisco'),
-                x509.NameAttribute(NameOID.ORGANIZATION_NAME, 'pywebview'),
+                x509.NameAttribute(NameOID.ORGANIZATION_NAME, 'pywebview2'),
                 x509.NameAttribute(NameOID.COMMON_NAME, '127.0.0.1'),
             ]
         )

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from typing import type_check_only
 
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 
 
 class EventContainer:

@@ -35,7 +35,7 @@ from .util import abspath, is_app, is_local_url
 WRHT_co = TypeVar('WRHT_co', bound=WSGIRequestHandler, covariant=True)
 WST_co = TypeVar('WST_co', bound=WSGIServer, covariant=True)
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 global_server = None
 
 
@@ -117,7 +117,7 @@ class BottleServer:
                 if body['uid'] in server.js_callback:
                     return json.dumps(server.js_callback[body['uid']](body))
                 else:
-                    logger.error(f'JS callback function is not set for window {body["uid"]}')
+                    logger.error(f"JS callback function is not set for window {body['uid']}")
 
             @app.route('/')
             @app.route('/<file:path>')

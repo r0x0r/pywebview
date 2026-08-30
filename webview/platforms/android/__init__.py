@@ -35,7 +35,7 @@ from webview.platforms.android.jinterface import (
 )
 from webview.util import create_cookie, inject_pywebview, js_bridge_call
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 
 renderer = 'android-webkit'
 app = None
@@ -46,6 +46,7 @@ class BrowserView:
         self.pywebview_window = window
         self.webview = None
         self.dialog = None
+        self._dismiss_requested = False
         self.pywebview_window.native = self
         self.is_fullscreen = False
         self.create_webview()
@@ -196,9 +197,17 @@ class BrowserView:
         self.pywebview_window.events.response_received.set(response)
 
     def dismiss(self):
+        if self._dismiss_requested:
+            return
+
+        self._dismiss_requested = True
+
         @run_on_ui_thread
         def _dismiss():
             try:
+                if not self.webview:
+                    return
+
                 if _state['private_mode']:
                     self.webview.clearHistory()
                     self.webview.clearCache(True)
@@ -335,14 +344,16 @@ class AndroidApp(App):
         return self.view
 
     def on_pause(self, _):
-        self.view.webview.pauseTimers()
-        self.view.webview.onPause()
+        if self.view.webview:
+            self.view.webview.pauseTimers()
+            self.view.webview.onPause()
 
         logger.debug('pausing initiated')
 
     def on_resume(self, _):
-        self.view.webview.onResume()
-        self.view.webview.resumeTimers()
+        if self.view.webview:
+            self.view.webview.onResume()
+            self.view.webview.resumeTimers()
 
     def on_create(self, activity, saved_instance_state):
         """Event handler for the `on_create` event which is fired after

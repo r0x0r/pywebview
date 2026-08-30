@@ -37,7 +37,7 @@ from System.Reflection import Assembly, BindingFlags  # noqa: E402
 from System.Threading import ApartmentState, Thread, ThreadStart  # noqa: E402
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 cache_dir = None
 _sigint_received = False
 
@@ -767,7 +767,7 @@ def init_storage():
             if not os.access(data_folder, os.W_OK):
                 data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
 
-            cache_dir = _state['storage_path'] or os.path.join(data_folder, 'pywebview')
+            cache_dir = _state['storage_path'] or os.path.join(data_folder, 'pywebview2')
 
             if not os.path.exists(cache_dir):
                 os.makedirs(cache_dir)

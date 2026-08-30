@@ -1,0 +1,56 @@
+{
+  "$schema": "https://github.com/imattau/pywebview2/raw/master/webview/cli/schemas/pywebview2.conf.schema.json",
+  "productName": "{{ product_name }}",
+  "version": "0.1.0",
+  "identifier": "{{ identifier }}",
+  "entry": "main.py",
+  "frontendDist": "frontend",
+  "frontendDev": {
+    "command": null,
+    "url": null,
+    "watch": ["frontend"]
+  },
+  "frontendBuild": {
+    "command": null
+  },
+  "window": {
+    "title": "{{ product_name }}",
+    "width": 1024,
+    "height": 768,
+    "resizable": true,
+    "frameless": false
+  },
+  "bundle": {
+    "targets": [],
+    "icon": null,
+    "resources": ["frontend/**"],
+    "pyinstaller": {
+      "onefile": false,
+      "excludes": [],
+      "extraArgs": []
+    },
+    "windows": {
+      "webview2RuntimePath": null,
+      "webview2InstallMode": "downloadBootstrapper"
+    },
+    "linux": {
+      "webkitgtkPackage": "gir1.2-webkit2-4.1",
+      "debDepends": ["libwebkit2gtk-4.1-0"]
+    },
+    "macos": {
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": null,
+      "entitlements": null
+    }
+  },
+  "mobile": {
+    "android": { "buildozerSpecOverrides": {} },
+    "ios": {
+      "enabled": false,
+      "deploymentTarget": "15.0",
+      "scheme": null,
+      "signingTeam": null,
+      "exportMethod": "development"
+    }
+  }
+}

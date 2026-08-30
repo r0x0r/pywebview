@@ -2,7 +2,7 @@
 *.spec
 *.sh
 setup.cfg
-pywebview.egg-info
+*.egg-info
 MANIFEST
 build
 dist

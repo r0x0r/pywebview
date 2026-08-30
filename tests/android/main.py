@@ -6,7 +6,7 @@ from bottle import Bottle, static_file
 import webview
 from webview.util import get_app_root
 
-logger = logging.getLogger('pywebview')
+logger = logging.getLogger('pywebview2')
 
 app = Bottle()
 
