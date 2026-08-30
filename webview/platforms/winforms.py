@@ -546,6 +546,11 @@ class BrowserView:
                     elif isinstance(menu, MenuAction):
                         top_level_menu.Items.Add(create_action_item(menu))
 
+                top_level_menu.MenuActivate += lambda s, e: top_level_menu.Focus()
+                top_level_menu.MenuDeactivate += lambda s, e: (
+                    CEF.focus(self.uid) if is_cef else self.browser.webview.Focus()
+                )
+
                 self.Controls.Add(top_level_menu)
 
             if self.InvokeRequired:
@@ -665,6 +670,15 @@ class BrowserView:
                 self.WindowState = WinForms.FormWindowState.Normal
 
             self.Invoke(Func[Type](_restore))
+
+        def set_on_top(self, on_top):
+            def _set_on_top():
+                self.TopMost = on_top
+
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](_set_on_top))
+            else:
+                _set_on_top()
 
     @staticmethod
     def alert(message):
@@ -1009,7 +1023,7 @@ def toggle_fullscreen(uid):
 def set_on_top(uid, on_top):
     i = BrowserView.instances.get(uid)
     if i:
-        i.TopMost = on_top
+        i.set_on_top(on_top)
 
 
 def resize(width, height, uid, fix_point):
