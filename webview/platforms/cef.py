@@ -77,7 +77,11 @@ class JSBridge:
         else:
             self.results[uid] = result
 
-        self.eval_events[uid].set()
+        # The waiting evaluate_js() thread (or close_window) may have already
+        # removed the event, e.g. when the window is closing. Ignore late results.
+        event = self.eval_events.get(uid)
+        if event is not None:
+            event.set()
 
     def call(self, func_name, param, value_id, token=''):
         js_bridge_call(self.window, func_name, json.loads(param), value_id, token)

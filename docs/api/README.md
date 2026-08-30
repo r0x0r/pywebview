@@ -871,7 +871,7 @@ Get document's body as an `Element` object
 window.create_element(html, parent=None, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Insert HTML content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omited, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#webviewdommanipulationmode) for possible values.
+Insert HTML content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omitted, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#webviewdommanipulationmode) for possible values.
 
 ### window.dom.document
 

@@ -256,7 +256,9 @@ def js_bridge_call(
     thread to prevent blocking the UI thread. The result is then passed back to the JS API.
     """
 
-    if token is not None and not hmac.compare_digest(str(token), _TOKEN):
+    # MSHTML does not support passing a token through its JS bridge, so it is
+    # excluded from token validation.
+    if window.gui.renderer != 'mshtml' and not hmac.compare_digest(str(token), _TOKEN):
         logger.error('Rejected JS bridge call with an invalid token')
         return
 

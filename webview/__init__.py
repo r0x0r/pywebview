@@ -423,10 +423,10 @@ def create_window(
     # This immediately creates the window only if `start` has already been called
     if threading.current_thread().name != 'MainThread' and guilib:
         if is_app(url) or is_local_url(url):
-            if http.global_server is not None and http.global_server.is_running:
-                server = http.global_server
-            else:
-                _, _, server = http.start_server([url], server=server, **server_args)
+            # Start a dedicated server for this URL. The global server serves
+            # from its original root_path, so reusing it would 404 for a local
+            # file that lives outside that root.
+            _, _, server = http.start_server([url], server=server, **server_args)
         else:
             server = None
 
