@@ -629,7 +629,7 @@ Create an open file (`webview.FileDialog.OPEN`), open folder (`webview.FileDialo
 
 Return a tuple of selected files, None if cancelled.
 
-* `allow_multiple=True` enables multiple selection.
+* `allow_multiple=True` enables multiple selection. Not every platform can select multiple _folders_: QT returns a single folder, and so does Windows when running on .NET older than 9, whose `FolderBrowserDialog` has no multiple selection to offer. Cocoa, GTK, Windows on .NET Framework and Windows on .NET 9 or newer return as many folders as were selected.
 * `directory` Initial directory.
 * `save_filename` Default filename for save file dialog.
 * `file_types` A tuple of supported file type strings in the open file dialog. A file type string must follow this format `"Description (*.ext1;*.ext2...)"`.
