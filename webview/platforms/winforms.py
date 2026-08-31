@@ -85,6 +85,7 @@ def _is_chromium():
 
         return '0'
 
+    net_key = None
     try:
         net_key = winreg.OpenKey(
             winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full'
@@ -122,7 +123,8 @@ def _is_chromium():
     except Exception as e:
         logger.exception(e)
     finally:
-        winreg.CloseKey(net_key)
+        if net_key is not None:
+            winreg.CloseKey(net_key)
 
     return False
 
@@ -386,8 +388,9 @@ class BrowserView:
                 WinForms.Application.Exit()
 
             if not is_cef:
-                # stop waiting for JS result
-                self.browser.js_result_semaphore.release()
+                # stop waiting for any pending JS results
+                for res in list(self.browser.js_results.values()):
+                    res['semaphore'].release()
 
             if is_cef:
                 CEF.close_window(self.uid)
@@ -890,7 +893,9 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         return
 
     if not directory:
-        directory = os.environ['HOMEPATH']
+        directory = os.environ.get('USERPROFILE') or (
+            os.environ.get('HOMEDRIVE', '') + os.environ.get('HOMEPATH', '')
+        )
 
     try:
         if dialog_type == FileDialog.FOLDER:
@@ -1064,9 +1069,9 @@ def destroy_window(uid):
     if not i:
         return
 
+    # i.Close() synchronously raises FormClosed, which runs on_close() and
+    # already releases any pending JS results before Invoke() returns here.
     i.Invoke(Func[Type](_close))
-    if not is_cef:
-        i.browser.js_result_semaphore.release()
 
 
 def evaluate_js(script, uid, parse_json, result_id=None):

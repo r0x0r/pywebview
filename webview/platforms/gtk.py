@@ -289,7 +289,7 @@ class BrowserView:
         if self.pywebview_window.confirm_close:
             dialog = gtk.MessageDialog(
                 parent=self.window,
-                flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+                flags=gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT,
                 type=gtk.MessageType.QUESTION,
                 buttons=gtk.ButtonsType.OK_CANCEL,
                 message_format=self.localization['global.quitConfirmation'],
@@ -299,7 +299,7 @@ class BrowserView:
             if result == gtk.ResponseType.CANCEL:
                 return True
 
-        for res in self.js_results.values():
+        for res in list(self.js_results.values()):
             res['semaphore'].release()
 
         self.window.destroy()
@@ -320,7 +320,10 @@ class BrowserView:
                 value = value.strip()
                 if value.startswith('file://'):
                     # Handle 'file://' URIs (e.g., `file:///home/user/file.txt`)
-                    path = value.replace('file://', '')
+                    try:
+                        path, _ = glib.filename_from_uri(value)
+                    except Exception:
+                        path = value.replace('file://', '')
                     files.append((os.path.basename(path), path))
                 elif value.startswith('/') and os.path.exists(value):
                     # Handle direct paths (e.g., `/home/user/file.txt`)
@@ -331,7 +334,7 @@ class BrowserView:
         return False
 
     def on_window_state_change(self, window, window_state):
-        if window_state.changed_mask == Gdk.WindowState.ICONIFIED:
+        if window_state.changed_mask & Gdk.WindowState.ICONIFIED:
             if (
                 Gdk.WindowState.ICONIFIED & window_state.new_window_state
                 == Gdk.WindowState.ICONIFIED
@@ -340,7 +343,7 @@ class BrowserView:
             else:
                 self.pywebview_window.events.restored.set()
 
-        elif window_state.changed_mask == Gdk.WindowState.MAXIMIZED:
+        if window_state.changed_mask & Gdk.WindowState.MAXIMIZED:
             if (
                 Gdk.WindowState.MAXIMIZED & window_state.new_window_state
                 == Gdk.WindowState.MAXIMIZED
@@ -355,7 +358,13 @@ class BrowserView:
         if body['funcName'] == '_pywebviewAlert':
             self.message_box(body['params'])
         else:
-            js_bridge_call(self.pywebview_window, body['funcName'], body['params'], body['id'])
+            js_bridge_call(
+                self.pywebview_window,
+                body['funcName'],
+                body['params'],
+                body['id'],
+                body.get('token', ''),
+            )
 
     def on_window_resize(self, window, allocation):
         if allocation.width != self._last_width or allocation.height != self._last_height:
@@ -549,7 +558,7 @@ class BrowserView:
     def create_confirmation_dialog(self, title, message):
         dialog = gtk.MessageDialog(
             parent=self.window,
-            flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+            flags=gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT,
             type=gtk.MessageType.QUESTION,
             text=title,
             message_format=message,
@@ -689,17 +698,20 @@ class BrowserView:
 
             result_semaphore.release()
 
+        unique_id = uuid1().hex
         result_semaphore = Semaphore(0)
         result = None
+        self.js_results[unique_id] = {'semaphore': result_semaphore}
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
+        del self.js_results[unique_id]
 
         return result
 
     def message_box(self, message):
         dialog = gtk.MessageDialog(
             parent=self.window,
-            flags=gtk.DialogFlags.MODAL & gtk.DialogFlags.DESTROY_WITH_PARENT,
+            flags=gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT,
             type=gtk.MessageType.INFO,
             buttons=gtk.ButtonsType.OK,
             message_format=message,

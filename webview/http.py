@@ -79,7 +79,7 @@ class BottleServer:
         self.address = None
         self.js_callback = {}
         self.js_api_endpoint = None
-        self.uid = str(uuid.uuid1())
+        self.uid = str(uuid.uuid4())
 
     @classmethod
     def start_server(
@@ -184,14 +184,12 @@ class SSLWSGIRefServer(bottle.ServerAdapter):
                 class server_cls(server_cls):
                     address_family = socket.AF_INET6
 
-        ssl_context = ssl.SSLContext()
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
         ssl_context.load_cert_chain(self.pywebview_certfile, self.pywebview_keyfile)
         self.srv = make_server(self.host, self.port, handler, server_cls, handler_cls)
         self.srv.socket = ssl_context.wrap_socket(self.srv.socket, server_side=True)
         self.port = self.srv.server_port  # update port actual port (0 means random)
-
-        if os.path.exists(self.pywebview_keyfile):
-            os.unlink(self.pywebview_keyfile)
         try:
             self.srv.serve_forever()
         except KeyboardInterrupt:

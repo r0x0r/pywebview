@@ -7,6 +7,7 @@ http://github.com/r0x0r/pywebview/
 
 from __future__ import annotations
 
+import hmac
 import inspect
 import json
 import logging
@@ -51,19 +52,19 @@ class ImmutableDict(UserDict):
     Only existing keys can be modified.
     """
 
-    def __init__(self, initial_data=None, **kwargs):
+    def __init__(self, initial_data: dict[Any, Any] | None = None, **kwargs: Any) -> None:
         self.data = {}
         if initial_data:
             self.data.update(initial_data)
         if kwargs:
             self.data.update(kwargs)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: Any) -> None:
         if key not in self.data:
             raise KeyError(f"Cannot add new key '{key}'. Only existing keys can be modified.")
         super().__setitem__(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         raise KeyError('Deleting keys is not allowed.')
 
 
@@ -111,6 +112,11 @@ def get_app_root() -> str:
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
+def is_test_mode():
+    """During the test suite (PYWEBVIEW_TEST) windows should not steal system focus."""
+    return bool(os.environ.get('PYWEBVIEW_TEST'))
+
+
 def abspath(path: str) -> str:
     """
     Make path absolute, using the application root
@@ -140,9 +146,7 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
         cookie[name]['expires'] = input_['expires']
         cookie[name]['secure'] = input_['secure']
         cookie[name]['httponly'] = input_['httponly']
-
-        if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
-            cookie[name]['samesite'] = input_.get('samesite')
+        cookie[name]['samesite'] = input_.get('samesite')
 
         return cookie
 
@@ -165,7 +169,7 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def inject_pywebview(platform: str, window: Window) -> str:
+def inject_pywebview(platform: str, window: Window) -> None:
     """ "
     Generates and injects a global window.pywebview object. The object contains exposed API functions
     as well as utility functions required by pywebview. The function fires before_load event before
@@ -244,11 +248,19 @@ def inject_pywebview(platform: str, window: Window) -> str:
     thread.start()
 
 
-def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
+def js_bridge_call(
+    window: Window, func_name: str, param: Any, value_id: str, token: str | None = None
+) -> None:
     """
     Calls a function from the JS API and executes it in Python. The function is executed in a separate
     thread to prevent blocking the UI thread. The result is then passed back to the JS API.
     """
+
+    # MSHTML does not support passing a token through its JS bridge, so it is
+    # excluded from token validation.
+    if window.gui.renderer != 'mshtml' and not hmac.compare_digest(str(token), _TOKEN):
+        logger.error('Rejected JS bridge call with an invalid token')
+        return
 
     def _call():
         try:
@@ -308,6 +320,10 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
     if func_name == 'pywebviewAsyncCallback':
         value = json.loads(param) if param is not None else None
 
+        if value_id not in window._callbacks:
+            logger.warning(f'No callback registered for value_id {value_id}. Ignoring.')
+            return
+
         if callable(window._callbacks[value_id]):
             window._callbacks[value_id](value)
         else:
@@ -340,7 +356,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         logger.error('Function %s() does not exist', func_name)
 
 
-def load_js_files(window: Window, platform: str) -> str:
+def load_js_files(window: Window, platform: str) -> tuple[str, str]:
     """
     Load JS files in the order they should be loaded.
     The order is polyfill, api, the rest and finish.js.
@@ -381,7 +397,7 @@ def load_js_files(window: Window, platform: str) -> str:
                     ),
                 }
             elif name == 'state':
-                params = {'state': json.dumps(window.state)}
+                params = {'state': escape_string(json.dumps(window.state))}
             elif name == 'finish':
                 finish_script = content
                 continue
@@ -447,6 +463,8 @@ def escape_string(string: str) -> str:
         .replace('\n', r'\n')
         .replace('\r', r'\r')
         .replace("'", r'\'')
+        .replace('\u2028', r'\u2028')
+        .replace('\u2029', r'\u2029')
     )
 
 

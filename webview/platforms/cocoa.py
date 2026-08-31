@@ -24,6 +24,7 @@ from webview.util import (
     DEFAULT_HTML,
     create_cookie,
     inject_pywebview,
+    is_test_mode,
     js_bridge_call,
     parse_file_type,
     stringify_headers,
@@ -62,7 +63,9 @@ def _primary_screen_height():
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
-    app.setActivationPolicy_(0)
+    # In test mode use the Accessory activation policy so the app does not become the
+    # foreground application and grab keyboard focus from the developer's active window.
+    app.setActivationPolicy_(1 if is_test_mode() else 0)
     current_menu = None
 
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
@@ -105,6 +108,13 @@ class BrowserView:
             # callbacks can arrive after get_instance would return None.
             i.webview.setNavigationDelegate_(None)
             i.webview.setUIDelegate_(None)
+
+            # WKUserContentController holds a strong reference to registered
+            # script message handlers; remove them so the webview/window can
+            # actually be released.
+            user_content_controller = i.webview.configuration().userContentController()
+            user_content_controller.removeScriptMessageHandlerForName_('browserDelegate')
+            user_content_controller.removeScriptMessageHandlerForName_('jsBridge')
 
             del BrowserView.instances[i.uid]
 
@@ -170,7 +180,9 @@ class BrowserView:
             body = json.loads(message.body())
             if body['params'] is WebKit.WebUndefined.undefined():
                 body['params'] = None
-            js_bridge_call(self.window, body['funcName'], body['params'], body['id'])
+            js_bridge_call(
+                self.window, body['funcName'], body['params'], body['id'], body.get('token', '')
+            )
 
     class DownloadDelegate(AppKit.NSObject):
         # Download delegate to handle links with download attribute set
@@ -189,6 +201,9 @@ class BrowserView:
                 completionHandler(url)
             else:
                 completionHandler(None)
+
+            # Balance the explicit retain() made when this delegate was assigned.
+            self.release()
 
     class BrowserDelegate(AppKit.NSObject):
         # Display a JavaScript alert panel containing the specified message
@@ -244,7 +259,7 @@ class BrowserView:
         def webView_runOpenPanelWithParameters_initiatedByFrame_completionHandler_(
             self, webview, param, frame, handler
         ):
-            i = list(BrowserView.instances.values())[0]
+            i = BrowserView.get_instance('webview', webview)
             file_filter = param._acceptedMIMETypes()
 
             files = i.create_file_dialog(
@@ -723,6 +738,8 @@ class BrowserView:
 
         self.pywebview_window.events.before_show.set()
 
+        self.url = None
+
         if window.real_url:
             self.url = window.real_url
             self.load_url(window.real_url)
@@ -748,14 +765,16 @@ class BrowserView:
             new_menu = self._recreate_menus(self.menu)
             BrowserView.app.setMainMenu_(new_menu)
 
-            BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
+            if not is_test_mode():
+                BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             AppHelper.installMachInterrupt()
             BrowserView.app.run()
 
     def show(self):
         def _show():
             self.window.makeKeyAndOrderFront_(self.window)
-            BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
+            if not is_test_mode():
+                BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
 
         AppHelper.callAfter(_show)
 
@@ -844,7 +863,7 @@ class BrowserView:
         def handler(cookies):
             for c in cookies:
                 domain = c.domain()[1:] if c.domain().startswith('.') else c.domain()
-                if domain not in self.url:
+                if self.url and domain not in self.url:
                     continue
 
                 data = {
@@ -939,7 +958,7 @@ class BrowserView:
                     save_dlg.setNameFieldStringValue_(save_filename)
 
                 if save_dlg.runModal() == AppKit.NSFileHandlingPanelOKButton:
-                    self._file_name = save_dlg.filename()
+                    self._file_name = (save_dlg.filename(),)
                 else:
                     self._file_name = None
             else:

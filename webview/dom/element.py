@@ -1,3 +1,4 @@
+import json
 import logging
 from collections import defaultdict
 from functools import wraps
@@ -8,6 +9,7 @@ from webview.dom.classlist import ClassList
 from webview.dom.propsdict import DOMPropType, PropsDict
 from webview.errors import JavascriptException
 from webview.event import EventContainer
+from webview.util import escape_string
 
 logger = logging.getLogger('pywebview')
 
@@ -43,7 +45,7 @@ def _exists(func):
 
 
 class Element:
-    def __init__(self, window, node_id) -> None:
+    def __init__(self, window: Any, node_id: str) -> None:
         self._window = window
         self.events = EventContainer()
         self._node_id = node_id
@@ -90,7 +92,7 @@ class Element:
     @_exists
     @_ignore_window_document
     def id(self, id: str) -> None:
-        self._window.run_js(f"{self._query_command}; element.id = '{id}'")
+        self._window.run_js(f"{self._query_command}; element.id = '{escape_string(id)}'")
 
     @property
     @_exists
@@ -155,7 +157,7 @@ class Element:
     @_exists
     @_ignore_window_document
     def text(self, text: str) -> None:
-        self._window.run_js(f"{self._query_command}; element.textContent = '{text}'")
+        self._window.run_js(f"{self._query_command}; element.textContent = '{escape_string(text)}'")
 
     @property
     @_exists
@@ -182,7 +184,7 @@ class Element:
     @_ignore_window_document
     def value(self, value: str) -> None:
         self._window.run_js(
-            f"{self._query_command}; if ('value' in element) {{ element.value = '{value}' }}"
+            f"{self._query_command}; if ('value' in element) {{ element.value = '{escape_string(value)}' }}"
         )
 
     @_exists
@@ -282,7 +284,7 @@ class Element:
 
     @_exists
     @_ignore_window_document
-    def append(self, html: str, mode=ManipulationMode.LastChild) -> 'Element':
+    def append(self, html: str, mode: ManipulationMode = ManipulationMode.LastChild) -> 'Element':
         return self._window.dom.create_element(html, self, mode)
 
     @_exists
@@ -305,7 +307,7 @@ class Element:
             f"""
             var handlerIds = [{handler_ids}];
             handlerIds.forEach(function(handlerId) {{
-                delete pywebview._eventHandlers[handler_id]
+                delete pywebview._eventHandlers[handlerId]
             }})
         """
         )
@@ -316,7 +318,10 @@ class Element:
     @_exists
     @_ignore_window_document
     def copy(
-        self, target: Union[str, 'Element'] = None, mode=ManipulationMode.LastChild, id: str = None
+        self,
+        target: Union[str, 'Element'] = None,
+        mode: ManipulationMode = ManipulationMode.LastChild,
+        id: str = None,
     ) -> 'Element':
         if isinstance(target, str):
             target = self._window.dom.get_element(target)
@@ -324,7 +329,7 @@ class Element:
             target = self.parent
 
         if id:
-            id_command = f'newElement.id = "{id}"'
+            id_command = f'newElement.id = {json.dumps(id)}'
         else:
             id_command = 'newElement.removeAttribute("id")'
 
@@ -351,7 +356,9 @@ class Element:
 
     @_exists
     @_ignore_window_document
-    def move(self, target: Union[str, 'Element'], mode=ManipulationMode.LastChild) -> 'Element':
+    def move(
+        self, target: Union[str, 'Element'], mode: ManipulationMode = ManipulationMode.LastChild
+    ) -> 'Element':
         if isinstance(target, str):
             target = self._window.dom.get_element(target)
 
@@ -399,7 +406,7 @@ class Element:
                     {debounced_func};
                 }}
 
-                element.addEventListener('{event}', pywebview._eventHandlers[handlerId]);
+                element.addEventListener('{escape_string(event)}', pywebview._eventHandlers[handlerId]);
             }};
             handlerId;
         """
@@ -407,14 +414,14 @@ class Element:
 
         if handler_id:
             self._event_handlers[event].append(callback)
-            self._event_handler_ids[callback] = handler_id
+            self._event_handler_ids[(event, callback)] = handler_id
 
         if event == 'drop':
             _dnd_state['num_listeners'] += 1
 
     @_exists
     def off(self, event: str, callback: Callable) -> None:
-        handler_id = self._event_handler_ids.get(callback)
+        handler_id = self._event_handler_ids.get((event, callback))
 
         if not handler_id:
             return
@@ -424,18 +431,20 @@ class Element:
             {self._query_command};
             var callback = pywebview._eventHandlers['{handler_id}'];
             if (element) {{
-                element.removeEventListener('{event}', callback);
+                element.removeEventListener('{escape_string(event)}', callback);
                 delete pywebview._eventHandlers['{handler_id}'];
             }}
         """
         )
 
-        del self._event_handler_ids[callback]
-        del self._window.dom._elements[self._node_id]
+        del self._event_handler_ids[(event, callback)]
 
         for handler in self._event_handlers[event]:
             if handler == callback:
                 self._event_handlers[event].remove(handler)
+
+        if not self._event_handler_ids:
+            self._window.dom._elements.pop(self._node_id, None)
 
         if event == 'drop':
             _dnd_state['num_listeners'] = max(0, _dnd_state['num_listeners'] - 1)

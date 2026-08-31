@@ -124,15 +124,15 @@ class BrowserView(QMainWindow):
             self._parent = parent
             self.window = parent.pywebview_window
 
-        @QtCore.Slot(str, qtype, str, result=str)
-        def call(self, func_name, param, value_id):
+        @QtCore.Slot(str, qtype, str, str, result=str)
+        def call(self, func_name, param, value_id, token):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
 
             if func_name == '_pywebviewAlert':
                 QMessageBox.information(self._parent, 'Message', str(param))
             else:
-                return js_bridge_call(self.window, func_name, json.loads(param), value_id)
+                return js_bridge_call(self.window, func_name, json.loads(param), value_id, token)
 
     class WebView(QWebView):
         def __init__(self, parent=None):
@@ -243,7 +243,7 @@ class BrowserView(QMainWindow):
 
             if 'httpHeaders' in dir(info):
                 headers = {
-                    k.data().decode('utf-8'): k.data().decode('utf-8')
+                    k.data().decode('utf-8'): v.data().decode('utf-8')
                     for k, v in info.httpHeaders().items()
                 }
             else:
@@ -508,7 +508,9 @@ class BrowserView(QMainWindow):
 
     def on_confirmation_dialog(self, title, message, uuid):
         uuid_ = BrowserView._convert_string(uuid)
-        reply = QMessageBox.question(self, title, message, QMessageBox.Cancel, QMessageBox.Ok)
+        reply = QMessageBox.question(
+            self, title, message, QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Cancel
+        )
 
         confirmation_dialog_result = self._confirmation_dialog_results[uuid_]
 
@@ -593,7 +595,7 @@ class BrowserView(QMainWindow):
                 self,
                 self.title,
                 self.localization['global.quitConfirmation'],
-                QMessageBox.Yes,
+                QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No,
             )
 
@@ -604,7 +606,6 @@ class BrowserView(QMainWindow):
         event.accept()
 
         del BrowserView.instances[self.uid]
-        self.close()
 
         if self.pywebview_window in windows:
             windows.remove(self.pywebview_window)
@@ -720,7 +721,12 @@ class BrowserView(QMainWindow):
             else:
                 self.webview.page().runJavaScript(script, return_result)
         except TypeError:
-            self.webview.page().runJavaScript(script)  # PySide2 & PySide6
+            # Some PySide2 & PySide6 versions raise TypeError when a Python
+            # callable is passed as the result callback. Fire the script
+            # without one, and unblock the waiting caller with no result
+            # instead of leaving it blocked on the semaphore forever.
+            self.webview.page().runJavaScript(script)
+            return_result(None)
         except AttributeError:
             result = self.webview.page().mainFrame().evaluateJavaScript(script)
             return_result(result)

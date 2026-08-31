@@ -9,6 +9,7 @@ from ctypes import windll
 from functools import wraps
 from threading import Event
 from time import sleep
+from urllib.parse import quote
 
 from cefpython3 import cefpython as cef
 
@@ -60,15 +61,30 @@ def _set_dpi_mode(enabled):
 class JSBridge:
     def __init__(self, window, eval_events):
         self.results = {}
+        self.parse_json = {}
         self.window = window
         self.eval_events = eval_events
 
     def return_result(self, result, uid):
-        self.results[uid] = json.loads(result) if result else None
-        self.eval_events[uid].set()
+        parse_json = self.parse_json.pop(uid, True)
 
-    def call(self, func_name, param, value_id):
-        js_bridge_call(self.window, func_name, json.loads(param), value_id)
+        if parse_json and result:
+            try:
+                self.results[uid] = json.loads(result)
+            except Exception:
+                logger.exception('Failed to parse JSON: %s', result)
+                self.results[uid] = result
+        else:
+            self.results[uid] = result
+
+        # The waiting evaluate_js() thread (or close_window) may have already
+        # removed the event, e.g. when the window is closing. Ignore late results.
+        event = self.eval_events.get(uid)
+        if event is not None:
+            event.set()
+
+    def call(self, func_name, param, value_id, token=''):
+        js_bridge_call(self.window, func_name, json.loads(param), value_id, token)
 
 
 class CookieVisitor:
@@ -142,6 +158,7 @@ class Browser:
         self.eval_events[unique_id] = Event()
 
         if unique_id:
+            self.js_bridge.parse_json[unique_id] = parse_json
             eval_script = f"""
                 try {{
                     {code}
@@ -153,10 +170,11 @@ class Browser:
             self.browser.ExecuteJavascript(eval_script)
             self.eval_events[unique_id].wait()  # result is obtained via JSBridge.return_result
 
-            result = copy(self.js_bridge.results[unique_id])
+            result = copy(self.js_bridge.results.get(unique_id))
 
             del self.eval_events[unique_id]
-            del self.js_bridge.results[unique_id]
+            self.js_bridge.results.pop(unique_id, None)
+            self.js_bridge.parse_json.pop(unique_id, None)
 
             return result
         else:
@@ -184,7 +202,7 @@ class Browser:
 
     def load_html(self, html):
         self.initialized = False
-        self.browser.LoadUrl(f'data:text/html,{html}')
+        self.browser.LoadUrl(f'data:text/html,{quote(html)}')
 
     def focus(self):
         self.browser.SendFocusEvent(True)
@@ -286,9 +304,9 @@ def init(_, cache_dir):
 def create_browser(window, handle, alert_func, parent):
     def _create():
         real_url = (
-            f'data:text/html,{window.html}'
+            f'data:text/html,{quote(window.html)}'
             if window.html
-            else window.real_url or f'data:text/html,{DEFAULT_HTML}'
+            else window.real_url or f'data:text/html,{quote(DEFAULT_HTML)}'
         )
 
         default_browser_settings = {}
@@ -374,6 +392,11 @@ def resize(width, height, uid):
 @_cef_call
 def close_window(uid):
     instance = instances[uid]
+
+    # unblock any evaluate_js() calls still waiting on a result
+    for event in list(instance.eval_events.values()):
+        event.set()
+
     instance.close()
     del instances[uid]
 

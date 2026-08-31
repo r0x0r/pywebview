@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from webview.dom import ManipulationMode
 from webview.dom.element import Element
@@ -8,12 +8,12 @@ from webview.dom.element import Element
 class DOM:
     _serializable = False
 
-    def __init__(self, window):
+    def __init__(self, window: Any) -> None:
         self.__window = window
         window.events.loaded += self.__on_loaded
         self._elements = {}
 
-    def __on_loaded(self):
+    def __on_loaded(self) -> None:
         self._elements = {}
 
     @property
@@ -39,7 +39,7 @@ class DOM:
         if isinstance(parent, Element):
             parent_command = parent._query_command
         elif isinstance(parent, str):
-            parent_command = f'var element = document.querySelector("{parent}");'
+            parent_command = f'var element = document.querySelector({json.dumps(parent)});'
         else:
             parent_command = 'var element = document.body;'
         if not isinstance(html, str):
@@ -61,7 +61,7 @@ class DOM:
     def get_element(self, selector: str) -> Optional[Element]:
         node_id = self.__window.evaluate_js(
             f"""
-            var element = document.querySelector('{selector}');
+            var element = document.querySelector({json.dumps(selector)});
             pywebview._getNodeId(element);
         """
         )
@@ -70,7 +70,7 @@ class DOM:
 
     def get_elements(self, selector: str) -> List[Element]:
         code = f"""
-            var elements = document.querySelectorAll('{selector}');
+            var elements = document.querySelectorAll({json.dumps(selector)});
             nodeIds = [];
             for (var i = 0; i < elements.length; i++) {{
                 var nodeId = pywebview._getNodeId(elements[i]);

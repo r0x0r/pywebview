@@ -22,7 +22,7 @@
         }
     } else if (platform === 'qtwebengine') {
         window.alert = function (message) {
-            window.pywebview._QWebChannel.objects.external.call('_pywebviewAlert', pywebview.stringify(message), 'alert');
+            window.pywebview._QWebChannel.objects.external.call('_pywebviewAlert', pywebview.stringify(message), 'alert', window.pywebview.token);
         }
     } else if (platform === 'qtwebkit') {
         window.alert = function (message) {

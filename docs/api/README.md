@@ -15,7 +15,7 @@ Get an instance of the currently active window
 webview.create_window(title, url=None, html=None, js_api=None, width=800, height=600,
                       x=None, y=None, screen=None, resizable=True, fullscreen=False,
                       min_size=(200, 100), hidden=False, frameless=False,
-                      easy_drag=True, shadow=False, focus=True, minimized=False, maximized=False, menu=[],
+                      easy_drag=True, shadow=True, focus=True, minimized=False, maximized=False, menu=[],
                       on_top=False, confirm_close=False, background_color='#FFFFFF',
                       transparent=False, text_select=False, zoomable=False,
                       draggable=False, vibrancy=False, server=http.BottleServer, server_args={},
@@ -39,7 +39,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `hidden` - Create a window hidden by default. Default is False
 * `frameless` - Create a frameless window. Default is False.
 * `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/api.html#drag-area) for details.
-* `shadow` - Add window shadow. Default is False. _Windows only_.
+* `shadow` - Add window shadow. Default is True. _Windows only_.
 * `focus` - Create a non-focusable window if False. Default is True.
 * `minimized` - Display window minimized
 * `maximized` - Display window maximized
@@ -85,7 +85,7 @@ Start a GUI loop and display previously created windows. This function must be c
 
 #### Examples
 
-* [Simple window](/examples/open_url.html)
+* [Simple window](/examples/simple_browser.html)
 * [Multi-window](/examples/multiple_windows.html)
 
 ## webview.screens
@@ -106,13 +106,15 @@ Return a list of available displays (as `Screen` objects) with the primary displ
 webview.settings = {
   'ALLOW_DOWNLOADS': False,
   'ALLOW_FILE_URLS': True,
-  'DRAG_REGION_SELECTOR': 'pywebview-drag-region',
+  'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
   'DRAG_REGION_DIRECT_TARGET_ONLY': False,
+  'DEFAULT_HTTP_PORT': 42001,
   'OPEN_EXTERNAL_LINKS_IN_BROWSER': True,
   'OPEN_DEVTOOLS_IN_DEBUG': True,
-  'IGNORE_SSL_ERRORS': False,
   'REMOTE_DEBUGGING_PORT': None,
-  'SHOW_DEFAULT_MENUS': True
+  'IGNORE_SSL_ERRORS': False,
+  'SHOW_DEFAULT_MENUS': True,
+  'WEBVIEW2_RUNTIME_PATH': None
 }
 ```
 
@@ -122,6 +124,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `ALLOW_FILE_URLS` Enable `file://` urls. Disabled by default.
 * `DRAG_REGION_SELECTOR` CSS selector for a drag region in easy drag mode. Default selector is `.pywebview-drag-region`.
 * `DRAG_REGION_DIRECT_TARGET_ONLY` When set to True, only elements that directly match the drag region selector are draggable. When False, child elements of a drag region are also draggable. Default is False.
+* `DEFAULT_HTTP_PORT` Port used for the internal HTTP server when private mode is disabled and no explicit port is given. Default is 42001.
 * `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
@@ -211,7 +214,7 @@ element.classes.toggle('dotted')
 element.append(html, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Insert HTML content to the element as a last child. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values.
+Insert HTML content to the element as a last child. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#webviewdommanipulationmode) for possible values.
 
 ### element.blur
 
@@ -235,7 +238,7 @@ Get element's children elements. Returns a list of `Element` objects.
 element.copy(target=None, mode=webview.dom.ManipulationMode.LastChild, id=None)
 ```
 
-Create a new copy of the element. `target` can be either another `Element` or a DOM selector string. If target is omitted, a copy is created in the current element's parent. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values. The id parameter is stripped from the copy. Optionally you can set the id of the copy by specifying the `id` parameter.
+Create a new copy of the element. `target` can be either another `Element` or a DOM selector string. If target is omitted, a copy is created in the current element's parent. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#webviewdommanipulationmode) for possible values. The id parameter is stripped from the copy. Optionally you can set the id of the copy by specifying the `id` parameter.
 
 ### element.empty
 
@@ -291,7 +294,7 @@ Get or set element's id. None if id is not set.
 element.move(target, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Move element to the `target` that can be either another `Element` or a DOM selector string.  To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values.
+Move element to the `target` that can be either another `Element` or a DOM selector string.  To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#webviewdommanipulationmode) for possible values.
 
 #### Examples
 
@@ -625,7 +628,7 @@ Create a confirmation (Ok / Cancel) dialog.
 window.create_file_dialog(dialog_type=FileDialog.OPEN, directory='', allow_multiple=False, save_filename='', file_types=())
 ```
 
-Create an open file (`webview.FileDialog.OPEN`), open folder (`webview.FileDialog.FOLDER`) or save file (`webview.FileDialog.OPEN.SAVE`) dialog.
+Create an open file (`webview.FileDialog.OPEN`), open folder (`webview.FileDialog.FOLDER`) or save file (`webview.FileDialog.SAVE`) dialog.
 
 Return a tuple of selected files, None if cancelled.
 
@@ -702,7 +705,7 @@ window.hide()
 
 Hide the window.
 
-[Example](/examples/show_hide.html)
+[Example](/examples/hide_window.html)
 
 
 ### window.load_css
@@ -713,7 +716,7 @@ window.load_css(css)
 
 Load CSS as a string.
 
-[Example](/examples/css_load.html)
+[Example](/examples/load_css.html)
 
 
 ### window.load_html
@@ -724,7 +727,7 @@ window.load_html(content, base_uri=base_uri())
 
 Load HTML code. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way.
 
-[Example](/examples/html_load.html)
+[Example](/examples/load_html.html)
 
 ### window.load_url
 
@@ -801,7 +804,7 @@ window.resize(width, height, fix_point=FixPoint.NORTH | FixPoint.WEST)
 
 Resize window. `width` and `height` are in logical pixels. Optional parameter fix_point specifies in respect to which point the window is resized. The parameter accepts values of the `webview.window.FixPoint` enum (`NORTH`, `SOUTH`, `EAST`, `WEST`)
 
-[Example](/examples/minimize.html)
+[Example](/examples/window_state.html)
 
 ### window.restore
 
@@ -811,7 +814,7 @@ window.restore()
 
 Restore minimized window.
 
-[Example](/examples/minimize.html)
+[Example](/examples/window_state.html)
 
 ### window.run_js
 
@@ -842,7 +845,7 @@ window.show()
 
 Show the window if it is hidden. Has no effect otherwise
 
-[Example](/examples/show_hide.html)
+[Example](/examples/hide_window.html)
 
 ### window.toggle_fullscreen
 
@@ -868,7 +871,7 @@ Get document's body as an `Element` object
 window.create_element(html, parent=None, mode=webview.dom.ManipulationMode.LastChild)
 ```
 
-Insert HTML content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omited, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#manipulation-mode) for possible values.
+Insert HTML content and returns the Element of the root object. `parent` can be either another `Element` or a DOM selector string. If parent is omitted, created DOM is attached to document's body. To control the position of the new element, use the `mode` parameter. See [Manipulation mode](/api.html#webviewdommanipulationmode) for possible values.
 
 ### window.dom.document
 
@@ -968,7 +971,7 @@ The event is fired when a HTTP response is received. The event is emitted for ev
 The event handler can accept a single argument - a `Response` object that contains the following properties:
 
 * `url` - URL of the response
-* `status` - HTTP status code
+* `status_code` - HTTP status code
 * `headers` - HTTP response headers as a dictionary
 
 Not supported on QT.

@@ -1,6 +1,9 @@
+import threading
+from unittest.mock import MagicMock
+
 import pytest
 
-from webview.util import parse_file_type
+from webview.util import _TOKEN, js_bridge_call, parse_file_type
 
 
 class TestParseFileType:
@@ -144,3 +147,30 @@ class TestParseFileType:
         description, extensions = parse_file_type('Backup (*.backup.old.gz)')
         assert description == 'Backup'
         assert extensions == '*.backup.old.gz'
+
+
+class TestBridgeTokenValidation:
+    """Tests that js_bridge_call enforces the session token before dispatching a call."""
+
+    def _make_window(self, called_event):
+        def target():
+            called_event.set()
+            return 'ok'
+
+        window = MagicMock()
+        window._functions = {'target': target}
+        return window
+
+    def test_valid_token_invokes_function(self):
+        """A call carrying the correct token is dispatched to the exposed function"""
+        called = threading.Event()
+        window = self._make_window(called)
+        js_bridge_call(window, 'target', [], 'value_id', _TOKEN)
+        assert called.wait(2), 'Function was not called for a valid token'
+
+    def test_invalid_token_rejects_call(self):
+        """A call carrying a wrong token is rejected and the function is never invoked"""
+        called = threading.Event()
+        window = self._make_window(called)
+        js_bridge_call(window, 'target', [], 'value_id', 'not-the-token')
+        assert not called.wait(0.5), 'Function was called despite an invalid token'

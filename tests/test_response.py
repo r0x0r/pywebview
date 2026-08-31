@@ -1,3 +1,4 @@
+import os
 from threading import Lock
 
 import pytest
@@ -20,6 +21,10 @@ def window():
     return window
 
 
+@pytest.mark.skipif(
+    os.environ.get('PYWEBVIEW_GUI') == 'qt',
+    reason='response_received is not supported on QT',
+)
 def test_response_event(window):
     def on_response(response):
         if 'favicon' in response.url:
@@ -37,11 +42,12 @@ def test_response_event(window):
 
     lock = Lock()
     exceptions = []
+    lock.acquire()
     window.events.response_received += on_response
     run_test(webview, window, response_test, (exceptions, lock))
 
 
 def response_test(window, exceptions, lock):
-    lock.acquire()
+    assert lock.acquire(timeout=10)
     if len(exceptions) > 0:
         raise exceptions[0]

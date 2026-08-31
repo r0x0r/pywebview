@@ -1,6 +1,6 @@
 """
 pywebview is a lightweight cross-platform wrapper around a webview component that allows to display HTML content in its
-own dedicated window. Works on Windows, OS X and Linux and compatible with Python 2 and 3.
+own dedicated window. Works on Windows, OS X, Linux and Android.
 
 (C) 2014-2019 Roman Sirokov and contributors
 Licensed under BSD license
@@ -54,7 +54,7 @@ __all__ = (
 )
 
 
-def _setup_logger():
+def _setup_logger() -> logging.Logger:
     """Setup logger with console handler and appropriate log level."""
 
     logger = logging.getLogger('pywebview')
@@ -164,7 +164,7 @@ renderer: str | None = None
 def start(
     func: Callable[..., None] | None = None,
     args: Iterable[Any] | None = None,
-    localization: dict[str, str] = {},
+    localization: dict[str, str] | None = None,
     gui: GUIType | None = None,
     debug: bool = False,
     http_server: bool = False,
@@ -172,9 +172,9 @@ def start(
     user_agent: str | None = None,
     private_mode: bool = True,
     storage_path: str | None = None,
-    menu: list[Menu] = [],
+    menu: list[Menu] | None = None,
     server: type[http.ServerType] = http.BottleServer,
-    server_args: dict[Any, Any] = {},
+    server_args: dict[Any, Any] | None = None,
     ssl: bool = False,
     icon: str | None = None,
 ):
@@ -202,9 +202,14 @@ def start(
     :param server: Server class. Defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :param ssl: Enable SSL for local HTTP server. Default is False.
-    :param icon: Path to the icon file. Supported only on GTK/QT.
+    :param icon: Path to the icon file. Supported on GTK, QT, macOS and Windows.
     """
     global guilib, renderer
+
+    localization = localization if localization is not None else {}
+    menu = menu if menu is not None else []
+    server_args = server_args if server_args is not None else {}
+    generated_ssl_cert = False
 
     def _create_children(other_windows):
         if not windows[0].events.shown.wait(10):
@@ -252,6 +257,7 @@ def start(
         if not server_args or 'keyfile' not in server_args or 'certfile' not in server_args:
             # generate SSL certs and tell the windows to use them
             keyfile, certfile = __generate_ssl_cert()
+            generated_ssl_cert = True
             server_args['keyfile'] = keyfile
             server_args['certfile'] = certfile
         else:
@@ -300,10 +306,13 @@ def start(
             thread = threading.Thread(target=func)
         thread.start()
 
-    guilib.create_window(windows[0])
-    # keyfile is deleted by the ServerAdapter right after wrap_socket()
-    if certfile:
-        os.unlink(certfile)
+    try:
+        guilib.create_window(windows[0])
+    finally:
+        if generated_ssl_cert:
+            for path in (keyfile, certfile):
+                if os.path.exists(path):
+                    os.unlink(path)
 
 
 def create_window(
@@ -334,11 +343,11 @@ def create_window(
     zoomable: bool = False,
     draggable: bool = False,
     vibrancy: bool = False,
-    menu: list[Menu] = [],
+    menu: list[Menu] | None = None,
     localization: Mapping[str, str] | None = None,
     server: type[http.ServerType] = http.BottleServer,
     http_port: int | None = None,
-    server_args: http.ServerArgs = {},
+    server_args: http.ServerArgs | None = None,
 ) -> Window | None:
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
@@ -373,6 +382,8 @@ def create_window(
     valid_color = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
     if not re.match(valid_color, background_color):
         raise ValueError(f'{background_color} is not a valid hex triplet color')
+
+    server_args = server_args if server_args is not None else {}
 
     uid = 'master' if len(windows) == 0 else 'child_' + uuid4().hex[:8]
 
@@ -416,7 +427,10 @@ def create_window(
 
     # This immediately creates the window only if `start` has already been called
     if threading.current_thread().name != 'MainThread' and guilib:
-        if is_app(url) or is_local_url(url) and not server.is_running:
+        if is_app(url) or is_local_url(url):
+            # Start a dedicated server for this URL. The global server serves
+            # from its original root_path, so reusing it would 404 for a local
+            # file that lives outside that root.
             _, _, server = http.start_server([url], server=server, **server_args)
         else:
             server = None
@@ -428,7 +442,7 @@ def create_window(
     return window
 
 
-def __generate_ssl_cert():
+def __generate_ssl_cert() -> tuple[str, str]:
     try:
         # https://cryptography.io/en/latest/x509/tutorial/#creating-a-self-signed-certificate
         from cryptography import x509
@@ -484,7 +498,7 @@ def __generate_ssl_cert():
     return keyfile, certfile
 
 
-def __set_storage_path(storage_path):
+def __set_storage_path(storage_path: str) -> None:
     e = WebViewException(f'Storage path {storage_path} is not writable')
 
     if not os.path.exists(storage_path):

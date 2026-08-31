@@ -27,7 +27,7 @@ class EventContainer:
 
 
 class Event:
-    def __init__(self, window, should_lock: bool = False) -> None:
+    def __init__(self, window: Any, should_lock: bool = False) -> None:
         self._items: list[Callable[..., Any]] = []
         self._should_lock = should_lock
         self._event = threading.Event()
@@ -43,12 +43,12 @@ class Event:
                         value = func(self._window, *args, **kwargs)
                     else:
                         value = func(*args, **kwargs)
-                    return_values.add(value)
+                    return_values.append(value)
 
                 except Exception as e:
                     logger.exception(e)
 
-        return_values: set[Any] = set()
+        return_values: list[Any] = []
 
         if len(self._items):
             if self._should_lock:
@@ -76,7 +76,10 @@ class Event:
         return self
 
     def __sub__(self, item: Callable[..., Any]) -> Self:
-        self._items.remove(item)
+        if item in self._items:
+            self._items.remove(item)
+        else:
+            logger.warning(f'Event handler {item} not found')
         return self
 
     def __iadd__(self, item: Callable[..., Any]) -> Self:
@@ -84,7 +87,10 @@ class Event:
         return self
 
     def __isub__(self, item: Callable[..., Any]) -> Self:
-        self._items.remove(item)
+        if item in self._items:
+            self._items.remove(item)
+        else:
+            logger.warning(f'Event handler {item} not found')
         return self
 
     def __len__(self) -> int:

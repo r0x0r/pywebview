@@ -59,7 +59,7 @@ def run_test(
         pytest.fail(e)
 
 
-def assert_js(window, func_name, expected_result, *func_args):
+def assert_js(window: Any, func_name: str, expected_result: Any, *func_args: Any) -> None:
     """
     A helper function to run a Javascript function in the window and assert the result.
 
@@ -99,8 +99,15 @@ def assert_js(window, func_name, expected_result, *func_args):
 
 
 def create_test_window(
-    webview, window, thread_func, queue, thread_param, start_args, no_destroy, destroy_delay
-):
+    webview: Any,
+    window: Any,
+    thread_func: Optional[Callable],
+    queue: Queue,
+    thread_param: Iterable,
+    start_args: Dict[str, Any],
+    no_destroy: bool,
+    destroy_delay: float,
+) -> None:
     def thread():
         try:
             window.events.loaded.wait()
@@ -121,11 +128,11 @@ def create_test_window(
     webview.start(**start_args)
 
 
-def get_test_name():
+def get_test_name() -> str:
     return os.environ.get('PYTEST_CURRENT_TEST').split(':')[-1].split(' ')[0]
 
 
-def wait_release(lock, timeout=3, count=0):
+def wait_release(lock: threading.Lock, timeout: float = 3, count: int = 0) -> bool:
     """
     Release a lock only if after it is locked. If the lock is not released within the timeout, return False.
     """
@@ -134,12 +141,12 @@ def wait_release(lock, timeout=3, count=0):
         return True
     elif count * 0.1 < timeout:
         time.sleep(0.1)
-        wait_release(lock)
+        return wait_release(lock, timeout, count + 1)
     else:
         return False
 
 
-def take_screenshot():
+def take_screenshot() -> None:
     if sys.platform == 'darwin':
         from datetime import datetime
         from subprocess import Popen
@@ -150,7 +157,7 @@ def take_screenshot():
         ).wait()
 
 
-def _destroy_window(_, window, delay):
+def _destroy_window(_: Any, window: Any, delay: float) -> threading.Event:
     def stop():
         try:
             event.wait()
@@ -168,7 +175,7 @@ def _destroy_window(_, window, delay):
     return event
 
 
-def take_screenshot2():
+def take_screenshot2() -> str:
     from datetime import datetime
 
     from PIL import ImageGrab

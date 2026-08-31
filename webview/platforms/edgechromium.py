@@ -5,6 +5,7 @@ import shutil
 import webbrowser
 import winreg
 from threading import Semaphore
+from uuid import uuid1
 
 try:
     import clr
@@ -95,7 +96,6 @@ class EdgeChrome:
         form.Controls.Add(self.webview)
 
         self.js_results = {}
-        self.js_result_semaphore = Semaphore(0)
         self.webview.Dock = WinForms.DockStyle.Fill
         self.webview.BringToFront()
         self.webview.CoreWebView2InitializationCompleted += self.on_webview_ready
@@ -103,11 +103,14 @@ class EdgeChrome:
         self.webview.NavigationCompleted += self.on_navigation_completed
         self.webview.WebMessageReceived += self.on_script_notify
         self.syncContextTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext()
+        hex_color = window.background_color.lstrip('#')
+        if len(hex_color) == 3:
+            hex_color = ''.join([c * 2 for c in hex_color])
         self.webview.DefaultBackgroundColor = Color.FromArgb(
             255,
-            int(window.background_color.lstrip('#')[0:2], 16),
-            int(window.background_color.lstrip('#')[2:4], 16),
-            int(window.background_color.lstrip('#')[4:6], 16),
+            int(hex_color[0:2], 16),
+            int(hex_color[2:4], 16),
+            int(hex_color[4:6], 16),
         )
 
         if window.transparent:
@@ -147,6 +150,8 @@ class EdgeChrome:
 
         result = None
         semaphore = Semaphore(0)
+        unique_id = uuid1().hex
+        self.js_results[unique_id] = {'semaphore': semaphore}
 
         try:
             self.webview.Invoke(
@@ -161,6 +166,8 @@ class EdgeChrome:
         except Exception:
             logger.exception('Error occurred in script')
             semaphore.release()
+        finally:
+            del self.js_results[unique_id]
 
         return result
 
@@ -241,14 +248,17 @@ class EdgeChrome:
                 _dnd_state['paths'] += files
                 return
 
-            func_name, func_param, value_id = json.loads(return_value)
-            func_param = json.loads(func_param)
+            message = json.loads(return_value)
+            func_name = message[0]
+            func_param = json.loads(message[1])
+            value_id = message[2]
+            token = message[3] if len(message) > 3 else ''
             if func_name == '_pywebviewAlert':
                 WinForms.MessageBox.Show(str(func_param))
             elif func_name == 'console':
                 print(func_param)
             else:
-                js_bridge_call(self.pywebview_window, func_name, func_param, value_id)
+                js_bridge_call(self.pywebview_window, func_name, func_param, value_id, token)
         except Exception:
             logger.exception('Exception occurred during on_script_notify')
 

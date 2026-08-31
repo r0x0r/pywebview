@@ -21,7 +21,8 @@ from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
 from webview.state import State
-from webview.util import base_uri, escape_string, is_app, is_local_url, parse_file_type
+from webview.util import base_uri as get_base_uri
+from webview.util import escape_string, is_app, is_local_url, parse_file_type
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -39,16 +40,13 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
     def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
         event = getattr(self.events, event_type)
 
-        try:
-            if not event.wait(20):
-                raise WebViewException('Main window failed to start')
+        if not event.wait(20):
+            raise WebViewException('Main window failed to start')
 
-            if self.gui is None:
-                raise WebViewException('GUI is not initialized')
+        if self.gui is None:
+            raise WebViewException('GUI is not initialized')
 
-            return function(self, *args, **kwargs)
-        except NameError:
-            raise WebViewException('Create a web view window first, before invoking this function')
+        return function(self, *args, **kwargs)
 
     return wrapper
 
@@ -106,11 +104,11 @@ class Window:
         zoomable: bool = False,
         draggable: bool = False,
         vibrancy: bool = False,
-        menu: list[Menu] = [],
+        menu: list[Menu] | None = None,
         localization: Mapping[str, str] | None = None,
         http_port: int | None = None,
         server: type[http.ServerType] | None = None,
-        server_args: http.ServerArgs = {},
+        server_args: http.ServerArgs | None = None,
         screen: Screen = None,
     ) -> None:
         self.uid = uid
@@ -142,12 +140,12 @@ class Window:
         self.localization_override = localization
         self.vibrancy = vibrancy
         self.screen = screen
-        self.menu = menu
+        self.menu = menu if menu is not None else []
 
         # Server config
         self._http_port = http_port
-        self._server = server
-        self._server_args = server_args
+        self._server_class = server
+        self._server_args = server_args if server_args is not None else {}
 
         # HTTP server path magic
         self._url_prefix = None
@@ -183,7 +181,10 @@ class Window:
         self._state = State(self)
 
     def _initialize(
-        self, gui, server: http.BottleServer | None = None, server_args: http.ServerArgs = dict
+        self,
+        gui,
+        server: http.BottleServer | None = None,
+        server_args: http.ServerArgs | None = None,
     ):
         self.gui = gui
 
@@ -195,8 +196,8 @@ class Window:
             *_, server = http.start_server(
                 urls=[self.original_url],
                 http_port=self._http_port,
-                server=self._server,
-                **(self._server_args or server_args),
+                server=self._server_class,
+                **(self._server_args or server_args or {}),
             )
         elif server is None:
             server = http.global_server
@@ -213,14 +214,14 @@ class Window:
         return not abort
 
     @property
+    @_shown_call
     def width(self) -> int:
-        self.events.shown.wait(15)
         width, _ = self.gui.get_size(self.uid)
         return width
 
     @property
+    @_shown_call
     def height(self) -> int:
-        self.events.shown.wait(15)
         _, height = self.gui.get_size(self.uid)
         return height
 
@@ -239,20 +240,20 @@ class Window:
         return self._title
 
     @title.setter
+    @_loaded_call
     def title(self, title: str) -> None:
-        self.events.loaded.wait(15)
         self._title = title
         self.gui.set_title(title, self.uid)
 
     @property
+    @_shown_call
     def x(self) -> int:
-        self.events.shown.wait(15)
         x, _ = self.gui.get_position(self.uid)
         return x
 
     @property
+    @_shown_call
     def y(self) -> int:
-        self.events.shown.wait(15)
         _, y = self.gui.get_position(self.uid)
         return y
 
@@ -277,7 +278,7 @@ class Window:
         if ((self._server is None) or (not self._server.running)) and (
             is_app(url) or is_local_url(url)
         ):
-            self._url_prefix, self._common_path, self.server = http.start_server([url])
+            self._url_prefix, self._common_path, self._server = http.start_server([url])
 
         self.real_url = self._resolve_url(url)
         self.events.loaded.clear()
@@ -288,13 +289,16 @@ class Window:
         self.gui.load_url(self.real_url, self.uid)
 
     @_shown_call
-    def load_html(self, html: str, base_uri: str = base_uri()) -> None:
+    def load_html(self, html: str, base_uri: str | None = None) -> None:
         """
         Load a new HTML content into a previously created WebView window. This function must be invoked after WebView windows is
         created with create_window(). Otherwise an exception is thrown.
         :param html: HTML content to load.
         :param base_uri: Base URI for resolving links. Default is the directory of the application entry point.
         """
+        if base_uri is None:
+            base_uri = get_base_uri()
+
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()

@@ -34,6 +34,7 @@ def test_request_event(headers_window):
 
     lock = Lock()
     exceptions = []
+    lock.acquire()
     headers_window.events.request_sent += on_request
     run_test(webview, headers_window, request_test, (exceptions, lock))
 
@@ -47,7 +48,7 @@ def test_request_headers(headers_window):
 
 
 def request_test(window, exceptions, lock):
-    lock.acquire()
+    assert lock.acquire(timeout=10)
     if len(exceptions) > 0:
         raise exceptions[0]
 

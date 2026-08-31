@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Any, Callable
 
@@ -20,8 +22,11 @@ class DOMEvent:
         return self
 
     def __sub__(self, item: Callable[..., Any]) -> Self:
-        self._items.remove(item)
-        self.__element.off(self.event, item)
+        if item in self._items:
+            self._items.remove(item)
+            self.__element.off(self.event, item)
+        else:
+            logger.warning(f'Event handler {item} not found')
         return self
 
     def __iadd__(self, item: Callable[..., Any]) -> Self:

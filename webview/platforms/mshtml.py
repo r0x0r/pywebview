@@ -4,6 +4,7 @@ import sys
 import webbrowser
 from ctypes import windll
 from threading import Semaphore
+from uuid import uuid1
 
 try:
     import clr
@@ -121,7 +122,6 @@ class MSHTML:
         window = None
 
         def call(self, func_name, param, value_id):
-            print(func_name, param)
             return js_bridge_call(self.window, func_name, json.loads(param), value_id)
 
         def alert(self, message):
@@ -147,7 +147,7 @@ class MSHTML:
         self.webview.ScriptErrorsSuppressed = not _state['debug']
         self.webview.IsWebBrowserContextMenuEnabled = _state['debug']
 
-        self.js_result_semaphore = Semaphore(0)
+        self.js_results = {}
         self.js_bridge = MSHTML.JSBridge()
         self.js_bridge.window = window
 
@@ -195,8 +195,11 @@ class MSHTML:
 
         result = None
         lock = Semaphore(0)
+        unique_id = uuid1().hex
+        self.js_results[unique_id] = {'semaphore': lock}
         self.form.Invoke(Func[Type](_evaluate_js))
         lock.acquire()
+        del self.js_results[unique_id]
         return result
 
     def load_html(self, content, base_uri):
@@ -239,12 +242,14 @@ class MSHTML:
         if _state['debug']:
             document.InvokeScript(
                 'eval',
-                """
+                (
+                    """
                     window.console = {
                         log: function(msg) { window.external.console(JSON.stringify(msg)) },
                         error: function(msg) { window.external.console(JSON.stringify(msg)) }
-                    }',
-                """,
+                    }
+                    """,
+                ),
             )
 
         if self.first_load:

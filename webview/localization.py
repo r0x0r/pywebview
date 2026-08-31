@@ -1,6 +1,6 @@
-from typing import Dict
+from __future__ import annotations
 
-original_localization: Dict[str, str] = {
+original_localization: dict[str, str] = {
     'global.quitConfirmation': 'Do you really want to quit?',
     'global.ok': 'OK',
     'global.quit': 'Quit',
