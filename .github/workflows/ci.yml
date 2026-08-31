@@ -253,6 +253,8 @@ jobs:
 
     - name: Run WinUI3 tests
       shell: pwsh
+      env:
+        PYWEBVIEW_GUI: winui3
       run: |
         cd tests
         ./run.ps1
