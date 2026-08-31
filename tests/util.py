@@ -102,10 +102,10 @@ def assert_js(window: Any, func_name: str, expected_result: Any, *func_args: Any
 def create_test_window(
     webview: Any,
     window: Any,
-    thread_func: Optional[Callable],
+    thread_func: Callable | None,
     queue: Queue,
     thread_param: Iterable,
-    start_args: Dict[str, Any],
+    start_args: dict[str, Any],
     no_destroy: bool,
     destroy_delay: float,
 ) -> None:
