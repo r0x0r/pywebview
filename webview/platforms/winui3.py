@@ -234,6 +234,8 @@ class WinUI3EdgeChrome(WebView2Core):
                             WinError(op.error_code.value),
                         )
                         _callback(None)
+                    elif status == AsyncStatus.CANCELED:
+                        _callback(None)
                     elif status == AsyncStatus.COMPLETED:
                         try:
                             _callback(json.loads(op.get_results()))
@@ -442,7 +444,7 @@ class WinUI3EdgeChrome(WebView2Core):
             return
 
         picker = FileSavePicker()
-        initialize_with_window(picker, self.form.app_window.id.value)
+        initialize_with_window(picker, self._drag_hwnd)
         picker.suggested_start_location = PickerLocationId.DOWNLOADS
         picker.suggested_file_name = os.path.basename(args.result_file_path)
         picker.file_type_choices['*'] = ['.']
@@ -533,6 +535,7 @@ class BrowserView:
     class BrowserForm:
         def __init__(self, window: _Window, cache_dir: str):
             self._is_active = False
+            self._closing_confirmed = False
             self.uid = window.uid
             self.pywebview_window = window
             self.window = WinUIWindow()
@@ -571,15 +574,27 @@ class BrowserView:
             elif window.screen:
                 did = cast(DisplayId, window.screen.frame)
                 area = DisplayArea.get_from_display_id(did)
-                x = (area.work_area.width - self.window.app_window.size.width) // 2
-                y = (area.work_area.height - self.window.app_window.size.height) // 2
+                x = (
+                    area.work_area.x
+                    + (area.work_area.width - self.window.app_window.size.width) // 2
+                )
+                y = (
+                    area.work_area.y
+                    + (area.work_area.height - self.window.app_window.size.height) // 2
+                )
                 self.window.app_window.move((x, y))
             else:
                 area = DisplayArea.get_from_window_id(
                     self.window.app_window.id, DisplayAreaFallback.NEAREST
                 )
-                x = (area.work_area.width - self.window.app_window.size.width) // 2
-                y = (area.work_area.height - self.window.app_window.size.height) // 2
+                x = (
+                    area.work_area.x
+                    + (area.work_area.width - self.window.app_window.size.width) // 2
+                )
+                y = (
+                    area.work_area.y
+                    + (area.work_area.height - self.window.app_window.size.height) // 2
+                )
                 self.window.app_window.move((x, y))
 
             self.full_screen_presenter = FullScreenPresenter.create()
@@ -677,6 +692,10 @@ class BrowserView:
                 Application.current.exit()
 
         def on_closing(self, sender: AppWindow, args: AppWindowClosingEventArgs):
+            if self._closing_confirmed:
+                self._closing_confirmed = False
+                return
+
             should_cancel = self.pywebview_window.events.closing.set()
 
             if should_cancel:
@@ -711,6 +730,7 @@ class BrowserView:
                         result = op.get_results()
 
                         if result == ContentDialogResult.PRIMARY:
+                            self._closing_confirmed = True
                             self.window.close()
 
                 op.completed = on_completed
@@ -759,12 +779,15 @@ class BrowserView:
 
                 event = Event()
                 result = None
+                exception = None
 
                 def invoke():
-                    nonlocal result
+                    nonlocal result, exception
 
                     try:
                         result = func(self, *args, **kwargs)
+                    except BaseException as ex:
+                        exception = ex
                     finally:
                         event.set()
 
@@ -772,6 +795,9 @@ class BrowserView:
                     raise RuntimeError('Failed to enqueue dispatcher callback')
 
                 event.wait()
+
+                if exception is not None:
+                    raise exception
 
                 return result
 
@@ -994,6 +1020,7 @@ def create_window(window: _Window):
         if window.hidden:
             browser.overlapped_presenter.minimize_with_activation(True)
             browser.window.app_window.hide()
+            window.events.shown.set()
         else:
             browser.window.activate()
             # Set shown event immediately after activation to ensure tests don't hang
@@ -1110,7 +1137,7 @@ def _folder_dialog_callback(
                 if not result:
                     fut.set_result(None)
                     return
-                fut.set_result(result.path)
+                fut.set_result((result.path,))
 
         op.completed = on_completed
 
@@ -1157,7 +1184,7 @@ def _open_dialog_callback(
                     if result is None:
                         fut.set_result(None)
                         return
-                    fut.set_result([f.path for f in result])
+                    fut.set_result(tuple(f.path for f in result))
 
             op.completed = on_completed
         else:
@@ -1173,7 +1200,7 @@ def _open_dialog_callback(
                     if not result:
                         fut.set_result(None)
                         return
-                    fut.set_result(result.path)
+                    fut.set_result((result.path,))
 
             op.completed = on_completed
 
@@ -1195,9 +1222,15 @@ def _save_dialog_callback(
         picker.suggested_file_name = save_filename
 
         if file_types:
-            picker.file_type_choices.update(
-                {k: [v[1:]] for k, v in [parse_file_type(f) for f in file_types]}
-            )
+            for description, patterns in map(parse_file_type, file_types):
+                extensions = []
+                for pattern in patterns.split(';'):
+                    extension = pattern[1:]  # '*.jpg' → '.jpg'
+                    if not extension or '*' in extension:
+                        extensions = ['.']
+                        break
+                    extensions.append(extension)
+                picker.file_type_choices[description] = extensions
         else:
             # winui3 doesn't allow wildcard file types in save dialog
             picker.file_type_choices[''] = ['.']
@@ -1214,7 +1247,7 @@ def _save_dialog_callback(
                 if not result:
                     fut.set_result(None)
                     return
-                fut.set_result(result.path)
+                fut.set_result((result.path,))
 
         op.completed = on_completed
 
