@@ -9,7 +9,8 @@ if (Test-Path __pycache__) {
 
 $errors = 0
 foreach ($test in $tests) {
-  pytest $test -q -s --disable-warnings -r w
+  Write-Host "Running test: $test"
+  python -m pytest $test -q -s --disable-warnings -r w
   $errors = $errors + $LASTEXITCODE
 }
 

@@ -383,7 +383,7 @@ class BrowserView:
                     CEF.shutdown()
                 elif is_chromium:
                     self.hide()
-                    self.browser.clear_user_data()
+                    self.browser.clear_user_data(process_id)
 
                 WinForms.Application.Exit()
 
@@ -394,6 +394,10 @@ class BrowserView:
 
             if is_cef:
                 CEF.close_window(self.uid)
+            elif is_chromium:
+                core_webview = self.browser.webview.CoreWebView2
+                process_id = int(core_webview.BrowserProcessId) if core_webview else 0
+                self.browser.webview.Dispose()
 
             del BrowserView.instances[self.uid]
 
@@ -651,8 +655,8 @@ class BrowserView:
                 None,
                 x_phys,
                 y_phys,
-                None,
-                None,
+                0,
+                0,
                 SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW,
             )
 
@@ -1109,8 +1113,7 @@ def get_screens():
         logical_width = s.Bounds.Width
         logical_height = s.Bounds.Height
 
-        # Get scale factor by comparing physical vs logical resolution
-        scale = win32.get_screen_scale(s.DeviceName, logical_width, logical_height)
+        scale = win32.get_monitor_scale(s.Bounds.X, s.Bounds.Y, logical_width, logical_height)
 
         # Bounds are already in logical pixels due to SetProcessDPIAware
         screens.append(

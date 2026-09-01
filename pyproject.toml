@@ -7,7 +7,7 @@ name = "pywebview"
 authors = [{ name = "Roman Sirokov", email = "roman@flowrl.com" }]
 description = "Build GUI for your Python program with JavaScript, HTML, and CSS"
 keywords = ["gui", "webkit", "html", "web"]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 classifiers = [
     "Intended Audience :: Developers",
@@ -19,8 +19,6 @@ classifiers = [
     "Environment :: X11 Applications :: Qt",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -38,7 +36,7 @@ dependencies = [
     "pyobjc-framework-security>=9.0;sys_platform=='darwin'",
     "pyobjc-framework-UniformTypeIdentifiers>=9.0;sys_platform=='darwin'",
     "QtPy;sys_platform=='openbsd6'",
-    "importlib_resources; python_version < '3.9'",
+    "importlib_resources; python_version < '3.10'",
     "proxy_tools",
     "bottle",
     "typing_extensions"
@@ -46,6 +44,27 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
+winui3 = [
+    "winrt-runtime>=3.1;sys_platform=='win32'",
+    "winrt-Windows.Foundation>=3.1;sys_platform=='win32'",
+    "winrt-Windows.Foundation.Collections>=3.1;sys_platform=='win32'",
+    "winrt-Windows.Graphics>=3.1;sys_platform=='win32'",
+    "winrt-Windows.Storage>=3.1;sys_platform=='win32'",
+    "winrt-Windows.Storage.Pickers>=3.1;sys_platform=='win32'",
+    "winrt-Windows.UI>=3.1;sys_platform=='win32'",
+    "winrt-Windows.UI.Xaml.Interop>=3.1;sys_platform=='win32'",
+    "webview2-Microsoft.Web.WebView2.Core>=3.1;sys_platform=='win32'",
+    "winui3-Microsoft.UI>=3.1;sys_platform=='win32'",
+    "winui3-Microsoft.UI.Dispatching>=3.1;sys_platform=='win32'",
+    "winui3-Microsoft.UI.Interop>=3.1;sys_platform=='win32'",
+    "winui3-Microsoft.UI.Windowing>=3.1;sys_platform=='win32'",
+    "winui3-Microsoft.UI.Xaml>=3.1;sys_platform=='win32'",
+    "winui3-Microsoft.UI.Xaml.Controls>=3.1;sys_platform=='win32'",
+    "winui3-Microsoft.UI.Xaml.Markup>=3.1;sys_platform=='win32'",
+    "winui3-Microsoft.UI.Xaml.XamlTypeInfo>=3.1;sys_platform=='win32'",
+    "winui3-Microsoft.Windows.ApplicationModel.DynamicDependency.Bootstrap>=3.1;sys_platform=='win32'",
+    "winui3-Microsoft.Windows.Storage>=3.1;sys_platform=='win32'",
+]
 cef = ["cefpython3"]
 gtk = ["PyGObject==3.50.0", "PyGObject-stubs"]
 pyside2 = ["QtPy", "PySide2"]
@@ -81,8 +100,8 @@ exclude = [
 line-length = 100
 indent-width = 4
 
-# Assume Python 3.8+
-target-version = "py38"
+# Assume Python 3.10+
+target-version = "py310"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.

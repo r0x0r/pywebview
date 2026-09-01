@@ -393,7 +393,9 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
                     'zoomable': str(window.zoomable),
                     'draggable': str(window.draggable),
                     'easy_drag': str(
-                        platform == 'edgechromium' and window.easy_drag and window.frameless
+                        platform in ('edgechromium', 'winui3')
+                        and window.easy_drag
+                        and window.frameless
                     ),
                 }
             elif name == 'state':
