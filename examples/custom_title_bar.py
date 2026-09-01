@@ -27,6 +27,7 @@ _TITLE_BAR_XAML = """\
         Margin="16,0,0,0"/>
     <Button
         Name="FullscreenButton"
+        AutomationProperties.Name="Toggle fullscreen"
         Grid.Column="2"
         VerticalAlignment="Top"
         Width="46"

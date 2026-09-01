@@ -395,7 +395,8 @@ class BrowserView:
             if is_cef:
                 CEF.close_window(self.uid)
             elif is_chromium:
-                process_id = int(self.browser.webview.CoreWebView2.BrowserProcessId)
+                core_webview = self.browser.webview.CoreWebView2
+                process_id = int(core_webview.BrowserProcessId) if core_webview else 0
                 self.browser.webview.Dispose()
 
             del BrowserView.instances[self.uid]
