@@ -10,7 +10,7 @@ from collections.abc import Iterable, Sequence
 from concurrent.futures import Future, wait
 from ctypes import WinError, windll
 from http.cookies import SimpleCookie
-from threading import Event, Semaphore
+from threading import Event, Lock, Semaphore
 from typing import cast
 
 from webview2.microsoft.web.webview2.core import (
@@ -151,6 +151,19 @@ def _enqueue(dispatcher_queue, callback) -> bool:
     return False
 
 
+def _guard_future_callback(callback, future: Future):
+    """Transfer synchronous dispatcher callback failures to its waiting future."""
+
+    def guarded_callback():
+        try:
+            callback()
+        except BaseException as ex:
+            if not future.done():
+                future.set_exception(ex)
+
+    return guarded_callback
+
+
 class WinUI3EdgeChrome(WebView2Core):
     def __init__(self, form: Window, window: _Window, cache_dir: str):
         super().__init__(window)
@@ -159,6 +172,8 @@ class WinUI3EdgeChrome(WebView2Core):
         self.form = form
         self._drag_hwnd = get_window_from_window_id(form.app_window.id)
         self.user_data_folder = cache_dir
+        self._js_result_semaphores: set[Semaphore] = set()
+        self._js_result_lock = Lock()
 
         self.webview.add_core_webview2_initialized(self.on_webview_ready)
         self.webview.add_navigation_starting(self.on_navigation_start)
@@ -209,6 +224,8 @@ class WinUI3EdgeChrome(WebView2Core):
     def evaluate_js(self, script: str, parse_json: bool):
         result = None
         semaphore = Semaphore(0)
+        with self._js_result_lock:
+            self._js_result_semaphores.add(semaphore)
 
         def _callback(res: str | None):
             nonlocal result
@@ -248,11 +265,22 @@ class WinUI3EdgeChrome(WebView2Core):
                 logger.exception('Error occurred in script')
                 _callback(None)
 
-        if not _enqueue(self.webview.dispatcher_queue, callback):
-            return None
+        try:
+            if not _enqueue(self.webview.dispatcher_queue, callback):
+                return None
 
-        semaphore.acquire()
-        return result
+            semaphore.acquire()
+            return result
+        finally:
+            with self._js_result_lock:
+                self._js_result_semaphores.discard(semaphore)
+
+    def release_pending_js_results(self):
+        with self._js_result_lock:
+            semaphores = tuple(self._js_result_semaphores)
+
+        for semaphore in semaphores:
+            semaphore.release()
 
     def clear_cookies(self):
         self.webview.core_webview2.cookie_manager.delete_all_cookies()
@@ -443,32 +471,38 @@ class WinUI3EdgeChrome(WebView2Core):
         if not self._should_allow_download():
             return
 
-        picker = FileSavePicker()
-        initialize_with_window(picker, self._drag_hwnd)
-        picker.suggested_start_location = PickerLocationId.DOWNLOADS
-        picker.suggested_file_name = os.path.basename(args.result_file_path)
-        picker.file_type_choices['*'] = ['.']
+        deferral = args.get_deferral()
 
-        future: Future[StorageFile | None] = Future()
-        operation = picker.pick_save_file_async()
+        try:
+            picker = FileSavePicker()
+            initialize_with_window(picker, self._drag_hwnd)
+            picker.suggested_start_location = PickerLocationId.DOWNLOADS
+            picker.suggested_file_name = os.path.basename(args.result_file_path)
+            picker.file_type_choices['*'] = ['.']
 
-        def on_completed(op: IAsyncOperation[StorageFile], status: AsyncStatus):
-            if status == AsyncStatus.ERROR:
-                future.set_exception(WinError(op.error_code.value))
-            elif status == AsyncStatus.CANCELED:
-                future.set_result(None)
-            elif status == AsyncStatus.COMPLETED:
-                future.set_result(op.get_results())
+            operation = picker.pick_save_file_async()
 
-        operation.completed = on_completed
-        wait([future])
+            def on_completed(op: IAsyncOperation[StorageFile], status: AsyncStatus):
+                try:
+                    if status == AsyncStatus.ERROR:
+                        logger.error(
+                            'Error selecting download destination: %r',
+                            WinError(op.error_code.value),
+                        )
+                    elif status == AsyncStatus.COMPLETED:
+                        selected_file = op.get_results()
+                        if selected_file is not None:
+                            args.result_file_path = selected_file.path
+                            args.cancel = False
+                except Exception:
+                    logger.exception('Error handling download destination')
+                finally:
+                    deferral.complete()
 
-        selected_file = future.result()
-        if selected_file is None:
-            return
-
-        args.result_file_path = selected_file.path
-        args.cancel = False
+            operation.completed = on_completed
+        except Exception:
+            logger.exception('Error opening download destination picker')
+            deferral.complete()
 
     def on_web_resource_response(
         self, sender: CoreWebView2, args: CoreWebView2WebResourceResponseReceivedEventArgs
@@ -536,6 +570,7 @@ class BrowserView:
         def __init__(self, window: _Window, cache_dir: str):
             self._is_active = False
             self._closing_confirmed = False
+            self._min_size = window.min_size
             self.uid = window.uid
             self.pywebview_window = window
             self.window = WinUIWindow()
@@ -555,14 +590,10 @@ class BrowserView:
             scale = self._scale
             self.window.app_window.resize(
                 (
-                    int(window.initial_width * scale),
-                    int(window.initial_height * scale),
+                    int(max(window.initial_width, window.min_size[0]) * scale),
+                    int(max(window.initial_height, window.min_size[1]) * scale),
                 )
             )
-
-            # TODO: No APIs yet for minimum size
-            # https://github.com/microsoft/microsoft-ui-xaml/issues/7296
-            # self.MinimumSize = Size(window.min_size[0], window.min_size[1])
 
             if window.initial_x is not None and window.initial_y is not None:
                 self.window.app_window.move(
@@ -671,12 +702,15 @@ class BrowserView:
                 self.window.app_window.show_with_activation(False)
 
         def on_close(self, sender: Object, args: WindowEventArgs):
-            self.browser.js_result_semaphore.release()
+            self.browser.release_pending_js_results()
 
             uninstall_mouse_hook(self.handle, getattr(self, '_mouse_hook', None))
             self._mouse_hook = None
 
-            process_id = int(self.browser.webview.core_webview2.browser_process_id)
+            core_webview = self.browser.webview.core_webview2
+            process_id = int(core_webview.browser_process_id) if core_webview else 0
+            dispatcher_queue = self.window.dispatcher_queue
+            exit_application = Application.current.exit
             self.browser.webview.close()
 
             del BrowserView.instances[self.uid]
@@ -688,8 +722,16 @@ class BrowserView:
             self.pywebview_window.events.closed.set()
 
             if len(BrowserView.instances) == 0:
-                self.browser.clear_user_data(process_id)
-                Application.current.exit()
+                if _state['private_mode']:
+
+                    def cleanup_and_exit():
+                        self.browser.clear_user_data(process_id)
+                        if not _enqueue(dispatcher_queue, exit_application):
+                            logger.error('Failed to exit application after private data cleanup')
+
+                    threading.Thread(target=cleanup_and_exit, daemon=True).start()
+                else:
+                    exit_application()
 
         def on_closing(self, sender: AppWindow, args: AppWindowClosingEventArgs):
             if self._closing_confirmed:
@@ -742,6 +784,17 @@ class BrowserView:
             self.pywebview_window.events.resized.set(args.size.width, args.size.height)
 
         def on_changed(self, sender: AppWindow, args: AppWindowChangedEventArgs):
+            if args.did_size_change:
+                scale = self._scale
+                min_width = int(self._min_size[0] * scale)
+                min_height = int(self._min_size[1] * scale)
+                width, height = self.window.app_window.size.unpack()
+                constrained_width = max(width, min_width)
+                constrained_height = max(height, min_height)
+
+                if (constrained_width, constrained_height) != (width, height):
+                    self.window.app_window.resize((constrained_width, constrained_height))
+
             if self.overlapped_presenter.state != self.old_state:
                 if self.overlapped_presenter.state == OverlappedPresenterState.MAXIMIZED:
                     self.pywebview_window.events.maximized.set()
@@ -1102,7 +1155,7 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
 
         op.completed = on_completed
 
-    if not _enqueue(i.window.dispatcher_queue, callback):
+    if not _enqueue(i.window.dispatcher_queue, _guard_future_callback(callback, fut)):
         return None
 
     wait([fut])
@@ -1266,9 +1319,6 @@ def create_file_dialog(
     if not i:
         return None
 
-    if not directory:
-        directory = os.environ['HOMEPATH']
-
     # FIXME: These Windows App SDK doesn't allow setting the starting location
     # https://github.com/microsoft/WindowsAppSDK/issues/88
     # Likely, we will need to replace these with win32 calls
@@ -1285,7 +1335,7 @@ def create_file_dialog(
     else:
         raise ValueError('Invalid dialog type')
 
-    if not _enqueue(i.window.dispatcher_queue, callback):
+    if not _enqueue(i.window.dispatcher_queue, _guard_future_callback(callback, fut)):
         return None
 
     wait([fut])
@@ -1404,7 +1454,6 @@ def destroy_window(uid: str):
         return
 
     i.close()
-    i.browser.js_result_semaphore.release()
 
 
 def evaluate_js(script: str, uid: str, parse_json: bool = True):

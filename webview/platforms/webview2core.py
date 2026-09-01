@@ -4,7 +4,6 @@ import logging
 import shutil
 import webbrowser
 from abc import ABC, abstractmethod
-from threading import Semaphore
 
 from webview import _state
 from webview import settings as webview_settings
@@ -29,7 +28,6 @@ class WebView2Core(ABC):
         self.url = None
         self.ishtml = False
         self.html = DEFAULT_HTML
-        self.js_result_semaphore = Semaphore(0)
         self.user_data_folder: str | None = None
 
     def get_current_url(self):
