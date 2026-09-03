@@ -5,23 +5,25 @@ on:
     types:
       - created
 
+permissions:
+  contents: write
+
 jobs:
   merge:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout docs branch
+        uses: actions/checkout@v4
         with:
           ref: docs
+          fetch-depth: 0
 
       - name: Merge master into docs
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@example.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git fetch origin
-          git reset --hard origin/master
-          git checkout docs
-          git merge origin/master --no-edit --allow-unrelated-histories
+          git fetch origin master
+          git merge origin/master --no-edit
           git push origin docs
