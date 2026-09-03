@@ -5,5 +5,4 @@ exclude docs/**/*
 exclude examples/**/*
 exclude tests/**/*
 exclude assets/**/*
-exclude appveyor.yml
 exclude interop/**/*
