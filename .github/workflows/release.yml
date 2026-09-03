@@ -53,8 +53,8 @@ jobs:
     timeout-minutes: 20
 
     # Requires a PyPI trusted publisher for r0x0r/pywebview with workflow
-    # release.yml and environment pypi. See
-    # https://docs.pypi.org/trusted-publishers/
+    # release.yml and environment pypi. Set-up steps are in
+    # docs/contributing/release.md
     environment:
       name: pypi
       url: https://pypi.org/p/pywebview

@@ -80,7 +80,8 @@ export default defineUserConfig({
         'development',
         'bug_reporting',
         'donating',
-        'documentation'
+        'documentation',
+        'release'
       ]
     },
     contributors: false,
