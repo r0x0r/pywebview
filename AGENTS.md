@@ -101,11 +101,13 @@ job runs `pre-commit run --all-files`.
 - **Single quotes** for strings; double quotes only when the string contains a single quote.
 - **Line length 100**, 4-space indent, `insert_final_newline`, no trailing whitespace.
 - Import sorting via Ruff isort, `webview` is first-party.
-- Enabled lint rules: `E4`, `E7`, `E9`, `F`, `I`, `UP`.
-- **Target Python is 3.8** (`requires-python = ">=3.8"`). No `match`, no `X | Y` at runtime, no
-  `list[str]` annotations unless the module has `from __future__ import annotations` — most do,
-  follow the file you are in. Guard newer stdlib with `try/except ImportError` as
-  `state.py` does for `StrEnum`.
+- Enabled lint rules: `E4`, `E7`, `E9`, `F`, `I`, `UP`. Markdown is excluded — Ruff formats
+  Python blocks inside `.md`, and the documentation samples are written for readability.
+- **Target Python is 3.10** (`requires-python = ">=3.10"`). PEP 585 built-in generics
+  (`list[str]`), PEP 604 unions (`str | None`) and `match` are all fine at runtime, with or
+  without `from __future__ import annotations`. Anything newer must be guarded: `Self` and
+  `Unpack` come from `typing_extensions` (3.11), and `state.py` keeps a `try/except ImportError`
+  shim for `StrEnum` (3.11).
 - Module logger is always `logging.getLogger('pywebview')`. Use `logger.debug` for tracing,
   `logger.exception` inside `except` blocks. Do not `print()` in library code.
 - Docstrings use the `:param x:` reST style seen in `window.py` and `__init__.py`. Public API
@@ -122,6 +124,11 @@ ruff check --fix .
 ruff format .
 pre-commit run --all-files
 ```
+
+CI also runs `mypy webview` as an **advisory** job (`continue-on-error`). The core modules carry
+a backlog of ~118 annotation errors, so a red type-check job is not necessarily your fault —
+but do not add to it. Platform backends are excluded from mypy in `[tool.mypy]`, since they bind
+to native APIs it cannot introspect.
 
 ## Tests
 
@@ -167,7 +174,8 @@ release by `.github/workflows/docs.yaml`).
 
 - New or changed API → update `docs/api/README.md`.
 - New behaviour or concept → `docs/guide/`.
-- Every user-visible change → an entry in `docs/CHANGELOG.md` under the unreleased version,
+- Every user-visible change → an entry in `docs/CHANGELOG.md` under the `## Unreleased`
+  heading (create it if the top of the file is a released version),
   in the established format: `` - `Backend` Description. Thanks @user. [#1234](link) `` grouped
   under **⚡ Features**, **🚀 Improvements** or **🐞 Bug fixes**. `Backend` is `All`, `Cocoa`,
   `GTK`, `QT`, `Winforms`, `EdgeChromium`, `CEF`, `MSHTML` or `Android`.
