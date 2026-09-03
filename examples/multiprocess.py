@@ -94,8 +94,8 @@ if __name__ == '__main__':
         time.sleep(2)
         # Update shared state from main process
         shared_dict['counter'] = i + 1
-        shared_dict['message'] = f'Main process step {i+1}/10'
-        print(f"Main process working... {i+1}/10 (counter: {shared_dict['counter']})")
+        shared_dict['message'] = f'Main process step {i + 1}/10'
+        print(f'Main process working... {i + 1}/10 (counter: {shared_dict["counter"]})')
 
     shared_dict['message'] = 'Main process completed!'
     print('Main process finished its work')

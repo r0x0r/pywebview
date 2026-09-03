@@ -78,6 +78,10 @@ ignore_errors = true
 line-length = 100
 indent-width = 4
 
+# Ruff formats Python code blocks inside Markdown. The documentation samples are
+# written for readability, not PEP 8, so they are left alone.
+extend-exclude = ["*.md"]
+
 # Assume Python 3.10+
 target-version = "py310"
 
