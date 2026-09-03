@@ -120,7 +120,7 @@ class BrowserView(QMainWindow):
         qtype = QtCore.QJsonValue if is_webengine else str
 
         def __init__(self, parent):
-            super(BrowserView.JSBridge, self).__init__()
+            super().__init__()
             self._parent = parent
             self.window = parent.pywebview_window
 
@@ -136,7 +136,7 @@ class BrowserView(QMainWindow):
 
     class WebView(QWebView):
         def __init__(self, parent=None):
-            super(BrowserView.WebView, self).__init__(parent)
+            super().__init__(parent)
 
             if parent.frameless and parent.easy_drag:
                 QApplication.instance().installEventFilter(self)
@@ -275,9 +275,9 @@ class BrowserView(QMainWindow):
     class WebPage(QWebPage):
         def __init__(self, parent=None, profile=None):
             if is_webengine and profile:
-                super(BrowserView.WebPage, self).__init__(profile, parent.webview)
+                super().__init__(profile, parent.webview)
             else:
-                super(BrowserView.WebPage, self).__init__(parent.webview)
+                super().__init__(parent.webview)
 
             if is_webengine:
                 self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)

@@ -4,8 +4,9 @@ import sys
 import threading
 import time
 import traceback
+from collections.abc import Callable, Iterable
 from multiprocessing import Queue
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -16,9 +17,9 @@ logger = logging.getLogger('pywebview')
 def run_test(
     webview: Any,
     window: Any,
-    thread_func: Optional[Callable] = None,
+    thread_func: Callable | None = None,
     param: Iterable = (),
-    start_args: Dict[str, Any] = {},
+    start_args: dict[str, Any] = {},
     no_destroy: bool = False,
     destroy_delay: float = 0,
     debug: bool = False,
@@ -101,10 +102,10 @@ def assert_js(window: Any, func_name: str, expected_result: Any, *func_args: Any
 def create_test_window(
     webview: Any,
     window: Any,
-    thread_func: Optional[Callable],
+    thread_func: Callable | None,
     queue: Queue,
     thread_param: Iterable,
-    start_args: Dict[str, Any],
+    start_args: dict[str, Any],
     no_destroy: bool,
     destroy_delay: float,
 ) -> None:

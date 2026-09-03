@@ -17,8 +17,8 @@ import os
 import re
 import tempfile
 import threading
-from collections.abc import Iterable, Mapping
-from typing import Any, Callable
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any
 from uuid import uuid4
 
 from proxy_tools import module_property
