@@ -1,5 +1,7 @@
 # Installation
 
+_pywebview_ requires Python 3.10 or newer.
+
 ``` bash
 pip install pywebview
 ```
