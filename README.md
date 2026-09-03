@@ -1,4 +1,4 @@
-<p align='center'><img src='assets/logo.png' width=480 alt='pywebview logo'/></p>
+<p align='center'><img src='https://raw.githubusercontent.com/r0x0r/pywebview/master/assets/logo.png' width=480 alt='pywebview logo'/></p>
 
 <p align='center'><a href="https://opencollective.com/pywebview" alt="Financial Contributors on Open Collective"><img src="https://opencollective.com/pywebview/all/badge.svg?label=financial+contributors" /></a> <img src="https://badge.fury.io/py/pywebview.svg" alt="PyPI version" /> <img src="https://img.shields.io/pypi/dm/pywebview" alt="PyPI downloads" /> <a href="https://github.com/r0x0r/pywebview/actions/workflows/ci.yml"><img src="https://github.com/r0x0r/pywebview/actions/workflows/ci.yml/badge.svg?branch=master" alt="Build status" /></a>
 
@@ -35,12 +35,12 @@ Explore _pywebview_ further by reading [documentation](https://pywebview.flowrl.
 
 ## Sponsors
 
-[![TestMu AI Sponsor](/assets/testmuai.svg)](https://www.testmuai.com/?utm_medium=sponsor&utm_source=pywebview)
+[![TestMu AI Sponsor](https://raw.githubusercontent.com/r0x0r/pywebview/master/assets/testmuai.svg)](https://www.testmuai.com/?utm_medium=sponsor&utm_source=pywebview)
 
 
 ## Code Contributors
 
-This project thrives thanks to the contributions of our community. [[Learn how to contribute](docs/contributing/README.md)].
+This project thrives thanks to the contributions of our community. [[Learn how to contribute](https://github.com/r0x0r/pywebview/blob/master/docs/contributing/README.md)].
 
 <a href="https://github.com/r0x0r/pywebview/graphs/contributors"><img src="https://opencollective.com/pywebview/contributors.svg?width=890&button=false" /></a>
 
@@ -52,8 +52,8 @@ If your company is looking for support with _pywebview_ or needs a hand with ful
 
 Become a financial contributor and help us sustain our community. More donation options are outlined on the [Donating](https://pywebview.flowrl.com/contributing/donating.html) page.
 
-[![Github Sponsor](/docs/.vuepress/public/github_sponsor_button.png)](https://github.com/sponsors/r0x0r)
+[![Github Sponsor](https://raw.githubusercontent.com/r0x0r/pywebview/master/docs/.vuepress/public/github_sponsor_button.png)](https://github.com/sponsors/r0x0r)
 
-[![Patreon](/docs/.vuepress/public/patreon.png)](https://www.patreon.com/bePatron?u=13226105)
+[![Patreon](https://raw.githubusercontent.com/r0x0r/pywebview/master/docs/.vuepress/public/patreon.png)](https://www.patreon.com/bePatron?u=13226105)
 
-[![Open Collective](/docs/.vuepress/public/opencollective.png)](https://opencollective.com/pywebview/donate)
+[![Open Collective](https://raw.githubusercontent.com/r0x0r/pywebview/master/docs/.vuepress/public/opencollective.png)](https://opencollective.com/pywebview/donate)
