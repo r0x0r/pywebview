@@ -7,6 +7,7 @@ Thanks for your interest in _pywebview_. The full contributor documentation live
 * [Development set-up and work-flow](docs/contributing/development.md)
 * [Bug reporting](docs/contributing/bug_reporting.md)
 * [Documentation](docs/contributing/documentation.md)
+* [Releasing](docs/contributing/release.md)
 * [Donating](docs/contributing/donating.md)
 
 ## Quick start

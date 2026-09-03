@@ -190,7 +190,8 @@ release by `.github/workflows/docs.yaml`).
 - One logical change per commit. Do not mix a fix with reformatting.
 - Branch off `master` and open the PR against `master`.
 - The version number is derived from git tags by `setuptools_scm` and written to
-  `webview/_version.py`. Never edit that file or hardcode a version.
+  `webview/_version.py`. Never edit that file or hardcode a version. The release process is
+  documented in `docs/contributing/release.md`.
 
 ## Working agreements for agents
 
