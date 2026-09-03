@@ -338,9 +338,9 @@ def special_char_attributes_test(window):
 
     for key, expected_value in expected_attrs.items():
         assert key in special_attrs, f'Attribute {key} not found'
-        assert (
-            special_attrs[key] == expected_value
-        ), f'Attribute {key} value mismatch: expected {expected_value}, got {special_attrs[key]}'
+        assert special_attrs[key] == expected_value, (
+            f'Attribute {key} value mismatch: expected {expected_value}, got {special_attrs[key]}'
+        )
 
     # Test clearing special character attributes
     for key in [

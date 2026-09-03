@@ -515,10 +515,8 @@ class BrowserView:
                 def create_action_item(menu_line_item):
                     action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
                     # Don't run action function on main thread
-                    action_item.Click += (
-                        lambda _, __, menu_line_item=menu_line_item: threading.Thread(
-                            target=menu_line_item.function
-                        ).start()
+                    action_item.Click += lambda _, __, menu_line_item=menu_line_item: (
+                        threading.Thread(target=menu_line_item.function).start()
                     )
                     return action_item
 
