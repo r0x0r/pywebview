@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Python dependencies are platform-conditional and pinned deliberately
+  # (PyGObject, WebView2), so only the GitHub Actions pins are automated here.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "[CI]"
+    groups:
+      actions:
+        patterns:
+          - "*"
