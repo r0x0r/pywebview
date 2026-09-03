@@ -17,12 +17,12 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
     - name: Cache dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
@@ -38,6 +38,38 @@ jobs:
       run: |
         pre-commit run --all-files --show-diff-on-failure
 
+    - name: Compile-check examples and tests
+      run: |
+        python -m compileall -q examples tests
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Advisory: the package ships py.typed, but the core modules still carry a
+    # backlog of annotation errors. The job reports them without blocking so the
+    # count can be ratcheted down; make it required once it reaches zero.
+    continue-on-error: true
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e "."
+        pip install mypy
+
+    - name: Run mypy
+      run: |
+        mypy webview
+
   tests:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -49,7 +81,7 @@ jobs:
           # Ubuntu Qt Backend
           - name: "Ubuntu Qt"
             os: ubuntu-22.04
-            python-version: '3.8'
+            python-version: '3.10'
             gui: qt
             display: ":99"
             qt_platform: "offscreen"
@@ -58,7 +90,7 @@ jobs:
           # Ubuntu GTK Backend
           - name: "Ubuntu GTK"
             os: ubuntu-22.04
-            python-version: '3.9'
+            python-version: '3.11'
             gui: gtk
             display: ":99"
             log_level: "error"
@@ -66,21 +98,21 @@ jobs:
           # Windows EdgeChromium
           - name: "Windows EdgeChromium"
             os: windows-latest
-            python-version: '3.8'
+            python-version: '3.12'
             gui: edgechromium
             log_level: "error"
 
           # Windows CEF
           # - name: "Windows CEF"
           #   os: windows-latest
-          #   python-version: '3.8'
+          #   python-version: '3.12'
           #   gui: cef
           #   log_level: "error"
 
           # macOS
           - name: "macOS"
             os: macos-latest
-            python-version: '3.9'
+            python-version: '3.13'
             log_level: "error"
 
     env:
@@ -94,12 +126,12 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Cache dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.gui }}-${{ hashFiles('**/pyproject.toml') }}
@@ -154,7 +186,7 @@ jobs:
     # Windows specific setup
     - name: Cache WebView2 Runtime (Windows)
       if: runner.os == 'Windows'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: 'C:\Program Files\Microsoft\Edge WebView2 Runtime'
         key: ${{ runner.os }}-webview2-runtime
@@ -176,14 +208,12 @@ jobs:
       run: |
         python -m pip install --upgrade setuptools==70.0.0
         pip install -e ".[qt5]"
-        pip install pytest
 
     - name: Install GTK dependencies (Ubuntu GTK)
       if: matrix.gui == 'gtk'
       run: |
         python -m pip install --upgrade setuptools==70.0.0
         pip install -e ".[gtk]"
-        pip install pytest
 
     - name: Install CEF dependencies (Windows CEF)
       if: matrix.gui == 'cef'
@@ -194,7 +224,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         pip install -e "."
-        pip install pytest pillow
+        pip install pillow
 
     - name: Run tests
       run: |
@@ -222,7 +252,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Run Safety Check
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Audit dependencies
       run: |
-        pip install safety
-        safety check --json || true  # Don't fail on safety issues for now
+        python -m pip install --upgrade pip
+        pip install pip-audit
+        pip-audit --strict --desc .
