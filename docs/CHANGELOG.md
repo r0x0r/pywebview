@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### 🚀 Improvements
+
+- `All` Bump minimum Python version to 3.10. Type annotations across the codebase now use PEP 585 / PEP 604 built-in generics and union syntax.
+- `All` Drop the unused `importlib_resources` dependency.
+- `All` CI now tests Python 3.10 through 3.13, type-checks the package, compile-checks every example and audits dependencies with `pip-audit`.
+
 ## 6.2.1
 
 _Released 15/04/2026_

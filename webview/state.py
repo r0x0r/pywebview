@@ -1,6 +1,7 @@
 import json
+from collections.abc import Callable
 from threading import Thread
-from typing import Any, Callable
+from typing import Any
 
 from typing_extensions import Self
 

@@ -1,5 +1,5 @@
 import json
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from webview.dom import ManipulationMode
 from webview.dom.element import Element
@@ -31,7 +31,7 @@ class DOM:
     def create_element(
         self,
         html: str,
-        parent: Optional[Union[Element, str]] = None,
+        parent: Element | str | None = None,
         mode: ManipulationMode = ManipulationMode.LastChild,
     ) -> Element:
         self.__window.events.loaded.wait()
@@ -58,7 +58,7 @@ class DOM:
 
         return Element(self.__window, node_id)
 
-    def get_element(self, selector: str) -> Optional[Element]:
+    def get_element(self, selector: str) -> Element | None:
         node_id = self.__window.evaluate_js(
             f"""
             var element = document.querySelector({json.dumps(selector)});
@@ -68,7 +68,7 @@ class DOM:
 
         return Element(self.__window, node_id) if node_id else None
 
-    def get_elements(self, selector: str) -> List[Element]:
+    def get_elements(self, selector: str) -> list[Element]:
         code = f"""
             var elements = document.querySelectorAll({json.dumps(selector)});
             nodeIds = [];
