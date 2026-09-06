@@ -1071,7 +1071,6 @@ def create_window(window: _Window):
         window.events.before_show.set()
 
         if window.hidden:
-            browser.overlapped_presenter.minimize_with_activation(True)
             browser.window.app_window.hide()
             window.events.shown.set()
         else:
@@ -1170,6 +1169,7 @@ def _folder_dialog_callback(
         picker = FolderPicker()
         initialize_with_window(picker, handle)
         picker.suggested_start_location = PickerLocationId.DOWNLOADS
+        picker.file_type_filter.append('*')
 
         if allow_multiple:
             # FolderPicker has no multi-select API in the Windows App SDK;
