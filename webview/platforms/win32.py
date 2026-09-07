@@ -94,6 +94,11 @@ _user32.GetMonitorInfoW.restype = wintypes.BOOL
 _user32.GetMonitorInfoW.argtypes = [wintypes.HANDLE, ctypes.c_void_p]
 _user32.EnumDisplaySettingsW.restype = wintypes.BOOL
 _user32.EnumDisplaySettingsW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, ctypes.c_void_p]
+if hasattr(_user32, 'GetThreadDpiAwarenessContext'):
+    _user32.GetThreadDpiAwarenessContext.restype = ctypes.c_void_p
+    _user32.GetThreadDpiAwarenessContext.argtypes = []
+    _user32.GetAwarenessFromDpiAwarenessContext.restype = ctypes.c_int
+    _user32.GetAwarenessFromDpiAwarenessContext.argtypes = [ctypes.c_void_p]
 
 _LowLevelMouseProcType = ctypes.WINFUNCTYPE(
     ctypes.c_ssize_t, ctypes.c_int, wintypes.WPARAM, ctypes.c_void_p
@@ -357,8 +362,8 @@ def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
     """
     Get the DPI scale factor for the monitor containing the given rectangle.
 
-    Two independent methods are tried because the correct one depends on the
-    calling thread's DPI-awareness context:
+    Two independent methods are available because the correct one depends on
+    the calling thread's DPI-awareness context:
 
     * **System-DPI-aware** (WinForms): ``GetDpiForMonitor`` returns 96
       regardless of actual scaling, but ``rcMonitor`` from
@@ -368,8 +373,9 @@ def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
       in physical pixels (ratio = 1.0) but ``GetDpiForMonitor`` returns the
       real DPI.
 
-    Taking the ``max`` of both results picks whichever method detected
-    scaling.
+    The thread's DPI-awareness context selects the result. This matters when a
+    secondary monitor has a lower scale than the primary monitor: taking the
+    maximum would incorrectly retain the primary monitor's system DPI.
 
     The coordinates can be in either logical or physical pixels —
     ``MonitorFromRect`` with ``MONITOR_DEFAULTTONEAREST`` will resolve to the
@@ -383,6 +389,13 @@ def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
         hmonitor = _user32.MonitorFromRect(ctypes.byref(rect), 2)  # MONITOR_DEFAULTTONEAREST
         if not hmonitor:
             return 1.0
+
+        awareness = None
+        try:
+            context = _user32.GetThreadDpiAwarenessContext()
+            awareness = _user32.GetAwarenessFromDpiAwarenessContext(context)
+        except Exception:
+            pass
 
         # Method 1: GetDpiForMonitor (works in per-monitor-DPI-aware contexts)
         scale_from_dpi = 1.0
@@ -412,7 +425,17 @@ def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
         except Exception:
             pass
 
-        return max(scale_from_dpi, scale_from_ratio)
+        # DPI_AWARENESS_PER_MONITOR_AWARE = 2. Unaware/system-aware callers
+        # receive virtualized monitor bounds, so their physical/logical ratio
+        # is authoritative; per-monitor-aware callers use the monitor DPI.
+        if awareness == 2:
+            return scale_from_dpi
+        if awareness in (0, 1):
+            return scale_from_ratio
+
+        # Older Windows versions may not expose the awareness APIs. Prefer a
+        # non-unit ratio because virtualized bounds indicate system awareness.
+        return scale_from_ratio if scale_from_ratio != 1.0 else scale_from_dpi
 
     except Exception as e:
         _log.debug(f'Failed to get monitor scale: {e}')

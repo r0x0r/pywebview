@@ -125,6 +125,7 @@ from webview.platforms.win32 import (
 from webview.screen import Screen
 from webview.util import (
     create_cookie,
+    get_app_root,
     inject_base_uri,
     inject_pywebview,
     parse_file_type,
@@ -194,7 +195,21 @@ class WinUI3EdgeChrome(WebView2Core):
         env_options = CoreWebView2EnvironmentOptions()
         env_options.additional_browser_arguments = self._build_browser_args()
 
-        env_op = CoreWebView2Environment.create_with_options_async('', cache_dir, env_options)
+        runtime_path = webview_settings['WEBVIEW2_RUNTIME_PATH']
+        if runtime_path and not os.path.isabs(runtime_path):
+            runtime_path = os.path.join(get_app_root(), runtime_path)
+        if runtime_path and not os.path.exists(runtime_path):
+            logger.warning(
+                'Custom WebView2 runtime path does not exist: %s. Using system WebView2.',
+                runtime_path,
+            )
+            runtime_path = ''
+        elif runtime_path:
+            logger.debug('Using custom WebView2 runtime: %s', runtime_path)
+
+        env_op = CoreWebView2Environment.create_with_options_async(
+            runtime_path or '', cache_dir, env_options
+        )
 
         def on_env_op_completed(op: IAsyncOperation[CoreWebView2Environment], status: AsyncStatus):
             if status != AsyncStatus.COMPLETED:
@@ -844,7 +859,8 @@ class BrowserView:
                     self.pywebview_window.events.restored.set()
 
                 self.old_state = self.overlapped_presenter.state
-            elif args.did_position_change:
+
+            if args.did_position_change:
                 scale = self._scale
                 x, y = self.window.app_window.position.unpack()
                 self.pywebview_window.events.moved.set(int(x / scale), int(y / scale))
@@ -1052,7 +1068,7 @@ class BrowserView:
 
 _main_window_created = Event()
 _main_window_creation_error: BaseException | None = None
-_app_exit_stack = contextlib.ExitStack()
+_app_exit_stack: contextlib.ExitStack | None = None
 
 
 def _async_creation_error(component: str, operation, status: AsyncStatus) -> RuntimeError:
@@ -1073,6 +1089,16 @@ def _wait_for_main_window() -> None:
     _main_window_created.wait()
     if _main_window_creation_error is not None:
         raise RuntimeError('Main window creation failed') from _main_window_creation_error
+
+
+def _close_app_runtime() -> None:
+    global _app_exit_stack
+
+    if _app_exit_stack is not None:
+        try:
+            _app_exit_stack.close()
+        finally:
+            _app_exit_stack = None
 
 
 def init_storage():
@@ -1100,14 +1126,19 @@ def init_storage():
 
 
 _app_setup = False
+atexit.register(_close_app_runtime)
 
 
 def setup_app():
     # MUST be called before create_window and set_app_menu
-    global _app_setup
+    global _app_exit_stack, _app_setup, _main_window_creation_error
 
     if _app_setup:
         return
+
+    _main_window_created.clear()
+    _main_window_creation_error = None
+    _app_exit_stack = contextlib.ExitStack()
 
     # System-DPI-aware mode stops the XAML compositor from being upscaled by
     # Windows, keeping text and icons crisp.  The newer per-monitor-v2 context
@@ -1115,17 +1146,20 @@ def setup_app():
     # their own DPI context, so we use the older SetProcessDPIAware() instead.
     windll.user32.SetProcessDPIAware()
 
-    init_apartment(ApartmentType.SINGLE_THREADED)
-    _app_exit_stack.callback(uninit_apartment)
-    _app_exit_stack.enter_context(initialize(options=InitializeOptions.ON_NO_MATCH_SHOW_UI))
-
-    # Ensure cleanup happens even if Application.start() doesn't return normally
-    atexit.register(_app_exit_stack.close)
+    try:
+        init_apartment(ApartmentType.SINGLE_THREADED)
+        _app_exit_stack.callback(uninit_apartment)
+        _app_exit_stack.enter_context(initialize(options=InitializeOptions.ON_NO_MATCH_SHOW_UI))
+    except BaseException:
+        _close_app_runtime()
+        raise
 
     _app_setup = True
 
 
 def create_window(window: _Window):
+    global _app_setup
+
     def create() -> None:
         browser = BrowserView.BrowserForm(window, cache_dir)
         BrowserView.instances[window.uid] = browser
@@ -1171,8 +1205,12 @@ def create_window(window: _Window):
 
             App()
 
-        Application.start(init_app)
-        _app_exit_stack.close()
+        try:
+            Application.start(init_app)
+        finally:
+            BrowserView.instances.clear()
+            _close_app_runtime()
+            _app_setup = False
         if _main_window_creation_error is not None:
             raise RuntimeError('Main window creation failed') from _main_window_creation_error
     else:
@@ -1381,6 +1419,11 @@ def create_file_dialog(
     i = BrowserView.instances.get(uid)
     if not i:
         return None
+
+    if directory:
+        raise NotImplementedError(
+            'WinUI 3 file dialogs do not support an arbitrary initial directory'
+        )
 
     # FIXME: These Windows App SDK doesn't allow setting the starting location
     # https://github.com/microsoft/WindowsAppSDK/issues/88

@@ -265,6 +265,17 @@ def inject_pywebview(platform: str, window: Window) -> None:
     thread.start()
 
 
+def is_js_bridge_token_valid(window: Window, token: str | None) -> bool:
+    """Return whether a native bridge message carries the session token."""
+    # MSHTML does not support passing a token through its JS bridge, so it is
+    # excluded from token validation.
+    if window.gui.renderer != 'mshtml' and not hmac.compare_digest(str(token), _TOKEN):
+        logger.error('Rejected JS bridge call with an invalid token')
+        return False
+
+    return True
+
+
 def js_bridge_call(
     window: Window, func_name: str, param: Any, value_id: str, token: str | None = None
 ) -> None:
@@ -273,10 +284,7 @@ def js_bridge_call(
     thread to prevent blocking the UI thread. The result is then passed back to the JS API.
     """
 
-    # MSHTML does not support passing a token through its JS bridge, so it is
-    # excluded from token validation.
-    if window.gui.renderer != 'mshtml' and not hmac.compare_digest(str(token), _TOKEN):
-        logger.error('Rejected JS bridge call with an invalid token')
+    if not is_js_bridge_token_valid(window, token):
         return
 
     def _call():

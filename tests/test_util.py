@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from webview.util import _TOKEN, js_bridge_call, parse_file_type
+from webview.util import _TOKEN, is_js_bridge_token_valid, js_bridge_call, parse_file_type
 
 
 class TestParseFileType:
@@ -174,3 +174,10 @@ class TestBridgeTokenValidation:
         window = self._make_window(called)
         js_bridge_call(window, 'target', [], 'value_id', 'not-the-token')
         assert not called.wait(0.5), 'Function was called despite an invalid token'
+
+    def test_internal_command_token_validation(self):
+        window = MagicMock()
+        window.gui.renderer = 'winui3'
+
+        assert is_js_bridge_token_valid(window, _TOKEN)
+        assert not is_js_bridge_token_valid(window, 'not-the-token')
