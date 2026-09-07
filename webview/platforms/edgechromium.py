@@ -285,6 +285,9 @@ class WinFormsEdgeChrome(WebView2Core):
         self._fire_response_event(str(args.Request.Uri), args.Response.StatusCode, headers)
 
     def on_web_resource_request(self, sender, args):
+        if not len(self.pywebview_window.events.request_sent):
+            return
+
         original_headers = {
             header.Key: header.Value for header in args.Request.Headers.GetEnumerator()
         }
