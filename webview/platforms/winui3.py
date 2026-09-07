@@ -514,6 +514,9 @@ class WinUI3EdgeChrome(WebView2Core):
     def on_web_resource_request(
         self, sender: CoreWebView2, args: CoreWebView2WebResourceRequestedEventArgs
     ):
+        if not len(self.pywebview_window.events.request_sent):
+            return
+
         original_headers = {kv.key: kv.value for kv in args.request.headers}
         uri = args.request.uri
         method = args.request.method
