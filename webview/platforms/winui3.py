@@ -125,6 +125,7 @@ from webview.platforms.win32 import (
 from webview.screen import Screen
 from webview.util import (
     create_cookie,
+    inject_base_uri,
     inject_pywebview,
     parse_file_type,
 )
@@ -174,6 +175,8 @@ class WinUI3EdgeChrome(WebView2Core):
         self.user_data_folder = cache_dir
         self._js_result_semaphores: set[Semaphore] = set()
         self._js_result_lock = Lock()
+        self._is_ready = False
+        self._pending_load: tuple[str, str, str] | None = None
 
         self.webview.add_core_webview2_initialized(self.on_webview_ready)
         self.webview.add_navigation_starting(self.on_navigation_start)
@@ -352,17 +355,23 @@ class WinUI3EdgeChrome(WebView2Core):
 
         op.completed = on_op_completed
 
-    def load_html(self, content: str, _: str):
-        self.html = content
+    def load_html(self, content: str, base_uri: str):
+        self.html = inject_base_uri(content, base_uri) if base_uri else content
         self.ishtml = True
 
-        if self.webview.core_webview2:
-            self.webview.core_webview2.navigate_to_string(self.html)
-        else:
-            self.webview.ensure_core_webview2_async()
+        if not self._is_ready:
+            self._pending_load = ('html', content, base_uri)
+            return
+
+        self.webview.core_webview2.navigate_to_string(self.html)
 
     def load_url(self, url: str):
         self.ishtml = False
+
+        if not self._is_ready:
+            self._pending_load = ('url', url, '')
+            return
+
         self.webview.source = Uri(url)
 
     def on_certificate_error(
@@ -455,11 +464,20 @@ class WinUI3EdgeChrome(WebView2Core):
             # cookies persist even if UserDataFolder is in memory. We have to delete cookies manually.
             sender.core_webview2.cookie_manager.delete_all_cookies()
 
-        kind, content = self._get_initial_load()
+        pending_load = self._pending_load
+        self._pending_load = None
+        self._is_ready = True
+
+        if pending_load:
+            kind, content, base_uri = pending_load
+        else:
+            kind, content = self._get_initial_load()
+            base_uri = ''
+
         if kind == 'url':
             self.load_url(content)
         else:
-            self.load_html(content, '')
+            self.load_html(content, base_uri)
 
         if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
             sender.core_webview2.open_dev_tools_window()
@@ -607,7 +625,7 @@ class BrowserView:
 
             self.window.title = window.title
             self.window.content = XamlReader.load(_WINDOW_XAML).as_(UIElement)
-            scale = self._scale
+            scale = window.screen.scale if window.screen else self._scale
             self.window.app_window.resize(
                 (
                     int(max(window.initial_width, window.min_size[0]) * scale),
@@ -713,10 +731,12 @@ class BrowserView:
 
         def on_activated(self, sender: Object, args: WindowActivatedEventArgs):
             self._is_active = args.window_activation_state != WindowActivationState.DEACTIVATED
-            self.pywebview_window.events.shown.set()
 
             if not self._is_active:
                 return
+
+            if not self.pywebview_window.events.shown.is_set():
+                self.pywebview_window.events.shown.set()
 
             if not self.pywebview_window.focus:
                 self.window.app_window.show_with_activation(False)
@@ -1116,8 +1136,8 @@ def create_window(window: _Window):
             window.events.shown.set()
         else:
             browser.window.activate()
-            # Set shown event immediately after activation to ensure tests don't hang
-            window.events.shown.set()
+            if not window.events.shown.is_set():
+                window.events.shown.set()
 
             if window.maximized:
                 browser.overlapped_presenter.maximize()
@@ -1277,7 +1297,7 @@ def _open_dialog_callback(
                     fut.set_result(None)
                 elif status == AsyncStatus.COMPLETED:
                     result = op.get_results()
-                    if result is None:
+                    if result is None or len(result) == 0:
                         fut.set_result(None)
                         return
                     fut.set_result(tuple(f.path for f in result))
