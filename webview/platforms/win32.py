@@ -160,8 +160,9 @@ def install_mouse_hook(hwnd: int):
     def _get_input_hwnd() -> int | None:
         if input_hwnd_cache[0] is None:
             found = _find_input_hwnd(hwnd)
-            input_hwnd_cache[0] = found if found else 0
-        return input_hwnd_cache[0] or None
+            if found:
+                input_hwnd_cache[0] = found
+        return input_hwnd_cache[0]
 
     @_LowLevelMouseProcType
     def hook_proc(nCode, wParam, lParam):
@@ -232,9 +233,23 @@ def install_mouse_hook(hwnd: int):
                     window_at_cursor == hwnd or _user32.IsChild(hwnd, window_at_cursor)
                 )
                 if over_our_window:
-                    # Prefer the dedicated Chrome input HWND; fall back to the
-                    # window directly under the cursor (compositor hosting case).
-                    target = _get_input_hwnd() or window_at_cursor
+                    # Forward only while the pointer is inside Chromium's input
+                    # surface, not over XAML menus, title bars, or native chrome.
+                    target = _get_input_hwnd()
+                    if target:
+                        target_rect = wintypes.RECT()
+                        if not _user32.GetWindowRect(target, ctypes.byref(target_rect)) or not (
+                            target_rect.left <= logical_pt.x < target_rect.right
+                            and target_rect.top <= logical_pt.y < target_rect.bottom
+                        ):
+                            return _user32.CallNextHookEx(hook_handle[0], nCode, wParam, lParam)
+                    elif window_at_cursor != hwnd:
+                        # Before Chromium exposes its input HWND, retain the
+                        # compositor-hosting fallback for child content only.
+                        target = window_at_cursor
+                    else:
+                        return _user32.CallNextHookEx(hook_handle[0], nCode, wParam, lParam)
+
                     lparam = ((logical_pt.y & 0xFFFF) << 16) | (logical_pt.x & 0xFFFF)
                     _user32.PostMessageW(target, wParam, hs.mouseData, lparam)
                     return 1  # suppress original so XAML doesn't swallow it
