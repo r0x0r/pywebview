@@ -229,7 +229,7 @@ jobs:
     - name: Run tests
       run: |
         cd tests
-        python -m pytest -s
+        python run.py
 
     - name: Stop Xvfb (Linux)
       if: matrix.gui == 'qt' || matrix.gui == 'gtk'
