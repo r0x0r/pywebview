@@ -194,11 +194,10 @@ class WinUI3EdgeChrome(WebView2Core):
         env_op = CoreWebView2Environment.create_with_options_async('', cache_dir, env_options)
 
         def on_env_op_completed(op: IAsyncOperation[CoreWebView2Environment], status: AsyncStatus):
-            if status == AsyncStatus.ERROR:
-                logger.error(
-                    'Error creating CoreWebView2Environment: %r',
-                    WinError(op.error_code.value),
-                )
+            if status != AsyncStatus.COMPLETED:
+                error = _async_creation_error('CoreWebView2Environment', op, status)
+                logger.error('%s', error)
+                _fail_main_window_creation(error)
                 return
 
             env = op.get_results()
@@ -211,8 +210,10 @@ class WinUI3EdgeChrome(WebView2Core):
             )
 
             def on_ensure_op_completed(op: IAsyncAction, status: AsyncStatus):
-                if status == AsyncStatus.ERROR:
-                    logger.error('Error creating CoreWebView2: %r', WinError(op.error_code.value))
+                if status != AsyncStatus.COMPLETED:
+                    error = _async_creation_error('CoreWebView2', op, status)
+                    logger.error('%s', error)
+                    _fail_main_window_creation(error)
                     return
 
                 _main_window_created.set()
@@ -514,16 +515,32 @@ class WinUI3EdgeChrome(WebView2Core):
         self, sender: CoreWebView2, args: CoreWebView2WebResourceRequestedEventArgs
     ):
         original_headers = {kv.key: kv.value for kv in args.request.headers}
-        diff = self._compute_request_header_diff(
-            original_headers, args.request.uri, args.request.method
-        )
-        if diff is None:
-            return
-        extra, missing = diff
-        for k, v in extra.items():
-            args.request.headers.set_header(k, v)
-        for k in missing:
-            args.request.headers.remove_header(k)
+        uri = args.request.uri
+        method = args.request.method
+        deferral = args.get_deferral()
+
+        def dispatch_event():
+            try:
+                diff = self._compute_request_header_diff(original_headers, uri, method)
+            except Exception:
+                logger.exception('Error handling web resource request')
+                diff = None
+
+            def apply_header_diff():
+                try:
+                    if diff is not None:
+                        extra, missing = diff
+                        for key, value in extra.items():
+                            args.request.headers.set_header(key, value)
+                        for key in missing:
+                            args.request.headers.remove_header(key)
+                finally:
+                    deferral.complete()
+
+            if not _enqueue(self.webview.dispatcher_queue, apply_header_diff):
+                deferral.complete()
+
+        threading.Thread(target=dispatch_event, daemon=True).start()
 
     def on_navigation_start(self, sender: WebView2, args: CoreWebView2NavigationStartingEventArgs):
         pass
@@ -1011,7 +1028,28 @@ class BrowserView:
 
 
 _main_window_created = Event()
+_main_window_creation_error: BaseException | None = None
 _app_exit_stack = contextlib.ExitStack()
+
+
+def _async_creation_error(component: str, operation, status: AsyncStatus) -> RuntimeError:
+    if status == AsyncStatus.ERROR:
+        return RuntimeError(f'Error creating {component}: {WinError(operation.error_code.value)}')
+    return RuntimeError(f'Creating {component} was canceled')
+
+
+def _fail_main_window_creation(error: BaseException) -> None:
+    global _main_window_creation_error
+
+    _main_window_creation_error = error
+    _main_window_created.set()
+    Application.current.exit()
+
+
+def _wait_for_main_window() -> None:
+    _main_window_created.wait()
+    if _main_window_creation_error is not None:
+        raise RuntimeError('Main window creation failed') from _main_window_creation_error
 
 
 def init_storage():
@@ -1112,8 +1150,10 @@ def create_window(window: _Window):
 
         Application.start(init_app)
         _app_exit_stack.close()
+        if _main_window_creation_error is not None:
+            raise RuntimeError('Main window creation failed') from _main_window_creation_error
     else:
-        _main_window_created.wait()
+        _wait_for_main_window()
         i = list(BrowserView.instances.values())[0]  # arbitrary instance
 
         if not _enqueue(i.window.dispatcher_queue, create):
@@ -1134,7 +1174,7 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
 
     # REVISIT: It doesn't seem like we should be waiting here but rather block
     # the window creation function until the main window is actually ready
-    _main_window_created.wait()
+    _wait_for_main_window()
 
     fut = Future[bool]()
 

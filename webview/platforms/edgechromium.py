@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from threading import Semaphore
+from threading import Semaphore, Thread
 from uuid import uuid1
 
 try:
@@ -288,16 +288,35 @@ class WinFormsEdgeChrome(WebView2Core):
         original_headers = {
             header.Key: header.Value for header in args.Request.Headers.GetEnumerator()
         }
-        diff = self._compute_request_header_diff(
-            original_headers, str(args.Request.Uri), args.Request.Method
-        )
-        if diff is None:
-            return
-        extra, missing = diff
-        for k, v in extra.items():
-            args.Request.Headers.SetHeader(k, v)
-        for k in missing:
-            args.Request.Headers.RemoveHeader(k)
+        uri = str(args.Request.Uri)
+        method = args.Request.Method
+        deferral = args.GetDeferral()
+
+        def dispatch_event():
+            try:
+                diff = self._compute_request_header_diff(original_headers, uri, method)
+            except Exception:
+                logger.exception('Error handling web resource request')
+                diff = None
+
+            def apply_header_diff():
+                try:
+                    if diff is not None:
+                        extra, missing = diff
+                        for key, value in extra.items():
+                            args.Request.Headers.SetHeader(key, value)
+                        for key in missing:
+                            args.Request.Headers.RemoveHeader(key)
+                finally:
+                    deferral.Complete()
+
+            try:
+                self.webview.BeginInvoke(Func[Type](apply_header_diff))
+            except Exception:
+                logger.exception('Error applying web resource request headers')
+                deferral.Complete()
+
+        Thread(target=dispatch_event, daemon=True).start()
 
     def on_navigation_completed(self, sender, _):
         url = str(sender.Source)
