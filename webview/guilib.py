@@ -141,7 +141,10 @@ def initialize(forced_gui: GUIType | None = None):
         if forced_gui == 'qt':
             guis = [import_qt, import_winforms, import_winui3]
         elif forced_gui == 'winui3':
-            guis = [import_winui3, import_winforms]
+            # Explicitly requested: don't silently fall back to WinForms if
+            # the WinUI 3 import fails, or callers asking for winui3 could
+            # unknowingly get a different renderer instead.
+            guis = [import_winui3]
         else:
             guis = [import_winforms, import_winui3]
 

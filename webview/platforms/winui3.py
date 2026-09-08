@@ -179,12 +179,16 @@ def _run_dispatched(dispatcher_queue, callback, future: Future):
     event handler calling back into this module — enqueueing and then
     blocking this same thread on ``future`` would deadlock: nothing else can
     pump the queue to run the enqueued callback. Run it inline instead (so
-    e.g. a dialog is still shown, or a script still starts executing), but
-    raise rather than block or return a placeholder: silently returning
-    ``None`` here would violate the caller's documented contract (a ``bool``,
-    a path — indistinguishable from user cancellation, a synchronous script
-    result, ...). There is currently no genuinely asynchronous alternative
-    API for callers on this thread to use instead.
+    e.g. a dialog is still shown, or a script still starts executing). Some
+    callbacks (e.g. the Win32 IFileDialog fallbacks, which pump their own
+    modal loop via Show()) complete ``future`` synchronously within this call
+    — in that case just return the real result. Otherwise the result is only
+    available asynchronously, and this thread has no safe way to wait for it
+    without deadlocking, so raise rather than return a placeholder:
+    silently returning ``None`` here would violate the caller's documented
+    contract (a ``bool``, a path — indistinguishable from user cancellation,
+    a synchronous script result, ...). There is currently no genuinely
+    asynchronous alternative API for callers on this thread to use instead.
 
     If enqueueing fails (e.g. the UI thread is shutting down), returns
     ``None`` — ``future`` will never resolve, but this is an existing,
@@ -198,6 +202,8 @@ def _run_dispatched(dispatcher_queue, callback, future: Future):
 
     if dispatcher_queue.has_thread_access:
         guarded()
+        if future.done():
+            return future.result()
         raise RuntimeError(
             'This operation was started, but its result cannot be awaited '
             'synchronously from a native UI-thread callback (e.g. a XAML '
@@ -1301,10 +1307,13 @@ def create_window(window: _Window):
             if not window.events.shown.is_set():
                 window.events.shown.set()
 
-            if window.maximized:
-                browser.overlapped_presenter.maximize()
-            elif window.minimized:
-                browser.overlapped_presenter.minimize()
+        # Applies regardless of visibility, matching WinForms/GTK: a window
+        # created hidden and maximized/minimized should already be in that
+        # state once it's later shown, not reset to normal.
+        if window.maximized:
+            browser.overlapped_presenter.maximize()
+        elif window.minimized:
+            browser.overlapped_presenter.minimize()
 
     if window.uid == 'master':
         init_storage()
