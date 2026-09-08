@@ -73,11 +73,21 @@ class WebView2Core(ABC):
             return 'html', self.pywebview_window.html
         return 'default', DEFAULT_HTML
 
-    def _route_script_message(self, message_json: str, additional_objects) -> None:
-        """Route an incoming WebMessage to DnD, alert, console, or JS bridge."""
+    def _route_script_message(self, message_json: str, get_additional_objects) -> None:
+        """
+        Route an incoming WebMessage to DnD, alert, console, or JS bridge.
+
+        `get_additional_objects` is a callable rather than an already-fetched
+        value: some WebView2 runtimes (including old ones, and arbitrary
+        fixed ones selected via WEBVIEW2_RUNTIME_PATH) don't support the
+        AdditionalObjects property, so it must only be accessed for the
+        FilesDropped message that actually needs it, not eagerly for every
+        message.
+        """
         if message_json == '"FilesDropped"':
             if _dnd_state['num_listeners'] == 0:
                 return
+            additional_objects = get_additional_objects()
             if additional_objects is None:
                 return
             _dnd_state['paths'] += self._extract_dropped_files(additional_objects)
