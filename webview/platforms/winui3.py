@@ -339,6 +339,15 @@ class WinUI3EdgeChrome(WebView2Core):
                 _callback(None)
 
         try:
+            if self.webview.dispatcher_queue.has_thread_access:
+                # Already on the UI thread (e.g. a native XAML event handler,
+                # such as the custom title bar example's button click):
+                # start the script but don't wait for it here — the dispatcher
+                # currently running this call is what would have to run
+                # `callback`, so blocking on the semaphore would deadlock it.
+                callback()
+                return None
+
             if not _enqueue(self.webview.dispatcher_queue, callback):
                 return None
 
@@ -1547,6 +1556,14 @@ def get_cookies(uid: str):
     i = BrowserView.instances.get(uid)
     if not i:
         return
+
+    if i.window.dispatcher_queue.has_thread_access:
+        # i.get_cookies() (via invoke_on_ui_thread) would run inline here and
+        # only start the async cookie lookup; its completion is delivered by
+        # enqueueing back onto this same dispatcher, which the acquire() below
+        # would then block from ever running. Reject rather than deadlock.
+        logger.warning('get_cookies() cannot be called synchronously from the UI thread')
+        return None
 
     semaphore = Semaphore(0)
     cookies: list[SimpleCookie] = []

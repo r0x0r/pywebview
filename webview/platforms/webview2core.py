@@ -4,6 +4,7 @@ import logging
 import shutil
 import webbrowser
 from abc import ABC, abstractmethod
+from ctypes import wintypes
 
 from webview import _state
 from webview import settings as webview_settings
@@ -13,6 +14,18 @@ from webview.platforms.win32 import start_drag
 from webview.util import DEFAULT_HTML, is_js_bridge_token_valid, js_bridge_call
 
 logger = logging.getLogger('pywebview')
+
+_OpenProcess = ctypes.windll.kernel32.OpenProcess
+_OpenProcess.restype = wintypes.HANDLE
+_OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+
+_WaitForSingleObject = ctypes.windll.kernel32.WaitForSingleObject
+_WaitForSingleObject.restype = wintypes.DWORD
+_WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+
+_CloseHandle = ctypes.windll.kernel32.CloseHandle
+_CloseHandle.restype = wintypes.BOOL
+_CloseHandle.argtypes = [wintypes.HANDLE]
 
 
 class WebView2Core(ABC):
@@ -126,10 +139,10 @@ class WebView2Core(ABC):
             handle = None
 
             if process_id:
-                handle = ctypes.windll.kernel32.OpenProcess(0x00100000, False, process_id)
+                handle = _OpenProcess(0x00100000, False, process_id)
             if handle:
-                ctypes.windll.kernel32.WaitForSingleObject(handle, 5000)
-                ctypes.windll.kernel32.CloseHandle(handle)
+                _WaitForSingleObject(handle, 5000)
+                _CloseHandle(handle)
 
             shutil.rmtree(self.user_data_folder)
             logger.debug(f'Cleared user data folder: {self.user_data_folder}')
