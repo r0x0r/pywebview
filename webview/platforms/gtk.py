@@ -1,12 +1,10 @@
-import atexit
 import json
 import logging
 import os
 import pathlib
 import sys
 import webbrowser
-from concurrent.futures import ThreadPoolExecutor
-from threading import Semaphore, Thread, main_thread
+from threading import Semaphore, Thread, current_thread, main_thread
 from typing import Any
 from uuid import uuid1
 
@@ -26,19 +24,6 @@ from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
 os.environ['EGL_LOG_LEVEL'] = 'fatal'
-
-# Bounded, single-worker pool for dispatching request_sent handlers off the
-# GTK main thread. The events API documents these handlers as running in a
-# separate thread; calling them inline from a WebKit2 resource-request signal
-# (the GTK main thread) would violate that and let a handler calling a
-# synchronous window API (e.g. evaluate_js()) deadlock the main loop. A raw
-# thread per request would also let an asset-heavy page spawn unbounded OS
-# threads. This dispatches a stop-and-reissue reload (stop_loading() +
-# load_request()), so it must process requests in submission order — more
-# than one worker could let a later request's handler finish first and get
-# overwritten by an earlier, slower one completing after it.
-_request_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='pywebview-request')
-atexit.register(_request_executor.shutdown, wait=False, cancel_futures=True)
 
 import gi  # noqa: E402
 
@@ -417,44 +402,46 @@ class BrowserView:
         url = request.get_uri()
         method = request.get_http_method()
 
-        def dispatch_event():
-            request_ = Request(url, method, original_headers)
-            self.pywebview_window.events.request_sent.set(request_)
+        # Fired and applied synchronously and inline, unlike the WebView2
+        # backends: WebKitGTK's resource-load-started has no deferral
+        # mechanism (unlike WebView2's GetDeferral() or WKNavigationDelegate's
+        # asynchronously-invokable decisionHandler), so the original request
+        # is free to reach the network as soon as this signal handler
+        # returns. Dispatching request_sent off-thread here would let that
+        # happen before stop_loading()/load_request() below can replace it,
+        # replaying non-idempotent requests (e.g. POST) — this must stay
+        # synchronous even though it means a request_sent handler here that
+        # calls a synchronous window API (e.g. evaluate_js()) can deadlock;
+        # see evaluate_js()'s own main-thread guard for that case instead.
+        request_ = Request(url, method, original_headers)
+        self.pywebview_window.events.request_sent.set(request_)
 
-            if (
-                request_.headers == original_headers
-                or not headers
-                or self.request_headers_mutated
-                or url != self.pywebview_window.real_url
-            ):
-                return
+        if (
+            request_.headers == original_headers
+            or not headers
+            or self.request_headers_mutated
+            or url != self.pywebview_window.real_url
+        ):
+            return
 
-            missing_headers = {
-                k: v
-                for k, v in request_.headers.items()
-                if k not in original_headers or original_headers[k] != v
-            }
-            extra_headers = {
-                k: str(v) for k, v in original_headers.items() if k not in request_.headers
-            }
+        missing_headers = {
+            k: v
+            for k, v in request_.headers.items()
+            if k not in original_headers or original_headers[k] != v
+        }
+        extra_headers = {
+            k: str(v) for k, v in original_headers.items() if k not in request_.headers
+        }
 
-            def apply_and_reload():
-                for k, v in missing_headers.items():
-                    headers.append(k, v)
+        for k, v in missing_headers.items():
+            headers.append(k, v)
 
-                for k in extra_headers:
-                    headers.remove(k)
+        for k in extra_headers:
+            headers.remove(k)
 
-                webview.stop_loading()
-                self.request_headers_mutated = True
-                webview.load_request(request)
-
-            # stop_loading()/load_request() are WebKit2 widget calls and must
-            # run on the GTK main thread; only the request_sent dispatch
-            # above (and any handler-triggered work) runs off of it.
-            glib.idle_add(apply_and_reload)
-
-        _request_executor.submit(dispatch_event)
+        webview.stop_loading()
+        self.request_headers_mutated = True
+        webview.load_request(request)
 
     def on_load_finish(self, webview, status):
         # Show the webview if it's not already visible
@@ -688,6 +675,9 @@ class BrowserView:
         self.webview.load_html(content, base_uri)
 
     def evaluate_js(self, script, parse_json):
+        result_semaphore = Semaphore(0)
+        result = None
+
         def _evaluate_js():
             try:
                 self.webview.evaluate_javascript(
@@ -721,9 +711,19 @@ class BrowserView:
 
             result_semaphore.release()
 
+        if current_thread() is main_thread():
+            # Already on the GTK main thread (e.g. a request_sent handler
+            # firing synchronously from resource-load-started): start the
+            # script directly, but raise rather than block — the acquire()
+            # below would deadlock the very main loop that has to run
+            # _evaluate_js (via glib.idle_add) and deliver its result.
+            _evaluate_js()
+            raise RuntimeError(
+                'evaluate_js() cannot return a result synchronously when called '
+                'from a native GTK callback without deadlocking the main loop.'
+            )
+
         unique_id = uuid1().hex
-        result_semaphore = Semaphore(0)
-        result = None
         self.js_results[unique_id] = {'semaphore': result_semaphore}
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
