@@ -20,11 +20,15 @@ _TITLE_BAR_XAML = """\
         <ColumnDefinition Width="Auto"/>
         <ColumnDefinition Width="0"/>
     </Grid.ColumnDefinitions>
-    <TextBlock
-        Grid.Column="1"
-        Text="pywebview — Custom Title Bar"
-        VerticalAlignment="Center"
-        Margin="16,0,0,0"/>
+    <Grid
+        Name="DragRegion"
+        Grid.Column="0"
+        Grid.ColumnSpan="2">
+        <TextBlock
+            Text="pywebview — Custom Title Bar"
+            VerticalAlignment="Center"
+            Margin="16,0,0,0"/>
+    </Grid>
     <Button
         Name="FullscreenButton"
         AutomationProperties.Name="Toggle fullscreen"
@@ -117,9 +121,16 @@ def on_before_show(window):
     Grid.set_column_span(title_bar, 2)
     root.children.append(title_bar)
 
-    # 4. Register the element as the drag / caption region AFTER it is in
-    #    the visual tree (required by WinUI 3).
-    win.set_title_bar(title_bar)
+    # 4. Register the drag / caption region AFTER it is in the visual tree
+    #    (required by WinUI 3). This must be a sub-element that doesn't
+    #    geometrically overlap FullscreenButton — WinUI 3's title-bar hit
+    #    testing treats the *entire* marked element's bounds as non-client
+    #    caption area regardless of what's drawn over it, so a button
+    #    nested inside (or overlapping) the marked element never receives
+    #    pointer input. DragRegion spans only the columns to the button's
+    #    left, leaving the button's own column outside the caption area.
+    drag_region = title_bar.find_name('DragRegion')
+    win.set_title_bar(drag_region)
 
     # 5. After the first layout pass:
     #    a) Set the left/right padding columns to match the system caption
