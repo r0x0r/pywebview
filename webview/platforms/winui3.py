@@ -756,6 +756,37 @@ class BrowserView:
                         int(window.initial_y * scale),
                     )
                 )
+
+                # initial_x/y are logical coordinates, but which monitor (and
+                # DPI) they land on isn't known until the window has actually
+                # been placed — Windows has no single unscaled logical space
+                # spanning monitors with different DPI. Re-resolve against
+                # the display the window actually landed on and, if its scale
+                # differs from what we assumed above, correct both the size
+                # and position for the real scale.
+                target_area = DisplayArea.get_from_window_id(
+                    self.window.app_window.id, DisplayAreaFallback.NEAREST
+                )
+                target_scale = get_monitor_scale(
+                    target_area.outer_bounds.x,
+                    target_area.outer_bounds.y,
+                    target_area.outer_bounds.width,
+                    target_area.outer_bounds.height,
+                )
+                if target_scale != scale:
+                    scale = target_scale
+                    self.window.app_window.resize(
+                        (
+                            int(max(window.initial_width, window.min_size[0]) * scale),
+                            int(max(window.initial_height, window.min_size[1]) * scale),
+                        )
+                    )
+                    self.window.app_window.move(
+                        (
+                            int(window.initial_x * scale),
+                            int(window.initial_y * scale),
+                        )
+                    )
             elif window.screen:
                 did = cast(DisplayId, window.screen.frame)
                 area = DisplayArea.get_from_display_id(did)
