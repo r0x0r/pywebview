@@ -1360,7 +1360,17 @@ def create_window(window: _Window):
                     resources = XamlControlsResources()
                     self.resources.merged_dictionaries.append(resources)
 
-                    create()
+                    try:
+                        create()
+                    except BaseException as error:
+                        # A synchronous failure here (e.g. BrowserForm
+                        # construction) would otherwise leave
+                        # _main_window_created unset forever, hanging any
+                        # thread blocked in _wait_for_main_window() for a
+                        # child window. Route it through the same failure
+                        # path as an async WebView2 setup error instead of
+                        # letting it propagate out of this WinRT callback.
+                        _fail_main_window_creation(error)
 
                 def get_xaml_type(self, type: TypeName | tuple[str, TypeKind]) -> IXamlType:
                     return self._provider.get_xaml_type(type)
