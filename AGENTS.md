@@ -15,7 +15,8 @@ Supported platforms and their renderers:
 
 | Platform | Module | Renderer |
 | --- | --- | --- |
-| Windows | `webview/platforms/winforms.py` | WinForms host for `edgechromium.py` (WebView2) or `mshtml.py` (legacy IE) |
+| Windows | `webview/platforms/winforms.py` | WinForms host for `edgechromium.py` (WebView2) or `mshtml.py` (deprecated legacy IE) |
+| Windows | `webview/platforms/winui3.py` | WinUI 3 host for WebView2 |
 | Windows | `webview/platforms/cef.py` | CEF (opt-in, `cefpython3`) |
 | macOS | `webview/platforms/cocoa.py` | Cocoa + WKWebView via PyObjC |
 | Linux/BSD | `webview/platforms/gtk.py` | GTK 3 + WebKit2 via PyGObject |
@@ -43,6 +44,25 @@ tests/                pytest suite — each test opens a real window
 examples/             runnable single-file examples, one feature each
 docs/                 VuePress site (guide, api, contributing, CHANGELOG)
 ```
+
+## Installation
+
+_pywebview_ requires Python 3.10 or newer. Install it according to the target platform:
+
+- **Windows:** `pip install pywebview` installs the WinForms dependencies. WebView2 requires the
+  Microsoft WebView2 Runtime; use `pip install "pywebview[cef]"` for the optional CEF backend.
+  The released WinUI 3 backend can be installed with `pip install "pywebview[winui3]"` and
+  requires the Windows App Runtime.
+- **macOS:** `pip install pywebview` installs the PyObjC dependencies for Cocoa. The optional Qt
+  backend can be installed with `pip install "pywebview[qt]"`.
+- **Linux/BSD:** choose a backend explicitly with `pip install "pywebview[gtk]"` or
+  `pip install "pywebview[qt]"`. GTK may also require system GTK 3, PyGObject and WebKit2 packages.
+- **Android:** use `pip install "pywebview[android]"` and package the application according to
+  Kivy's Android packaging workflow.
+
+The `qt5`, `qt6`, `pyside2` and `pyside6` extras select other Qt bindings. The `ssl` extra adds
+`cryptography` for HTTPS support in the local server. See `docs/guide/installation.md` for system
+package recipes and current platform requirements.
 
 ## Architecture rules
 
@@ -89,9 +109,19 @@ applications can protect their own REST API against CSRF (see `docs/guide/securi
 `examples/flask_app`). It is deliberately injected into the page, but it must stay per-session
 and unguessable: never persist it, never derive it from anything predictable.
 
-**Settings vs. state.** `webview.settings` is a user-facing `ImmutableDict` of tunables read at
-runtime; `webview._state` is internal process state set by `start()`. Read settings at the point
-of use, not at import time — a value captured at import cannot be overridden by user code.
+**Settings.** `webview.settings` is the public, process-wide configuration surface for optional
+behaviour such as downloads, external links, developer tools and SSL handling. It is an
+`ImmutableDict`: applications may change the value of a predefined key, but cannot add or remove
+keys. Read a setting at the point where it is used, not at module import time, so an application
+can override the default before starting the GUI.
+
+**State.** `webview._state` is a private, process-wide snapshot of runtime choices such as debug
+mode, private mode, storage path, user agent, icon and menu. Core startup code populates it from
+arguments passed to `webview.start()` and related setup; backends consume it while creating and
+running native windows. It is not a user-facing configuration API and application code should not
+modify it directly. Do not confuse it with the user-facing `Window.state` in Python and
+`window.pywebview.state` in Javascript: those are a separate, per-window concept for synchronizing
+application data between Python and the page.
 
 ## Code style
 
@@ -108,8 +138,9 @@ job runs `pre-commit run --all-files`.
   without `from __future__ import annotations`. Anything newer must be guarded: `Self` and
   `Unpack` come from `typing_extensions` (3.11), and `state.py` keeps a `try/except ImportError`
   shim for `StrEnum` (3.11).
-- Module logger is always `logging.getLogger('pywebview')`. Use `logger.debug` for tracing,
-  `logger.exception` inside `except` blocks. Do not `print()` in library code.
+- Module logger is always `logging.getLogger('pywebview')`. Use `logger.debug` for tracing and
+  `logger.exception` inside `except` blocks. Use debug logging and comments sparingly, only where
+  they clarify non-obvious behaviour. Do not `print()` in library code.
 - Docstrings use the `:param x:` reST style seen in `window.py` and `__init__.py`. Public API
   functions and `Window` methods should have one; internal helpers usually get a short summary.
 - Type hints on new public API. The package ships `py.typed`, so annotations are part of the
@@ -195,6 +226,10 @@ release by `.github/workflows/docs.yaml`).
 
 ## Working agreements for agents
 
+- **Keep changes concise.** Express the solution with as little code as practical.
+- **Be conservative about adding files or changing architecture.** Prefer extending existing
+  modules and established patterns, and make the smallest structural change that solves the
+  problem. Introduce a new file or abstraction only when it has a clear, necessary responsibility.
 - **Never edit generated or vendored files**: `webview/_version.py`, `webview/lib/**` (DLLs, jar,
   runtimes), `docs/.vuepress/public/**` (archived doc snapshots), `docs/package-lock.json`.
   Binaries in `webview/lib` are built from `interop/` — change the source there and note that the
