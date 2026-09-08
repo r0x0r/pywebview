@@ -213,11 +213,19 @@ class WinUI3EdgeChrome(WebView2Core):
             runtime_path or '', cache_dir, env_options
         )
 
+        # Only the master window's WebView2 setup gates app-wide readiness; a
+        # secondary window's own failure must not abort the whole application
+        # (see _fail_main_window_creation vs. _fail_child_window_creation).
+        is_master = window.uid == 'master'
+
         def on_env_op_completed(op: IAsyncOperation[CoreWebView2Environment], status: AsyncStatus):
             if status != AsyncStatus.COMPLETED:
                 error = _async_creation_error('CoreWebView2Environment', op, status)
                 logger.error('%s', error)
-                _fail_main_window_creation(error)
+                if is_master:
+                    _fail_main_window_creation(error)
+                else:
+                    _fail_child_window_creation(form)
                 return
 
             env = op.get_results()
@@ -233,7 +241,10 @@ class WinUI3EdgeChrome(WebView2Core):
                 if status != AsyncStatus.COMPLETED:
                     error = _async_creation_error('CoreWebView2', op, status)
                     logger.error('%s', error)
-                    _fail_main_window_creation(error)
+                    if is_master:
+                        _fail_main_window_creation(error)
+                    else:
+                        _fail_child_window_creation(form)
                     return
 
                 _main_window_created.set()
@@ -1087,6 +1098,16 @@ def _fail_main_window_creation(error: BaseException) -> None:
     Application.current.exit()
 
 
+def _fail_child_window_creation(form: Window) -> None:
+    """
+    Handle a WebView2 setup failure for a non-master window: unlike the master
+    window, this must not touch global creation state or exit the app — only
+    the affected window is closed.
+    """
+    with contextlib.suppress(Exception):
+        form.close()
+
+
 def _wait_for_main_window() -> None:
     _main_window_created.wait()
     if _main_window_creation_error is not None:
@@ -1266,7 +1287,7 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
 
 
 def _folder_dialog_callback(
-    handle: int, allow_multiple: bool, directory: str, fut: 'Future[str | tuple[str] | None]'
+    handle: int, allow_multiple: bool, directory: str, fut: 'Future[tuple[str, ...] | None]'
 ):
     def callback():
         if allow_multiple or directory:
@@ -1306,7 +1327,7 @@ def _open_dialog_callback(
     allow_multiple: bool,
     file_types: list[str],
     directory: str,
-    fut: 'Future[str | tuple[str] | None]',
+    fut: 'Future[tuple[str, ...] | None]',
 ):
     def callback():
         if directory:
@@ -1379,7 +1400,7 @@ def _save_dialog_callback(
     save_filename: str,
     file_types: list[str],
     directory: str,
-    fut: 'Future[str | tuple[str] | None]',
+    fut: 'Future[tuple[str, ...] | None]',
 ):
     def callback():
         if directory:
@@ -1407,8 +1428,9 @@ def _save_dialog_callback(
                     extensions.append(extension)
                 picker.file_type_choices[description] = extensions
         else:
-            # winui3 doesn't allow wildcard file types in save dialog
-            picker.file_type_choices[''] = ['.']
+            # winui3 doesn't allow wildcard file types in save dialog; use a
+            # non-empty label so the type entry isn't left blank in the picker.
+            picker.file_type_choices['*'] = ['.']
 
         op = picker.pick_save_file_async()
 
@@ -1436,7 +1458,7 @@ def create_file_dialog(
     save_filename: str,
     file_types: list[str],
     uid: str,
-) -> str | tuple[str] | None:
+) -> tuple[str, ...] | None:
     i = BrowserView.instances.get(uid)
     if not i:
         return None
@@ -1446,7 +1468,7 @@ def create_file_dialog(
     # initial `directory` is requested we fall back to the equivalent Win32
     # IFileDialog (see webview.platforms.win32), which does support it.
 
-    fut: Future[str | tuple[str] | None] = Future()
+    fut: Future[tuple[str, ...] | None] = Future()
 
     if dialog_type == FileDialog.FOLDER:
         callback = _folder_dialog_callback(i.handle, allow_multiple, directory, fut)

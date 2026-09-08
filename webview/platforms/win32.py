@@ -18,8 +18,23 @@ _SWP_NOSIZE = 0x0001
 _SWP_NOZORDER = 0x0004
 _SWP_NOACTIVATE = 0x0010
 _VK_LBUTTON = 0x01
+_VK_RBUTTON = 0x02
+_VK_MBUTTON = 0x04
+_VK_XBUTTON1 = 0x05
+_VK_XBUTTON2 = 0x06
+_VK_SHIFT = 0x10
+_VK_CONTROL = 0x11
 _SW_RESTORE = 9
 _DRAG_TOLERANCE = 5  # px; suppresses accidental micro-drags on click
+
+# WM_(H)MOUSEWHEEL wParam low-word modifier/button flags
+_MK_LBUTTON = 0x0001
+_MK_RBUTTON = 0x0002
+_MK_SHIFT = 0x0004
+_MK_CONTROL = 0x0008
+_MK_MBUTTON = 0x0010
+_MK_XBUTTON1 = 0x0020
+_MK_XBUTTON2 = 0x0040
 
 # Window-style constants used by frameless-window setup.
 GWL_EXSTYLE = -20
@@ -111,6 +126,23 @@ _EnumChildProcType = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.L
 # hwnd → drag state list registered by install_mouse_hook.
 # start_drag() uses this to choose the hook-based path for WinUI3.
 _drag_states: dict[int, list] = {}
+
+
+def _mouse_wheel_key_state() -> int:
+    """Build the WM_(H)MOUSEWHEEL wParam low word (MK_* flags) from live key/button state."""
+    flags = 0
+    for vk, mk in (
+        (_VK_CONTROL, _MK_CONTROL),
+        (_VK_SHIFT, _MK_SHIFT),
+        (_VK_LBUTTON, _MK_LBUTTON),
+        (_VK_RBUTTON, _MK_RBUTTON),
+        (_VK_MBUTTON, _MK_MBUTTON),
+        (_VK_XBUTTON1, _MK_XBUTTON1),
+        (_VK_XBUTTON2, _MK_XBUTTON2),
+    ):
+        if _user32.GetAsyncKeyState(vk) & 0x8000:
+            flags |= mk
+    return flags
 
 
 def _find_input_hwnd(parent_hwnd: int) -> int | None:
@@ -259,7 +291,11 @@ def install_mouse_hook(hwnd: int):
                         return _user32.CallNextHookEx(hook_handle[0], nCode, wParam, lParam)
 
                     lparam = ((logical_pt.y & 0xFFFF) << 16) | (logical_pt.x & 0xFFFF)
-                    _user32.PostMessageW(target, wParam, hs.mouseData, lparam)
+                    # HIWORD(mouseData) carries the wheel delta; the low word must
+                    # carry the current MK_* modifier/button flags, not mouseData's
+                    # (always-zero) low word, so Ctrl/Shift+wheel behave correctly.
+                    wheel_wparam = (hs.mouseData & 0xFFFF0000) | _mouse_wheel_key_state()
+                    _user32.PostMessageW(target, wParam, wheel_wparam, lparam)
                     return 1  # suppress original so XAML doesn't swallow it
 
         return _user32.CallNextHookEx(hook_handle[0], nCode, wParam, lParam)
