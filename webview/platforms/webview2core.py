@@ -1,9 +1,11 @@
+import atexit
 import ctypes
 import json
 import logging
 import shutil
 import webbrowser
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor
 from ctypes import wintypes
 
 from webview import _state
@@ -26,6 +28,13 @@ _WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
 _CloseHandle = ctypes.windll.kernel32.CloseHandle
 _CloseHandle.restype = wintypes.BOOL
 _CloseHandle.argtypes = [wintypes.HANDLE]
+
+# Shared, bounded pool for dispatching request_sent handlers off the WebView2
+# resource-request callback. A raw thread per intercepted request would let
+# an asset-heavy page spawn hundreds of simultaneous OS threads; this caps
+# concurrency the same way a browser caps per-host connections.
+_request_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix='pywebview-request')
+atexit.register(_request_executor.shutdown, wait=False, cancel_futures=True)
 
 
 class WebView2Core(ABC):
@@ -164,6 +173,10 @@ class WebView2Core(ABC):
             webbrowser.open(uri)
         else:
             self.load_url(uri)
+
+    def _dispatch_request_event(self, fn) -> None:
+        """Run `fn` on the shared bounded request-dispatch pool, not a fresh thread."""
+        _request_executor.submit(fn)
 
     # ── Abstract interface ────────────────────────────────────────────────────
 

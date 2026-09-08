@@ -677,7 +677,7 @@ class WinUI3EdgeChrome(WebView2Core):
             if not _enqueue(self.webview.dispatcher_queue, apply_header_diff):
                 deferral.complete()
 
-        threading.Thread(target=dispatch_event, daemon=True).start()
+        self._dispatch_request_event(dispatch_event)
 
     def on_navigation_start(self, sender: WebView2, args: CoreWebView2NavigationStartingEventArgs):
         pass

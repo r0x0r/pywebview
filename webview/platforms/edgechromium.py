@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from threading import Semaphore, Thread
+from threading import Semaphore
 from uuid import uuid1
 
 try:
@@ -319,7 +319,7 @@ class WinFormsEdgeChrome(WebView2Core):
                 logger.exception('Error applying web resource request headers')
                 deferral.Complete()
 
-        Thread(target=dispatch_event, daemon=True).start()
+        self._dispatch_request_event(dispatch_event)
 
     def on_navigation_completed(self, sender, _):
         url = str(sender.Source)
