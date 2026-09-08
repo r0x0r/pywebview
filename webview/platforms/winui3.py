@@ -3,12 +3,13 @@ import contextlib
 import json
 import logging
 import os
-import sys
 import tempfile
 import threading
 from collections.abc import Iterable, Sequence
 from concurrent.futures import Future, wait
 from ctypes import WinError, windll
+from datetime import datetime, timezone
+from email.utils import format_datetime
 from http.cookies import SimpleCookie
 from threading import Event, Lock, Semaphore
 from typing import cast
@@ -195,6 +196,19 @@ def _run_dispatched(dispatcher_queue, callback, future: Future) -> None:
         wait([future])
 
 
+def _format_cookie_expiry(expires: float) -> str | None:
+    """
+    Convert CoreWebView2Cookie.expires (seconds since the Unix epoch, or a
+    negative value for a session cookie with no expiration) to the HTTP-date
+    format (e.g. 'Wed, 21 Oct 2026 07:28:00 GMT') the cookie's Expires
+    attribute requires. WinRT projects this property as a raw double, unlike
+    the WinForms/.NET binding, which exposes an already-formattable DateTime.
+    """
+    if expires is None or expires < 0:
+        return None
+    return format_datetime(datetime.fromtimestamp(expires, tz=timezone.utc), usegmt=True)
+
+
 class WinUI3EdgeChrome(WebView2Core):
     def __init__(self, form: Window, window: _Window, cache_dir: str):
         super().__init__(window)
@@ -365,7 +379,7 @@ class WinUI3EdgeChrome(WebView2Core):
                             'value': c.value,
                             'path': c.path,
                             'domain': c.domain,
-                            'expires': str(c.expires),
+                            'expires': _format_cookie_expiry(c.expires),
                             'secure': c.is_secure,
                             'httponly': c.is_http_only,
                             'samesite': same_site,
@@ -740,11 +754,12 @@ class BrowserView:
                 IconShowOptions.SHOW_ICON_AND_SYSTEM_MENU
             )
 
-            # Application icon
+            # Application icon. set_icon() requires a path to an .ico file, so
+            # there's no valid fallback to pass it when no custom icon is
+            # configured (sys.executable is a .exe) — leave the icon unset and
+            # let Windows fall back to the executable/package default.
             if _state['icon'] and os.path.isfile(_state['icon']):
                 self.window.app_window.set_icon(_state['icon'])
-            else:
-                self.window.app_window.set_icon(sys.executable)
 
             self.url = window.real_url
 
