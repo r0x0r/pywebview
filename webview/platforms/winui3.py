@@ -368,13 +368,18 @@ class WinUI3EdgeChrome(WebView2Core):
             if self.webview.dispatcher_queue.has_thread_access:
                 # Already on the UI thread (e.g. a native XAML event handler,
                 # such as the custom title bar example's button click): start
-                # the script, but raise rather than block or return a
-                # placeholder — the dispatcher currently running this call is
-                # what would have to run `callback`, so blocking on the
-                # semaphore would deadlock it, and evaluate_js() documents
-                # synchronous result delivery, so silently returning None
-                # here would misrepresent a real result as "no result".
+                # the script either way. Window.run_js() (parse_json=False)
+                # is fire-and-forget by contract — its docstring says the
+                # result isn't guaranteed — so it's safe to return once the
+                # script has started. Window.evaluate_js() (parse_json=True)
+                # does need its result, and blocking on the semaphore below
+                # would deadlock the very dispatcher that has to run
+                # `callback` and deliver it, so that case still raises
+                # rather than silently returning None and misrepresenting a
+                # real result as "no result".
                 callback()
+                if not parse_json:
+                    return None
                 raise RuntimeError(
                     'evaluate_js() cannot return a result synchronously when called '
                     'from a native UI-thread callback (e.g. a XAML event handler) '
@@ -1824,12 +1829,27 @@ def get_screens():
     # get by index. https://github.com/microsoft/microsoft-ui-xaml/issues/6454
     all_displays = DisplayArea.find_all()
 
+    # DisplayArea.outer_bounds reports true physical-pixel positions: e.g. a
+    # 200%-scaled secondary monitor placed right after a 1920-wide primary
+    # begins at physical x=1920, not some DPI-adjusted value. Converting
+    # each monitor's *origin* using its own scale therefore produces an
+    # inconsistent shared coordinate system (that same secondary would be
+    # reported at logical x=960, overlapping the primary). Windows itself
+    # resolves this for system-DPI-aware processes (which this module is,
+    # via SetProcessDPIAware()) by virtualizing every monitor's position
+    # using the primary monitor's scale alone — matching WinForms'
+    # Screen.Bounds, which is already in that same logical space. Each
+    # monitor's own scale is still the right one for its *size*, since that
+    # reflects how large its own content actually renders.
+    primary_bounds = DisplayArea.primary.outer_bounds
+    primary_scale = get_monitor_scale(
+        primary_bounds.x, primary_bounds.y, primary_bounds.width, primary_bounds.height
+    )
+
     screens = []
     for i in range(len(all_displays)):
         da = all_displays[i]
 
-        # DisplayArea.outer_bounds returns physical pixels, unlike WinForms
-        # Screen.Bounds which returns logical pixels. We need to convert.
         phys_x = da.outer_bounds.x
         phys_y = da.outer_bounds.y
         phys_width = da.outer_bounds.width
@@ -1837,8 +1857,8 @@ def get_screens():
 
         scale = get_monitor_scale(phys_x, phys_y, phys_width, phys_height)
 
-        logical_x = int(phys_x / scale)
-        logical_y = int(phys_y / scale)
+        logical_x = int(phys_x / primary_scale)
+        logical_y = int(phys_y / primary_scale)
         logical_width = int(phys_width / scale)
         logical_height = int(phys_height / scale)
 
