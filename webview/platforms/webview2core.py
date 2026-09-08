@@ -163,7 +163,15 @@ class WebView2Core(ABC):
             return None
 
     def clear_user_data(self, process_id: int) -> None:
-        if not _state['private_mode']:
+        # Mirrors the exact condition winforms.py/winui3.py's init_storage()
+        # uses to decide whether user_data_folder is a throwaway directory
+        # this backend created (private_mode, no explicit storage_path) or
+        # a caller-supplied path (an explicit storage_path is honored even
+        # under private_mode, e.g. to reuse a location while still getting
+        # WebView2's in-private browsing behavior). Recursively deleting the
+        # latter would remove the caller's own directory and anything else
+        # in it, not just this session's browsing data.
+        if not _state['private_mode'] or _state['storage_path']:
             return
 
         try:

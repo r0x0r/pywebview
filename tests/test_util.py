@@ -182,6 +182,11 @@ class TestCreateCookie:
         output = cookie['foo'].output()
         assert expiry in output
 
+    def test_zero_expiry_is_not_treated_as_session_cookie(self):
+        """0 (the Unix epoch) is a real, falsy expiry - must not be normalized away like None."""
+        cookie = create_cookie(self._cookie_dict(0))
+        assert cookie['foo']['expires'] == 0
+
 
 class TestBridgeTokenValidation:
     """Tests that js_bridge_call enforces the session token before dispatching a call."""
