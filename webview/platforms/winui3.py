@@ -174,11 +174,11 @@ def _run_dispatched(dispatcher_queue, callback, future: Future) -> None:
     """
     Run ``callback`` (which must eventually resolve ``future``) on the UI thread.
 
-    If the calling thread already has dispatcher access — e.g. a synchronous
-    event handler such as ``before_show`` re-entering a public API — enqueueing
-    and then blocking this same thread on ``future`` would deadlock: nothing
-    else can pump the queue to run the enqueued callback. In that case, run it
-    inline instead and return immediately without waiting; ``future`` still
+    If the calling thread already has dispatcher access — e.g. a native XAML
+    event handler calling back into this module — enqueueing and then blocking
+    this same thread on ``future`` would deadlock: nothing else can pump the
+    queue to run the enqueued callback. In that case, run it inline instead
+    and return immediately without waiting; ``future`` still
     resolves once the callback's own async continuation completes, but the
     caller has no safe way to block for it, so it must treat a not-yet-``done``
     future as "result unavailable" rather than waiting on it.
@@ -1340,9 +1340,12 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
 
     # The dialog only needs the XAML root, which already exists once `i` is
     # available — it doesn't depend on WebView2/_main_window_created, so don't
-    # wait for that here (doing so previously deadlocked callers that create
-    # the dialog from a synchronous `before_show` handler, since that handler
-    # runs on the dispatcher before _main_window_created is ever set).
+    # wait for that here. Note this alone does not make the dialog callable
+    # from a `before_show` handler: the public Window.create_confirmation_dialog
+    # is separately gated on `events.shown` (@_shown_call in webview/window.py),
+    # which WinUI only sets after `before_show`'s handler returns, so that path
+    # still times out before ever reaching this function. This just avoids an
+    # unnecessary wait for callers that *do* reach it (e.g. once shown).
 
     fut = Future[bool]()
 
