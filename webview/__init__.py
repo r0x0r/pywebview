@@ -126,6 +126,7 @@ settings = ImmutableDict(
         'OPEN_DEVTOOLS_IN_DEBUG': True,
         'REMOTE_DEBUGGING_PORT': None,
         'IGNORE_SSL_ERRORS': False,
+        'JS_API_MAX_DEPTH': 10,
         'SHOW_DEFAULT_MENUS': True,
         'WEBVIEW2_RUNTIME_PATH': None,
     }

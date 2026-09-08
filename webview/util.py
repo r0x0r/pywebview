@@ -181,20 +181,39 @@ def inject_pywebview(platform: str, window: Window) -> None:
         params = list(inspect.getfullargspec(func).args)
         return params
 
-    def get_functions(obj: object, base_name: str = '', functions: dict[str, object] = None):
+    def get_functions(
+        obj: object, base_name: str = '', functions: dict[str, object] = None, depth: int = 0
+    ):
+        if functions is None:
+            functions = {}
+
+        # Backstop against runaway recursion into pathological object graphs that generate
+        # a fresh object on every attribute access (so the id() guard below never matches).
+        # See issue #1838.
+        if depth > webview.settings['JS_API_MAX_DEPTH']:
+            logger.warning(
+                f'Maximum js_api attribute depth ({webview.settings["JS_API_MAX_DEPTH"]}) reached '
+                f'while exposing "{base_name}". Nested attributes below this depth are not exposed. '
+                'Increase webview.settings["JS_API_MAX_DEPTH"] if this is intended.'
+            )
+            return functions
+
         obj_id = id(obj)
         if obj_id in exposed_objects:
             return functions
         else:
             exposed_objects.append(obj_id)
 
-        if functions is None:
-            functions = {}
-
         for name in dir(obj):
             try:
                 full_name = f'{base_name}.{name}' if base_name else name
                 if name.startswith('_'):
+                    continue
+
+                # Never walk into the native GUI object exposed by webview.Window (e.g.
+                # when a window is stored on the js_api object). It cannot be bridged to
+                # Javascript and its native object tree is effectively unbounded.
+                if name == 'native' and isinstance(obj, webview.Window):
                     continue
 
                 attr = getattr(obj, name)
@@ -207,7 +226,7 @@ def inject_pywebview(platform: str, window: Window) -> None:
                 elif inspect.isclass(attr) or (
                     isinstance(attr, object) and not callable(attr) and hasattr(attr, '__module__')
                 ):
-                    get_functions(attr, full_name, functions)
+                    get_functions(attr, full_name, functions, depth + 1)
             except Exception as e:
                 logger.error(f'Error while processing {full_name}: {e}')
                 continue

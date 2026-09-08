@@ -38,6 +38,17 @@ def test_skip_existing():
     run_test(webview, window, skip_existing)
 
 
+def test_recursive_attribute():
+    api = RecursiveApi()
+    window = webview.create_window(
+        'JSBridge test', html='<html><body>TEST</body></html>', js_api=api
+    )
+    # Reproduce issue #1838: storing the window on the js_api object used to make
+    # function exposure walk into window.native and recurse until a RecursionError.
+    api.window = window
+    run_test(webview, window, recursive_attribute)
+
+
 class NestedApi:
     @classmethod
     def get_int(cls):
@@ -45,6 +56,28 @@ class NestedApi:
 
     def get_int_instance(self):
         return 423
+
+
+class _Generative:
+    # Returns a fresh object on every attribute access, so the id() cycle guard never
+    # matches - mimicking native objects such as
+    # AccessibilityObject.Owner.AccessibilityObject.Owner... Only the depth limit stops
+    # the recursion here. See issue #1838.
+    def node_method(self):
+        return 'node'
+
+    @property
+    def child(self):
+        return _Generative()
+
+
+class RecursiveApi:
+    # Exposes an infinitely deep object graph that must not crash function exposure with
+    # a RecursionError. See issue #1838.
+    generative = _Generative()
+
+    def get_int(self):
+        return 420
 
 
 class Api:
@@ -117,3 +150,9 @@ def concurrent(window):
 
 def skip_existing(window):
     assert window.evaluate_js('window.pywebview.api.nested_instance_duplicate === undefined')
+
+
+def recursive_attribute(window):
+    # The window must load and expose real methods without crashing on the
+    # infinitely deep `generative` attribute.
+    assert_js(window, 'get_int', 420)
