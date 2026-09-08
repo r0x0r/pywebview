@@ -284,8 +284,14 @@ jobs:
     - name: Install Windows App Runtime
       shell: pwsh
       run: |
+        # Must match the Windows App SDK version the installed pywinrt/winui3
+        # wheels (pyproject.toml's `winui3` extra, currently pywinrt 3.2.x)
+        # were built against — see https://github.com/pywinrt/pywinrt/blob/main/CHANGELOG.md.
+        # A mismatched runtime makes the app's ON_NO_MATCH_SHOW_UI bootstrap
+        # try to show an (invisible, on a CI runner) install prompt and hang
+        # instead of raising, so pin this to the exact version, not latest.
         $installer = Join-Path $env:RUNNER_TEMP 'WindowsAppRuntimeInstall.exe'
-        Invoke-WebRequest -Uri 'https://aka.ms/windowsappsdk/2.4/2.4.0/windowsappruntimeinstall-x64.exe' -OutFile $installer
+        Invoke-WebRequest -Uri 'https://aka.ms/windowsappsdk/1.7/1.7.250513003/windowsappruntimeinstall-x64.exe' -OutFile $installer
         $proc = Start-Process -FilePath $installer -ArgumentList '--quiet' -Wait -PassThru
         if ($proc.ExitCode -ne 0) {
           throw "WindowsAppRuntimeInstall.exe failed with exit code $($proc.ExitCode)"
