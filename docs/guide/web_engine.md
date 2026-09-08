@@ -9,7 +9,7 @@ The following renderers are used on each platform
 | macOS    |              | WebKit   | WebKit.WKWebView (bundled with OS)                |                       |
 | QT       | qt           | WebKit   | QtWebEngine / QtWebKit                            |                       |
 | Windows  | edgechromium | Chromium | > .NET Framework 4.6.2 and Edge Runtime installed | Ever-green Chromium   |
-| Windows  | winui3       | Chromium | > Windows App Runtime installed                   | Ever-green Chromium   |
+| Windows  | winui3       | Chromium | > `pywebview[winui3]` extra and Windows App Runtime installed | Ever-green Chromium   |
 | Windows  | cef          | CEF      | CEF Python                                        | Chrome 66             |
 | Windows  | mshtml       | MSHTML   | DEPRECATED  Internet Explorer MSHTML              | IE11 (Windows 10/8/7) |
 

@@ -36,7 +36,6 @@ dependencies = [
     "pyobjc-framework-security>=9.0;sys_platform=='darwin'",
     "pyobjc-framework-UniformTypeIdentifiers>=9.0;sys_platform=='darwin'",
     "QtPy;sys_platform=='openbsd6'",
-    "importlib_resources; python_version < '3.10'",
     "proxy_tools",
     "bottle",
     "typing_extensions"
