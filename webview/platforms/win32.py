@@ -622,9 +622,7 @@ def pick_folders_win32(
         if allow_multiple:
             flags |= _FOS_ALLOWMULTISELECT
 
-        _check(
-            _com_fn(dialog, _VTBL_SET_OPTIONS, _HRESULT, ctypes.c_uint32)(dialog, flags)
-        )
+        _check(_com_fn(dialog, _VTBL_SET_OPTIONS, _HRESULT, ctypes.c_uint32)(dialog, flags))
 
         if directory:
             _set_dialog_folder(dialog, directory)
