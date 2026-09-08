@@ -1925,6 +1925,7 @@ def get_screens():
                 logical_height,
                 da.display_id,
                 scale,
+                origin_scale=primary_scale,
             )
         )
 

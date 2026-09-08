@@ -1,6 +1,13 @@
 class Screen:
     def __init__(
-        self, x: int, y: int, width: int, height: int, frame: object = None, scale: float = 1.0
+        self,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        frame: object = None,
+        scale: float = 1.0,
+        origin_scale: float | None = None,
     ) -> None:
         self.x = int(x)
         self.y = int(y)
@@ -8,16 +15,23 @@ class Screen:
         self.height = int(height)
         self.frame = frame
         self.scale = float(scale)
+        # Separate from `scale` only on backends where a monitor's position
+        # and its own size legitimately convert with different factors (see
+        # WinUI3's get_screens(): origins share one desktop-wide scale so
+        # they don't overlap on mixed-DPI setups, while each monitor's own
+        # scale is still right for its size). Defaults to `scale` so every
+        # other backend's single-scale-per-monitor model is unaffected.
+        self.origin_scale = float(origin_scale) if origin_scale is not None else self.scale
 
     @property
     def physical_x(self) -> int:
         """X coordinate in physical pixels."""
-        return int(self.x * self.scale)
+        return int(self.x * self.origin_scale)
 
     @property
     def physical_y(self) -> int:
         """Y coordinate in physical pixels."""
-        return int(self.y * self.scale)
+        return int(self.y * self.origin_scale)
 
     @property
     def physical_width(self) -> int:
