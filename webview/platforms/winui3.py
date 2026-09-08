@@ -117,6 +117,7 @@ from webview.platforms.win32 import (
     GWL_EXSTYLE,
     WS_EX_APPWINDOW,
     WS_EX_TOOLWINDOW,
+    enable_window_shadow,
     get_monitor_scale,
     install_mouse_hook,
     pick_files_win32,
@@ -166,6 +167,32 @@ def _guard_future_callback(callback, future: Future):
                 future.set_exception(ex)
 
     return guarded_callback
+
+
+def _run_dispatched(dispatcher_queue, callback, future: Future) -> None:
+    """
+    Run ``callback`` (which must eventually resolve ``future``) on the UI thread.
+
+    If the calling thread already has dispatcher access — e.g. a synchronous
+    event handler such as ``before_show`` re-entering a public API — enqueueing
+    and then blocking this same thread on ``future`` would deadlock: nothing
+    else can pump the queue to run the enqueued callback. In that case, run it
+    inline instead and return immediately without waiting; ``future`` still
+    resolves once the callback's own async continuation completes, but the
+    caller has no safe way to block for it, so it must treat a not-yet-``done``
+    future as "result unavailable" rather than waiting on it.
+
+    Otherwise (the common case — called from a background thread), enqueue
+    normally and block until ``future`` resolves.
+    """
+    guarded = _guard_future_callback(callback, future)
+
+    if dispatcher_queue.has_thread_access:
+        guarded()
+        return
+
+    if _enqueue(dispatcher_queue, guarded):
+        wait([future])
 
 
 class WinUI3EdgeChrome(WebView2Core):
@@ -737,6 +764,9 @@ class BrowserView:
                 ex_style = (ex_style & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW
                 windll.user32.SetWindowLongW(self.handle, GWL_EXSTYLE, ex_style)
 
+                if window.shadow and not window.transparent:
+                    enable_window_shadow(self.handle)
+
             menu = window.menu or _state['menu'] or BrowserView.app_menu_list
             if menu:
                 self.set_window_menu(menu)
@@ -1265,9 +1295,11 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
     if not i:
         return None
 
-    # REVISIT: It doesn't seem like we should be waiting here but rather block
-    # the window creation function until the main window is actually ready
-    _wait_for_main_window()
+    # The dialog only needs the XAML root, which already exists once `i` is
+    # available — it doesn't depend on WebView2/_main_window_created, so don't
+    # wait for that here (doing so previously deadlocked callers that create
+    # the dialog from a synchronous `before_show` handler, since that handler
+    # runs on the dispatcher before _main_window_created is ever set).
 
     fut = Future[bool]()
 
@@ -1287,12 +1319,9 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
 
         op.completed = on_completed
 
-    if not _enqueue(i.window.dispatcher_queue, _guard_future_callback(callback, fut)):
-        return None
+    _run_dispatched(i.window.dispatcher_queue, callback, fut)
 
-    wait([fut])
-
-    return fut.result()
+    return fut.result() if fut.done() else None
 
 
 def _folder_dialog_callback(
@@ -1488,12 +1517,9 @@ def create_file_dialog(
     else:
         raise ValueError('Invalid dialog type')
 
-    if not _enqueue(i.window.dispatcher_queue, _guard_future_callback(callback, fut)):
-        return None
+    _run_dispatched(i.window.dispatcher_queue, callback, fut)
 
-    wait([fut])
-
-    return fut.result()
+    return fut.result() if fut.done() else None
 
 
 def clear_cookies(uid: str):

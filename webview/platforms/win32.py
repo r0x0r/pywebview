@@ -482,6 +482,42 @@ def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
     return 1.0
 
 
+class _MARGINS(ctypes.Structure):
+    _fields_ = [
+        ('cxLeftWidth', ctypes.c_int),
+        ('cxRightWidth', ctypes.c_int),
+        ('cyTopHeight', ctypes.c_int),
+        ('cyBottomHeight', ctypes.c_int),
+    ]
+
+
+def dwm_set_window_attribute(hwnd: int, attr: int, value: int, size: int = 4) -> int:
+    dwm_set_window_attribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
+    dwm_set_window_attribute.argtypes = [
+        wintypes.HWND,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+    ]
+    return dwm_set_window_attribute(hwnd, attr, ctypes.byref(ctypes.c_int(value)), size)
+
+
+def extend_frame_into_client_area(hwnd: int) -> int:
+    dwm_extend_frame_into_client_area = ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea
+    m = _MARGINS(cxLeftWidth=1, cxRightWidth=1, cyTopHeight=1, cyBottomHeight=1)
+    return dwm_extend_frame_into_client_area(hwnd, ctypes.byref(m))
+
+
+def enable_window_shadow(hwnd: int) -> None:
+    """
+    Restore the native drop shadow on a window whose border/title bar has been
+    removed (e.g. a frameless window), via the same DWM non-client-rendering
+    trick used to give borderless WinForms windows a shadow.
+    """
+    extend_frame_into_client_area(hwnd)
+    dwm_set_window_attribute(hwnd, 2, 2, 4)  # DWMWA_NCRENDERING_POLICY = DWMNCRP_ENABLED
+
+
 class _GUID(ctypes.Structure):
     _fields_ = [
         ('Data1', wintypes.DWORD),
