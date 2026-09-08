@@ -286,6 +286,13 @@ def events_test(window):
     button.events.click += click_handler
 
     window.evaluate_js('document.getElementById("button").click()')
+
+    # The click handler fires asynchronously over the JS bridge; poll briefly
+    # instead of asserting immediately, which is prone to flaking under load.
+    for _ in range(20):
+        if button_value:
+            break
+        sleep(0.1)
     assert button_value
 
     button.events.click -= click_handler
