@@ -833,6 +833,17 @@ class BrowserView:
                 self.window.app_window.show_with_activation(False)
 
         def on_close(self, sender: Object, args: WindowEventArgs):
+            if self.uid == 'master' and not _main_window_created.is_set():
+                # The master window can close (e.g. from a `before_show`
+                # handler) before WebView2 finishes initializing. Without
+                # this, a thread blocked in _wait_for_main_window() for a
+                # child window would never wake — leaving a non-daemon
+                # thread alive and the process unable to exit even after
+                # the WinUI application itself has shut down.
+                _fail_main_window_creation(
+                    RuntimeError('Main window was closed before initialization completed')
+                )
+
             self.browser.release_pending_js_results()
 
             uninstall_mouse_hook(self.handle, getattr(self, '_mouse_hook', None))
@@ -1255,7 +1266,15 @@ def create_window(window: _Window):
             browser.window.app_window.hide()
             window.events.shown.set()
         else:
-            browser.window.activate()
+            if window.focus:
+                browser.window.activate()
+            else:
+                # activate() always takes focus; showing without activation
+                # is the only way to avoid stealing it from the previously
+                # focused app, since that focus can't be reliably restored
+                # afterwards once activate() has already taken it.
+                browser.window.app_window.show_with_activation(False)
+
             if not window.events.shown.is_set():
                 window.events.shown.set()
 

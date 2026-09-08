@@ -87,11 +87,18 @@ _user32.IsZoomed.argtypes = [wintypes.HWND]
 _user32.GetWindowRect.restype = wintypes.BOOL
 _user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 # Available since Windows 8.1 – converts physical screen px to process-logical px.
-_user32.PhysicalToLogicalPointForPerMonitorDPI.restype = wintypes.BOOL
-_user32.PhysicalToLogicalPointForPerMonitorDPI.argtypes = [
-    wintypes.HWND,
-    ctypes.POINTER(wintypes.POINT),
-]
+# This module is imported for every WinForms renderer, including MSHTML (the
+# fallback documented to work on Windows 7), so the lookup must not raise if
+# it's missing there.
+_PhysicalToLogicalPointForPerMonitorDPI = getattr(
+    _user32, 'PhysicalToLogicalPointForPerMonitorDPI', None
+)
+if _PhysicalToLogicalPointForPerMonitorDPI is not None:
+    _PhysicalToLogicalPointForPerMonitorDPI.restype = wintypes.BOOL
+    _PhysicalToLogicalPointForPerMonitorDPI.argtypes = [
+        wintypes.HWND,
+        ctypes.POINTER(wintypes.POINT),
+    ]
 _user32.SetWindowPos.restype = wintypes.BOOL
 _user32.SetWindowPos.argtypes = [
     wintypes.HWND,
@@ -220,7 +227,9 @@ def install_mouse_hook(hwnd: int):
                         ctypes.c_void_p(lParam), ctypes.POINTER(_MSLLHOOKSTRUCT)
                     ).contents
                     pt = wintypes.POINT(hs.pt_x, hs.pt_y)
-                    _user32.PhysicalToLogicalPointForPerMonitorDPI(hwnd, ctypes.byref(pt))
+                    if _PhysicalToLogicalPointForPerMonitorDPI is not None:
+                        _PhysicalToLogicalPointForPerMonitorDPI(hwnd, ctypes.byref(pt))
+                        # Pre-8.1: no per-monitor DPI concept, physical == logical.
                     if _drag[0] == 2:  # pending — promote to active once tolerance exceeded
                         dx = pt.x - _drag[1]
                         dy = pt.y - _drag[2]
