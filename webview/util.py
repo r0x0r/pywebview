@@ -141,7 +141,12 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie:
         cookie[name] = input_['value']
         cookie[name]['path'] = input_['path']
         cookie[name]['domain'] = input_['domain']
-        cookie[name]['expires'] = input_['expires']
+        # A Morsel treats only '' as "omit this attribute" - passing None
+        # through (as backends do for a session cookie with no expiry, e.g.
+        # winui3.py's _format_cookie_expiry) makes SimpleCookie.output()
+        # render the literal string "expires=None" instead of leaving the
+        # attribute out.
+        cookie[name]['expires'] = input_['expires'] or ''
         cookie[name]['secure'] = input_['secure']
         cookie[name]['httponly'] = input_['httponly']
         cookie[name]['samesite'] = input_.get('samesite')
