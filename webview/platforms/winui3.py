@@ -119,7 +119,9 @@ from webview.platforms.win32 import (
     WS_EX_TOOLWINDOW,
     get_monitor_scale,
     install_mouse_hook,
+    pick_files_win32,
     pick_folders_win32,
+    pick_save_file_win32,
     uninstall_mouse_hook,
 )
 from webview.screen import Screen
@@ -1264,20 +1266,23 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
 
 
 def _folder_dialog_callback(
-    handle: int, allow_multiple: bool, fut: 'Future[str | tuple[str] | None]'
+    handle: int, allow_multiple: bool, directory: str, fut: 'Future[str | tuple[str] | None]'
 ):
     def callback():
+        if allow_multiple or directory:
+            # FolderPicker has no multi-select API in the Windows App SDK, and no
+            # way to set an initial directory (see the FIXME on create_file_dialog);
+            # fall back to IFileOpenDialog (Win32 COM), which supports both.
+            folders = pick_folders_win32(
+                handle, allow_multiple=allow_multiple, directory=directory
+            )
+            fut.set_result(tuple(folders) if folders is not None else None)
+            return
+
         picker = FolderPicker()
         initialize_with_window(picker, handle)
         picker.suggested_start_location = PickerLocationId.DOWNLOADS
         picker.file_type_filter.append('*')
-
-        if allow_multiple:
-            # FolderPicker has no multi-select API in the Windows App SDK;
-            # fall back to IFileOpenDialog (Win32 COM) which does.
-            folders = pick_folders_win32(handle)
-            fut.set_result(tuple(folders) if folders is not None else None)
-            return
 
         op = picker.pick_single_folder_async()
 
@@ -1302,9 +1307,18 @@ def _open_dialog_callback(
     handle: int,
     allow_multiple: bool,
     file_types: list[str],
+    directory: str,
     fut: 'Future[str | tuple[str] | None]',
 ):
     def callback():
+        if directory:
+            # FileOpenPicker has no way to set an initial directory (see the
+            # FIXME on create_file_dialog); fall back to IFileOpenDialog
+            # (Win32 COM), which supports it.
+            files = pick_files_win32(handle, allow_multiple, file_types, directory)
+            fut.set_result(tuple(files) if files is not None else None)
+            return
+
         picker = FileOpenPicker()
         initialize_with_window(picker, handle)
         picker.suggested_start_location = PickerLocationId.DOWNLOADS
@@ -1366,9 +1380,18 @@ def _save_dialog_callback(
     uid: str,
     save_filename: str,
     file_types: list[str],
+    directory: str,
     fut: 'Future[str | tuple[str] | None]',
 ):
     def callback():
+        if directory:
+            # FileSavePicker has no way to set an initial directory (see the
+            # FIXME on create_file_dialog); fall back to IFileSaveDialog
+            # (Win32 COM), which supports it.
+            path = pick_save_file_win32(handle, save_filename, file_types, directory)
+            fut.set_result((path,) if path else None)
+            return
+
         picker = FileSavePicker()
         initialize_with_window(picker, handle)
         picker.suggested_start_location = PickerLocationId.DOWNLOADS
@@ -1420,24 +1443,19 @@ def create_file_dialog(
     if not i:
         return None
 
-    if directory:
-        raise NotImplementedError(
-            'WinUI 3 file dialogs do not support an arbitrary initial directory'
-        )
-
-    # FIXME: These Windows App SDK doesn't allow setting the starting location
-    # https://github.com/microsoft/WindowsAppSDK/issues/88
-    # Likely, we will need to replace these with win32 calls
-    # https://learn.microsoft.com/en-us/uwp/api/windows.storage.pickers.filesavepicker?view=winrt-26100#in-a-desktop-app-that-requires-elevation
+    # The WinRT pickers used below have no API to set a starting location
+    # (https://github.com/microsoft/WindowsAppSDK/issues/88), so whenever an
+    # initial `directory` is requested we fall back to the equivalent Win32
+    # IFileDialog (see webview.platforms.win32), which does support it.
 
     fut: Future[str | tuple[str] | None] = Future()
 
     if dialog_type == FileDialog.FOLDER:
-        callback = _folder_dialog_callback(i.handle, allow_multiple, fut)
+        callback = _folder_dialog_callback(i.handle, allow_multiple, directory, fut)
     elif dialog_type == FileDialog.OPEN:
-        callback = _open_dialog_callback(i.handle, allow_multiple, file_types, fut)
+        callback = _open_dialog_callback(i.handle, allow_multiple, file_types, directory, fut)
     elif dialog_type == FileDialog.SAVE:
-        callback = _save_dialog_callback(i.handle, uid, save_filename, file_types, fut)
+        callback = _save_dialog_callback(i.handle, uid, save_filename, file_types, directory, fut)
     else:
         raise ValueError('Invalid dialog type')
 

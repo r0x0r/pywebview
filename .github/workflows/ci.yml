@@ -281,6 +281,16 @@ jobs:
       run: |
         choco install webview2-runtime
 
+    - name: Install Windows App Runtime
+      shell: pwsh
+      run: |
+        $installer = Join-Path $env:RUNNER_TEMP 'WindowsAppRuntimeInstall.exe'
+        Invoke-WebRequest -Uri 'https://aka.ms/windowsappsdk/2.4/2.4.0/windowsappruntimeinstall-x64.exe' -OutFile $installer
+        $proc = Start-Process -FilePath $installer -ArgumentList '--quiet' -Wait -PassThru
+        if ($proc.ExitCode -ne 0) {
+          throw "WindowsAppRuntimeInstall.exe failed with exit code $($proc.ExitCode)"
+        }
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
