@@ -3,6 +3,7 @@ import contextlib
 import json
 import logging
 import os
+import struct
 import tempfile
 import threading
 from collections.abc import Iterable, Sequence
@@ -249,6 +250,56 @@ def _primary_monitor_scale() -> float:
     """
     bounds = DisplayArea.primary.outer_bounds
     return get_monitor_scale(bounds.x, bounds.y, bounds.width, bounds.height)
+
+
+def _png_to_ico(png_path: str) -> str | None:
+    """
+    Wrap a PNG file's raw bytes in a minimal single-image .ico container.
+
+    AppWindow.set_icon() requires an actual .ico file, unlike every other
+    backend's icon setting, which accepts whatever image format the
+    underlying toolkit supports (the documented public API — see
+    examples/icon.py — passes a .png). Windows has accepted PNG-compressed
+    icon images inside .ico containers (not just legacy BMP/DIB) since
+    Vista, so no re-encoding is needed: just prepend the ICONDIR/
+    ICONDIRENTRY header bytes in front of the original PNG data.
+
+    Returns the path to a new temporary .ico file (registered for cleanup
+    at exit), or None if `png_path` isn't a PNG this can wrap.
+    """
+    try:
+        with open(png_path, 'rb') as f:
+            data = f.read()
+
+        if not data.startswith(b'\x89PNG\r\n\x1a\n') or len(data) < 24:
+            return None
+
+        width, height = struct.unpack('>II', data[16:24])
+        # ICONDIRENTRY encodes a 256px dimension as 0; anything smaller must
+        # fit in a single byte, which a PNG-format icon always does anyway.
+        icon_width = 0 if width >= 256 else width
+        icon_height = 0 if height >= 256 else height
+
+        icondir = struct.pack('<HHH', 0, 1, 1)
+        icondirentry = struct.pack(
+            '<BBBBHHII', icon_width, icon_height, 0, 0, 1, 32, len(data), len(icondir) + 16
+        )
+
+        fd, ico_path = tempfile.mkstemp(suffix='.ico')
+        with os.fdopen(fd, 'wb') as f:
+            f.write(icondir)
+            f.write(icondirentry)
+            f.write(data)
+
+        def _cleanup():
+            with contextlib.suppress(OSError):
+                os.remove(ico_path)
+
+        atexit.register(_cleanup)
+        return ico_path
+    except Exception:
+        logger.exception('Failed to convert PNG icon %r to .ico', png_path)
+        return None
 
 
 class WinUI3EdgeChrome(WebView2Core):
@@ -856,12 +907,27 @@ class BrowserView:
                 IconShowOptions.SHOW_ICON_AND_SYSTEM_MENU
             )
 
-            # Application icon. set_icon() requires a path to an .ico file, so
-            # there's no valid fallback to pass it when no custom icon is
-            # configured (sys.executable is a .exe) — leave the icon unset and
-            # let Windows fall back to the executable/package default.
+            # Application icon. set_icon() requires a path to an .ico file.
+            # The documented public API (see examples/icon.py) passes a
+            # .png, which every other backend accepts directly, so convert
+            # it via _png_to_ico() rather than raising during construction.
+            # There's no valid fallback when no custom icon is configured
+            # (sys.executable is a .exe) — leave the icon unset and let
+            # Windows fall back to the executable/package default.
             if _state['icon'] and os.path.isfile(_state['icon']):
-                self.window.app_window.set_icon(_state['icon'])
+                icon_path = _state['icon']
+                if not icon_path.lower().endswith('.ico'):
+                    if icon_path.lower().endswith('.png'):
+                        icon_path = _png_to_ico(icon_path)
+                    else:
+                        logger.warning(
+                            'WinUI3 only supports .ico or .png window icons, got %r. '
+                            'Falling back to the default icon.',
+                            _state['icon'],
+                        )
+                        icon_path = None
+                if icon_path:
+                    self.window.app_window.set_icon(icon_path)
 
             self.url = window.real_url
 

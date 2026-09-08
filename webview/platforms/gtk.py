@@ -25,6 +25,22 @@ from webview.window import FixPoint, Window
 logger = logging.getLogger('pywebview')
 os.environ['EGL_LOG_LEVEL'] = 'fatal'
 
+
+def _raise_if_reentrant(api_name: str) -> None:
+    """
+    Guard against calling a `glib.idle_add()` + semaphore-wait API from the
+    GTK main thread itself (e.g. a synchronous `request_sent`/`before_load`
+    handler): the idle callback can only ever run once this same thread
+    returns to the main loop, so blocking here on the semaphore would
+    deadlock permanently. Raises instead of hanging.
+    """
+    if current_thread() is main_thread():
+        raise RuntimeError(
+            f'{api_name}() cannot be called from a native GTK callback (e.g. a '
+            'request_sent or before_load handler) without deadlocking the main loop.'
+        )
+
+
 import gi  # noqa: E402
 
 gi.require_version('Gtk', '3.0')
@@ -645,6 +661,8 @@ class BrowserView:
         glib.idle_add(_clear_cookies)
 
     def get_cookies(self):
+        _raise_if_reentrant('get_cookies')
+
         def _get_cookies():
             self.cookie_manager.get_cookies(self.webview.get_uri(), None, callback, None)
 
@@ -927,6 +945,8 @@ def get_cookies(uid):
 
 
 def get_current_url(uid):
+    _raise_if_reentrant('get_current_url')
+
     def _get_current_url():
         result['url'] = i.get_current_url()
         semaphore.release()
@@ -963,6 +983,8 @@ def load_html(content, base_uri, uid):
 
 
 def create_confirmation_dialog(title, message, uid):
+    _raise_if_reentrant('create_confirmation_dialog')
+
     def _create():
         nonlocal result
         result = i.create_confirmation_dialog(title, message)
@@ -1044,6 +1066,8 @@ def get_active_window():
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
+    _raise_if_reentrant('create_file_dialog')
+
     i = BrowserView.instances.get(uid)
     file_name_semaphore = Semaphore(0)
     file_names = []
@@ -1073,6 +1097,8 @@ def evaluate_js(script, uid, parse_json=True):
 
 
 def get_position(uid):
+    _raise_if_reentrant('get_position')
+
     def _get_position():
         result['position'] = i.window.get_position()
         semaphore.release()
@@ -1091,6 +1117,8 @@ def get_position(uid):
 
 
 def get_size(uid):
+    _raise_if_reentrant('get_size')
+
     def _get_size():
         result['size'] = i.window.get_size()
         semaphore.release()
