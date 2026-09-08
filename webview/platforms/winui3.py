@@ -1273,9 +1273,7 @@ def _folder_dialog_callback(
             # FolderPicker has no multi-select API in the Windows App SDK, and no
             # way to set an initial directory (see the FIXME on create_file_dialog);
             # fall back to IFileOpenDialog (Win32 COM), which supports both.
-            folders = pick_folders_win32(
-                handle, allow_multiple=allow_multiple, directory=directory
-            )
+            folders = pick_folders_win32(handle, allow_multiple=allow_multiple, directory=directory)
             fut.set_result(tuple(folders) if folders is not None else None)
             return
 
