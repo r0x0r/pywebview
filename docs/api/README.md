@@ -905,7 +905,7 @@ Get DOM document's window `window` as an `Element` object
 
 ## Window events
 
-Window object exposes various lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g., `window.events.loaded += func`. Duplicate subscriptions are ignored, and the function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, e.g., `window.events.loaded -= func`. To access the window object from the event handler, supply the `window` parameter as the first positional argument of the handler. Most window events are asynchronous, and event handlers are executed in separate threads. The `before_show`, `before_load` and `request_sent` events are synchronous and block the main thread until handled.
+Window object exposes various lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g., `window.events.loaded += func`. Duplicate subscriptions are ignored, and the function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, e.g., `window.events.loaded -= func`. To access the window object from the event handler, supply the `window` parameter as the first positional argument of the handler. Most window events are asynchronous, and event handlers are executed in separate threads. The `before_show` and `before_load` events are synchronous and block the main thread until handled. The `request_sent` event is also synchronous - the underlying HTTP request is held up until the handler returns - but its execution context is backend-dependent; see its own entry below.
 
 ### window.events.before_show
 
@@ -957,7 +957,7 @@ The event is fired when window is moved.
 
 ### window.events.request_sent
 
-The event is fired when a HTTP request is sent. The event is emitted for every HTTP request, except on macOS where it is emitted only for the main document. Unlike most window events, this event is blocking: it is emitted synchronously on the platform's UI/webview thread, so a handler must return promptly and must not call APIs that need to run on that same thread (e.g. `evaluate_js`), or an exception will be raised.
+The event is fired when a HTTP request is sent. The event is emitted for every HTTP request, except on macOS where it is emitted only for the main document. Unlike most window events, this event is blocking: the request is held up until the handler returns, so it must return promptly. Where the handler actually runs is backend-dependent: on GTK it runs inline on the main/webview thread (WebKitGTK has no way to defer the request), so it must not call APIs that need to run on that same thread (e.g. `evaluate_js`), or an exception will be raised; on macOS and Windows it runs on a separate worker thread instead, matching most other window events.
 The event handler can accept a single argument - a `Request` object that contains the following properties:
 
 * `url` - URL of the request
