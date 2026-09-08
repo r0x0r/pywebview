@@ -714,10 +714,16 @@ class BrowserView:
         if current_thread() is main_thread():
             # Already on the GTK main thread (e.g. a request_sent handler
             # firing synchronously from resource-load-started): start the
-            # script directly, but raise rather than block — the acquire()
-            # below would deadlock the very main loop that has to run
-            # _evaluate_js (via glib.idle_add) and deliver its result.
+            # script either way. Window.run_js() (parse_json=False) is
+            # fire-and-forget by contract — its docstring says the result
+            # isn't guaranteed — so it's safe to return once the script has
+            # started. Window.evaluate_js() (parse_json=True) does need its
+            # result, and the acquire() below would deadlock the very main
+            # loop that has to run _evaluate_js (via glib.idle_add) and
+            # deliver it, so that case still raises instead.
             _evaluate_js()
+            if not parse_json:
+                return None
             raise RuntimeError(
                 'evaluate_js() cannot return a result synchronously when called '
                 'from a native GTK callback without deadlocking the main loop.'
