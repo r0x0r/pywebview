@@ -387,7 +387,7 @@ class WinUI3EdgeChrome(WebView2Core):
                 if is_master:
                     _fail_main_window_creation(error)
                 else:
-                    _fail_child_window_creation(form)
+                    _fail_child_window_creation(form, window.uid)
                 return
 
             # get_results()/controller-option creation/the ensure_core_webview2
@@ -411,7 +411,7 @@ class WinUI3EdgeChrome(WebView2Core):
                 if is_master:
                     _fail_main_window_creation(error)
                 else:
-                    _fail_child_window_creation(form)
+                    _fail_child_window_creation(form, window.uid)
                 return
 
             def on_ensure_op_completed(op: IAsyncAction, status: AsyncStatus):
@@ -421,7 +421,7 @@ class WinUI3EdgeChrome(WebView2Core):
                     if is_master:
                         _fail_main_window_creation(error)
                     else:
-                        _fail_child_window_creation(form)
+                        _fail_child_window_creation(form, window.uid)
                     return
 
                 _main_window_created.set()
@@ -1024,7 +1024,20 @@ class BrowserView:
         @property
         def _scale(self) -> float:
             """Logical-to-physical pixel scale for the monitor this window is on."""
-            return windll.user32.GetDpiForWindow(self.handle) / 96
+            # GetDpiForWindow's return depends on the HWND's own effective
+            # DPI_AWARENESS: for a SYSTEM_AWARE window it's a fixed system
+            # DPI regardless of which monitor the window is actually on, not
+            # necessarily that monitor's real DPI. setup_app() makes this
+            # process SYSTEM_DPI_AWARE via SetProcessDPIAware() (per-monitor
+            # v2 conflicts with pywinrt's own internal DPI context - see that
+            # call site), so rather than depend on whether pywinrt's window
+            # creation ends up overriding that awareness for its own HWND,
+            # use get_monitor_scale() - already written to give the correct
+            # answer under either awareness mode - on the window's current
+            # physical bounds instead of asking GetDpiForWindow directly.
+            x, y = self.window.app_window.position.unpack()
+            width, height = self.window.app_window.size.unpack()
+            return get_monitor_scale(x, y, width, height)
 
         def on_activated(self, sender: Object, args: WindowActivatedEventArgs):
             self._is_active = args.window_activation_state != WindowActivationState.DEACTIVATED
@@ -1397,12 +1410,22 @@ def _fail_main_window_creation(error: BaseException) -> None:
     Application.current.exit()
 
 
-def _fail_child_window_creation(form: Window) -> None:
+def _fail_child_window_creation(form: Window, uid: str) -> None:
     """
     Handle a WebView2 setup failure for a non-master window: unlike the master
     window, this must not touch global creation state or exit the app — only
     the affected window is closed.
+
+    Bypasses the normal close flow's `closing` event and `confirm_close`
+    dialog (via the same `_closing_confirmed` fast path `on_closing` uses
+    once a close has already been user-confirmed) — a window that failed
+    to initialize must always be torn down, not left registered and
+    visible because a `closing` handler vetoed it or a confirmation dialog
+    is still waiting on user input.
     """
+    browser = BrowserView.instances.get(uid)
+    if browser is not None:
+        browser._closing_confirmed = True
     with contextlib.suppress(Exception):
         form.close()
 
@@ -1581,7 +1604,11 @@ def create_window(window: _Window):
                 browser = BrowserView.instances.get(window.uid)
                 if browser is not None:
                     # Already registered: close it and let on_close do its
-                    # normal instances/windows/`closed` cleanup.
+                    # normal instances/windows/`closed` cleanup. Bypass the
+                    # closing event/confirm_close veto path the same way
+                    # _fail_child_window_creation does — a window that
+                    # failed to construct must always be torn down.
+                    browser._closing_confirmed = True
                     with contextlib.suppress(Exception):
                         browser.window.close()
                 else:
@@ -1990,9 +2017,13 @@ def get_screens():
     """Get all screens with coordinates in logical pixels."""
     # Can't directly iterate return value of find_all(). Workaround is to
     # get by index. https://github.com/microsoft/microsoft-ui-xaml/issues/6454
-    all_displays = DisplayArea.find_all()
+    projected_displays = DisplayArea.find_all()
+    all_displays = [projected_displays[i] for i in range(len(projected_displays))]
     # webview.screens documents the primary display as the first element;
-    # find_all()'s native enumeration order makes no such guarantee.
+    # find_all()'s native enumeration order makes no such guarantee. Sort
+    # only after materializing into a real Python list above - sorted()
+    # itself needs to iterate its input, which the projected collection
+    # doesn't support directly.
     all_displays = sorted(all_displays, key=lambda da: not da.is_primary)
 
     # DisplayArea.outer_bounds reports true physical-pixel positions: e.g. a
@@ -2018,9 +2049,7 @@ def get_screens():
     primary_scale = _primary_monitor_scale()
 
     screens = []
-    for i in range(len(all_displays)):
-        da = all_displays[i]
-
+    for da in all_displays:
         phys_x = da.outer_bounds.x
         phys_y = da.outer_bounds.y
         phys_width = da.outer_bounds.width
