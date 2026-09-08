@@ -154,6 +154,21 @@ def initialize(forced_gui: GUIType | None = None):
             guis = [import_winforms, import_winui3]
 
         if not try_import(guis):
+            if forced_gui == 'winui3':
+                # Only the winui3 extra could satisfy this branch — pythonnet
+                # wouldn't help, and mentioning it would send the user
+                # chasing the wrong dependency.
+                raise WebViewException(
+                    'You must have the pywebview[winui3] extra, the Edge WebView2 Runtime '
+                    'and Windows App Runtime installed, in order to use pywebview.'
+                )
+            elif forced_gui in ('cef', 'mshtml', 'edgechromium'):
+                # Only pythonnet could satisfy this branch — fallback to
+                # winui3 is intentionally disabled above, so mentioning its
+                # extra here would be equally misleading.
+                raise WebViewException(
+                    'You must have pythonnet installed in order to use pywebview.'
+                )
             raise WebViewException(
                 'You must have pythonnet installed, or the pywebview[winui3] extra, the Edge '
                 'WebView2 Runtime and Windows App Runtime installed, in order to use pywebview.'
