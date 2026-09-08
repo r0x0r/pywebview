@@ -1395,7 +1395,33 @@ def create_window(window: _Window):
         _wait_for_main_window()
         i = list(BrowserView.instances.values())[0]  # arbitrary instance
 
-        if not _enqueue(i.window.dispatcher_queue, create):
+        def create_guarded() -> None:
+            try:
+                create()
+            except BaseException as error:
+                # Unlike the master path, a secondary window has no
+                # equivalent of _fail_main_window_creation to release
+                # waiters and unregister it. Without this, a failure here
+                # (e.g. BrowserForm construction) would leave the window
+                # in the global `windows` list forever, with `before_show`/
+                # `shown`/`closed` never firing for anyone waiting on them.
+                logger.error('Failed to create window %r: %s', window.uid, error)
+                browser = BrowserView.instances.get(window.uid)
+                if browser is not None:
+                    # Already registered: close it and let on_close do its
+                    # normal instances/windows/`closed` cleanup.
+                    with contextlib.suppress(Exception):
+                        browser.window.close()
+                else:
+                    # Construction failed before anything was registered
+                    # for on_close to ever clean up.
+                    if window in windows:
+                        windows.remove(window)
+                    window.events.closed.set()
+                window.events.before_show.set()
+                window.events.shown.set()
+
+        if not _enqueue(i.window.dispatcher_queue, create_guarded):
             raise RuntimeError('Failed to enqueue callback')
 
 
