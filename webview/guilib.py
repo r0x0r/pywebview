@@ -147,7 +147,8 @@ def initialize(forced_gui: GUIType | None = None):
 
         if not try_import(guis):
             raise WebViewException(
-                'You must have pythonnet or Windows App runtime installed in order to use pywebview.'
+                'You must have pythonnet installed, or the pywebview[winui3] extra and Windows '
+                'App Runtime installed, in order to use pywebview.'
             )
     else:
         raise WebViewException(

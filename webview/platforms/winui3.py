@@ -462,7 +462,16 @@ class WinUI3EdgeChrome(WebView2Core):
         self._handle_new_window_request(args.uri)
 
     def on_source_changed(self, sender: CoreWebView2, args: CoreWebView2SourceChangedEventArgs):
-        self.url = sender.source or None
+        source = sender.source or None
+
+        if self.ishtml and source and source.lower() == 'about:blank':
+            # navigate_to_string() (used by load_html) reports the source as
+            # about:blank; don't let that clear HTML mode, or get_current_url()
+            # would report 'about:blank' instead of None for HTML/default-
+            # content windows.
+            return
+
+        self.url = source
         self.ishtml = False
 
     def on_webview_ready(self, sender: WebView2, args: CoreWebView2InitializedEventArgs):
