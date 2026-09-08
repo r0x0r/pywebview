@@ -121,13 +121,25 @@ class WebView2Core(ABC):
         """
         Fire request_sent event and return (extra, missing) header diffs if changed.
         Returns None if headers are unchanged.
+
+        HTTP header names are case-insensitive, so the diff is computed on
+        lowercased names: a handler that only changes a header's casing (e.g.
+        'User-Agent' -> 'user-agent') must re-set it under the new casing
+        without also removing it, since WebView2 treats both spellings as the
+        same header and a same-named remove-after-set would delete it.
         """
         request = Request(uri, method, dict(original))
         self.pywebview_window.events.request_sent.set(request)
         if request.headers == original:
             return None
-        extra = {k: v for k, v in request.headers.items() if k not in original or original[k] != v}
-        missing = {k for k in original if k not in request.headers}
+
+        original_by_lower = {k.lower(): (k, v) for k, v in original.items()}
+        new_by_lower = {k.lower(): (k, v) for k, v in request.headers.items()}
+
+        extra = {
+            k: v for lower, (k, v) in new_by_lower.items() if original_by_lower.get(lower) != (k, v)
+        }
+        missing = {k for lower, (k, _) in original_by_lower.items() if lower not in new_by_lower}
         return extra, missing
 
     def _fire_response_event(self, uri: str, status_code: int, headers: dict) -> None:

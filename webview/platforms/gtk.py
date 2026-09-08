@@ -1,9 +1,11 @@
+import atexit
 import json
 import logging
 import os
 import pathlib
 import sys
 import webbrowser
+from concurrent.futures import ThreadPoolExecutor
 from threading import Semaphore, Thread, main_thread
 from typing import Any
 from uuid import uuid1
@@ -24,6 +26,15 @@ from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
 os.environ['EGL_LOG_LEVEL'] = 'fatal'
+
+# Shared, bounded pool for dispatching request_sent handlers off the GTK main
+# thread. The events API documents these handlers as running in a separate
+# thread; calling them inline from a WebKit2 resource-request signal (the
+# GTK main thread) would violate that and let a handler calling a synchronous
+# window API (e.g. evaluate_js()) deadlock the main loop. A raw thread per
+# request would also let an asset-heavy page spawn unbounded OS threads.
+_request_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix='pywebview-request')
+atexit.register(_request_executor.shutdown, wait=False, cancel_futures=True)
 
 import gi  # noqa: E402
 
@@ -402,36 +413,44 @@ class BrowserView:
         url = request.get_uri()
         method = request.get_http_method()
 
-        request_ = Request(url, method, original_headers)
-        self.pywebview_window.events.request_sent.set(request_)
+        def dispatch_event():
+            request_ = Request(url, method, original_headers)
+            self.pywebview_window.events.request_sent.set(request_)
 
-        if (
-            request_.headers == original_headers
-            or not headers
-            or self.request_headers_mutated
-            or url != self.pywebview_window.real_url
-        ):
-            return
+            if (
+                request_.headers == original_headers
+                or not headers
+                or self.request_headers_mutated
+                or url != self.pywebview_window.real_url
+            ):
+                return
 
-        missing_headers = {
-            k: v
-            for k, v in request_.headers.items()
-            if k not in original_headers or original_headers[k] != v
-        }
-        extra_headers = {
-            k: str(v) for k, v in original_headers.items() if k not in request_.headers
-        }
+            missing_headers = {
+                k: v
+                for k, v in request_.headers.items()
+                if k not in original_headers or original_headers[k] != v
+            }
+            extra_headers = {
+                k: str(v) for k, v in original_headers.items() if k not in request_.headers
+            }
 
-        for k, v in missing_headers.items():
-            headers.append(k, v)
+            def apply_and_reload():
+                for k, v in missing_headers.items():
+                    headers.append(k, v)
 
-        for k in extra_headers:
-            headers.remove(k)
+                for k in extra_headers:
+                    headers.remove(k)
 
-        # headers.append('X-Handled', 'true')
-        webview.stop_loading()
-        self.request_headers_mutated = True
-        webview.load_request(request)
+                webview.stop_loading()
+                self.request_headers_mutated = True
+                webview.load_request(request)
+
+            # stop_loading()/load_request() are WebKit2 widget calls and must
+            # run on the GTK main thread; only the request_sent dispatch
+            # above (and any handler-triggered work) runs off of it.
+            glib.idle_add(apply_and_reload)
+
+        _request_executor.submit(dispatch_event)
 
     def on_load_finish(self, webview, status):
         # Show the webview if it's not already visible
