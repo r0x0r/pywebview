@@ -803,18 +803,18 @@ def pick_files_win32(
     )
 
     try:
+        options = ctypes.c_uint32()
+        _check(
+            _com_fn(dialog, _VTBL_GET_OPTIONS, _HRESULT, ctypes.POINTER(ctypes.c_uint32))(
+                dialog, ctypes.byref(options)
+            )
+        )
+
+        flags = options.value | _FOS_FORCEFILESYSTEM
         if allow_multiple:
-            options = ctypes.c_uint32()
-            _check(
-                _com_fn(dialog, _VTBL_GET_OPTIONS, _HRESULT, ctypes.POINTER(ctypes.c_uint32))(
-                    dialog, ctypes.byref(options)
-                )
-            )
-            _check(
-                _com_fn(dialog, _VTBL_SET_OPTIONS, _HRESULT, ctypes.c_uint32)(
-                    dialog, options.value | _FOS_ALLOWMULTISELECT
-                )
-            )
+            flags |= _FOS_ALLOWMULTISELECT
+
+        _check(_com_fn(dialog, _VTBL_SET_OPTIONS, _HRESULT, ctypes.c_uint32)(dialog, flags))
 
         # kept alive until Show() returns: SetFileTypes reads these strings by pointer
         _filter_specs = _set_dialog_file_types(dialog, file_types) if file_types else None
@@ -907,6 +907,18 @@ def pick_save_file_win32(
     )
 
     try:
+        options = ctypes.c_uint32()
+        _check(
+            _com_fn(dialog, _VTBL_GET_OPTIONS, _HRESULT, ctypes.POINTER(ctypes.c_uint32))(
+                dialog, ctypes.byref(options)
+            )
+        )
+        _check(
+            _com_fn(dialog, _VTBL_SET_OPTIONS, _HRESULT, ctypes.c_uint32)(
+                dialog, options.value | _FOS_FORCEFILESYSTEM
+            )
+        )
+
         # kept alive until Show() returns: SetFileTypes reads these strings by pointer
         _filter_specs = _set_dialog_file_types(dialog, file_types) if file_types else None
 
