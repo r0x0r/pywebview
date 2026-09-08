@@ -235,6 +235,22 @@ def _format_cookie_expiry(expires: float, is_session: bool) -> str | None:
     return format_datetime(datetime.fromtimestamp(expires, tz=timezone.utc), usegmt=True)
 
 
+def _primary_monitor_scale() -> float:
+    """
+    DPI scale of the primary monitor — the single shared reference scale
+    ``get_screens()`` uses to convert every monitor's physical-pixel origin
+    into one consistent logical desktop coordinate system (matching
+    WinForms' ``Screen.Bounds``, which is already in that space). Any other
+    code translating a *global/desktop* coordinate (a window's position, a
+    move() target, a position-changed event) must use this same scale for
+    that origin, not the scale of whichever monitor the window happens to
+    be on right now — mixing the two is what let cross-monitor moves and
+    get_position()/get_screens() disagree on mixed-DPI setups.
+    """
+    bounds = DisplayArea.primary.outer_bounds
+    return get_monitor_scale(bounds.x, bounds.y, bounds.width, bounds.height)
+
+
 class WinUI3EdgeChrome(WebView2Core):
     def __init__(self, form: Window, window: _Window, cache_dir: str):
         super().__init__(window)
@@ -295,14 +311,29 @@ class WinUI3EdgeChrome(WebView2Core):
                     _fail_child_window_creation(form)
                 return
 
-            env = op.get_results()
+            # get_results()/controller-option creation/the ensure_core_webview2
+            # call below are all synchronous and can raise (e.g. an invalid
+            # runtime path, private-mode not being supported). Left
+            # unguarded, that exception would escape this WinRT callback
+            # without ever unblocking a thread waiting in
+            # _wait_for_main_window(), the same hang class fixed elsewhere
+            # for _on_launched and the child create() dispatch.
+            try:
+                env = op.get_results()
 
-            ctrl_options = env.create_core_webview2_controller_options()
-            ctrl_options.is_in_private_mode_enabled = _state['private_mode']
+                ctrl_options = env.create_core_webview2_controller_options()
+                ctrl_options.is_in_private_mode_enabled = _state['private_mode']
 
-            ensure_op = self.webview.ensure_core_webview2_with_environment_and_options_async(
-                env, ctrl_options
-            )
+                ensure_op = self.webview.ensure_core_webview2_with_environment_and_options_async(
+                    env, ctrl_options
+                )
+            except BaseException as error:
+                logger.exception('Error setting up CoreWebView2 environment')
+                if is_master:
+                    _fail_main_window_creation(error)
+                else:
+                    _fail_child_window_creation(form)
+                return
 
             def on_ensure_op_completed(op: IAsyncAction, status: AsyncStatus):
                 if status != AsyncStatus.COMPLETED:
@@ -739,12 +770,6 @@ class BrowserView:
             self.window = WinUIWindow()
             self.handle = get_window_from_window_id(self.window.app_window.id)
             self.real_url = None
-            # WinUI3's XAML layer swallows WM_MOUSEWHEEL before it reaches WebView2.
-            # A WH_MOUSE_LL global hook intercepts wheel events and posts them directly
-            # to the WebView2 Chrome_WidgetWin_0 input HWND.  The same hook also handles
-            # frameless-window dragging via SetWindowPos.  The returned references must
-            # stay alive to prevent the ctypes callback and hook handle from being GC'd.
-            self._mouse_hook = install_mouse_hook(self.handle)
 
             self.pywebview_window.native = self.window
 
@@ -759,20 +784,25 @@ class BrowserView:
             )
 
             if window.initial_x is not None and window.initial_y is not None:
+                # initial_x/y are desktop-wide logical coordinates — the same
+                # space get_screens() reports monitor origins in — so they
+                # always convert with the single primary-monitor scale,
+                # regardless of which monitor they end up landing on. Unlike
+                # size below, this needs no re-resolution: the primary's
+                # scale doesn't depend on where the window lands.
                 self.window.app_window.move(
                     (
-                        int(window.initial_x * scale),
-                        int(window.initial_y * scale),
+                        int(window.initial_x * _primary_monitor_scale()),
+                        int(window.initial_y * _primary_monitor_scale()),
                     )
                 )
 
-                # initial_x/y are logical coordinates, but which monitor (and
-                # DPI) they land on isn't known until the window has actually
-                # been placed — Windows has no single unscaled logical space
-                # spanning monitors with different DPI. Re-resolve against
-                # the display the window actually landed on and, if its scale
-                # differs from what we assumed above, correct both the size
-                # and position for the real scale.
+                # The window's *size*, unlike its position, legitimately
+                # depends on the real DPI of whichever monitor it actually
+                # lands on — which isn't known until it's been placed there.
+                # Re-resolve against the display the window actually landed
+                # on and, if its scale differs from what we assumed above,
+                # correct the size for the real scale.
                 target_area = DisplayArea.get_from_window_id(
                     self.window.app_window.id, DisplayAreaFallback.NEAREST
                 )
@@ -788,12 +818,6 @@ class BrowserView:
                         (
                             int(max(window.initial_width, window.min_size[0]) * scale),
                             int(max(window.initial_height, window.min_size[1]) * scale),
-                        )
-                    )
-                    self.window.app_window.move(
-                        (
-                            int(window.initial_x * scale),
-                            int(window.initial_y * scale),
                         )
                     )
             elif window.screen:
@@ -880,6 +904,25 @@ class BrowserView:
             self.window.app_window.add_changed(self.on_changed)
 
             self.localization = window.localization
+
+            # Installed last, once construction has fully succeeded: this
+            # global WH_MOUSE_LL hook stays live system-wide until
+            # uninstall_mouse_hook() runs from on_close, which only happens
+            # for a form that actually made it into BrowserView.instances.
+            # Installing it earlier and then having a later step raise would
+            # leave the hook active with no registered instance for any
+            # failure handler to find and uninstall it through — and once
+            # this partially constructed form (and the ctypes callback
+            # closure the hook holds a pointer to) is garbage collected,
+            # Windows could still invoke that now-freed callback.
+            #
+            # WinUI3's XAML layer swallows WM_MOUSEWHEEL before it reaches
+            # WebView2. This hook intercepts wheel events and posts them
+            # directly to the WebView2 Chrome_WidgetWin_0 input HWND, and
+            # also handles frameless-window dragging via SetWindowPos. The
+            # returned reference must stay alive to prevent the ctypes
+            # callback and hook handle from being GC'd.
+            self._mouse_hook = install_mouse_hook(self.handle)
 
         def __str__(self):
             return f'<Window object with {self.handle} handle>'
@@ -1017,7 +1060,12 @@ class BrowserView:
                 self.old_state = self.overlapped_presenter.state
 
             if args.did_position_change:
-                scale = self._scale
+                # Position is a desktop-wide coordinate, so it must use the
+                # same primary-scale transform as get_screens()'s origins —
+                # not self._scale (this window's *current* monitor), which
+                # would report a different value than the Screen this
+                # window is actually sitting on for a mixed-DPI setup.
+                scale = _primary_monitor_scale()
                 x, y = self.window.app_window.position.unpack()
                 self.pywebview_window.events.moved.set(int(x / scale), int(y / scale))
 
@@ -1196,13 +1244,23 @@ class BrowserView:
 
         @invoke_on_ui_thread
         def get_position(self):
-            scale = self._scale
+            # Desktop-wide coordinate — must use the same primary-scale
+            # transform as get_screens()'s origins, not self._scale (this
+            # window's own current monitor), so this round-trips with
+            # move() and matches the Screen this window is actually on.
+            scale = _primary_monitor_scale()
             x, y = self.window.app_window.position.unpack()
             return (int(x / scale), int(y / scale))
 
         @invoke_on_ui_thread
         def move(self, x: int, y: int):
-            scale = self._scale
+            # x/y are desktop-wide logical coordinates (e.g. from
+            # get_screens() or a prior get_position()) — convert with the
+            # primary monitor's scale, not self._scale (the *source*
+            # monitor the window happens to be on right now), which would
+            # place the window wrong whenever the destination has a
+            # different DPI than the window's current position.
+            scale = _primary_monitor_scale()
             self.window.app_window.move((int(x * scale), int(y * scale)))
 
         @invoke_on_ui_thread
@@ -1841,10 +1899,7 @@ def get_screens():
     # Screen.Bounds, which is already in that same logical space. Each
     # monitor's own scale is still the right one for its *size*, since that
     # reflects how large its own content actually renders.
-    primary_bounds = DisplayArea.primary.outer_bounds
-    primary_scale = get_monitor_scale(
-        primary_bounds.x, primary_bounds.y, primary_bounds.width, primary_bounds.height
-    )
+    primary_scale = _primary_monitor_scale()
 
     screens = []
     for i in range(len(all_displays)):
