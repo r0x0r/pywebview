@@ -170,30 +170,46 @@ def _guard_future_callback(callback, future: Future):
     return guarded_callback
 
 
-def _run_dispatched(dispatcher_queue, callback, future: Future) -> None:
+def _run_dispatched(dispatcher_queue, callback, future: Future):
     """
-    Run ``callback`` (which must eventually resolve ``future``) on the UI thread.
+    Run ``callback`` (which must eventually resolve ``future``) on the UI
+    thread and return its result.
 
     If the calling thread already has dispatcher access — e.g. a native XAML
-    event handler calling back into this module — enqueueing and then blocking
-    this same thread on ``future`` would deadlock: nothing else can pump the
-    queue to run the enqueued callback. In that case, run it inline instead
-    and return immediately without waiting; ``future`` still
-    resolves once the callback's own async continuation completes, but the
-    caller has no safe way to block for it, so it must treat a not-yet-``done``
-    future as "result unavailable" rather than waiting on it.
+    event handler calling back into this module — enqueueing and then
+    blocking this same thread on ``future`` would deadlock: nothing else can
+    pump the queue to run the enqueued callback. Run it inline instead (so
+    e.g. a dialog is still shown, or a script still starts executing), but
+    raise rather than block or return a placeholder: silently returning
+    ``None`` here would violate the caller's documented contract (a ``bool``,
+    a path — indistinguishable from user cancellation, a synchronous script
+    result, ...). There is currently no genuinely asynchronous alternative
+    API for callers on this thread to use instead.
+
+    If enqueueing fails (e.g. the UI thread is shutting down), returns
+    ``None`` — ``future`` will never resolve, but this is an existing,
+    narrower failure mode than the thread-reentrancy case above.
 
     Otherwise (the common case — called from a background thread), enqueue
-    normally and block until ``future`` resolves.
+    normally, block until ``future`` resolves, and return its result (or
+    re-raise its exception).
     """
     guarded = _guard_future_callback(callback, future)
 
     if dispatcher_queue.has_thread_access:
         guarded()
-        return
+        raise RuntimeError(
+            'This operation was started, but its result cannot be awaited '
+            'synchronously from a native UI-thread callback (e.g. a XAML '
+            'event handler) without deadlocking the dispatcher that must '
+            'deliver it.'
+        )
 
-    if _enqueue(dispatcher_queue, guarded):
-        wait([future])
+    if not _enqueue(dispatcher_queue, guarded):
+        return None
+
+    wait([future])
+    return future.result()
 
 
 def _format_cookie_expiry(expires: float) -> str | None:
@@ -341,12 +357,19 @@ class WinUI3EdgeChrome(WebView2Core):
         try:
             if self.webview.dispatcher_queue.has_thread_access:
                 # Already on the UI thread (e.g. a native XAML event handler,
-                # such as the custom title bar example's button click):
-                # start the script but don't wait for it here — the dispatcher
-                # currently running this call is what would have to run
-                # `callback`, so blocking on the semaphore would deadlock it.
+                # such as the custom title bar example's button click): start
+                # the script, but raise rather than block or return a
+                # placeholder — the dispatcher currently running this call is
+                # what would have to run `callback`, so blocking on the
+                # semaphore would deadlock it, and evaluate_js() documents
+                # synchronous result delivery, so silently returning None
+                # here would misrepresent a real result as "no result".
                 callback()
-                return None
+                raise RuntimeError(
+                    'evaluate_js() cannot return a result synchronously when called '
+                    'from a native UI-thread callback (e.g. a XAML event handler) '
+                    'without deadlocking the dispatcher that must deliver it.'
+                )
 
             if not _enqueue(self.webview.dispatcher_queue, callback):
                 return None
@@ -501,7 +524,7 @@ class WinUI3EdgeChrome(WebView2Core):
 
     def on_script_notify(self, sender: WebView2, args: CoreWebView2WebMessageReceivedEventArgs):
         try:
-            self._route_script_message(args.web_message_as_json, args.additional_objects)
+            self._route_script_message(args.web_message_as_json, lambda: args.additional_objects)
         except Exception:
             logger.exception('Exception occurred during on_script_notify')
 
@@ -1365,9 +1388,7 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
 
         op.completed = on_completed
 
-    _run_dispatched(i.window.dispatcher_queue, callback, fut)
-
-    return fut.result() if fut.done() else None
+    return _run_dispatched(i.window.dispatcher_queue, callback, fut)
 
 
 def _folder_dialog_callback(
@@ -1563,9 +1584,7 @@ def create_file_dialog(
     else:
         raise ValueError('Invalid dialog type')
 
-    _run_dispatched(i.window.dispatcher_queue, callback, fut)
-
-    return fut.result() if fut.done() else None
+    return _run_dispatched(i.window.dispatcher_queue, callback, fut)
 
 
 def clear_cookies(uid: str):
@@ -1583,9 +1602,14 @@ def get_cookies(uid: str):
         # i.get_cookies() (via invoke_on_ui_thread) would run inline here and
         # only start the async cookie lookup; its completion is delivered by
         # enqueueing back onto this same dispatcher, which the acquire() below
-        # would then block from ever running. Reject rather than deadlock.
-        logger.warning('get_cookies() cannot be called synchronously from the UI thread')
-        return None
+        # would then block from ever running. Raise rather than deadlock or
+        # silently return None, which would look like "no cookies" instead
+        # of "unavailable in this calling context".
+        raise RuntimeError(
+            'get_cookies() cannot be awaited synchronously from a native UI-thread '
+            'callback (e.g. a XAML event handler) without deadlocking the dispatcher '
+            'that must deliver the result.'
+        )
 
     semaphore = Semaphore(0)
     cookies: list[SimpleCookie] = []

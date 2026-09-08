@@ -209,7 +209,7 @@ class WinFormsEdgeChrome(WebView2Core):
 
     def on_script_notify(self, _, args):
         try:
-            self._route_script_message(args.get_WebMessageAsJson(), args.get_AdditionalObjects())
+            self._route_script_message(args.get_WebMessageAsJson(), args.get_AdditionalObjects)
         except Exception:
             logger.exception('Exception occurred during on_script_notify')
 
