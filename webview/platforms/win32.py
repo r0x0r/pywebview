@@ -285,9 +285,17 @@ def install_mouse_hook(hwnd: int):
                     # Forward only while the pointer is inside Chromium's input
                     # surface, not over XAML menus, title bars, or native chrome.
                     target = _get_input_hwnd()
+                    target_from_cache = bool(target)
                     if target:
                         target_rect = wintypes.RECT()
-                        if not _user32.GetWindowRect(target, ctypes.byref(target_rect)) or not (
+                        if not _user32.GetWindowRect(target, ctypes.byref(target_rect)):
+                            # The cached input HWND no longer exists (e.g.
+                            # WebView2 recreated it) - drop the stale cache
+                            # entry so the next event re-resolves it, and let
+                            # this one through instead of silently eating it.
+                            input_hwnd_cache[0] = None
+                            return _user32.CallNextHookEx(hook_handle[0], nCode, wParam, lParam)
+                        if not (
                             target_rect.left <= logical_pt.x < target_rect.right
                             and target_rect.top <= logical_pt.y < target_rect.bottom
                         ):
@@ -304,7 +312,14 @@ def install_mouse_hook(hwnd: int):
                     # carry the current MK_* modifier/button flags, not mouseData's
                     # (always-zero) low word, so Ctrl/Shift+wheel behave correctly.
                     wheel_wparam = (hs.mouseData & 0xFFFF0000) | _mouse_wheel_key_state()
-                    _user32.PostMessageW(target, wParam, wheel_wparam, lparam)
+                    if not _user32.PostMessageW(target, wParam, wheel_wparam, lparam):
+                        # Delivery failed - e.g. the cached input HWND was
+                        # destroyed between GetWindowRect above and here.
+                        # Invalidate the cache and don't suppress the
+                        # original event, so scrolling isn't silently lost.
+                        if target_from_cache:
+                            input_hwnd_cache[0] = None
+                        return _user32.CallNextHookEx(hook_handle[0], nCode, wParam, lParam)
                     return 1  # suppress original so XAML doesn't swallow it
 
         return _user32.CallNextHookEx(hook_handle[0], nCode, wParam, lParam)

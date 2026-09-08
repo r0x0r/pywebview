@@ -147,8 +147,10 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
         # through (as backends do for a session cookie with no expiry, e.g.
         # winui3.py's _format_cookie_expiry) makes SimpleCookie.output()
         # render the literal string "expires=None" instead of leaving the
-        # attribute out.
-        cookie[name]['expires'] = input_['expires'] or ''
+        # attribute out. Check `is None` specifically, not truthiness: 0 is
+        # a legitimate expiry (the Unix epoch, used to expire a cookie
+        # immediately) and must not be normalized away like None is.
+        cookie[name]['expires'] = '' if input_['expires'] is None else input_['expires']
         cookie[name]['secure'] = input_['secure']
         cookie[name]['httponly'] = input_['httponly']
         cookie[name]['samesite'] = input_.get('samesite')
