@@ -629,23 +629,32 @@ def _set_dialog_folder(dialog, directory: str) -> None:
         _com_release(item)
 
 
-def _set_dialog_file_types(dialog, file_types: list[str]) -> list[_COMDLG_FILTERSPEC]:
+def _set_dialog_file_types(dialog, file_types: list[str]):
     """
     Apply pywebview `file_types` filter strings (e.g. 'Images (*.png;*.jpg)') to an
-    IFileDialog. Returns the filter spec array, which must outlive the Show() call.
+    IFileDialog. Returns the filter spec array, which must outlive the Show() call:
+    IFileDialog retains the array pointer rather than copying it, so both the
+    struct-array buffer itself and the string buffers its entries point to have
+    to stay alive — assigning fields directly on the array (rather than copying
+    in separately-built `_COMDLG_FILTERSPEC` instances) keeps ctypes' keepalive
+    tracking anchored on the one object the caller is told to hold onto.
     """
-    specs = [_COMDLG_FILTERSPEC(*parse_file_type(f)) for f in file_types]
-    if not specs:
-        return specs
+    parsed = [parse_file_type(f) for f in file_types]
+    if not parsed:
+        return None
 
-    array = (_COMDLG_FILTERSPEC * len(specs))(*specs)
+    array = (_COMDLG_FILTERSPEC * len(parsed))()
+    for entry, (name, spec) in zip(array, parsed):
+        entry.pszName = name
+        entry.pszSpec = spec
+
     hr = _com_fn(
         dialog, _VTBL_SET_FILE_TYPES, _HRESULT, ctypes.c_uint32, ctypes.POINTER(_COMDLG_FILTERSPEC)
-    )(dialog, len(specs), array)
+    )(dialog, len(array), array)
     if hr:
         _log.warning('IFileDialog::SetFileTypes failed: 0x%08x', hr)
 
-    return specs
+    return array
 
 
 def _shell_item_path(item) -> str | None:
