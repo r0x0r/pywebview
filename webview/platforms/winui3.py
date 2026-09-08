@@ -275,10 +275,24 @@ def _png_to_ico(png_path: str) -> str | None:
             return None
 
         width, height = struct.unpack('>II', data[16:24])
-        # ICONDIRENTRY encodes a 256px dimension as 0; anything smaller must
-        # fit in a single byte, which a PNG-format icon always does anyway.
-        icon_width = 0 if width >= 256 else width
-        icon_height = 0 if height >= 256 else height
+        if width > 256 or height > 256:
+            # ICONDIRENTRY's width/height are single bytes, with 0 meaning
+            # exactly 256 - not "256 or larger". A larger image (512x512 app
+            # icons are common) has no valid encoding here at all; writing 0
+            # would claim 256x256 while the embedded PNG is actually bigger,
+            # which set_icon() can reject as malformed. Fall back to the
+            # default icon instead of risking a construction failure.
+            logger.warning(
+                'Window icon %r is %dx%d, larger than the 256x256 .ico format '
+                'supports; falling back to the default icon.',
+                png_path,
+                width,
+                height,
+            )
+            return None
+        # 256 itself is encoded as 0; anything smaller fits in the byte as-is.
+        icon_width = 0 if width == 256 else width
+        icon_height = 0 if height == 256 else height
 
         icondir = struct.pack('<HHH', 0, 1, 1)
         icondirentry = struct.pack(
@@ -1101,7 +1115,11 @@ class BrowserView:
                 args.cancel = True
 
         def on_resize(self, sender: Object, args: WindowSizeChangedEventArgs):
-            self.pywebview_window.events.resized.set(args.size.width, args.size.height)
+            # args.size is the XAML content area's size, not the outer
+            # AppWindow size get_size()/resize() use (differs by title-bar/
+            # menu chrome) - use get_size() itself so events.resized always
+            # agrees with what a handler reading window.get_size() would see.
+            self.pywebview_window.events.resized.set(*self.get_size())
 
         def on_changed(self, sender: AppWindow, args: AppWindowChangedEventArgs):
             if args.did_size_change:
