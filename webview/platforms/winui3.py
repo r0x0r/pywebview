@@ -1991,6 +1991,9 @@ def get_screens():
     # Can't directly iterate return value of find_all(). Workaround is to
     # get by index. https://github.com/microsoft/microsoft-ui-xaml/issues/6454
     all_displays = DisplayArea.find_all()
+    # webview.screens documents the primary display as the first element;
+    # find_all()'s native enumeration order makes no such guarantee.
+    all_displays = sorted(all_displays, key=lambda da: not da.is_primary)
 
     # DisplayArea.outer_bounds reports true physical-pixel positions: e.g. a
     # 200%-scaled secondary monitor placed right after a 1920-wide primary
