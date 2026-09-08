@@ -218,15 +218,19 @@ def _run_dispatched(dispatcher_queue, callback, future: Future):
     return future.result()
 
 
-def _format_cookie_expiry(expires: float) -> str | None:
+def _format_cookie_expiry(expires: float, is_session: bool) -> str | None:
     """
-    Convert CoreWebView2Cookie.expires (seconds since the Unix epoch, or a
-    negative value for a session cookie with no expiration) to the HTTP-date
-    format (e.g. 'Wed, 21 Oct 2026 07:28:00 GMT') the cookie's Expires
-    attribute requires. WinRT projects this property as a raw double, unlike
-    the WinForms/.NET binding, which exposes an already-formattable DateTime.
+    Convert CoreWebView2Cookie.expires (seconds since the Unix epoch) to the
+    HTTP-date format (e.g. 'Wed, 21 Oct 2026 07:28:00 GMT') the cookie's
+    Expires attribute requires. WinRT projects this property as a raw
+    double, unlike the WinForms/.NET binding, which exposes an
+    already-formattable DateTime.
+
+    A session cookie is identified via CoreWebView2Cookie.is_session, the
+    documented authoritative flag — not by treating a negative `expires` as
+    a sentinel, since only `is_session` is guaranteed to mean "no expiry".
     """
-    if expires is None or expires < 0:
+    if is_session or expires is None:
         return None
     return format_datetime(datetime.fromtimestamp(expires, tz=timezone.utc), usegmt=True)
 
@@ -417,7 +421,7 @@ class WinUI3EdgeChrome(WebView2Core):
                             'value': c.value,
                             'path': c.path,
                             'domain': c.domain,
-                            'expires': _format_cookie_expiry(c.expires),
+                            'expires': _format_cookie_expiry(c.expires, c.is_session),
                             'secure': c.is_secure,
                             'httponly': c.is_http_only,
                             'samesite': same_site,
@@ -1340,8 +1344,15 @@ def create_window(window: _Window):
 
         # Applies regardless of visibility, matching WinForms/GTK: a window
         # created hidden and maximized/minimized should already be in that
-        # state once it's later shown, not reset to normal.
-        if window.maximized:
+        # state once it's later shown, not reset to normal. Skipped when
+        # fullscreen was requested: BrowserForm.__init__ already switched to
+        # full_screen_presenter, and OverlappedPresenter.maximize()/minimize()
+        # would switch the active presenter back to it, undoing fullscreen —
+        # WinForms resolves the same combination by always applying
+        # fullscreen last, so it wins regardless of maximized/minimized.
+        if window.fullscreen:
+            pass
+        elif window.maximized:
             browser.overlapped_presenter.maximize()
         elif window.minimized:
             browser.overlapped_presenter.minimize()
