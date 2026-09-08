@@ -39,14 +39,17 @@ info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
 info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
 info['NSRequiresAquaSystemAppearance'] = Foundation.NO  # Enable dark mode support for Mojave
 
-# Shared, bounded pool for dispatching request_sent handlers off the AppKit
-# main thread. The events API documents these handlers as running in a
-# separate thread; calling them inline from the navigation-policy delegate
+# Bounded, single-worker pool for dispatching request_sent handlers off the
+# AppKit main thread. The events API documents these handlers as running in
+# a separate thread; calling them inline from the navigation-policy delegate
 # (the main thread) would violate that and let a handler calling a
 # synchronous window API (e.g. evaluate_js()) deadlock the main run loop. A
 # raw thread per request would also let an asset-heavy page spawn unbounded
-# OS threads.
-_request_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix='pywebview-request')
+# OS threads. This dispatches a stop-current-load-and-reissue navigation
+# (webview.loadRequest_), so it must process requests in submission order —
+# more than one worker could let a later navigation's handler finish first
+# and get overwritten by an earlier, slower one completing after it.
+_request_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='pywebview-request')
 atexit.register(_request_executor.shutdown, wait=False, cancel_futures=True)
 
 # Fallbacks, in case these constants are not wrapped by PyObjC
