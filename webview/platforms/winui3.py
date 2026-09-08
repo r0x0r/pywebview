@@ -171,7 +171,9 @@ def _guard_future_callback(callback, future: Future):
     return guarded_callback
 
 
-def _run_dispatched(dispatcher_queue, callback, future: Future):
+def _run_dispatched(
+    dispatcher_queue, callback, future: Future, may_complete_synchronously: bool = False
+):
     """
     Run ``callback`` (which must eventually resolve ``future``) on the UI
     thread and return its result.
@@ -179,17 +181,22 @@ def _run_dispatched(dispatcher_queue, callback, future: Future):
     If the calling thread already has dispatcher access — e.g. a native XAML
     event handler calling back into this module — enqueueing and then
     blocking this same thread on ``future`` would deadlock: nothing else can
-    pump the queue to run the enqueued callback. Run it inline instead (so
-    e.g. a dialog is still shown, or a script still starts executing). Some
-    callbacks (e.g. the Win32 IFileDialog fallbacks, which pump their own
-    modal loop via Show()) complete ``future`` synchronously within this call
-    — in that case just return the real result. Otherwise the result is only
-    available asynchronously, and this thread has no safe way to wait for it
-    without deadlocking, so raise rather than return a placeholder:
-    silently returning ``None`` here would violate the caller's documented
-    contract (a ``bool``, a path — indistinguishable from user cancellation,
-    a synchronous script result, ...). There is currently no genuinely
-    asynchronous alternative API for callers on this thread to use instead.
+    pump the queue to run the enqueued callback.
+
+    ``may_complete_synchronously`` must be True only when ``callback`` is
+    known, for this specific call, to resolve ``future`` before returning
+    (e.g. a Win32 IFileDialog fallback pumping its own modal loop via
+    Show()) — in that case it's run inline and its real result returned.
+    When False (the default — a genuinely async operation like
+    ContentDialog.show_async() or a WinRT picker's *_async(), which only
+    resolve ``future`` later from a ``.completed`` callback), raise
+    *before* invoking ``callback`` at all: starting it and then raising
+    would leave a dialog visibly on screen (or a script running) with no
+    way for the caller — who already received an exception — to ever see
+    its result. Silently returning ``None`` instead of raising would also
+    violate the caller's documented contract (a ``bool``, a path —
+    indistinguishable from user cancellation, a synchronous script
+    result, ...).
 
     If enqueueing fails (e.g. the UI thread is shutting down), returns
     ``None`` — ``future`` will never resolve, but this is an existing,
@@ -199,9 +206,15 @@ def _run_dispatched(dispatcher_queue, callback, future: Future):
     normally, block until ``future`` resolves, and return its result (or
     re-raise its exception).
     """
-    guarded = _guard_future_callback(callback, future)
-
     if dispatcher_queue.has_thread_access:
+        if not may_complete_synchronously:
+            raise RuntimeError(
+                'This operation cannot be started synchronously from a native '
+                'UI-thread callback (e.g. a XAML event handler): it only '
+                'resolves later, asynchronously, and this thread has no safe '
+                'way to wait for that without deadlocking the dispatcher.'
+            )
+        guarded = _guard_future_callback(callback, future)
         guarded()
         if future.done():
             return future.result()
@@ -212,6 +225,7 @@ def _run_dispatched(dispatcher_queue, callback, future: Future):
             'deliver it.'
         )
 
+    guarded = _guard_future_callback(callback, future)
     if not _enqueue(dispatcher_queue, guarded):
         return None
 
@@ -463,24 +477,24 @@ class WinUI3EdgeChrome(WebView2Core):
         try:
             if self.webview.dispatcher_queue.has_thread_access:
                 # Already on the UI thread (e.g. a native XAML event handler,
-                # such as the custom title bar example's button click): start
-                # the script either way. Window.run_js() (parse_json=False)
-                # is fire-and-forget by contract — its docstring says the
-                # result isn't guaranteed — so it's safe to return once the
-                # script has started. Window.evaluate_js() (parse_json=True)
-                # does need its result, and blocking on the semaphore below
-                # would deadlock the very dispatcher that has to run
-                # `callback` and deliver it, so that case still raises
-                # rather than silently returning None and misrepresenting a
-                # real result as "no result".
+                # such as the custom title bar example's button click).
+                # Window.evaluate_js() (parse_json=True) needs its result,
+                # and blocking on the semaphore below would deadlock the
+                # very dispatcher that has to run `callback` and deliver it
+                # — raise *before* starting the script, not after, so a
+                # caller that catches this and retries doesn't end up
+                # running a script with side effects twice. Window.run_js()
+                # (parse_json=False) is fire-and-forget by contract — its
+                # docstring says the result isn't guaranteed — so it's the
+                # only case where it's safe to start the script and return.
+                if parse_json:
+                    raise RuntimeError(
+                        'evaluate_js() cannot return a result synchronously when called '
+                        'from a native UI-thread callback (e.g. a XAML event handler) '
+                        'without deadlocking the dispatcher that must deliver it.'
+                    )
                 callback()
-                if not parse_json:
-                    return None
-                raise RuntimeError(
-                    'evaluate_js() cannot return a result synchronously when called '
-                    'from a native UI-thread callback (e.g. a XAML event handler) '
-                    'without deadlocking the dispatcher that must deliver it.'
-                )
+                return None
 
             if not _enqueue(self.webview.dispatcher_queue, callback):
                 return None
@@ -1809,16 +1823,23 @@ def create_file_dialog(
 
     fut: Future[tuple[str, ...] | None] = Future()
 
+    # Mirrors each callback's own `if directory: ...`/`if allow_multiple or
+    # directory: ...` branch below: only that Win32 IFileDialog fallback
+    # path pumps its own modal loop and resolves `fut` synchronously — the
+    # WinRT picker path taken otherwise is genuinely async-only.
     if dialog_type == FileDialog.FOLDER:
         callback = _folder_dialog_callback(i.handle, allow_multiple, directory, fut)
+        may_complete_synchronously = bool(allow_multiple or directory)
     elif dialog_type == FileDialog.OPEN:
         callback = _open_dialog_callback(i.handle, allow_multiple, file_types, directory, fut)
+        may_complete_synchronously = bool(directory)
     elif dialog_type == FileDialog.SAVE:
         callback = _save_dialog_callback(i.handle, uid, save_filename, file_types, directory, fut)
+        may_complete_synchronously = bool(directory)
     else:
         raise ValueError('Invalid dialog type')
 
-    return _run_dispatched(i.window.dispatcher_queue, callback, fut)
+    return _run_dispatched(i.window.dispatcher_queue, callback, fut, may_complete_synchronously)
 
 
 def clear_cookies(uid: str):
@@ -1974,15 +1995,23 @@ def get_screens():
     # DisplayArea.outer_bounds reports true physical-pixel positions: e.g. a
     # 200%-scaled secondary monitor placed right after a 1920-wide primary
     # begins at physical x=1920, not some DPI-adjusted value. Converting
-    # each monitor's *origin* using its own scale therefore produces an
-    # inconsistent shared coordinate system (that same secondary would be
-    # reported at logical x=960, overlapping the primary). Windows itself
-    # resolves this for system-DPI-aware processes (which this module is,
-    # via SetProcessDPIAware()) by virtualizing every monitor's position
-    # using the primary monitor's scale alone — matching WinForms'
-    # Screen.Bounds, which is already in that same logical space. Each
-    # monitor's own scale is still the right one for its *size*, since that
-    # reflects how large its own content actually renders.
+    # each monitor's own *origin* using its own scale therefore produces an
+    # inconsistent shared coordinate system (that secondary would be
+    # reported at logical x=960, overlapping the primary).
+    #
+    # Using the primary's scale for origins alone isn't enough either: it
+    # only avoids overlap when the neighbor's own scale is >= the primary's.
+    # A lower-scaled monitor placed adjacent to a higher-scaled primary
+    # (e.g. a 100%-scaled screen to the left of a 200%-scaled primary) would
+    # still get an origin+width combination that overlaps the primary,
+    # because origin and size would be measured in two different reference
+    # scales. The only way to preserve true physical adjacency for *any*
+    # topology is to convert every screen's entire bounding box - origin
+    # *and* size - through the same single scale, matching how Windows
+    # itself virtualizes monitor bounds for system-DPI-aware processes
+    # (which this module is, via SetProcessDPIAware()) and how WinForms'
+    # Screen.Bounds is already reported. Each monitor's own real scale is
+    # still reported separately via Screen.scale/dpi.
     primary_scale = _primary_monitor_scale()
 
     screens = []
@@ -1998,8 +2027,8 @@ def get_screens():
 
         logical_x = int(phys_x / primary_scale)
         logical_y = int(phys_y / primary_scale)
-        logical_width = int(phys_width / scale)
-        logical_height = int(phys_height / scale)
+        logical_width = int(phys_width / primary_scale)
+        logical_height = int(phys_height / primary_scale)
 
         screens.append(
             Screen(

@@ -516,7 +516,7 @@ Get the scale factor (DPI scale) for this display. For example, a value of `2.0`
 screen.physical_width
 ```
 
-Get display width in physical pixels. Equal to `width * scale`.
+Get display width in physical pixels. Equal to `width * scale` on most platforms. On the WinUI3 backend with a mixed-DPI multi-monitor setup, see the note under `screen.physical_x` below — the same exception applies here.
 
 ### screen.physical_height
 
@@ -524,7 +524,7 @@ Get display width in physical pixels. Equal to `width * scale`.
 screen.physical_height
 ```
 
-Get display height in physical pixels. Equal to `height * scale`.
+Get display height in physical pixels. Equal to `height * scale` on most platforms; see `screen.physical_x` below for the WinUI3 mixed-DPI exception.
 
 ### screen.physical_x
 
@@ -532,7 +532,7 @@ Get display height in physical pixels. Equal to `height * scale`.
 screen.physical_x
 ```
 
-Get X coordinate of the top-left corner of the display in physical pixels. Equal to `x * scale` on most platforms. On a mixed-DPI multi-monitor Windows setup, `x` is reported in a single desktop-wide coordinate system shared by every screen (so screens don't overlap), which can use a different scale than this screen's own `scale` (used for its size) — in that case `physical_x` reflects the true physical position rather than `x * scale`.
+Get X coordinate of the top-left corner of the display in physical pixels. Equal to `x * scale` on most platforms. On the **WinUI3** backend with a mixed-DPI multi-monitor setup, every screen's `x`/`y`/`width`/`height` are reported in a single desktop-wide coordinate system shared by every screen (so screens tile without overlapping), computed using a single scale factor that can differ from this screen's own `scale` (which still reflects its true DPI, e.g. for `dpi`) — in that case `physical_x`/`physical_y`/`physical_width`/`physical_height` reflect the true physical geometry using that shared scale instead of `scale`. Other backends (WinForms, GTK, Qt, Cocoa) always use `scale` directly.
 
 ### screen.physical_y
 
@@ -540,7 +540,7 @@ Get X coordinate of the top-left corner of the display in physical pixels. Equal
 screen.physical_y
 ```
 
-Get Y coordinate of the top-left corner of the display in physical pixels. Equal to `y * scale` on most platforms; see `physical_x` above for the mixed-DPI Windows exception.
+Get Y coordinate of the top-left corner of the display in physical pixels. Equal to `y * scale` on most platforms; see `physical_x` above for the WinUI3 mixed-DPI exception.
 
 ### screen.dpi
 
