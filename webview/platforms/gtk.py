@@ -731,21 +731,23 @@ class BrowserView:
 
         if current_thread() is main_thread():
             # Already on the GTK main thread (e.g. a request_sent handler
-            # firing synchronously from resource-load-started): start the
-            # script either way. Window.run_js() (parse_json=False) is
-            # fire-and-forget by contract — its docstring says the result
-            # isn't guaranteed — so it's safe to return once the script has
-            # started. Window.evaluate_js() (parse_json=True) does need its
-            # result, and the acquire() below would deadlock the very main
-            # loop that has to run _evaluate_js (via glib.idle_add) and
-            # deliver it, so that case still raises instead.
+            # firing synchronously from resource-load-started).
+            # Window.evaluate_js() (parse_json=True) needs its result, and
+            # the acquire() below would deadlock the very main loop that
+            # has to run _evaluate_js (via glib.idle_add) and deliver it —
+            # raise *before* starting the script, not after, so a caller
+            # that catches this and retries doesn't end up running a
+            # script with side effects twice. Window.run_js()
+            # (parse_json=False) is fire-and-forget by contract — its
+            # docstring says the result isn't guaranteed — so it's the only
+            # case where it's safe to start the script and return.
+            if parse_json:
+                raise RuntimeError(
+                    'evaluate_js() cannot return a result synchronously when called '
+                    'from a native GTK callback without deadlocking the main loop.'
+                )
             _evaluate_js()
-            if not parse_json:
-                return None
-            raise RuntimeError(
-                'evaluate_js() cannot return a result synchronously when called '
-                'from a native GTK callback without deadlocking the main loop.'
-            )
+            return None
 
         unique_id = uuid1().hex
         self.js_results[unique_id] = {'semaphore': result_semaphore}

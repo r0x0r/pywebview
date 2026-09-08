@@ -112,10 +112,10 @@ def test_screen_manual_creation():
 
 def test_screen_origin_scale():
     """
-    origin_scale lets a screen's position convert with a different factor
-    than its size — used on mixed-DPI Windows/WinUI3 setups where every
-    screen's origin shares one desktop-wide scale (so screens don't
-    overlap) while each screen's own scale is still right for its size.
+    origin_scale is the scale a screen's entire bounding box (x, y, width,
+    height) was actually computed with - used on WinUI3 mixed-DPI setups
+    where every screen shares one desktop-wide scale so they tile without
+    overlapping, while each screen's own `scale` still reports its true DPI.
     """
     from webview.screen import Screen
 
@@ -125,14 +125,51 @@ def test_screen_origin_scale():
     assert screen.origin_scale == screen.scale == 1.5
     assert screen.physical_x == 150
     assert screen.physical_y == 300
+    assert screen.physical_width == 2880
 
-    # A 200%-scaled secondary monitor at physical x=1920 next to a 100%
-    # primary: get_screens() reports it at logical x=1920 (physical /
-    # the shared primary scale), not logical x=960 (physical / its own
-    # scale), so it doesn't overlap the primary. physical_x must still
-    # recover the true physical origin, 1920 - not 3840 (1920 * 2.0).
-    mixed = Screen(1920, 0, 1920, 1080, scale=2.0, origin_scale=1.0)
+    # A 200%-scaled monitor whose true physical bounds are x=1920,
+    # width=3840, reported by get_screens() using a 100% primary's scale:
+    # x/width are computed with origin_scale=1.0 (1920, 3840 unchanged),
+    # while `scale` still reports this monitor's own true DPI (2.0).
+    mixed = Screen(1920, 0, 3840, 2160, scale=2.0, origin_scale=1.0)
     assert mixed.scale == 2.0
     assert mixed.origin_scale == 1.0
     assert mixed.physical_x == 1920
     assert mixed.physical_width == 3840
+    assert mixed.dpi == 192  # still this monitor's own true DPI, unaffected
+
+
+def test_screen_origin_scale_prevents_overlap_any_topology():
+    """
+    Regression test for the exact scenario get_screens() must avoid: a
+    lower-scaled monitor placed adjacent to a higher-scaled primary must
+    not overlap it. This requires converting each screen's *entire*
+    bounding box - not just its origin - through the same shared scale;
+    using each monitor's own scale for width/height while sharing only the
+    origin's scale is not sufficient in every topology.
+    """
+    from webview.screen import Screen
+
+    primary_scale = 2.0  # the primary monitor is 200% scaled
+
+    # Primary: true physical bounds x=0, width=3840, height=2160 (a
+    # 200%-scaled 4K display) - get_screens() computes its logical bounding
+    # box by dividing by primary_scale, same as every other screen.
+    primary = Screen(0, 0, 1920, 1080, scale=2.0, origin_scale=primary_scale)
+    assert primary.x == 0
+    assert primary.width == 1920  # spans logical x 0..1920
+
+    # Secondary: a 100%-scaled 1920x1080 monitor placed immediately to the
+    # primary's *left* in true physical pixels (true phys_x=-1920, so its
+    # logical x and width are also both divided by the *primary's* scale,
+    # not its own 1.0).
+    secondary = Screen(-960, 0, 960, 540, scale=1.0, origin_scale=primary_scale)
+    assert secondary.x == -960
+    assert secondary.width == 960  # not 1920 (its own scale) - that would overlap
+
+    # The secondary's right edge must land exactly at the primary's left
+    # edge - no overlap, regardless of which monitor has the higher scale.
+    assert secondary.x + secondary.width == primary.x
+    # And physical_x/width must still recover the true physical geometry.
+    assert secondary.physical_x == -1920
+    assert secondary.physical_width == 1920
