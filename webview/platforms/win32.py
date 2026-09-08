@@ -348,6 +348,12 @@ def start_drag(hwnd: int) -> None:
         _user32.GetWindowRect(hwnd, ctypes.byref(rect))
         cursor = wintypes.POINT()
         _user32.GetCursorPos(ctypes.byref(cursor))
+        if _PhysicalToLogicalPointForPerMonitorDPI is not None:
+            # Match the per-monitor-physical -> logical conversion applied to
+            # every subsequent WM_MOUSEMOVE point in the hook, or the first
+            # delta computed against this point mixes coordinate spaces on a
+            # scaled display.
+            _PhysicalToLogicalPointForPerMonitorDPI(hwnd, ctypes.byref(cursor))
         drag[0] = 2  # pending — move only after tolerance exceeded
         drag[1] = cursor.x
         drag[2] = cursor.y

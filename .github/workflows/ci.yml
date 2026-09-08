@@ -194,7 +194,7 @@ jobs:
     - name: Install WebView2 Runtime (Windows)
       if: runner.os == 'Windows'
       run: |
-        choco install webview2-runtime --ignore-checksums
+        choco install webview2-runtime --ignore-checksums -y
 
     # Install Python dependencies
     - name: Install base dependencies
@@ -279,7 +279,7 @@ jobs:
 
     - name: Install WebView2 Runtime
       run: |
-        choco install webview2-runtime
+        choco install webview2-runtime -y
 
     - name: Install Windows App Runtime
       shell: pwsh
