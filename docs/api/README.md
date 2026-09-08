@@ -530,7 +530,7 @@ Get display height in physical pixels. Equal to `height * scale`.
 screen.physical_x
 ```
 
-Get X coordinate of the top-left corner of the display in physical pixels. Equal to `x * scale`.
+Get X coordinate of the top-left corner of the display in physical pixels. Equal to `x * scale` on most platforms. On a mixed-DPI multi-monitor Windows setup, `x` is reported in a single desktop-wide coordinate system shared by every screen (so screens don't overlap), which can use a different scale than this screen's own `scale` (used for its size) — in that case `physical_x` reflects the true physical position rather than `x * scale`.
 
 ### screen.physical_y
 
@@ -538,7 +538,7 @@ Get X coordinate of the top-left corner of the display in physical pixels. Equal
 screen.physical_y
 ```
 
-Get Y coordinate of the top-left corner of the display in physical pixels. Equal to `y * scale`.
+Get Y coordinate of the top-left corner of the display in physical pixels. Equal to `y * scale` on most platforms; see `physical_x` above for the mixed-DPI Windows exception.
 
 ### screen.dpi
 

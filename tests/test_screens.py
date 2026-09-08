@@ -108,3 +108,31 @@ def test_screen_manual_creation():
     assert screen3.physical_width == 2880
     assert screen3.physical_height == 1620
     assert screen3.dpi == 144
+
+
+def test_screen_origin_scale():
+    """
+    origin_scale lets a screen's position convert with a different factor
+    than its size — used on mixed-DPI Windows/WinUI3 setups where every
+    screen's origin shares one desktop-wide scale (so screens don't
+    overlap) while each screen's own scale is still right for its size.
+    """
+    from webview.screen import Screen
+
+    # Omitted: defaults to `scale`, preserving the plain x * scale contract
+    # every other backend relies on.
+    screen = Screen(100, 200, 1920, 1080, scale=1.5)
+    assert screen.origin_scale == screen.scale == 1.5
+    assert screen.physical_x == 150
+    assert screen.physical_y == 300
+
+    # A 200%-scaled secondary monitor at physical x=1920 next to a 100%
+    # primary: get_screens() reports it at logical x=1920 (physical /
+    # the shared primary scale), not logical x=960 (physical / its own
+    # scale), so it doesn't overlap the primary. physical_x must still
+    # recover the true physical origin, 1920 - not 3840 (1920 * 2.0).
+    mixed = Screen(1920, 0, 1920, 1080, scale=2.0, origin_scale=1.0)
+    assert mixed.scale == 2.0
+    assert mixed.origin_scale == 1.0
+    assert mixed.physical_x == 1920
+    assert mixed.physical_width == 3840
