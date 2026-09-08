@@ -145,6 +145,11 @@ def initialize(forced_gui: GUIType | None = None):
             # the WinUI 3 import fails, or callers asking for winui3 could
             # unknowingly get a different renderer instead.
             guis = [import_winui3]
+        elif forced_gui in ('cef', 'mshtml', 'edgechromium'):
+            # Explicitly requested a WinForms-family renderer: don't silently
+            # fall back to WinUI 3 if it fails to load either, for the same
+            # reason as the winui3 case above.
+            guis = [import_winforms]
         else:
             guis = [import_winforms, import_winui3]
 
