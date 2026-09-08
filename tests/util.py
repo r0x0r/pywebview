@@ -19,7 +19,7 @@ def run_test(
     window: Any,
     thread_func: Callable | None = None,
     param: Iterable = (),
-    start_args: dict[str, Any] = {},
+    start_args: dict[str, Any] | None = None,
     no_destroy: bool = False,
     destroy_delay: float = 0,
     debug: bool = False,
@@ -43,6 +43,7 @@ def run_test(
     __tracebackhide__ = True
     try:
         queue: Queue = Queue()
+        start_args = dict(start_args) if start_args else {}
 
         if debug:
             start_args = {**start_args, 'debug': True}
