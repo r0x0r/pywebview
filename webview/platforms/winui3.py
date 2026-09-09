@@ -1125,7 +1125,23 @@ class BrowserView:
                     def cleanup_and_exit():
                         self.browser.clear_user_data(process_id)
                         if not _enqueue(dispatcher_queue, exit_application):
-                            logger.error('Failed to exit application after private data cleanup')
+                            # clear_user_data() can block for several seconds
+                            # (it waits on the browser process handle before
+                            # deleting the folder), and the WinUI runtime can
+                            # already be tearing its dispatcher queue down by
+                            # the time this thread gets back to it, since the
+                            # last window has already closed. Application.
+                            # start() would then never return on its own to
+                            # unblock the process - cleanup already finished
+                            # at this point, so force the process down
+                            # directly rather than hang indefinitely waiting
+                            # for a graceful WinRT shutdown that can no
+                            # longer happen.
+                            logger.warning(
+                                'Dispatcher queue no longer accepting work after private '
+                                'data cleanup; forcing process exit'
+                            )
+                            os._exit(0)
 
                     threading.Thread(target=cleanup_and_exit, daemon=True).start()
                 else:
