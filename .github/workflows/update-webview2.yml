@@ -1,0 +1,129 @@
+name: Update WebView2 Runtime
+
+on:
+  schedule:
+    # Every Monday at 03:00 UTC
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-webview2:
+    name: Update WebView2 binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get latest Microsoft.Web.WebView2 version
+        id: version
+        run: |
+          # nuget's flat container index lists all versions in ascending order,
+          # prereleases included (they contain a '-'). Pick the last stable one.
+          version=$(curl -sf https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/index.json \
+            | jq -r '[.versions[] | select(contains("-") | not)] | last')
+
+          if [ -z "$version" ] || [ "$version" == "null" ]; then
+            echo "Could not determine latest Microsoft.Web.WebView2 version" >&2
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Latest Microsoft.Web.WebView2 version: $version"
+
+      - name: Download and extract NuGet package
+        id: download
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          workdir=$(mktemp -d)
+
+          curl -sfL "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/${version}" \
+            -o "${workdir}/webview2.nupkg"
+          unzip -q "${workdir}/webview2.nupkg" -d "${workdir}/extracted"
+
+          echo "workdir=${workdir}" >> "$GITHUB_OUTPUT"
+
+      - name: Replace binaries in webview/lib
+        id: replace
+        run: |
+          extracted="${{ steps.download.outputs.workdir }}/extracted"
+          lib="webview/lib"
+
+          cp "${extracted}/lib/net462/Microsoft.Web.WebView2.Core.dll" "${lib}/Microsoft.Web.WebView2.Core.dll"
+          cp "${extracted}/lib/net462/Microsoft.Web.WebView2.WinForms.dll" "${lib}/Microsoft.Web.WebView2.WinForms.dll"
+          cp "${extracted}/LICENSE.txt" "${lib}/Microsoft.Web.WebView2.LICENSE.md"
+
+          for arch in win-x86 win-x64 win-arm64; do
+            cp "${extracted}/runtimes/${arch}/native/WebView2Loader.dll" \
+              "${lib}/runtimes/${arch}/native/WebView2Loader.dll"
+          done
+
+          rm -rf "${{ steps.download.outputs.workdir }}"
+
+          if git diff --quiet -- "${lib}"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Binaries are already up to date."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update changelog
+        if: steps.replace.outputs.changed == 'true'
+        run: |
+          python3 - "${{ steps.version.outputs.version }}" "docs/CHANGELOG.md" <<'EOF'
+          import sys
+
+          version, changelog_path = sys.argv[1], sys.argv[2]
+          entry = f"- `EdgeChromium` Update WebView2 runtime to {version}."
+
+          with open(changelog_path, encoding="utf-8") as f:
+              content = f.read()
+
+          if "\n## Unreleased\n" not in content:
+              # No Unreleased section yet: create one right below the top heading.
+              content = content.replace(
+                  "# Changelog\n",
+                  f"# Changelog\n\n## Unreleased\n\n\n### 🚀 Improvements\n\n{entry}\n",
+                  1,
+              )
+          else:
+              start = content.index("\n## Unreleased\n")
+              next_release = content.find("\n## ", start + 1)
+              if next_release == -1:
+                  next_release = len(content)
+              section = content[start:next_release]
+
+              if "\n### 🚀 Improvements\n" in section:
+                  section = section.replace(
+                      "### 🚀 Improvements\n\n", f"### 🚀 Improvements\n\n{entry}\n", 1
+                  )
+              else:
+                  section = section.rstrip("\n") + f"\n\n### 🚀 Improvements\n\n{entry}\n\n"
+
+              content = content[:start] + section + content[next_release:]
+
+          with open(changelog_path, "w", encoding="utf-8") as f:
+              f.write(content)
+          EOF
+
+      - name: Create pull request
+        if: steps.replace.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "[EdgeChromium] Update WebView2 runtime to ${{ steps.version.outputs.version }}"
+          title: "[EdgeChromium] Update WebView2 runtime to ${{ steps.version.outputs.version }}"
+          body: |
+            Automated update of the WebView2 runtime binaries in `webview/lib`, generated from
+            [Microsoft.Web.WebView2 ${{ steps.version.outputs.version }}](https://www.nuget.org/packages/Microsoft.Web.WebView2/${{ steps.version.outputs.version }}).
+          branch: update-webview2-runtime
+          delete-branch: true
+          labels: dependencies
+          add-paths: |
+            webview/lib
+            docs/CHANGELOG.md
