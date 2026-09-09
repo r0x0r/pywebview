@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://pywebview.flowrl.com/guide
+    about: Guides, API reference and examples.
+  - name: Security vulnerability
+    url: https://github.com/r0x0r/pywebview/blob/master/SECURITY.md
+    about: Please report vulnerabilities privately, not as a public issue.

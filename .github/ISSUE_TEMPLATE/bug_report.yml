@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a problem with pywebview
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before reporting, please check the [FAQ](https://pywebview.flowrl.com/guide/faq.html)
+        and search the existing issues.
+
+  - type: input
+    id: version
+    attributes:
+      label: pywebview version
+      placeholder: "6.2.1"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11 / macOS 15.1 / Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: renderer
+    attributes:
+      label: Web renderer
+      description: "Printed on startup with PYWEBVIEW_LOG=debug, or via webview.renderer"
+      options:
+        - edgechromium
+        - mshtml
+        - wkwebview
+        - gtkwebkit2
+        - qtwebengine
+        - qtwebkit
+        - cef
+        - android
+        - not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What did you expect to happen, and what happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Stand-alone code example
+      description: A self-contained script that demonstrates the problem.
+      render: python
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: practicalities
+    attributes:
+      label: Practicalities
+      options:
+        - label: I am willing to work on this issue myself.
+        - label: I am prepared to support this issue financially.

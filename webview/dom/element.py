@@ -1,20 +1,23 @@
 import json
 import logging
 from collections import defaultdict
+from collections.abc import Callable, Iterable
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, TypeVar, Union, cast
 
 from webview.dom import DOMEventHandler, ManipulationMode, _dnd_state
 from webview.dom.classlist import ClassList
 from webview.dom.propsdict import DOMPropType, PropsDict
-from webview.errors import JavascriptException
+from webview.errors import JavascriptException, WebViewException
 from webview.event import EventContainer
 from webview.util import escape_string
 
 logger = logging.getLogger('pywebview')
 
+F = TypeVar('F', bound=Callable[..., Any])
 
-def _ignore_window_document(func):
+
+def _ignore_window_document(func: F) -> F:
     @wraps(func)
     def wrapper(*args, **kwargs):
         if args[0]._node_id in ('window', 'document'):
@@ -22,10 +25,10 @@ def _ignore_window_document(func):
 
         return func(*args, **kwargs)
 
-    return wrapper
+    return cast(F, wrapper)
 
 
-def _exists(func):
+def _exists(func: F) -> F:
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not args[0]._exists:
@@ -41,7 +44,7 @@ def _exists(func):
                 logger.exception(e)
             return
 
-    return wrapper
+    return cast(F, wrapper)
 
 
 class Element:
@@ -66,8 +69,8 @@ class Element:
                 throw new Error('Element with pywebview-id {self._node_id} not found', {{ cause: 'ELEMENT_NOT_FOUND' }});
             }}
         """.replace('\n', '')
-        self._event_handlers = defaultdict(list)
-        self._event_handler_ids = {}
+        self._event_handlers: defaultdict[str, list[Callable[..., Any]]] = defaultdict(list)
+        self._event_handler_ids: dict[tuple[str, Callable[..., Any]], str] = {}
         self._exists = True
         self._classes = ClassList(self)
         self._style = PropsDict(self, DOMPropType.Style)
@@ -85,7 +88,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def id(self) -> Optional[str]:
+    def id(self) -> str | None:
         return self._window.evaluate_js(f'{self._query_command}; element.id')
 
     @id.setter
@@ -107,18 +110,18 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def attributes(self) -> Dict[str, Any]:
+    def attributes(self) -> PropsDict:
         return self._attributes
 
     @attributes.setter
     @_exists
     @_ignore_window_document
-    def attributes(self, attributes: Dict[str, Any]) -> None:
+    def attributes(self, attributes: dict[str, Any]) -> None:
         self._attributes = PropsDict(self, DOMPropType.Attribute, attributes)
 
     @property
     @_exists
-    def node(self) -> Dict[str, Any]:
+    def node(self) -> dict[str, Any]:
         return self._window.evaluate_js(
             f'{self._query_command}; var r2 = pywebview._processElements([element])[0]; r2'
         )
@@ -126,13 +129,13 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def style(self) -> Dict[str, Any]:
+    def style(self) -> PropsDict:
         return self._style
 
     @style.setter
     @_exists
     @_ignore_window_document
-    def style(self, style: Dict[str, Any]) -> None:
+    def style(self, style: dict[str, Any]) -> None:
         self._style = PropsDict(self, DOMPropType.Style, style)
 
     @property
@@ -165,6 +168,14 @@ class Element:
     def value(self) -> str:
         return self._window.evaluate_js(f'{self._query_command}; element.value')
 
+    @value.setter
+    @_exists
+    @_ignore_window_document
+    def value(self, value: str) -> None:
+        self._window.run_js(
+            f"{self._query_command}; if ('value' in element) {{ element.value = '{escape_string(value)}' }}"
+        )
+
     @property
     @_exists
     @_ignore_window_document
@@ -177,14 +188,6 @@ class Element:
     def focused(self) -> bool:
         return self._window.evaluate_js(
             f'{self._query_command}; document.activeElement === element'
-        )
-
-    @value.setter
-    @_exists
-    @_ignore_window_document
-    def value(self, value: str) -> None:
-        self._window.run_js(
-            f"{self._query_command}; if ('value' in element) {{ element.value = '{escape_string(value)}' }}"
         )
 
     @_exists
@@ -200,7 +203,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def children(self) -> List['Element']:
+    def children(self) -> list['Element']:
         children = self._window.evaluate_js(
             f"""
             {self._query_command};
@@ -319,14 +322,20 @@ class Element:
     @_ignore_window_document
     def copy(
         self,
-        target: Union[str, 'Element'] = None,
+        target: Union[str, 'Element', None] = None,
         mode: ManipulationMode = ManipulationMode.LastChild,
-        id: str = None,
+        id: str | None = None,
     ) -> 'Element':
+        resolved_target: Element | None
         if isinstance(target, str):
-            target = self._window.dom.get_element(target)
+            resolved_target = self._window.dom.get_element(target)
         elif target is None:
-            target = self.parent
+            resolved_target = self.parent
+        else:
+            resolved_target = target
+
+        if resolved_target is None:
+            raise WebViewException('Unable to resolve copy target element')
 
         if id:
             id_command = f'newElement.id = {json.dumps(id)}'
@@ -336,7 +345,7 @@ class Element:
         node_id = self._window.evaluate_js(
             f"""
             {self._query_command};
-            var target = document.querySelector('[data-pywebview-id=\"{target._node_id}\"]');
+            var target = document.querySelector('[data-pywebview-id=\"{resolved_target._node_id}\"]');
             var newElement = element.cloneNode(true);
             newElement.removeAttribute('data-pywebview-id');
             {id_command};
@@ -359,20 +368,24 @@ class Element:
     def move(
         self, target: Union[str, 'Element'], mode: ManipulationMode = ManipulationMode.LastChild
     ) -> 'Element':
-        if isinstance(target, str):
-            target = self._window.dom.get_element(target)
+        resolved_target = (
+            self._window.dom.get_element(target) if isinstance(target, str) else target
+        )
+
+        if resolved_target is None:
+            raise WebViewException('Unable to resolve move target element')
 
         self._window.run_js(
             f"""
             {self._query_command};
-            var target = document.querySelector('[data-pywebview-id=\"{target._node_id}\"]');
+            var target = document.querySelector('[data-pywebview-id=\"{resolved_target._node_id}\"]');
             pywebview._insertNode(element, target, '{mode.value}')
         """
         )
         return self
 
     @_exists
-    def on(self, event: str, callback: Union[Callable, DOMEventHandler]) -> None:
+    def on(self, event: str, callback: Callable | DOMEventHandler) -> None:
         if self._node_id not in self._window.dom._elements:
             self._window.dom._elements[self._node_id] = self
 
@@ -489,5 +502,5 @@ class Element:
             return self.node['outerHTML']
 
     @_exists
-    def __eq__(self, other: 'Element') -> bool:
-        return hasattr(other, '_node_id') and self._node_id == other._node_id
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Element) and self._node_id == other._node_id

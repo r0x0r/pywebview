@@ -69,6 +69,10 @@ def test_events(window):
     run_test(webview, window, events_test)
 
 
+def test_manipulation_errors(window):
+    run_test(webview, window, manipulation_error_test)
+
+
 def test_special_char_attributes(window):
     run_test(webview, window, special_char_attributes_test)
 
@@ -275,6 +279,24 @@ def manipulation_mode_test(window):
     assert child2.parent.tag == 'body'
 
 
+def manipulation_error_test(window):
+    child1 = window.dom.get_element('#child1')
+
+    # move() with a selector that matches nothing cannot resolve a target
+    with pytest.raises(webview.errors.WebViewException):
+        child1.move('#does-not-exist')
+
+    # copy() with a selector that matches nothing cannot resolve a target
+    with pytest.raises(webview.errors.WebViewException):
+        child1.copy('#does-not-exist')
+
+    # copy() with no explicit target and no parent (the root <html> element)
+    # cannot resolve a target either
+    html_element = window.dom.get_element('html')
+    with pytest.raises(webview.errors.WebViewException):
+        html_element.copy()
+
+
 def events_test(window):
     def click_handler(event):
         nonlocal button_value
@@ -338,9 +360,9 @@ def special_char_attributes_test(window):
 
     for key, expected_value in expected_attrs.items():
         assert key in special_attrs, f'Attribute {key} not found'
-        assert (
-            special_attrs[key] == expected_value
-        ), f'Attribute {key} value mismatch: expected {expected_value}, got {special_attrs[key]}'
+        assert special_attrs[key] == expected_value, (
+            f'Attribute {key} value mismatch: expected {expected_value}, got {special_attrs[key]}'
+        )
 
     # Test clearing special character attributes
     for key in [

@@ -4,7 +4,7 @@ Before you get busy coding a new feature, create an issue and discuss the detail
 
 ## Environment set-up
 
-This guide assumes you have a [GitHub](https://github.com) account, as well as [Python 3](https://python.org), [virtualenv](https://virtualenv.pypa.io/en/stable/) and [Git](https://git-scm.com) installed. The guide is written for Bash, for Windows you can use for example Bash bundled with Git.
+This guide assumes you have a [GitHub](https://github.com) account, as well as [Python 3.10 or newer](https://python.org), [virtualenv](https://virtualenv.pypa.io/en/stable/) and [Git](https://git-scm.com) installed. The guide is written for Bash, for Windows you can use for example Bash bundled with Git.
 
 * [Fork](https://github.com/r0x0r/pywebview/fork) _pywebview_
 * Clone your forked repository
@@ -19,7 +19,6 @@ cd pywebview
 virtualenv -p python3 venv
 source venv/bin/activate
 pip install -e ".[dev]"
-pip install pytest
 ```
 
 * Set up pre-commit hooks
@@ -103,7 +102,7 @@ The project uses the following Ruff configuration (defined in `pyproject.toml`):
 * **Line length**: 100 characters
 * **Quote style**: Single quotes for strings
 * **Import sorting**: Enabled with `webview` as a known first-party package
-* **Target Python version**: 3.8+
+* **Target Python version**: 3.10+
 * **Enabled rules**: Pyflakes (F), pycodestyle (E4, E7, E9), isort (I), and pyupgrade (UP)
 
 ### Manual Formatting

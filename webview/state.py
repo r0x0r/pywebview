@@ -1,14 +1,16 @@
 import json
+import sys
+from collections.abc import Callable
 from threading import Thread
-from typing import Any, Callable
+from typing import Any
 
 from typing_extensions import Self
 
 from webview.util import escape_string
 
-try:
+if sys.version_info >= (3, 11):
     from enum import StrEnum  # Python 3.11 and above
-except ImportError:
+else:
     from enum import Enum
 
     class StrEnum(str, Enum):
@@ -24,7 +26,7 @@ class State(dict):
     _serializable = False
 
     def __init__(self, window: Any) -> None:
-        self.__event_handlers = []
+        self.__event_handlers: list[Callable[..., Any]] = []
         self.__window = window
 
     def __update_js(self, key: str, value: Any) -> None:
@@ -73,7 +75,7 @@ class State(dict):
     def __getattr__(self, key: str) -> Any:
         if key in self:
             return self[key]
-        raise AttributeError(f"'{type(self).__key__}' object has no attribute '{key}'")
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{key}'")
 
     def _delete_state_value(self, key: str, should_update_js: bool = True) -> Any:
         """Internal method to delete state values, used by both __delattr__ and __delitem__"""

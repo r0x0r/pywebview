@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from enum import Enum
-from typing import Callable
+from typing import Any
 
 
 class ManipulationMode(Enum):
@@ -46,4 +47,4 @@ class DOMEventHandler:
         return self.__debounce
 
 
-_dnd_state = {'num_listeners': 0, 'paths': []}
+_dnd_state: dict[str, Any] = {'num_listeners': 0, 'paths': []}

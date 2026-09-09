@@ -3,7 +3,8 @@ from __future__ import annotations
 import inspect
 import logging
 import threading
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from typing_extensions import Self
 

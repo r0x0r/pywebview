@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest a new feature or improvement
+labels: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that pywebview does not let you do today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you like it to work? Include a sketch of the API if you have one.
+    validations:
+      required: true
+
+  - type: textarea
+    id: platforms
+    attributes:
+      label: Affected platforms
+      description: >
+        Which backends would need to implement this (Cocoa, GTK, QT, Winforms,
+        EdgeChromium, MSHTML, CEF, Android)? Features that cannot be supported
+        everywhere are still welcome, but say so up front.
+
+  - type: checkboxes
+    id: practicalities
+    attributes:
+      label: Practicalities
+      options:
+        - label: I am willing to work on this feature myself.
+        - label: I am prepared to support this feature financially.
