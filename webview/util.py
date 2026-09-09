@@ -17,6 +17,7 @@ import sys
 import traceback
 import urllib.parse
 from collections import UserDict
+from collections.abc import Callable
 from glob import glob
 from http.cookies import SimpleCookie
 from platform import architecture
@@ -68,20 +69,16 @@ class ImmutableDict(UserDict):
         raise KeyError('Deleting keys is not allowed.')
 
 
-def is_app(url: str | callable | None) -> bool:
+def is_app(url: str | Callable[..., Any] | None) -> bool:
     """Returns true if 'url' is a WSGI or ASGI app."""
     return callable(url)
 
 
-def is_local_url(url: str | callable | None) -> bool:
+def is_local_url(url: str | Callable[..., Any] | None) -> bool:
+    if is_app(url) or not url or not isinstance(url, str):
+        return False
     return not (
-        (is_app(url))
-        or (
-            (not url)
-            or (url.startswith('http://'))
-            or (url.startswith('https://'))
-            or url.startswith('file://')
-        )
+        url.startswith('http://') or url.startswith('https://') or url.startswith('file://')
     )
 
 
@@ -97,8 +94,9 @@ def get_app_root() -> str:
     if hasattr(sys, '_MEIPASS'):  # Pyinstaller
         return sys._MEIPASS
 
-    if os.getenv('RESOURCEPATH'):  # py2app
-        return os.getenv('RESOURCEPATH')
+    resource_path = os.getenv('RESOURCEPATH')  # py2app
+    if resource_path:
+        return resource_path
 
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
@@ -107,7 +105,7 @@ def get_app_root() -> str:
         return os.path.join(os.path.dirname(__file__), '..', 'tests')
 
     if hasattr(sys, 'getandroidapilevel'):
-        return os.getenv('ANDROID_APP_PATH')
+        return os.getenv('ANDROID_APP_PATH') or ''
 
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -136,7 +134,7 @@ def base_uri(relative_path: str = '') -> str:
     return f'file://{os.path.join(base_path, relative_path)}'
 
 
-def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
+def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie:
     if isinstance(input_, dict):
         cookie = SimpleCookie()
         name = input_['name']
@@ -343,8 +341,9 @@ def js_bridge_call(
             logger.warning(f'No callback registered for value_id {value_id}. Ignoring.')
             return
 
-        if callable(window._callbacks[value_id]):
-            window._callbacks[value_id](value)
+        callback = window._callbacks[value_id]
+        if callable(callback):
+            callback(value)
         else:
             logger.error(
                 f'Async function executed and callback is not callable. Returned value {value}'
@@ -554,15 +553,15 @@ def interop_dll_path(dll_name: str) -> str:
     raise FileNotFoundError(f'Cannot find {dll_name}')
 
 
-def environ_append(key: str, *values: str, sep=' ') -> None:
+def environ_append(key: str, *values: str, sep: str = ' ') -> None:
     """Append values to an environment variable, separated by sep"""
-    values = list(values)
+    value_list = list(values)
 
     existing = os.environ.get(key, '')
     if existing:
-        values = [existing] + values
+        value_list = [existing] + value_list
 
-    os.environ[key] = sep.join(values)
+    os.environ[key] = sep.join(value_list)
 
 
 def css_to_camel(css_case_string: str) -> str:

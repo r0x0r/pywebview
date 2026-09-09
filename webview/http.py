@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import TypeVar, cast
+from collections.abc import Callable
+from typing import Any
 
 if sys.platform == 'win32' and ('pythonw.exe' in sys.executable or getattr(sys, 'frozen', False)):
     # bottle.py versions prior to 0.12.23 (the latest on PyPi as of Feb 2023) require stdout and
@@ -31,9 +32,6 @@ import bottle
 from typing_extensions import TypedDict, Unpack
 
 from .util import abspath, is_app, is_local_url
-
-WRHT_co = TypeVar('WRHT_co', bound=WSGIRequestHandler, covariant=True)
-WST_co = TypeVar('WST_co', bound=WSGIServer, covariant=True)
 
 logger = logging.getLogger('pywebview')
 global_server = None
@@ -74,12 +72,15 @@ class ThreadedAdapter(bottle.ServerAdapter):
 
 class BottleServer:
     def __init__(self) -> None:
-        self.root_path = '/'
+        self.root_path: str | None = '/'
         self.running = False
-        self.address = None
-        self.js_callback = {}
-        self.js_api_endpoint = None
+        self.address: str = ''
+        self.js_callback: dict[str, Callable[..., Any]] = {}
+        self.js_api_endpoint: str | None = None
         self.uid = str(uuid.uuid4())
+        self.common_path: str | None = None
+        self.port: int = 0
+        self.thread: threading.Thread | None = None
 
     @classmethod
     def start_server(
@@ -89,6 +90,7 @@ class BottleServer:
 
         apps = [u for u in urls if is_app(u)]
         server = cls()
+        common_path: str | None
 
         if len(apps) > 0:
             app = apps[0]
@@ -149,7 +151,7 @@ class BottleServer:
         server.running = True
         protocol = 'https' if keyfile and certfile else 'http'
         server.address = f'{protocol}://127.0.0.1:{server.port}/'
-        cls.common_path = common_path
+        server.common_path = common_path
         server.js_api_endpoint = f'{server.address}js_api/{server.uid}'
 
         return server.address, common_path, server
@@ -157,9 +159,6 @@ class BottleServer:
     @property
     def is_running(self) -> bool:
         return self.running
-
-
-ServerType = TypeVar('ServerType', bound=BottleServer, covariant=True)
 
 
 class SSLWSGIRefServer(bottle.ServerAdapter):
@@ -171,25 +170,27 @@ class SSLWSGIRefServer(bottle.ServerAdapter):
             def address_string(self) -> str:  # Prevent reverse DNS lookups please.
                 return self.client_address[0]
 
-            def log_request(*args, **kw) -> None:
+            def log_request(*args, **kw) -> None:  # type: ignore[override]
                 if not self.quiet:
-                    return WSGIRequestHandler.log_request(*args, **kw)
+                    return WSGIRequestHandler.log_request(*args, **kw)  # type: ignore[arg-type]
 
-        handler_cls = cast(WRHT_co, self.options.get('handler_class', FixedHandler))
-        server_cls = cast(WST_co, self.options.get('server_class', WSGIServer))
+        handler_cls: type[WSGIRequestHandler] = self.options.get('handler_class', FixedHandler)
+        server_cls: type[WSGIServer] = self.options.get('server_class', WSGIServer)
 
         if ':' in self.host:  # Fix wsgiref for IPv6 addresses.
             if server_cls.address_family == socket.AF_INET:
 
-                class server_cls(server_cls):
+                class Inet6Server(server_cls):  # type: ignore[valid-type,misc]
                     address_family = socket.AF_INET6
+
+                server_cls = Inet6Server
 
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
         ssl_context.load_cert_chain(self.pywebview_certfile, self.pywebview_keyfile)
         self.srv = make_server(self.host, self.port, handler, server_cls, handler_cls)
         self.srv.socket = ssl_context.wrap_socket(self.srv.socket, server_side=True)
-        self.port = self.srv.server_port  # update port actual port (0 means random)
+        self.port: int = self.srv.server_port  # update port actual port (0 means random)
         try:
             self.srv.serve_forever()
         except KeyboardInterrupt:
@@ -205,7 +206,7 @@ class ServerArgs(TypedDict, total=False):
 def start_server(
     urls: list[str],
     http_port: int | None = None,
-    server: type[ServerType] = BottleServer,
+    server: type[BottleServer] = BottleServer,
     **server_args: Unpack[ServerArgs],
 ) -> tuple[str, str | None, BottleServer]:
     server = server if server is not None else BottleServer
@@ -215,7 +216,7 @@ def start_server(
 def start_global_server(
     http_port: int | None = None,
     urls: list[str] = ['.'],
-    server: type[ServerType] = BottleServer,
+    server: type[BottleServer] = BottleServer,
     **server_args: Unpack[ServerArgs],
 ) -> tuple[str, str | None, BottleServer]:
     global global_server

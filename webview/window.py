@@ -7,7 +7,7 @@ from collections.abc import Callable, Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
 from threading import Lock
-from typing import Any, Concatenate, TypeAlias, TypeVar
+from typing import Any, Concatenate, TypeAlias, TypeVar, cast
 from urllib.parse import urljoin
 from uuid import uuid1
 
@@ -51,19 +51,19 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
     return wrapper
 
 
-def _shown_call(function: Callable[P, T]) -> Callable[P, T]:
+def _shown_call(function: WindowFunc[P, T]) -> WindowFunc[P, T]:
     return _api_call(function, 'shown')
 
 
-def _loaded_call(function: Callable[P, T]) -> Callable[P, T]:
+def _loaded_call(function: WindowFunc[P, T]) -> WindowFunc[P, T]:
     return _api_call(function, 'loaded')
 
 
-def _before_load_call(function: Callable[P, T]) -> Callable[P, T]:
+def _before_load_call(function: WindowFunc[P, T]) -> WindowFunc[P, T]:
     return _api_call(function, 'before_load')
 
 
-def _pywebview_ready_call(function: Callable[P, T]) -> Callable[P, T]:
+def _pywebview_ready_call(function: WindowFunc[P, T]) -> WindowFunc[P, T]:
     return _api_call(function, '_pywebviewready')
 
 
@@ -79,7 +79,7 @@ class Window:
         self,
         uid: str,
         title: str,
-        url: str | None,
+        url: str | Callable[..., Any] | None,
         html: str = '',
         width: int = 800,
         height: int = 600,
@@ -107,14 +107,14 @@ class Window:
         menu: list[Menu] | None = None,
         localization: Mapping[str, str] | None = None,
         http_port: int | None = None,
-        server: type[http.ServerType] | None = None,
+        server: type[http.BottleServer] | None = None,
         server_args: http.ServerArgs | None = None,
-        screen: Screen = None,
+        screen: Screen | None = None,
     ) -> None:
         self.uid = uid
         self._title = title
         self.original_url = None if html else url  # original URL provided by user
-        self.real_url = None
+        self.real_url: str | None = None
         self.html = html
         self.initial_width = width
         self.initial_height = height
@@ -148,9 +148,9 @@ class Window:
         self._server_args = server_args if server_args is not None else {}
 
         # HTTP server path magic
-        self._url_prefix = None
-        self._common_path = None
-        self._server = None
+        self._url_prefix: str | None = None
+        self._common_path: str | None = None
+        self._server: http.BottleServer | None = None
 
         self._js_api = js_api
         self._functions: dict[str, Callable[..., Any]] = {}
@@ -176,13 +176,13 @@ class Window:
 
         self._expose_lock = Lock()
         self.dom = DOM(self)
-        self.gui = None
-        self.native = None  # set in the gui after window creation
+        self.gui: Any = None
+        self.native: Any = None  # set in the gui after window creation
         self._state = State(self)
 
     def _initialize(
         self,
-        gui,
+        gui: Any,
         server: http.BottleServer | None = None,
         server_args: http.ServerArgs | None = None,
     ):
@@ -194,9 +194,9 @@ class Window:
 
         if is_app(self.original_url) and (server is None or server == http.global_server):
             *_, server = http.start_server(
-                urls=[self.original_url],
+                urls=[cast(str, self.original_url)],
                 http_port=self._http_port,
-                server=self._server_class,
+                server=self._server_class or http.BottleServer,
                 **(self._server_args or server_args or {}),
             )
         elif server is None:
@@ -208,7 +208,7 @@ class Window:
         self.js_api_endpoint = (
             http.global_server.js_api_endpoint if http.global_server is not None else None
         )
-        self.real_url = self._resolve_url(self.original_url)
+        self.real_url = self._resolve_url(cast('str | None', self.original_url))
 
         abort = self.events.initialized.set(gui.renderer)
         return not abort
@@ -565,11 +565,11 @@ class Window:
         if self.events.loaded.is_set():
             self.run_js(f'window.pywebview._createApi({func_list})')
 
-    def _resolve_url(self, url: str) -> str | None:
+    def _resolve_url(self, url: str | None) -> str | None:
         if is_app(url):
             return self._url_prefix
         if is_local_url(url) and self._url_prefix and self._common_path is not None:
-            filename = os.path.relpath(url, self._common_path)
+            filename = os.path.relpath(cast(str, url), self._common_path)
             return urljoin(self._url_prefix, filename)
         else:
             return url

@@ -137,5 +137,6 @@ def initialize(forced_gui: GUIType | None = None):
             'Unsupported platform. Only Windows, Linux, OS X, OpenBSD are supported.'
         )
 
+    assert guilib is not None
     guilib.setup_app()
     return guilib

@@ -3,7 +3,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from functools import wraps
-from typing import Any, Union
+from typing import Any, TypeVar, Union, cast
 
 from webview.dom import DOMEventHandler, ManipulationMode, _dnd_state
 from webview.dom.classlist import ClassList
@@ -14,8 +14,10 @@ from webview.util import escape_string
 
 logger = logging.getLogger('pywebview')
 
+F = TypeVar('F', bound=Callable[..., Any])
 
-def _ignore_window_document(func):
+
+def _ignore_window_document(func: F) -> F:
     @wraps(func)
     def wrapper(*args, **kwargs):
         if args[0]._node_id in ('window', 'document'):
@@ -23,10 +25,10 @@ def _ignore_window_document(func):
 
         return func(*args, **kwargs)
 
-    return wrapper
+    return cast(F, wrapper)
 
 
-def _exists(func):
+def _exists(func: F) -> F:
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not args[0]._exists:
@@ -42,7 +44,7 @@ def _exists(func):
                 logger.exception(e)
             return
 
-    return wrapper
+    return cast(F, wrapper)
 
 
 class Element:
@@ -67,8 +69,8 @@ class Element:
                 throw new Error('Element with pywebview-id {self._node_id} not found', {{ cause: 'ELEMENT_NOT_FOUND' }});
             }}
         """.replace('\n', '')
-        self._event_handlers = defaultdict(list)
-        self._event_handler_ids = {}
+        self._event_handlers: defaultdict[str, list[Callable[..., Any]]] = defaultdict(list)
+        self._event_handler_ids: dict[tuple[str, Callable[..., Any]], str] = {}
         self._exists = True
         self._classes = ClassList(self)
         self._style = PropsDict(self, DOMPropType.Style)
@@ -108,7 +110,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def attributes(self) -> dict[str, Any]:
+    def attributes(self) -> PropsDict:
         return self._attributes
 
     @attributes.setter
@@ -127,7 +129,7 @@ class Element:
     @property
     @_exists
     @_ignore_window_document
-    def style(self) -> dict[str, Any]:
+    def style(self) -> PropsDict:
         return self._style
 
     @style.setter
@@ -166,6 +168,14 @@ class Element:
     def value(self) -> str:
         return self._window.evaluate_js(f'{self._query_command}; element.value')
 
+    @value.setter
+    @_exists
+    @_ignore_window_document
+    def value(self, value: str) -> None:
+        self._window.run_js(
+            f"{self._query_command}; if ('value' in element) {{ element.value = '{escape_string(value)}' }}"
+        )
+
     @property
     @_exists
     @_ignore_window_document
@@ -178,14 +188,6 @@ class Element:
     def focused(self) -> bool:
         return self._window.evaluate_js(
             f'{self._query_command}; document.activeElement === element'
-        )
-
-    @value.setter
-    @_exists
-    @_ignore_window_document
-    def value(self, value: str) -> None:
-        self._window.run_js(
-            f"{self._query_command}; if ('value' in element) {{ element.value = '{escape_string(value)}' }}"
         )
 
     @_exists
@@ -320,14 +322,15 @@ class Element:
     @_ignore_window_document
     def copy(
         self,
-        target: Union[str, 'Element'] = None,
+        target: Union[str, 'Element', None] = None,
         mode: ManipulationMode = ManipulationMode.LastChild,
-        id: str = None,
+        id: str | None = None,
     ) -> 'Element':
         if isinstance(target, str):
             target = self._window.dom.get_element(target)
         elif target is None:
             target = self.parent
+        assert isinstance(target, Element)
 
         if id:
             id_command = f'newElement.id = {json.dumps(id)}'
@@ -362,6 +365,7 @@ class Element:
     ) -> 'Element':
         if isinstance(target, str):
             target = self._window.dom.get_element(target)
+        assert not isinstance(target, str)
 
         self._window.run_js(
             f"""
@@ -490,5 +494,5 @@ class Element:
             return self.node['outerHTML']
 
     @_exists
-    def __eq__(self, other: 'Element') -> bool:
-        return hasattr(other, '_node_id') and self._node_id == other._node_id
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Element) and self._node_id == other._node_id

@@ -18,7 +18,7 @@ import re
 import tempfile
 import threading
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from proxy_tools import module_property
@@ -174,7 +174,7 @@ def start(
     private_mode: bool = True,
     storage_path: str | None = None,
     menu: list[Menu] | None = None,
-    server: type[http.ServerType] = http.BottleServer,
+    server: type[http.BottleServer] = http.BottleServer,
     server_args: dict[Any, Any] | None = None,
     ssl: bool = False,
     icon: str | None = None,
@@ -275,18 +275,18 @@ def start(
         server_args.pop('keyfile', None)
         server_args.pop('certfile', None)
 
-    urls = [w.original_url for w in windows]
+    urls = [w.original_url for w in windows if isinstance(w.original_url, str)]
     has_local_urls = not not [w.original_url for w in windows if is_local_url(w.original_url)]
     # start the global server if it's not running and we need it
     if (http.global_server is None) and (http_server or has_local_urls):
         if not _state['private_mode'] and not http_port:
             http_port = settings['DEFAULT_HTTP_PORT']
-        *_, server = http.start_global_server(
-            http_port=http_port, urls=urls, server=server, **server_args
-        )
+        http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
 
     for window in windows:
-        should_initialize = not window._initialize(guilib, server_args=server_args)
+        should_initialize = not window._initialize(
+            guilib, server_args=cast(http.ServerArgs, server_args)
+        )
         if should_initialize:
             return
 
@@ -312,13 +312,13 @@ def start(
     finally:
         if generated_ssl_cert:
             for path in (keyfile, certfile):
-                if os.path.exists(path):
+                if path and os.path.exists(path):
                     os.unlink(path)
 
 
 def create_window(
     title: str,
-    url: str | callable | None = None,
+    url: str | Callable[..., Any] | None = None,
     html: str | None = None,
     js_api: Any = None,
     width: int = 800,
@@ -346,7 +346,7 @@ def create_window(
     vibrancy: bool = False,
     menu: list[Menu] | None = None,
     localization: Mapping[str, str] | None = None,
-    server: type[http.ServerType] = http.BottleServer,
+    server: type[http.BottleServer] = http.BottleServer,
     http_port: int | None = None,
     server_args: http.ServerArgs | None = None,
 ) -> Window | None:
@@ -392,7 +392,7 @@ def create_window(
         uid,
         title,
         url,
-        html,
+        html or '',
         width,
         height,
         x,
@@ -428,16 +428,19 @@ def create_window(
 
     # This immediately creates the window only if `start` has already been called
     if threading.current_thread().name != 'MainThread' and guilib:
+        server_instance: http.BottleServer | None
         if is_app(url) or is_local_url(url):
             # Start a dedicated server for this URL. The global server serves
             # from its original root_path, so reusing it would 404 for a local
             # file that lives outside that root.
-            _, _, server = http.start_server([url], server=server, **server_args)
+            _, _, server_instance = http.start_server(
+                [cast(str, url)], server=server, **server_args
+            )
         else:
-            server = None
+            server_instance = None
 
-        if not window._initialize(gui=guilib, server=server):
-            return
+        if not window._initialize(gui=guilib, server=server_instance):
+            return None
         guilib.create_window(window)
 
     return window

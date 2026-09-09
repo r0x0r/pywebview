@@ -11,7 +11,7 @@ class DOM:
     def __init__(self, window: Any) -> None:
         self.__window = window
         window.events.loaded += self.__on_loaded
-        self._elements = {}
+        self._elements: dict[str, Element] = {}
 
     def __on_loaded(self) -> None:
         self._elements = {}
