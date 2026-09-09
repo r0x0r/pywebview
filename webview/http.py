@@ -84,7 +84,11 @@ class BottleServer:
 
     @classmethod
     def start_server(
-        cls, urls: list[str], http_port: int | None, keyfile: None = None, certfile: None = None
+        cls,
+        urls: list[str | Callable[..., Any]],
+        http_port: int | None,
+        keyfile: None = None,
+        certfile: None = None,
     ) -> tuple[str, str | None, BottleServer]:
         from webview import _state
 
@@ -204,7 +208,7 @@ class ServerArgs(TypedDict, total=False):
 
 
 def start_server(
-    urls: list[str],
+    urls: list[str | Callable[..., Any]],
     http_port: int | None = None,
     server: type[BottleServer] = BottleServer,
     **server_args: Unpack[ServerArgs],
@@ -215,7 +219,7 @@ def start_server(
 
 def start_global_server(
     http_port: int | None = None,
-    urls: list[str] = ['.'],
+    urls: list[str | Callable[..., Any]] = ['.'],
     server: type[BottleServer] = BottleServer,
     **server_args: Unpack[ServerArgs],
 ) -> tuple[str, str | None, BottleServer]:

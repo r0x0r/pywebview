@@ -7,7 +7,7 @@ from collections.abc import Callable, Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
 from threading import Lock
-from typing import Any, Concatenate, TypeAlias, TypeVar, cast
+from typing import Any, Concatenate, TypeAlias, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
 
@@ -194,7 +194,7 @@ class Window:
 
         if is_app(self.original_url) and (server is None or server == http.global_server):
             *_, server = http.start_server(
-                urls=[cast(str, self.original_url)],
+                urls=[self.original_url],
                 http_port=self._http_port,
                 server=self._server_class or http.BottleServer,
                 **(self._server_args or server_args or {}),
@@ -208,7 +208,7 @@ class Window:
         self.js_api_endpoint = (
             http.global_server.js_api_endpoint if http.global_server is not None else None
         )
-        self.real_url = self._resolve_url(cast('str | None', self.original_url))
+        self.real_url = self._resolve_url(self.original_url)
 
         abort = self.events.initialized.set(gui.renderer)
         return not abort
@@ -565,14 +565,15 @@ class Window:
         if self.events.loaded.is_set():
             self.run_js(f'window.pywebview._createApi({func_list})')
 
-    def _resolve_url(self, url: str | None) -> str | None:
+    def _resolve_url(self, url: str | Callable[..., Any] | None) -> str | None:
         if is_app(url):
             return self._url_prefix
+        if not isinstance(url, str):
+            return None
         if is_local_url(url) and self._url_prefix and self._common_path is not None:
-            filename = os.path.relpath(cast(str, url), self._common_path)
+            filename = os.path.relpath(url, self._common_path)
             return urljoin(self._url_prefix, filename)
-        else:
-            return url
+        return url
 
 
 WindowFunc: TypeAlias = Callable[Concatenate[Window, P], T]

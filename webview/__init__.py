@@ -275,7 +275,9 @@ def start(
         server_args.pop('keyfile', None)
         server_args.pop('certfile', None)
 
-    urls = [w.original_url for w in windows if isinstance(w.original_url, str)]
+    urls: list[str | Callable[..., Any]] = [
+        w.original_url for w in windows if isinstance(w.original_url, str)
+    ]
     has_local_urls = not not [w.original_url for w in windows if is_local_url(w.original_url)]
     # start the global server if it's not running and we need it
     if (http.global_server is None) and (http_server or has_local_urls):
@@ -433,9 +435,7 @@ def create_window(
             # Start a dedicated server for this URL. The global server serves
             # from its original root_path, so reusing it would 404 for a local
             # file that lives outside that root.
-            _, _, server_instance = http.start_server(
-                [cast(str, url)], server=server, **server_args
-            )
+            _, _, server_instance = http.start_server([url], server=server, **server_args)
         else:
             server_instance = None
 

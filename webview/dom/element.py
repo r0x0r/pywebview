@@ -8,7 +8,7 @@ from typing import Any, TypeVar, Union, cast
 from webview.dom import DOMEventHandler, ManipulationMode, _dnd_state
 from webview.dom.classlist import ClassList
 from webview.dom.propsdict import DOMPropType, PropsDict
-from webview.errors import JavascriptException
+from webview.errors import JavascriptException, WebViewException
 from webview.event import EventContainer
 from webview.util import escape_string
 
@@ -326,11 +326,16 @@ class Element:
         mode: ManipulationMode = ManipulationMode.LastChild,
         id: str | None = None,
     ) -> 'Element':
+        resolved_target: Element | None
         if isinstance(target, str):
-            target = self._window.dom.get_element(target)
+            resolved_target = self._window.dom.get_element(target)
         elif target is None:
-            target = self.parent
-        assert isinstance(target, Element)
+            resolved_target = self.parent
+        else:
+            resolved_target = target
+
+        if resolved_target is None:
+            raise WebViewException('Unable to resolve copy target element')
 
         if id:
             id_command = f'newElement.id = {json.dumps(id)}'
@@ -340,7 +345,7 @@ class Element:
         node_id = self._window.evaluate_js(
             f"""
             {self._query_command};
-            var target = document.querySelector('[data-pywebview-id=\"{target._node_id}\"]');
+            var target = document.querySelector('[data-pywebview-id=\"{resolved_target._node_id}\"]');
             var newElement = element.cloneNode(true);
             newElement.removeAttribute('data-pywebview-id');
             {id_command};
@@ -363,14 +368,17 @@ class Element:
     def move(
         self, target: Union[str, 'Element'], mode: ManipulationMode = ManipulationMode.LastChild
     ) -> 'Element':
-        if isinstance(target, str):
-            target = self._window.dom.get_element(target)
-        assert not isinstance(target, str)
+        resolved_target = (
+            self._window.dom.get_element(target) if isinstance(target, str) else target
+        )
+
+        if resolved_target is None:
+            raise WebViewException('Unable to resolve move target element')
 
         self._window.run_js(
             f"""
             {self._query_command};
-            var target = document.querySelector('[data-pywebview-id=\"{target._node_id}\"]');
+            var target = document.querySelector('[data-pywebview-id=\"{resolved_target._node_id}\"]');
             pywebview._insertNode(element, target, '{mode.value}')
         """
         )

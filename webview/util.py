@@ -22,7 +22,7 @@ from glob import glob
 from http.cookies import SimpleCookie
 from platform import architecture
 from threading import Thread
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeGuard
 from uuid import uuid4
 
 import webview
@@ -69,12 +69,12 @@ class ImmutableDict(UserDict):
         raise KeyError('Deleting keys is not allowed.')
 
 
-def is_app(url: str | Callable[..., Any] | None) -> bool:
+def is_app(url: str | Callable[..., Any] | None) -> TypeGuard[Callable[..., Any]]:
     """Returns true if 'url' is a WSGI or ASGI app."""
     return callable(url)
 
 
-def is_local_url(url: str | Callable[..., Any] | None) -> bool:
+def is_local_url(url: str | Callable[..., Any] | None) -> TypeGuard[str]:
     if is_app(url) or not url or not isinstance(url, str):
         return False
     return not (
