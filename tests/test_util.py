@@ -156,7 +156,7 @@ class TestParseFileType:
 
 
 class TestCreateCookie:
-    """Tests for create_cookie's handling of a session cookie's expires field."""
+    """Tests for create_cookie's handling of None-valued expires/samesite fields."""
 
     def _cookie_dict(self, expires):
         return {
@@ -186,6 +186,20 @@ class TestCreateCookie:
         """0 (the Unix epoch) is a real, falsy expiry - must not be normalized away like None."""
         cookie = create_cookie(self._cookie_dict(0))
         assert cookie['foo']['expires'] == 0
+
+    def test_unspecified_samesite_is_omitted(self):
+        """samesite=None (backend couldn't report a policy) must not render as 'SameSite=None'."""
+        data = self._cookie_dict(None)
+        cookie = create_cookie(data)
+        output = cookie['foo'].output()
+        assert 'samesite' not in output.lower()
+
+    def test_explicit_samesite_is_preserved(self):
+        data = self._cookie_dict(None)
+        data['samesite'] = 'lax'
+        cookie = create_cookie(data)
+        output = cookie['foo'].output()
+        assert 'samesite=lax' in output.lower()
 
 
 class TestBridgeTokenValidation:
