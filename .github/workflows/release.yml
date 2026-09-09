@@ -16,14 +16,14 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         # setuptools_scm derives the version from tags, so the full history
         # and the tags themselves are required.
         fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.12'
 
@@ -38,7 +38,7 @@ jobs:
       run: ls -l dist/
 
     - name: Upload distributions
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: dist
         path: dist/
@@ -63,7 +63,7 @@ jobs:
 
     steps:
     - name: Download distributions
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: dist
         path: dist/

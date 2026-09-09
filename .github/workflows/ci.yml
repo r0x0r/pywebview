@@ -14,15 +14,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.10'
 
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
@@ -53,10 +53,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.12'
 
@@ -123,15 +123,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.gui }}-${{ hashFiles('**/pyproject.toml') }}
@@ -186,7 +186,7 @@ jobs:
     # Windows specific setup
     - name: Cache WebView2 Runtime (Windows)
       if: runner.os == 'Windows'
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: 'C:\Program Files\Microsoft\Edge WebView2 Runtime'
         key: ${{ runner.os }}-webview2-runtime
@@ -238,7 +238,7 @@ jobs:
 
     - name: Upload screenshots (macOS)
       if: runner.os == 'macOS' && failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: macos-screenshots
         path: /tmp/screenshots
@@ -250,10 +250,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.12'
 
