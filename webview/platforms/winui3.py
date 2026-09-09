@@ -1100,7 +1100,6 @@ class BrowserView:
 
             core_webview = self.browser.webview.core_webview2
             process_id = int(core_webview.browser_process_id) if core_webview else 0
-            dispatcher_queue = self.window.dispatcher_queue
             exit_application = Application.current.exit
             self.browser.webview.close()
 
@@ -1121,31 +1120,32 @@ class BrowserView:
 
             if len(BrowserView.instances) == 0:
                 if _state['private_mode']:
+                    # clear_user_data() can block for several seconds (it
+                    # waits on the browser process handle before deleting
+                    # the folder), so it runs on its own thread rather than
+                    # blocking this dispatcher callback. exit_application()
+                    # is called right away instead of being deferred until
+                    # cleanup finishes: the WinUI runtime can already be
+                    # tearing its dispatcher queue down once the last window
+                    # closes, and by the time a background thread got back
+                    # to it, enqueueing onto that queue could silently fail
+                    # - leaving Application.start() (and the master thread
+                    # blocked in it, which the caller's own script is
+                    # waiting on to regain control) hanging forever. Calling
+                    # it here, synchronously, on the UI thread that's
+                    # already guaranteed to have it, avoids that race
+                    # entirely. create_window()'s master-window `finally`
+                    # joins this thread before returning, so control still
+                    # only reaches the caller's script after cleanup is
+                    # done, even though Application.start() itself may
+                    # unblock sooner.
+                    global _private_cleanup_thread
+                    _private_cleanup_thread = threading.Thread(
+                        target=self.browser.clear_user_data, args=(process_id,), daemon=True
+                    )
+                    _private_cleanup_thread.start()
 
-                    def cleanup_and_exit():
-                        self.browser.clear_user_data(process_id)
-                        if not _enqueue(dispatcher_queue, exit_application):
-                            # clear_user_data() can block for several seconds
-                            # (it waits on the browser process handle before
-                            # deleting the folder), and the WinUI runtime can
-                            # already be tearing its dispatcher queue down by
-                            # the time this thread gets back to it, since the
-                            # last window has already closed. Application.
-                            # start() would then never return on its own to
-                            # unblock the process - cleanup already finished
-                            # at this point, so force the process down
-                            # directly rather than hang indefinitely waiting
-                            # for a graceful WinRT shutdown that can no
-                            # longer happen.
-                            logger.warning(
-                                'Dispatcher queue no longer accepting work after private '
-                                'data cleanup; forcing process exit'
-                            )
-                            os._exit(0)
-
-                    threading.Thread(target=cleanup_and_exit, daemon=True).start()
-                else:
-                    exit_application()
+                exit_application()
 
         def on_closing(self, sender: AppWindow, args: AppWindowClosingEventArgs):
             if self._closing_confirmed:
@@ -1447,6 +1447,7 @@ class BrowserView:
 _main_window_created = Event()
 _main_window_creation_error: BaseException | None = None
 _app_exit_stack: contextlib.ExitStack | None = None
+_private_cleanup_thread: threading.Thread | None = None
 
 
 def _async_creation_error(component: str, operation, status: AsyncStatus) -> RuntimeError:
@@ -1634,6 +1635,14 @@ def create_window(window: _Window):
         try:
             Application.start(init_app)
         finally:
+            global _private_cleanup_thread
+            if _private_cleanup_thread is not None:
+                # Application.start() can return before private-mode
+                # cleanup (started from on_close) finishes - wait for it
+                # here so the caller's script doesn't regain control, and
+                # the process can't exit, until it's actually done.
+                _private_cleanup_thread.join()
+                _private_cleanup_thread = None
             BrowserView.instances.clear()
             _close_app_runtime()
             _app_setup = False
