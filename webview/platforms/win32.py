@@ -382,69 +382,27 @@ def start_drag(hwnd: int) -> None:
         _user32.SendMessageW(hwnd, _WM_NCLBUTTONDOWN, _HT_CAPTION, 0)
 
 
-class _MONITORINFOEX(ctypes.Structure):
-    _fields_ = [
-        ('cbSize', wintypes.DWORD),
-        ('rcMonitor', wintypes.RECT),
-        ('rcWork', wintypes.RECT),
-        ('dwFlags', wintypes.DWORD),
-        ('szDevice', wintypes.WCHAR * 32),
-    ]
-
-
-class _DEVMODE(ctypes.Structure):
-    _fields_ = [
-        ('dmDeviceName', wintypes.WCHAR * 32),
-        ('dmSpecVersion', wintypes.WORD),
-        ('dmDriverVersion', wintypes.WORD),
-        ('dmSize', wintypes.WORD),
-        ('dmDriverExtra', wintypes.WORD),
-        ('dmFields', wintypes.DWORD),
-        ('dmPositionX', wintypes.LONG),
-        ('dmPositionY', wintypes.LONG),
-        ('dmDisplayOrientation', wintypes.DWORD),
-        ('dmDisplayFixedOutput', wintypes.DWORD),
-        ('dmColor', wintypes.SHORT),
-        ('dmDuplex', wintypes.SHORT),
-        ('dmYResolution', wintypes.SHORT),
-        ('dmTTOption', wintypes.SHORT),
-        ('dmCollate', wintypes.SHORT),
-        ('dmFormName', wintypes.WCHAR * 32),
-        ('dmLogPixels', wintypes.WORD),
-        ('dmBitsPerPel', wintypes.DWORD),
-        ('dmPelsWidth', wintypes.DWORD),
-        ('dmPelsHeight', wintypes.DWORD),
-        ('dmDisplayFlags', wintypes.DWORD),
-        ('dmDisplayFrequency', wintypes.DWORD),
-        ('dmICMMethod', wintypes.DWORD),
-        ('dmICMIntent', wintypes.DWORD),
-        ('dmMediaType', wintypes.DWORD),
-        ('dmDitherType', wintypes.DWORD),
-        ('dmReserved1', wintypes.DWORD),
-        ('dmReserved2', wintypes.DWORD),
-        ('dmPanningWidth', wintypes.DWORD),
-        ('dmPanningHeight', wintypes.DWORD),
-    ]
-
-
 def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
     """
     Get the DPI scale factor for the monitor containing the given rectangle.
 
-    Two independent methods are available because the correct one depends on
-    the calling thread's DPI-awareness context:
+    Uses ``GetDpiForMonitor`` directly, which reports the monitor's real DPI
+    for any DPI-*aware* caller — system-DPI-aware or per-monitor-DPI-aware
+    alike. It only falls back to a fixed 96 (i.e. scale 1.0) for a fully
+    DPI-*unaware* caller, which never applies here since every backend using
+    this helper calls ``SetProcessDPIAware()`` (or an equivalent) first.
 
-    * **System-DPI-aware** (WinForms): ``GetDpiForMonitor`` returns 96
-      regardless of actual scaling, but ``rcMonitor`` from
-      ``GetMonitorInfoW`` is in logical pixels so the physical/logical ratio
-      gives the correct scale.
-    * **Per-monitor-DPI-aware** (WinUI3 / WinRT threads): ``rcMonitor`` is
-      in physical pixels (ratio = 1.0) but ``GetDpiForMonitor`` returns the
-      real DPI.
-
-    The thread's DPI-awareness context selects the result. This matters when a
-    secondary monitor has a lower scale than the primary monitor: taking the
-    maximum would incorrectly retain the primary monitor's system DPI.
+    An earlier version of this function assumed ``GetDpiForMonitor`` also
+    returns a fixed 96 for system-DPI-aware callers specifically (not just
+    unaware ones), and used a physical/logical ``GetMonitorInfoW`` ratio as a
+    fallback for that case instead. That assumption was wrong — verified
+    empirically on a real single-monitor, system-DPI-aware, 200%-scaled
+    Windows machine: ``GetDpiForMonitor`` correctly reported the true DPI
+    there, while the ratio fallback gave 1.0 (since a system-DPI-aware
+    process sees the monitor that *defines* system DPI, i.e. the only
+    monitor on a single-monitor setup, at its true, unvirtualized physical
+    bounds — so physical/logical is always 1.0 for exactly that monitor,
+    regardless of its real scale). See [[cross_monitor_dpi_positioning_pattern]].
 
     The coordinates can be in either logical or physical pixels —
     ``MonitorFromRect`` with ``MONITOR_DEFAULTTONEAREST`` will resolve to the
@@ -459,52 +417,13 @@ def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
         if not hmonitor:
             return 1.0
 
-        awareness = None
-        try:
-            context = _user32.GetThreadDpiAwarenessContext()
-            awareness = _user32.GetAwarenessFromDpiAwarenessContext(context)
-        except Exception:
-            pass
-
-        # Method 1: GetDpiForMonitor (works in per-monitor-DPI-aware contexts)
-        scale_from_dpi = 1.0
-        try:
-            dpi_x = wintypes.UINT()
-            dpi_y = wintypes.UINT()
-            hr = ctypes.windll.shcore.GetDpiForMonitor(
-                hmonitor, 0, ctypes.byref(dpi_x), ctypes.byref(dpi_y)
-            )
-            if hr == 0 and dpi_x.value > 0:
-                scale_from_dpi = dpi_x.value / 96.0
-        except Exception:
-            pass
-
-        # Method 2: physical / logical ratio (works in system-DPI-aware contexts)
-        scale_from_ratio = 1.0
-        try:
-            mi = _MONITORINFOEX()
-            mi.cbSize = ctypes.sizeof(_MONITORINFOEX)
-            if _user32.GetMonitorInfoW(hmonitor, ctypes.byref(mi)):
-                logical_width = mi.rcMonitor.right - mi.rcMonitor.left
-                dm = _DEVMODE()
-                dm.dmSize = ctypes.sizeof(_DEVMODE)
-                if _user32.EnumDisplaySettingsW(mi.szDevice, -1, ctypes.byref(dm)):
-                    if logical_width > 0:
-                        scale_from_ratio = dm.dmPelsWidth / logical_width
-        except Exception:
-            pass
-
-        # DPI_AWARENESS_PER_MONITOR_AWARE = 2. Unaware/system-aware callers
-        # receive virtualized monitor bounds, so their physical/logical ratio
-        # is authoritative; per-monitor-aware callers use the monitor DPI.
-        if awareness == 2:
-            return scale_from_dpi
-        if awareness in (0, 1):
-            return scale_from_ratio
-
-        # Older Windows versions may not expose the awareness APIs. Prefer a
-        # non-unit ratio because virtualized bounds indicate system awareness.
-        return scale_from_ratio if scale_from_ratio != 1.0 else scale_from_dpi
+        dpi_x = wintypes.UINT()
+        dpi_y = wintypes.UINT()
+        hr = ctypes.windll.shcore.GetDpiForMonitor(
+            hmonitor, 0, ctypes.byref(dpi_x), ctypes.byref(dpi_y)
+        )
+        if hr == 0 and dpi_x.value > 0:
+            return dpi_x.value / 96.0
 
     except Exception as e:
         _log.debug(f'Failed to get monitor scale: {e}')
