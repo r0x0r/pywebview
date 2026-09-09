@@ -144,7 +144,15 @@ class WinFormsEdgeChrome(WebView2Core):
             # cookies must be accessed in the main thread, otherwise an exception is thrown
             # https://github.com/MicrosoftEdge/WebView2Feedback/issues/1976
             for c in _cookies:
-                same_site = None if c.SameSite == 0 else str(c.SameSite).lower()
+                # SameSite=None is a real, always-explicit policy (modern
+                # Chromium/WebView2 defaults an absent SameSite to Lax, so
+                # this enum is never ambiguous with "unspecified") - str()
+                # on the .NET enum already gives its member name ('None',
+                # 'Lax', 'Strict'), so lowercasing it directly reports
+                # 'none' rather than stripping the attribute via Python
+                # None, which create_cookie() would otherwise treat as
+                # "no SameSite attribute at all".
+                same_site = str(c.SameSite).lower()
                 try:
                     data = {
                         'name': c.Name,

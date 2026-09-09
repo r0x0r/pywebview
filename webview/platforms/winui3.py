@@ -524,13 +524,16 @@ class WinUI3EdgeChrome(WebView2Core):
                     try:
                         # Some WinRT bindings expose `same_site` as a plain int
                         # rather than the enum object — normalize via the enum
-                        # constructor so .name is always available.
+                        # constructor so .name is always available. NONE is a
+                        # real, always-explicit policy here (modern Chromium/
+                        # WebView2 treats an absent SameSite as Lax by
+                        # default, so this enum's only 3 members - None, Lax,
+                        # Strict - are never ambiguous with "unspecified") -
+                        # map it to the string 'none', not Python None, or
+                        # create_cookie() would strip a cookie's actual
+                        # SameSite=None policy instead of reporting it.
                         kind = CoreWebView2CookieSameSiteKind(c.same_site)
-                        same_site = (
-                            None
-                            if kind == CoreWebView2CookieSameSiteKind.NONE
-                            else kind.name.lower()
-                        )
+                        same_site = kind.name.lower()
                         data = {
                             'name': c.name,
                             'value': c.value,
