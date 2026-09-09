@@ -1,8 +1,6 @@
 name: Update WebView2 Runtime
 
 on:
-  push:
-    branches: [add-webview2-update-workflow]
   schedule:
     # Every Monday at 03:00 UTC
     - cron: "0 3 * * 1"
