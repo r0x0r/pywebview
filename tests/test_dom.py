@@ -69,6 +69,10 @@ def test_events(window):
     run_test(webview, window, events_test)
 
 
+def test_manipulation_errors(window):
+    run_test(webview, window, manipulation_error_test)
+
+
 def test_special_char_attributes(window):
     run_test(webview, window, special_char_attributes_test)
 
@@ -273,6 +277,24 @@ def manipulation_mode_test(window):
     child2.move(container2, mode=webview.dom.ManipulationMode.Replace)
     assert window.dom.get_element('#container2') is None
     assert child2.parent.tag == 'body'
+
+
+def manipulation_error_test(window):
+    child1 = window.dom.get_element('#child1')
+
+    # move() with a selector that matches nothing cannot resolve a target
+    with pytest.raises(webview.errors.WebViewException):
+        child1.move('#does-not-exist')
+
+    # copy() with a selector that matches nothing cannot resolve a target
+    with pytest.raises(webview.errors.WebViewException):
+        child1.copy('#does-not-exist')
+
+    # copy() with no explicit target and no parent (the root <html> element)
+    # cannot resolve a target either
+    html_element = window.dom.get_element('html')
+    with pytest.raises(webview.errors.WebViewException):
+        html_element.copy()
 
 
 def events_test(window):
