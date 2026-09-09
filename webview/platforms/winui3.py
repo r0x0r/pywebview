@@ -878,7 +878,15 @@ class BrowserView:
 
             self.window.title = window.title
             self.window.content = XamlReader.load(_WINDOW_XAML).as_(UIElement)
-            scale = window.screen.scale if window.screen else self._scale
+            # A freshly constructed Window hasn't been placed anywhere real
+            # yet, so self._scale (which reads *this* window's own current
+            # app_window position/size) isn't meaningful here - it would
+            # report whatever monitor pywinrt happened to default an
+            # unplaced window to, not the monitor this window will actually
+            # end up on. Use _primary_monitor_scale() (a direct OS query of
+            # the real primary display) as the initial guess instead; it's
+            # corrected below once the window has actually been placed.
+            scale = window.screen.scale if window.screen else _primary_monitor_scale()
             self.window.app_window.resize(
                 (
                     int(max(window.initial_width, window.min_size[0]) * scale),
@@ -886,68 +894,66 @@ class BrowserView:
                 )
             )
 
+            def _center_on(area: DisplayArea) -> None:
+                x = (
+                    area.work_area.x
+                    + (area.work_area.width - self.window.app_window.size.width) // 2
+                )
+                y = (
+                    area.work_area.y
+                    + (area.work_area.height - self.window.app_window.size.height) // 2
+                )
+                self.window.app_window.move((x, y))
+
             if window.initial_x is not None and window.initial_y is not None:
                 # initial_x/y are desktop-wide logical coordinates — the same
                 # space get_screens() reports monitor origins in — so they
                 # always convert with the single primary-monitor scale,
-                # regardless of which monitor they end up landing on. Unlike
-                # size below, this needs no re-resolution: the primary's
-                # scale doesn't depend on where the window lands.
+                # regardless of which monitor they end up landing on.
                 self.window.app_window.move(
                     (
                         int(window.initial_x * _primary_monitor_scale()),
                         int(window.initial_y * _primary_monitor_scale()),
                     )
                 )
-
-                # The window's *size*, unlike its position, legitimately
-                # depends on the real DPI of whichever monitor it actually
-                # lands on — which isn't known until it's been placed there.
-                # Re-resolve against the display the window actually landed
-                # on and, if its scale differs from what we assumed above,
-                # correct the size for the real scale.
-                target_area = DisplayArea.get_from_window_id(
-                    self.window.app_window.id, DisplayAreaFallback.NEAREST
-                )
-                target_scale = get_monitor_scale(
-                    target_area.outer_bounds.x,
-                    target_area.outer_bounds.y,
-                    target_area.outer_bounds.width,
-                    target_area.outer_bounds.height,
-                )
-                if target_scale != scale:
-                    scale = target_scale
-                    self.window.app_window.resize(
-                        (
-                            int(max(window.initial_width, window.min_size[0]) * scale),
-                            int(max(window.initial_height, window.min_size[1]) * scale),
-                        )
-                    )
             elif window.screen:
                 did = cast(DisplayId, window.screen.frame)
-                area = DisplayArea.get_from_display_id(did)
-                x = (
-                    area.work_area.x
-                    + (area.work_area.width - self.window.app_window.size.width) // 2
-                )
-                y = (
-                    area.work_area.y
-                    + (area.work_area.height - self.window.app_window.size.height) // 2
-                )
-                self.window.app_window.move((x, y))
+                _center_on(DisplayArea.get_from_display_id(did))
             else:
-                area = DisplayArea.get_from_window_id(
-                    self.window.app_window.id, DisplayAreaFallback.NEAREST
+                _center_on(
+                    DisplayArea.get_from_window_id(
+                        self.window.app_window.id, DisplayAreaFallback.NEAREST
+                    )
                 )
-                x = (
-                    area.work_area.x
-                    + (area.work_area.width - self.window.app_window.size.width) // 2
+
+            # The window's *size*, unlike the guess above, legitimately
+            # depends on the real DPI of whichever monitor it actually
+            # landed on - which isn't known for certain until it's been
+            # placed there (every branch above is either a target guessed
+            # before placement, or a query against a window whose position
+            # wasn't yet real). Re-resolve against the display the window
+            # actually landed on and, if its scale differs from what was
+            # assumed, correct the size for the real scale - and re-center,
+            # so a centered window doesn't end up off-center by the delta.
+            target_area = DisplayArea.get_from_window_id(
+                self.window.app_window.id, DisplayAreaFallback.NEAREST
+            )
+            target_scale = get_monitor_scale(
+                target_area.outer_bounds.x,
+                target_area.outer_bounds.y,
+                target_area.outer_bounds.width,
+                target_area.outer_bounds.height,
+            )
+            if target_scale != scale:
+                scale = target_scale
+                self.window.app_window.resize(
+                    (
+                        int(max(window.initial_width, window.min_size[0]) * scale),
+                        int(max(window.initial_height, window.min_size[1]) * scale),
+                    )
                 )
-                y = (
-                    area.work_area.y
-                    + (area.work_area.height - self.window.app_window.size.height) // 2
-                )
-                self.window.app_window.move((x, y))
+                if window.initial_x is None or window.initial_y is None:
+                    _center_on(target_area)
 
             self.full_screen_presenter = FullScreenPresenter.create()
             self.overlapped_presenter = self.window.app_window.presenter.as_(OverlappedPresenter)
