@@ -1098,7 +1098,14 @@ class BrowserView:
             exit_application = Application.current.exit
             self.browser.webview.close()
 
-            del BrowserView.instances[self.uid]
+            # Idempotent: on_close can run for a form whose uid was never
+            # added here at all, if _construct() registers add_closed and
+            # then fails before returning - the __init__ wrapper's failure
+            # cleanup closes self.window before create() ever gets to add
+            # it to `instances`. A plain `del` would KeyError there and
+            # abort the rest of this cleanup (uninstall_mouse_hook already
+            # ran above, but windows.remove/`closed` below would not).
+            BrowserView.instances.pop(self.uid, None)
 
             # during tests windows is empty for some reason. no idea why.
             if self.pywebview_window in windows:

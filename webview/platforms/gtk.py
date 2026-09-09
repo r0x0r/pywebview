@@ -450,7 +450,14 @@ class BrowserView:
         }
 
         for k, v in missing_headers.items():
-            headers.append(k, v)
+            # replace(), not append(): missing_headers includes headers that
+            # already exist with a different value, not just genuinely new
+            # ones. append() would add a second value alongside the
+            # original instead of overriding it (e.g. two User-Agent
+            # headers), so handlers couldn't reliably change a header's
+            # value. replace() adds the header if absent and overwrites it
+            # if present, matching request_.headers' one-value-per-key model.
+            headers.replace(k, v)
 
         for k in extra_headers:
             headers.remove(k)
