@@ -4,7 +4,7 @@ import os
 import pathlib
 import sys
 import webbrowser
-from threading import Semaphore, Thread, main_thread
+from threading import Semaphore, Thread, current_thread, main_thread
 from typing import Any
 from uuid import uuid1
 
@@ -24,6 +24,22 @@ from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
 os.environ['EGL_LOG_LEVEL'] = 'fatal'
+
+
+def _raise_if_reentrant(api_name: str) -> None:
+    """
+    Guard against calling a `glib.idle_add()` + semaphore-wait API from the
+    GTK main thread itself (e.g. a synchronous `request_sent`/`before_load`
+    handler): the idle callback can only ever run once this same thread
+    returns to the main loop, so blocking here on the semaphore would
+    deadlock permanently. Raises instead of hanging.
+    """
+    if current_thread() is main_thread():
+        raise RuntimeError(
+            f'{api_name}() cannot be called from a native GTK callback (e.g. a '
+            'request_sent or before_load handler) without deadlocking the main loop.'
+        )
+
 
 import gi  # noqa: E402
 
@@ -402,6 +418,17 @@ class BrowserView:
         url = request.get_uri()
         method = request.get_http_method()
 
+        # Fired and applied synchronously and inline, unlike the WebView2
+        # backends: WebKitGTK's resource-load-started has no deferral
+        # mechanism (unlike WebView2's GetDeferral() or WKNavigationDelegate's
+        # asynchronously-invokable decisionHandler), so the original request
+        # is free to reach the network as soon as this signal handler
+        # returns. Dispatching request_sent off-thread here would let that
+        # happen before stop_loading()/load_request() below can replace it,
+        # replaying non-idempotent requests (e.g. POST) — this must stay
+        # synchronous even though it means a request_sent handler here that
+        # calls a synchronous window API (e.g. evaluate_js()) can deadlock;
+        # see evaluate_js()'s own main-thread guard for that case instead.
         request_ = Request(url, method, original_headers)
         self.pywebview_window.events.request_sent.set(request_)
 
@@ -423,12 +450,18 @@ class BrowserView:
         }
 
         for k, v in missing_headers.items():
-            headers.append(k, v)
+            # replace(), not append(): missing_headers includes headers that
+            # already exist with a different value, not just genuinely new
+            # ones. append() would add a second value alongside the
+            # original instead of overriding it (e.g. two User-Agent
+            # headers), so handlers couldn't reliably change a header's
+            # value. replace() adds the header if absent and overwrites it
+            # if present, matching request_.headers' one-value-per-key model.
+            headers.replace(k, v)
 
         for k in extra_headers:
             headers.remove(k)
 
-        # headers.append('X-Handled', 'true')
         webview.stop_loading()
         self.request_headers_mutated = True
         webview.load_request(request)
@@ -635,6 +668,8 @@ class BrowserView:
         glib.idle_add(_clear_cookies)
 
     def get_cookies(self):
+        _raise_if_reentrant('get_cookies')
+
         def _get_cookies():
             self.cookie_manager.get_cookies(self.webview.get_uri(), None, callback, None)
 
@@ -665,6 +700,9 @@ class BrowserView:
         self.webview.load_html(content, base_uri)
 
     def evaluate_js(self, script, parse_json):
+        result_semaphore = Semaphore(0)
+        result = None
+
         def _evaluate_js():
             try:
                 self.webview.evaluate_javascript(
@@ -698,9 +736,27 @@ class BrowserView:
 
             result_semaphore.release()
 
+        if current_thread() is main_thread():
+            # Already on the GTK main thread (e.g. a request_sent handler
+            # firing synchronously from resource-load-started).
+            # Window.evaluate_js() (parse_json=True) needs its result, and
+            # the acquire() below would deadlock the very main loop that
+            # has to run _evaluate_js (via glib.idle_add) and deliver it —
+            # raise *before* starting the script, not after, so a caller
+            # that catches this and retries doesn't end up running a
+            # script with side effects twice. Window.run_js()
+            # (parse_json=False) is fire-and-forget by contract — its
+            # docstring says the result isn't guaranteed — so it's the only
+            # case where it's safe to start the script and return.
+            if parse_json:
+                raise RuntimeError(
+                    'evaluate_js() cannot return a result synchronously when called '
+                    'from a native GTK callback without deadlocking the main loop.'
+                )
+            _evaluate_js()
+            return None
+
         unique_id = uuid1().hex
-        result_semaphore = Semaphore(0)
-        result = None
         self.js_results[unique_id] = {'semaphore': result_semaphore}
         glib.idle_add(_evaluate_js)
         result_semaphore.acquire()
@@ -898,6 +954,8 @@ def get_cookies(uid):
 
 
 def get_current_url(uid):
+    _raise_if_reentrant('get_current_url')
+
     def _get_current_url():
         result['url'] = i.get_current_url()
         semaphore.release()
@@ -934,6 +992,8 @@ def load_html(content, base_uri, uid):
 
 
 def create_confirmation_dialog(title, message, uid):
+    _raise_if_reentrant('create_confirmation_dialog')
+
     def _create():
         nonlocal result
         result = i.create_confirmation_dialog(title, message)
@@ -1015,6 +1075,8 @@ def get_active_window():
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
+    _raise_if_reentrant('create_file_dialog')
+
     i = BrowserView.instances.get(uid)
     file_name_semaphore = Semaphore(0)
     file_names = []
@@ -1044,6 +1106,8 @@ def evaluate_js(script, uid, parse_json=True):
 
 
 def get_position(uid):
+    _raise_if_reentrant('get_position')
+
     def _get_position():
         result['position'] = i.window.get_position()
         semaphore.release()
@@ -1062,6 +1126,8 @@ def get_position(uid):
 
 
 def get_size(uid):
+    _raise_if_reentrant('get_size')
+
     def _get_size():
         result['size'] = i.window.get_size()
         semaphore.release()

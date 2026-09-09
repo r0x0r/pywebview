@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import atexit
 import json
 import logging
 import os
 import urllib
 import uuid
 import webbrowser
+from concurrent.futures import ThreadPoolExecutor
 from threading import Semaphore, Thread, main_thread
 
 import AppKit
@@ -36,6 +38,19 @@ bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
 info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
 info['NSRequiresAquaSystemAppearance'] = Foundation.NO  # Enable dark mode support for Mojave
+
+# Bounded, single-worker pool for dispatching request_sent handlers off the
+# AppKit main thread. The events API documents these handlers as running in
+# a separate thread; calling them inline from the navigation-policy delegate
+# (the main thread) would violate that and let a handler calling a
+# synchronous window API (e.g. evaluate_js()) deadlock the main run loop. A
+# raw thread per request would also let an asset-heavy page spawn unbounded
+# OS threads. This dispatches a stop-current-load-and-reissue navigation
+# (webview.loadRequest_), so it must process requests in submission order —
+# more than one worker could let a later navigation's handler finish first
+# and get overwritten by an earlier, slower one completing after it.
+_request_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='pywebview-request')
+atexit.register(_request_executor.shutdown, wait=False, cancel_futures=True)
 
 # Fallbacks, in case these constants are not wrapped by PyObjC
 try:
@@ -320,23 +335,45 @@ class BrowserView:
                 and 'X-Handled' not in original_headers
                 and str(url) != 'about:blank'
             ):
-                request_ = Request(str(url), request.HTTPMethod(), original_headers)
-                i.pywebview_window.events.request_sent.set(request_)
-                request_.headers['X-Handled'] = 'true'
+                # Read everything needed from the AppKit request object now,
+                # on the main thread — only the request_sent dispatch below
+                # (documented to run in a separate thread) is deferred.
+                method = request.HTTPMethod()
+                http_body = request.HTTPBody()
+                http_body_stream = request.HTTPBodyStream()
+                should_handle_cookies = request.HTTPShouldHandleCookies()
+                should_use_pipelining = request.HTTPShouldUsePipelining()
+                main_document_url = request.mainDocumentURL()
+                network_service_type = request.networkServiceType()
 
-                new_request = Foundation.NSMutableURLRequest.requestWithURL_(url)
-                new_request.setHTTPMethod_(request.HTTPMethod())
-                new_request.setAllHTTPHeaderFields_(
-                    AppKit.NSDictionary(stringify_headers(request_.headers))
-                )
-                new_request.setHTTPBody_(request.HTTPBody())
-                new_request.setHTTPBodyStream_(request.HTTPBodyStream())
-                new_request.setHTTPShouldHandleCookies_(request.HTTPShouldHandleCookies())
-                new_request.setHTTPShouldUsePipelining_(request.HTTPShouldUsePipelining())
-                new_request.setMainDocumentURL_(request.mainDocumentURL())
-                new_request.setNetworkServiceType_(request.networkServiceType())
-                webview.loadRequest_(new_request)
-                handler(getattr(WebKit, 'WKNavigationActionPolicyCancel', 1))
+                def dispatch_event():
+                    request_ = Request(str(url), method, original_headers)
+                    i.pywebview_window.events.request_sent.set(request_)
+                    request_.headers['X-Handled'] = 'true'
+
+                    def apply_and_continue():
+                        new_request = Foundation.NSMutableURLRequest.requestWithURL_(url)
+                        new_request.setHTTPMethod_(method)
+                        new_request.setAllHTTPHeaderFields_(
+                            AppKit.NSDictionary(stringify_headers(request_.headers))
+                        )
+                        new_request.setHTTPBody_(http_body)
+                        new_request.setHTTPBodyStream_(http_body_stream)
+                        new_request.setHTTPShouldHandleCookies_(should_handle_cookies)
+                        new_request.setHTTPShouldUsePipelining_(should_use_pipelining)
+                        new_request.setMainDocumentURL_(main_document_url)
+                        new_request.setNetworkServiceType_(network_service_type)
+                        webview.loadRequest_(new_request)
+                        handler(getattr(WebKit, 'WKNavigationActionPolicyCancel', 1))
+
+                    # loadRequest_() is a WKWebView call and must happen on
+                    # the main thread; decisionHandler itself is documented
+                    # as callable from any thread, but we call it alongside
+                    # loadRequest_ here to keep both changes atomic.
+                    AppHelper.callAfter(apply_and_continue)
+
+                _request_executor.submit(dispatch_event)
+                return
             else:
                 # Normal navigation, allow
                 handler(getattr(WebKit, 'WKNavigationActionPolicyAllow', 1))

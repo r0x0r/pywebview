@@ -70,7 +70,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `func` - function to invoke upon starting the GUI loop.
 * `args` - function arguments. Can be either a single value or a tuple of values.
 * `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
-* `gui` - force a specific GUI. Allowed values are `cef`, `qt` or `gtk` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
+* `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `mshtml`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server for absolute local paths. For relative paths HTTP server is started automatically and cannot be disabled. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `http_port` - specify a port number for the HTTP server. By default port is randomized.
@@ -130,8 +130,8 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `JS_API_MAX_DEPTH` Maximum depth of nested `js_api` objects that are walked when exposing functions to Javascript. Guards against runaway recursion into objects whose attributes return a fresh object on every access (e.g. native GUI objects). Default is 10.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
-* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium` or `qt`. Disabled by default.
-* `SHOW_DEFAULT_MENUS` Show default menus on Cocoa. Enabled by default.
+* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`, `winui3` or `qt`. Disabled by default.
+* `SHOW_DEFAULT_MENUS` Show default menu on Cocoa. Enabled by default.
 * `WEBVIEW2_RUNTIME_PATH` Path to WebView2 runtime. You can use relative paths, which will be resolved relative to the application entry point with support of path resolution for most bundlers. If not set, the system installed runtime is used if present.
 
 #### Examples
@@ -516,7 +516,7 @@ Get the scale factor (DPI scale) for this display. For example, a value of `2.0`
 screen.physical_width
 ```
 
-Get display width in physical pixels. Equal to `width * scale`.
+Get display width in physical pixels. Equal to `width * scale` on most platforms. On the WinUI3 backend with a mixed-DPI multi-monitor setup, see the note under `screen.physical_x` below — the same exception applies here.
 
 ### screen.physical_height
 
@@ -524,7 +524,7 @@ Get display width in physical pixels. Equal to `width * scale`.
 screen.physical_height
 ```
 
-Get display height in physical pixels. Equal to `height * scale`.
+Get display height in physical pixels. Equal to `height * scale` on most platforms; see `screen.physical_x` below for the WinUI3 mixed-DPI exception.
 
 ### screen.physical_x
 
@@ -532,7 +532,7 @@ Get display height in physical pixels. Equal to `height * scale`.
 screen.physical_x
 ```
 
-Get X coordinate of the top-left corner of the display in physical pixels. Equal to `x * scale`.
+Get X coordinate of the top-left corner of the display in physical pixels. Equal to `x * scale` on most platforms. On the **WinUI3** backend with a mixed-DPI multi-monitor setup, every screen's `x`/`y`/`width`/`height` are reported in a single desktop-wide coordinate system shared by every screen (so screens tile without overlapping), computed using a single scale factor that can differ from this screen's own `scale` (which still reflects its true DPI, e.g. for `dpi`) — in that case `physical_x`/`physical_y`/`physical_width`/`physical_height` reflect the true physical geometry using that shared scale instead of `scale`. Other backends (WinForms, GTK, Qt, Cocoa) always use `scale` directly.
 
 ### screen.physical_y
 
@@ -540,7 +540,7 @@ Get X coordinate of the top-left corner of the display in physical pixels. Equal
 screen.physical_y
 ```
 
-Get Y coordinate of the top-left corner of the display in physical pixels. Equal to `y * scale`.
+Get Y coordinate of the top-left corner of the display in physical pixels. Equal to `y * scale` on most platforms; see `physical_x` above for the WinUI3 mixed-DPI exception.
 
 ### screen.dpi
 
@@ -905,7 +905,7 @@ Get DOM document's window `window` as an `Element` object
 
 ## Window events
 
-Window object exposes various lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g., `window.events.loaded += func`. Duplicate subscriptions are ignored, and the function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, e.g., `window.events.loaded -= func`. To access the window object from the event handler, supply the `window` parameter as the first positional argument of the handler. Most window events are asynchronous, and event handlers are executed in separate threads. The `before_show` and `before_load` events are synchronous and block the main thread until handled.
+Window object exposes various lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g., `window.events.loaded += func`. Duplicate subscriptions are ignored, and the function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, e.g., `window.events.loaded -= func`. To access the window object from the event handler, supply the `window` parameter as the first positional argument of the handler. Most window events are asynchronous, and event handlers are executed in separate threads. The `before_show` and `before_load` events are synchronous and block the main thread until handled. The `request_sent` event is also synchronous - the underlying HTTP request is held up until the handler returns - but its execution context is backend-dependent; see its own entry below.
 
 ### window.events.before_show
 
@@ -957,7 +957,7 @@ The event is fired when window is moved.
 
 ### window.events.request_sent
 
-The event is fired when a HTTP request is sent. The event is emitted for every HTTP request, except on macOS where it is emitted only for the main document.
+The event is fired when a HTTP request is sent. The event is emitted for every HTTP request, except on macOS where it is emitted only for the main document. Unlike most window events, this event is blocking: the request is held up until the handler returns, so it must return promptly. Where the handler actually runs is backend-dependent: on GTK it runs inline on the main/webview thread (WebKitGTK has no way to defer the request), so it must not call APIs that need to run on that same thread (e.g. `evaluate_js`), or an exception will be raised; on macOS and Windows it runs on a separate worker thread instead, matching most other window events.
 The event handler can accept a single argument - a `Request` object that contains the following properties:
 
 * `url` - URL of the request

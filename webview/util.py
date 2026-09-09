@@ -141,10 +141,24 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie:
         cookie[name] = input_['value']
         cookie[name]['path'] = input_['path']
         cookie[name]['domain'] = input_['domain']
-        cookie[name]['expires'] = input_['expires']
+        # A Morsel treats only '' as "omit this attribute" - passing None
+        # through (as backends do for a session cookie with no expiry, e.g.
+        # winui3.py's _format_cookie_expiry) makes SimpleCookie.output()
+        # render the literal string "expires=None" instead of leaving the
+        # attribute out. Check `is None` specifically, not truthiness: 0 is
+        # a legitimate expiry (the Unix epoch, used to expire a cookie
+        # immediately) and must not be normalized away like None is.
+        cookie[name]['expires'] = '' if input_['expires'] is None else input_['expires']
         cookie[name]['secure'] = input_['secure']
         cookie[name]['httponly'] = input_['httponly']
-        cookie[name]['samesite'] = input_.get('samesite')
+        # Same None-vs-'' issue as expires above: several backends (e.g.
+        # winui3.py, edgechromium.py) can't distinguish "SameSite absent"
+        # from "SameSite=None" in the underlying platform API and report
+        # both as None here - passing that through renders the literal
+        # string "SameSite=None" in the output. Omit the attribute instead
+        # of asserting a policy this backend can't actually confirm.
+        same_site = input_.get('samesite')
+        cookie[name]['samesite'] = '' if same_site is None else same_site
 
         return cookie
 
@@ -265,6 +279,17 @@ def inject_pywebview(platform: str, window: Window) -> None:
     thread.start()
 
 
+def is_js_bridge_token_valid(window: Window, token: str | None) -> bool:
+    """Return whether a native bridge message carries the session token."""
+    # MSHTML does not support passing a token through its JS bridge, so it is
+    # excluded from token validation.
+    if window.gui.renderer != 'mshtml' and not hmac.compare_digest(str(token), _TOKEN):
+        logger.error('Rejected JS bridge call with an invalid token')
+        return False
+
+    return True
+
+
 def js_bridge_call(
     window: Window, func_name: str, param: Any, value_id: str, token: str | None = None
 ) -> None:
@@ -273,10 +298,7 @@ def js_bridge_call(
     thread to prevent blocking the UI thread. The result is then passed back to the JS API.
     """
 
-    # MSHTML does not support passing a token through its JS bridge, so it is
-    # excluded from token validation.
-    if window.gui.renderer != 'mshtml' and not hmac.compare_digest(str(token), _TOKEN):
-        logger.error('Rejected JS bridge call with an invalid token')
+    if not is_js_bridge_token_valid(window, token):
         return
 
     def _call():
@@ -411,7 +433,9 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
                     'zoomable': str(window.zoomable),
                     'draggable': str(window.draggable),
                     'easy_drag': str(
-                        platform == 'edgechromium' and window.easy_drag and window.frameless
+                        platform in ('edgechromium', 'winui3')
+                        and window.easy_drag
+                        and window.frameless
                     ),
                 }
             elif name == 'state':

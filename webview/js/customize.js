@@ -8,7 +8,7 @@
         window.alert = function(msg) {
             window.external.alert(msg);
         }
-    } else if (platform == 'edgechromium') {
+    } else if (platform == 'edgechromium' || platform == 'winui3') {
         window.alert = function (message) {
             window.chrome.webview.postMessage(['_pywebviewAlert', pywebview.stringify(message), 'alert']);
         }
@@ -58,6 +58,11 @@
                 !ev.target.matches('%(drag_selector)s')
             ) {
                 return
+            }
+
+            if (platform === 'edgechromium' || platform === 'winui3') {
+                window.pywebview._jsApiCallback('pywebviewStartDrag', [], 'drag');
+                return;
             }
 
             initialX = ev.clientX;

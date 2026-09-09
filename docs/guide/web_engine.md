@@ -9,10 +9,11 @@ The following renderers are used on each platform
 | macOS    |              | WebKit   | WebKit.WKWebView (bundled with OS)                |                       |
 | QT       | qt           | WebKit   | QtWebEngine / QtWebKit                            |                       |
 | Windows  | edgechromium | Chromium | > .NET Framework 4.6.2 and Edge Runtime installed | Ever-green Chromium   |
+| Windows  | winui3       | Chromium | > `pywebview[winui3]` extra, Edge Runtime and Windows App Runtime installed | Ever-green Chromium   |
 | Windows  | cef          | CEF      | CEF Python                                        | Chrome 66             |
 | Windows  | mshtml       | MSHTML   | DEPRECATED  Internet Explorer MSHTML              | IE11 (Windows 10/8/7) |
 
-On Windows renderer is chosen in the following order: `edgechromium`, `mshtml`. `mshtml` is the only renderer that is guaranteed to be available on any system. Edge Runtime must be installed in order to use Edge Chromium on Windows. You can download it from [here](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). Distribution guidelines are found [here](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution).
+On Windows the default renderer is chosen in the following order: `edgechromium`, `mshtml`, `winui3`. Edge Chromium and MSHTML are provided by the WinForms backend; WinUI 3 is used automatically when WinForms cannot be loaded, or it can be selected explicitly using the `winui3` code. `mshtml` is the only renderer that is guaranteed to be available on any system. Edge Runtime must be installed in order to use Edge Chromium on Windows. You can download the [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/), and consult its [distribution guidelines](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution). WinUI 3 hosts the same WebView2 control as `edgechromium`, so it requires the Edge Runtime too, in addition to the Windows App Runtime. Windows App Runtime can be downloaded from the [Windows App SDK downloads page](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads) or redistributed with your application so that users don't have to install it separately.
 
 To change a default renderer set either `PYWEBVIEW_GUI` environment variable or  pass the rendered value to `webview.start(gui=code)` function parameter. Check for available values in the Code column from the table above.
 

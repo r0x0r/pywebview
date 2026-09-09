@@ -1,6 +1,13 @@
 class Screen:
     def __init__(
-        self, x: int, y: int, width: int, height: int, frame: object = None, scale: float = 1.0
+        self,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        frame: object = None,
+        scale: float = 1.0,
+        origin_scale: float | None = None,
     ) -> None:
         self.x = int(x)
         self.y = int(y)
@@ -8,26 +15,39 @@ class Screen:
         self.height = int(height)
         self.frame = frame
         self.scale = float(scale)
+        # `scale` is this monitor's own true DPI scale (used for `.dpi`).
+        # `origin_scale` is the scale this Screen's own x/y/width/height
+        # were actually computed with, and is what physical_x/y/width/height
+        # must use to round-trip correctly. These differ on backends where
+        # reporting a monitor's true geometry requires a single desktop-wide
+        # coordinate space shared by every screen (see WinUI3's
+        # get_screens(): every screen's x/y/width/height are computed via
+        # the primary monitor's scale so mixed-DPI screens tile without
+        # overlap - "own scale for size" alone isn't enough because a
+        # lower-DPI monitor adjacent to a higher-DPI one can still overlap
+        # it otherwise). Defaults to `scale` so every other backend's
+        # single-scale-per-monitor model is unaffected.
+        self.origin_scale = float(origin_scale) if origin_scale is not None else self.scale
 
     @property
     def physical_x(self) -> int:
         """X coordinate in physical pixels."""
-        return int(self.x * self.scale)
+        return int(self.x * self.origin_scale)
 
     @property
     def physical_y(self) -> int:
         """Y coordinate in physical pixels."""
-        return int(self.y * self.scale)
+        return int(self.y * self.origin_scale)
 
     @property
     def physical_width(self) -> int:
         """Width in physical pixels."""
-        return int(self.width * self.scale)
+        return int(self.width * self.origin_scale)
 
     @property
     def physical_height(self) -> int:
         """Height in physical pixels."""
-        return int(self.height * self.scale)
+        return int(self.height * self.origin_scale)
 
     @property
     def dpi(self) -> int:

@@ -3,7 +3,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from webview.util import _TOKEN, js_bridge_call, parse_file_type
+from webview.util import (
+    _TOKEN,
+    create_cookie,
+    is_js_bridge_token_valid,
+    js_bridge_call,
+    parse_file_type,
+)
 
 
 class TestParseFileType:
@@ -149,6 +155,53 @@ class TestParseFileType:
         assert extensions == '*.backup.old.gz'
 
 
+class TestCreateCookie:
+    """Tests for create_cookie's handling of None-valued expires/samesite fields."""
+
+    def _cookie_dict(self, expires):
+        return {
+            'name': 'foo',
+            'value': 'bar',
+            'path': '/',
+            'domain': 'example.com',
+            'expires': expires,
+            'secure': False,
+            'httponly': False,
+        }
+
+    def test_session_cookie_omits_expires(self):
+        """expires=None (a session cookie) must not render as the literal string 'None'."""
+        cookie = create_cookie(self._cookie_dict(None))
+        output = cookie['foo'].output()
+        assert 'expires' not in output.lower()
+
+    def test_persistent_cookie_keeps_expires(self):
+        """A real expiry string is preserved unchanged."""
+        expiry = 'Wed, 21 Oct 2026 07:28:00 GMT'
+        cookie = create_cookie(self._cookie_dict(expiry))
+        output = cookie['foo'].output()
+        assert expiry in output
+
+    def test_zero_expiry_is_not_treated_as_session_cookie(self):
+        """0 (the Unix epoch) is a real, falsy expiry - must not be normalized away like None."""
+        cookie = create_cookie(self._cookie_dict(0))
+        assert cookie['foo']['expires'] == 0
+
+    def test_unspecified_samesite_is_omitted(self):
+        """samesite=None (backend couldn't report a policy) must not render as 'SameSite=None'."""
+        data = self._cookie_dict(None)
+        cookie = create_cookie(data)
+        output = cookie['foo'].output()
+        assert 'samesite' not in output.lower()
+
+    def test_explicit_samesite_is_preserved(self):
+        data = self._cookie_dict(None)
+        data['samesite'] = 'lax'
+        cookie = create_cookie(data)
+        output = cookie['foo'].output()
+        assert 'samesite=lax' in output.lower()
+
+
 class TestBridgeTokenValidation:
     """Tests that js_bridge_call enforces the session token before dispatching a call."""
 
@@ -174,3 +227,10 @@ class TestBridgeTokenValidation:
         window = self._make_window(called)
         js_bridge_call(window, 'target', [], 'value_id', 'not-the-token')
         assert not called.wait(0.5), 'Function was called despite an invalid token'
+
+    def test_internal_command_token_validation(self):
+        window = MagicMock()
+        window.gui.renderer = 'winui3'
+
+        assert is_js_bridge_token_valid(window, _TOKEN)
+        assert not is_js_bridge_token_valid(window, 'not-the-token')
