@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+
+### 🚀 Improvements
+
+- `EdgeChromium` Update WebView2 runtime to 1.0.4191.47.
+
 ## 6.2.1
 
 _Released 15/04/2026_
