@@ -153,7 +153,14 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
         cookie[name]['expires'] = '' if input_['expires'] is None else input_['expires']
         cookie[name]['secure'] = input_['secure']
         cookie[name]['httponly'] = input_['httponly']
-        cookie[name]['samesite'] = input_.get('samesite')
+        # Same None-vs-'' issue as expires above: several backends (e.g.
+        # winui3.py, edgechromium.py) can't distinguish "SameSite absent"
+        # from "SameSite=None" in the underlying platform API and report
+        # both as None here - passing that through renders the literal
+        # string "SameSite=None" in the output. Omit the attribute instead
+        # of asserting a policy this backend can't actually confirm.
+        same_site = input_.get('samesite')
+        cookie[name]['samesite'] = '' if same_site is None else same_site
 
         return cookie
 

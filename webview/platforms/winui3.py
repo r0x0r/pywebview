@@ -841,6 +841,27 @@ class BrowserView:
 
     class BrowserForm:
         def __init__(self, window: _Window, cache_dir: str):
+            try:
+                self._construct(window, cache_dir)
+            except BaseException:
+                # create_guarded()'s failure handler only ever sees `window`
+                # (the pywebview model), not this partially-constructed
+                # `self` - a Python exception from __init__ discards the
+                # instance before the caller's assignment ever completes,
+                # so there is no other reference through which to close the
+                # native WinRT Window this may have already created. Must
+                # be cleaned up here, before re-raising, or a failure after
+                # `self.window = WinUIWindow()` leaks that native window
+                # and its callbacks alive forever.
+                with contextlib.suppress(Exception):
+                    if getattr(self, 'window', None) is not None:
+                        # Bypass the closing event/confirm_close veto path,
+                        # same reasoning as _fail_child_window_creation.
+                        self._closing_confirmed = True
+                        self.window.close()
+                raise
+
+        def _construct(self, window: _Window, cache_dir: str):
             self._is_active = False
             self._closing_confirmed = False
             self._min_size = window.min_size
