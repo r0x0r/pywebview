@@ -180,7 +180,7 @@ def inject_pywebview(platform: str, window: Window) -> None:
         return params
 
     def get_functions(
-        obj: object, base_name: str = '', functions: dict[str, object] = None, depth: int = 0
+        obj: object, base_name: str = '', functions: dict[str, object] | None = None, depth: int = 0
     ):
         if functions is None:
             functions = {}
