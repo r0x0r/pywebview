@@ -48,6 +48,7 @@ class BrowserView:
         self.dialog = None
         self.pywebview_window.native = self
         self.is_fullscreen = False
+        self._dismissed = False
         self.create_webview()
 
     @run_on_ui_thread
@@ -196,6 +197,15 @@ class BrowserView:
         self.pywebview_window.events.response_received.set(response)
 
     def dismiss(self):
+        if self._dismissed:
+            return
+
+        self._dismissed = True
+        # _dismiss() is posted to the UI thread, so it runs after app.run() has
+        # returned and create_window() has cleared the module global. Bind the
+        # app instance now instead of reading `app` from inside the callback.
+        current_app = app
+
         @run_on_ui_thread
         def _dismiss():
             try:
@@ -234,7 +244,8 @@ class BrowserView:
             except Exception as e:
                 logger.error(f'Error during dismiss: {e}')
             finally:
-                app.stop()
+                if current_app is not None:
+                    current_app.stop()
 
         _dismiss()
 
@@ -376,7 +387,14 @@ def create_window(window):
         return
 
     app = AndroidApp(window)
-    app.run()
+
+    try:
+        app.run()
+    finally:
+        # run() blocks until the event loop closes. Without clearing the global
+        # the guard above latches forever, so a window destroyed with
+        # window.destroy() could never be replaced by a new one.
+        app = None
 
 
 def setup_app():
@@ -547,7 +565,7 @@ def resize(width, height, _, fix_point):
     logger.warning('Resizing window is not supported on Android')
 
 
-def destroy_window():
+def destroy_window(_):
     app.stop()
 
 
