@@ -23,7 +23,12 @@ version = 0.1
 # targetSdk >= 28), so the one test that needs a local server has to be served
 # over https, which means webview.start(ssl=True) and the self-signed cert
 # __generate_ssl_cert() builds with it. Same reason tests/android needs it.
-requirements = python3,bottle,proxy_tools,typing_extensions,cryptography,pytest==9.1.1,iniconfig,pluggy,packaging,pygments,exceptiongroup,tomli
+#
+# android and pyjnius are what webview/platforms/android imports (android.activity,
+# android.runnable, jnius). The sdl2 bootstrap does not pull them in on its own -
+# without them the recipe set has neither, `import webview.platforms.android` fails
+# with ModuleNotFoundError, and guilib.initialize() leaves guilib as None.
+requirements = python3,android,pyjnius,bottle,proxy_tools,typing_extensions,cryptography,pytest==9.1.1,iniconfig,pluggy,packaging,pygments,exceptiongroup,tomli
 
 orientation = portrait,landscape
 osx.python_version = 3

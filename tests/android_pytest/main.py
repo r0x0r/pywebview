@@ -31,15 +31,27 @@ class LogcatReporter:
         self.failed = 0
         self.failures = []
 
+    @staticmethod
+    def _message(report):
+        """The failing assertion or exception, not the head of the long repr.
+
+        str(longrepr) starts with the source listing and the local variables,
+        so truncating it to fit a logcat line reliably cuts off before reaching
+        anything about what actually went wrong. reprcrash holds just the final
+        error line.
+        """
+        crash = getattr(report.longrepr, 'reprcrash', None)
+        text = crash.message if crash else str(report.longrepr)
+        return text.replace('\n', ' | ')[:300]
+
     def pytest_runtest_logreport(self, report):
         if report.when != 'call' and not (report.when == 'setup' and report.failed):
             return
 
         if report.failed:
             self.failed += 1
-            message = str(report.longrepr).replace('\n', ' | ')[:300]
             self.failures.append(report.nodeid)
-            print(f'PYWEBVIEW_TEST_RESULT::FAIL::{report.nodeid}::{message}')
+            print(f'PYWEBVIEW_TEST_RESULT::FAIL::{report.nodeid}::{self._message(report)}')
         elif report.passed:
             self.passed += 1
             print(f'PYWEBVIEW_TEST_RESULT::PASS::{report.nodeid}')
