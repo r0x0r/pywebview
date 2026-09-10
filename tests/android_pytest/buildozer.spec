@@ -18,11 +18,12 @@ version = 0.1
 # harmless above it and cheap insurance against whichever version p4a's python3
 # recipe currently builds. colorama is win32-only and deliberately omitted.
 #
-# Note the absence of cryptography, which tests/android/buildozer.spec needs:
-# pywebview only imports it inside __generate_ssl_cert(), and this suite never
-# passes ssl=True. There is no p4a recipe for it, so it would be built from an
-# sdist and need a Rust toolchain cross-compiled for Android.
-requirements = python3,bottle,proxy_tools,typing_extensions,pytest==9.1.1,iniconfig,pluggy,packaging,pygments,exceptiongroup,tomli
+# cryptography is required even though nothing here imports it directly:
+# Android blocks cleartext HTTP by default (usesCleartextTraffic is false for
+# targetSdk >= 28), so the one test that needs a local server has to be served
+# over https, which means webview.start(ssl=True) and the self-signed cert
+# __generate_ssl_cert() builds with it. Same reason tests/android needs it.
+requirements = python3,bottle,proxy_tools,typing_extensions,cryptography,pytest==9.1.1,iniconfig,pluggy,packaging,pygments,exceptiongroup,tomli
 
 orientation = portrait,landscape
 osx.python_version = 3

@@ -25,10 +25,20 @@ def window():
     return webview.create_window('Cookie test', app)
 
 
+# Matches how tests/android/main.py starts, and for the same two reasons.
+#
 # private_mode (webview.start's default) makes the Android backend call
-# CookieManager.setAcceptCookie(False) on page finished, so cookies are silently
-# dropped. tests/android/main.py starts with private_mode=False for the same reason.
-COOKIE_START_ARGS = {'private_mode': False}
+# CookieManager.setAcceptCookie(False) on page finished, so cookies would be
+# silently dropped.
+#
+# ssl is needed because Android blocks cleartext HTTP by default
+# (usesCleartextTraffic is false for targetSdk >= 28), so the local Bottle
+# server this test runs against has to be served over https or the page never
+# loads. pywebview generates a self-signed cert for it, which the Android
+# backend accepts because _state['ssl'] also turns on the client's
+# ignore-ssl-errors flag. The other test modules load their content with html=,
+# which never goes over the network, so only this one needs either flag.
+COOKIE_START_ARGS = {'private_mode': False, 'ssl': True}
 
 
 def test_get_cookies(window):
