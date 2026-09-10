@@ -11,10 +11,18 @@ source.include_exts = py,png,jpg,html,jar,js
 source.exclude_dirs = bin,build,dist,.venv,venv,__pycache__
 version = 0.1
 
-# pytest and its own runtime deps (kept explicit rather than relying on p4a's
-# transitive resolution for the generic/pip recipe path, which is less
-# reliable than it is for plain pip).
-requirements = python3,bottle,proxy_tools,typing_extensions,cryptography,pytest,iniconfig,pluggy,packaging
+# pytest is pinned and its runtime dependencies listed explicitly rather than
+# left to p4a's transitive resolution, which is less reliable than plain pip
+# for arbitrary sdists. pygments is easy to miss - pytest has required it since
+# 8.4. exceptiongroup and tomli are only needed below Python 3.11; they are
+# harmless above it and cheap insurance against whichever version p4a's python3
+# recipe currently builds. colorama is win32-only and deliberately omitted.
+#
+# Note the absence of cryptography, which tests/android/buildozer.spec needs:
+# pywebview only imports it inside __generate_ssl_cert(), and this suite never
+# passes ssl=True. There is no p4a recipe for it, so it would be built from an
+# sdist and need a Rust toolchain cross-compiled for Android.
+requirements = python3,bottle,proxy_tools,typing_extensions,pytest==9.1.1,iniconfig,pluggy,packaging,pygments,exceptiongroup,tomli
 
 orientation = portrait,landscape
 osx.python_version = 3

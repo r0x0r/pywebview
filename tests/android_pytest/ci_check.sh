@@ -11,7 +11,27 @@ set -euo pipefail
 PACKAGE="com.pywebview.pywebviewpytest"
 ACTIVITY="org.kivy.android.PythonActivity"
 TIMEOUT_SECONDS="${PYWEBVIEW_ANDROID_TEST_TIMEOUT:-600}"
-LOGCAT_FILE="$(mktemp)"
+# A path under the working directory rather than mktemp, so CI can upload the
+# whole log as an artifact - the marker lines alone are rarely enough to
+# diagnose a failure on a device you cannot attach to.
+LOGCAT_FILE="${PYWEBVIEW_ANDROID_LOGCAT:-logcat.txt}"
+LOGCAT_PID=""
+
+dump_log_tail() {
+  echo "--- last 200 log lines ---" >&2
+  tail -n 200 "$LOGCAT_FILE" >&2 || true
+}
+
+stop_logcat() {
+  if [ -n "$LOGCAT_PID" ]; then
+    kill "$LOGCAT_PID" 2>/dev/null || true
+    wait "$LOGCAT_PID" 2>/dev/null || true
+  fi
+}
+
+done_marker_present() {
+  grep -q 'PYWEBVIEW_TEST_RESULT::DONE' "$LOGCAT_FILE" 2>/dev/null
+}
 
 shopt -s nullglob
 APKS=(bin/*.apk)
@@ -26,28 +46,56 @@ echo "Installing $APK"
 adb install -r "$APK"
 
 adb logcat -c
+: > "$LOGCAT_FILE"
 timeout "$TIMEOUT_SECONDS" adb logcat -v raw > "$LOGCAT_FILE" &
 LOGCAT_PID=$!
+
+# Launching before logcat has attached can lose the early markers, so wait for
+# the stream to produce something first. Not fatal if it stays quiet - a silent
+# buffer is possible - so this only bounds the wait.
+attach_wait=0
+while [ ! -s "$LOGCAT_FILE" ]; do
+  if [ "$attach_wait" -ge 30 ]; then
+    echo "logcat produced no output within 30s; launching anyway." >&2
+    break
+  fi
+  sleep 1
+  attach_wait=$((attach_wait + 1))
+done
 
 echo "Launching $PACKAGE/$ACTIVITY"
 adb shell am start -n "$PACKAGE/$ACTIVITY"
 
 echo "Waiting for PYWEBVIEW_TEST_RESULT::DONE (timeout ${TIMEOUT_SECONDS}s)"
 elapsed=0
-while ! grep -q 'PYWEBVIEW_TEST_RESULT::DONE' "$LOGCAT_FILE" 2>/dev/null; do
+while ! done_marker_present; do
   if [ "$elapsed" -ge "$TIMEOUT_SECONDS" ]; then
     echo "Timed out waiting for the test run to finish." >&2
-    echo "--- last 200 log lines ---" >&2
-    tail -n 200 "$LOGCAT_FILE" >&2
-    kill "$LOGCAT_PID" 2>/dev/null || true
+    dump_log_tail
+    stop_logcat
     exit 1
   fi
+
+  # A crash would otherwise cost the whole timeout. The grace period covers the
+  # process not having appeared yet; the re-check covers the app exiting in the
+  # same poll interval that it printed DONE.
+  if [ "$elapsed" -ge 30 ] && ! adb shell pidof "$PACKAGE" > /dev/null 2>&1; then
+    sleep 2
+    if done_marker_present; then
+      break
+    fi
+    echo "$PACKAGE is no longer running and never reported DONE - it crashed" >&2
+    echo "or was killed. Check the uploaded logcat for a Python traceback." >&2
+    dump_log_tail
+    stop_logcat
+    exit 1
+  fi
+
   sleep 5
   elapsed=$((elapsed + 5))
 done
 
-kill "$LOGCAT_PID" 2>/dev/null || true
-wait "$LOGCAT_PID" 2>/dev/null || true
+stop_logcat
 
 echo "--- test results ---"
 grep 'PYWEBVIEW_TEST_RESULT::' "$LOGCAT_FILE" || true
