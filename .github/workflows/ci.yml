@@ -385,9 +385,10 @@ jobs:
         python -m pip install --upgrade pip
         # buildozer is pinned because this job depends on specifics of its
         # behaviour: that APP_ANDROID_ARCHS overrides the spec, and that --arch
-        # cannot be passed through to p4a. Cython is bounded below the next
-        # major so a Cython release cannot silently break the p4a recipes.
-        pip install 'buildozer==1.6.0' 'cython<4'
+        # cannot be passed through to p4a. It depends on pexpect (needed for
+        # android.accept_sdk_license) and pins cython<3.0 itself, so neither
+        # wants naming here.
+        pip install 'buildozer==1.6.0'
 
     - name: Build APK
       # Capped below the job budget so a genuinely stuck build still leaves time

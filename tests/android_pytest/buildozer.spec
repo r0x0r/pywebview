@@ -30,6 +30,10 @@ osx.python_version = 3
 fullscreen = 0
 android.presplash_color =
 android.permissions = android.permission.INTERNET
+# Required for an unattended build: sdkmanager prompts for the Android SDK
+# licence, and without this buildozer answers nothing, so build-tools is never
+# installed and the build fails later with "Aidl not found".
+android.accept_sdk_license = True
 android.apptheme = @android:style/Theme.Material.NoActionBar
 android.add_jars = ../../webview/lib/pywebview-android.jar
 # arm64-v8a/armeabi-v7a for real devices; x86_64 so this also runs at native
