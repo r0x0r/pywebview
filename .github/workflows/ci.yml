@@ -314,7 +314,10 @@ jobs:
   tests-android:
     name: Android
     runs-on: ubuntu-22.04
-    timeout-minutes: 60
+    # A cold python-for-android build (SDK + NDK download, then CPython built
+    # from source) does not fit in the 20-30 minutes the other jobs get. This is
+    # per-job, so it does not affect them. GitHub-hosted runners cap at 360.
+    timeout-minutes: 180
 
     steps:
     - name: Checkout code
@@ -337,14 +340,27 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
-    - name: Cache buildozer global and project build dirs
-      uses: actions/cache@v6
+    # Restore and save are split, rather than using actions/cache, because that
+    # only writes its cache when the whole job succeeds. A cold build that runs
+    # out of time would leave nothing behind and start from scratch next run,
+    # never converging. Saving on always() keeps a partial ~/.buildozer (the
+    # SDK, the NDK, a half-built CPython) so the next run resumes from it.
+    #
+    # The key carries run_id because cache entries are immutable: without it,
+    # the first partial save would claim the key permanently and the completed
+    # build could never replace it. Entries are several GB, so this leans on
+    # GitHub evicting least-recently-used within the repo's 10GB budget - if
+    # that starts starving the pip caches in the other jobs, narrow the paths.
+    - name: Restore buildozer global and project build dirs
+      id: buildozer-cache
+      uses: actions/cache/restore@v6
       with:
         path: |
           ~/.buildozer
           tests/android_pytest/.buildozer
-        key: ${{ runner.os }}-buildozer-${{ hashFiles('tests/android_pytest/buildozer.spec') }}
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('tests/android_pytest/buildozer.spec') }}-${{ github.run_id }}
         restore-keys: |
+          ${{ runner.os }}-buildozer-${{ hashFiles('tests/android_pytest/buildozer.spec') }}-
           ${{ runner.os }}-buildozer-
 
     - name: Install buildozer
@@ -353,9 +369,30 @@ jobs:
         pip install buildozer cython
 
     - name: Build APK
+      # Capped below the job budget so a genuinely stuck build still leaves time
+      # for the cache to be saved and the logs to be collected.
+      timeout-minutes: 150
+      env:
+        # Overrides [app] android.archs, which keeps all three ABIs for real
+        # devices. buildozer builds one python-for-android dist per ABI, so
+        # building only the one the emulator uses cuts the build to a third.
+        # (buildozer derives its own --arch flags from the spec, so passing
+        # --arch through to p4a would add a fourth rather than replace them;
+        # this env override is the supported route - see specparser.py's
+        # _override_config_from_envs.)
+        APP_ANDROID_ARCHS: x86_64
       run: |
         cd tests/android_pytest
         buildozer -v android debug
+
+    - name: Save buildozer cache
+      if: always()
+      uses: actions/cache/save@v6
+      with:
+        path: |
+          ~/.buildozer
+          tests/android_pytest/.buildozer
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('tests/android_pytest/buildozer.spec') }}-${{ github.run_id }}
 
     - name: Run tests on emulator
       uses: reactivecircus/android-emulator-runner@v2
