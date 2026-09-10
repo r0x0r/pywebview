@@ -52,9 +52,11 @@ if __name__ == '__main__':
     reporter = LogcatReporter()
 
     test_args = [
-        '-p', 'no:cacheprovider',
+        '-p',
+        'no:cacheprovider',
         '-v',
-        '--rootdir', '.',
+        '--rootdir',
+        '.',
         'shared/test_state.py',
         'shared/test_evaluate_js.py',
         'shared/test_js_api.py',
