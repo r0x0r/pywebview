@@ -57,7 +57,7 @@ class BrowserView:
             js_bridge_call(self.pywebview_window, func, json.loads(params), id, token)
 
         def chrome_callback(event, data):
-            print(event, data)
+            logger.debug('WebChromeClient event %s: %s', event, data)
 
         def webview_callback(event, data):
             if event == 'onPageFinished':
@@ -70,7 +70,6 @@ class BrowserView:
                         cookie_manager = CookieManager.getInstance()
                         if not _state['private_mode']:
                             cookie_manager.setAcceptCookie(True)
-                            cookie_manager.acceptCookie()
                             cookie_manager.flush()
                         else:
                             cookie_manager.setAcceptCookie(False)
@@ -87,7 +86,9 @@ class BrowserView:
                     for cookie_string in cookies:
                         cookie = SimpleCookie()
                         cookie.load(cookie_string)
-                        app.view._cookies.append(cookie)
+                        # self, not app.view: a callback arriving after teardown
+                        # would otherwise hit a cleared global.
+                        self._cookies.append(cookie)
 
                 except Exception as e:
                     logger.error(f'Error parsing cookies: {e}')
@@ -217,7 +218,6 @@ class BrowserView:
                 if hasattr(self, '_js_interface') and self._js_interface:
                     self.webview.removeJavascriptInterface('external')
                     self._js_interface = None
-                    logger.error('Removed JavaScript interface')
 
                 if hasattr(self, '_webview_client') and self._webview_client:
                     self._webview_client.destroy()
@@ -239,7 +239,6 @@ class BrowserView:
                     self._key_listener = None
 
                 self.webview.destroy()
-                self.layout = None
                 self.webview = None
             except Exception as e:
                 logger.error(f'Error during dismiss: {e}')
@@ -250,11 +249,18 @@ class BrowserView:
         _dismiss()
 
     def _quit_confirmation(self):
-        def cancel(dialog, which):
+        # pyjnius wraps a plain callable into a Java functional interface, so
+        # each of these has to match the arity of the interface it is passed to.
+        # DialogInterface.OnClickListener is onClick(dialog, which);
+        # DialogInterface.OnCancelListener is onCancel(dialog).
+        def on_cancel_button(dialog, which):
             self.dialog = None
 
-        def quit(dialog, which):
-            self.pywebview_window.closed.set()
+        def on_cancel_dialog(dialog):
+            self.dialog = None
+
+        def on_quit(dialog, which):
+            self.pywebview_window.events.closed.set()
             self.dialog = None
             app.stop()
 
@@ -269,9 +275,9 @@ class BrowserView:
         self.dialog = (
             AlertDialogBuilder(activity)
             .setMessage(message)
-            .setPositiveButton(quit_msg, quit)
-            .setNegativeButton(cancel_msg, cancel)
-            .setOnCancelListener(cancel)
+            .setPositiveButton(quit_msg, on_quit)
+            .setNegativeButton(cancel_msg, on_cancel_button)
+            .setOnCancelListener(on_cancel_dialog)
             .show()
         )
 
@@ -296,8 +302,14 @@ class BrowserView:
         @run_on_ui_thread
         def _get_size():
             nonlocal size
-            size = self.webview.getWidth(), self.webview.getHeight()
-            lock.release()
+            try:
+                size = self.webview.getWidth(), self.webview.getHeight()
+            except Exception as e:
+                logger.error(f'Error getting size: {e}')
+            finally:
+                # Without the finally an exception here (self.webview is None
+                # once the view is dismissed) leaves the caller blocked forever.
+                lock.release()
 
         _get_size()
         lock.acquire()
@@ -311,8 +323,12 @@ class BrowserView:
         @run_on_ui_thread
         def _get_url():
             nonlocal url
-            url = self.webview.getUrl()
-            lock.release()
+            try:
+                url = self.webview.getUrl()
+            except Exception as e:
+                logger.error(f'Error getting url: {e}')
+            finally:
+                lock.release()
 
         _get_url()
         lock.acquire()
