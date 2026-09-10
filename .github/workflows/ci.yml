@@ -340,17 +340,19 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
-    # Restore and save are split, rather than using actions/cache, because that
-    # only writes its cache when the whole job succeeds. A cold build that runs
-    # out of time would leave nothing behind and start from scratch next run,
-    # never converging. Saving on always() keeps a partial ~/.buildozer (the
-    # SDK, the NDK, a half-built CPython) so the next run resumes from it.
+    # One fixed key, deliberately not keyed on buildozer.spec. The expensive and
+    # slow-moving part of this cache is the Android SDK, the NDK and the
+    # cross-built CPython, none of which depend much on the spec; the pip
+    # requirements that do are pure Python and cheap to reinstall into a
+    # restored dist. Keying on the spec instead produced a new ~3GB entry on
+    # every requirements edit, and three of those exhaust the repository's 10GB
+    # cache budget and start evicting the pip caches the other jobs rely on.
     #
-    # The key carries run_id because cache entries are immutable: without it,
-    # the first partial save would claim the key permanently and the completed
-    # build could never replace it. Entries are several GB, so this leans on
-    # GitHub evicting least-recently-used within the repo's 10GB budget - if
-    # that starts starving the pip caches in the other jobs, narrow the paths.
+    # Restore and save are split so the save can be conditional: it runs only
+    # when the build succeeded and the exact key was not already present, so a
+    # broken build cannot claim the key (entries are immutable) and a good one
+    # is written exactly once. Bump the version suffix to force a rebuild of
+    # the toolchain.
     - name: Restore buildozer global and project build dirs
       id: buildozer-cache
       uses: actions/cache/restore@v6
@@ -358,9 +360,8 @@ jobs:
         path: |
           ~/.buildozer
           tests/android_pytest/.buildozer
-        key: ${{ runner.os }}-buildozer-${{ hashFiles('tests/android_pytest/buildozer.spec') }}-${{ github.run_id }}
+        key: ${{ runner.os }}-buildozer-v1
         restore-keys: |
-          ${{ runner.os }}-buildozer-${{ hashFiles('tests/android_pytest/buildozer.spec') }}-
           ${{ runner.os }}-buildozer-
 
     # python-for-android builds CPython and its extension modules from source
@@ -408,13 +409,13 @@ jobs:
         buildozer -v android debug
 
     - name: Save buildozer cache
-      if: always()
+      if: success() && steps.buildozer-cache.outputs.cache-hit != 'true'
       uses: actions/cache/save@v6
       with:
         path: |
           ~/.buildozer
           tests/android_pytest/.buildozer
-        key: ${{ runner.os }}-buildozer-${{ hashFiles('tests/android_pytest/buildozer.spec') }}-${{ github.run_id }}
+        key: ${{ runner.os }}-buildozer-v1
 
     - name: Run tests on emulator
       uses: reactivecircus/android-emulator-runner@v2
