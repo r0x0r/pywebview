@@ -34,6 +34,13 @@ android.permissions = android.permission.INTERNET
 # licence, and without this buildozer answers nothing, so build-tools is never
 # installed and the build fails later with "Aidl not found".
 android.accept_sdk_license = True
+# python-for-android byte-compiles the app with `-OO -m compileall -b` and ships
+# only the .pyc files. That breaks this app twice over: pytest collects by
+# filename, so `shared/test_state.py` does not exist to be collected, and -OO
+# strips assert statements, which would turn every test that did run into a
+# vacuous pass. Keeping the sources means they are compiled at import time at
+# the default optimisation level instead.
+android.no-byte-compile-python = True
 android.apptheme = @android:style/Theme.Material.NoActionBar
 android.add_jars = ../../webview/lib/pywebview-android.jar
 # arm64-v8a/armeabi-v7a for real devices; x86_64 so this also runs at native
