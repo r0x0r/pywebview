@@ -3,7 +3,11 @@ title = pywebview android pytest suite
 package.name = pywebviewpytest
 package.domain = com.pywebview
 source.dir = ./
-source.include_exts = py,png,jpg,html,jar
+# js is required: load_js_files() globs webview/js/**/*.js relative to the
+# installed webview package, and without those files nothing gets injected into
+# the page, so window.pywebview never exists and every test hangs on
+# events.loaded. tests/android/buildozer.spec includes it for the same reason.
+source.include_exts = py,png,jpg,html,jar,js
 source.exclude_dirs = bin,build,dist,.venv,venv,__pycache__
 version = 0.1
 
