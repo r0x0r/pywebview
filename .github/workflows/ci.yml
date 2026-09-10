@@ -310,3 +310,60 @@ jobs:
       run: |
         cd tests
         ./run.ps1
+
+  tests-android:
+    name: Android
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.11'
+
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+
+    - name: Enable KVM for the emulator
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - name: Cache buildozer global and project build dirs
+      uses: actions/cache@v6
+      with:
+        path: |
+          ~/.buildozer
+          tests/android_pytest/.buildozer
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('tests/android_pytest/buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+
+    - name: Install buildozer
+      run: |
+        python -m pip install --upgrade pip
+        pip install buildozer cython
+
+    - name: Build APK
+      run: |
+        cd tests/android_pytest
+        buildozer -v android debug
+
+    - name: Run tests on emulator
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 30
+        arch: x86_64
+        target: default
+        disable-animations: true
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        working-directory: tests/android_pytest
+        script: ./ci_check.sh
