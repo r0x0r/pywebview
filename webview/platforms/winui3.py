@@ -113,6 +113,7 @@ from webview import (
 from webview import (
     settings as webview_settings,
 )
+from webview.errors import ReentrantCallError
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms.webview2core import WebView2Core
 from webview.platforms.win32 import (
@@ -134,6 +135,7 @@ from webview.util import (
     inject_base_uri,
     inject_pywebview,
     parse_file_type,
+    reentrant_call_error,
 )
 from webview.window import FixPoint
 from webview.window import Window as _Window
@@ -208,7 +210,7 @@ def _run_dispatched(
     """
     if dispatcher_queue.has_thread_access:
         if not may_complete_synchronously:
-            raise RuntimeError(
+            raise ReentrantCallError(
                 'This operation cannot be started synchronously from a native '
                 'UI-thread callback (e.g. a XAML event handler): it only '
                 'resolves later, asynchronously, and this thread has no safe '
@@ -218,7 +220,7 @@ def _run_dispatched(
         guarded()
         if future.done():
             return future.result()
-        raise RuntimeError(
+        raise ReentrantCallError(
             'This operation was started, but its result cannot be awaited '
             'synchronously from a native UI-thread callback (e.g. a XAML '
             'event handler) without deadlocking the dispatcher that must '
@@ -488,10 +490,10 @@ class WinUI3EdgeChrome(WebView2Core):
                 # docstring says the result isn't guaranteed — so it's the
                 # only case where it's safe to start the script and return.
                 if parse_json:
-                    raise RuntimeError(
-                        'evaluate_js() cannot return a result synchronously when called '
-                        'from a native UI-thread callback (e.g. a XAML event handler) '
-                        'without deadlocking the dispatcher that must deliver it.'
+                    raise reentrant_call_error(
+                        'evaluate_js',
+                        'The script result is only delivered later, by the GUI thread. '
+                        'Use run_js() if you do not need the result.',
                     )
                 callback()
                 return None
@@ -1949,10 +1951,9 @@ def get_cookies(uid: str):
         # would then block from ever running. Raise rather than deadlock or
         # silently return None, which would look like "no cookies" instead
         # of "unavailable in this calling context".
-        raise RuntimeError(
-            'get_cookies() cannot be awaited synchronously from a native UI-thread '
-            'callback (e.g. a XAML event handler) without deadlocking the dispatcher '
-            'that must deliver the result.'
+        raise reentrant_call_error(
+            'get_cookies',
+            'The cookie manager answers asynchronously on the GUI thread.',
         )
 
     semaphore = Semaphore(0)

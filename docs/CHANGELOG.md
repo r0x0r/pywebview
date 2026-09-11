@@ -9,6 +9,13 @@
 - `All` CI now tests Python 3.10 through 3.13, type-checks the package, compile-checks every example and audits dependencies with `pip-audit`.
 - `All` The PyPI project page now shows the README. The built distributions previously carried no long description.
 
+### 🐞 Bug fixes
+
+- `All` Fix GUI-thread deadlocks when a pywebview API is called from a blocking event handler (`closing`, `before_show`, `before_load`) or a native callback. `window.width`/`height`/`x`/`y`, `get_current_url()`, `run_js()` and `window.state` updates now run inline instead of hanging; `evaluate_js()` and `get_cookies()` raise the new `webview.errors.ReentrantCallError` (a `RuntimeError` subclass) where the result can only be produced asynchronously. `before_show` and `before_load` handlers now reach these fixes too -- they previously blocked for 20 seconds and then failed with `WebViewException` before ever calling into the backend.
+- `Cocoa` `create_confirmation_dialog()` and `create_file_dialog()` no longer deadlock when called from a blocking event handler.
+- `GTK` `get_current_url()`, `window.width`/`height`/`x`/`y`, `create_confirmation_dialog()` and `create_file_dialog()` now work from a blocking event handler instead of raising.
+- `Android` `evaluate_js()` and `get_cookies()` no longer deadlock when called from a blocking event handler or a native callback; they now raise `ReentrantCallError` like the other backends.
+
 ## 6.2.1
 
 _Released 15/04/2026_
