@@ -64,6 +64,7 @@ usable diagnosis instead of hanging until the job times out.
 """
 
 import faulthandler
+import os
 import threading
 import time
 
@@ -71,6 +72,18 @@ import pytest
 
 import webview
 from webview.errors import ReentrantCallError
+
+# WinUI3 never fires `closing` for a programmatic `window.destroy()`: its handler
+# is attached to AppWindow.Closing, which Microsoft.UI.Xaml.Window.Close() does
+# not raise. Verified on CI -- the window loads, destroy() returns cleanly and
+# start() finishes, with the handler never having run. That is a separate bug
+# from the deadlocks under test here (it also means `closing` handlers and
+# confirm_close are skipped on destroy()), and there is no public API to raise
+# AppWindow.Closing by hand, so these cannot run there until it is fixed.
+needs_closing_event = pytest.mark.skipif(
+    os.environ.get('PYWEBVIEW_GUI') == 'winui3',
+    reason='WinUI3 does not fire the closing event for a programmatic destroy()',
+)
 
 # How long to wait for the window to load before triggering the close.
 LOAD_TIMEOUT = 10
@@ -86,11 +99,12 @@ WATCHDOG_TIMEOUT = 45
 def _trigger_close(window):
     """Trigger the platform's native close path so the ``closing`` event fires.
 
-    ``window.destroy()`` routes through the closing/FormClosing/closeEvent/AppWindow
-    Closing handler on GTK, WinForms, EdgeChromium, Qt and WinUI3. cocoa's
-    ``destroy()`` calls ``NSWindow.close()`` which, unlike ``performClose_``, does
-    *not* invoke ``windowShouldClose:`` and therefore never fires ``closing`` -- so
-    for cocoa we call ``performClose_`` explicitly.
+    ``window.destroy()`` routes through the closing/FormClosing/closeEvent handler
+    on GTK, WinForms, EdgeChromium and Qt. cocoa's ``destroy()`` calls
+    ``NSWindow.close()`` which, unlike ``performClose_``, does *not* invoke
+    ``windowShouldClose:`` and therefore never fires ``closing`` -- so for cocoa we
+    call ``performClose_`` explicitly. WinUI3 has the same gap with no equivalent
+    way around it; see ``needs_closing_event``.
     """
     native = window.native
 
@@ -189,6 +203,7 @@ def window():
     )
 
 
+@needs_closing_event
 @pytest.mark.parametrize('action_name', list(INLINE_ACTIONS))
 def test_inline_api_in_closing_handler(window, action_name):
     """A synchronous API called from a ``closing`` handler runs inline and returns."""
@@ -200,6 +215,7 @@ def test_inline_api_in_closing_handler(window, action_name):
     )
 
 
+@needs_closing_event
 @pytest.mark.parametrize('action_name', list(ASYNC_CAPABLE_ACTIONS))
 def test_async_capable_api_in_closing_handler(window, action_name):
     """An asynchronous API called from a ``closing`` handler reports, never blocks."""
