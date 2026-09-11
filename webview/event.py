@@ -52,7 +52,7 @@ class Event:
         return_values: list[Any] = []
 
         if len(self._items):
-            if self._should_lock:
+            if self._should_lock and hasattr(self._window, '_gui_thread_ident'):
                 # Record that `self._window` is, for the duration of `execute()`,
                 # being driven synchronously by this thread (the GUI thread), so
                 # `Window._api_call()` can recognize a call made from one of these
@@ -66,8 +66,11 @@ class Event:
                 finally:
                     self._window._gui_thread_ident = previous_thread
             else:
-                t = threading.Thread(target=execute)
-                t.start()
+                if self._should_lock:
+                    execute()
+                else:
+                    t = threading.Thread(target=execute)
+                    t.start()
 
         false_values = [v for v in return_values if v is False]
         self._event.set()
