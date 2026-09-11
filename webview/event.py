@@ -31,20 +31,23 @@ logger = logging.getLogger('pywebview')
 _dispatch_depth = threading.local()
 
 # Identity of the thread that dispatches the lifecycle events marked
-# `marks_gui_thread=True` below (closing, before_show, before_load,
-# initialized). These are the only events guaranteed, on every backend, to run
-# their handlers synchronously on the real native GUI thread -- see the
-# architecture rules for `Window`. `request_sent` is also a should_lock event,
-# but it is *not* one of these: Cocoa and the WebView2-based backends dispatch
-# it on a dedicated worker thread (`_request_executor`), not the GUI thread,
-# while GTK dispatches it inline on what happens to be the same thread as its
-# lifecycle events. Recording the actual thread identity, rather than assuming
-# every should_lock dispatch is "the GUI thread", lets `is_reentrant_dispatch`
-# tell these apart per backend without needing to know which backend is
-# active. It is set once `Window.__init__` has picked a backend and that
-# backend has fired its first lifecycle event; a plain module-level variable
-# is safe here because every write stores the same value (there is only one
-# such thread per process).
+# `marks_gui_thread=True` below (closing, before_show, before_load). These are
+# the only should_lock events guaranteed, on every backend and even for a
+# window created dynamically after `start()` has already run, to run their
+# handlers synchronously on the real native GUI thread -- see the
+# architecture rules for `Window`. `initialized` and `request_sent` are also
+# should_lock events, but neither is one of these: for a window created after
+# `start()`, `initialized` fires on whatever thread called `create_window()`,
+# before the backend has marshalled anything onto the GUI thread; Cocoa and
+# the WebView2-based backends similarly dispatch `request_sent` on a
+# dedicated worker thread (`_request_executor`), not the GUI thread -- while
+# GTK dispatches `request_sent` inline on what happens to be the same thread
+# as its lifecycle events. Recording the actual thread identity, rather than
+# assuming every should_lock dispatch is "the GUI thread", lets
+# `is_reentrant_dispatch` tell these apart per backend without needing to
+# know which backend is active. It is set the first time one of the marked
+# events fires; a plain module-level variable is safe here because every
+# write stores the same value (there is only one such thread per process).
 _gui_thread_id: int | None = None
 
 
@@ -85,7 +88,7 @@ class Event:
         self._should_lock = should_lock
         # See `_gui_thread_id` above: True only for the lifecycle events that
         # are guaranteed, on every backend, to dispatch on the real native GUI
-        # thread (closing, before_show, before_load, initialized).
+        # thread (closing, before_show, before_load).
         self._marks_gui_thread = marks_gui_thread
         self._event = threading.Event()
         self._window = window

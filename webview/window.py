@@ -187,7 +187,17 @@ class Window:
         self.events.loaded = Event(self)
         self.events.before_load = Event(self, True, marks_gui_thread=True)
         self.events.before_show = Event(self, True, marks_gui_thread=True)
-        self.events.initialized = Event(self, True, marks_gui_thread=True)
+        # Not marks_gui_thread: for a window created after start() has already
+        # run, `initialized` fires from `Window._initialize()` on whatever
+        # thread the caller used to call `create_window()`
+        # (`webview/__init__.py`), before the backend has even been asked to
+        # create the native window -- unlike before_show/before_load/closing,
+        # which the backends marshal onto the real GUI thread even for
+        # dynamically created windows (e.g. Cocoa's `AppHelper.callAfter` in
+        # `create_window()`). Recording that caller's thread here would
+        # misidentify it as the GUI thread until a real lifecycle event
+        # overwrites it.
+        self.events.initialized = Event(self, True)
         self.events.shown = Event(self)
         self.events.minimized = Event(self)
         self.events.maximized = Event(self)
