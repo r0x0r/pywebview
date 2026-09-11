@@ -58,7 +58,7 @@ waiting for (or one that legitimately has not fired yet, like ``shown`` during
 dispatching a ``should_lock`` event on this window and skips the wait,
 so it falls through to the backend, which runs it inline or raises
 ``ReentrantCallError`` as described above. See
-``Window._reentrant_dispatch`` and ``Event.set()``.
+``webview.event.is_reentrant_dispatch()`` and ``Event.set()``.
 
 This makes ``before_show`` and ``before_load`` handlers testable the same way
 as ``closing`` (see ``LIFECYCLE_PHASES`` below). ``initialized`` is
@@ -228,6 +228,26 @@ INLINE_ACTIONS = {
     'state_update': lambda w: setattr(w.state, 'deadlock_probe', 1),
 }
 
+# Validates the value `INLINE_ACTIONS[action_name]` produced (and, for
+# `state_update`, the window state it was supposed to mutate), so that a
+# backend returning a placeholder like `None` instead of the real result is
+# caught, not just one that hangs or raises. Takes `(window, value)` because
+# `state_update`'s own return value (from `setattr`) is always `None` -- what
+# it actually needs to check is on `window.state`. `run_js()`'s result is
+# deliberately not checked: per its own docstring "result of the code is not
+# guaranteed to be returned and depends on the platform", so asserting a
+# specific value here would itself be testing an unsupported contract; not
+# raising is the only thing `run_js()` promises.
+INLINE_ACTIONS_EXPECTATIONS = {
+    'run_js': lambda w, v: True,
+    'width': lambda w, v: isinstance(v, (int, float)) and v > 0,
+    'height': lambda w, v: isinstance(v, (int, float)) and v > 0,
+    'x': lambda w, v: isinstance(v, (int, float)),
+    'y': lambda w, v: isinstance(v, (int, float)),
+    'get_current_url': lambda w, v: v is None or (isinstance(v, str) and len(v) > 0),
+    'state_update': lambda w, v: w.state.deadlock_probe == 1,
+}
+
 # APIs whose native operation may be asynchronous. Those backends cannot answer
 # on the GUI thread at all and must say so instead of blocking.
 ASYNC_CAPABLE_ACTIONS = {
@@ -290,6 +310,9 @@ def test_inline_api_in_blocking_handler(window, phase, action_name):
     assert state['error'] is None, (
         f'{action_name} is backed by a synchronous native call, so it must run '
         f'inline on the GUI thread rather than fail: {state["error"]!r}'
+    )
+    assert INLINE_ACTIONS_EXPECTATIONS[action_name](window, state['value']), (
+        f'{action_name} ran inline but returned an unexpected value: {state["value"]!r}'
     )
 
 

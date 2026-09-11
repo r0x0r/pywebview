@@ -920,13 +920,13 @@ To use one of the latter from a blocking handler, do the work on another thread:
 ``` python
 import threading
 
-def on_closing():
+def on_before_load():
     threading.Thread(target=lambda: print(window.evaluate_js('1 + 1'))).start()
 
-window.events.closing += on_closing
+window.events.before_load += on_before_load
 ```
 
-Note that the handler returns immediately in that case - it does not wait for the thread - so this is not a way to make a decision (such as vetoing the close) based on the result.
+Note that the handler returns immediately in that case - it does not wait for the thread - so this is not a way to make a decision (such as vetoing the close) based on the result. Doing this from `closing` specifically is not safe even on another thread: the window (and its webview) may already be torn down by the time the thread runs, so prefer a non-destructive event such as `before_load`, or coordinate the thread's lifetime with the window's explicitly.
 
 ### window.events.before_show
 

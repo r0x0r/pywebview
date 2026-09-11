@@ -14,6 +14,31 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger('pywebview')
 
+# Depth of nested should_lock dispatches (closing, before_show, before_load,
+# initialized, and on some backends request_sent) currently running *on this
+# thread*, across every window. threading.local() rather than a module-level
+# int because these events can be dispatched concurrently on different
+# threads -- e.g. Cocoa's `request_sent` fires on its own worker thread while a
+# lifecycle event fires on the AppKit thread -- so each thread must track its
+# own depth without disturbing another thread's.
+#
+# This is intentionally *not* scoped to a particular `Window`: all of a
+# process's windows are normally driven by the one native GUI thread, so if a
+# handler for window A's event calls into window B's API, that call is still
+# being made by the (only) GUI thread and must not wait on window B's
+# readiness event either -- waiting there would block the GUI thread just the
+# same, only against a different window's event.
+_dispatch_depth = threading.local()
+
+
+def is_reentrant_dispatch() -> bool:
+    """Return whether this thread is currently inside `Event.set()` for a
+    should_lock event, for any window. Used by `webview.window._api_call()` to
+    recognize a call made from one of these handlers -- of *any* window on
+    this process -- as reentrant, rather than waiting on it.
+    """
+    return getattr(_dispatch_depth, 'depth', 0) > 0
+
 
 class EventContainer:
     _serializable = False
@@ -53,31 +78,20 @@ class Event:
 
         if len(self._items):
             if self._should_lock:
-                # Record, on *this thread's* local storage, that it is for the
-                # duration of `execute()` driving `self._window` synchronously,
-                # so `Window._api_call()` can recognize a call made from one of
-                # these handlers as reentrant rather than waiting on it. Using
-                # `_reentrant_dispatch` (thread-local) rather than a value
-                # shared on the window is required because should_lock events
-                # can be dispatched concurrently on different threads -- e.g.
-                # Cocoa's `request_sent` fires on its own worker thread while a
-                # lifecycle event fires on the AppKit thread -- so each thread
-                # must track its own depth without disturbing another thread's.
-                # A depth counter rather than a flag also keeps this correct if
-                # a should_lock event handler itself triggers another
-                # should_lock event on the same thread.
-                local_state = getattr(self._window, '_reentrant_dispatch', None)
-                if local_state is not None:
-                    previous_depth = getattr(local_state, 'depth', 0)
-                    local_state.depth = previous_depth + 1
-                    try:
-                        execute()
-                    finally:
-                        local_state.depth = previous_depth
-                else:
-                    # No window (e.g. a standalone `Event(None, True)`) -- there
-                    # is nothing to record reentrancy against, just run inline.
+                # Record, in this thread's local depth counter, that it is for
+                # the duration of `execute()` driving a should_lock event
+                # synchronously -- see `_dispatch_depth` above for why this is
+                # thread-local and shared across windows rather than a value
+                # kept on `self._window`. A depth counter rather than a flag
+                # keeps this correct if a should_lock event handler itself
+                # triggers another should_lock event (on any window) from the
+                # same thread.
+                previous_depth = getattr(_dispatch_depth, 'depth', 0)
+                _dispatch_depth.depth = previous_depth + 1
+                try:
                     execute()
+                finally:
+                    _dispatch_depth.depth = previous_depth
             else:
                 t = threading.Thread(target=execute)
                 t.start()

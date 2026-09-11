@@ -6,7 +6,7 @@ import os
 from collections.abc import Callable, Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
-from threading import Lock, local
+from threading import Lock
 from typing import Any, Concatenate, TypeAlias, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
@@ -16,7 +16,7 @@ from typing_extensions import ParamSpec
 import webview.http as http
 from webview.dom.dom import DOM
 from webview.errors import JavascriptException, WebViewException
-from webview.event import Event, EventContainer
+from webview.event import Event, EventContainer, is_reentrant_dispatch
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
@@ -41,18 +41,23 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
         event = getattr(self.events, event_type)
 
         if not event.is_set():
-            if getattr(self._reentrant_dispatch, 'depth', 0) > 0:
+            if is_reentrant_dispatch():
                 # Reentrant call: this thread is currently inside `Event.set()`
-                # for a should_lock event on this window (closing, before_show,
-                # before_load, initialized) -- see `Event.set()` and
-                # `_reentrant_dispatch`. Waiting on `event` here can never
-                # succeed before the timeout below -- it may be the event this
-                # handler is about to set right after returning (before_load
-                # calling run_js()), or one that genuinely hasn't happened yet
-                # (before_show calling window.width, which needs `shown`).
-                # Skip the wait and let the backend either run the call inline
-                # or raise `ReentrantCallError`; see that class for the
-                # contract this relies on.
+                # for a should_lock event (closing, before_show, before_load,
+                # initialized) on some window in this process -- possibly, but
+                # not necessarily, `self`; all of a process's windows are
+                # normally driven by the one native GUI thread, so a handler
+                # for another window's event calling into `self` is just as
+                # much "the GUI thread asking" as a handler of `self`'s own
+                # event would be. See `is_reentrant_dispatch()`. Waiting on
+                # `event` here can never succeed before the timeout below --
+                # it may be the event this handler is about to set right
+                # after returning (before_load calling run_js()), or one that
+                # genuinely hasn't happened yet (before_show calling
+                # window.width, which needs `shown`). Skip the wait and let
+                # the backend either run the call inline or raise
+                # `ReentrantCallError`; see that class for the contract this
+                # relies on.
                 pass
             elif not event.wait(20):
                 raise WebViewException('Main window failed to start')
@@ -188,16 +193,6 @@ class Window:
 
         self.events._pywebviewready = Event(self)
 
-        # Per-thread reentrancy depth: >0 on whichever thread(s) are currently
-        # inside `Event.set()` for one of this window's should_lock events
-        # (closing, before_show, before_load, initialized, and on some backends
-        # request_sent). A `threading.local()` rather than a single shared
-        # value, because should_lock events can be dispatched concurrently on
-        # different threads -- e.g. Cocoa runs `request_sent` on a dedicated
-        # worker thread while lifecycle events run on the AppKit thread -- and
-        # each thread must only ever see its own reentrancy state. See
-        # `_api_call()` and `Event.set()`.
-        self._reentrant_dispatch = local()
         self._expose_lock = Lock()
         self.dom = DOM(self)
         self.gui: Any = None
