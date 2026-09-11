@@ -119,7 +119,7 @@ def reentrant_call_error(api_name: str, reason: str) -> ReentrantCallError:
     """
     return ReentrantCallError(
         f'{api_name}() cannot be called from the GUI thread. {reason} '
-        'The GUI thread runs the closing, before_show, before_load and initialized '
+        'The GUI thread runs the closing, before_show and before_load '
         'handlers synchronously, as well as native event callbacks; call this from '
         'another thread (e.g. threading.Thread) instead.'
     )

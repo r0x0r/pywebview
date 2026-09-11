@@ -11,11 +11,13 @@ class ReentrantCallError(WebViewException, RuntimeError):
     Raised when a synchronous API that needs the GUI thread to deliver its
     result is called *from* the GUI thread itself.
 
-    pywebview dispatches four events synchronously on the GUI thread so a
+    pywebview dispatches three events synchronously on the GUI thread so a
     handler can veto or mutate the outcome -- the ``should_lock=True`` events
-    in ``webview/window.py``: ``closing``, ``before_show``, ``before_load`` and
-    ``initialized``. Native callbacks (a XAML event handler, a GTK signal, a
-    ``request_sent`` handler) run there too.
+    in ``webview/window.py``: ``closing``, ``before_show`` and
+    ``before_load``. Native callbacks (a XAML event handler, a GTK signal, a
+    ``request_sent`` handler) run there too. (``initialized`` is also
+    dispatched synchronously, but not necessarily on the GUI thread -- see its
+    own documentation -- and calling into pywebview from it is unsupported.)
 
     While such a handler runs, it *is* the GUI thread. An API whose result is
     only produced asynchronously -- ``evaluate_js()`` on most backends,
