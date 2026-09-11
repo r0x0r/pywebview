@@ -8,6 +8,7 @@
 - `All` Drop the unused `importlib_resources` dependency.
 - `All` CI now tests Python 3.10 through 3.13, type-checks the package, compile-checks every example and audits dependencies with `pip-audit`.
 - `All` The PyPI project page now shows the README. The built distributions previously carried no long description.
+- `WinUI3` A failing test can no longer leave the CI job green. `Application.current.exit()` tears the process down before pytest can report, so test outcomes are now recorded as each test finishes and the runner fails on any of them. The runner also reports how many tests never got to run.
 
 ## 6.2.1
 
