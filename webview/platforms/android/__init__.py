@@ -5,7 +5,7 @@ from threading import Semaphore
 from urllib.parse import urlparse
 
 from android.activity import _activity as activity  # noqa
-from android.runnable import Runnable, run_on_ui_thread  # noqa
+from android.runnable import run_on_ui_thread  # noqa
 from jnius import autoclass, cast
 
 from webview import _state, settings
@@ -41,20 +41,15 @@ renderer = 'android-webkit'
 app = None
 
 
-def run_once_on_ui_thread(func):
-    """Post a one-shot callable to the UI thread.
-
-    The @run_on_ui_thread decorator caches a Runnable per function object in a
-    module-level dict that is never pruned, which is fine for the methods
-    decorated once at import time but not for the callbacks below: those are
-    nested functions rebuilt on every call, so the decorator would add a
-    permanent entry, and a JNI global reference, per call. Building the
-    Runnable directly keeps it collectable.
-
-    Like the decorator, this runs func inline when the caller is already on the
-    UI thread, since that is Activity.runOnUiThread's documented behaviour.
-    """
-    Runnable(func)()
+# NOTE: the nested callbacks below are decorated with @run_on_ui_thread even
+# though they are rebuilt on every call, which leaks one Runnable and its JNI
+# global reference per call into p4a's never-pruned __functionstable__ cache.
+# Constructing the Runnable directly instead is the obvious fix, and it was
+# tried - but that makes the proxies collectable, and the suite then died at
+# 76% with "JNI DETECTED ERROR IN APPLICATION: use of deleted global
+# reference" inside jnius. The leak is what was keeping those proxies alive.
+# Leaking is the lesser problem until the real owner of those references is
+# found, so this stays until then.
 
 
 class BrowserView:
@@ -78,6 +73,7 @@ class BrowserView:
         def webview_callback(event, data):
             if event == 'onPageFinished':
 
+                @run_on_ui_thread
                 def _handle_page_finished():
                     try:
                         inject_pywebview(renderer, self.pywebview_window)
@@ -91,7 +87,7 @@ class BrowserView:
                     except Exception as e:
                         logger.error(f'Error handling page finished: {e}')
 
-                run_once_on_ui_thread(_handle_page_finished)
+                _handle_page_finished()
 
             elif event == 'onCookiesReceived':
                 try:
@@ -222,6 +218,7 @@ class BrowserView:
         # app instance now instead of reading `app` from inside the callback.
         current_app = app
 
+        @run_on_ui_thread
         def _dismiss():
             try:
                 if _state['private_mode']:
@@ -260,7 +257,7 @@ class BrowserView:
                 if current_app is not None:
                     current_app.stop()
 
-        run_once_on_ui_thread(_dismiss)
+        _dismiss()
 
     def _quit_confirmation(self):
         # pyjnius wraps a plain callable into a Java functional interface, so
@@ -313,6 +310,7 @@ class BrowserView:
         lock = Semaphore(0)
         size = None, None
 
+        @run_on_ui_thread
         def _get_size():
             nonlocal size
             try:
@@ -324,7 +322,7 @@ class BrowserView:
                 # once the view is dismissed) leaves the caller blocked forever.
                 lock.release()
 
-        run_once_on_ui_thread(_get_size)
+        _get_size()
         lock.acquire()
 
         return size
@@ -333,6 +331,7 @@ class BrowserView:
         lock = Semaphore(0)
         url = None
 
+        @run_on_ui_thread
         def _get_url():
             nonlocal url
             try:
@@ -342,7 +341,7 @@ class BrowserView:
             finally:
                 lock.release()
 
-        run_once_on_ui_thread(_get_url)
+        _get_url()
         lock.acquire()
 
         return url
@@ -452,6 +451,7 @@ def evaluate_js(js_code, _, parse_json=True):
             value_callback = None
             lock.release()
 
+    @run_on_ui_thread
     def _evaluate_js():
         nonlocal value_callback
         try:
@@ -467,7 +467,7 @@ def evaluate_js(js_code, _, parse_json=True):
     js_result = None
     value_callback = None
 
-    run_once_on_ui_thread(_evaluate_js)
+    _evaluate_js()
     lock.acquire()
     return js_result
 
@@ -475,6 +475,7 @@ def evaluate_js(js_code, _, parse_json=True):
 def clear_cookies(_):
     lock = Semaphore(0)
 
+    @run_on_ui_thread
     def _clear_cookies():
         cookie_manager = None
         try:
@@ -489,7 +490,7 @@ def clear_cookies(_):
             lock.release()
 
     app.view._cookies = []
-    run_once_on_ui_thread(_clear_cookies)
+    _clear_cookies()
     lock.acquire()
 
 
@@ -539,6 +540,7 @@ def get_current_url(_):
     lock = Semaphore(0)
     url = None
 
+    @run_on_ui_thread
     def _get_current_url():
         nonlocal url
         try:
@@ -548,7 +550,7 @@ def get_current_url(_):
         finally:
             lock.release()
 
-    run_once_on_ui_thread(_get_current_url)
+    _get_current_url()
     lock.acquire()
     return url
 

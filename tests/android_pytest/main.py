@@ -42,7 +42,12 @@ class LogcatReporter:
         """
         crash = getattr(report.longrepr, 'reprcrash', None)
         text = crash.message if crash else str(report.longrepr)
-        return text.replace('\n', ' | ')[:300]
+        # logcat truncates around 4KB per line. Staying well inside that while
+        # still carrying a full nested traceback, which run_test() puts in the
+        # failure message - a short budget cuts it off before the assertion.
+        # This has to stand on its own: if the run crashes, pytest never gets
+        # to print its own FAILURES section.
+        return text.replace('\n', ' | ')[:1500]
 
     def pytest_runtest_logreport(self, report):
         if report.when != 'call' and not (report.when == 'setup' and report.failed):
