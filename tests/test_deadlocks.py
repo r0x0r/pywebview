@@ -255,6 +255,16 @@ ASYNC_CAPABLE_ACTIONS = {
     'get_cookies': lambda w: w.get_cookies(),
 }
 
+# Validates the value a non-raising `ASYNC_CAPABLE_ACTIONS[action_name]`
+# produced, mirroring `INLINE_ACTIONS_EXPECTATIONS`: a backend that returns a
+# placeholder like `None` instead of actually performing the call (e.g. a race
+# during startup where the native instance doesn't exist yet) must not be
+# indistinguishable from one that genuinely answered inline.
+ASYNC_CAPABLE_ACTIONS_EXPECTATIONS = {
+    'evaluate_js': lambda v: v == 2,
+    'get_cookies': lambda v: isinstance(v, list),
+}
+
 # Renderers (``window.gui.renderer``) that must raise ``ReentrantCallError`` for
 # a given action, because their result is delivered asynchronously by the GUI
 # thread itself. Every other renderer answers the call inline instead: Qt caches
@@ -339,6 +349,10 @@ def test_async_capable_api_in_blocking_handler(window, phase, action_name):
         assert error is None, (
             f'{action_name} on {renderer} is answered inline (cached/synchronous), '
             f'so it must not raise: {error!r}'
+        )
+        assert ASYNC_CAPABLE_ACTIONS_EXPECTATIONS[action_name](state['value']), (
+            f'{action_name} on {renderer} ran inline but returned an unexpected '
+            f'value: {state["value"]!r}'
         )
 
 
