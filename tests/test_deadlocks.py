@@ -135,7 +135,8 @@ def _call_from_closing_handler(window, action):
         time.sleep(0.5)
         try:
             _trigger_close(window)
-        except Exception as e:  # noqa: BLE001 - the watchdog is the real backstop
+            state['closed'] = True
+        except BaseException as e:  # noqa: BLE001 - the watchdog is the real backstop
             state['close_error'] = e
 
     threading.Thread(target=closer, daemon=True).start()
@@ -144,10 +145,15 @@ def _call_from_closing_handler(window, action):
     # returns either. Kill the process and dump every thread's stack rather than
     # hang; the dump names the blocked acquire().
     faulthandler.dump_traceback_later(WATCHDOG_TIMEOUT, exit=True)
+    started = time.monotonic()
     try:
         webview.start()
     finally:
         faulthandler.cancel_dump_traceback_later()
+
+    print(
+        f'[deadlock-test] after start() in {time.monotonic() - started:.1f}s: {state}', flush=True
+    )
 
     assert state['handler_ran'], (
         f'closing event never fired, so nothing was tested '
