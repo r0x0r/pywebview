@@ -118,6 +118,11 @@ def _call_from_closing_handler(window, action):
             state['value'] = action(window)
         except BaseException as e:  # noqa: BLE001 - report anything the call hits
             state['error'] = e
+        # Report from inside the handler rather than only through the assertions
+        # below. On WinUI3 the process is torn down by Application.current.exit
+        # when the last window closes, often before pytest prints its summary, so
+        # this line is the only record of what happened that survives.
+        print(f'[deadlock-test] value={state["value"]!r} error={state["error"]!r}', flush=True)
         # Returning (without vetoing) lets the window close so start() returns.
 
     window.events.closing += on_closing
