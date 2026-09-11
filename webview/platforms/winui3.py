@@ -1148,17 +1148,31 @@ class BrowserView:
                 exit_application()
 
         def on_closing(self, sender: AppWindow, args: AppWindowClosingEventArgs):
-            if self._closing_confirmed:
-                self._closing_confirmed = False
-                return
-
-            should_cancel = self.pywebview_window.events.closing.set()
-
-            if should_cancel:
-                args.cancel = True
-
             if args.cancel:
                 return
+
+            if not self._begin_close():
+                args.cancel = True
+
+        def _begin_close(self) -> bool:
+            """
+            Decide whether a close may go ahead, firing the `closing` event and,
+            when `confirm_close` is set, the confirmation dialog.
+
+            Returns False when the close must not proceed right now -- either a
+            `closing` handler vetoed it, or the confirmation dialog is now on
+            screen and will close the window itself once answered.
+
+            Shared by `on_closing` (a user-initiated close, which AppWindow
+            raises Closing for) and `close` (a programmatic one, which it does
+            not), so both routes fire the same events.
+            """
+            if self._closing_confirmed:
+                self._closing_confirmed = False
+                return True
+
+            if self.pywebview_window.events.closing.set():
+                return False
 
             if self.pywebview_window.confirm_close:
                 # WinUI 3 doesn't have a way to disable the window close button
@@ -1191,8 +1205,10 @@ class BrowserView:
 
                 op.completed = on_completed
 
-                # have to cancel closing so the dialog can be shown
-                args.cancel = True
+                # have to stop this close so the dialog can be shown
+                return False
+
+            return True
 
         def on_resize(self, sender: Object, args: WindowSizeChangedEventArgs):
             # args.size is the XAML content area's size, not the outer
@@ -1441,7 +1457,17 @@ class BrowserView:
 
         @invoke_on_ui_thread
         def close(self):
-            self.window.close()
+            # Microsoft.UI.Xaml.Window.Close() does not raise AppWindow.Closing,
+            # so on_closing never runs for a close started from code. Without
+            # this, a programmatic destroy() would silently skip both the
+            # `closing` event and the confirm_close prompt -- unlike every other
+            # backend, where destroy() goes through the native close path and
+            # fires them.
+            if self._begin_close():
+                # Should the platform raise AppWindow.Closing after all, the
+                # fast path in _begin_close() keeps `closing` from firing twice.
+                self._closing_confirmed = True
+                self.window.close()
 
 
 _main_window_created = Event()
