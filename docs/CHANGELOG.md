@@ -9,10 +9,6 @@
 - `All` CI now tests Python 3.10 through 3.13, type-checks the package, compile-checks every example and audits dependencies with `pip-audit`.
 - `All` The PyPI project page now shows the README. The built distributions previously carried no long description.
 
-### 🐞 Bug fixes
-
-- `WinUI3` Fire the `closing` event for a programmatic `window.destroy()`. `on_closing` is attached to `AppWindow.Closing`, which `Microsoft.UI.Xaml.Window.Close()` never raises, so closing a window from code silently skipped both the `closing` event and the `confirm_close` prompt, and a `closing` handler could not veto the close.
-
 ## 6.2.1
 
 _Released 15/04/2026_
