@@ -40,9 +40,10 @@ allowed, depending on what the API actually needs:
   Those raise ``ReentrantCallError`` instead of blocking.
 
 Which bucket an API falls into is backend-dependent (Qt caches cookies and can
-answer ``get_cookies()`` inline; WebKit and WebView2 have to ask their cookie
-store asynchronously), so the async-capable APIs assert "returns *or* raises
-``ReentrantCallError``" rather than pinning one of the two.
+answer ``get_cookies()`` inline; CEF answers from its own dedicated thread;
+WebKit and WebView2 have to ask their cookie store asynchronously), so which of
+the two outcomes is expected is pinned per renderer -- see
+``RENDERERS_THAT_RAISE`` below -- rather than accepting either.
 
 Reaching the fix: the lifecycle gate
 -------------------------------------
@@ -56,8 +57,8 @@ waiting for (or one that legitimately has not fired yet, like ``shown`` during
 ``_api_call()`` now recognizes a call made from the thread currently
 dispatching a ``should_lock`` event on this window and skips the wait,
 so it falls through to the backend, which runs it inline or raises
-``ReentrantCallError`` as described above. See ``Window._gui_thread_ident``
-and ``Event.set()``.
+``ReentrantCallError`` as described above. See
+``Window._reentrant_dispatch`` and ``Event.set()``.
 
 This makes ``before_show`` and ``before_load`` handlers testable the same way
 as ``closing`` (see ``LIFECYCLE_PHASES`` below). ``initialized`` is
@@ -234,6 +235,26 @@ ASYNC_CAPABLE_ACTIONS = {
     'get_cookies': lambda w: w.get_cookies(),
 }
 
+# Renderers (``window.gui.renderer``) that must raise ``ReentrantCallError`` for
+# a given action, because their result is delivered asynchronously by the GUI
+# thread itself. Every other renderer answers the call inline instead: Qt caches
+# cookies and calling either ``evaluate_js`` or ``get_cookies`` is synchronous;
+# CEF answers ``evaluate_js``/``get_cookies`` from its own dedicated CEF thread;
+# MSHTML runs ``evaluate_js`` synchronously and its ``get_cookies`` takes the
+# WinForms "unsupported" path, returning ``[]`` without ever touching the GUI
+# thread.
+RENDERERS_THAT_RAISE = {
+    'evaluate_js': {
+        'wkwebview',
+        'gtkwebkit2',
+        'edgechromium',
+        'winui3',
+        'android-webkit',
+        'qtwebengine',
+    },
+    'get_cookies': {'wkwebview', 'gtkwebkit2', 'edgechromium', 'winui3', 'android-webkit'},
+}
+
 
 @pytest.fixture
 def window():
@@ -274,13 +295,27 @@ def test_inline_api_in_blocking_handler(window, phase, action_name):
 
 @pytest.mark.parametrize('phase,action_name', _phase_params(ASYNC_CAPABLE_ACTIONS))
 def test_async_capable_api_in_blocking_handler(window, phase, action_name):
-    """An asynchronous API called from a blocking handler reports, never blocks."""
+    """An asynchronous API called from a blocking handler reports, never blocks.
+
+    Whether it reports by raising ``ReentrantCallError`` or by returning a value
+    is pinned per renderer via ``RENDERERS_THAT_RAISE``, not left to "either is
+    fine" -- see that dict for which backends fall into which bucket and why.
+    """
     state = _call_from_lifecycle_handler(window, phase, ASYNC_CAPABLE_ACTIONS[action_name])
 
+    renderer = window.gui.renderer
     error = state['error']
-    if error is not None:
+    expects_raise = renderer in RENDERERS_THAT_RAISE.get(action_name, set())
+
+    if expects_raise:
         assert isinstance(error, ReentrantCallError), (
-            f'{action_name} must refuse a GUI-thread call with ReentrantCallError, not {error!r}'
+            f'{action_name} on {renderer} must refuse a GUI-thread call with '
+            f'ReentrantCallError, not {error!r}'
+        )
+    else:
+        assert error is None, (
+            f'{action_name} on {renderer} is answered inline (cached/synchronous), '
+            f'so it must not raise: {error!r}'
         )
 
 

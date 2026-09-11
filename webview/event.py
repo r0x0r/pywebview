@@ -52,25 +52,35 @@ class Event:
         return_values: list[Any] = []
 
         if len(self._items):
-            if self._should_lock and hasattr(self._window, '_gui_thread_ident'):
-                # Record that `self._window` is, for the duration of `execute()`,
-                # being driven synchronously by this thread (the GUI thread), so
-                # `Window._api_call()` can recognize a call made from one of these
-                # handlers as reentrant rather than waiting on it. Restore the
-                # previous value rather than clearing unconditionally in case a
-                # should_lock event is somehow dispatched from within another.
-                previous_thread = self._window._gui_thread_ident
-                self._window._gui_thread_ident = threading.get_ident()
-                try:
-                    execute()
-                finally:
-                    self._window._gui_thread_ident = previous_thread
-            else:
-                if self._should_lock:
-                    execute()
+            if self._should_lock:
+                # Record, on *this thread's* local storage, that it is for the
+                # duration of `execute()` driving `self._window` synchronously,
+                # so `Window._api_call()` can recognize a call made from one of
+                # these handlers as reentrant rather than waiting on it. Using
+                # `_reentrant_dispatch` (thread-local) rather than a value
+                # shared on the window is required because should_lock events
+                # can be dispatched concurrently on different threads -- e.g.
+                # Cocoa's `request_sent` fires on its own worker thread while a
+                # lifecycle event fires on the AppKit thread -- so each thread
+                # must track its own depth without disturbing another thread's.
+                # A depth counter rather than a flag also keeps this correct if
+                # a should_lock event handler itself triggers another
+                # should_lock event on the same thread.
+                local_state = getattr(self._window, '_reentrant_dispatch', None)
+                if local_state is not None:
+                    previous_depth = getattr(local_state, 'depth', 0)
+                    local_state.depth = previous_depth + 1
+                    try:
+                        execute()
+                    finally:
+                        local_state.depth = previous_depth
                 else:
-                    t = threading.Thread(target=execute)
-                    t.start()
+                    # No window (e.g. a standalone `Event(None, True)`) -- there
+                    # is nothing to record reentrancy against, just run inline.
+                    execute()
+            else:
+                t = threading.Thread(target=execute)
+                t.start()
 
         false_values = [v for v in return_values if v is False]
         self._event.set()

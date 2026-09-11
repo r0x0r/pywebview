@@ -6,7 +6,7 @@ import os
 from collections.abc import Callable, Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
-from threading import Lock, get_ident
+from threading import Lock, local
 from typing import Any, Concatenate, TypeAlias, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
@@ -41,14 +41,14 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
         event = getattr(self.events, event_type)
 
         if not event.is_set():
-            if get_ident() == self._gui_thread_ident:
-                # Reentrant call: `self` is currently dispatching a should_lock
-                # event synchronously on the GUI thread (closing, before_show,
-                # before_load, initialized), and this call was made from that
-                # very handler. Waiting on `event` here can never succeed before
-                # the timeout below -- it may be the event this handler is
-                # about to set right after returning (before_load calling
-                # run_js()), or one that genuinely hasn't happened yet
+            if getattr(self._reentrant_dispatch, 'depth', 0) > 0:
+                # Reentrant call: this thread is currently inside `Event.set()`
+                # for a should_lock event on this window (closing, before_show,
+                # before_load, initialized) -- see `Event.set()` and
+                # `_reentrant_dispatch`. Waiting on `event` here can never
+                # succeed before the timeout below -- it may be the event this
+                # handler is about to set right after returning (before_load
+                # calling run_js()), or one that genuinely hasn't happened yet
                 # (before_show calling window.width, which needs `shown`).
                 # Skip the wait and let the backend either run the call inline
                 # or raise `ReentrantCallError`; see that class for the
@@ -188,11 +188,16 @@ class Window:
 
         self.events._pywebviewready = Event(self)
 
-        # Thread identity of whichever should_lock event (closing, before_show,
-        # before_load, initialized) is currently dispatching its handlers
-        # synchronously on the GUI thread, if any -- see `_api_call()` and
-        # `Event.set()`.
-        self._gui_thread_ident: int | None = None
+        # Per-thread reentrancy depth: >0 on whichever thread(s) are currently
+        # inside `Event.set()` for one of this window's should_lock events
+        # (closing, before_show, before_load, initialized, and on some backends
+        # request_sent). A `threading.local()` rather than a single shared
+        # value, because should_lock events can be dispatched concurrently on
+        # different threads -- e.g. Cocoa runs `request_sent` on a dedicated
+        # worker thread while lifecycle events run on the AppKit thread -- and
+        # each thread must only ever see its own reentrancy state. See
+        # `_api_call()` and `Event.set()`.
+        self._reentrant_dispatch = local()
         self._expose_lock = Lock()
         self.dom = DOM(self)
         self.gui: Any = None
