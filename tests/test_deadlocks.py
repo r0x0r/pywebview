@@ -44,12 +44,34 @@ answer ``get_cookies()`` inline; WebKit and WebView2 have to ask their cookie
 store asynchronously), so the async-capable APIs assert "returns *or* raises
 ``ReentrantCallError``" rather than pinning one of the two.
 
+Reaching the fix: the lifecycle gate
+-------------------------------------
+The public ``Window`` methods above are also gated on readiness (e.g.
+``window.width`` waits for the ``shown`` event, ``run_js()`` waits for
+``before_load``) via ``webview.window._api_call()``. That gate had its own copy
+of this bug: called reentrantly, from the very handler whose event it is
+waiting for (or one that legitimately has not fired yet, like ``shown`` during
+``before_show``), it would block for 20 seconds and then raise
+``WebViewException`` -- without ever reaching the backend fix above.
+``_api_call()`` now recognizes a call made from the thread currently
+dispatching a ``should_lock`` event on this window and skips the wait,
+so it falls through to the backend, which runs it inline or raises
+``ReentrantCallError`` as described above. See ``Window._gui_thread_ident``
+and ``Event.set()``.
+
+This makes ``before_show`` and ``before_load`` handlers testable the same way
+as ``closing`` (see ``LIFECYCLE_PHASES`` below). ``initialized`` is
+deliberately excluded: it fires from ``Window._initialize()``, before
+``guilib.create_window()`` has even run, so none of these APIs have a native
+window to act on yet -- a lifecycle ordering issue, not a reentrancy one, and
+out of scope here.
+
 How a regression shows up
 -------------------------
-The call under test is made *directly* from the ``closing`` handler, on the GUI
-thread -- that is the only faithful reproduction. Dispatching it to a helper
-thread instead would measure something else entirely: a background thread waiting
-on a GUI thread that is merely *busy* running a handler is not a deadlock, it
+The call under test is made *directly* from the handler, on the GUI thread --
+that is the only faithful reproduction. Dispatching it to a helper thread
+instead would measure something else entirely: a background thread waiting on
+a GUI thread that is merely *busy* running a handler is not a deadlock, it
 just waits for the handler to return.
 
 A blocking ``threading`` lock/semaphore acquire on the main thread cannot be
@@ -116,17 +138,33 @@ def _trigger_close(window):
         window.destroy()
 
 
-def _call_from_closing_handler(window, action):
-    """Call ``action(window)`` on the GUI thread, from a ``closing`` handler.
+# The should_lock events for which the native window/webview already exist by
+# the time the event fires, so a call from their handler is meaningful and not
+# just "doesn't crash". `initialized` is deliberately excluded: it fires from
+# `Window._initialize()`, before `guilib.create_window()` has run at all, so
+# none of the actions below have a native window to act on yet regardless of
+# the reentrancy fix -- that is a lifecycle ordering constraint, not something
+# this suite covers.
+LIFECYCLE_PHASES = ['before_show', 'before_load', 'closing']
+
+
+def _call_from_lifecycle_handler(window, event_name, action):
+    """Call ``action(window)`` on the GUI thread, from ``event_name``'s handler.
+
+    Works for any of `LIFECYCLE_PHASES`. ``before_show``/``before_load`` fire on
+    their own as the window starts up; ``closing`` only fires once something
+    asks the window to close, which the closer thread below does via
+    ``_trigger_close()``.
 
     Returns a state dict with ``value`` and ``error``. If the call deadlocks the
     watchdog kills the process, so a returned dict already proves it did not.
     """
     state = {'handler_ran': False, 'value': None, 'error': None}
+    event = getattr(window.events, event_name)
 
-    def on_closing():
-        # This runs synchronously on the GUI thread (closing is should_lock=True),
-        # so `action` below is invoked *by the GUI thread itself*.
+    def on_event(*_args, **_kwargs):
+        # This runs synchronously on the GUI thread (should_lock=True), so
+        # `action` below is invoked *by the GUI thread itself*.
         state['handler_ran'] = True
         try:
             state['value'] = action(window)
@@ -137,9 +175,10 @@ def _call_from_closing_handler(window, action):
         # when the last window closes, often before pytest prints its summary, so
         # this line is the only record of what happened that survives.
         print(f'[deadlock-test] value={state["value"]!r} error={state["error"]!r}', flush=True)
-        # Returning (without vetoing) lets the window close so start() returns.
+        # Returning (without vetoing) lets the window continue starting up (or
+        # close), so start() returns.
 
-    window.events.closing += on_closing
+    event += on_event
 
     def closer():
         # Close even if the page never finished loading. Skipping the close on a
@@ -155,7 +194,7 @@ def _call_from_closing_handler(window, action):
 
     threading.Thread(target=closer, daemon=True).start()
 
-    # A deadlocked call parks the GUI thread inside on_closing, so start() never
+    # A deadlocked call parks the GUI thread inside on_event, so start() never
     # returns either. Kill the process and dump every thread's stack rather than
     # hang; the dump names the blocked acquire().
     faulthandler.dump_traceback_later(WATCHDOG_TIMEOUT, exit=True)
@@ -170,7 +209,7 @@ def _call_from_closing_handler(window, action):
     )
 
     assert state['handler_ran'], (
-        f'closing event never fired, so nothing was tested '
+        f'{event_name} event never fired, so nothing was tested '
         f'(loaded={state.get("loaded")}, close_error={state.get("close_error")!r})'
     )
     return state
@@ -203,11 +242,29 @@ def window():
     )
 
 
-@needs_closing_event
-@pytest.mark.parametrize('action_name', list(INLINE_ACTIONS))
-def test_inline_api_in_closing_handler(window, action_name):
-    """A synchronous API called from a ``closing`` handler runs inline and returns."""
-    state = _call_from_closing_handler(window, INLINE_ACTIONS[action_name])
+def _phase_params(actions):
+    """Build (phase, action_name) parametrize entries, skipping `closing` on WinUI3."""
+    return [
+        pytest.param(
+            phase,
+            action_name,
+            marks=[needs_closing_event] if phase == 'closing' else [],
+            id=f'{phase}-{action_name}',
+        )
+        for phase in LIFECYCLE_PHASES
+        for action_name in actions
+    ]
+
+
+@pytest.mark.parametrize('phase,action_name', _phase_params(INLINE_ACTIONS))
+def test_inline_api_in_blocking_handler(window, phase, action_name):
+    """A synchronous API called from a blocking handler runs inline and returns.
+
+    Covers ``before_show``, ``before_load`` and ``closing`` -- the blocking
+    events that fire after the native window/webview already exist. (see
+    ``LIFECYCLE_PHASES`` for why ``initialized`` is not included here.)
+    """
+    state = _call_from_lifecycle_handler(window, phase, INLINE_ACTIONS[action_name])
 
     assert state['error'] is None, (
         f'{action_name} is backed by a synchronous native call, so it must run '
@@ -215,11 +272,10 @@ def test_inline_api_in_closing_handler(window, action_name):
     )
 
 
-@needs_closing_event
-@pytest.mark.parametrize('action_name', list(ASYNC_CAPABLE_ACTIONS))
-def test_async_capable_api_in_closing_handler(window, action_name):
-    """An asynchronous API called from a ``closing`` handler reports, never blocks."""
-    state = _call_from_closing_handler(window, ASYNC_CAPABLE_ACTIONS[action_name])
+@pytest.mark.parametrize('phase,action_name', _phase_params(ASYNC_CAPABLE_ACTIONS))
+def test_async_capable_api_in_blocking_handler(window, phase, action_name):
+    """An asynchronous API called from a blocking handler reports, never blocks."""
+    state = _call_from_lifecycle_handler(window, phase, ASYNC_CAPABLE_ACTIONS[action_name])
 
     error = state['error']
     if error is not None:

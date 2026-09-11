@@ -53,7 +53,18 @@ class Event:
 
         if len(self._items):
             if self._should_lock:
-                execute()
+                # Record that `self._window` is, for the duration of `execute()`,
+                # being driven synchronously by this thread (the GUI thread), so
+                # `Window._api_call()` can recognize a call made from one of these
+                # handlers as reentrant rather than waiting on it. Restore the
+                # previous value rather than clearing unconditionally in case a
+                # should_lock event is somehow dispatched from within another.
+                previous_thread = self._window._gui_thread_ident
+                self._window._gui_thread_ident = threading.get_ident()
+                try:
+                    execute()
+                finally:
+                    self._window._gui_thread_ident = previous_thread
             else:
                 t = threading.Thread(target=execute)
                 t.start()

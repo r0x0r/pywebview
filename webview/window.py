@@ -6,7 +6,7 @@ import os
 from collections.abc import Callable, Mapping, Sequence
 from enum import Flag, auto
 from functools import wraps
-from threading import Lock
+from threading import Lock, get_ident
 from typing import Any, Concatenate, TypeAlias, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
@@ -40,8 +40,22 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
     def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
         event = getattr(self.events, event_type)
 
-        if not event.wait(20):
-            raise WebViewException('Main window failed to start')
+        if not event.is_set():
+            if get_ident() == self._gui_thread_ident:
+                # Reentrant call: `self` is currently dispatching a should_lock
+                # event synchronously on the GUI thread (closing, before_show,
+                # before_load, initialized), and this call was made from that
+                # very handler. Waiting on `event` here can never succeed before
+                # the timeout below -- it may be the event this handler is
+                # about to set right after returning (before_load calling
+                # run_js()), or one that genuinely hasn't happened yet
+                # (before_show calling window.width, which needs `shown`).
+                # Skip the wait and let the backend either run the call inline
+                # or raise `ReentrantCallError`; see that class for the
+                # contract this relies on.
+                pass
+            elif not event.wait(20):
+                raise WebViewException('Main window failed to start')
 
         if self.gui is None:
             raise WebViewException('GUI is not initialized')
@@ -174,6 +188,11 @@ class Window:
 
         self.events._pywebviewready = Event(self)
 
+        # Thread identity of whichever should_lock event (closing, before_show,
+        # before_load, initialized) is currently dispatching its handlers
+        # synchronously on the GUI thread, if any -- see `_api_call()` and
+        # `Event.set()`.
+        self._gui_thread_ident: int | None = None
         self._expose_lock = Lock()
         self.dom = DOM(self)
         self.gui: Any = None
