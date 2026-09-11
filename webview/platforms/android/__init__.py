@@ -228,28 +228,29 @@ class BrowserView:
 
                 if hasattr(self, '_js_interface') and self._js_interface:
                     self.webview.removeJavascriptInterface('external')
-                    self._js_interface = None
 
                 if hasattr(self, '_webview_client') and self._webview_client:
                     self._webview_client.destroy()
-                    self._webview_client = None
 
-                if hasattr(self, '_webview_callback_wrapper'):
-                    self._webview_callback_wrapper = None
-                if hasattr(self, '_chrome_callback_wrapper'):
-                    self._chrome_callback_wrapper = None
-
-                if hasattr(self, '_js_api_callback_wrapper'):
-                    self._js_api_callback_wrapper = None
-
-                if hasattr(self, '_request_interceptor'):
-                    self._request_interceptor = None
-                    self._download_listener = None
-
-                if hasattr(self, '_key_listener'):
-                    self._key_listener = None
-
+                # Destroy the WebView before dropping any of the Python proxies
+                # below. The WebView is what holds the Java-side references to
+                # them, and dropping the last Python reference to a
+                # PythonJavaClass deletes its JNI global reference - so clearing
+                # them first left the live WebView holding dangling references,
+                # and anything that then touched one aborted the process with
+                # "JNI DETECTED ERROR IN APPLICATION: use of deleted global
+                # reference".
                 self.webview.destroy()
+
+                self._js_interface = None
+                self._webview_client = None
+                self._webview_callback_wrapper = None
+                self._chrome_callback_wrapper = None
+                self._chrome_client = None
+                self._js_api_callback_wrapper = None
+                self._request_interceptor = None
+                self._download_listener = None
+                self._key_listener = None
                 self.webview = None
             except Exception as e:
                 logger.error(f'Error during dismiss: {e}')
@@ -440,7 +441,7 @@ def load_html(html_content, base_uri, _):
 
 def evaluate_js(js_code, _, parse_json=True):
     def callback(result):
-        nonlocal js_result, value_callback
+        nonlocal js_result
         try:
             # The result is double-encoded in Android, once by the WebView and once pywebview's stringify
             js_result = json.loads(result) if result else result
@@ -448,7 +449,12 @@ def evaluate_js(js_code, _, parse_json=True):
         except Exception as e:
             logger.exception(f'Error parsing result: {js_result}. Type: {type(js_result)}\n{e}')
         finally:
-            value_callback = None
+            # Deliberately not clearing value_callback here. This function *is*
+            # the Java -> Python upcall through that proxy, so dropping the last
+            # reference to it mid-call frees the PythonJavaClass and deletes the
+            # JNI global reference the in-flight call is still using. The
+            # closure keeps it alive until evaluate_js returns, by which point
+            # the call has unwound.
             lock.release()
 
     @run_on_ui_thread
