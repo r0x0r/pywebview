@@ -19,6 +19,7 @@ from webview.util import (
     inject_pywebview,
     js_bridge_call,
     parse_file_type,
+    reentrant_call_error,
 )
 from webview.window import FixPoint, Window
 
@@ -26,19 +27,57 @@ logger = logging.getLogger('pywebview')
 os.environ['EGL_LOG_LEVEL'] = 'fatal'
 
 
-def _raise_if_reentrant(api_name: str) -> None:
+def _is_ui_thread() -> bool:
+    """True when the caller is already running on the GTK main thread."""
+    return current_thread() is main_thread()
+
+
+def _raise_if_reentrant(api_name: str, reason: str) -> None:
     """
-    Guard against calling a `glib.idle_add()` + semaphore-wait API from the
-    GTK main thread itself (e.g. a synchronous `request_sent`/`before_load`
-    handler): the idle callback can only ever run once this same thread
-    returns to the main loop, so blocking here on the semaphore would
-    deadlock permanently. Raises instead of hanging.
+    Guard an API whose result is produced *asynchronously* against being called
+    from the GTK main thread itself (e.g. a synchronous `closing`/`before_load`
+    or `request_sent` handler). The result is delivered by an idle callback that
+    can only run once this same thread returns to the main loop, so blocking on
+    the semaphore would deadlock permanently. Raises instead of hanging.
+
+    APIs whose work is synchronous don't need this -- they use
+    `_call_on_ui_thread()`, which just runs them inline.
     """
-    if current_thread() is main_thread():
-        raise RuntimeError(
-            f'{api_name}() cannot be called from a native GTK callback (e.g. a '
-            'request_sent or before_load handler) without deadlocking the main loop.'
-        )
+    if _is_ui_thread():
+        raise reentrant_call_error(api_name, reason)
+
+
+def _call_on_ui_thread(func, *args):
+    """
+    Run `func` on the GTK main thread and return its result.
+
+    When the caller is already on the main thread the call runs inline:
+    scheduling via `glib.idle_add()` and then blocking on a semaphore would park
+    the very main loop that has to run the callback. `func` must be
+    *synchronous* -- it has to produce its result before returning, not from a
+    callback delivered later.
+    """
+    if _is_ui_thread():
+        return func(*args)
+
+    outcome = []
+    semaphore = Semaphore(0)
+
+    def run():
+        try:
+            outcome.append((True, func(*args)))
+        except BaseException as e:
+            outcome.append((False, e))
+        finally:
+            semaphore.release()
+
+    glib.idle_add(run)
+    semaphore.acquire()
+
+    ok, value = outcome[0]
+    if ok:
+        return value
+    raise value
 
 
 import gi  # noqa: E402
@@ -668,7 +707,10 @@ class BrowserView:
         glib.idle_add(_clear_cookies)
 
     def get_cookies(self):
-        _raise_if_reentrant('get_cookies')
+        _raise_if_reentrant(
+            'get_cookies',
+            'The cookie manager answers asynchronously on the GUI thread.',
+        )
 
         def _get_cookies():
             self.cookie_manager.get_cookies(self.webview.get_uri(), None, callback, None)
@@ -736,7 +778,7 @@ class BrowserView:
 
             result_semaphore.release()
 
-        if current_thread() is main_thread():
+        if _is_ui_thread():
             # Already on the GTK main thread (e.g. a request_sent handler
             # firing synchronously from resource-load-started).
             # Window.evaluate_js() (parse_json=True) needs its result, and
@@ -749,9 +791,10 @@ class BrowserView:
             # docstring says the result isn't guaranteed — so it's the only
             # case where it's safe to start the script and return.
             if parse_json:
-                raise RuntimeError(
-                    'evaluate_js() cannot return a result synchronously when called '
-                    'from a native GTK callback without deadlocking the main loop.'
+                raise reentrant_call_error(
+                    'evaluate_js',
+                    'The script result is only delivered later, by the GUI thread. '
+                    'Use run_js() if you do not need the result.',
                 )
             _evaluate_js()
             return None
@@ -954,23 +997,11 @@ def get_cookies(uid):
 
 
 def get_current_url(uid):
-    _raise_if_reentrant('get_current_url')
-
-    def _get_current_url():
-        result['url'] = i.get_current_url()
-        semaphore.release()
-
-    result = {}
-    semaphore = Semaphore(0)
-
     i = BrowserView.instances.get(uid)
     if not i:
         return
 
-    glib.idle_add(_get_current_url)
-    semaphore.acquire()
-
-    return result['url']
+    return _call_on_ui_thread(i.get_current_url)
 
 
 def load_url(url, uid):
@@ -992,22 +1023,13 @@ def load_html(content, base_uri, uid):
 
 
 def create_confirmation_dialog(title, message, uid):
-    _raise_if_reentrant('create_confirmation_dialog')
-
-    def _create():
-        nonlocal result
-        result = i.create_confirmation_dialog(title, message)
-        result_semaphore.release()
-
     i = BrowserView.instances.get(uid)
-    result_semaphore = Semaphore(0)
-    result = -1
+    if not i:
+        return -1
 
-    if i:
-        glib.idle_add(_create)
-        result_semaphore.acquire()
-
-    return result
+    # gtk.Dialog.run() pumps its own nested main loop, so it produces the answer
+    # before returning and is safe to run inline on the GTK main thread.
+    return _call_on_ui_thread(i.create_confirmation_dialog, title, message)
 
 
 def create_menu(app_menu_list):
@@ -1075,27 +1097,16 @@ def get_active_window():
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
-    _raise_if_reentrant('create_file_dialog')
-
-    i = BrowserView.instances.get(uid)
-    file_name_semaphore = Semaphore(0)
-    file_names = []
-
     def _create():
         result = i.create_file_dialog(
             dialog_type, directory, allow_multiple, save_filename, file_types
         )
-        if result is None:
-            file_names.append(None)
-        else:
-            file_names.append(tuple(result))
+        return None if result is None else tuple(result)
 
-        file_name_semaphore.release()
+    i = BrowserView.instances.get(uid)
 
-    glib.idle_add(_create)
-    file_name_semaphore.acquire()
-
-    return file_names[0]
+    # As above: the chooser's run() pumps its own loop, so inline is safe.
+    return _call_on_ui_thread(_create)
 
 
 def evaluate_js(script, uid, parse_json=True):
@@ -1106,43 +1117,19 @@ def evaluate_js(script, uid, parse_json=True):
 
 
 def get_position(uid):
-    _raise_if_reentrant('get_position')
-
-    def _get_position():
-        result['position'] = i.window.get_position()
-        semaphore.release()
-
     i = BrowserView.instances.get(uid)
     if not i:
         return
 
-    result = {}
-    semaphore = Semaphore(0)
-
-    glib.idle_add(_get_position)
-    semaphore.acquire()
-
-    return result['position']
+    return _call_on_ui_thread(i.window.get_position)
 
 
 def get_size(uid):
-    _raise_if_reentrant('get_size')
-
-    def _get_size():
-        result['size'] = i.window.get_size()
-        semaphore.release()
-
     i = BrowserView.instances.get(uid)
     if not i:
         return
 
-    result = {}
-    semaphore = Semaphore(0)
-
-    glib.idle_add(_get_size)
-    semaphore.acquire()
-
-    return result['size']
+    return _call_on_ui_thread(i.window.get_size)
 
 
 def get_screens():

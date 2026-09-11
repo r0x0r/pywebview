@@ -1,8 +1,8 @@
 """
 Deadlock regression tests.
 
-These tests exercise a family of GUI-thread reentrancy deadlocks that are shared
-across the backends.
+These tests exercise a family of GUI-thread reentrancy deadlocks that were
+shared across the backends.
 
 Root cause
 ----------
@@ -12,48 +12,75 @@ that a handler can veto or mutate the outcome. These are the events created with
 
     closing, before_show, before_load, initialized
 
-When such a handler runs, it *is* the GUI thread. If it then calls a synchronous
+When such a handler runs, it *is* the GUI thread. If it then called a synchronous
 webview API (``evaluate_js``, ``run_js``, ``window.width``, ``get_current_url``,
-``get_cookies``, a ``window.state`` update, a file/confirmation dialog, ...), the
-platform layer posts the real work back to the GUI thread and blocks on a
-semaphore waiting for the result::
+``get_cookies``, a ``window.state`` update, a dialog, ...), the platform layer
+posted the real work back to the GUI thread and blocked on a semaphore waiting
+for the result::
 
-    # e.g. cocoa.BrowserView.evaluate_js
-    AppHelper.callAfter(eval)          # queued onto the (blocked) GUI runloop
+    # e.g. cocoa.BrowserView.evaluate_js, before the fix
+    AppHelper.callAfter(eval)            # queued onto the (blocked) GUI runloop
     JSResult.result_semaphore.acquire()  # GUI thread parks here forever
 
-The queued work can never run because the GUI thread is parked on the semaphore,
-so the call never returns. The same shape exists on GTK (``glib.idle_add`` +
-``Semaphore.acquire``), WinForms/EdgeChromium (``Invoke`` + async continuation +
-``Semaphore.acquire``), Qt and WinUI3.
+The queued work could never run, because the only thread that could run it was
+parked. The same shape existed on GTK (``glib.idle_add`` + ``Semaphore.acquire``),
+WinForms/EdgeChromium (``Invoke`` + async continuation + ``Semaphore.acquire``),
+Qt and WinUI3.
 
-Note: a blocking ``threading`` lock/semaphore acquire on the main thread cannot be
-interrupted from another thread (it does not poll for signals), so once a real
-deadlock is hit the process must be killed. To stay CI-safe these tests never let
-the GUI thread park in the blocking call. Instead the ``closing`` handler runs the
-synchronous API on a short-lived *probe* thread and waits for it with a timeout.
-While the handler holds the GUI thread the probe cannot make progress, so a
-timeout is a positive detection of the deadlock -- and the handler always returns,
-so the window closes and ``webview.start()`` returns normally.
+The contract
+------------
+No pywebview API may block when called from the GUI thread. Two outcomes are
+allowed, depending on what the API actually needs:
 
-The tests assert the *desired* behaviour (the API returns), and are marked xfail
-because the backends currently deadlock. Remove the xfail once a backend learns to
-run these APIs inline when it is already on the GUI thread.
+* the underlying native operation is **synchronous** (reading the window frame,
+  reading the current URL, firing a fire-and-forget script) -- it runs inline on
+  the calling thread and returns its value;
+* the underlying native operation is **asynchronous** -- its result is delivered
+  later, by the very thread that is asking, so it cannot be produced at all here.
+  Those raise ``ReentrantCallError`` instead of blocking.
+
+Which bucket an API falls into is backend-dependent (Qt caches cookies and can
+answer ``get_cookies()`` inline; WebKit and WebView2 have to ask their cookie
+store asynchronously), so the async-capable APIs assert "returns *or* raises
+``ReentrantCallError``" rather than pinning one of the two.
+
+How a regression shows up
+-------------------------
+The call under test is made *directly* from the ``closing`` handler, on the GUI
+thread -- that is the only faithful reproduction. Dispatching it to a helper
+thread instead would measure something else entirely: a background thread waiting
+on a GUI thread that is merely *busy* running a handler is not a deadlock, it
+just waits for the handler to return.
+
+A blocking ``threading`` lock/semaphore acquire on the main thread cannot be
+interrupted from another thread -- it does not poll for signals, so neither
+``KeyboardInterrupt`` nor a watchdog calling ``interrupt_main()`` will break it.
+A deadlocked call therefore parks the GUI thread for good, and ``webview.start()``
+never returns either. To keep that bounded, the whole run is wrapped in a
+``faulthandler`` watchdog: if ``start()`` has not returned within
+``WATCHDOG_TIMEOUT`` the process is killed and every thread's stack is dumped,
+which points straight at the blocked ``acquire()``. CI sees a hard failure with a
+usable diagnosis instead of hanging until the job times out.
 """
 
+import faulthandler
 import threading
 import time
 
 import pytest
 
 import webview
-
-# How long the probe waits for a synchronous API to return while the GUI thread
-# is held by the closing handler. A healthy backend answers almost instantly.
-PROBE_TIMEOUT = 4
+from webview.errors import ReentrantCallError
 
 # How long to wait for the window to load before triggering the close.
 LOAD_TIMEOUT = 10
+
+# Upper bound on one window's whole lifecycle: load, close, and the call under
+# test. Only ever reached if something is wedged -- a deadlocked call on the GUI
+# thread, or a window that never opened and so can never be closed. Kept under
+# the 60s pytest-timeout so this watchdog, which produces the stack dump, is what
+# fires first.
+WATCHDOG_TIMEOUT = 45
 
 
 def _trigger_close(window):
@@ -75,58 +102,72 @@ def _trigger_close(window):
         window.destroy()
 
 
-def _run_closing_deadlock_probe(window, action):
-    """Run ``action(window)`` from inside a synchronous ``closing`` handler.
+def _call_from_closing_handler(window, action):
+    """Call ``action(window)`` on the GUI thread, from a ``closing`` handler.
 
-    Returns a state dict with ``deadlock`` (True if the call could not complete
-    while the GUI thread was held), ``value`` and ``error``.
+    Returns a state dict with ``value`` and ``error``. If the call deadlocks the
+    watchdog kills the process, so a returned dict already proves it did not.
     """
-    state = {'handler_ran': False, 'deadlock': None, 'value': None, 'error': None}
+    state = {'handler_ran': False, 'value': None, 'error': None}
 
     def on_closing():
-        # This runs synchronously on the GUI thread (closing is should_lock=True).
+        # This runs synchronously on the GUI thread (closing is should_lock=True),
+        # so `action` below is invoked *by the GUI thread itself*.
         state['handler_ran'] = True
-        probe = {}
-
-        def probe_call():
-            try:
-                probe['value'] = action(window)
-            except BaseException as e:  # noqa: BLE001 - report anything the probe hits
-                probe['error'] = e
-
-        t = threading.Thread(target=probe_call, daemon=True)
-        t.start()
-        t.join(PROBE_TIMEOUT)
-
-        state['deadlock'] = t.is_alive()
-        state['value'] = probe.get('value')
-        state['error'] = probe.get('error')
+        try:
+            state['value'] = action(window)
+        except BaseException as e:  # noqa: BLE001 - report anything the call hits
+            state['error'] = e
         # Returning (without vetoing) lets the window close so start() returns.
 
     window.events.closing += on_closing
 
     def closer():
-        if not window.events.loaded.wait(LOAD_TIMEOUT):
-            return
+        # Close even if the page never finished loading. Skipping the close on a
+        # load timeout would leave the window open, and webview.start() would
+        # then never return -- turning a slow load into a hung run.
+        state['loaded'] = window.events.loaded.wait(LOAD_TIMEOUT)
         time.sleep(0.5)
-        _trigger_close(window)
+        try:
+            _trigger_close(window)
+        except Exception as e:  # noqa: BLE001 - the watchdog is the real backstop
+            state['close_error'] = e
 
     threading.Thread(target=closer, daemon=True).start()
-    webview.start()
 
+    # A deadlocked call parks the GUI thread inside on_closing, so start() never
+    # returns either. Kill the process and dump every thread's stack rather than
+    # hang; the dump names the blocked acquire().
+    faulthandler.dump_traceback_later(WATCHDOG_TIMEOUT, exit=True)
+    try:
+        webview.start()
+    finally:
+        faulthandler.cancel_dump_traceback_later()
+
+    assert state['handler_ran'], (
+        f'closing event never fired, so nothing was tested '
+        f'(loaded={state.get("loaded")}, close_error={state.get("close_error")!r})'
+    )
     return state
 
 
-# Synchronous window APIs that dispatch to the GUI thread and block for a result.
-# Each must be safe to call once the window is loaded/shown.
-SYNC_ACTIONS = {
-    'evaluate_js': lambda w: w.evaluate_js('1 + 1'),
+# APIs whose native operation is synchronous on every backend: they must run
+# inline on the GUI thread and hand back a value.
+INLINE_ACTIONS = {
     'run_js': lambda w: w.run_js('1 + 1'),
     'width': lambda w: w.width,
     'height': lambda w: w.height,
+    'x': lambda w: w.x,
+    'y': lambda w: w.y,
     'get_current_url': lambda w: w.get_current_url(),
+    'state_update': lambda w: setattr(w.state, 'deadlock_probe', 1),
+}
+
+# APIs whose native operation may be asynchronous. Those backends cannot answer
+# on the GUI thread at all and must say so instead of blocking.
+ASYNC_CAPABLE_ACTIONS = {
+    'evaluate_js': lambda w: w.evaluate_js('1 + 1'),
     'get_cookies': lambda w: w.get_cookies(),
-    'state_update': lambda w: w.state.__setattr__('deadlock_probe', 1),
 }
 
 
@@ -137,18 +178,29 @@ def window():
     )
 
 
-@pytest.mark.parametrize('action_name', list(SYNC_ACTIONS))
-@pytest.mark.xfail(
-    reason='Synchronous webview API called from a should_lock GUI-thread event '
-    'handler (closing) deadlocks the GUI thread',
-    strict=False,
-)
-def test_sync_api_in_closing_handler(window, action_name):
-    """A synchronous webview API invoked from a ``closing`` handler must return."""
-    state = _run_closing_deadlock_probe(window, SYNC_ACTIONS[action_name])
+@pytest.mark.parametrize('action_name', list(INLINE_ACTIONS))
+def test_inline_api_in_closing_handler(window, action_name):
+    """A synchronous API called from a ``closing`` handler runs inline and returns."""
+    state = _call_from_closing_handler(window, INLINE_ACTIONS[action_name])
 
-    assert state['handler_ran'], 'closing event never fired; cannot judge deadlock'
-    assert not state['deadlock'], (
-        f'{action_name}() deadlocked when called from a closing handler: the GUI '
-        f'thread blocked waiting for work only it could run'
+    assert state['error'] is None, (
+        f'{action_name} is backed by a synchronous native call, so it must run '
+        f'inline on the GUI thread rather than fail: {state["error"]!r}'
     )
+
+
+@pytest.mark.parametrize('action_name', list(ASYNC_CAPABLE_ACTIONS))
+def test_async_capable_api_in_closing_handler(window, action_name):
+    """An asynchronous API called from a ``closing`` handler reports, never blocks."""
+    state = _call_from_closing_handler(window, ASYNC_CAPABLE_ACTIONS[action_name])
+
+    error = state['error']
+    if error is not None:
+        assert isinstance(error, ReentrantCallError), (
+            f'{action_name} must refuse a GUI-thread call with ReentrantCallError, not {error!r}'
+        )
+
+
+def test_reentrant_call_error_is_a_runtime_error():
+    """``ReentrantCallError`` stays catchable as the ``RuntimeError`` it replaced."""
+    assert issubclass(ReentrantCallError, RuntimeError)

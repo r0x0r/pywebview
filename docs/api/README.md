@@ -907,6 +907,27 @@ Get DOM document's window `window` as an `Element` object
 
 Window object exposes various lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g., `window.events.loaded += func`. Duplicate subscriptions are ignored, and the function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, e.g., `window.events.loaded -= func`. To access the window object from the event handler, supply the `window` parameter as the first positional argument of the handler. Most window events are asynchronous, and event handlers are executed in separate threads. The `before_show` and `before_load` events are synchronous and block the main thread until handled. The `request_sent` event is also synchronous - the underlying HTTP request is held up until the handler returns - but its execution context is backend-dependent; see its own entry below.
 
+#### Calling pywebview from a blocking handler
+
+The blocking events - `closing`, `before_show`, `before_load` and `initialized` - run their handlers *on the GUI thread*, as does `request_sent` on some backends. Anything a handler asks of pywebview therefore has to be answered by the very thread that is asking, so the rules differ from a normal background-thread handler:
+
+- APIs backed by a synchronous native call run inline and return as usual. On every backend that covers `window.width`, `window.height`, `window.x`, `window.y`, `window.get_current_url()`, `window.run_js()` and `window.state` updates.
+- APIs whose result is produced asynchronously cannot be delivered while the handler holds the GUI thread. Rather than block forever, these raise `webview.errors.ReentrantCallError` (a subclass of `RuntimeError`): `window.evaluate_js()` on every backend, and `window.get_cookies()` on all but Qt, which answers from its own cookie cache.
+- Dialogs depend on the backend. `window.create_confirmation_dialog()` and `window.create_file_dialog()` run inline on Cocoa, GTK, Qt and WinForms, whose native dialogs pump their own modal loop. WinUI3's are asynchronous and raise `ReentrantCallError`.
+
+To use one of the latter from a blocking handler, do the work on another thread:
+
+``` python
+import threading
+
+def on_closing():
+    threading.Thread(target=lambda: print(window.evaluate_js('1 + 1'))).start()
+
+window.events.closing += on_closing
+```
+
+Note that the handler returns immediately in that case - it does not wait for the thread - so this is not a way to make a decision (such as vetoing the close) based on the result.
+
 ### window.events.before_show
 
 This event is fired just before pywebview window is shown. This is the earliest event that exposes `window.native` property. This event is blocking.
