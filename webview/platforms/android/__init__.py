@@ -264,11 +264,6 @@ class BrowserView:
                         self._request_interceptor,
                         getattr(self, '_download_listener', None),
                         self._key_listener,
-                        # The WebView itself too: the Activity still holds it as
-                        # its content view until the next window replaces it, so
-                        # destroy() does not make it safe to delete our
-                        # reference to it either.
-                        self.webview,
                     )
                 )
                 self.webview = None
@@ -441,11 +436,7 @@ def create_window(window):
     finally:
         # run() blocks until the event loop closes. Without clearing the global
         # the guard above latches forever, so a window destroyed with
-        # window.destroy() could never be replaced by a new one. The app is
-        # retired rather than dropped for the same reason as the view's proxies:
-        # it owns the event loop, whose frame callback and activity lifecycle
-        # callbacks are Java-facing objects Android may still hold.
-        _retired_proxies.append(app)
+        # window.destroy() could never be replaced by a new one.
         app = None
 
 
