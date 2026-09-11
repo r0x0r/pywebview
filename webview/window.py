@@ -44,20 +44,26 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
             if is_reentrant_dispatch():
                 # Reentrant call: this thread is currently inside `Event.set()`
                 # for a should_lock event (closing, before_show, before_load,
-                # initialized) on some window in this process -- possibly, but
-                # not necessarily, `self`; all of a process's windows are
+                # initialized, or request_sent on a backend that dispatches it
+                # inline) on some window in this process -- possibly, but not
+                # necessarily, `self` -- *and* it is the real native GUI
+                # thread, not merely a worker thread that happens to be
+                # driving one of these events (e.g. Cocoa/WebView2's
+                # `request_sent`, dispatched off a dedicated worker thread; see
+                # `is_reentrant_dispatch()`). All of a process's windows are
                 # normally driven by the one native GUI thread, so a handler
                 # for another window's event calling into `self` is just as
                 # much "the GUI thread asking" as a handler of `self`'s own
-                # event would be. See `is_reentrant_dispatch()`. Waiting on
-                # `event` here can never succeed before the timeout below --
-                # it may be the event this handler is about to set right
-                # after returning (before_load calling run_js()), or one that
-                # genuinely hasn't happened yet (before_show calling
-                # window.width, which needs `shown`). Skip the wait and let
-                # the backend either run the call inline or raise
-                # `ReentrantCallError`; see that class for the contract this
-                # relies on.
+                # event would be. Waiting on `event` here can never succeed
+                # before the timeout below -- it may be the event this handler
+                # is about to set right after returning (before_load calling
+                # run_js()), or one that genuinely hasn't happened yet
+                # (before_show calling window.width, which needs `shown`).
+                # Skip the wait and let the backend either run the call inline
+                # or raise `ReentrantCallError`; see that class for the
+                # contract this relies on. A worker-thread caller, by
+                # contrast, is not the GUI thread and can safely wait here
+                # instead.
                 pass
             elif not event.wait(20):
                 raise WebViewException('Main window failed to start')
@@ -177,11 +183,11 @@ class Window:
 
         self.events = EventContainer()
         self.events.closed = Event(self)
-        self.events.closing = Event(self, True)
+        self.events.closing = Event(self, True, marks_gui_thread=True)
         self.events.loaded = Event(self)
-        self.events.before_load = Event(self, True)
-        self.events.before_show = Event(self, True)
-        self.events.initialized = Event(self, True)
+        self.events.before_load = Event(self, True, marks_gui_thread=True)
+        self.events.before_show = Event(self, True, marks_gui_thread=True)
+        self.events.initialized = Event(self, True, marks_gui_thread=True)
         self.events.shown = Event(self)
         self.events.minimized = Event(self)
         self.events.maximized = Event(self)

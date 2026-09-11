@@ -54,10 +54,12 @@ of this bug: called reentrantly, from the very handler whose event it is
 waiting for (or one that legitimately has not fired yet, like ``shown`` during
 ``before_show``), it would block for 20 seconds and then raise
 ``WebViewException`` -- without ever reaching the backend fix above.
-``_api_call()`` now recognizes a call made from the thread currently
-dispatching a ``should_lock`` event on this window and skips the wait,
-so it falls through to the backend, which runs it inline or raises
-``ReentrantCallError`` as described above. See
+``_api_call()`` now recognizes a call made from the GUI thread while it is
+dispatching a ``should_lock`` event and skips the wait, so it falls through to
+the backend, which runs it inline or raises ``ReentrantCallError`` as
+described above. A ``should_lock`` event dispatched on a worker thread instead
+(``request_sent`` on Cocoa and the WebView2-based backends) is not the GUI
+thread, so it is not exempted and can safely wait. See
 ``webview.event.is_reentrant_dispatch()`` and ``Event.set()``.
 
 This makes ``before_show`` and ``before_load`` handlers testable the same way

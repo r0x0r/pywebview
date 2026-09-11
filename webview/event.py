@@ -30,14 +30,39 @@ logger = logging.getLogger('pywebview')
 # same, only against a different window's event.
 _dispatch_depth = threading.local()
 
+# Identity of the thread that dispatches the lifecycle events marked
+# `marks_gui_thread=True` below (closing, before_show, before_load,
+# initialized). These are the only events guaranteed, on every backend, to run
+# their handlers synchronously on the real native GUI thread -- see the
+# architecture rules for `Window`. `request_sent` is also a should_lock event,
+# but it is *not* one of these: Cocoa and the WebView2-based backends dispatch
+# it on a dedicated worker thread (`_request_executor`), not the GUI thread,
+# while GTK dispatches it inline on what happens to be the same thread as its
+# lifecycle events. Recording the actual thread identity, rather than assuming
+# every should_lock dispatch is "the GUI thread", lets `is_reentrant_dispatch`
+# tell these apart per backend without needing to know which backend is
+# active. It is set once `Window.__init__` has picked a backend and that
+# backend has fired its first lifecycle event; a plain module-level variable
+# is safe here because every write stores the same value (there is only one
+# such thread per process).
+_gui_thread_id: int | None = None
+
 
 def is_reentrant_dispatch() -> bool:
     """Return whether this thread is currently inside `Event.set()` for a
-    should_lock event, for any window. Used by `webview.window._api_call()` to
-    recognize a call made from one of these handlers -- of *any* window on
-    this process -- as reentrant, rather than waiting on it.
+    should_lock event AND that thread is the real native GUI thread -- i.e.
+    whether waiting on a readiness event here would deadlock rather than
+    simply delay. Used by `webview.window._api_call()` to recognize such a
+    call -- made from a lifecycle handler of *any* window on this process, or
+    from a `request_sent` handler on a backend that dispatches it inline on
+    the GUI thread -- as reentrant, rather than waiting on it. A
+    `request_sent` handler running on a worker thread (Cocoa, WebView2-based
+    backends) is not the GUI thread, so it is safe -- and correct -- to let it
+    wait normally instead.
     """
-    return getattr(_dispatch_depth, 'depth', 0) > 0
+    if not getattr(_dispatch_depth, 'depth', 0) > 0:
+        return False
+    return _gui_thread_id is None or _gui_thread_id == threading.get_ident()
 
 
 class EventContainer:
@@ -53,9 +78,15 @@ class EventContainer:
 
 
 class Event:
-    def __init__(self, window: Any, should_lock: bool = False) -> None:
+    def __init__(
+        self, window: Any, should_lock: bool = False, marks_gui_thread: bool = False
+    ) -> None:
         self._items: list[Callable[..., Any]] = []
         self._should_lock = should_lock
+        # See `_gui_thread_id` above: True only for the lifecycle events that
+        # are guaranteed, on every backend, to dispatch on the real native GUI
+        # thread (closing, before_show, before_load, initialized).
+        self._marks_gui_thread = marks_gui_thread
         self._event = threading.Event()
         self._window = window
 
@@ -75,6 +106,16 @@ class Event:
                     logger.exception(e)
 
         return_values: list[Any] = []
+
+        if self._marks_gui_thread:
+            # Record which thread is dispatching this lifecycle event, so
+            # `is_reentrant_dispatch` can later tell a should_lock dispatch
+            # made on the real GUI thread apart from one made on a worker
+            # thread (e.g. Cocoa/WebView2's `request_sent`). Every write
+            # stores the same value, so there is no need to guard this
+            # against concurrent writers.
+            global _gui_thread_id
+            _gui_thread_id = threading.get_ident()
 
         if len(self._items):
             if self._should_lock:
