@@ -40,6 +40,9 @@ logger = logging.getLogger('pywebview')
 renderer = 'android-webkit'
 app = None
 
+# Java-facing proxies belonging to dismissed views. See BrowserView.dismiss().
+_retired_proxies: list = []
+
 
 # NOTE: the nested callbacks below are decorated with @run_on_ui_thread even
 # though they are rebuilt on every call, which leaks one Runnable and its JNI
@@ -242,15 +245,27 @@ class BrowserView:
                 # reference".
                 self.webview.destroy()
 
-                self._js_interface = None
-                self._webview_client = None
-                self._webview_callback_wrapper = None
-                self._chrome_callback_wrapper = None
-                self._chrome_client = None
-                self._js_api_callback_wrapper = None
-                self._request_interceptor = None
-                self._download_listener = None
-                self._key_listener = None
+                # Retire the proxies rather than dropping them. Dropping the
+                # last Python reference to a PythonJavaClass deletes its JNI
+                # global reference, and Java can still be holding one: the
+                # request interceptor in particular is called from a WebView
+                # background thread that destroy() does not synchronise with.
+                # Using one afterwards aborts the process outright, so the
+                # references are parked for the life of the process instead.
+                # That is bounded by the number of windows, and an app has one.
+                _retired_proxies.extend(
+                    (
+                        self._js_interface,
+                        self._webview_client,
+                        self._webview_callback_wrapper,
+                        self._chrome_callback_wrapper,
+                        self._chrome_client,
+                        self._js_api_callback_wrapper,
+                        self._request_interceptor,
+                        getattr(self, '_download_listener', None),
+                        self._key_listener,
+                    )
+                )
                 self.webview = None
             except Exception as e:
                 logger.error(f'Error during dismiss: {e}')
