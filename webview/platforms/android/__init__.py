@@ -34,6 +34,7 @@ from webview.platforms.android.jinterface import (
     RequestInterceptor,
     ValueCallback,
 )
+from webview.platforms.android.jproxy import retain
 from webview.util import create_cookie, inject_pywebview, js_bridge_call
 
 logger = logging.getLogger('pywebview')
@@ -41,27 +42,24 @@ logger = logging.getLogger('pywebview')
 renderer = 'android-webkit'
 app = None
 
-# Java-facing proxies belonging to dismissed views. See BrowserView.dismiss().
-_retired_proxies: list = []
-
-# evaluate_js() hands a fresh ValueCallback to the WebView on every call, and
-# freeing one deletes its JNI global reference. The WebView can still hold it
-# after onReceiveValue has returned, and using it then aborts the process, so
-# callbacks are kept for a while after use rather than released immediately.
-# Bounded because this is the highest-frequency proxy in the backend by far -
-# every evaluate_js, and the suite makes hundreds.
+# evaluate_js() hands a fresh ValueCallback to the WebView on every call. This
+# is the one proxy that is not retained permanently, because it is the only
+# high-frequency one - retaining every callback would grow without bound in a
+# long-lived app. It is safe to bound because the callback is one-shot: the
+# WebView is done with it once onReceiveValue has been invoked. The queue only
+# has to outlast invoke0 unwinding back into Java after our callback returns,
+# which the closure alone does not guarantee, since evaluate_js can return the
+# moment the callback releases the lock. See jproxy for the underlying rule.
 _recent_callbacks: deque = deque(maxlen=256)
 
 
 # NOTE: the nested callbacks below are decorated with @run_on_ui_thread even
-# though they are rebuilt on every call, which leaks one Runnable and its JNI
-# global reference per call into p4a's never-pruned __functionstable__ cache.
-# Constructing the Runnable directly instead is the obvious fix, and it was
-# tried - but that makes the proxies collectable, and the suite then died at
-# 76% with "JNI DETECTED ERROR IN APPLICATION: use of deleted global
-# reference" inside jnius. The leak is what was keeping those proxies alive.
-# Leaking is the lesser problem until the real owner of those references is
-# found, so this stays until then.
+# though they are rebuilt on every call, which leaks one Runnable per call into
+# p4a's never-pruned __functionstable__ cache. Replacing it with a directly
+# constructed Runnable was tried and reverted: that cache is what owns those
+# proxies, and pyjnius gives Java a raw pointer to them, so making them
+# collectable turns the leak into a use-after-free. Fixing this properly means
+# owning them here instead - see jproxy - rather than just not caching them.
 
 
 class BrowserView:
@@ -244,37 +242,30 @@ class BrowserView:
                 if hasattr(self, '_webview_client') and self._webview_client:
                     self._webview_client.destroy()
 
-                # Destroy the WebView before dropping any of the Python proxies
-                # below. The WebView is what holds the Java-side references to
-                # them, and dropping the last Python reference to a
-                # PythonJavaClass deletes its JNI global reference - so clearing
-                # them first left the live WebView holding dangling references,
-                # and anything that then touched one aborted the process with
-                # "JNI DETECTED ERROR IN APPLICATION: use of deleted global
-                # reference".
+                # Destroy the WebView before releasing our hold on the proxies
+                # below: it is what holds the Java-side references to them, so
+                # tearing it down first narrows the window in which Java can
+                # still call one.
                 self.webview.destroy()
 
-                # Retire the proxies rather than dropping them. Dropping the
-                # last Python reference to a PythonJavaClass deletes its JNI
-                # global reference, and Java can still be holding one: the
-                # request interceptor in particular is called from a WebView
-                # background thread that destroy() does not synchronise with.
-                # Using one afterwards aborts the process outright, so the
-                # references are parked for the life of the process instead.
-                # That is bounded by the number of windows, and an app has one.
-                _retired_proxies.extend(
-                    (
-                        self._js_interface,
-                        self._webview_client,
-                        self._webview_callback_wrapper,
-                        self._chrome_callback_wrapper,
-                        self._chrome_client,
-                        self._js_api_callback_wrapper,
-                        self._request_interceptor,
-                        getattr(self, '_download_listener', None),
-                        self._key_listener,
-                    )
-                )
+                # destroy() narrows that window but does not close it - the
+                # request interceptor, for one, is called from a WebView
+                # background thread it does not synchronise with. Since the last
+                # call cannot be pinned down, take permanent ownership rather
+                # than guess. See jproxy.retain for why this is not optional.
+                for proxy in (
+                    self._js_interface,
+                    self._webview_client,
+                    self._webview_callback_wrapper,
+                    self._chrome_callback_wrapper,
+                    self._chrome_client,
+                    self._js_api_callback_wrapper,
+                    self._request_interceptor,
+                    getattr(self, '_download_listener', None),
+                    self._key_listener,
+                ):
+                    retain(proxy)
+
                 self.webview = None
             except Exception as e:
                 logger.error(f'Error during dismiss: {e}')

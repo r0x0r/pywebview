@@ -9,6 +9,7 @@ from android.runnable import run_on_ui_thread  # noqa
 from webview.platforms.android.event import EventDispatcher
 from webview.platforms.android.jclass.view import Choreographer
 from webview.platforms.android.jinterface.view import FrameCallback
+from webview.platforms.android.jproxy import retain
 
 
 class EventLoop(EventDispatcher):
@@ -22,10 +23,8 @@ class EventLoop(EventDispatcher):
         self.resumed = False
         self.destroyed = False
         self.paused = False
-        # p4a keeps every registered instance in a module-level set and only
-        # drops it on unregister, so holding on to this one is what lets close()
-        # detach it. Otherwise each new app would stack another live set of
-        # callbacks pointing at the previous, already dismissed, view.
+        # Kept so close() can detach it; otherwise each new app stacks another
+        # live set of callbacks pointing at the previous, dismissed, view.
         self._lifecycle_callbacks = register_activity_lifecycle_callbacks(
             onActivityCreated=self.app.on_create,
             onActivityPaused=self.app.on_pause,
@@ -68,5 +67,13 @@ class EventLoop(EventDispatcher):
         self.status = 'destroyed'
 
         if self._lifecycle_callbacks is not None:
+            # Take ownership *before* unregistering. p4a's module-level set is
+            # this proxy's only owner, and unregister_activity_lifecycle_callbacks
+            # drops it from that set - which frees the Python object while
+            # Android may still be part-way through dispatching to it, leaving a
+            # dangling raw pointer behind. Unregistering is still right, so that
+            # a dismissed app stops receiving lifecycle events; it just must not
+            # take the object with it. See jproxy.retain.
+            retain(self._lifecycle_callbacks)
             unregister_activity_lifecycle_callbacks(self._lifecycle_callbacks)
             self._lifecycle_callbacks = None
