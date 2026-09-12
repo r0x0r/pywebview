@@ -164,7 +164,9 @@ class BrowserView:
                 visibility = DownloadManagerRequest.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
                 dir_type = Environment.DIRECTORY_DOWNLOADS
                 uri = Uri.parse(url)
-                filepath = uri.getLastPathSegment()
+                # Null for a URL with no path segments - a bare host, or a data:
+                # or blob: URL - which DownloadManager.Request rejects.
+                filepath = uri.getLastPathSegment() or 'download'
                 request = DownloadManagerRequest(uri)
                 request.setNotificationVisibility(visibility)
                 request.setDestinationInExternalFilesDir(context, dir_type, filepath)
@@ -191,8 +193,11 @@ class BrowserView:
         if self.pywebview_window.fullscreen:
             toggle_fullscreen(self.pywebview_window)
 
-        self.pywebview_window.events.shown.set()
+        # Content view first: `shown` releases anything waiting on the window
+        # being on screen, and firing it while the view is still unattached
+        # means a handler can act on a window that is not yet displayed.
         activity.setContentView(self.webview)
+        self.pywebview_window.events.shown.set()
 
     def _on_request(self, url: str, method: str, headers_json: str):
         headers = json.loads(headers_json) if headers_json else {}
@@ -490,7 +495,17 @@ def evaluate_js(js_code, _, parse_json=True):
     value_callback = None
 
     _evaluate_js()
-    lock.acquire()
+
+    # Bounded: the WebView drops a pending evaluateJavascript callback when the
+    # page navigates or the view is torn down mid-call, and an unbounded wait
+    # there hangs the caller for good with no indication why.
+    if not lock.acquire(timeout=settings['ANDROID_EVALUATE_JS_TIMEOUT']):
+        logger.error(
+            'evaluate_js timed out after %ss with no result from the WebView. '
+            'The page most likely navigated or was destroyed mid-call.',
+            settings['ANDROID_EVALUATE_JS_TIMEOUT'],
+        )
+
     return js_result
 
 
@@ -555,7 +570,10 @@ def get_cookies(_):
     except Exception as e:
         logger.exception(f'Error getting cookies: {e}')
 
-    return cookies
+    # A copy: `cookies` is the view's own list, and handing callers a reference
+    # to it lets them mutate backend state, and sees it change under them the
+    # next time a page load appends to it.
+    return list(cookies)
 
 
 def get_current_url(_):

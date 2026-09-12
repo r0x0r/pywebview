@@ -1,5 +1,10 @@
 class EventDispatcher:
-    __event_stack = {}
+    def __init__(self, **kwargs):
+        # Per instance. As a class attribute this was one dict shared by every
+        # dispatcher in the process, so each new app's event types and bound
+        # observers landed in the same place as the previous one's.
+        self.__event_stack = {}
+        super().__init__(**kwargs)
 
     def register_event_type(self, event_type):
         """Register an event type with the dispatcher.
@@ -65,8 +70,10 @@ class EventDispatcher:
         observers: list = self.__event_stack.get(event_type)
 
         if observers:
-            observers.reverse()
-            for callbacks in observers:
+            # reversed(), not list.reverse(): the latter reorders the stored
+            # list in place, so the documented reverse-registration order only
+            # held on the first dispatch and flipped on every one after it.
+            for callbacks in reversed(observers):
                 callbacks(*args, **kwargs)
 
         handler = getattr(self, event_type)
