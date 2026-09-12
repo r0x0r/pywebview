@@ -432,6 +432,10 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v7
       with:
-        name: android-logcat
+        # Attempt number in the name: artifacts are immutable per run, so on a
+        # re-run the upload is rejected and downloads silently return the first
+        # attempt's log - which makes re-runs useless for judging a flaky
+        # failure.
+        name: android-logcat-${{ github.run_attempt }}
         path: tests/android_pytest/logcat.txt
         if-no-files-found: warn

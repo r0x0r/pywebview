@@ -1,5 +1,6 @@
 import json
 import logging
+from collections import deque
 from http.cookies import SimpleCookie
 from threading import Semaphore
 from urllib.parse import urlparse
@@ -42,6 +43,14 @@ app = None
 
 # Java-facing proxies belonging to dismissed views. See BrowserView.dismiss().
 _retired_proxies: list = []
+
+# evaluate_js() hands a fresh ValueCallback to the WebView on every call, and
+# freeing one deletes its JNI global reference. The WebView can still hold it
+# after onReceiveValue has returned, and using it then aborts the process, so
+# callbacks are kept for a while after use rather than released immediately.
+# Bounded because this is the highest-frequency proxy in the backend by far -
+# every evaluate_js, and the suite makes hundreds.
+_recent_callbacks: deque = deque(maxlen=256)
 
 
 # NOTE: the nested callbacks below are decorated with @run_on_ui_thread even
@@ -477,6 +486,7 @@ def evaluate_js(js_code, _, parse_json=True):
         nonlocal value_callback
         try:
             value_callback = ValueCallback(callback)
+            _recent_callbacks.append(value_callback)
             app.view.webview.evaluateJavascript(js_code, value_callback)
         except Exception as e:
             logger.error(f'Error evaluating JavaScript: {e}')
