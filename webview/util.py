@@ -101,11 +101,15 @@ def get_app_root() -> str:
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
 
-    if 'pytest' in sys.modules and os.getenv('PYWEBVIEW_TEST'):
-        return os.path.join(os.path.dirname(__file__), '..', 'tests')
-
+    # Before the pytest branch: the test suite also runs on-device under pytest
+    # (tests/android_pytest), where the app root is the packaged app directory
+    # and there is no sibling tests/ directory to point at. Taking the pytest
+    # branch there returns a path that does not exist, and base_uri() raises.
     if hasattr(sys, 'getandroidapilevel'):
         return os.getenv('ANDROID_APP_PATH') or ''
+
+    if 'pytest' in sys.modules and os.getenv('PYWEBVIEW_TEST'):
+        return os.path.join(os.path.dirname(__file__), '..', 'tests')
 
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 

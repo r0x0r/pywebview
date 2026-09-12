@@ -32,3 +32,4 @@ docs/examples
 gradle*
 .pypirc
 .env
+tests/android_pytest/logcat.txt

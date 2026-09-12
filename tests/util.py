@@ -5,7 +5,7 @@ import threading
 import time
 import traceback
 from collections.abc import Callable, Iterable
-from multiprocessing import Queue
+from queue import Queue
 from typing import Any
 from uuid import uuid4
 
@@ -42,6 +42,12 @@ def run_test(
     """
     __tracebackhide__ = True
     try:
+        # queue.Queue, not multiprocessing.Queue: nothing here crosses a process
+        # boundary (create_test_window runs a thread), and multiprocessing.Queue
+        # hands the item to a background feeder thread, so empty() below can
+        # still report empty while a traceback is in flight - reporting a failed
+        # test as passed. It also needs POSIX named semaphores, which Android
+        # does not provide.
         queue: Queue = Queue()
         start_args = dict(start_args) if start_args else {}
 

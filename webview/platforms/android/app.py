@@ -10,6 +10,7 @@ class App(EventDispatcher):
 
     def __init__(self, **kwargs):
         App._running_app = self
+        self._stopping = False
         super().__init__(**kwargs)
         self._eventloop = EventLoop()
 
@@ -74,6 +75,16 @@ class App(EventDispatcher):
         act.moveTaskToBack(True)
 
     def stop(self):
-        self.dispatch('on_destroy')
+        # on_destroy tears the view down, and the view's teardown calls back into
+        # stop() so that the Android lifecycle path (onActivityDestroyed, which
+        # reaches dismiss() without going through here) also closes the event
+        # loop. Guard against re-entering rather than looping between the two.
+        if self._stopping:
+            return
+
+        self._stopping = True
+        # Both App.on_destroy and AndroidApp.on_destroy take the activity, and
+        # dispatch() forwards its arguments straight to the handler.
+        self.dispatch('on_destroy', act)
         self._eventloop.close()
         App._running_app = None

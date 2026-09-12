@@ -310,3 +310,140 @@ jobs:
       run: |
         cd tests
         ./run.ps1
+
+  tests-android:
+    name: Android
+    runs-on: ubuntu-22.04
+    # Advisory, in the same spirit as type-check above. The suite itself works -
+    # 49 of 52 tests passed in the one run that completed - but the backend
+    # aborts with a JNI "deleted global reference" at a nondeterministic point
+    # when windows are created and destroyed repeatedly in one process. Measured
+    # across identical-code samples: 13%, 19%, 67%, 67%, 86%. Reporting without
+    # blocking keeps the signal while that is outstanding; make it required once
+    # it is fixed. See tests/android_pytest/README.md.
+    continue-on-error: true
+    # A cold python-for-android build (SDK + NDK download, then CPython built
+    # from source) does not fit in the 20-30 minutes the other jobs get. This is
+    # per-job, so it does not affect them. GitHub-hosted runners cap at 360.
+    timeout-minutes: 180
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.11'
+
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+
+    - name: Enable KVM for the emulator
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    # One fixed key, deliberately not keyed on buildozer.spec. The expensive and
+    # slow-moving part of this cache is the Android SDK, the NDK and the
+    # cross-built CPython, none of which depend much on the spec; the pip
+    # requirements that do are pure Python and cheap to reinstall into a
+    # restored dist. Keying on the spec instead produced a new ~3GB entry on
+    # every requirements edit, and three of those exhaust the repository's 10GB
+    # cache budget and start evicting the pip caches the other jobs rely on.
+    #
+    # Restore and save are split so the save can be conditional: it runs only
+    # when the build succeeded and the exact key was not already present, so a
+    # broken build cannot claim the key (entries are immutable) and a good one
+    # is written exactly once. Bump the version suffix to force a rebuild of
+    # the toolchain.
+    - name: Restore buildozer global and project build dirs
+      id: buildozer-cache
+      uses: actions/cache/restore@v6
+      with:
+        path: |
+          ~/.buildozer
+          tests/android_pytest/.buildozer
+        key: ${{ runner.os }}-buildozer-v1
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+
+    # python-for-android builds CPython and its extension modules from source
+    # on the runner, so it needs a full autotools toolchain. Most of this is
+    # not present on a stock ubuntu-22.04 image.
+    - name: Install build toolchain
+      run: |
+        sudo apt-get update -q --allow-releaseinfo-change
+        sudo apt-get install --no-install-recommends -y \
+          autoconf \
+          automake \
+          libtool \
+          pkg-config \
+          cmake \
+          zlib1g-dev \
+          libncurses-dev \
+          libffi-dev \
+          libssl-dev
+
+    - name: Install buildozer
+      run: |
+        python -m pip install --upgrade pip
+        # buildozer is pinned because this job depends on specifics of its
+        # behaviour: that APP_ANDROID_ARCHS overrides the spec, and that --arch
+        # cannot be passed through to p4a. It depends on pexpect (needed for
+        # android.accept_sdk_license) and pins cython<3.0 itself, so neither
+        # wants naming here.
+        pip install 'buildozer==1.6.0'
+
+    - name: Build APK
+      # Capped below the job budget so a genuinely stuck build still leaves time
+      # for the cache to be saved and the logs to be collected.
+      timeout-minutes: 150
+      env:
+        # Overrides [app] android.archs, which keeps all three ABIs for real
+        # devices. buildozer builds one python-for-android dist per ABI, so
+        # building only the one the emulator uses cuts the build to a third.
+        # (buildozer derives its own --arch flags from the spec, so passing
+        # --arch through to p4a would add a fourth rather than replace them;
+        # this env override is the supported route - see specparser.py's
+        # _override_config_from_envs.)
+        APP_ANDROID_ARCHS: x86_64
+      run: |
+        cd tests/android_pytest
+        buildozer -v android debug
+
+    - name: Save buildozer cache
+      if: success() && steps.buildozer-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: |
+          ~/.buildozer
+          tests/android_pytest/.buildozer
+        key: ${{ runner.os }}-buildozer-v1
+
+    - name: Run tests on emulator
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 30
+        arch: x86_64
+        target: default
+        disable-animations: true
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        working-directory: tests/android_pytest
+        script: ./ci_check.sh
+
+    - name: Upload logcat
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        # Attempt number in the name: artifacts are immutable per run, so on a
+        # re-run the upload is rejected and downloads silently return the first
+        # attempt's log - which makes re-runs useless for judging a flaky
+        # failure.
+        name: android-logcat-${{ github.run_attempt }}
+        path: tests/android_pytest/logcat.txt
+        if-no-files-found: warn

@@ -90,6 +90,12 @@ Repository = "https://github.com/r0x0r/pywebview"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 timeout = 60
+# The Android test apps are built and run on a device by buildozer, not by this
+# suite. Descending into them collects the symlinked test modules a second time,
+# and - worse - puts the app directory on sys.path, where its `webview` symlink
+# shadows the installed package for the whole session. Running them explicitly
+# by path still works, which is what the on-device entrypoints do.
+norecursedirs = ["android", "android_pytest"]
 
 [tool.mypy]
 python_version = "3.10"
