@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from webview.event import Event
 from webview.util import (
     _TOKEN,
     create_cookie,
@@ -234,3 +235,17 @@ class TestBridgeTokenValidation:
 
         assert is_js_bridge_token_valid(window, _TOKEN)
         assert not is_js_bridge_token_valid(window, 'not-the-token')
+
+
+class TestEvent:
+    def test_should_lock_event_without_window_runs_inline(self):
+        called = threading.Event()
+        event = Event(None, True)
+
+        def handler():
+            called.set()
+
+        event += handler
+        event.set()
+
+        assert called.is_set()

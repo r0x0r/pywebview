@@ -21,7 +21,7 @@ from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms import win32
 from webview.screen import Screen
-from webview.util import inject_base_uri, parse_file_type
+from webview.util import inject_base_uri, parse_file_type, reentrant_call_error
 from webview.window import FixPoint
 
 clr.AddReference('System.Windows.Forms')
@@ -481,6 +481,20 @@ class BrowserView:
             if not is_chromium:
                 logger.error('get_cookies() is not implemented for this platform')
                 return cookies
+
+            # InvokeRequired alone is False on a handle-less control from any
+            # thread; IsHandleCreated makes this mean "on the UI thread".
+            if self.IsHandleCreated and not self.InvokeRequired:
+                # Already on the WinForms UI thread (e.g. a closing handler).
+                # GetCookiesAsync()'s continuation is posted back to this same
+                # thread's synchronization context, so the acquire() below would
+                # stop the result from ever arriving. Raise rather than deadlock
+                # -- and rather than return [], which reads as "no cookies"
+                # instead of "unavailable from here".
+                raise reentrant_call_error(
+                    'get_cookies',
+                    'The cookie manager answers asynchronously on the GUI thread.',
+                )
 
             semaphore = Semaphore(0)
 
