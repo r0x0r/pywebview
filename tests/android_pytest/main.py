@@ -78,6 +78,8 @@ if __name__ == '__main__':
         'shared/test_evaluate_js.py',
         'shared/test_js_api.py',
         'shared/test_dom.py',
+        'shared/test_events.py',
+        'shared/test_request_android.py',
         'shared/test_cookies_android.py',
     ]
 
