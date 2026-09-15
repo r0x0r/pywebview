@@ -65,11 +65,11 @@ already retained the view's proxies rather than dropping them.
 Adding a proxy means deciding who owns it. If it cannot be a process-wide
 singleton or pooled, park it in `_retained_proxies`.
 
-Because the abort was nondeterministic — measured at 13%, 19%, 67%, 67% and 86%
-through the run on identical code — **a single green run does not prove much.**
-Take at least three samples before believing a change here; `gh run rerun <id>
---failed` is the cheap way, and the logcat artifact is named per attempt so
-re-runs are actually distinguishable.
+Both aborts were nondeterministic — the first was measured at 13%, 19%, 67%,
+67%, 86% and 48% through the run on identical code — so **a single green run
+does not prove much.** Take at least three samples before believing a change
+here; `gh run rerun <id>` is the cheap way, and the logcat artifact is named per
+attempt so re-runs are actually distinguishable.
 
 Things that were tried and did *not* help, so they need not be retried:
 constructing p4a `Runnable`s directly instead of via `@run_on_ui_thread`
