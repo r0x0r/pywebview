@@ -1,29 +1,46 @@
-from threading import Semaphore
+import logging
+from collections import deque
+from functools import wraps
+from threading import Event, RLock
 
+from android.activity import _activity as activity  # noqa
 from android.activity import register_activity_lifecycle_callbacks  # noqa
-from android.runnable import run_on_ui_thread  # noqa
 
 from webview.platforms.android.event import EventDispatcher
-from webview.platforms.android.jclass.view import Choreographer
-from webview.platforms.android.jinterface.view import FrameCallback
+from webview.platforms.android.jinterface.lang import Runnable
 
-# Both proxies below are created once per process and never released. pyjnius
-# hands Java a bare pointer to the Python object and keeps the proxy alive
-# through a JNI global reference owned by that object, so collecting it leaves
-# Android holding a dangling reference - and using one aborts the process with
-# "JNI DETECTED ERROR IN APPLICATION: use of deleted global reference".
+logger = logging.getLogger('pywebview')
+
+# Everything in this module is deliberately process-wide.
 #
-# Creating them per event loop, as this module used to, meant freeing one on
-# every window teardown. Their lifetime belongs to the process, not to a window.
+# pyjnius hands Java a bare pointer to a proxy's Python object and keeps the
+# proxy alive through a JNI global reference owned by that same object, so
+# collecting one leaves Java holding a dangling reference - and using it aborts
+# the process with "JNI DETECTED ERROR IN APPLICATION: use of deleted global
+# reference". Creating these per window, as this module used to, meant freeing
+# them on every teardown. Their lifetime belongs to the process.
 _lifecycle_callbacks = None
-_choreographer = None
-_frame_callback = None
+_ui_runnable = None
 
-# The event loop whose app lifecycle events are dispatched to, and the semaphore
-# the next frame releases. Both belong to the single event loop that is running:
-# Android supports one window, and a new one only ever replaces a closed one.
+# The event loop app lifecycle events are dispatched to. Android supports a
+# single window, and a new one only ever replaces a closed one.
 _current_loop = None
-_frame_lock = None
+
+# Serialises use of the runOnUiThread method descriptor. pyjnius binds an
+# instance method by writing the receiver onto the *shared*, class-level
+# JavaMethod object and then reads it back inside the call, so two threads
+# calling the same method at once can leave one of them invoking a receiver the
+# other has already released - the second half of the "deleted global
+# reference" aborts. Posting is the one Java call this backend makes from more
+# than one thread, so it is the one that has to be held apart.
+# Reentrant: Android runs the Runnable inline when runOnUiThread is called
+# from the UI thread itself, so a posted call can post again underneath us.
+_ui_lock = RLock()
+
+# Work queued for the UI thread. One entry is consumed per posted Runnable, so
+# a single proxy serves every call site instead of p4a's run_on_ui_thread,
+# which builds a Runnable per decorated function and caches it forever.
+_ui_queue: deque = deque()
 
 _LIFECYCLE_EVENTS = {
     'onActivityCreated': 'on_create',
@@ -57,27 +74,40 @@ def _register_lifecycle_callbacks():
         )
 
 
-def _do_frame(_):
-    lock = _frame_lock
+def _run_next():
+    try:
+        func, args, kwargs = _ui_queue.popleft()
+    except IndexError:
+        return
 
-    if lock is not None:
-        lock.release()
+    try:
+        func(*args, **kwargs)
+    except Exception:
+        logger.exception('Error running %s on the UI thread', getattr(func, '__name__', func))
 
 
-# Decorated once, at module level. run_on_ui_thread caches a Runnable per
-# function object in a dict that is never pruned, so decorating a function
-# rebuilt per event loop would add a permanent entry - and a JNI global
-# reference - for every window.
-@run_on_ui_thread
-def _post_frame():
-    global _choreographer, _frame_callback
+def run_on_ui_thread(f):
+    """Run the decorated function on the Android UI thread.
 
-    if _choreographer is None:
-        _choreographer = Choreographer.getInstance()
-    if _frame_callback is None:
-        _frame_callback = FrameCallback(_do_frame)
+    Replaces android.runnable.run_on_ui_thread, which posts through a Runnable
+    proxy built per decorated function and never released, and which stores the
+    call's arguments on that shared proxy - so two calls in flight at once
+    overwrite each other. Work is queued instead, and posted under _ui_lock.
+    """
 
-    _choreographer.postFrameCallback(_frame_callback)
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        global _ui_runnable
+
+        _ui_queue.append((f, args, kwargs))
+
+        with _ui_lock:
+            if _ui_runnable is None:
+                _ui_runnable = Runnable(_run_next)
+
+            activity.runOnUiThread(_ui_runnable)
+
+    return wrapper
 
 
 class EventLoop(EventDispatcher):
@@ -93,24 +123,27 @@ class EventLoop(EventDispatcher):
         self.resumed = False
         self.destroyed = False
         self.paused = False
+        self._closed = Event()
 
         _current_loop = self
         _register_lifecycle_callbacks()
 
     def mainloop(self):
-        global _frame_lock
-
+        # Just parks the calling thread until the window closes. This used to
+        # post a Choreographer frame callback and wait for it, sixty times a
+        # second, which bought nothing: nothing here runs per frame. It did
+        # however put sixty Java round trips and sixty Python upcalls a second
+        # against whatever the UI thread was doing, which is exactly the
+        # concurrent pyjnius traffic the aborts needed.
         while not self.quit and self.status == 'created':
-            lock = Semaphore(0)
-            _frame_lock = lock
-            _post_frame()
-            lock.acquire()
+            self._closed.wait()
 
     def close(self):
         global _current_loop
 
         self.quit = True
         self.status = 'destroyed'
+        self._closed.set()
 
         if _current_loop is self:
             _current_loop = None

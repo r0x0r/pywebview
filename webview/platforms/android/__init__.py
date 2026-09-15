@@ -5,12 +5,12 @@ from threading import Lock, Semaphore
 from urllib.parse import urlparse
 
 from android.activity import _activity as activity  # noqa
-from android.runnable import run_on_ui_thread  # noqa
 from jnius import autoclass, cast
 
 from webview import _state, settings
 from webview.models import Request, Response
 from webview.platforms.android.app import App
+from webview.platforms.android.base import run_on_ui_thread
 from webview.platforms.android.jclass import (
     AlertDialogBuilder,
     Context,
@@ -59,15 +59,9 @@ _value_callbacks: list = []
 _value_callbacks_lock = Lock()
 
 
-# NOTE: the nested callbacks below are decorated with @run_on_ui_thread even
-# though they are rebuilt on every call, which leaks one Runnable and its JNI
-# global reference per call into p4a's never-pruned __functionstable__ cache.
-# Constructing the Runnable directly instead is the obvious fix, and it was
-# tried - but that makes the proxies collectable, and the suite then died at
-# 76% with "JNI DETECTED ERROR IN APPLICATION: use of deleted global
-# reference" inside jnius. The leak is what was keeping those proxies alive.
-# Leaking is the lesser problem until the real owner of those references is
-# found, so this stays until then.
+# NOTE: the nested callbacks below are decorated per call, which is cheap now
+# that run_on_ui_thread queues the work instead of building a Runnable proxy
+# per decorated function and caching it forever, the way p4a's decorator does.
 
 
 class BrowserView:

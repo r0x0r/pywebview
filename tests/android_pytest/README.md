@@ -56,11 +56,11 @@ which is what made the three per-window frees visible:
 | `FrameCallback` | being a local in `EventLoop.mainloop()`, dropped when the loop returned |
 | `ValueCallback` | eviction from the bounded deque `evaluate_js()` parked callbacks in |
 
-All three now have process lifetime: the lifecycle callbacks and the frame
-callback are registered once and routed to whichever `EventLoop` is current,
-and `evaluate_js()` takes its `ValueCallback` from a pool and returns it instead
-of allocating one per call. `BrowserView.dismiss()` already retained the view's
-proxies rather than dropping them.
+All three now have process lifetime: the lifecycle callbacks are registered once
+and routed to whichever `EventLoop` is current, the frame callback is gone
+entirely (see below), and `evaluate_js()` takes its `ValueCallback` from a pool
+and returns it instead of allocating one per call. `BrowserView.dismiss()`
+already retained the view's proxies rather than dropping them.
 
 Adding a proxy means deciding who owns it. If it cannot be a process-wide
 singleton or pooled, park it in `_retained_proxies`.
@@ -75,6 +75,41 @@ Things that were tried and did *not* help, so they need not be retried:
 constructing p4a `Runnable`s directly instead of via `@run_on_ui_thread`
 (which made things worse, because the `__functionstable__` leak was accidentally
 keeping proxies alive); retiring the `WebView` and the app object as well.
+
+## Calling the same Java method from two threads at once
+
+Proxy lifetime was only half of it. The same abort also shows up as
+
+    JNI ERROR (app bug): attempt to use stale Global 0x3d86 (should be 0x3d8a)
+
+— same reference *index*, newer serial, i.e. the slot was freed and handed
+straight back out. That one is not about proxies at all.
+
+pyjnius binds an instance method by writing the receiver onto the **shared,
+class-level** `JavaMethod` descriptor (`self.j_self = jc.j_self` in
+`JavaMethod.__get__`, which carries an `XXX FIXME we MUST not change our own
+j_self` comment upstream) and reading it back in `call_method`, which caches
+`self.j_self.obj` and then drops the GIL to make the call. Two threads calling
+the same method at the same time therefore race: the second `__get__` can
+release the first one's receiver — deleting its global reference — while the
+first is still in flight.
+
+The backend cannot fix pyjnius, so it avoids the race instead:
+
+- `Activity.runOnUiThread` is the only Java method this backend calls from more
+  than one thread, and `base.run_on_ui_thread` now holds a lock across the bind
+  and the call. It is also the backend's own decorator rather than p4a's, which
+  additionally fixes p4a caching one never-released `Runnable` per decorated
+  function and storing call arguments on that shared proxy.
+- `EventLoop.mainloop()` used to drive a `Choreographer` frame callback and now
+  simply blocks on an `Event`. Nothing ran per frame, so all the loop
+  contributed was sixty Java calls and sixty Python upcalls a second running
+  concurrently with everything else — the perfect amplifier for the race above.
+  `Choreographer` and `FrameCallback` are gone with it.
+
+Upcalls from Java threads pywebview does not control (`RequestInterceptor`, the
+WebView's own callbacks) still use shared descriptors inside pyjnius. Keeping
+upcall volume low is the only lever available from this side.
 
 ## Gotchas worth knowing
 

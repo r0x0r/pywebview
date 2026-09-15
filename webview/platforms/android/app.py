@@ -1,6 +1,5 @@
-from android.runnable import run_on_ui_thread  # noqa
 from android.activity import _activity as act  # noqa
-from webview.platforms.android.base import EventLoop
+from webview.platforms.android.base import EventLoop, run_on_ui_thread
 from webview.platforms.android.event import EventDispatcher
 
 

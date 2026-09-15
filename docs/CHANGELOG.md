@@ -4,7 +4,7 @@
 
 ### 🐞 Bug fixes
 
-- `Android` Fix a random `JNI DETECTED ERROR IN APPLICATION: use of deleted global reference` abort when windows are created and destroyed repeatedly in one process. The activity lifecycle callbacks, the frame callback and `evaluate_js`'s value callbacks are Java-facing pyjnius proxies and are now kept alive for the life of the process instead of being freed per window.
+- `Android` Fix a random `JNI DETECTED ERROR IN APPLICATION: use of deleted global reference` abort when windows are created and destroyed repeatedly in one process. Java-facing pyjnius proxies (activity lifecycle callbacks and `evaluate_js`'s value callbacks) are now kept alive for the life of the process instead of being freed per window, calls to `runOnUiThread` are serialised so concurrent calls cannot release each other's receiver, and the idle `Choreographer` frame loop that amplified both races has been removed.
 
 ### 🚀 Improvements
 
