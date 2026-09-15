@@ -298,10 +298,12 @@ public class PyWebViewClient extends WebViewClient {
                 }
             }
 
-            // Check if this is a cleartext HTTP request to localhost that might be blocked
-            if (url.startsWith("http://") && (url.contains("127.0.0.1") || url.contains("localhost"))) {
-                Log.w("python", "Skipping custom request for localhost HTTP URL to avoid Network Security Policy issues: " + url);
-                // Let the WebView handle this request normally
+            // Not every request can be replayed through HttpURLConnection. These
+            // are handed back to the WebView, which is the normal outcome rather
+            // than a failure: data: URLs in particular are what loadDataWithBaseURL
+            // produces, so window.load_html() takes this path on every load.
+            if (!isInterceptable(url)) {
+                Log.d("python", "Letting the WebView handle the request itself: " + url);
                 return super.shouldInterceptRequest(view, request);
             }
 
@@ -354,13 +356,25 @@ public class PyWebViewClient extends WebViewClient {
         }
     }
 
-    private WebResourceResponse performCustomRequest(String url, String method, String headersJson) throws Exception {
-        // Skip custom requests for certain protocols that can't be handled externally
-        if (url.startsWith("data:") || url.startsWith("file:") || url.startsWith("android_asset:") || url.startsWith("android_res:")) {
-            Log.d("python", "Skipping custom request for protocol: " + url);
-            throw new Exception("Protocol not supported for custom requests");
+    /**
+     * Whether a request can be replayed through HttpURLConnection so that its
+     * response headers can be reported.
+     *
+     * Non-HTTP schemes cannot: data:, file: and the android_asset/android_res
+     * aliases are served by the WebView itself. Cleartext HTTP to localhost is
+     * excluded as well - replaying it would go out through the network stack and
+     * be refused by the default Network Security Policy on targetSdk >= 28,
+     * whereas the WebView's own loopback request is allowed.
+     */
+    private boolean isInterceptable(String url) {
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            return false;
         }
 
+        return !(url.startsWith("http://") && (url.contains("127.0.0.1") || url.contains("localhost")));
+    }
+
+    private WebResourceResponse performCustomRequest(String url, String method, String headersJson) throws Exception {
         JSONObject headersObj = new JSONObject(headersJson);
 
         // Create and configure connection
