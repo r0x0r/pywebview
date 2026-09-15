@@ -15,6 +15,7 @@ TIMEOUT_SECONDS="${PYWEBVIEW_ANDROID_TEST_TIMEOUT:-600}"
 # whole log as an artifact - the marker lines alone are rarely enough to
 # diagnose a failure on a device you cannot attach to.
 LOGCAT_FILE="${PYWEBVIEW_ANDROID_LOGCAT:-logcat.txt}"
+SUMMARY_FILE="${PYWEBVIEW_ANDROID_SUMMARY:-summary.md}"
 LOGCAT_PID=""
 LIVE_PID=""
 
@@ -43,12 +44,14 @@ trap stop_logcat EXIT
 # why it is stuck is the uploaded artifact - which does not exist until the job
 # has finished. python is the tag python-for-android gives the interpreter's
 # stdout and stderr, so it carries pytest's output; AndroidRuntime carries Java
-# crashes.
+# crashes. Verbose is excluded because p4a logs one line per file while it
+# unpacks its asset bundle, which is 80% of the app's output and never what is
+# being looked for; the artifact still has it.
 start_live_log() {
   # Process substitution rather than a pipeline so that $! is adb's own pid.
   # With a pipeline it would be awk's, and stopping the stream would leave adb
   # behind holding the step open.
-  adb logcat -v threadtime -s python:V AndroidRuntime:V 2>/dev/null \
+  adb logcat -v threadtime -s python:D AndroidRuntime:V 2>/dev/null \
     > >(awk '{ print "[device] " $0; fflush() }') &
   LIVE_PID=$!
 }
@@ -59,14 +62,22 @@ marker_lines() {
   sed -n "s/.*PYWEBVIEW_TEST_RESULT::$1:://p" "$LOGCAT_FILE" 2>/dev/null || true
 }
 
-# Results on the run's summary page, so a failure is legible without opening
-# the log at all. No-op outside GitHub Actions.
+# Results on the run's summary page, so a failure is legible without opening the
+# log at all. Written to a file rather than straight to $GITHUB_STEP_SUMMARY:
+# the emulator action runs this script as a child process, so relying on that
+# variable reaching us is relying on an implementation detail of the action.
+# The workflow appends the file itself, and it lands in the artifact either way.
 write_step_summary() {
   local status="$1"
-  [ -n "${GITHUB_STEP_SUMMARY:-}" ] || return 0
 
-  local failures
+  local failures app_log session
   failures="$(marker_lines FAIL | sed 's/^/- /')"
+
+  app_log="$(grep -E ' [VDIWEF] python +: ' "$LOGCAT_FILE" 2>/dev/null || true)"
+  # From the point the test session announced itself. Everything before it is
+  # p4a unpacking its asset bundle, which would otherwise fill the whole quota.
+  session="$(printf '%s\n' "$app_log" | sed -n '/PYWEBVIEW_TEST_RESULT::START/,$p')"
+  [ -n "$session" ] || session="$app_log"
 
   {
     echo "### Android tests: ${status}"
@@ -80,11 +91,11 @@ write_step_summary() {
     echo "<details><summary>Device log</summary>"
     echo
     echo '```'
-    grep -E ' [VDIWEF] python +: ' "$LOGCAT_FILE" 2>/dev/null | tail -n 400 || true
+    printf '%s\n' "$session" | tail -n 400
     echo '```'
     echo
     echo "</details>"
-  } >> "$GITHUB_STEP_SUMMARY"
+  } > "$SUMMARY_FILE"
 }
 
 done_marker_present() {

@@ -48,16 +48,21 @@ publishes it three ways, in increasing order of detail:
   crashes. This is the only view available while a run is still going, which is
   what makes a hang diagnosable at all.
 - **The run's summary page.** Pass/fail counts, the names of any failed tests
-  and the last 400 lines of app output, without opening the log.
+  and the app's output from the start of the test session.
 - **The `android-logcat-<attempt>` artifact.** The unfiltered device log,
   including the system tags the two views above drop — `chromium`, the
-  `WebView` internals and the JNI abort messages. Reach for this when the
-  failure is not in the app's own output. `gh run download <run-id> -R
-  r0x0r/pywebview`.
+  `WebView` internals and the JNI abort messages — and the verbose p4a output
+  the live view suppresses. Reach for this when the failure is not in the app's
+  own output. `gh run download <run-id> -R r0x0r/pywebview`.
 
 The artifact is in `threadtime` format: date, pid, **tid**, level, tag. The
 thread id is worth noticing — it is what distinguishes the UI thread from the
 test threads, which is the distinction both of the JNI problems below turn on.
+
+`ci_check.sh` writes the summary to `summary.md` rather than straight to
+`$GITHUB_STEP_SUMMARY`; the workflow appends it. That keeps the script
+independent of whether the emulator action forwards the variable into the child
+process it runs us as, and puts the summary in the artifact too.
 
 ## Java-facing proxies must never be freed
 
