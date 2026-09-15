@@ -22,13 +22,21 @@ def window():
     # too, so that prefix never matches. The embedded Bottle app also gives a real
     # Set-Cookie response header rather than relying on assets/script.js setting
     # document.cookie, mirroring what tests/android/main.py already does.
-    return webview.create_window('Cookie test', app)
+    #
+    # Private mode is what switches cookies off, and passing private_mode=False
+    # to webview.start() is not enough to turn them back on: conftest reloads the
+    # webview module between tests, which rebinds webview._state to a fresh dict
+    # while the already-imported backend holds on to the old one. Set it where
+    # the backend actually reads it.
+    from webview.platforms import android
+
+    android._state['private_mode'] = False
+    yield webview.create_window('Cookie test', app)
+    android._state['private_mode'] = True
 
 
-# private_mode (webview.start's default) makes the Android backend call
-# CookieManager.setAcceptCookie(False) on page finished, so cookies would be
-# silently dropped. The other test modules load their content with html=, which
-# never goes over the network, so only this one needs it.
+# The other test modules load their content with html=, which never goes over
+# the network, so only this one needs a non-private window.
 #
 # No ssl=True, unlike tests/android/main.py: that needs cryptography, whose Rust
 # extension cannot be loaded by p4a's Python 3.14 (see buildozer.spec). Cleartext
