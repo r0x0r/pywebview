@@ -1,8 +1,7 @@
 import json
 import logging
-from collections import deque
 from http.cookies import SimpleCookie
-from threading import Semaphore
+from threading import Lock, Semaphore
 from urllib.parse import urlparse
 
 from android.activity import _activity as activity  # noqa
@@ -41,16 +40,23 @@ logger = logging.getLogger('pywebview')
 renderer = 'android-webkit'
 app = None
 
-# Java-facing proxies belonging to dismissed views. See BrowserView.dismiss().
-_retired_proxies: list = []
+# Every Java-facing proxy the backend creates has to outlive the Python object
+# that made it. pyjnius passes Java a bare pointer to the proxy's Python object
+# and ties the proxy's JNI global reference to that object's lifetime, so
+# collecting one leaves Java holding a dangling reference - and touching it
+# aborts the process with "JNI DETECTED ERROR IN APPLICATION: use of deleted
+# global reference". Nothing here is ever dropped; the list is bounded by the
+# number of windows a process creates, which for an Android app is one.
+# See BrowserView.dismiss().
+_retained_proxies: list = []
 
-# evaluate_js() hands a fresh ValueCallback to the WebView on every call, and
-# freeing one deletes its JNI global reference. The WebView can still hold it
-# after onReceiveValue has returned, and using it then aborts the process, so
-# callbacks are kept for a while after use rather than released immediately.
-# Bounded because this is the highest-frequency proxy in the backend by far -
-# every evaluate_js, and the suite makes hundreds.
-_recent_callbacks: deque = deque(maxlen=256)
+# evaluate_js() is by far the highest-frequency proxy site in the backend, so
+# its ValueCallbacks are pooled and reused rather than created per call: a
+# proxy that is reused is never freed, and the WebView may still hold one after
+# onReceiveValue has returned. The pool only ever grows to the number of
+# concurrent evaluate_js calls.
+_value_callbacks: list = []
+_value_callbacks_lock = Lock()
 
 
 # NOTE: the nested callbacks below are decorated with @run_on_ui_thread even
@@ -254,7 +260,7 @@ class BrowserView:
                 # reference".
                 self.webview.destroy()
 
-                # Retire the proxies rather than dropping them. Dropping the
+                # Retain the proxies rather than dropping them. Dropping the
                 # last Python reference to a PythonJavaClass deletes its JNI
                 # global reference, and Java can still be holding one: the
                 # request interceptor in particular is called from a WebView
@@ -262,7 +268,7 @@ class BrowserView:
                 # Using one afterwards aborts the process outright, so the
                 # references are parked for the life of the process instead.
                 # That is bounded by the number of windows, and an app has one.
-                _retired_proxies.extend(
+                _retained_proxies.extend(
                     (
                         self._js_interface,
                         self._webview_client,
@@ -463,6 +469,26 @@ def load_html(html_content, base_uri, _):
     app.view.load_data_with_base_url(base_uri, html_content)
 
 
+def _noop(_):
+    pass
+
+
+def _acquire_value_callback(on_receive_value):
+    """Take a ValueCallback proxy from the pool, or make one if it is empty."""
+    with _value_callbacks_lock:
+        callback = _value_callbacks.pop() if _value_callbacks else ValueCallback(_noop)
+
+    callback.on_receive_value = on_receive_value
+    return callback
+
+
+def _release_value_callback(callback):
+    callback.on_receive_value = _noop
+
+    with _value_callbacks_lock:
+        _value_callbacks.append(callback)
+
+
 def evaluate_js(js_code, _, parse_json=True):
     def callback(result):
         nonlocal js_result
@@ -473,25 +499,25 @@ def evaluate_js(js_code, _, parse_json=True):
         except Exception as e:
             logger.exception(f'Error parsing result: {js_result}. Type: {type(js_result)}\n{e}')
         finally:
-            # Deliberately not clearing value_callback here. This function *is*
-            # the Java -> Python upcall through that proxy, so dropping the last
-            # reference to it mid-call frees the PythonJavaClass and deletes the
-            # JNI global reference the in-flight call is still using. The
-            # closure keeps it alive until evaluate_js returns, by which point
-            # the call has unwound.
+            # Deliberately not returning value_callback to the pool here. This
+            # function *is* the Java -> Python upcall through that proxy, and
+            # the caller does it once the call has unwound.
             lock.release()
 
     @run_on_ui_thread
     def _evaluate_js():
         nonlocal value_callback
         try:
-            value_callback = ValueCallback(callback)
-            _recent_callbacks.append(value_callback)
+            value_callback = _acquire_value_callback(callback)
             app.view.webview.evaluateJavascript(js_code, value_callback)
         except Exception as e:
             logger.error(f'Error evaluating JavaScript: {e}')
-            # Ensure callback is cleared on error
-            value_callback = None
+            if value_callback is not None:
+                # The WebView may have taken it before throwing, so it cannot go
+                # back into the pool where a later call would rebind it. Retain
+                # it instead - freeing it is what aborts the process.
+                _retained_proxies.append(value_callback)
+                value_callback = None
             lock.release()
 
     lock = Semaphore(0)
@@ -500,6 +526,10 @@ def evaluate_js(js_code, _, parse_json=True):
 
     _evaluate_js()
     lock.acquire()
+
+    if value_callback is not None:
+        _release_value_callback(value_callback)
+
     return js_result
 
 

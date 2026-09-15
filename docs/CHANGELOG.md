@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### 🐞 Bug fixes
+
+- `Android` Fix a random `JNI DETECTED ERROR IN APPLICATION: use of deleted global reference` abort when windows are created and destroyed repeatedly in one process. The activity lifecycle callbacks, the frame callback and `evaluate_js`'s value callbacks are Java-facing pyjnius proxies and are now kept alive for the life of the process instead of being freed per window.
+
 ### 🚀 Improvements
 
 - `All` Bump minimum Python version to 3.10. Type annotations across the codebase now use PEP 585 / PEP 604 built-in generics and union syntax.

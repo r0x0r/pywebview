@@ -30,37 +30,51 @@ the desktop tests instead of reimplementing them in JavaScript.
 three, which is what CI does. Note that `--arch` cannot be passed through to
 p4a: buildozer derives its own from the spec and appends them.
 
-## Known issue: the suite does not finish
+## Java-facing proxies must never be freed
 
-The tests themselves pass — the best complete run was 49 of 52 — but the app
-aborts partway through at a nondeterministic point:
+This is the constraint the app is most likely to trip over, and it used to abort
+the suite at a nondeterministic point with:
 
     JNI DETECTED ERROR IN APPLICATION: use of deleted global reference
 
-Measured across samples of identical code: 13%, 19%, 67%, 67%, 86%. Because of
-that variance, **a single run cannot tell you whether a change helped.** Take at
-least three samples before believing anything; `gh run rerun <id> --failed` is
-the cheap way, and the logcat artifact is named per attempt so re-runs are
-actually distinguishable.
+pyjnius builds a `PythonJavaClass` proxy by handing Java a **bare pointer** to
+the Python object (`NativeInvocationHandler(<long long><void *>py_obj)` — no
+incref), and the proxy's jobject is a JNI *global* reference owned by that same
+Python object. Collecting it therefore both deletes the global reference and
+leaves Java holding a dangling pointer, so any proxy Java can still reach has to
+live for the whole process. pyjnius does this itself for bare callables passed
+as functional interfaces — they go into its `activeLambdaJavaProxies` — but
+everything the backend constructs is the backend's own problem.
 
-The cause is that the backend frees Java-facing pyjnius proxies while Android
-still holds references to them. Freeing a `PythonJavaClass` deletes its JNI
-global reference, and touching it afterwards aborts the process. Several
-individual instances of this have been fixed — `evaluate_js` freeing the
-callback from inside that callback's own upcall, `dismiss()` clearing proxies
-before `webview.destroy()`, and `dismiss()` freeing them at all — but it is
-systemic rather than a single bug: there is no ownership model tying these
-objects' lifetimes to the Java objects that hold them.
+A single-window app never noticed: one window's proxies are created once and
+outlive everything. This suite creates and destroys ~50 windows in one process,
+which is what made the three per-window frees visible:
 
-A single-window app is unaffected in normal use; this needs ~50 window
-create/destroy cycles in one process to show up. The CI job is therefore marked
-`continue-on-error` for now: it reports without blocking.
+| Proxy | Was freed by |
+| --- | --- |
+| `ActivityLifecycleCallbacks` | `EventLoop.close()` unregistering it, which dropped p4a's only reference |
+| `FrameCallback` | being a local in `EventLoop.mainloop()`, dropped when the loop returned |
+| `ValueCallback` | eviction from the bounded deque `evaluate_js()` parked callbacks in |
 
-Things that were tried and did *not* fix it, so they need not be retried:
-constructing p4a `Runnable`s directly instead of via `@run_on_ui_thread`;
-retiring the view's proxies instead of freeing them (helped, did not fix);
-additionally retiring the `WebView` and app object (made it worse); retaining
-recent `ValueCallback`s in a bounded deque.
+All three now have process lifetime: the lifecycle callbacks and the frame
+callback are registered once and routed to whichever `EventLoop` is current,
+and `evaluate_js()` takes its `ValueCallback` from a pool and returns it instead
+of allocating one per call. `BrowserView.dismiss()` already retained the view's
+proxies rather than dropping them.
+
+Adding a proxy means deciding who owns it. If it cannot be a process-wide
+singleton or pooled, park it in `_retained_proxies`.
+
+Because the abort was nondeterministic — measured at 13%, 19%, 67%, 67% and 86%
+through the run on identical code — **a single green run does not prove much.**
+Take at least three samples before believing a change here; `gh run rerun <id>
+--failed` is the cheap way, and the logcat artifact is named per attempt so
+re-runs are actually distinguishable.
+
+Things that were tried and did *not* help, so they need not be retried:
+constructing p4a `Runnable`s directly instead of via `@run_on_ui_thread`
+(which made things worse, because the `__functionstable__` leak was accidentally
+keeping proxies alive); retiring the `WebView` and the app object as well.
 
 ## Gotchas worth knowing
 
