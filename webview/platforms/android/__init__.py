@@ -183,6 +183,12 @@ class BrowserView:
         self.webview.setOnKeyListener(self._key_listener)
         self.pywebview_window.events.before_show.set()
 
+        # CookieManager is a process-wide singleton, so a private-mode window
+        # leaves cookies switched off for every window that follows it. Set the
+        # policy before the first request rather than only on page finished,
+        # which is too late for the cookies of the page being loaded.
+        CookieManager.getInstance().setAcceptCookie(not _state['private_mode'])
+
         if self.pywebview_window.real_url:
             self.webview.loadUrl(self.pywebview_window.real_url)
         elif self.pywebview_window.html:

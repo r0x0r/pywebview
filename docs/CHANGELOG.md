@@ -4,6 +4,7 @@
 
 ### 🐞 Bug fixes
 
+- `Android` Apply the cookie policy when a window is created instead of when the page finishes loading. `CookieManager` is process-wide, so a window started in private mode left cookies switched off for every window created after it, and cookies set by the page being loaded were dropped.
 - `Android` Fix a random `JNI DETECTED ERROR IN APPLICATION: use of deleted global reference` abort when windows are created and destroyed repeatedly in one process. Java-facing pyjnius proxies (activity lifecycle callbacks and `evaluate_js`'s value callbacks) are now kept alive for the life of the process instead of being freed per window, calls to `runOnUiThread` are serialised so concurrent calls cannot release each other's receiver, and the idle `Choreographer` frame loop that amplified both races has been removed.
 
 ### 🚀 Improvements
