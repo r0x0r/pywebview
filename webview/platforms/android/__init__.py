@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from android.activity import _activity as activity  # noqa
 from jnius import autoclass, cast
 
+import webview
 from webview import _state, settings
 from webview.models import Request, Response
 from webview.platforms.android.app import App
@@ -45,9 +46,12 @@ app = None
 # and ties the proxy's JNI global reference to that object's lifetime, so
 # collecting one leaves Java holding a dangling reference - and touching it
 # aborts the process with "JNI DETECTED ERROR IN APPLICATION: use of deleted
-# global reference". Nothing here is ever dropped; the list is bounded by the
-# number of windows a process creates, which for an Android app is one.
-# See BrowserView.dismiss().
+# global reference". Nothing here is ever dropped: there is no point at which
+# the backend can prove Java is done with a proxy, since the request
+# interceptor and the WebView's own threads outlive destroy(). The list
+# therefore grows by one entry per window the process dismisses - a handful of
+# small objects, and an Android app creates one window - which is traded
+# deliberately against aborting the process. See BrowserView.dismiss().
 _retained_proxies: list = []
 
 # evaluate_js() is by far the highest-frequency proxy site in the backend, so
@@ -267,7 +271,8 @@ class BrowserView:
                 # background thread that destroy() does not synchronise with.
                 # Using one afterwards aborts the process outright, so the
                 # references are parked for the life of the process instead.
-                # That is bounded by the number of windows, and an app has one.
+                # This leaks one entry per dismissed window; see the note on
+                # _retained_proxies for why nothing is retired.
                 _retained_proxies.extend(
                     (
                         self._js_interface,
@@ -282,6 +287,15 @@ class BrowserView:
                     )
                 )
                 self.webview = None
+
+                # Every other backend drops the window from webview.windows when
+                # it closes. Without it a destroyed window stays in the list and
+                # start() relaunches it instead of the window created next.
+                # webview.windows is looked up through the module rather than
+                # bound at import time, since the test suite reloads webview
+                # between tests and the backend is not reloaded with it.
+                if self.pywebview_window in webview.windows:
+                    webview.windows.remove(self.pywebview_window)
             except Exception as e:
                 logger.error(f'Error during dismiss: {e}')
             finally:
