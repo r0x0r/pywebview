@@ -26,7 +26,7 @@ def window():
 # limitation means response_received never fires, so there is no Android
 # equivalent of test_response.py.
 def test_request_event(window):
-    def on_request(_, request):
+    def on_request(window, request):
         try:
             assert request.method == 'GET'
             assert '127.0.0.1' in request.url
