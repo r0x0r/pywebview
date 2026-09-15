@@ -38,6 +38,27 @@ assertions as every other platform, and by whatever is added to them later.
 three, which is what CI does. Note that `--arch` cannot be passed through to
 p4a: buildozer derives its own from the spec and appends them.
 
+## Reading the log
+
+The device is the only place anything useful is written, so `ci_check.sh`
+publishes it three ways, in increasing order of detail:
+
+- **Live, in the job log.** Everything the app writes is echoed as it happens,
+  prefixed `[device]` — pytest's own output, plus `AndroidRuntime` for Java
+  crashes. This is the only view available while a run is still going, which is
+  what makes a hang diagnosable at all.
+- **The run's summary page.** Pass/fail counts, the names of any failed tests
+  and the last 400 lines of app output, without opening the log.
+- **The `android-logcat-<attempt>` artifact.** The unfiltered device log,
+  including the system tags the two views above drop — `chromium`, the
+  `WebView` internals and the JNI abort messages. Reach for this when the
+  failure is not in the app's own output. `gh run download <run-id> -R
+  r0x0r/pywebview`.
+
+The artifact is in `threadtime` format: date, pid, **tid**, level, tag. The
+thread id is worth noticing — it is what distinguishes the UI thread from the
+test threads, which is the distinction both of the JNI problems below turn on.
+
 ## Java-facing proxies must never be freed
 
 This is the constraint the app is most likely to trip over, and it used to abort
