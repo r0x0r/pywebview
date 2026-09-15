@@ -21,6 +21,9 @@ assertions as every other platform, and by whatever is added to them later.
   cleartext localhost URLs — which is what the built-in server serves, since
   `ssl=True` is unavailable here (see `buildozer.spec`). So there is no Android
   equivalent of the desktop `test_request_headers` or `test_response.py`.
+- `shared/test_window_android.py` — also a real file, covering `get_size()` and
+  `get_current_url()`. The desktop URL test navigates to example.org and expects
+  `None` for a window with no URL; neither applies here.
 - `webview` — symlink to the package, which is how it gets into the APK.
 - `main.py` — entry point. Runs pytest and prints `PYWEBVIEW_TEST_RESULT::`
   marker lines, which python-for-android's bootstrap forwards to logcat.
