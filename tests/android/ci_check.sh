@@ -5,7 +5,7 @@
 # any failed test or on timing out without a DONE marker.
 #
 # Expects an APK at bin/*.apk (buildozer's default output path) and a
-# reachable adb device. Run from tests/android_pytest/.
+# reachable adb device. Run from tests/android/.
 set -euo pipefail
 
 PACKAGE="com.pywebview.pywebviewpytest"

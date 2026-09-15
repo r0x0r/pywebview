@@ -359,7 +359,7 @@ jobs:
       with:
         path: |
           ~/.buildozer
-          tests/android_pytest/.buildozer
+          tests/android/.buildozer
         key: ${{ runner.os }}-buildozer-v1
         restore-keys: |
           ${{ runner.os }}-buildozer-
@@ -405,7 +405,7 @@ jobs:
         # _override_config_from_envs.)
         APP_ANDROID_ARCHS: x86_64
       run: |
-        cd tests/android_pytest
+        cd tests/android
         buildozer -v android debug
 
     - name: Save buildozer cache
@@ -414,7 +414,7 @@ jobs:
       with:
         path: |
           ~/.buildozer
-          tests/android_pytest/.buildozer
+          tests/android/.buildozer
         key: ${{ runner.os }}-buildozer-v1
 
     - name: Run tests on emulator
@@ -425,7 +425,7 @@ jobs:
         target: default
         disable-animations: true
         emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-        working-directory: tests/android_pytest
+        working-directory: tests/android
         script: ./ci_check.sh
 
     - name: Upload logcat
@@ -437,5 +437,5 @@ jobs:
         # attempt's log - which makes re-runs useless for judging a flaky
         # failure.
         name: android-logcat-${{ github.run_attempt }}
-        path: tests/android_pytest/logcat.txt
+        path: tests/android/logcat.txt
         if-no-files-found: warn

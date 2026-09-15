@@ -102,7 +102,7 @@ def get_app_root() -> str:
         return os.path.dirname(sys.executable)
 
     # Before the pytest branch: the test suite also runs on-device under pytest
-    # (tests/android_pytest), where the app root is the packaged app directory
+    # (tests/android), where the app root is the packaged app directory
     # and there is no sibling tests/ directory to point at. Taking the pytest
     # branch there returns a path that does not exist, and base_uri() raises.
     if hasattr(sys, 'getandroidapilevel'):
