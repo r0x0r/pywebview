@@ -375,22 +375,12 @@ def js_bridge_call(
         return
 
     if func_name == 'pywebviewStateUpdate':
-        try:
-            window.state.__setattr__(param['key'], param['value'], False)
-        except Exception:
-            logger.exception('Error occurred while updating state key %s', param.get('key'))
+        window.state.__setattr__(param['key'], param['value'], False)
         return
 
     if func_name == 'pywebviewStateDelete':
         special_key = '__pywebviewHaltUpdate__' + param
-        try:
-            delattr(window.state, special_key)
-        except AttributeError:
-            # The key was already removed on the Python side (e.g. a race with a
-            # concurrent delete or update); nothing left to do on the JS side.
-            pass
-        except Exception:
-            logger.exception('Error occurred while deleting state key %s', param)
+        delattr(window.state, special_key)
         return
 
     func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
