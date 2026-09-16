@@ -1148,17 +1148,24 @@ class BrowserView:
                 exit_application()
 
         def on_closing(self, sender: AppWindow, args: AppWindowClosingEventArgs):
-            if self._closing_confirmed:
-                self._closing_confirmed = False
-                return
-
-            should_cancel = self.pywebview_window.events.closing.set()
-
-            if should_cancel:
-                args.cancel = True
-
             if args.cancel:
                 return
+
+            if not self._begin_close():
+                args.cancel = True
+
+        def _begin_close(self) -> bool:
+            """
+            Fire the `closing` event and, if needed, the confirmation dialog.
+            Returns False if the close should not proceed yet. Shared by
+            `on_closing` and `close` so both fire the same events.
+            """
+            if self._closing_confirmed:
+                self._closing_confirmed = False
+                return True
+
+            if self.pywebview_window.events.closing.set():
+                return False
 
             if self.pywebview_window.confirm_close:
                 # WinUI 3 doesn't have a way to disable the window close button
@@ -1191,8 +1198,10 @@ class BrowserView:
 
                 op.completed = on_completed
 
-                # have to cancel closing so the dialog can be shown
-                args.cancel = True
+                # have to stop this close so the dialog can be shown
+                return False
+
+            return True
 
         def on_resize(self, sender: Object, args: WindowSizeChangedEventArgs):
             # args.size is the XAML content area's size, not the outer
@@ -1441,7 +1450,11 @@ class BrowserView:
 
         @invoke_on_ui_thread
         def close(self):
-            self.window.close()
+            # Window.Close() doesn't raise AppWindow.Closing, so route through
+            # _begin_close() to fire the `closing` event and confirm_close prompt.
+            if self._begin_close():
+                self._closing_confirmed = True
+                self.window.close()
 
 
 _main_window_created = Event()
