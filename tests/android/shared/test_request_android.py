@@ -27,11 +27,11 @@ def test_request_event(window):
         try:
             assert request.method == 'GET'
             assert '127.0.0.1' in request.url
-
-            if lock.locked():
-                lock.release()
         except AssertionError as e:
             exceptions.append(e)
+        finally:
+            if lock.locked():
+                lock.release()
 
     lock = Lock()
     exceptions = []
