@@ -1,4 +1,4 @@
-# Android PyWebView Demo App
+# Android pywebview Demo App
 
 An interactive reference application for testing and demonstrating the pywebview API bridge,
 state management, and window lifecycle events on Android.

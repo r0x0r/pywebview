@@ -112,7 +112,7 @@ def set_event(name, value):
 
 if __name__ == '__main__':
     api = Api()
-    window = webview.create_window('Android test suite', app, js_api=api, text_select=True)
+    window = webview.create_window('pywebview', app, js_api=api, text_select=True)
     create_state(window.state)
 
     # Window events
