@@ -492,10 +492,6 @@
 
         // Runs the Mocha suite once and reflects pass/fail counts on the status pill.
         function runTests() {
-            if (!(window.pywebview && Object.keys(window.pywebview.api).length > 0)) {
-                return;
-            }
-
             const pill = document.getElementById('statusPill');
             const text = document.getElementById('statusText');
             pill.classList.remove('pass', 'fail');
@@ -522,12 +518,8 @@
             }
         });
 
-        // Auto-run the test suite as soon as the API bridge is ready.
-        if (window.pywebview && Object.keys(window.pywebview.api).length > 0) {
-            runTests();
-        } else {
-            window.addEventListener('pywebviewready', runTests);
-        }
+        // Start the test suite once the pywebview JS API bridge has been injected.
+        window.addEventListener('pywebviewready', runTests);
     </script>
 </body>
 </html>
