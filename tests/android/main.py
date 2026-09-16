@@ -7,9 +7,19 @@ python-for-android's bootstrap pipes to logcat. CI tails logcat for the
 since app storage paths are more fragile than a stream CI already reads.
 """
 
+import faulthandler
+import os
 import sys
+import threading
 
 import pytest
+
+# Per-test watchdog. pytest-timeout cannot be used here: it has no
+# python-for-android recipe, and adding it makes p4a resolve the whole
+# requirement set through pip, which cannot build proxy_tools. Without it a
+# hung test stalls until CI's shell timeout with nothing naming it, and a hang
+# is exactly what this suite exists to catch.
+TEST_TIMEOUT = 60
 
 
 class LogcatReporter:
@@ -21,6 +31,7 @@ class LogcatReporter:
 
     def __init__(self):
         self.results = {}
+        self.watchdog = None
 
     @staticmethod
     def _message(report):
@@ -36,6 +47,35 @@ class LogcatReporter:
         # nested traceback run_test() puts in the failure message. If the run
         # crashes, pytest never gets to print its own FAILURES section.
         return text.replace('\n', ' | ')[:1500]
+
+    def pytest_runtest_logstart(self, nodeid, location):
+        self.watchdog = threading.Timer(TEST_TIMEOUT, self._timed_out, (nodeid,))
+        self.watchdog.daemon = True
+        self.watchdog.start()
+
+    def pytest_runtest_logfinish(self, nodeid, location):
+        if self.watchdog is not None:
+            self.watchdog.cancel()
+            self.watchdog = None
+
+    def _timed_out(self, nodeid):
+        """Report the hung test and kill the process from the watchdog thread.
+
+        The test is blocked, so pytest will never resume to report anything
+        itself. Emitting the markers here means CI fails naming the test rather
+        than timing out on a stream that stopped.
+        """
+        message = f'timed out after {TEST_TIMEOUT}s'
+        self.results[nodeid] = {'status': 'FAIL', 'message': message}
+        print(f'PYWEBVIEW_TEST_RESULT::FAIL::{nodeid}::{message}')
+        faulthandler.dump_traceback(file=sys.stdout)
+        self.pytest_sessionfinish(None, 1)
+
+        sys.stdout.flush()
+        sys.stderr.flush()
+        # Not sys.exit(): that only raises in this thread, and the main thread
+        # is the one that is stuck.
+        os._exit(1)
 
     def pytest_runtest_logreport(self, report):
         # A test reports up to three times - setup, call, teardown - and any of
@@ -84,14 +124,12 @@ if __name__ == '__main__':
         '-p',
         'no:cacheprovider',
         '-v',
+        # Capture off: the watchdog prints from another thread while a test is
+        # still running, and captured output is discarded when it kills the
+        # process. Everything here goes to logcat regardless.
+        '-s',
         '--rootdir',
         '.',
-        # The repository's timeout setting lives in pyproject.toml, which is not
-        # packaged into the APK, so it has to be passed explicitly. The thread
-        # method is required: python-for-android does not run this on the main
-        # thread, and the default signal method needs SIGALRM there.
-        '--timeout=60',
-        '--timeout-method=thread',
         'shared/test_state.py',
         'shared/test_evaluate_js.py',
         'shared/test_js_api.py',
