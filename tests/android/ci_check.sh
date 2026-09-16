@@ -164,11 +164,12 @@ stop_logcat
 echo "--- test results ---"
 grep 'PYWEBVIEW_TEST_RESULT::' "$LOGCAT_FILE" || true
 
-# DONE::<exitstatus>::<passed>::<failed>
+# DONE::<exitstatus>::<passed>::<failed>::<skipped>
 DONE_LINE="$(marker_lines DONE | tail -n1)"
 EXIT_STATUS="$(echo "$DONE_LINE" | awk -F'::' '{print $1}')"
 PASSED_COUNT="$(echo "$DONE_LINE" | awk -F'::' '{print $2}')"
 FAILED_COUNT="$(echo "$DONE_LINE" | awk -F'::' '{print $3}')"
+SKIPPED_COUNT="$(echo "$DONE_LINE" | awk -F'::' '{print $4}')"
 
 if [ -z "$FAILED_COUNT" ] || [ "$FAILED_COUNT" != "0" ]; then
   echo "${FAILED_COUNT:-?} test(s) failed." >&2
@@ -187,6 +188,16 @@ fi
 if [ -z "$PASSED_COUNT" ] || [ "$PASSED_COUNT" -eq 0 ]; then
   echo "No tests ran - refusing to report success." >&2
   write_step_summary "no tests ran"
+  exit 1
+fi
+
+# pytest exits 0 on a skip, so without this a run that quietly stopped covering
+# something would still report success. Nothing in this suite is expected to
+# skip; if something legitimately has to, count it here deliberately.
+if [ -n "$SKIPPED_COUNT" ] && [ "$SKIPPED_COUNT" != "0" ]; then
+  echo "$SKIPPED_COUNT test(s) skipped - the suite is meant to run in full." >&2
+  marker_lines SKIP >&2 || true
+  write_step_summary "$SKIPPED_COUNT skipped, $PASSED_COUNT passed"
   exit 1
 fi
 

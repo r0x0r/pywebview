@@ -66,6 +66,7 @@ class BrowserView:
         self.pywebview_window.native = self
         self.is_fullscreen = False
         self._dismissed = False
+        self._dismiss_lock = Lock()
         self.create_webview()
 
     @run_on_ui_thread
@@ -218,10 +219,15 @@ class BrowserView:
         self.pywebview_window.events.response_received.set(response)
 
     def dismiss(self):
-        if self._dismissed:
-            return
+        # destroy() and the activity's onActivityDestroyed can both land here,
+        # on different threads. Unguarded, both can read False before either
+        # writes True and queue a teardown each, the second running against a
+        # view the first has already destroyed.
+        with self._dismiss_lock:
+            if self._dismissed:
+                return
 
-        self._dismissed = True
+            self._dismissed = True
 
         # Both of these have to happen before _dismiss() is queued. It runs on
         # the UI thread, while stop() goes straight on to close the event loop,
@@ -246,6 +252,27 @@ class BrowserView:
 
         @run_on_ui_thread
         def _dismiss():
+            # Before any Java call that could raise. These are retained rather
+            # than dropped - the request interceptor in particular is called
+            # from a WebView background thread that destroy() does not
+            # synchronise with - and a teardown below throwing would otherwise
+            # skip the retention and drop them along with the view, handing Java
+            # a dangling pointer. See _retained_proxies.
+            _retained_proxies.extend(
+                getattr(self, name, None)
+                for name in (
+                    '_js_interface',
+                    '_webview_client',
+                    '_webview_callback_wrapper',
+                    '_chrome_callback_wrapper',
+                    '_chrome_client',
+                    '_js_api_callback_wrapper',
+                    '_request_interceptor',
+                    '_download_listener',
+                    '_key_listener',
+                )
+            )
+
             try:
                 if _state['private_mode']:
                     self.webview.clearHistory()
@@ -258,26 +285,7 @@ class BrowserView:
                 if hasattr(self, '_webview_client') and self._webview_client:
                     self._webview_client.destroy()
 
-                # Before dropping any of the proxies below: the WebView holds
-                # the Java-side references to them.
                 self.webview.destroy()
-
-                # Retained rather than dropped - the request interceptor in
-                # particular is called from a WebView background thread that
-                # destroy() does not synchronise with. See _retained_proxies.
-                _retained_proxies.extend(
-                    (
-                        self._js_interface,
-                        self._webview_client,
-                        self._webview_callback_wrapper,
-                        self._chrome_callback_wrapper,
-                        self._chrome_client,
-                        self._js_api_callback_wrapper,
-                        self._request_interceptor,
-                        getattr(self, '_download_listener', None),
-                        self._key_listener,
-                    )
-                )
                 self.webview = None
             except Exception as e:
                 logger.error(f'Error during dismiss: {e}')

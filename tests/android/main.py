@@ -22,6 +22,7 @@ class LogcatReporter:
     def __init__(self):
         self.passed = 0
         self.failed = 0
+        self.skipped = 0
         self.failures = []
 
     @staticmethod
@@ -40,19 +41,30 @@ class LogcatReporter:
         return text.replace('\n', ' | ')[:1500]
 
     def pytest_runtest_logreport(self, report):
-        if report.when != 'call' and not (report.when == 'setup' and report.failed):
-            return
-
         if report.failed:
+            # Any phase, not just call: a fixture that raises or a window that
+            # will not close is a failure with no call phase to report it. One
+            # line per test however many of its phases failed.
+            if report.nodeid in self.failures:
+                return
+
             self.failed += 1
             self.failures.append(report.nodeid)
             print(f'PYWEBVIEW_TEST_RESULT::FAIL::{report.nodeid}::{self._message(report)}')
-        elif report.passed:
+        elif report.skipped:
+            # Counted and reported rather than ignored: a skip silently shrinks
+            # a run that is meant to execute in full.
+            self.skipped += 1
+            print(f'PYWEBVIEW_TEST_RESULT::SKIP::{report.nodeid}')
+        elif report.when == 'call' and report.passed:
             self.passed += 1
             print(f'PYWEBVIEW_TEST_RESULT::PASS::{report.nodeid}')
 
     def pytest_sessionfinish(self, session, exitstatus):
-        print(f'PYWEBVIEW_TEST_RESULT::DONE::{exitstatus}::{self.passed}::{self.failed}')
+        print(
+            f'PYWEBVIEW_TEST_RESULT::DONE::{exitstatus}::'
+            f'{self.passed}::{self.failed}::{self.skipped}'
+        )
 
 
 if __name__ == '__main__':
