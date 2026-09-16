@@ -14,7 +14,9 @@ app = Bottle()
 @app.route('/')
 def index():
     resp = static_file('index.html', root=get_app_root())
-    resp.set_cookie('serverCookie', 'test', httponly=True, secure=True, samesite='Strict')
+    # secure=True would require HTTPS, but the local server runs over plain HTTP (see
+    # webview.start() call below), so the browser would silently refuse to store it.
+    resp.set_cookie('serverCookie', 'test', httponly=True)
     return resp
 
 
