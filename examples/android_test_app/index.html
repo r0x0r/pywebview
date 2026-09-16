@@ -1,23 +1,306 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="utf-8">
-    <title>Android test suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyWebView Demo</title>
     <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css">
     <script>
-      document.cookie = 'testCookie1=value1; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
-      document.cookie = 'testCookie2=value2; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
-      document.cookie = 'testJson=' + JSON.stringify({key: 'value', number: 42}) + '; expires=Thu, 18 Dec 2133 12:00:00 UTC;'; </script>
+        document.cookie = 'testCookie1=value1; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
+        document.cookie = 'testCookie2=value2; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
+        document.cookie = 'testJson=' + JSON.stringify({key: 'value', number: 42})
+            + '; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
     </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        .api-test {
+            display: grid;
+            gap: 10px;
+        }
+        .api-button {
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .api-button:hover {
+            background: #764ba2;
+        }
+        .api-button:active {
+            transform: scale(0.98);
+        }
+        .result {
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        .result.error {
+            border-left-color: #e74c3c;
+            color: #e74c3c;
+        }
+        .result.success {
+            border-left-color: #27ae60;
+            color: #27ae60;
+        }
+        .footer {
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        .dev-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: background 0.2s;
+        }
+        .dev-button:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: flex-end;
+        }
+        .modal.open {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border-radius: 12px 12px 0 0;
+            padding: 20px;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        .modal-header h2 {
+            font-size: 20px;
+            color: #333;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        .dev-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .tab-btn {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: 14px;
+            color: #999;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        #mocha {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .eval-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎨 PyWebView Demo</h1>
+        <p>Interactive Python ↔ JavaScript Bridge</p>
+    </div>
 
-  <body>
-    <div id="mocha"></div>
+    <div class="container">
+        <div class="card">
+            <h2>API Bridge Tests</h2>
+            <div class="api-test">
+                <button class="api-button" onclick="testGetInteger()">Get Integer (420)</button>
+                <button class="api-button" onclick="testGetString()">Get String</button>
+                <button class="api-button" onclick="testGetDict()">Get Dictionary</button>
+                <button class="api-button" onclick="testGetList()">Get List</button>
+                <button class="api-button" onclick="testSayHello()">Say Hello</button>
+            </div>
+            <div id="api-result"></div>
+        </div>
+
+        <div class="card">
+            <h2>State Synchronization</h2>
+            <div class="api-test">
+                <button class="api-button" onclick="testStateRead()">Read State</button>
+                <button class="api-button" onclick="testStateWrite()">Modify State</button>
+                <button class="api-button" onclick="testStateReset()">Reset State</button>
+            </div>
+            <div id="state-result"></div>
+        </div>
+
+        <div class="card">
+            <h2>Window Info</h2>
+            <div class="api-test">
+                <button class="api-button" onclick="testWindowInfo()">Get Window Info</button>
+            </div>
+            <div id="window-result"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        PyWebView • Press ⚙️ for developer tools
+    </div>
+
+    <button class="dev-button" title="Developer Tools" onclick="toggleDevTools()">⚙️</button>
+
+    <div id="devModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Developer Tools</h2>
+                <button class="close-btn" onclick="toggleDevTools()">✕</button>
+            </div>
+
+            <div class="dev-tabs">
+                <button class="tab-btn active" onclick="switchTab(event, 'test-runner')">Test Runner</button>
+                <button class="tab-btn" onclick="switchTab(event, 'evaluator')">Code Evaluator</button>
+            </div>
+
+            <div id="test-runner" class="tab-content active">
+                <h3 style="margin-bottom: 10px;">Mocha Test Suite</h3>
+                <button class="api-button" onclick="runTests()" style="margin-bottom: 10px;">
+                    ▶ Run All Tests
+                </button>
+                <div id="mocha"></div>
+            </div>
+
+            <div id="evaluator" class="tab-content">
+                <h3 style="margin-bottom: 10px;">Python Code Evaluator</h3>
+                <p style="font-size: 12px; margin-bottom: 10px; color: #666;">
+                    Execute Python code directly from JavaScript (Ctrl+Enter to run)
+                </p>
+                <textarea id="python-code" class="eval-input" rows="6"
+                          placeholder="Enter Python code here..."></textarea>
+                <div style="display: flex; gap: 10px;">
+                    <button class="api-button" onclick="evaluatePythonCode()" style="flex: 1;">Execute</button>
+                    <button class="api-button" onclick="clearEvalResult()"
+                            style="flex: 1; background: #999;">Clear</button>
+                </div>
+                <div id="eval-result"></div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/mocha/mocha.js"></script>
     <script src="https://unpkg.com/chai@4.5.0/chai.js"></script>
     <script>mocha.setup('bdd')</script>
     <script>mocha.timeout(10000)</script>
-    <script>expect = chai.expect</script>
+    <script>var expect = chai.expect;</script>
     <script src="index.js"></script>
 
     <script src="tests/test-events.js"></script>
@@ -26,116 +309,171 @@
     <script src="tests/test-window.js"></script>
 
     <script>
-      if (window.pywebview && Object.keys(window.pywebview.api).length > 0) {
-        mocha.run();
-      } else {
-        window.addEventListener('pywebviewready', mocha.run);
-      }
-    </script>
-
-    <div id="test-area" style="visibility: hidden;"></div>
-
-    <div style="margin: 20px;">
-      <button id="toggle-eval-button" onclick="togglePythonEvaluator()" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">Show Python Code Evaluator</button>
-    </div>
-
-    <div id="python-eval-section" style="margin: 20px; padding: 20px; border: 1px solid #ccc; border-radius: 5px; display: none;">
-      <h3>Python Code Evaluator</h3>
-      <div style="margin-bottom: 10px;">
-        <label for="python-code">Enter Python code:</label>
-        <br>
-        <textarea id="python-code" rows="6" cols="80" style="width: 100%; font-family: monospace; margin-top: 5px;" placeholder="Enter your Python code here..."></textarea>
-      </div>
-      <div style="margin-bottom: 10px;">
-        <button id="eval-button" onclick="evaluatePythonCode()" style="padding: 8px 16px; background-color: #007acc; color: white; border: none; border-radius: 3px; cursor: pointer;">Execute Code</button>
-        <button onclick="clearResult()" style="padding: 8px 16px; background-color: #666; color: white; border: none; border-radius: 3px; cursor: pointer; margin-left: 10px;">Clear Result</button>
-      </div>
-      <div>
-        <label for="result-area">Result:</label>
-        <br>
-        <div id="result-area" style="width: 100%; min-height: 100px; padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9; font-family: monospace; white-space: pre-wrap; margin-top: 5px;"></div>
-      </div>
-    </div>
-
-    <script>
-      document.cookie = 'testCookie1=value1; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
-      async function evaluatePythonCode() {
-        const codeTextArea = document.getElementById('python-code');
-        const resultArea = document.getElementById('result-area');
-        const evalButton = document.getElementById('eval-button');
-
-        const code = codeTextArea.value.trim();
-
-        if (!code) {
-          resultArea.textContent = 'Please enter some Python code to execute.';
-          resultArea.style.color = '#999';
-          return;
+        function displayResult(elementId, title, value, isError = false) {
+            const resultDiv = document.getElementById(elementId);
+            const className = isError ? 'result error' : 'result success';
+            resultDiv.innerHTML = `<strong>${title}:</strong><div class="${className}">${
+                typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+            }</div>`;
         }
 
-        // Check if pywebview API is available
-        if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.eval) {
-          resultArea.textContent = 'Error: pywebview.api.eval is not available. Make sure you are running this in a pywebview environment.';
-          resultArea.style.color = 'red';
-          return;
+        async function testGetInteger() {
+            try {
+                const result = await window.pywebview.api.test1.getInteger();
+                displayResult('api-result', 'Integer Result', result);
+            } catch (e) {
+                displayResult('api-result', 'Error', e.message, true);
+            }
         }
 
-        try {
-          // Disable button during execution
-          evalButton.disabled = true;
-          evalButton.textContent = 'Executing...';
-
-          // Clear previous result
-          resultArea.textContent = 'Executing...';
-          resultArea.style.color = '#666';
-
-          // Execute the Python code
-          const result = await window.pywebview.api.eval(code);
-
-          // Display the result
-          resultArea.textContent = `Result: ${JSON.stringify(result, null, 2)}`;
-          resultArea.style.color = 'green';
-
-        } catch (error) {
-          // Display error
-          resultArea.textContent = `Error: ${error.message || error}`;
-          resultArea.style.color = 'red';
-        } finally {
-          // Re-enable button
-          evalButton.disabled = false;
-          evalButton.textContent = 'Execute Code';
+        async function testGetString() {
+            try {
+                const result = await window.pywebview.api.test1.getString();
+                displayResult('api-result', 'String Result', result);
+            } catch (e) {
+                displayResult('api-result', 'Error', e.message, true);
+            }
         }
-      }
 
-      function clearResult() {
-        document.getElementById('result-area').textContent = '';
-        document.getElementById('result-area').style.color = '#000';
-      }
+        async function testGetDict() {
+            try {
+                const result = await window.pywebview.api.test1.getDict();
+                displayResult('api-result', 'Dictionary Result', result);
+            } catch (e) {
+                displayResult('api-result', 'Error', e.message, true);
+            }
+        }
 
-      function togglePythonEvaluator() {
-        const evalSection = document.getElementById('python-eval-section');
-        const toggleButton = document.getElementById('toggle-eval-button');
+        async function testGetList() {
+            try {
+                const result = await window.pywebview.api.test1.getList();
+                displayResult('api-result', 'List Result', result);
+            } catch (e) {
+                displayResult('api-result', 'Error', e.message, true);
+            }
+        }
 
-        if (evalSection.style.display === 'none') {
-          evalSection.style.display = 'block';
-          toggleButton.textContent = 'Hide Python Code Evaluator';
-          toggleButton.style.backgroundColor = '#dc3545';
+        async function testSayHello() {
+            try {
+                const result = await window.pywebview.api.test1.sayHelloTo('Android');
+                displayResult('api-result', 'Hello Result', result);
+            } catch (e) {
+                displayResult('api-result', 'Error', e.message, true);
+            }
+        }
+
+        function testStateRead() {
+            try {
+                if (window.pywebview && window.pywebview.state) {
+                    displayResult('state-result', 'Current State', window.pywebview.state);
+                } else {
+                    displayResult('state-result', 'Error', 'State not available', true);
+                }
+            } catch (e) {
+                displayResult('state-result', 'Error', e.message, true);
+            }
+        }
+
+        function testStateWrite() {
+            try {
+                if (window.pywebview && window.pywebview.state) {
+                    window.pywebview.state.testValue = 'Hello from JS!';
+                    window.pywebview.state.timestamp = new Date().toISOString();
+                    displayResult('state-result', 'State Updated', window.pywebview.state);
+                } else {
+                    displayResult('state-result', 'Error', 'State not available', true);
+                }
+            } catch (e) {
+                displayResult('state-result', 'Error', e.message, true);
+            }
+        }
+
+        function testStateReset() {
+            try {
+                window.testUtils.resetState();
+                displayResult('state-result', 'State Reset', 'All state values reset to defaults');
+            } catch (e) {
+                displayResult('state-result', 'Error', e.message, true);
+            }
+        }
+
+        function testWindowInfo() {
+            try {
+                const info = {
+                    userAgent: navigator.userAgent,
+                    pywebviewVersion: window.pywebview ? 'Available' : 'Not Available',
+                    token: window.pywebview ? (window.pywebview.token ? 'Present' : 'Missing') : 'N/A',
+                    timestamp: new Date().toISOString(),
+                };
+                displayResult('window-result', 'Window Info', info);
+            } catch (e) {
+                displayResult('window-result', 'Error', e.message, true);
+            }
+        }
+
+        async function evaluatePythonCode() {
+            const code = document.getElementById('python-code').value.trim();
+            if (!code) {
+                displayResult('eval-result', 'Error', 'Please enter Python code', true);
+                return;
+            }
+
+            try {
+                document.getElementById('eval-result').innerHTML =
+                    '<div class="result">Executing...</div>';
+                const result = await window.pywebview.api.eval(code);
+                displayResult('eval-result', 'Evaluation Result', result);
+            } catch (e) {
+                displayResult('eval-result', 'Error', e.message, true);
+            }
+        }
+
+        function clearEvalResult() {
+            document.getElementById('eval-result').innerHTML = '';
+            document.getElementById('python-code').value = '';
+        }
+
+        function toggleDevTools() {
+            const modal = document.getElementById('devModal');
+            modal.classList.toggle('open');
+            if (modal.classList.contains('open')) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        function switchTab(event, tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function runTests() {
+            if (window.pywebview && Object.keys(window.pywebview.api).length > 0) {
+                mocha.run();
+            } else {
+                alert('PyWebView API not ready yet.');
+            }
+        }
+
+        document.getElementById('python-code').addEventListener('keydown', function(event) {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                event.preventDefault();
+                evaluatePythonCode();
+            }
+        });
+
+        // Initialize - auto-run tests when API is ready
+        if (window.pywebview && Object.keys(window.pywebview.api).length > 0) {
+            mocha.run();
         } else {
-          evalSection.style.display = 'none';
-          toggleButton.textContent = 'Show Python Code Evaluator';
-          toggleButton.style.backgroundColor = '#28a745';
+            window.addEventListener('pywebviewready', function() {
+                mocha.run();
+            });
         }
-      }
-
-      // Allow Ctrl+Enter to execute code
-      document.getElementById('python-code').addEventListener('keydown', function(event) {
-        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-          event.preventDefault();
-          evaluatePythonCode();
-        }
-      });
     </script>
-
-    <div>
-
-    </div>
+</body>
 </html>
