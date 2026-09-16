@@ -22,9 +22,6 @@ class StateEventType(StrEnum):
     DELETE = 'delete'
 
 
-_MISSING = object()
-
-
 class State(dict):
     _serializable = False
 
@@ -92,7 +89,7 @@ class State(dict):
 
             self.__notify_handlers(StateEventType.DELETE, key, old_value)
             return old_value
-        return _MISSING
+        return None
 
     def __delattr__(self, key: str) -> None:
         if key.startswith('__pywebviewHaltUpdate__'):
@@ -102,7 +99,7 @@ class State(dict):
             halt_update = False
 
         old_value = self._delete_state_value(key, should_update_js=not halt_update)
-        if old_value is _MISSING:
+        if old_value is None:
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{key}'")
 
     def __getitem__(self, key: str) -> Any:
@@ -116,7 +113,7 @@ class State(dict):
     def __delitem__(self, key: str) -> None:
         """Support dictionary-style deletion: del state['key']"""
         old_value = self._delete_state_value(key, should_update_js=True)
-        if old_value is _MISSING:
+        if old_value is None:
             raise KeyError(key)
 
     def __add__(self, item: Callable[..., Any]) -> Self:

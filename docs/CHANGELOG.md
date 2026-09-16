@@ -2,10 +2,6 @@
 
 ## Unreleased
 
-### 🐞 Bug fixes
-
-- `All` Fix a crash when a state key was deleted twice in quick succession (or a key whose value was legitimately `None` was deleted). The JS bridge now logs stale `pywebviewStateUpdate`/`pywebviewStateDelete` messages instead of raising, and `State` no longer confuses "no value" with a real `None` value.
-
 ### 🚀 Improvements
 
 - `EdgeChromium` Update WebView2 runtime to 1.0.4191.47.
