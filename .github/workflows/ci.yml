@@ -42,6 +42,44 @@ jobs:
       run: |
         python -m compileall -q examples tests
 
+    # webview/lib holds binaries built from interop/, and nothing rebuilds them
+    # automatically - buildozer and the backends consume the committed artifact.
+    # Editing the Java source without rebuilding therefore changes nothing at
+    # runtime, silently, which is easy to do and hard to notice in review.
+    #
+    # This fires for comment-only edits too, since those shift the line numbers
+    # compiled into the jar. That is deliberate: Java stack traces in logcat
+    # cite them, and a jar whose line table has drifted from the source sends
+    # you to the wrong line.
+    - name: Check the Android jar was rebuilt
+      if: github.event_name == 'pull_request'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        changed="$(gh api \
+          "repos/${{ github.repository }}/pulls/${{ github.event.number }}/files" \
+          --paginate --jq '.[].filename')"
+
+        if ! grep -q '^interop/android/' <<< "$changed"; then
+          echo "No interop/android changes."
+          exit 0
+        fi
+
+        if grep -q '^webview/lib/pywebview-android\.jar$' <<< "$changed"; then
+          echo "Jar rebuilt alongside the source."
+          exit 0
+        fi
+
+        echo "::error::interop/android was changed but webview/lib/pywebview-android.jar was not rebuilt."
+        echo "The APK bundles the committed jar, so the Java change has no effect until it is rebuilt:"
+        echo
+        echo "  cd interop/android"
+        echo "  javac -g --release 11 \\"
+        echo "    -classpath \$ANDROID_HOME/platforms/android-31/android.jar \\"
+        echo "    -d /tmp/jar lib/src/main/java/com/pywebview/*.java"
+        echo "  (cd /tmp/jar && jar cf \"\$GITHUB_WORKSPACE/webview/lib/pywebview-android.jar\" com)"
+        exit 1
+
   type-check:
     name: Type Check
     runs-on: ubuntu-latest
