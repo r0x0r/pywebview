@@ -653,7 +653,14 @@ def resize(width, height, _, fix_point):
     logger.warning('Resizing window is not supported on Android')
 
 
-def destroy_window(_):
+def destroy_window(uid):
+    # A Window can outlive the app it belonged to: Android runs one window at a
+    # time and a new one replaces a closed one. Without the uid check, destroy()
+    # on a stale window would stop whichever app is current, and destroy() after
+    # the last one closed would raise on None.
+    if app is None or app.window.uid != uid:
+        return
+
     app.stop()
 
 
