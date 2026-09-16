@@ -60,6 +60,14 @@ takes its `ValueCallback` from a pool. Adding a proxy means deciding who owns
 it; if it cannot be a process-wide singleton or pooled, park it in
 `_retained_proxies`.
 
+This applies to proxies *we* construct. A bare Python function passed where
+Java wants a functional interface — the dialog listeners in
+`_quit_confirmation()`, say — is not one: pyjnius wraps it in a proxy of its
+own and adds that to `activeLambdaJavaProxies`, a module-level set it never
+removes from, so those live for the process without our help. The rule is
+`PythonJavaClass` instances are ours to keep alive, callables pyjnius converts
+are not.
+
 The aborts are nondeterministic — measured between 13% and 86% through the run
 on identical code — so **a single green run does not prove much.** Take at least
 three samples before believing a change here. The logcat artifact is named per

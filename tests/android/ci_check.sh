@@ -98,6 +98,10 @@ APK="${APKS[0]}"
 echo "Installing $APK"
 adb install -r "$APK"
 
+# A previous run's activity left alive on a reused device would emit its own
+# result markers into the buffer we are about to read.
+adb shell am force-stop "$PACKAGE"
+
 adb logcat -c
 : > "$LOGCAT_FILE"
 # threadtime carries a timestamp, the tag and the thread id, which is what
