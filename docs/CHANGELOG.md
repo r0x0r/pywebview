@@ -4,6 +4,7 @@
 
 ### 🐞 Bug fixes
 
+- `Android` Fix window teardown never destroying the WebView. `destroy()` was missing from the pyjnius declaration of `PyWebViewClient`, so closing a window raised `AttributeError` before reaching `WebView.destroy()`, and every closed window leaked its WebView along with the page it was showing. The error was logged and swallowed, so nothing surfaced.
 - `All` Fix deleting a state value of `None`, which raised `AttributeError`/`KeyError` as though the key did not exist. Deletion distinguished a missing key from a stored `None` by comparing the removed value against `None`.
 - `Android` Stop reporting requests the WebView has to serve itself as errors. Schemes that cannot be replayed over HTTP - `data:` in particular, which is what `load_html` uses - logged a Java stack trace on every page load and fired a spurious `response_received` event with a status code of 0. They are now handed back to the WebView silently.
 - `Android` Apply the cookie policy when a window is created instead of when the page finishes loading. `CookieManager` is process-wide, so a window started in private mode left cookies switched off for every window created after it, and cookies set by the page being loaded were dropped.

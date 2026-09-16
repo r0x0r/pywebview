@@ -37,11 +37,16 @@ class PyWebViewClient(JavaClass, metaclass=MetaJavaClass):
         setRequestInterceptor:
             Sets a request interceptor to manage and modify WebView requests
             before they are processed.
+
+        destroy:
+            Drops the callback and interceptor references and makes the client
+            ignore any further events, for teardown.
     """
 
     __javaclass__ = 'com/pywebview/PyWebViewClient'
     setCallback = JavaMethod('(Lcom/pywebview/EventCallbackWrapper;Z)V')
     setRequestInterceptor = JavaMethod('(Lcom/pywebview/WebViewRequestInterceptor;)V')
+    destroy = JavaMethod('()V')
 
 
 class PyWebChromeClient(JavaClass, metaclass=MetaJavaClass):
