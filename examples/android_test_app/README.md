@@ -46,7 +46,11 @@ state management, and window lifecycle events on Android.
 4. Explore window properties
 
 ### For Testing on Android
-1. Build with buildozer: `buildozer android debug`
+1. Build with buildozer. There is no spec in this directory — copy
+   `tests/android/buildozer.spec` next to `main.py` and point `source.dir` at it, then run
+   `buildozer android debug`. That spec already carries the settings an Android build of
+   pywebview needs, notably the cleartext-traffic manifest attribute and
+   `android.no-byte-compile-python`.
 2. Install and run on device or emulator
 3. Tests run automatically on launch — check the status pill in the header
 4. Tap the status pill for full pass/fail details in Developer Tools

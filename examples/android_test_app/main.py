@@ -69,7 +69,7 @@ class Api:
             return None
 
     def get_size(self):
-        return self._window.height, self._window.width
+        return self._window.width, self._window.height
 
     def evaluate_js(self, code):
         result = self._window.evaluate_js(code)
