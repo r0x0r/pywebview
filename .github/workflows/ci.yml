@@ -47,37 +47,50 @@ jobs:
     # Editing the Java source without rebuilding therefore changes nothing at
     # runtime, silently, which is easy to do and hard to notice in review.
     #
-    # This fires for comment-only edits too, since those shift the line numbers
+    # It fires for comment-only edits, since those shift the line numbers
     # compiled into the jar. That is deliberate: Java stack traces in logcat
     # cite them, and a jar whose line table has drifted from the source sends
     # you to the wrong line.
-    - name: Check the Android jar was rebuilt
-      if: github.event_name == 'pull_request'
-      env:
-        GH_TOKEN: ${{ github.token }}
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        # Pinned, along with android-31 below, because the check compares the
+        # compiled classes byte for byte.
+        java-version: '17'
+
+    - name: Check the Android jar matches interop/android
       run: |
-        changed="$(gh api \
-          "repos/${{ github.repository }}/pulls/${{ github.event.number }}/files" \
-          --paginate --jq '.[].filename')"
+        set -euo pipefail
 
-        if ! grep -q '^interop/android/' <<< "$changed"; then
-          echo "No interop/android changes."
+        platform="$ANDROID_HOME/platforms/android-31/android.jar"
+        if [ ! -f "$platform" ]; then
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-31' > /dev/null
+        fi
+
+        rm -rf /tmp/jar-rebuilt /tmp/jar-committed
+        mkdir -p /tmp/jar-rebuilt /tmp/jar-committed
+
+        javac -g --release 11 -classpath "$platform" -d /tmp/jar-rebuilt \
+          interop/android/lib/src/main/java/com/pywebview/*.java
+
+        unzip -q webview/lib/pywebview-android.jar -d /tmp/jar-committed
+
+        if diff -r /tmp/jar-rebuilt/com /tmp/jar-committed/com; then
+          echo "webview/lib/pywebview-android.jar matches interop/android."
           exit 0
         fi
 
-        if grep -q '^webview/lib/pywebview-android\.jar$' <<< "$changed"; then
-          echo "Jar rebuilt alongside the source."
-          exit 0
-        fi
-
-        echo "::error::interop/android was changed but webview/lib/pywebview-android.jar was not rebuilt."
-        echo "The APK bundles the committed jar, so the Java change has no effect until it is rebuilt:"
+        echo "::error::webview/lib/pywebview-android.jar does not match interop/android."
+        echo "The APK bundles the committed jar, so a Java change has no effect until it is rebuilt:"
         echo
         echo "  cd interop/android"
         echo "  javac -g --release 11 \\"
         echo "    -classpath \$ANDROID_HOME/platforms/android-31/android.jar \\"
         echo "    -d /tmp/jar lib/src/main/java/com/pywebview/*.java"
         echo "  (cd /tmp/jar && jar cf \"\$GITHUB_WORKSPACE/webview/lib/pywebview-android.jar\" com)"
+        echo
+        echo "Built here with $(javac -version 2>&1) against android-31."
         exit 1
 
   type-check:
