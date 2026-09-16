@@ -46,16 +46,13 @@ state management, and window lifecycle events on Android.
 4. Explore window properties
 
 ### For Testing on Android
-1. Build with buildozer. There is no spec in this directory — copy
-   `tests/android/buildozer.spec` next to `main.py` and point `source.dir` at it, then run
-   `buildozer android debug`. That spec already carries the settings an Android build of
-   pywebview needs, notably the cleartext-traffic manifest attribute and
-   `android.no-byte-compile-python`.
-2. Install and run on device or emulator
-3. Tests run automatically on launch — check the status pill in the header
-4. Tap the status pill for full pass/fail details in Developer Tools
-5. Use the app's buttons to manually verify features
-6. Use the Console tab to test custom Python logic
+There is no buildozer spec in this directory, and the app is not set up to be packaged from
+here — `main.py` starts with `ssl=True`, which needs `cryptography`, and that cannot be loaded
+by the interpreter python-for-android ships.
+
+The supported, CI-verified way to exercise pywebview on a device is the pytest suite in
+`tests/android/`, which runs the same assertions as every other platform. Use this app as a
+desktop reference and for interactive debugging of the bridge.
 
 ### For Development
 - **Interactive Testing** — Use the app buttons to manually verify each feature
@@ -66,8 +63,7 @@ state management, and window lifecycle events on Android.
 ## Notes
 
 This app demonstrates the original Mocha/Chai test suite in a real application context. The pytest
-suite (`tests/android/`) provides automated CI testing. This example is ideal for:
-- Manual verification of features on actual Android devices
+suite (`tests/android/`) provides automated CI testing on Android. This example is ideal for:
 - Interactive debugging of the Python↔JavaScript bridge
 - Training and reference for developers learning pywebview
 - Ad-hoc testing of custom Python code

@@ -98,9 +98,12 @@ APK="${APKS[0]}"
 echo "Installing $APK"
 adb install -r "$APK"
 
-# A previous run's activity left alive on a reused device would emit its own
-# result markers into the buffer we are about to read.
-adb shell am force-stop "$PACKAGE"
+# install -r keeps the app's data directory - including WebView's cookie store -
+# and can leave the previous run's activity alive to write its own result markers
+# into the buffer we are about to read. The cookie tests assert exact counts, so
+# a reused device has to start from clean state. Run after install so the package
+# exists on a fresh emulator too.
+adb shell pm clear "$PACKAGE"
 
 adb logcat -c
 : > "$LOGCAT_FILE"
