@@ -534,25 +534,46 @@ def evaluate_js(js_code, _, parse_json=True):
 
 
 def clear_cookies(_):
-    lock = Semaphore(0)
+    def callback(_removed):
+        # Not returned to the pool here: this function is the upcall through
+        # that proxy. The caller does it once the call has unwound.
+        lock.release()
 
     @run_on_ui_thread
     def _clear_cookies():
-        cookie_manager = None
+        nonlocal value_callback
         try:
             # Get fresh CookieManager reference to avoid stale Java object references
-            cookie_manager = CookieManager.getInstance()
-            cookie_manager.removeAllCookies(None)
+            value_callback = _acquire_value_callback(callback)
+            CookieManager.getInstance().removeAllCookies(value_callback)
         except Exception as e:
             logger.error(f'Error clearing cookies: {e}')
-        finally:
-            # Clear the reference to help GC
-            cookie_manager = None
+            if value_callback is not None:
+                # The CookieManager may have taken it before throwing, so it
+                # cannot go back into the pool where a later call would rebind it.
+                _retained_proxies.append(value_callback)
+                value_callback = None
             lock.release()
+
+    lock = Semaphore(0)
+    value_callback = None
 
     app.view._cookies = []
     _clear_cookies()
-    lock.acquire()
+
+    # removeAllCookies() only queues the deletion, so waiting for the callback
+    # is what makes a following get_cookies() see the cleared store.
+    if not lock.acquire(timeout=5):
+        logger.error('Timed out waiting for cookies to be cleared')
+
+        if value_callback is not None:
+            # Android still owns it and may call back later, so it must never
+            # be handed out again.
+            _retained_proxies.append(value_callback)
+            value_callback = None
+
+    if value_callback is not None:
+        _release_value_callback(value_callback)
 
 
 def get_cookies(_):
