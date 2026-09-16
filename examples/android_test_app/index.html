@@ -154,6 +154,32 @@
             color: var(--c-danger);
             background: #fdf1f0;
         }
+        .info-list {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--c-border);
+            font-size: 13px;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-row .label {
+            color: var(--c-text-light);
+        }
+        .info-row .value {
+            font-family: ui-monospace, monospace;
+            font-size: 12px;
+            text-align: right;
+            word-break: break-all;
+        }
         .footer {
             padding: 12px;
             text-align: center;
@@ -265,33 +291,19 @@
 
     <div class="container">
         <div class="card">
-            <h2>API bridge</h2>
-            <div class="row">
-                <button class="btn" onclick="testGetInteger()">Integer</button>
-                <button class="btn" onclick="testGetString()">String</button>
-                <button class="btn" onclick="testGetDict()">Dict</button>
-                <button class="btn" onclick="testGetList()">List</button>
-                <button class="btn" onclick="testSayHello()">Say hello</button>
-            </div>
-            <div id="api-result"></div>
-        </div>
-
-        <div class="card">
-            <h2>State</h2>
-            <div class="row">
-                <button class="btn" onclick="testStateRead()">Read</button>
-                <button class="btn" onclick="testStateWrite()">Write</button>
-                <button class="btn" onclick="testStateReset()">Reset</button>
-            </div>
-            <div id="state-result"></div>
-        </div>
-
-        <div class="card">
             <h2>Window</h2>
             <div class="row">
-                <button class="btn" onclick="testWindowInfo()">Get info</button>
+                <button class="btn" onclick="refreshWindowInfo()">Refresh</button>
             </div>
-            <div id="window-result"></div>
+            <div id="window-info" class="info-list"></div>
+        </div>
+
+        <div class="card">
+            <h2>Device</h2>
+            <div class="row">
+                <button class="btn" onclick="refreshDeviceInfo()">Refresh</button>
+            </div>
+            <div id="device-info" class="info-list"></div>
         </div>
     </div>
 
@@ -350,97 +362,50 @@
             }</div>`;
         }
 
-        async function testGetInteger() {
+        function renderInfoList(elementId, entries) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = entries.map(([label, value]) => `
+                <div class="info-row">
+                    <span class="label">${label}</span>
+                    <span class="value">${
+                        typeof value === 'string' ? value : JSON.stringify(value)
+                    }</span>
+                </div>
+            `).join('');
+        }
+
+        async function refreshWindowInfo() {
             try {
-                const result = await window.pywebview.api.test1.getInteger();
-                displayResult('api-result', 'Integer', result);
+                const info = await window.pywebview.api.get_window_info();
+                renderInfoList('window-info', [
+                    ['title', info.title],
+                    ['size', `${info.width} × ${info.height}`],
+                    ['position', `${info.x}, ${info.y}`],
+                    ['fullscreen', info.fullscreen],
+                    ['always on top', info.on_top],
+                    ['screens', info.screens.length],
+                ]);
             } catch (e) {
-                displayResult('api-result', 'Error', e.message, true);
+                renderInfoList('window-info', [['error', e.message]]);
             }
         }
 
-        async function testGetString() {
+        function refreshDeviceInfo() {
             try {
-                const result = await window.pywebview.api.test1.getString();
-                displayResult('api-result', 'String', result);
+                const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                renderInfoList('device-info', [
+                    ['user agent', navigator.userAgent],
+                    ['platform', navigator.platform || 'n/a'],
+                    ['language', navigator.language],
+                    ['screen', `${screen.width} × ${screen.height}`],
+                    ['pixel ratio', window.devicePixelRatio],
+                    ['orientation', screen.orientation ? screen.orientation.type : 'n/a'],
+                    ['online', navigator.onLine],
+                    ['connection', conn ? conn.effectiveType : 'n/a'],
+                    ['timezone', Intl.DateTimeFormat().resolvedOptions().timeZone],
+                ]);
             } catch (e) {
-                displayResult('api-result', 'Error', e.message, true);
-            }
-        }
-
-        async function testGetDict() {
-            try {
-                const result = await window.pywebview.api.test1.getDict();
-                displayResult('api-result', 'Dict', result);
-            } catch (e) {
-                displayResult('api-result', 'Error', e.message, true);
-            }
-        }
-
-        async function testGetList() {
-            try {
-                const result = await window.pywebview.api.test1.getList();
-                displayResult('api-result', 'List', result);
-            } catch (e) {
-                displayResult('api-result', 'Error', e.message, true);
-            }
-        }
-
-        async function testSayHello() {
-            try {
-                const result = await window.pywebview.api.test1.sayHelloTo('Android');
-                displayResult('api-result', 'Hello', result);
-            } catch (e) {
-                displayResult('api-result', 'Error', e.message, true);
-            }
-        }
-
-        function testStateRead() {
-            try {
-                if (window.pywebview && window.pywebview.state) {
-                    displayResult('state-result', 'State', window.pywebview.state);
-                } else {
-                    displayResult('state-result', 'Error', 'State not available', true);
-                }
-            } catch (e) {
-                displayResult('state-result', 'Error', e.message, true);
-            }
-        }
-
-        function testStateWrite() {
-            try {
-                if (window.pywebview && window.pywebview.state) {
-                    window.pywebview.state.testValue = 'Hello from JS!';
-                    window.pywebview.state.timestamp = new Date().toISOString();
-                    displayResult('state-result', 'Updated', window.pywebview.state);
-                } else {
-                    displayResult('state-result', 'Error', 'State not available', true);
-                }
-            } catch (e) {
-                displayResult('state-result', 'Error', e.message, true);
-            }
-        }
-
-        function testStateReset() {
-            try {
-                window.testUtils.resetState();
-                displayResult('state-result', 'Reset', 'All state values reset to defaults');
-            } catch (e) {
-                displayResult('state-result', 'Error', e.message, true);
-            }
-        }
-
-        function testWindowInfo() {
-            try {
-                const info = {
-                    userAgent: navigator.userAgent,
-                    pywebview: window.pywebview ? 'available' : 'not available',
-                    token: window.pywebview ? (window.pywebview.token ? 'present' : 'missing') : 'n/a',
-                    timestamp: new Date().toISOString(),
-                };
-                displayResult('window-result', 'Info', info);
-            } catch (e) {
-                displayResult('window-result', 'Error', e.message, true);
+                renderInfoList('device-info', [['error', e.message]]);
             }
         }
 
@@ -518,8 +483,13 @@
             }
         });
 
-        // Start the test suite once the pywebview JS API bridge has been injected.
-        window.addEventListener('pywebviewready', runTests);
+        // Populate the info cards and start the test suite once the pywebview
+        // JS API bridge has been injected.
+        window.addEventListener('pywebviewready', () => {
+            refreshWindowInfo();
+            refreshDeviceInfo();
+            runTests();
+        });
     </script>
 </body>
 </html>

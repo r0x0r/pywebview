@@ -71,6 +71,22 @@ class Api:
     def get_size(self):
         return self._window.width, self._window.height
 
+    def get_window_info(self):
+        w = self._window
+        screens = webview.screens()
+        return {
+            'title': w.title,
+            'width': w.width,
+            'height': w.height,
+            'x': w.x,
+            'y': w.y,
+            'fullscreen': w.fullscreen,
+            'on_top': w.on_top,
+            'screens': [
+                {'width': s.width, 'height': s.height, 'x': s.x, 'y': s.y} for s in screens
+            ],
+        }
+
     def evaluate_js(self, code):
         result = self._window.evaluate_js(code)
         return result

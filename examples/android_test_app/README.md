@@ -6,10 +6,10 @@ state management, and window lifecycle events on Android.
 ## Features
 
 ### Main UI
-- **API Bridge Tests** — Interactive buttons to test Python function calls (getInteger, getString, etc.)
-- **State Synchronization** — Read, write, and reset application state that syncs between Python and JS
-- **Window Info** — Display device and window information
-- **Results Display** — Color-coded feedback for success and error states
+- **Window info** — Live window title, size, position, fullscreen/on-top flags and screen count,
+  fetched from Python via `get_window_info()`
+- **Device info** — Live browser/device details from the WebView (user agent, screen resolution,
+  pixel ratio, orientation, connectivity, timezone)
 - **Status pill** — Shows live pass/fail test counts; tap it to open full test details
 
 ### Developer Tools (status pill / tests tab)
@@ -25,8 +25,9 @@ state management, and window lifecycle events on Android.
 
 ### Files
 - `main.py` — Python backend with TestAPI and Bottle HTTP server
-  - Provides test methods (getInteger, getString, getDict, etc.)
-  - Implements eval() for Python code evaluation
+  - Provides test methods (getInteger, getString, getDict, etc.) used by the test suite
+  - Implements `get_window_info()` for the Window info card
+  - Implements `eval()` for Python code evaluation
   - Sets up window state and event handlers
 - `index.html` — Modern app UI with developer tools modal
 - `index.js` — Test utilities (state reset, cookie helpers, wait functions)
@@ -41,9 +42,8 @@ state management, and window lifecycle events on Android.
 
 ### As a Demo App
 1. Run `main.py` in pywebview
-2. Click buttons to demonstrate API features
-3. Watch state sync in real time
-4. Explore window properties
+2. The Window and Device cards populate automatically once the app loads
+3. Tap "Refresh" on either card to re-fetch the latest values
 
 ### For Testing on Android
 There is no buildozer spec in this directory, and the app is not set up to be packaged from
@@ -55,10 +55,9 @@ The supported, CI-verified way to exercise pywebview on a device is the pytest s
 desktop reference and for interactive debugging of the bridge.
 
 ### For Development
-- **Interactive Testing** — Use the app buttons to manually verify each feature
 - **Live Debugging** — Use Code Evaluator to test Python code changes
 - **Automated Tests** — View full Mocha test results in Developer Tools
-- **State Inspection** — Monitor state changes in real time
+- **Window/Device Inspection** — Monitor window and device info in real time
 
 ## Notes
 
