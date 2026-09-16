@@ -41,31 +41,21 @@ logger = logging.getLogger('pywebview')
 renderer = 'android-webkit'
 app = None
 
-# Every Java-facing proxy the backend creates has to outlive the Python object
-# that made it. pyjnius passes Java a bare pointer to the proxy's Python object
-# and ties the proxy's JNI global reference to that object's lifetime, so
-# collecting one leaves Java holding a dangling reference - and touching it
-# aborts the process with "JNI DETECTED ERROR IN APPLICATION: use of deleted
-# global reference". Nothing here is ever dropped: there is no point at which
-# the backend can prove Java is done with a proxy, since the request
-# interceptor and the WebView's own threads outlive destroy(). The list
-# therefore grows by one entry per window the process dismisses - a handful of
-# small objects, and an Android app creates one window - which is traded
-# deliberately against aborting the process. See BrowserView.dismiss().
+# Every Java-facing proxy has to outlive the Python object that made it.
+# pyjnius passes Java a bare pointer to the proxy's Python object and ties the
+# proxy's JNI global reference to that object's lifetime, so collecting one
+# leaves Java holding a dangling reference - and touching it aborts the process
+# with "use of deleted global reference". Nothing here is ever dropped, since
+# the backend cannot prove Java is done with a proxy: the request interceptor
+# and the WebView's own threads outlive destroy(). One small entry per dismissed
+# window is traded deliberately against aborting the process.
 _retained_proxies: list = []
 
-# evaluate_js() is by far the highest-frequency proxy site in the backend, so
-# its ValueCallbacks are pooled and reused rather than created per call: a
-# proxy that is reused is never freed, and the WebView may still hold one after
-# onReceiveValue has returned. The pool only ever grows to the number of
-# concurrent evaluate_js calls.
+# evaluate_js() is the highest-frequency proxy site, so its ValueCallbacks are
+# pooled rather than created per call - the WebView may still hold one after
+# onReceiveValue has returned. The pool grows to the number of concurrent calls.
 _value_callbacks: list = []
 _value_callbacks_lock = Lock()
-
-
-# NOTE: the nested callbacks below are decorated per call, which is cheap now
-# that run_on_ui_thread queues the work instead of building a Runnable proxy
-# per decorated function and caching it forever, the way p4a's decorator does.
 
 
 class BrowserView:
@@ -113,8 +103,6 @@ class BrowserView:
                     for cookie_string in cookies:
                         cookie = SimpleCookie()
                         cookie.load(cookie_string)
-                        # self, not app.view: a callback arriving after teardown
-                        # would otherwise hit a cleared global.
                         self._cookies.append(cookie)
 
                 except Exception as e:
@@ -188,9 +176,8 @@ class BrowserView:
         self.pywebview_window.events.before_show.set()
 
         # CookieManager is a process-wide singleton, so a private-mode window
-        # leaves cookies switched off for every window that follows it. Set the
-        # policy before the first request rather than only on page finished,
-        # which is too late for the cookies of the page being loaded.
+        # leaves cookies switched off for every window that follows it. Set
+        # before the first request, not on page finished, which is too late.
         CookieManager.getInstance().setAcceptCookie(not _state['private_mode'])
 
         if self.pywebview_window.real_url:
@@ -235,9 +222,8 @@ class BrowserView:
             return
 
         self._dismissed = True
-        # _dismiss() is posted to the UI thread, so it runs after app.run() has
-        # returned and create_window() has cleared the module global. Bind the
-        # app instance now instead of reading `app` from inside the callback.
+        # _dismiss() runs after app.run() has returned and create_window() has
+        # cleared the module global, so bind the app instance now.
         current_app = app
 
         @run_on_ui_thread
@@ -254,25 +240,13 @@ class BrowserView:
                 if hasattr(self, '_webview_client') and self._webview_client:
                     self._webview_client.destroy()
 
-                # Destroy the WebView before dropping any of the Python proxies
-                # below. The WebView is what holds the Java-side references to
-                # them, and dropping the last Python reference to a
-                # PythonJavaClass deletes its JNI global reference - so clearing
-                # them first left the live WebView holding dangling references,
-                # and anything that then touched one aborted the process with
-                # "JNI DETECTED ERROR IN APPLICATION: use of deleted global
-                # reference".
+                # Before dropping any of the proxies below: the WebView holds
+                # the Java-side references to them.
                 self.webview.destroy()
 
-                # Retain the proxies rather than dropping them. Dropping the
-                # last Python reference to a PythonJavaClass deletes its JNI
-                # global reference, and Java can still be holding one: the
-                # request interceptor in particular is called from a WebView
-                # background thread that destroy() does not synchronise with.
-                # Using one afterwards aborts the process outright, so the
-                # references are parked for the life of the process instead.
-                # This leaks one entry per dismissed window; see the note on
-                # _retained_proxies for why nothing is retired.
+                # Retained rather than dropped - the request interceptor in
+                # particular is called from a WebView background thread that
+                # destroy() does not synchronise with. See _retained_proxies.
                 _retained_proxies.extend(
                     (
                         self._js_interface,
@@ -288,12 +262,10 @@ class BrowserView:
                 )
                 self.webview = None
 
-                # Every other backend drops the window from webview.windows when
-                # it closes. Without it a destroyed window stays in the list and
-                # start() relaunches it instead of the window created next.
-                # webview.windows is looked up through the module rather than
-                # bound at import time, since the test suite reloads webview
-                # between tests and the backend is not reloaded with it.
+                # Otherwise a destroyed window stays in the list and start()
+                # relaunches it instead of the window created next. Looked up
+                # through the module, since the test suite reloads webview
+                # between tests without reloading the backend.
                 if self.pywebview_window in webview.windows:
                     webview.windows.remove(self.pywebview_window)
             except Exception as e:
@@ -305,10 +277,8 @@ class BrowserView:
         _dismiss()
 
     def _quit_confirmation(self):
-        # pyjnius wraps a plain callable into a Java functional interface, so
-        # each of these has to match the arity of the interface it is passed to.
-        # DialogInterface.OnClickListener is onClick(dialog, which);
-        # DialogInterface.OnCancelListener is onCancel(dialog).
+        # Arity has to match the Java functional interface pyjnius wraps these
+        # into: onClick(dialog, which), onCancel(dialog).
         def on_cancel_button(dialog, which):
             self.dialog = None
 
@@ -363,8 +333,8 @@ class BrowserView:
             except Exception as e:
                 logger.error(f'Error getting size: {e}')
             finally:
-                # Without the finally an exception here (self.webview is None
-                # once the view is dismissed) leaves the caller blocked forever.
+                # Without the finally, self.webview being None once the view is
+                # dismissed leaves the caller blocked forever.
                 lock.release()
 
         _get_size()
@@ -464,8 +434,7 @@ def create_window(window):
         app.run()
     finally:
         # run() blocks until the event loop closes. Without clearing the global
-        # the guard above latches forever, so a window destroyed with
-        # window.destroy() could never be replaced by a new one.
+        # the guard above latches forever.
         app = None
 
 
@@ -513,9 +482,8 @@ def evaluate_js(js_code, _, parse_json=True):
         except Exception as e:
             logger.exception(f'Error parsing result: {js_result}. Type: {type(js_result)}\n{e}')
         finally:
-            # Deliberately not returning value_callback to the pool here. This
-            # function *is* the Java -> Python upcall through that proxy, and
-            # the caller does it once the call has unwound.
+            # Not returned to the pool here: this function is the upcall
+            # through that proxy. The caller does it once the call has unwound.
             lock.release()
 
     @run_on_ui_thread
@@ -527,9 +495,8 @@ def evaluate_js(js_code, _, parse_json=True):
         except Exception as e:
             logger.error(f'Error evaluating JavaScript: {e}')
             if value_callback is not None:
-                # The WebView may have taken it before throwing, so it cannot go
-                # back into the pool where a later call would rebind it. Retain
-                # it instead - freeing it is what aborts the process.
+                # The WebView may have taken it before throwing, so it cannot
+                # go back into the pool where a later call would rebind it.
                 _retained_proxies.append(value_callback)
                 value_callback = None
             lock.release()

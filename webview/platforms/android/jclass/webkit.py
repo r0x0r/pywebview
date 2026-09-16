@@ -162,8 +162,8 @@ class CookieManager(JavaClass, metaclass=MetaJavaClass):
 
     getInstance = JavaStaticMethod('()Landroid/webkit/CookieManager;')
     setAcceptCookie = JavaMethod('(Z)V')
-    # CookieManager.acceptCookie() is a getter returning boolean, not a void
-    # setter. With ()V the JNI method lookup fails outright.
+    # A getter returning boolean, not a void setter. With ()V the JNI method
+    # lookup fails outright.
     acceptCookie = JavaMethod('()Z')
     setAcceptThirdPartyCookies = JavaMethod('(Landroid/webkit/WebView;Z)V')
     acceptThirdPartyCookies = JavaMethod('(Landroid/webkit/WebView;)Z')

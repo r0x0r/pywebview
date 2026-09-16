@@ -1,19 +1,15 @@
 #!/usr/bin/env bash
 # Installs and runs the built pytest APK on a booted emulator/device, tails
-# logcat for the PYWEBVIEW_TEST_RESULT:: markers main.py prints (see its
-# docstring for why logcat instead of a pulled file), and exits non-zero on
-# any failed test or on timing out without a DONE marker.
+# logcat for the PYWEBVIEW_TEST_RESULT:: markers main.py prints, and exits
+# non-zero on any failed test or on timing out without a DONE marker.
 #
-# Expects an APK at bin/*.apk (buildozer's default output path) and a
-# reachable adb device. Run from tests/android/.
+# Expects an APK at bin/*.apk and a reachable adb device. Run from tests/android/.
 set -euo pipefail
 
 PACKAGE="com.pywebview.pywebviewpytest"
 ACTIVITY="org.kivy.android.PythonActivity"
 TIMEOUT_SECONDS="${PYWEBVIEW_ANDROID_TEST_TIMEOUT:-600}"
-# A path under the working directory rather than mktemp, so CI can upload the
-# whole log as an artifact - the marker lines alone are rarely enough to
-# diagnose a failure on a device you cannot attach to.
+# Under the working directory rather than mktemp, so CI can upload it whole.
 LOGCAT_FILE="${PYWEBVIEW_ANDROID_LOGCAT:-logcat.txt}"
 SUMMARY_FILE="${PYWEBVIEW_ANDROID_SUMMARY:-summary.md}"
 LOGCAT_PID=""
@@ -35,38 +31,27 @@ stop_logcat() {
   LOGCAT_PID=""
 }
 
-# Nothing may outlive the script: a reader still attached to the device keeps
-# the CI step's shell open long after the tests have finished.
+# A reader still attached to the device keeps the CI step's shell open.
 trap stop_logcat EXIT
 
-# Everything the app itself writes, echoed into the caller's stdout as it
-# happens. Without this a run is opaque until it ends, and the only way to see
-# why it is stuck is the uploaded artifact - which does not exist until the job
-# has finished. python is the tag python-for-android gives the interpreter's
-# stdout and stderr, so it carries pytest's output; AndroidRuntime carries Java
-# crashes. Verbose is excluded because p4a logs one line per file while it
-# unpacks its asset bundle, which is 80% of the app's output and never what is
-# being looked for; the artifact still has it.
+# Everything the app writes, echoed as it happens, so a hang is diagnosable
+# before the artifact exists. python is the tag p4a gives the interpreter's
+# stdout, so it carries pytest's output; AndroidRuntime carries Java crashes.
 start_live_log() {
   # Process substitution rather than a pipeline so that $! is adb's own pid.
-  # With a pipeline it would be awk's, and stopping the stream would leave adb
-  # behind holding the step open.
   adb logcat -v threadtime -s python:D AndroidRuntime:V 2>/dev/null \
     > >(awk '{ print "[device] " $0; fflush() }') &
   LIVE_PID=$!
 }
 
-# The marker payload with whatever logcat prefixed it with stripped off, so the
-# parsing below does not depend on the -v format.
+# The marker payload with the logcat prefix stripped, so parsing does not
+# depend on the -v format.
 marker_lines() {
   sed -n "s/.*PYWEBVIEW_TEST_RESULT::$1:://p" "$LOGCAT_FILE" 2>/dev/null || true
 }
 
-# Results on the run's summary page, so a failure is legible without opening the
-# log at all. Written to a file rather than straight to $GITHUB_STEP_SUMMARY:
-# the emulator action runs this script as a child process, so relying on that
-# variable reaching us is relying on an implementation detail of the action.
-# The workflow appends the file itself, and it lands in the artifact either way.
+# Written to a file rather than straight to $GITHUB_STEP_SUMMARY, which the
+# emulator action is not guaranteed to pass down to us. The workflow appends it.
 write_step_summary() {
   local status="$1"
 
@@ -74,8 +59,7 @@ write_step_summary() {
   failures="$(marker_lines FAIL | sed 's/^/- /')"
 
   app_log="$(grep -E ' [VDIWEF] python +: ' "$LOGCAT_FILE" 2>/dev/null || true)"
-  # From the point the test session announced itself. Everything before it is
-  # p4a unpacking its asset bundle, which would otherwise fill the whole quota.
+  # From the START marker. Everything before it is p4a unpacking its assets.
   session="$(printf '%s\n' "$app_log" | sed -n '/PYWEBVIEW_TEST_RESULT::START/,$p')"
   [ -n "$session" ] || session="$app_log"
 
@@ -116,17 +100,14 @@ adb install -r "$APK"
 
 adb logcat -c
 : > "$LOGCAT_FILE"
-# -v threadtime rather than raw: a timestamp on every line is what makes a hang
-# or a slow teardown diagnosable after the fact, the tag is what lets the log be
-# split by source, and the thread id is what distinguishes the UI thread from
-# the test threads when a JNI problem is being chased.
+# threadtime carries a timestamp, the tag and the thread id, which is what
+# distinguishes the UI thread from the test threads when chasing a JNI problem.
 timeout "$TIMEOUT_SECONDS" adb logcat -v threadtime > "$LOGCAT_FILE" &
 LOGCAT_PID=$!
 start_live_log
 
-# Launching before logcat has attached can lose the early markers, so wait for
-# the stream to produce something first. Not fatal if it stays quiet - a silent
-# buffer is possible - so this only bounds the wait.
+# Launching before logcat has attached can lose the early markers. A silent
+# buffer is possible, so this only bounds the wait.
 attach_wait=0
 while [ ! -s "$LOGCAT_FILE" ]; do
   if [ "$attach_wait" -ge 30 ]; then
@@ -152,8 +133,8 @@ while ! done_marker_present; do
   fi
 
   # A crash would otherwise cost the whole timeout. The grace period covers the
-  # process not having appeared yet; the re-check covers the app exiting in the
-  # same poll interval that it printed DONE.
+  # process not having appeared yet; the re-check covers DONE and exit landing
+  # in the same poll interval.
   if [ "$elapsed" -ge 30 ] && ! adb shell pidof "$PACKAGE" > /dev/null 2>&1; then
     sleep 2
     if done_marker_present; then
@@ -188,10 +169,8 @@ if [ -z "$FAILED_COUNT" ] || [ "$FAILED_COUNT" != "0" ]; then
   exit 1
 fi
 
-# The failed count alone is not enough: a collection/import error ends the
-# session with exitstatus 2 and zero reported tests, which would otherwise read
-# as a clean run. Require pytest to have exited 0 *and* to have actually run
-# something.
+# The failed count alone is not enough: a collection error ends the session with
+# exitstatus 2 and zero reported tests, which would read as a clean run.
 if [ "$EXIT_STATUS" != "0" ]; then
   echo "pytest exited with status ${EXIT_STATUS:-?} (collection or internal error)." >&2
   write_step_summary "pytest exited with status ${EXIT_STATUS:-?}"

@@ -1,15 +1,10 @@
 """
 CI entrypoint for the Android pytest suite.
 
-Runs the real pytest suite reused from tests/ (symlinked into shared/)
-headlessly and reports results over stdout, which python-for-android's bootstrap
-pipes to logcat. CI tails logcat for the `PYWEBVIEW_TEST_RESULT::` markers below instead
-of pulling a file off the device, since app storage permissions/paths are more
-fragile to depend on than a stream CI already has to read anyway.
-
-Each shared test module creates and destroys its own window per test via
-tests/util.py's run_test()/create_test_window(), so this entrypoint does not
-own a window itself - it only drives pytest and prints markers.
+Runs the tests symlinked into shared/ and reports results over stdout, which
+python-for-android's bootstrap pipes to logcat. CI tails logcat for the
+`PYWEBVIEW_TEST_RESULT::` markers rather than pulling a file off the device,
+since app storage paths are more fragile than a stream CI already reads.
 """
 
 import sys
@@ -18,11 +13,10 @@ import pytest
 
 
 class LogcatReporter:
-    """Minimal pytest plugin that prints one marker line per test result.
+    """Prints one marker line per test result.
 
-    One line per event (rather than a single end-of-run JSON blob) keeps each
-    line well under logcat's ~4KB per-line truncation limit even if a failure
-    message is long.
+    One line per event, rather than an end-of-run blob, keeps each line well
+    under logcat's ~4KB per-line truncation limit.
     """
 
     def __init__(self):
@@ -34,18 +28,15 @@ class LogcatReporter:
     def _message(report):
         """The failing assertion or exception, not the head of the long repr.
 
-        str(longrepr) starts with the source listing and the local variables,
-        so truncating it to fit a logcat line reliably cuts off before reaching
-        anything about what actually went wrong. reprcrash holds just the final
-        error line.
+        str(longrepr) starts with the source listing and the locals, so
+        truncating it cuts off before anything useful. reprcrash holds just the
+        final error line.
         """
         crash = getattr(report.longrepr, 'reprcrash', None)
         text = crash.message if crash else str(report.longrepr)
-        # logcat truncates around 4KB per line. Staying well inside that while
-        # still carrying a full nested traceback, which run_test() puts in the
-        # failure message - a short budget cuts it off before the assertion.
-        # This has to stand on its own: if the run crashes, pytest never gets
-        # to print its own FAILURES section.
+        # Well inside logcat's ~4KB per-line limit, while still carrying the
+        # nested traceback run_test() puts in the failure message. If the run
+        # crashes, pytest never gets to print its own FAILURES section.
         return text.replace('\n', ' | ')[:1500]
 
     def pytest_runtest_logreport(self, report):

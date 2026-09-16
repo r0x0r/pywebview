@@ -7,11 +7,9 @@ class Runnable(PythonJavaClass):
     """
     A Java `Runnable` that calls a Python function when the UI thread runs it.
 
-    A single instance serves every posted call - see
-    `webview.platforms.android.base.run_on_ui_thread`, which queues the work and
-    posts this. The function therefore takes no arguments: it picks up what to
-    run from that queue. Nothing is stored on the instance, so posts from
-    different threads cannot overwrite each other's arguments.
+    A single instance serves every posted call, so `run` takes no arguments and
+    picks up the work from the queue in
+    `webview.platforms.android.base.run_on_ui_thread` instead.
     """
 
     __javacontext__ = 'app'

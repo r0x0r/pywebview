@@ -12,9 +12,8 @@ def test_lifecycle_events():
     fired = []
 
     for name in LIFECYCLE_EVENTS:
-        # The name is bound as a default argument because the handler is called
-        # with no arguments, and a closure over the loop variable would record
-        # the last name four times.
+        # Bound as a default argument: the handler is called with no arguments,
+        # and a closure over the loop variable would record the last name.
         event = getattr(window.events, name)
         event += lambda name=name: fired.append(name)
 
@@ -22,9 +21,8 @@ def test_lifecycle_events():
 
 
 def lifecycle_test(window, fired):
-    # before_show and shown fire around window creation and loaded around
-    # navigation, so ordering between the two pairs is not guaranteed - but each
-    # pair is ordered, and by now all four should have been dispatched.
+    # Ordering between the show and load pairs is not guaranteed, only within
+    # each pair.
     for _ in range(50):
         if all(name in fired for name in LIFECYCLE_EVENTS):
             break

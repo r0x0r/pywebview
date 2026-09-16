@@ -16,18 +16,9 @@ def index():
 
 @pytest.fixture
 def window():
-    # test_cookies.py's desktop fixture can't be reused verbatim: it asserts on
-    # `Set-Cookie: pywebview=true; Domain=127.0.0.1;`, but Android's get_cookies()
-    # fills the domain from urlparse(current_url).netloc, which carries the port
-    # too, so that prefix never matches. The embedded Bottle app also gives a real
-    # Set-Cookie response header rather than relying on assets/script.js setting
-    # document.cookie, which the WebView does not surface to get_cookies().
-    #
-    # Private mode is what switches cookies off, and passing private_mode=False
-    # to webview.start() is not enough to turn them back on: conftest reloads the
-    # webview module between tests, which rebinds webview._state to a fresh dict
-    # while the already-imported backend holds on to the old one. Set it where
-    # the backend actually reads it.
+    # private_mode=False passed to webview.start() is not enough: conftest
+    # reloads the webview module between tests, rebinding webview._state while
+    # the already-imported backend holds on to the old dict.
     from webview.platforms import android
 
     android._state['private_mode'] = False
@@ -35,12 +26,8 @@ def window():
     android._state['private_mode'] = True
 
 
-# The other test modules load their content with html=, which never goes over
-# the network, so only this one needs a non-private window.
-#
-# No ssl=True: that needs cryptography, whose Rust extension cannot be loaded by
-# p4a's Python 3.14 (see buildozer.spec). Cleartext HTTP is granted through the
-# manifest instead, so plain http works here.
+# No ssl=True: that needs cryptography, which cannot load here (see
+# buildozer.spec). Cleartext HTTP is granted through the manifest instead.
 COOKIE_START_ARGS = {'private_mode': False}
 
 
@@ -55,9 +42,7 @@ def test_clear_cookies(window):
 def get_cookies_test(window):
     cookies = window.get_cookies()
     assert len(cookies) == 1
-    # get_cookies() returns a list of SimpleCookie-like dicts keyed by cookie
-    # name (see webview/platforms/android/__init__.py:get_cookies), not Morsels
-    # directly, so index into the dict rather than reading .key/.value.
+    # get_cookies() returns dicts keyed by cookie name, not Morsels directly.
     assert 'pywebview' in cookies[0]
     assert cookies[0]['pywebview'].value == 'true'
 

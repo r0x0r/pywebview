@@ -298,10 +298,9 @@ public class PyWebViewClient extends WebViewClient {
                 }
             }
 
-            // Not every request can be replayed through HttpURLConnection. These
-            // are handed back to the WebView, which is the normal outcome rather
-            // than a failure: data: URLs in particular are what loadDataWithBaseURL
-            // produces, so window.load_html() takes this path on every load.
+            // Not every request can be replayed through HttpURLConnection.
+            // Handing it back to the WebView is the normal outcome, not a
+            // failure - window.load_html() takes this path on every load.
             if (!isInterceptable(url)) {
                 Log.d("python", "Letting the WebView handle the request itself: " + url);
                 return super.shouldInterceptRequest(view, request);
@@ -362,9 +361,8 @@ public class PyWebViewClient extends WebViewClient {
      *
      * Non-HTTP schemes cannot: data:, file: and the android_asset/android_res
      * aliases are served by the WebView itself. Cleartext HTTP to localhost is
-     * excluded as well - replaying it would go out through the network stack and
-     * be refused by the default Network Security Policy on targetSdk >= 28,
-     * whereas the WebView's own loopback request is allowed.
+     * excluded as well - replaying it would be refused by the default Network
+     * Security Policy on targetSdk >= 28.
      */
     private boolean isInterceptable(String url) {
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
