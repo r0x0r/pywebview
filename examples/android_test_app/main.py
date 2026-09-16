@@ -143,4 +143,7 @@ if __name__ == '__main__':
 
     api._window = window
     api._dom = window.dom
-    webview.start(ssl=True, private_mode=False)
+    # ssl=True is intentionally omitted: python-for-android's cryptography recipe currently
+    # fails to load on-device (dlopen cannot locate symbol "PyExc_TypeError" in the rust
+    # extension), and the local server doesn't need HTTPS for this demo/test app.
+    webview.start(private_mode=False)
