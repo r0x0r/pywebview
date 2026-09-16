@@ -10,6 +10,8 @@
 - `All` CI now tests Python 3.10 through 3.13, type-checks the package, compile-checks every example and audits dependencies with `pip-audit`.
 - `All` The PyPI project page now shows the README. The built distributions previously carried no long description.
 
+### 🐞 Bug fixes
+
 ## 6.2.1
 
 _Released 15/04/2026_
