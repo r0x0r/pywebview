@@ -222,6 +222,24 @@ class BrowserView:
             return
 
         self._dismissed = True
+
+        # Both of these have to happen before _dismiss() is queued. It runs on
+        # the UI thread, while stop() goes straight on to close the event loop,
+        # so start() can return to the caller before the queued work has run.
+        #
+        # Otherwise a destroyed window stays in the list and start() relaunches
+        # it instead of the window created next. Looked up through the module,
+        # since the test suite reloads webview between tests without reloading
+        # the backend.
+        if self.pywebview_window in webview.windows:
+            webview.windows.remove(self.pywebview_window)
+
+        # destroy() reaches here without passing through the back button or the
+        # quit dialog, which set this themselves. set() re-runs its handlers, so
+        # it needs the guard rather than being called unconditionally.
+        if not self.pywebview_window.events.closed.is_set():
+            self.pywebview_window.events.closed.set()
+
         # _dismiss() runs after app.run() has returned and create_window() has
         # cleared the module global, so bind the app instance now.
         current_app = app
@@ -261,13 +279,6 @@ class BrowserView:
                     )
                 )
                 self.webview = None
-
-                # Otherwise a destroyed window stays in the list and start()
-                # relaunches it instead of the window created next. Looked up
-                # through the module, since the test suite reloads webview
-                # between tests without reloading the backend.
-                if self.pywebview_window in webview.windows:
-                    webview.windows.remove(self.pywebview_window)
             except Exception as e:
                 logger.error(f'Error during dismiss: {e}')
             finally:
