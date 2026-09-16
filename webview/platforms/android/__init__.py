@@ -535,28 +535,23 @@ def evaluate_js(js_code, _, parse_json=True):
 
 def clear_cookies(_):
     def callback(_removed):
-        # Not returned to the pool here: this function is the upcall through
-        # that proxy. The caller does it once the call has unwound.
         lock.release()
 
     @run_on_ui_thread
     def _clear_cookies():
-        nonlocal value_callback
         try:
-            # Get fresh CookieManager reference to avoid stale Java object references
-            value_callback = _acquire_value_callback(callback)
+            # Deliberately not taken from the pool: on the timeout path below,
+            # clear_cookies() has already returned and could not take it back,
+            # so Java would be left holding a proxy nothing references. Retain
+            # it before the call that hands it over, not after.
+            value_callback = ValueCallback(callback)
+            _retained_proxies.append(value_callback)
             CookieManager.getInstance().removeAllCookies(value_callback)
         except Exception as e:
             logger.error(f'Error clearing cookies: {e}')
-            if value_callback is not None:
-                # The CookieManager may have taken it before throwing, so it
-                # cannot go back into the pool where a later call would rebind it.
-                _retained_proxies.append(value_callback)
-                value_callback = None
             lock.release()
 
     lock = Semaphore(0)
-    value_callback = None
 
     app.view._cookies = []
     _clear_cookies()
@@ -565,15 +560,6 @@ def clear_cookies(_):
     # is what makes a following get_cookies() see the cleared store.
     if not lock.acquire(timeout=5):
         logger.error('Timed out waiting for cookies to be cleared')
-
-        if value_callback is not None:
-            # Android still owns it and may call back later, so it must never
-            # be handed out again.
-            _retained_proxies.append(value_callback)
-            value_callback = None
-
-    if value_callback is not None:
-        _release_value_callback(value_callback)
 
 
 def get_cookies(_):

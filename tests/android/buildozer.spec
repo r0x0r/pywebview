@@ -20,7 +20,7 @@ version = 0.1
 #
 # android and pyjnius are what webview/platforms/android imports. The sdl2
 # bootstrap does not pull them in on its own.
-requirements = python3,android,pyjnius,bottle,proxy_tools,typing_extensions,pytest==9.1.1,iniconfig,pluggy,packaging,pygments,exceptiongroup,tomli
+requirements = python3,android,pyjnius,bottle,proxy_tools,typing_extensions,pytest==9.1.1,pytest-timeout==2.4.0,iniconfig,pluggy,packaging,pygments,exceptiongroup,tomli
 
 orientation = portrait,landscape
 osx.python_version = 3

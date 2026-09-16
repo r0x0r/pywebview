@@ -20,10 +20,7 @@ class LogcatReporter:
     """
 
     def __init__(self):
-        self.passed = 0
-        self.failed = 0
-        self.skipped = 0
-        self.failures = []
+        self.results = {}
 
     @staticmethod
     def _message(report):
@@ -41,29 +38,42 @@ class LogcatReporter:
         return text.replace('\n', ' | ')[:1500]
 
     def pytest_runtest_logreport(self, report):
-        if report.failed:
-            # Any phase, not just call: a fixture that raises or a window that
-            # will not close is a failure with no call phase to report it. One
-            # line per test however many of its phases failed.
-            if report.nodeid in self.failures:
-                return
+        # A test reports up to three times - setup, call, teardown - and any of
+        # them can fail. Fold them into one outcome and print it at teardown,
+        # so a test that passes and then fails to tear down is not counted
+        # twice, and a failed setup is not also reported as a skipped call.
+        result = self.results.setdefault(report.nodeid, {'status': None, 'message': ''})
 
-            self.failed += 1
-            self.failures.append(report.nodeid)
-            print(f'PYWEBVIEW_TEST_RESULT::FAIL::{report.nodeid}::{self._message(report)}')
-        elif report.skipped:
-            # Counted and reported rather than ignored: a skip silently shrinks
-            # a run that is meant to execute in full.
-            self.skipped += 1
-            print(f'PYWEBVIEW_TEST_RESULT::SKIP::{report.nodeid}')
-        elif report.when == 'call' and report.passed:
-            self.passed += 1
-            print(f'PYWEBVIEW_TEST_RESULT::PASS::{report.nodeid}')
+        if report.failed:
+            # Failure wins over an earlier pass, but the first failure's message
+            # is the one that explains the run.
+            if result['status'] != 'FAIL':
+                result['status'] = 'FAIL'
+                result['message'] = self._message(report)
+        elif result['status'] is None:
+            if report.skipped:
+                # Recorded rather than ignored: a skip silently shrinks a run
+                # that is meant to execute in full.
+                result['status'] = 'SKIP'
+            elif report.when == 'call' and report.passed:
+                result['status'] = 'PASS'
+
+        if report.when != 'teardown':
+            return
+
+        status = result['status'] or 'SKIP'
+        line = f'PYWEBVIEW_TEST_RESULT::{status}::{report.nodeid}'
+        print(f'{line}::{result["message"]}' if status == 'FAIL' else line)
 
     def pytest_sessionfinish(self, session, exitstatus):
+        counts = {'PASS': 0, 'FAIL': 0, 'SKIP': 0}
+
+        for result in self.results.values():
+            counts[result['status'] or 'SKIP'] += 1
+
         print(
             f'PYWEBVIEW_TEST_RESULT::DONE::{exitstatus}::'
-            f'{self.passed}::{self.failed}::{self.skipped}'
+            f'{counts["PASS"]}::{counts["FAIL"]}::{counts["SKIP"]}'
         )
 
 
@@ -76,6 +86,12 @@ if __name__ == '__main__':
         '-v',
         '--rootdir',
         '.',
+        # The repository's timeout setting lives in pyproject.toml, which is not
+        # packaged into the APK, so it has to be passed explicitly. The thread
+        # method is required: python-for-android does not run this on the main
+        # thread, and the default signal method needs SIGALRM there.
+        '--timeout=60',
+        '--timeout-method=thread',
         'shared/test_state.py',
         'shared/test_evaluate_js.py',
         'shared/test_js_api.py',

@@ -47,6 +47,10 @@ def test_delete_from_js(window):
     run_test(webview, window, delete_from_js_test)
 
 
+def test_delete_none(window):
+    run_test(webview, window, delete_none_test)
+
+
 def test_event_change(window):
     run_test(webview, window, event_change_test)
 
@@ -148,6 +152,33 @@ def delete_from_js_test(window):
     assert window.evaluate_js('pywebview.state.test === 420')
     window.run_js('delete pywebview.state.test')
     assert 'test' not in window.state
+
+
+def delete_none_test(window):
+    # A stored None used to be indistinguishable from a missing key, so
+    # deleting one raised instead of removing it.
+    window.state.test = None
+    del window.state.test
+    assert 'test' not in window.state
+    assert window.evaluate_js('Object.keys(pywebview.state).length === 0')
+
+    window.state['test'] = None
+    del window.state['test']
+    assert 'test' not in window.state
+
+    try:
+        del window.state.missing
+    except AttributeError:
+        pass
+    else:
+        raise AssertionError('deleting a missing attribute should raise AttributeError')
+
+    try:
+        del window.state['missing']
+    except KeyError:
+        pass
+    else:
+        raise AssertionError('deleting a missing key should raise KeyError')
 
 
 def event_change_test(window):
