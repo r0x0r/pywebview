@@ -365,11 +365,30 @@ public class PyWebViewClient extends WebViewClient {
      * Security Policy on targetSdk >= 28.
      */
     private boolean isInterceptable(String url) {
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        if (url.startsWith("https://")) {
+            return true;
+        }
+
+        if (!url.startsWith("http://")) {
             return false;
         }
 
-        return !(url.startsWith("http://") && (url.contains("127.0.0.1") || url.contains("localhost")));
+        String host;
+
+        try {
+            host = new java.net.URL(url).getHost();
+        } catch (java.net.MalformedURLException e) {
+            return false;
+        }
+
+        // Matched against the host, not the whole URL, which would take
+        // http://example.com/?next=localhost for a loopback request.
+        host = host == null ? "" : host.toLowerCase(java.util.Locale.ROOT);
+
+        return !(host.equals("localhost")
+                || host.equals("127.0.0.1")
+                || host.equals("::1")
+                || host.equals("[::1]"));
     }
 
     private WebResourceResponse performCustomRequest(String url, String method, String headersJson) throws Exception {
