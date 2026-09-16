@@ -1,38 +1,66 @@
-# Android Mocha Test Suite
+# Android PyWebView Demo App
 
-This is the original interactive Mocha/Chai test suite for Android, useful for manual testing
-and debugging the pywebview API bridge, state management, and window lifecycle events.
+An interactive reference application for testing and demonstrating the pywebview API bridge,
+state management, and window lifecycle events on Android.
 
 ## Features
 
-- **JS API Bridge Tests** — Call Python functions from JavaScript and verify return types
-- **State Synchronization Tests** — Verify that `window.pywebview.state` syncs between Python and JS
-- **Window Lifecycle Tests** — Test events like `pywebviewready` and window open/close
-- **Cookie Management** — Verify cookie handling (client-side and server-side)
-- **Python Code Evaluator** — Interactive widget to evaluate Python code live for debugging
+### Main UI
+- **API Bridge Tests** — Interactive buttons to test Python function calls (getInteger, getString, etc.)
+- **State Synchronization** — Read, write, and reset application state that syncs between Python and JS
+- **Window Info** — Display device and window information
+- **Results Display** — Color-coded feedback for success and error states
 
-## Files
+### Developer Tools (⚙️ button)
+- **Test Runner Tab** — Run the full Mocha/Chai test suite with visual results
+  - Covers all API bridge, state, lifecycle, and cookie tests
+  - Auto-runs on app startup
+- **Code Evaluator Tab** — Execute Python code directly from JavaScript
+  - Use Ctrl+Enter to run code quickly
+  - Test arbitrary Python expressions
 
+## Architecture
+
+### Files
 - `main.py` — Python backend with TestAPI and Bottle HTTP server
-- `index.html` — Mocha test runner HTML
+  - Provides test methods (getInteger, getString, getDict, etc.)
+  - Implements eval() for Python code evaluation
+  - Sets up window state and event handlers
+- `index.html` — Modern app UI with developer tools modal
 - `index.js` — Test utilities (state reset, cookie helpers, wait functions)
 - `manifest.xml` — Android manifest configuration
-- `tests/` — Individual test suites:
+- `tests/` — Mocha test suites
   - `test-js-api.js` — API bridge tests
   - `test-state.js` — State synchronization tests
   - `test-events.js` — Window lifecycle event tests
   - `test-window.js` — Window property tests
 
-## Running on Android
+## Usage
 
+### As a Demo App
+1. Run `main.py` in pywebview
+2. Click buttons to demonstrate API features
+3. Watch state sync in real time
+4. Explore window properties
+
+### For Testing on Android
 1. Build with buildozer: `buildozer android debug`
 2. Install and run on device or emulator
-3. The test suite auto-runs when the page loads
-4. View results in the Mocha test output
-5. Use the Python Code Evaluator button to test custom Python code interactively
+3. Tests auto-run when the app loads (results in Developer Tools)
+4. Use the app's buttons to manually verify features
+5. Use Code Evaluator to test custom Python logic
+
+### For Development
+- **Interactive Testing** — Use the app buttons to manually verify each feature
+- **Live Debugging** — Use Code Evaluator to test Python code changes
+- **Automated Tests** — View full Mocha test results in Developer Tools
+- **State Inspection** — Monitor state changes in real time
 
 ## Notes
 
-The pytest suite (`tests/android/`) now covers the same functionality automatically. This Mocha
-suite is preserved as a reference for interactive testing and debugging scenarios where you want
-to manually inspect behavior or try ad-hoc Python code evaluation.
+This app demonstrates the original Mocha/Chai test suite in a real application context. The pytest
+suite (`tests/android/`) provides automated CI testing. This example is ideal for:
+- Manual verification of features on actual Android devices
+- Interactive debugging of the Python↔JavaScript bridge
+- Training and reference for developers learning pywebview
+- Ad-hoc testing of custom Python code
