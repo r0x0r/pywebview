@@ -10,12 +10,14 @@ state management, and window lifecycle events on Android.
 - **State Synchronization** — Read, write, and reset application state that syncs between Python and JS
 - **Window Info** — Display device and window information
 - **Results Display** — Color-coded feedback for success and error states
+- **Status pill** — Shows live pass/fail test counts; tap it to open full test details
 
-### Developer Tools (⚙️ button)
-- **Test Runner Tab** — Run the full Mocha/Chai test suite with visual results
+### Developer Tools (status pill / tests tab)
+- **Tests Tab** — Full Mocha/Chai test suite results
   - Covers all API bridge, state, lifecycle, and cookie tests
-  - Auto-runs on app startup
-- **Code Evaluator Tab** — Execute Python code directly from JavaScript
+  - Runs automatically as soon as the app loads — no manual trigger needed
+  - "Re-run all tests" reloads the app to start a fresh test run
+- **Console Tab** — Execute Python code directly from JavaScript
   - Use Ctrl+Enter to run code quickly
   - Test arbitrary Python expressions
 
@@ -46,9 +48,10 @@ state management, and window lifecycle events on Android.
 ### For Testing on Android
 1. Build with buildozer: `buildozer android debug`
 2. Install and run on device or emulator
-3. Tests auto-run when the app loads (results in Developer Tools)
-4. Use the app's buttons to manually verify features
-5. Use Code Evaluator to test custom Python logic
+3. Tests run automatically on launch — check the status pill in the header
+4. Tap the status pill for full pass/fail details in Developer Tools
+5. Use the app's buttons to manually verify features
+6. Use the Console tab to test custom Python logic
 
 ### For Development
 - **Interactive Testing** — Use the app buttons to manually verify each feature
