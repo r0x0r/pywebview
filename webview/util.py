@@ -101,11 +101,14 @@ def get_app_root() -> str:
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
 
-    if 'pytest' in sys.modules and os.getenv('PYWEBVIEW_TEST'):
-        return os.path.join(os.path.dirname(__file__), '..', 'tests')
-
+    # Before the pytest branch: the suite also runs on-device under pytest,
+    # where there is no sibling tests/ directory and the pytest branch would
+    # return a path that does not exist.
     if hasattr(sys, 'getandroidapilevel'):
         return os.getenv('ANDROID_APP_PATH') or ''
+
+    if 'pytest' in sys.modules and os.getenv('PYWEBVIEW_TEST'):
+        return os.path.join(os.path.dirname(__file__), '..', 'tests')
 
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -375,12 +378,22 @@ def js_bridge_call(
         return
 
     if func_name == 'pywebviewStateUpdate':
-        window.state.__setattr__(param['key'], param['value'], False)
+        try:
+            window.state.__setattr__(param['key'], param['value'], False)
+        except Exception:
+            logger.exception('Error occurred while updating state key %s', param.get('key'))
         return
 
     if func_name == 'pywebviewStateDelete':
         special_key = '__pywebviewHaltUpdate__' + param
-        delattr(window.state, special_key)
+        try:
+            delattr(window.state, special_key)
+        except AttributeError:
+            # The key was already removed on the Python side (e.g. a race with a
+            # concurrent delete or update); nothing left to do on the JS side.
+            pass
+        except Exception:
+            logger.exception('Error occurred while deleting state key %s', param)
         return
 
     func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)

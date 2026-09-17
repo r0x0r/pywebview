@@ -42,6 +42,57 @@ jobs:
       run: |
         python -m compileall -q examples tests
 
+    # webview/lib holds binaries built from interop/, and nothing rebuilds them
+    # automatically - buildozer and the backends consume the committed artifact.
+    # Editing the Java source without rebuilding therefore changes nothing at
+    # runtime, silently, which is easy to do and hard to notice in review.
+    #
+    # It fires for comment-only edits, since those shift the line numbers
+    # compiled into the jar. That is deliberate: Java stack traces in logcat
+    # cite them, and a jar whose line table has drifted from the source sends
+    # you to the wrong line.
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        # Pinned, along with android-31 below, because the check compares the
+        # compiled classes byte for byte.
+        java-version: '17'
+
+    - name: Check the Android jar matches interop/android
+      run: |
+        set -euo pipefail
+
+        platform="$ANDROID_HOME/platforms/android-31/android.jar"
+        if [ ! -f "$platform" ]; then
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-31' > /dev/null
+        fi
+
+        rm -rf /tmp/jar-rebuilt /tmp/jar-committed
+        mkdir -p /tmp/jar-rebuilt /tmp/jar-committed
+
+        javac -g --release 11 -classpath "$platform" -d /tmp/jar-rebuilt \
+          interop/android/lib/src/main/java/com/pywebview/*.java
+
+        unzip -q webview/lib/pywebview-android.jar -d /tmp/jar-committed
+
+        if diff -r /tmp/jar-rebuilt/com /tmp/jar-committed/com; then
+          echo "webview/lib/pywebview-android.jar matches interop/android."
+          exit 0
+        fi
+
+        echo "::error::webview/lib/pywebview-android.jar does not match interop/android."
+        echo "The APK bundles the committed jar, so a Java change has no effect until it is rebuilt:"
+        echo
+        echo "  cd interop/android"
+        echo "  javac -g --release 11 \\"
+        echo "    -classpath \$ANDROID_HOME/platforms/android-31/android.jar \\"
+        echo "    -d /tmp/jar lib/src/main/java/com/pywebview/*.java"
+        echo "  (cd /tmp/jar && jar cf \"\$GITHUB_WORKSPACE/webview/lib/pywebview-android.jar\" com)"
+        echo
+        echo "Built here with $(javac -version 2>&1) against android-31."
+        exit 1
+
   type-check:
     name: Type Check
     runs-on: ubuntu-latest
@@ -310,3 +361,138 @@ jobs:
       run: |
         cd tests
         ./run.ps1
+
+  tests-android:
+    name: Android
+    runs-on: ubuntu-22.04
+    # A cold python-for-android build (SDK + NDK download, then CPython built
+    # from source) does not fit in the 20-30 minutes the other jobs get. This is
+    # per-job, so it does not affect them. GitHub-hosted runners cap at 360.
+    timeout-minutes: 180
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.11'
+
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+
+    - name: Enable KVM for the emulator
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    # One fixed key, deliberately not keyed on buildozer.spec. The expensive and
+    # slow-moving part of this cache is the Android SDK, the NDK and the
+    # cross-built CPython, none of which depend much on the spec; the pip
+    # requirements that do are pure Python and cheap to reinstall into a
+    # restored dist. Keying on the spec instead produced a new ~3GB entry on
+    # every requirements edit, and three of those exhaust the repository's 10GB
+    # cache budget and start evicting the pip caches the other jobs rely on.
+    #
+    # Restore and save are split so the save can be conditional: it runs only
+    # when the build succeeded and the exact key was not already present, so a
+    # broken build cannot claim the key (entries are immutable) and a good one
+    # is written exactly once. Bump the version suffix to force a rebuild of
+    # the toolchain.
+    - name: Restore buildozer global and project build dirs
+      id: buildozer-cache
+      uses: actions/cache/restore@v6
+      with:
+        path: |
+          ~/.buildozer
+          tests/android/.buildozer
+        key: ${{ runner.os }}-buildozer-v1
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+
+    # python-for-android builds CPython and its extension modules from source
+    # on the runner, so it needs a full autotools toolchain. Most of this is
+    # not present on a stock ubuntu-22.04 image.
+    - name: Install build toolchain
+      run: |
+        sudo apt-get update -q --allow-releaseinfo-change
+        sudo apt-get install --no-install-recommends -y \
+          autoconf \
+          automake \
+          libtool \
+          pkg-config \
+          cmake \
+          zlib1g-dev \
+          libncurses-dev \
+          libffi-dev \
+          libssl-dev
+
+    - name: Install buildozer
+      run: |
+        python -m pip install --upgrade pip
+        # buildozer is pinned because this job depends on specifics of its
+        # behaviour: that APP_ANDROID_ARCHS overrides the spec, and that --arch
+        # cannot be passed through to p4a. It depends on pexpect (needed for
+        # android.accept_sdk_license) and pins cython<3.0 itself, so neither
+        # wants naming here.
+        pip install 'buildozer==1.6.0'
+
+    - name: Build APK
+      # Capped below the job budget so a genuinely stuck build still leaves time
+      # for the cache to be saved and the logs to be collected.
+      timeout-minutes: 150
+      env:
+        # Overrides [app] android.archs, which keeps all three ABIs for real
+        # devices. buildozer builds one python-for-android dist per ABI, so
+        # building only the one the emulator uses cuts the build to a third.
+        # (buildozer derives its own --arch flags from the spec, so passing
+        # --arch through to p4a would add a fourth rather than replace them;
+        # this env override is the supported route - see specparser.py's
+        # _override_config_from_envs.)
+        APP_ANDROID_ARCHS: x86_64
+      run: |
+        cd tests/android
+        buildozer -v android debug
+
+    - name: Save buildozer cache
+      if: success() && steps.buildozer-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: |
+          ~/.buildozer
+          tests/android/.buildozer
+        key: ${{ runner.os }}-buildozer-v1
+
+    - name: Run tests on emulator
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 30
+        arch: x86_64
+        target: default
+        disable-animations: true
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        working-directory: tests/android
+        script: ./ci_check.sh
+
+    - name: Publish test results to the run summary
+      if: always()
+      run: cat tests/android/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+
+    - name: Upload logcat
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        # Attempt number in the name: artifacts are immutable per run, so on a
+        # re-run the upload is rejected and downloads silently return the first
+        # attempt's log - which makes re-runs useless for judging a flaky
+        # failure.
+        name: android-logcat-${{ github.run_attempt }}
+        path: |
+          tests/android/logcat.txt
+          tests/android/summary.md
+        if-no-files-found: warn

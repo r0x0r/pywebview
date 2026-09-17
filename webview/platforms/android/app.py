@@ -1,6 +1,5 @@
-from android.runnable import run_on_ui_thread  # noqa
 from android.activity import _activity as act  # noqa
-from webview.platforms.android.base import EventLoop
+from webview.platforms.android.base import EventLoop, run_on_ui_thread
 from webview.platforms.android.event import EventDispatcher
 
 
@@ -10,6 +9,7 @@ class App(EventDispatcher):
 
     def __init__(self, **kwargs):
         App._running_app = self
+        self._stopping = False
         super().__init__(**kwargs)
         self._eventloop = EventLoop()
 
@@ -74,6 +74,12 @@ class App(EventDispatcher):
         act.moveTaskToBack(True)
 
     def stop(self):
-        self.dispatch('on_destroy')
+        # on_destroy tears the view down and the view's teardown calls back
+        # into stop(), so that onActivityDestroyed also closes the event loop.
+        if self._stopping:
+            return
+
+        self._stopping = True
+        self.dispatch('on_destroy', act)
         self._eventloop.close()
         App._running_app = None
