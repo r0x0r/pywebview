@@ -13,6 +13,23 @@ def test_js_bridge():
     run_test(webview, window, js_bridge)
 
 
+def test_js_resource_failure(monkeypatch, tmp_path, caplog):
+    from webview import util
+
+    # A stray resource with an unresolved placeholder used to raise out of the
+    # native navigation callback, aborting Cocoa before the window could close.
+    (tmp_path / 'customize 2.js').write_text('var selectText = %(text_select)s;')
+    monkeypatch.setattr(util, 'get_js_dir', lambda: str(tmp_path))
+    window = webview.create_window('Failed JS injection', html='<html>Test</html>')
+
+    def loaded(window):
+        assert window.events.loaded.is_set()
+        assert not window.events._pywebviewready.is_set()
+
+    run_test(webview, window, loaded)
+    assert 'customize 2.js' in caplog.text
+
+
 def test_exception():
     api = Api()
     window = webview.create_window(

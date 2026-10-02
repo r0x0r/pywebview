@@ -4,6 +4,7 @@
 
 ### 🐞 Bug fixes
 
+- `All` Handle JavaScript resource and initial injection failures without letting exceptions escape native navigation callbacks or leave load waiters blocked. Template errors now identify the failing script; an unsuccessful injection does not mark the bridge ready.
 - `Android` Fix window teardown never destroying the WebView. `destroy()` was missing from the pyjnius declaration of `PyWebViewClient`, so closing a window raised `AttributeError` before reaching `WebView.destroy()`, and every closed window leaked its WebView along with the page it was showing. The error was logged and swallowed, so nothing surfaced.
 - `All` Fix deleting a state value of `None`, which raised `AttributeError`/`KeyError` as though the key did not exist. Deletion reported a missing key by returning `None`, which is indistinguishable from successfully removing a key whose value was `None`; it now reports the miss with a sentinel.
 - `Android` Stop reporting requests the WebView has to serve itself as errors. Schemes that cannot be replayed over HTTP - `data:` in particular, which is what `load_html` uses - logged a Java stack trace on every page load and fired a spurious `response_received` event with a status code of 0. They are now handed back to the WebView silently.

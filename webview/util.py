@@ -261,10 +261,9 @@ def inject_pywebview(platform: str, window: Window) -> None:
         return [{'func': name, 'params': params} for name, params in functions.items()]
 
     def generate_js_object():
-        window.run_js(js_code)
-        logger.debug('_pywebviewready event fired')
-
         try:
+            window.run_js(js_code)
+            logger.debug('_pywebviewready event fired')
             with window._expose_lock:
                 func_list = generate_func()
                 window.run_js(finish_script % {'functions': json.dumps(func_list)})
@@ -277,7 +276,13 @@ def inject_pywebview(platform: str, window: Window) -> None:
 
     window.events.before_load.set()
     logger.debug('before_load event fired. injecting pywebview object')
-    js_code, finish_script = load_js_files(window, platform)
+    try:
+        js_code, finish_script = load_js_files(window, platform)
+    except Exception:
+        # Called from native navigation callbacks: Python exceptions must not escape.
+        logger.exception('Failed to load pywebview JavaScript')
+        window.events.loaded.set()
+        return
     thread = Thread(target=generate_js_object)
     thread.start()
 
@@ -459,7 +464,10 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
             elif name == 'polyfill' and platform != 'mshtml':
                 continue
 
-            js_code += content % params
+            try:
+                js_code += content % params
+            except (KeyError, TypeError, ValueError) as e:
+                raise WebViewException(f'Failed to format JavaScript file {file!r}: {e}') from e
 
     return js_code, finish_script
 
