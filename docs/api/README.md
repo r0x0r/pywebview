@@ -1039,3 +1039,20 @@ With a frameless _pywebview_ window, A window can be moved or dragged by adding 
 The magic class name can be overriden by re-assigning the `webview.settings['DRAG_REGION_SELECTOR']` property.
 
 [Example](/examples/drag_region.html)
+
+On Windows the window manager itself can be switched back on, for the keyboard: with
+`webview.settings['KEEP_FRAME_STYLES'] = True` (default `False`) a frameless window keeps the frame
+styles it would otherwise lose, and the frame is hidden by collapsing the non-client area to zero size
+instead. Nothing is drawn differently, the client rectangle stays equal to the window rectangle, and
+the system manages the window again:
+
+* `Win`+`Left`/`Right` snap to the halves of the work area, `Win`+`Up` maximizes, `Win`+`Down` restores
+* `Win`+`Up` uses the work area, so it does not cover the taskbar. This needs
+  `WM_GETMINMAXINFO` to be handled, which is what the setting does as well - without it a maximized
+  frameless window measures the whole screen (on a 2560x1440 display with a 40px taskbar: 2560x1440
+  instead of 2560x1400)
+* `Alt`+`Space` opens the system menu
+
+See [examples/native_frame_styles.py](https://github.com/r0x0r/pywebview/blob/master/examples/native_frame_styles.py).
+Mouse resizing is still not restored by this - the child window above swallows the hit test - so
+resize borders stay a page concern.
