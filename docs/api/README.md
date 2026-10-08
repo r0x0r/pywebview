@@ -62,7 +62,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 webview.start(func=None, args=None, localization={}, gui=None, debug=False,
               http_server=False, http_port=None, user_agent=None, private_mode=True,
               storage_path=None, menu=[], server=http.BottleServer, ssl=False,
-              server_args={}, icon=None):
+              server_args={}, icon=None, event_loop=None):
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
@@ -82,6 +82,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server. You need to have `cryptography` pip dependency installed in order to use `ssl`. It is not installed by default.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 * `icon` - path to application icon. Generally icon should be specified during bundling, but if you need to set it manually, you can use this parameter. Supported formats are `.ico` on Windows and `.icns` on macOS. On Linux support depends on the desktop environment, but generally `.png` icons are supported.
+* `event_loop` - Optional, already-running asyncio event loop for coroutine results returned by `js_api` methods or `window.expose()` functions. Run the loop in a separate thread before calling `start()`. The application owns its lifecycle: pywebview does not start, stop or close it. Keep it running until `start()` returns, then cancel pending tasks and close the loop. Invalid loops raise `ValueError` at startup; coroutine calls without a running loop reject their Javascript promise. See [the bridge guide](/guide/interdomain.html#async-python-functions).
 
 #### Examples
 

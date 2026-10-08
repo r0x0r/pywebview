@@ -7,6 +7,7 @@ http://github.com/r0x0r/pywebview/
 
 from __future__ import annotations
 
+import asyncio
 import hmac
 import inspect
 import json
@@ -18,6 +19,7 @@ import traceback
 import urllib.parse
 from collections import UserDict
 from collections.abc import Callable
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from glob import glob
 from http.cookies import SimpleCookie
 from platform import architecture
@@ -307,6 +309,31 @@ def js_bridge_call(
     def _call():
         try:
             result = func(*func_params)
+            if asyncio.iscoroutine(result):
+                loop = webview._state['event_loop']
+                if loop is None or loop.is_closed() or not loop.is_running():
+                    result.close()
+                    raise RuntimeError(
+                        'Coroutine JS API calls require a running event_loop '
+                        'passed to webview.start().'
+                    )
+                try:
+                    future = asyncio.run_coroutine_threadsafe(result, loop)
+                except Exception:
+                    result.close()
+                    raise
+                while True:
+                    try:
+                        result = future.result(timeout=0.1)
+                        break
+                    except FutureTimeoutError:
+                        if future.done():
+                            # The coroutine itself may have raised TimeoutError.
+                            result = future.result()
+                            break
+                        if loop.is_closed() or not loop.is_running():
+                            future.cancel()
+                            raise RuntimeError('The JS API event_loop stopped during a call.')
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
             retval = f"{{value: '{result}'}}"
         except Exception as e:
