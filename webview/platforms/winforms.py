@@ -277,6 +277,8 @@ class BrowserView:
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
+                if window.resizable:
+                    win32.enable_custom_frame(hwnd)
 
             if window.menu or _state['menu']:
                 self.set_window_menu(window.menu or _state['menu'])
@@ -378,6 +380,9 @@ class BrowserView:
                 self.browser.webview.Focus()
 
         def on_close(self, *_):
+            if getattr(self, 'frameless', False):
+                win32.disable_custom_frame(self.Handle.ToInt32())
+
             def _shutdown():
                 if is_cef:
                     CEF.shutdown()
@@ -607,6 +612,10 @@ class BrowserView:
                     DwmSetWindowAttribute(self.Handle.ToInt32(), 33, 0)
                     # show window border
                     DwmSetWindowAttribute(self.Handle.ToInt32(), 34, 0xFFFFFFFF)
+
+                    if getattr(self, 'frameless', False) and self.pywebview_window.resizable:
+                        # restoring the border above rewrote the window styles
+                        win32.enable_custom_frame(self.Handle.ToInt32())
 
             if self.InvokeRequired:
                 self.Invoke(Func[Type](_toggle))

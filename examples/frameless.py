@@ -1,10 +1,72 @@
-"""Create a frameless window. The window can be moved around by dragging any point."""
+"""Create a frameless window with a custom title bar.
+
+The title bar is hidden, but the window keeps its native behaviour: it is resized
+from its edges, moved by dragging the marked title, snaps against screen edges and
+maximizes to the work area. Windows only (WinForms / EdgeChromium).
+"""
 
 import webview
 
+HTML = """<html>
+<head>
+<style>
+    html, body { height: 100%; margin: 0; font-family: 'Segoe UI', sans-serif; }
+    .titlebar {
+        display: flex; justify-content: space-between; align-items: center;
+        height: 40px; box-sizing: border-box; background: #2b5797; color: white;
+    }
+    .title { flex: 1; padding: 0 12px; line-height: 40px; user-select: none; }
+    button { border: 0; background: transparent; color: white; font: inherit;
+             height: 40px; width: 44px; cursor: pointer; }
+    button:hover { background: #3c6eb5; }
+    .content { padding: 16px 24px; }
+    li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+    <div class="titlebar">
+        <span class="title pywebview-drag-region">Frameless window</span>
+        <span>
+            <button onclick="pywebview.api.minimize()">&#8722;</button>
+            <button onclick="pywebview.api.maximize()">&#9633;</button>
+            <button onclick="pywebview.api.restore()">&#10697;</button>
+            <button onclick="pywebview.api.close()">&#10005;</button>
+        </span>
+    </div>
+    <div class="content">
+        <p>Try it out:</p>
+        <ul>
+            <li>Drag any edge or corner to resize. The cursor changes on its own.</li>
+            <li>Drag the blue title to the left, right or top of the screen to snap.</li>
+            <li>Drag a snapped window away, or press <em>restore</em> above.</li>
+            <li>Press <em>maximize</em>: the page stops at the taskbar, corners stay round.</li>
+        </ul>
+    </div>
+</body>
+</html>
+"""
+
+
+class Api:
+    def __init__(self):
+        self.window = None
+
+    def minimize(self):
+        self.window.minimize()
+
+    def maximize(self):
+        self.window.maximize()
+
+    def restore(self):
+        self.window.restore()
+
+    def close(self):
+        self.window.destroy()
+
+
 if __name__ == '__main__':
-    # Create a resizable webview window with minimum size constraints
-    webview.create_window(
-        'Frameless window', 'http://pywebview.flowrl.com/hello', frameless=True, easy_drag=True
+    api = Api()
+    api.window = webview.create_window(
+        'Frameless window', html=HTML, frameless=True, easy_drag=False, js_api=api
     )
     webview.start()

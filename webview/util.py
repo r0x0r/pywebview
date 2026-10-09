@@ -450,6 +450,9 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
                         and window.easy_drag
                         and window.frameless
                     ),
+                    'resize_handles': str(
+                        platform == 'edgechromium' and window.frameless and window.resizable
+                    ),
                 }
             elif name == 'state':
                 params = {'state': escape_string(json.dumps(window.state))}

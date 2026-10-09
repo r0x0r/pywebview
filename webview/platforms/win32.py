@@ -14,6 +14,7 @@ _WM_LBUTTONUP = 0x0202
 _WM_NCLBUTTONDOWN = 0x00A1
 _HT_CAPTION = 0x0002
 _WH_MOUSE_LL = 14
+_SWP_NOMOVE = 0x0002
 _SWP_NOSIZE = 0x0001
 _SWP_NOZORDER = 0x0004
 _SWP_NOACTIVATE = 0x0010
@@ -465,6 +466,175 @@ def enable_window_shadow(hwnd: int) -> None:
     """
     extend_frame_into_client_area(hwnd)
     dwm_set_window_attribute(hwnd, 2, 2, 4)  # DWMWA_NCRENDERING_POLICY = DWMNCRP_ENABLED
+
+
+# A separate user32 handle for the custom frame: the argtypes below would
+# otherwise be applied to the process-wide ctypes.windll.user32 cache that the
+# rest of the WinForms code calls into.
+_frame32 = ctypes.WinDLL('user32')
+
+_WM_NCCALCSIZE = 0x0083
+_GWLP_STYLE = -16
+_GWLP_WNDPROC = -4
+_WS_CAPTION = 0x00C00000
+_WS_THICKFRAME = 0x00040000
+_WS_MINIMIZEBOX = 0x00020000
+_WS_MAXIMIZEBOX = 0x00010000
+_WS_SYSMENU = 0x00080000
+_FRAME_STYLES = _WS_CAPTION | _WS_THICKFRAME | _WS_MINIMIZEBOX | _WS_MAXIMIZEBOX | _WS_SYSMENU
+_MONITOR_DEFAULTTONEAREST = 2
+_SWP_FRAMECHANGED = 0x0020
+
+_WindowProcType = ctypes.WINFUNCTYPE(
+    ctypes.c_ssize_t, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM
+)
+
+
+class _NCCALCSIZE_PARAMS(ctypes.Structure):
+    _fields_ = [('rgrc', wintypes.RECT * 3), ('lppos', ctypes.c_void_p)]
+
+
+class _MONITORINFO(ctypes.Structure):
+    _fields_ = [
+        ('cbSize', wintypes.DWORD),
+        ('rcMonitor', wintypes.RECT),
+        ('rcWork', wintypes.RECT),
+        ('dwFlags', wintypes.DWORD),
+    ]
+
+
+if ctypes.sizeof(ctypes.c_void_p) == 8:
+    _get_window_long = _frame32.GetWindowLongPtrW
+    _set_window_long = _frame32.SetWindowLongPtrW
+else:
+    _get_window_long = _frame32.GetWindowLongW
+    _set_window_long = _frame32.SetWindowLongW
+
+_get_window_long.restype = ctypes.c_size_t
+_get_window_long.argtypes = [wintypes.HWND, ctypes.c_int]
+_set_window_long.restype = ctypes.c_size_t
+_set_window_long.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_size_t]
+_frame32.CallWindowProcW.restype = ctypes.c_ssize_t
+_frame32.CallWindowProcW.argtypes = [
+    ctypes.c_void_p,
+    wintypes.HWND,
+    wintypes.UINT,
+    wintypes.WPARAM,
+    wintypes.LPARAM,
+]
+_frame32.MonitorFromWindow.restype = wintypes.HANDLE
+_frame32.MonitorFromWindow.argtypes = [wintypes.HWND, wintypes.DWORD]
+_frame32.GetMonitorInfoW.restype = wintypes.BOOL
+_frame32.GetMonitorInfoW.argtypes = [wintypes.HANDLE, ctypes.c_void_p]
+_frame32.IsZoomed.restype = wintypes.BOOL
+_frame32.IsZoomed.argtypes = [wintypes.HWND]
+_frame32.DefWindowProcW.restype = ctypes.c_ssize_t
+_frame32.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+_frame32.SetWindowPos.argtypes = [
+    wintypes.HWND,
+    wintypes.HWND,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    wintypes.UINT,
+]
+
+# hwnd -> previous window procedure. The callback below is shared by every
+# window and must stay referenced for as long as any of them is installed.
+_custom_frames: dict[int, int] = {}
+
+
+def _maximized_client_area(hwnd: int, lparam: int) -> None:
+    """Pin the client area of a maximized frameless window to the work area."""
+    monitor = _frame32.MonitorFromWindow(hwnd, _MONITOR_DEFAULTTONEAREST)
+    if not monitor:
+        return
+
+    info = _MONITORINFO()
+    info.cbSize = ctypes.sizeof(_MONITORINFO)
+    if not _frame32.GetMonitorInfoW(monitor, ctypes.byref(info)):
+        return
+
+    # A maximized window rect overflows the monitor by the resize border, so the
+    # client area has to be clamped explicitly or it would cover the taskbar.
+    _NCCALCSIZE_PARAMS.from_address(lparam).rgrc[0] = info.rcWork
+
+
+def _frame_wnd_proc(hwnd: int, msg: int, wparam, lparam) -> int:
+    previous = _custom_frames.get(hwnd)
+    if previous is None:  # the frame was taken back down while messages were pending
+        return _frame32.DefWindowProcW(hwnd, msg, wparam, lparam)
+
+    if msg == _WM_NCCALCSIZE and wparam:
+        try:
+            if _frame32.IsZoomed(hwnd):
+                _maximized_client_area(hwnd, lparam)
+            return 0  # no non-client area: the client covers the whole window
+        except Exception:
+            _log.exception('Failed to recalculate the non-client area')
+
+    return _frame32.CallWindowProcW(previous, hwnd, msg, wparam, lparam)
+
+
+_frame_proc_callback = _WindowProcType(_frame_wnd_proc)
+
+
+def enable_custom_frame(hwnd: int) -> bool:
+    """
+    Give a frameless window back the native resize, snap and maximize behaviour.
+
+    WinForms removes the window styles along with the title bar, which is what
+    takes those away. They are restored here and the caption is removed in
+    WM_NCCALCSIZE instead, so the client area covers the whole window while DWM
+    keeps drawing the rounded border and shadow.
+
+    :param hwnd: window handle to take over.
+    """
+    style = _get_window_long(hwnd, _GWLP_STYLE)
+    _set_window_long(hwnd, _GWLP_STYLE, style | _FRAME_STYLES)
+
+    if hwnd in _custom_frames:
+        return True  # already installed; the styles above may have been reset
+
+    previous = _get_window_long(hwnd, _GWLP_WNDPROC)
+    address = ctypes.cast(_frame_proc_callback, ctypes.c_void_p).value
+    if not _set_window_long(hwnd, _GWLP_WNDPROC, address):
+        _log.error('Failed to install the custom frame procedure for hwnd=0x%x', hwnd)
+        return False
+
+    _custom_frames[hwnd] = previous
+    _frame32.SetWindowPos(
+        hwnd, None, 0, 0, 0, 0, _SWP_FRAMECHANGED | _SWP_NOMOVE | _SWP_NOSIZE | _SWP_NOZORDER
+    )
+    return True
+
+
+def disable_custom_frame(hwnd: int) -> None:
+    """Reverse :func:`enable_custom_frame` for a window that is going away."""
+    previous = _custom_frames.get(hwnd)
+    if previous:
+        _set_window_long(hwnd, _GWLP_WNDPROC, previous)
+        _custom_frames.pop(hwnd, None)
+
+
+def start_sizing(hwnd: int, hit_code: int) -> None:
+    """
+    Start the native sizing loop for one of the window edges.
+
+    A frameless window cannot answer WM_NCHITTEST for points over the page: the
+    webview child window receives them first. The page reports the edge under the
+    cursor instead and the loop is started on its behalf.
+
+    :param hwnd: window handle to resize.
+    :param hit_code: HT* code of the edge or corner being dragged.
+    """
+    point = wintypes.POINT()
+    _user32.GetCursorPos(ctypes.byref(point))
+    _user32.ReleaseCapture()
+    lparam = ((point.y & 0xFFFF) << 16) | (point.x & 0xFFFF)
+    _log.debug('Starting the sizing loop for hwnd=0x%x edge=%d', hwnd, hit_code)
+    _user32.PostMessageW(hwnd, _WM_NCLBUTTONDOWN, hit_code, lparam)
 
 
 class _GUID(ctypes.Structure):

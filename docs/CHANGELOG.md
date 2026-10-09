@@ -15,6 +15,7 @@
 
 ### 🚀 Improvements
 
+- `EdgeChromium` Frameless windows are resizable again. `frameless` removed the whole window frame, which took the native resize borders, edge snapping and a taskbar-aware maximize with it. The title bar is now hidden while the window keeps the underlying native frame, so dragging a `pywebview-drag-region` snaps against screen edges, the edges resize the window, and maximizing stops at the work area. Rounded corners and the window shadow are unaffected.
 - `EdgeChromium` Update WebView2 runtime to 1.0.4191.47.
 - `All` Bump minimum Python version to 3.10. Type annotations across the codebase now use PEP 585 / PEP 604 built-in generics and union syntax.
 - `All` Drop the unused `importlib_resources` dependency.

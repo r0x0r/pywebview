@@ -37,7 +37,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `fullscreen` - Start in fullscreen mode. Default is False
 * `min_size` - a (width, height) tuple that specifies a minimum window size in logical pixels. Default is 200x100
 * `hidden` - Create a window hidden by default. Default is False
-* `frameless` - Create a frameless window. Default is False.
+* `frameless` - Create a frameless window. Default is False. On Windows the window keeps its native behaviour: it can be resized from the edges, dragged with [easy_drag](#drag-area) or the `pywebview-drag-region` class, snaps to screen edges and maximizes to the work area. Requires `resizable`.
 * `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/api.html#drag-area) for details.
 * `shadow` - Add window shadow. Default is True. _Windows only_.
 * `focus` - Create a non-focusable window if False. Default is True.
