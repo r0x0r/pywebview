@@ -37,7 +37,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `fullscreen` - Start in fullscreen mode. Default is False
 * `min_size` - a (width, height) tuple that specifies a minimum window size in logical pixels. Default is 200x100
 * `hidden` - Create a window hidden by default. Default is False
-* `frameless` - Create a frameless window. Default is False. On Windows the window keeps its native behaviour: it can be resized from the edges, dragged with [easy_drag](#drag-area) or the `pywebview-drag-region` class, snaps to screen edges and maximizes to the work area. Requires `resizable`.
+* `frameless` - Create a frameless window. Default is False. On Windows the page carries transparent resize handles along the window edges, so a frameless window can still be resized from any edge or corner. Set [KEEP_FRAME_STYLES](#settings) to additionally keep snapping to screen edges and a work-area-aware maximize. Move the window with [easy_drag](#drag-area) or the `pywebview-drag-region` class.
 * `easy_drag` - Easy drag mode for frameless windows. Window can be moved by dragging any point. Default is True. Note that easy_drag has no effect with normal windows. To control dragging on an element basis, see [drag area](/api.html#drag-area) for details.
 * `shadow` - Add window shadow. Default is True. _Windows only_.
 * `focus` - Create a non-focusable window if False. Default is True.
@@ -114,6 +114,7 @@ webview.settings = {
   'REMOTE_DEBUGGING_PORT': None,
   'IGNORE_SSL_ERRORS': False,
   'JS_API_MAX_DEPTH': 10,
+  'KEEP_FRAME_STYLES': False,
   'SHOW_DEFAULT_MENUS': True,
   'WEBVIEW2_RUNTIME_PATH': None
 }
@@ -128,6 +129,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `DEFAULT_HTTP_PORT` Port used for the internal HTTP server when private mode is disabled and no explicit port is given. Default is 42001.
 * `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
 * `JS_API_MAX_DEPTH` Maximum depth of nested `js_api` objects that are walked when exposing functions to Javascript. Guards against runaway recursion into objects whose attributes return a fresh object on every access (e.g. native GUI objects). Default is 10.
+* `KEEP_FRAME_STYLES` On Windows, keep the native window frame styles on a `frameless` window and hide the frame instead of removing it. This restores keyboard window management (`Win`+`Left`/`Right`/`Up`), snapping the window to screen edges by dragging, and maximizing to the work area instead of over the taskbar. It is done by answering `WM_NCCALCSIZE` with an empty non-client area, which also takes the non-client area away from anything else that renders there, so it is opt-in. Disabled by default. _Windows only_.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
 * `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`, `winui3` or `qt`. Disabled by default.

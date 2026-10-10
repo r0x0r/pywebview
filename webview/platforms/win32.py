@@ -473,15 +473,15 @@ def enable_window_shadow(hwnd: int) -> None:
 # rest of the WinForms code calls into.
 _frame32 = ctypes.WinDLL('user32')
 
+_WM_GETMINMAXINFO = 0x0024
 _WM_NCCALCSIZE = 0x0083
 _GWLP_STYLE = -16
 _GWLP_WNDPROC = -4
-_WS_CAPTION = 0x00C00000
 _WS_THICKFRAME = 0x00040000
 _WS_MINIMIZEBOX = 0x00020000
 _WS_MAXIMIZEBOX = 0x00010000
 _WS_SYSMENU = 0x00080000
-_FRAME_STYLES = _WS_CAPTION | _WS_THICKFRAME | _WS_MINIMIZEBOX | _WS_MAXIMIZEBOX | _WS_SYSMENU
+_FRAME_STYLES = _WS_THICKFRAME | _WS_MINIMIZEBOX | _WS_MAXIMIZEBOX | _WS_SYSMENU
 _MONITOR_DEFAULTTONEAREST = 2
 _SWP_FRAMECHANGED = 0x0020
 
@@ -490,8 +490,14 @@ _WindowProcType = ctypes.WINFUNCTYPE(
 )
 
 
-class _NCCALCSIZE_PARAMS(ctypes.Structure):
-    _fields_ = [('rgrc', wintypes.RECT * 3), ('lppos', ctypes.c_void_p)]
+class _MINMAXINFO(ctypes.Structure):
+    _fields_ = [
+        ('ptReserved', wintypes.POINT),
+        ('ptMaxSize', wintypes.POINT),
+        ('ptMaxPosition', wintypes.POINT),
+        ('ptMinTrackSize', wintypes.POINT),
+        ('ptMaxTrackSize', wintypes.POINT),
+    ]
 
 
 class _MONITORINFO(ctypes.Structure):
@@ -526,8 +532,6 @@ _frame32.MonitorFromWindow.restype = wintypes.HANDLE
 _frame32.MonitorFromWindow.argtypes = [wintypes.HWND, wintypes.DWORD]
 _frame32.GetMonitorInfoW.restype = wintypes.BOOL
 _frame32.GetMonitorInfoW.argtypes = [wintypes.HANDLE, ctypes.c_void_p]
-_frame32.IsZoomed.restype = wintypes.BOOL
-_frame32.IsZoomed.argtypes = [wintypes.HWND]
 _frame32.DefWindowProcW.restype = ctypes.c_ssize_t
 _frame32.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
 _frame32.SetWindowPos.argtypes = [
@@ -545,20 +549,34 @@ _frame32.SetWindowPos.argtypes = [
 _custom_frames: dict[int, int] = {}
 
 
-def _maximized_client_area(hwnd: int, lparam: int) -> None:
-    """Pin the client area of a maximized frameless window to the work area."""
+def _monitor_rects(hwnd: int) -> tuple | None:
+    """(rcMonitor, rcWork) of the monitor the window is on, in screen coordinates."""
     monitor = _frame32.MonitorFromWindow(hwnd, _MONITOR_DEFAULTTONEAREST)
     if not monitor:
-        return
+        return None
 
     info = _MONITORINFO()
     info.cbSize = ctypes.sizeof(_MONITORINFO)
     if not _frame32.GetMonitorInfoW(monitor, ctypes.byref(info)):
-        return
+        return None
 
-    # A maximized window rect overflows the monitor by the resize border, so the
-    # client area has to be clamped explicitly or it would cover the taskbar.
-    _NCCALCSIZE_PARAMS.from_address(lparam).rgrc[0] = info.rcWork
+    return info.rcMonitor, info.rcWork
+
+
+def _constrain_maximized(lparam: int, rects: tuple) -> None:
+    """
+    Declare the monitor work area as the window's maximized size and position.
+
+    Without this a maximized frameless window covers the taskbar, and the geometry
+    the shell reads for the maximized state disagrees with what is actually drawn -
+    which is what Win+Up, Win+Left and Aero Shake act on.
+    """
+    monitor, work = rects
+    info = _MINMAXINFO.from_address(lparam)
+    info.ptMaxPosition.x = work.left - monitor.left
+    info.ptMaxPosition.y = work.top - monitor.top
+    info.ptMaxSize.x = work.right - monitor.left
+    info.ptMaxSize.y = work.bottom - monitor.top
 
 
 def _frame_wnd_proc(hwnd: int, msg: int, wparam, lparam) -> int:
@@ -567,12 +585,19 @@ def _frame_wnd_proc(hwnd: int, msg: int, wparam, lparam) -> int:
         return _frame32.DefWindowProcW(hwnd, msg, wparam, lparam)
 
     if msg == _WM_NCCALCSIZE and wparam:
+        return 0  # no non-client area: the client covers the whole window
+
+    if msg == _WM_GETMINMAXINFO:
+        # The default handler fills the structure in, so the override goes on top
+        # of its answer rather than in front of it.
+        result = _frame32.CallWindowProcW(previous, hwnd, msg, wparam, lparam)
         try:
-            if _frame32.IsZoomed(hwnd):
-                _maximized_client_area(hwnd, lparam)
-            return 0  # no non-client area: the client covers the whole window
+            rects = _monitor_rects(hwnd)
+            if rects:
+                _constrain_maximized(lparam, rects)
         except Exception:
-            _log.exception('Failed to recalculate the non-client area')
+            _log.exception('Failed to constrain the maximized size')
+        return result
 
     return _frame32.CallWindowProcW(previous, hwnd, msg, wparam, lparam)
 
@@ -584,26 +609,27 @@ def enable_custom_frame(hwnd: int) -> bool:
     """
     Give a frameless window back the native resize, snap and maximize behaviour.
 
-    WinForms removes the window styles along with the title bar, which is what
-    takes those away. They are restored here and the caption is removed in
-    WM_NCCALCSIZE instead, so the client area covers the whole window while DWM
-    keeps drawing the rounded border and shadow.
+    WinForms removes the window styles along with the title bar, which is what takes
+    those away. They are restored here, and the frame is hidden instead by answering
+    WM_NCCALCSIZE with an empty non-client area, so the client covers the whole
+    window while DWM keeps drawing the rounded border and shadow.
 
     :param hwnd: window handle to take over.
     """
+    if hwnd not in _custom_frames:
+        # The procedure must be in place before the styles change: the frame change
+        # below raises WM_NCCALCSIZE, and a default answer to it draws a system
+        # frame around the client area.
+        previous = _get_window_long(hwnd, _GWLP_WNDPROC)
+        address = ctypes.cast(_frame_proc_callback, ctypes.c_void_p).value
+        if not _set_window_long(hwnd, _GWLP_WNDPROC, address):
+            _log.error('Failed to install the custom frame procedure for hwnd=0x%x', hwnd)
+            return False
+
+        _custom_frames[hwnd] = previous
+
     style = _get_window_long(hwnd, _GWLP_STYLE)
     _set_window_long(hwnd, _GWLP_STYLE, style | _FRAME_STYLES)
-
-    if hwnd in _custom_frames:
-        return True  # already installed; the styles above may have been reset
-
-    previous = _get_window_long(hwnd, _GWLP_WNDPROC)
-    address = ctypes.cast(_frame_proc_callback, ctypes.c_void_p).value
-    if not _set_window_long(hwnd, _GWLP_WNDPROC, address):
-        _log.error('Failed to install the custom frame procedure for hwnd=0x%x', hwnd)
-        return False
-
-    _custom_frames[hwnd] = previous
     _frame32.SetWindowPos(
         hwnd, None, 0, 0, 0, 0, _SWP_FRAMECHANGED | _SWP_NOMOVE | _SWP_NOSIZE | _SWP_NOZORDER
     )

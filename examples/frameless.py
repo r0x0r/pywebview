@@ -1,11 +1,14 @@
 """Create a frameless window with a custom title bar.
 
-The title bar is hidden, but the window keeps its native behaviour: it is resized
-from its edges, moved by dragging the marked title, snaps against screen edges and
-maximizes to the work area. Windows only (WinForms / EdgeChromium).
+The title bar is hidden. The page resize handles come as part of a frameless
+window; KEEP_FRAME_STYLES additionally keeps the native frame styles, which is
+what restores snapping and a work-area-aware maximize. Windows only
+(WinForms / EdgeChromium).
 """
 
 import webview
+
+webview.settings['KEEP_FRAME_STYLES'] = True
 
 HTML = """<html>
 <head>

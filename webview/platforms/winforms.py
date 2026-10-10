@@ -277,7 +277,8 @@ class BrowserView:
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
-                if window.resizable:
+                self.native_frame = bool(settings['KEEP_FRAME_STYLES'])
+                if self.native_frame:
                     win32.enable_custom_frame(hwnd)
 
             if window.menu or _state['menu']:
@@ -380,7 +381,7 @@ class BrowserView:
                 self.browser.webview.Focus()
 
         def on_close(self, *_):
-            if getattr(self, 'frameless', False):
+            if getattr(self, 'native_frame', False):
                 win32.disable_custom_frame(self.Handle.ToInt32())
 
             def _shutdown():
@@ -613,7 +614,7 @@ class BrowserView:
                     # show window border
                     DwmSetWindowAttribute(self.Handle.ToInt32(), 34, 0xFFFFFFFF)
 
-                    if getattr(self, 'frameless', False) and self.pywebview_window.resizable:
+                    if getattr(self, 'native_frame', False):
                         # restoring the border above rewrote the window styles
                         win32.enable_custom_frame(self.Handle.ToInt32())
 

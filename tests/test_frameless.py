@@ -18,12 +18,11 @@ HANDLE_COUNT_JS = (
 )
 
 GWL_STYLE = -16
-WS_CAPTION = 0x00C00000
 WS_THICKFRAME = 0x00040000
 WS_MINIMIZEBOX = 0x00020000
 WS_MAXIMIZEBOX = 0x00010000
 WS_SYSMENU = 0x00080000
-NATIVE_FRAME = WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU
+NATIVE_FRAME = WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU
 
 winforms_only = pytest.mark.skipif(
     sys.platform != 'win32' or os.environ.get('PYWEBVIEW_GUI') not in (None, '', 'winforms'),
@@ -32,7 +31,7 @@ winforms_only = pytest.mark.skipif(
 
 
 def _frame_state(window):
-    """Window styles, client rect and monitor work area, all in physical pixels."""
+    """Window styles, window and client rect, monitor work area. All in physical pixels."""
     from ctypes import wintypes
 
     class Rect(wintypes.RECT):
@@ -48,6 +47,9 @@ def _frame_state(window):
 
     user32 = ctypes.windll.user32
     hwnd = int(window.native.Handle.ToInt32())
+
+    window_rect = Rect()
+    user32.GetWindowRect(hwnd, ctypes.byref(window_rect))
 
     client = Rect()
     user32.GetClientRect(hwnd, ctypes.byref(client))
@@ -66,9 +68,27 @@ def _frame_state(window):
     return SimpleNamespace(
         hwnd=hwnd,
         styles=user32.GetWindowLongW(hwnd, GWL_STYLE) & 0xFFFFFFFF,
+        window=(window_rect.left, window_rect.top, window_rect.right, window_rect.bottom),
         client=(corners[0].x, corners[0].y, corners[1].x, corners[1].y),
         work_area=(info.rcWork.left, info.rcWork.top, info.rcWork.right, info.rcWork.bottom),
     )
+
+
+@pytest.fixture
+def keep_frame_styles():
+    """
+    Turn the setting on for one test, on the dictionary the backend reads.
+
+    conftest.py reloads webview between tests, which replaces webview.settings,
+    while the already imported platform module keeps its original binding. The
+    value is restored afterwards so it cannot leak into the next test.
+    """
+    from webview.platforms import winforms
+
+    previous = winforms.settings['KEEP_FRAME_STYLES']
+    winforms.settings['KEEP_FRAME_STYLES'] = True
+    yield
+    winforms.settings['KEEP_FRAME_STYLES'] = previous
 
 
 @winforms_only
@@ -78,10 +98,28 @@ def test_frameless():
 
 
 @winforms_only
-def test_custom_frame_restores_the_native_window_styles():
+def test_custom_frame_is_off_by_default():
     """
-    Hiding the title bar must not take the native frame with it: without these
-    styles the window cannot be resized from its edges nor snapped to screen edges.
+    Swallowing WM_NCCALCSIZE takes the non-client area away from anything else that
+    renders there, so the frame is restored only when it is asked for.
+    """
+    window = webview.create_window('Frameless test', html=HTML, frameless=True)
+
+    def thread_func(_window):
+        from webview.platforms import win32
+
+        state = _frame_state(window)
+        assert state.hwnd not in win32._custom_frames, 'the window procedure was subclassed'
+        assert not state.styles & WS_THICKFRAME, 'the resize border was restored unprompted'
+
+    run_test(webview, window, thread_func)
+
+
+@winforms_only
+def test_custom_frame_restores_the_native_window_styles(keep_frame_styles):
+    """
+    Without these styles the window is not managed as a window: it cannot be snapped
+    to a screen edge by keyboard or by dragging, and it maximizes over the taskbar.
     """
     window = webview.create_window('Frameless test', html=HTML, frameless=True)
 
@@ -97,10 +135,11 @@ def test_custom_frame_restores_the_native_window_styles():
 
 
 @winforms_only
-def test_maximized_client_area_stops_at_the_work_area():
+def test_maximized_window_matches_the_work_area(keep_frame_styles):
     """
-    A maximized window rect overflows the monitor by the resize border, so the
-    client area has to be clamped explicitly or it would cover the taskbar.
+    WM_GETMINMAXINFO declares the maximized geometry that the shell acts on. A window
+    that only looks maximized - client clamped, window rect still overflowing the
+    monitor by the resize border - disagrees with Win+Up, Win+Left and Aero Shake.
     """
     window = webview.create_window('Frameless test', html=HTML, frameless=True)
 
@@ -110,6 +149,9 @@ def test_maximized_client_area_stops_at_the_work_area():
         time.sleep(0.5)  # let DWM settle the maximized bounds
 
         state = _frame_state(window)
+        assert state.window == state.work_area, (
+            f'maximized window rect {state.window} does not match the work area {state.work_area}'
+        )
         assert state.client == state.work_area, (
             f'maximized client {state.client} does not match the work area {state.work_area}'
         )
@@ -122,7 +164,7 @@ def test_maximized_client_area_stops_at_the_work_area():
 
 
 @winforms_only
-def test_custom_frame_survives_a_fullscreen_toggle():
+def test_custom_frame_survives_a_fullscreen_toggle(keep_frame_styles):
     """
     Leaving fullscreen assigns FormBorderStyle back, which rewrites the window
     styles the custom frame had restored.
