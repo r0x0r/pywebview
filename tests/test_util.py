@@ -1,8 +1,11 @@
 import threading
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
+from webview import util
+from webview.errors import WebViewException
 from webview.util import (
     _TOKEN,
     create_cookie,
@@ -10,6 +13,66 @@ from webview.util import (
     js_bridge_call,
     parse_file_type,
 )
+
+
+@pytest.mark.parametrize('error', [FileNotFoundError('missing JS'), ValueError('invalid JS')])
+def test_injection_resource_failure_does_not_escape_native_callback(monkeypatch, caplog, error):
+    window = SimpleNamespace(
+        events=SimpleNamespace(
+            before_load=threading.Event(),
+            loaded=threading.Event(),
+            _pywebviewready=threading.Event(),
+        ),
+        run_js=Mock(),
+    )
+    monkeypatch.setattr(util, 'load_js_files', Mock(side_effect=error))
+    thread = Mock()
+    monkeypatch.setattr(util, 'Thread', thread)
+
+    util.inject_pywebview('cocoa', window)
+
+    assert window.events.before_load.is_set()
+    assert window.events.loaded.is_set()
+    assert not window.events._pywebviewready.is_set()
+    window.run_js.assert_not_called()
+    thread.assert_not_called()
+    assert 'Failed to load pywebview JavaScript' in caplog.text
+
+
+@pytest.mark.parametrize('fail_on', [1, 2, None])
+def test_injection_failure_releases_loaded_without_claiming_bridge_ready(monkeypatch, fail_on):
+    window = SimpleNamespace(
+        events=SimpleNamespace(
+            before_load=threading.Event(),
+            loaded=threading.Event(),
+            _pywebviewready=threading.Event(),
+        ),
+        _expose_lock=threading.Lock(),
+        _js_api=None,
+        _functions={},
+        run_js=Mock(
+            side_effect=[
+                RuntimeError('initial injection failed') if fail_on == 1 else None,
+                RuntimeError('API injection failed') if fail_on == 2 else None,
+            ]
+        ),
+    )
+    monkeypatch.setattr(util, 'load_js_files', lambda *args: ('initial JS', '%(functions)s'))
+    util.inject_pywebview('cocoa', window)
+
+    assert window.events.loaded.wait(2)
+    assert window.events._pywebviewready.is_set() == (fail_on is None)
+    assert window.run_js.call_count == (1 if fail_on == 1 else 2)
+
+
+def test_invalid_js_template_identifies_the_resource(tmp_path, monkeypatch):
+    script = tmp_path / 'customize 2.js'
+    script.write_text('var selectText = %(text_select)s;', encoding='utf-8')
+    monkeypatch.setattr(util, 'get_js_dir', lambda: str(tmp_path))
+
+    with pytest.raises(WebViewException, match='customize 2.js') as caught:
+        util.load_js_files(SimpleNamespace(), 'cocoa')
+    assert isinstance(caught.value.__cause__, KeyError)
 
 
 class TestParseFileType:
