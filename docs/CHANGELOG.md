@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### ⚡ Features
+
+- `All` New `webview.settings['SNAP_ON_DRAG']` (default `False`) snaps a frameless window to the edges of the work area when a drag region is released near one - the left/right half, the whole work area when released at the top, or a quarter when released in a corner. `SNAP_TRIGGER` (default 12) is how close, in pixels, counts. The zone maths live in `webview/snapping.py` so they can be unit tested. On Windows the page has to move the window itself while this is on, because the native move loop swallows the mouse-up that decides the zone. Thanks @YorickFin. [#1855](https://github.com/r0x0r/pywebview/issues/1855)
+- `Winforms` New `webview.settings['SNAP_PREVIEW']` (default `True`, inert unless `SNAP_ON_DRAG` is on) shows a translucent, click-through preview of where a dragged frameless window will land. It is a layered window of its own: page content is clipped to its window and the target area is usually outside it. Windows only; other platforms can draw their own hint. Thanks @YorickFin. [#1855](https://github.com/r0x0r/pywebview/issues/1855)
+
 ### 🐞 Bug fixes
 
 - `Android` Fix window teardown never destroying the WebView. `destroy()` was missing from the pyjnius declaration of `PyWebViewClient`, so closing a window raised `AttributeError` before reaching `WebView.destroy()`, and every closed window leaked its WebView along with the page it was showing. The error was logged and swallowed, so nothing surfaced.

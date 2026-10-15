@@ -40,16 +40,79 @@
     function disableTouchEvents() {
         var initialX = 0;
         var initialY = 0;
+        var snapOnDrag = '%(snap_on_drag)s' === 'True';
+        var snapPreview = snapOnDrag && '%(snap_preview)s' === 'True';
+        var lastZone = null;
 
         function onMouseMove(ev) {
             var x = ev.screenX - initialX;
             var y = ev.screenY - initialY;
             window.pywebview._jsApiCallback('pywebviewMoveWindow', [x, y], 'move');
+
+            if (snapPreview) {
+                var zone = snapZoneAt(ev.screenX, ev.screenY);
+                if (zone !== lastZone) {
+                    lastZone = zone;
+                    reportZone(zone);
+                }
+            }
         }
 
-        function onMouseUp() {
+        // The work area (screen minus taskbar/dock) of the screen the cursor is on. Chromium reports
+        // it per screen through avail*, which is exactly what the snap zones are relative to.
+        function workArea() {
+            var s = window.screen;
+            var left = typeof s.availLeft === 'number' ? s.availLeft : 0;
+            var top = typeof s.availTop === 'number' ? s.availTop : 0;
+            return { l: left, t: top, w: s.availWidth || s.width, h: s.availHeight || s.height };
+        }
+
+        // Python turns the zone plus work area into a rectangle: the preview overlay while dragging,
+        // and the window geometry on release.
+        function reportZone(zone) {
+            var a = workArea();
+            window.pywebview._jsApiCallback(
+                'pywebviewSnapPreview', [zone, {l: a.l, t: a.t, w: a.w, h: a.h}], 'snapPreview'
+            );
+        }
+
+        function snapZoneAt(x, y) {
+            var a = workArea();
+            var trigger = Number('%(snap_trigger)s');
+            var left = x <= a.l + trigger;
+            var right = x >= a.l + a.w - 1 - trigger;
+            var top = y <= a.t + trigger;
+            var bottom = y >= a.t + a.h - 1 - trigger;
+
+            if (top && left) return 'tl';
+            if (top && right) return 'tr';
+            if (bottom && left) return 'bl';
+            if (bottom && right) return 'br';
+            if (top) return 'max';
+            if (left) return 'left';
+            if (right) return 'right';
+            return null;
+        }
+
+        function onMouseUp(ev) {
             window.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('mouseup', onMouseUp);
+
+            if (!snapOnDrag || !ev || typeof ev.screenX !== 'number') {
+                return;
+            }
+
+            var zone = snapZoneAt(ev.screenX, ev.screenY);
+            if (zone) {
+                var a = workArea();
+                window.pywebview._jsApiCallback(
+                    'pywebviewSnapWindow', [zone, {l: a.l, t: a.t, w: a.w, h: a.h}], 'snap'
+                );
+            }
+            if (snapPreview) {
+                lastZone = null;
+                reportZone(null);
+            }
         }
 
         function onMouseDown(ev) {
@@ -60,7 +123,10 @@
                 return
             }
 
-            if (platform === 'edgechromium' || platform === 'winui3') {
+            // With snapping enabled the drag has to stay in JS: the native move loop started by
+            // pywebviewStartDrag swallows the mouse, so the page would never see the mouseup that
+            // decides the snap zone (and on Windows that loop does not snap by itself either).
+            if (!snapOnDrag && (platform === 'edgechromium' || platform === 'winui3')) {
                 window.pywebview._jsApiCallback('pywebviewStartDrag', [], 'drag');
                 return;
             }
