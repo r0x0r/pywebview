@@ -556,6 +556,9 @@ def evaluate_js(js_code, _, parse_json=True):
                 'Use run_js() if you do not need the result.',
             )
         _evaluate_js()
+        if value_callback is not None:
+            # Java may still call it, so it must outlive this call.
+            _retained_proxies.append(value_callback)
         return None
 
     _evaluate_js()
