@@ -114,12 +114,7 @@ def get_app_root() -> str:
 
 
 def reentrant_call_error(api_name: str, reason: str) -> ReentrantCallError:
-    """
-    Build the error raised when `api_name` is called from the GUI thread itself.
-
-    `reason` says what specifically cannot be delivered, so the message names
-    the real constraint rather than just "deadlock". See `ReentrantCallError`.
-    """
+    """Build the error raised when `api_name` is called from the GUI thread itself."""
     return ReentrantCallError(
         f'{api_name}() cannot be called from the GUI thread. {reason} '
         'The GUI thread runs the closing, before_show and before_load '

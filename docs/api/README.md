@@ -909,13 +909,13 @@ Window object exposes various lifecycle and window management events. To subscri
 
 #### Calling pywebview from a blocking handler
 
-The blocking events - `closing`, `before_show` and `before_load` - run their handlers *on the GUI thread*, as does `request_sent` on some backends. Anything a handler asks of pywebview therefore has to be answered by the very thread that is asking, so the rules differ from a normal background-thread handler. `initialized` is also synchronous, but not necessarily on the GUI thread: it runs on whichever thread creates the window (the main thread for windows created before `start()`, or the caller's own thread for a window created dynamically afterwards), before the backend has created the native window at all. None of the calls below have anything to act on yet at that point, regardless of which thread is asking - calling any of them from an `initialized` handler is not supported.
+The blocking events `closing`, `before_show` and `before_load` (and `request_sent` on some backends) run their handlers on the GUI thread, so any API a handler calls has to be answered by that same thread. `initialized` fires before the native window exists, so calling these APIs from it is not supported.
 
-- APIs backed by a synchronous native call run inline and return as usual. On every backend that covers `window.width`, `window.height`, `window.x`, `window.y`, `window.get_current_url()`, `window.run_js()` and `window.state` updates.
-- APIs whose result is produced asynchronously cannot be delivered while the handler holds the GUI thread. Rather than block forever, these raise `webview.errors.ReentrantCallError` (a subclass of `RuntimeError`) on the affected backends: `window.evaluate_js()` on Cocoa, GTK, WinForms/EdgeChromium, WinUI3, Android and Qt when using QtWebEngine; and `window.get_cookies()` on Cocoa, GTK, WinForms/EdgeChromium, WinUI3 and Android. QtWebKit's script evaluation is synchronous and returns its result inline instead of raising, as do CEF (its JS results arrive on a dedicated CEF thread, not the GUI thread) and MSHTML (`InvokeScript` is synchronous). `window.get_cookies()` likewise returns inline on Qt (both QtWebEngine and QtWebKit, answered from its own cookie cache), CEF (delivered by its dedicated CEF thread) and MSHTML (the WinForms "unsupported" path, which returns `[]` without touching the GUI thread).
-- Dialogs depend on the backend. `window.create_confirmation_dialog()` and `window.create_file_dialog()` run inline on Cocoa, GTK, Qt and WinForms, whose native dialogs pump their own modal loop. WinUI3's ContentDialog/WinRT file pickers are asynchronous and raise `ReentrantCallError`; its synchronous Win32 fallback used when an initial directory or multiple folders are requested runs inline instead.
+- Synchronous APIs run inline and return as usual: `window.width`, `window.height`, `window.x`, `window.y`, `window.get_current_url()`, `window.run_js()` and `window.state` updates.
+- APIs whose result is delivered asynchronously raise `webview.errors.ReentrantCallError` (a subclass of `RuntimeError`) instead of blocking: `window.evaluate_js()` on Cocoa, GTK, EdgeChromium, WinUI3, Android and QtWebEngine, and `window.get_cookies()` on Cocoa, GTK, EdgeChromium, WinUI3 and Android. Other renderers answer these inline.
+- `window.create_confirmation_dialog()` and `window.create_file_dialog()` run inline on Cocoa, GTK, Qt and WinForms. WinUI3's asynchronous dialogs raise `ReentrantCallError`.
 
-To use one of the latter from a blocking handler, do the work on another thread:
+To call one of the latter, use another thread. The handler does not wait for the thread, so its result cannot be used to veto the event.
 
 ``` python
 import threading
@@ -925,8 +925,6 @@ def on_before_load():
 
 window.events.before_load += on_before_load
 ```
-
-Note that the handler returns immediately in that case - it does not wait for the thread - so this is not a way to make a decision (such as vetoing the close) based on the result. Doing this from `closing` specifically is not safe even on another thread: the window (and its webview) may already be torn down by the time the thread runs, so prefer a non-destructive event such as `before_load`, or coordinate the thread's lifetime with the window's explicitly.
 
 ### window.events.before_show
 

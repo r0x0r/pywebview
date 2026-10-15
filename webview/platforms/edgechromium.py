@@ -98,19 +98,9 @@ class WinFormsEdgeChrome(WebView2Core):
         self.webview.EnsureCoreWebView2Async(None)
 
     def evaluate_js(self, script: str, parse_json: bool):
-        # InvokeRequired is False on a control whose handle does not exist yet,
-        # whatever thread asks, so it only means "on the UI thread" alongside
-        # IsHandleCreated.
+        # InvokeRequired is False on a handle-less control from any thread
         if self.webview.IsHandleCreated and not self.webview.InvokeRequired:
-            # Already on the WinForms UI thread (e.g. a closing handler). Invoke()
-            # would run inline, but ExecuteScriptAsync()'s continuation is posted
-            # back to this same thread's synchronization context, so the
-            # acquire() below would stop the result from ever arriving.
-            # Window.evaluate_js() (parse_json=True) owes the caller that result
-            # -- raise *before* starting the script, so a caller that catches
-            # this and retries doesn't run a script with side effects twice.
-            # Window.run_js() (parse_json=False) is fire-and-forget by contract,
-            # so starting the script and returning is correct.
+            # The result continuation is posted back to this same, blocked UI thread.
             if parse_json:
                 raise reentrant_call_error(
                     'evaluate_js',

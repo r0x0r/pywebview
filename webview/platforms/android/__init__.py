@@ -61,16 +61,7 @@ Looper = autoclass('android.os.Looper')
 
 
 def _is_ui_thread() -> bool:
-    """
-    True when the caller is already running on Android's UI thread.
-
-    `run_on_ui_thread()` posts to `Activity.runOnUiThread()`, which per the
-    Android docs runs the action *immediately* if the caller is already the UI
-    thread, rather than queuing it -- so a handler dispatched synchronously on
-    the UI thread (a `closing`/`before_load`/`initialized` handler, a WebView
-    callback) that calls back into pywebview *is* the UI thread for the
-    duration of that call.
-    """
+    """True when the caller is already running on Android's UI thread."""
     return Looper.getMainLooper().equals(Looper.myLooper())
 
 
@@ -541,14 +532,7 @@ def evaluate_js(js_code, _, parse_json=True):
     value_callback = None
 
     if _is_ui_thread():
-        # Already on the UI thread (e.g. a closing/before_load/initialized
-        # handler, or a WebView callback firing synchronously). run_on_ui_thread
-        # runs `_evaluate_js` inline in that case, but its result only arrives
-        # later via `callback`, posted back to this same, now-blocked thread --
-        # the acquire() below would deadlock it forever. Window.evaluate_js()
-        # (parse_json=True) needs that result, so it has to raise. Window.run_js()
-        # (parse_json=False) is documented as fire-and-forget, so it is safe to
-        # start the script and return without waiting for it.
+        # The result is delivered later on this same thread, so it cannot be awaited here.
         if parse_json:
             raise reentrant_call_error(
                 'evaluate_js',
@@ -601,11 +585,6 @@ def clear_cookies(_):
 
 def get_cookies(_):
     if _is_ui_thread():
-        # evaluate_js('document.cookie', ...) below would otherwise silently
-        # return None on the UI thread (parse_json=False takes the
-        # fire-and-forget path meant for run_js()), producing a confusing
-        # AttributeError on cookie_string.split() rather than reporting the
-        # real constraint.
         raise reentrant_call_error(
             'get_cookies',
             'The cookie value is only delivered later, by the UI thread.',

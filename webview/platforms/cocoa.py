@@ -42,15 +42,8 @@ def _is_ui_thread() -> bool:
 
 def _call_on_ui_thread(func, *args):
     """
-    Run `func` on the AppKit main thread and return its result.
-
-    When the caller is already on the main thread the call runs inline:
-    dispatching via `AppHelper.callAfter()` and then blocking on a semaphore
-    would park the very runloop that has to run the callback, deadlocking
-    permanently. `func` must be *synchronous* -- it has to produce its result
-    before returning, not from a completion handler delivered later. Anything
-    asynchronous cannot be satisfied on this thread at all; those call sites
-    raise `ReentrantCallError` instead.
+    Run synchronous `func` on the AppKit main thread and return its result. Runs inline
+    when already on the main thread, where dispatching and waiting would deadlock.
     """
     if _is_ui_thread():
         return func(*args)
@@ -939,11 +932,7 @@ class BrowserView:
 
     def get_cookies(self):
         if _is_ui_thread():
-            # getAllCookies_ delivers its result through a completion handler
-            # posted back to this same runloop, which the acquire() below would
-            # stop from ever running. Raise rather than deadlock -- and rather
-            # than return [], which reads as "no cookies" instead of
-            # "unavailable from here".
+            # The completion handler would run on this same, blocked runloop.
             raise reentrant_call_error(
                 'get_cookies',
                 'The cookie store answers asynchronously on the GUI thread.',
@@ -979,8 +968,6 @@ class BrowserView:
         return _cookies
 
     def get_current_url(self):
-        # Reading webview.URL() is synchronous, so this is safe to run inline
-        # when the caller is already the main thread (e.g. a closing handler).
         url = _call_on_ui_thread(lambda: str(self.webview.URL()))
         return None if url == 'about:blank' else url
 
@@ -1021,14 +1008,7 @@ class BrowserView:
             result_semaphore = Semaphore(0)
 
         if _is_ui_thread():
-            # evaluateJavaScript_completionHandler_ delivers its result from a
-            # completion handler on this same runloop, so the acquire() below
-            # would park the thread that has to run it. Window.evaluate_js()
-            # (parse_json=True) needs that result -- raise *before* starting the
-            # script, so a caller that catches this and retries doesn't run a
-            # script with side effects twice. Window.run_js() (parse_json=False)
-            # is fire-and-forget by contract, so it can start the script inline
-            # and return.
+            # The completion handler would run on this same, blocked runloop.
             if parse_json:
                 raise reentrant_call_error(
                     'evaluate_js',
@@ -1568,8 +1548,7 @@ def create_confirmation_dialog(title, message, uid):
 
         return BrowserView.display_confirmation_dialog(ok, cancel, message)
 
-    # NSAlert.runModal() pumps its own modal runloop and returns the answer
-    # before it returns, so this is safe to run inline on the main thread.
+    # runModal() pumps its own runloop, so this is safe to run inline.
     return _call_on_ui_thread(_confirm)
 
 
@@ -1583,9 +1562,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         file_filter.append([description, file_extensions or []])
 
     i = BrowserView.instances.get(uid)
-    # NSOpenPanel/NSSavePanel.runModal() pumps its own modal runloop, so when the
-    # caller is already the main thread the existing main_thread path runs the
-    # panel inline rather than posting it to a runloop it has itself blocked.
+    # runModal() pumps its own runloop, so this is safe to run inline.
     return i.create_file_dialog(
         dialog_type,
         directory,
@@ -1708,8 +1685,6 @@ def get_position(uid):
     if not i:
         return None, None
 
-    # Reading the window frame is synchronous, so _call_on_ui_thread() runs it
-    # inline when the caller is already the main thread instead of deadlocking.
     return _call_on_ui_thread(_position)
 
 

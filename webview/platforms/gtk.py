@@ -33,29 +33,16 @@ def _is_ui_thread() -> bool:
 
 
 def _raise_if_reentrant(api_name: str, reason: str) -> None:
-    """
-    Guard an API whose result is produced *asynchronously* against being called
-    from the GTK main thread itself (e.g. a synchronous `closing`/`before_load`
-    or `request_sent` handler). The result is delivered by an idle callback that
-    can only run once this same thread returns to the main loop, so blocking on
-    the semaphore would deadlock permanently. Raises instead of hanging.
-
-    APIs whose work is synchronous don't need this -- they use
-    `_call_on_ui_thread()`, which just runs them inline.
-    """
+    """Raise instead of deadlocking when an asynchronous API is called from the GTK main
+    thread, which has to deliver its result."""
     if _is_ui_thread():
         raise reentrant_call_error(api_name, reason)
 
 
 def _call_on_ui_thread(func, *args):
     """
-    Run `func` on the GTK main thread and return its result.
-
-    When the caller is already on the main thread the call runs inline:
-    scheduling via `glib.idle_add()` and then blocking on a semaphore would park
-    the very main loop that has to run the callback. `func` must be
-    *synchronous* -- it has to produce its result before returning, not from a
-    callback delivered later.
+    Run synchronous `func` on the GTK main thread and return its result. Runs inline
+    when already on the main thread, where dispatching and waiting would deadlock.
     """
     if _is_ui_thread():
         return func(*args)
@@ -1027,8 +1014,7 @@ def create_confirmation_dialog(title, message, uid):
     if not i:
         return -1
 
-    # gtk.Dialog.run() pumps its own nested main loop, so it produces the answer
-    # before returning and is safe to run inline on the GTK main thread.
+    # Dialog.run() pumps its own main loop, so this is safe to run inline.
     return _call_on_ui_thread(i.create_confirmation_dialog, title, message)
 
 
@@ -1105,7 +1091,6 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
     i = BrowserView.instances.get(uid)
 
-    # As above: the chooser's run() pumps its own loop, so inline is safe.
     return _call_on_ui_thread(_create)
 
 

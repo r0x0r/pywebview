@@ -482,15 +482,9 @@ class BrowserView:
                 logger.error('get_cookies() is not implemented for this platform')
                 return cookies
 
-            # InvokeRequired alone is False on a handle-less control from any
-            # thread; IsHandleCreated makes this mean "on the UI thread".
+            # InvokeRequired is False on a handle-less control from any thread
             if self.IsHandleCreated and not self.InvokeRequired:
-                # Already on the WinForms UI thread (e.g. a closing handler).
-                # GetCookiesAsync()'s continuation is posted back to this same
-                # thread's synchronization context, so the acquire() below would
-                # stop the result from ever arriving. Raise rather than deadlock
-                # -- and rather than return [], which reads as "no cookies"
-                # instead of "unavailable from here".
+                # The result continuation is posted back to this same, blocked UI thread.
                 raise reentrant_call_error(
                     'get_cookies',
                     'The cookie manager answers asynchronously on the GUI thread.',

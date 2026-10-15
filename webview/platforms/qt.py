@@ -53,15 +53,8 @@ logger.debug(f'Using Qt {QtCore.__version__}')
 
 
 def _is_ui_thread() -> bool:
-    """True when the caller is already running on the Qt GUI thread.
-
-    Most of this backend reaches the GUI thread by emitting a signal. Qt's
-    default AutoConnection resolves to a *direct* connection when emitter and
-    receiver share a thread, so those emits already run their slot inline and
-    hand back the result before returning -- dialogs and get_current_url are
-    safe from the GUI thread for that reason. The exception is a slot that only
-    *starts* asynchronous work (evaluate_js), which needs this check.
-    """
+    """True when the caller is already running on the Qt GUI thread. Signals emitted from
+    it run their slot inline, so only asynchronous slots need this check."""
     app = QApplication.instance()
     return app is not None and QtCore.QThread.currentThread() is app.thread()
 
@@ -720,8 +713,7 @@ class BrowserView(QMainWindow):
 
             js_result = self._js_results.get(uuid_)
             if js_result is None:
-                # The caller gave up on this result (see evaluate_js()'s
-                # GUI-thread path) and reclaimed the slot. Nothing to deliver.
+                # evaluate_js() was called from the GUI thread and didn't wait.
                 return
 
             if js_result['parse_json'] and result:
@@ -871,21 +863,8 @@ class BrowserView(QMainWindow):
         }
 
         if _is_ui_thread():
-            # QtWebKit's evaluateJavaScript() is synchronous: Qt's direct
-            # connection runs on_evaluate_js() inline within emit() below, so
-            # the result is already in place by the time we check the
-            # semaphore. QtWebEngine's runJavaScript() only *starts* the
-            # script and delivers the result later through the event loop
-            # that this thread would be blocking, so nothing can ever arrive
-            # here -- and since Window.evaluate_js() (parse_json=True) owes
-            # the caller a result it cannot get, raise before emit() schedules
-            # a script whose side effects the caller cannot know ran, rather
-            # than after: emitting first and raising second would let a
-            # caller that (reasonably, having seen the exception) retries
-            # from another thread run a side-effecting script twice.
-            # Window.run_js() (parse_json=False) is fire-and-forget by
-            # contract, so it still emits and returns None below regardless
-            # of which web engine is in use.
+            # QtWebKit evaluates synchronously within emit(). QtWebEngine delivers the
+            # result later through this blocked event loop, so raise before running it.
             if is_webengine and parse_json:
                 del self._js_results[unique_id]
                 raise reentrant_call_error(
