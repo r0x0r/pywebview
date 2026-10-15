@@ -459,6 +459,19 @@ class BrowserView:
                     except Foundation.NSError as moveError:
                         logger.exception(moveError)
 
+        # A committed navigation -- a reload, a new URL -- replaces the page
+        # but not the web view, whose dragged types the old page may have
+        # registered (native drag-and-drop: it had a drop handler). The hook
+        # takes them off before the new page can reach the JS API, so a page
+        # that installs no handler takes no drops; one that does registers
+        # again. At commit, not at a provisional start: a navigation that
+        # fails or becomes a download leaves the old page in place. See
+        # ``macguffin/native_drag.py``.
+        def webView_didCommitNavigation_(self, webview, nav):
+            cb = webview._native_drag_callback('on_navigation_committed')
+            if cb is not None:
+                cb(webview)
+
         # Show the webview when it finishes loading
         def webView_didFinishNavigation_(self, webview, nav):
             # Add the webview to the window if it's not yet the contentView
