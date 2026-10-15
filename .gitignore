@@ -32,3 +32,5 @@ docs/examples
 gradle*
 .pypirc
 .env
+tests/android/logcat.txt
+tests/android/summary.md
