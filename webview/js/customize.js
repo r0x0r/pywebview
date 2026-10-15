@@ -124,5 +124,58 @@
         }
     }
 
+    function setupResizeHandles() {
+        if ('%(resize_handles)s' !== 'True') {
+            return;
+        }
+
+        // A frameless window cannot hit-test its own edges: the points over the page
+        // reach the webview child window first. Transparent strips along the viewport
+        // edges ask the backend to start the native sizing loop instead, and carry the
+        // resize cursor with them.
+        var handles = [
+            { code: 10, cursor: 'ew-resize', css: 'left:0;top:8px;bottom:8px;width:8px' },
+            { code: 11, cursor: 'ew-resize', css: 'right:0;top:8px;bottom:8px;width:8px' },
+            { code: 12, cursor: 'ns-resize', css: 'top:0;left:8px;right:8px;height:8px' },
+            { code: 15, cursor: 'ns-resize', css: 'bottom:0;left:8px;right:8px;height:8px' },
+            { code: 13, cursor: 'nwse-resize', css: 'top:0;left:0;width:8px;height:8px' },
+            { code: 14, cursor: 'nesw-resize', css: 'top:0;right:0;width:8px;height:8px' },
+            { code: 16, cursor: 'nesw-resize', css: 'bottom:0;left:0;width:8px;height:8px' },
+            { code: 17, cursor: 'nwse-resize', css: 'bottom:0;right:0;width:8px;height:8px' }
+        ];
+
+        handles.forEach(function (handle) {
+            var element = document.createElement('div');
+            element.style.cssText = 'position:fixed;z-index:2147483647;'
+                + handle.css + ';cursor:' + handle.cursor;
+
+            element.addEventListener('mousedown', function (event) {
+                if (event.button !== 0) {
+                    return;
+                }
+                event.preventDefault();
+
+                // A drag region that reaches the window edge would otherwise be
+                // resized rather than moved from its first few pixels.
+                var underneath = document.elementsFromPoint(event.clientX, event.clientY);
+                for (var i = 0; i < underneath.length; i++) {
+                    var candidate = underneath[i];
+                    if (candidate === element || !candidate.closest) {
+                        continue;
+                    }
+                    if (candidate.closest('%(drag_selector)s')) {
+                        window.pywebview._jsApiCallback('pywebviewStartDrag', [], 'drag');
+                        return;
+                    }
+                }
+
+                window.pywebview._jsApiCallback('pywebviewStartResize', [handle.code], 'resize');
+            });
+
+            document.body.appendChild(element);
+        });
+    }
+
     disableTouchEvents();
+    setupResizeHandles();
   })();

@@ -12,7 +12,7 @@ from webview import _state
 from webview import settings as webview_settings
 from webview.dom import _dnd_state
 from webview.models import Request, Response
-from webview.platforms.win32 import start_drag
+from webview.platforms.win32 import start_drag, start_sizing
 from webview.util import DEFAULT_HTML, is_js_bridge_token_valid, js_bridge_call
 
 logger = logging.getLogger('pywebview')
@@ -112,6 +112,9 @@ class WebView2Core(ABC):
         elif func_name == 'pywebviewStartDrag':
             if is_js_bridge_token_valid(self.pywebview_window, token):
                 start_drag(self._drag_hwnd)
+        elif func_name == 'pywebviewStartResize':
+            if is_js_bridge_token_valid(self.pywebview_window, token):
+                start_sizing(self._drag_hwnd, int(func_param[0]))
         elif func_name == 'console':
             print(func_param)
         else:
