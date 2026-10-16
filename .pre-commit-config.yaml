@@ -5,6 +5,8 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-added-large-files
+        # Bundled upstream WebView2 .NET Framework assembly.
+        exclude: ^webview/lib/net462/Microsoft\.Web\.WebView2\.Core\.dll$
       - id: check-yaml
       - id: double-quote-string-fixer
       - id: end-of-file-fixer
