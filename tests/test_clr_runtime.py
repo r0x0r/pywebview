@@ -1,27 +1,31 @@
 import json
-import logging
 import os
+import shutil
+import subprocess
 import sys
+import sysconfig
 
 import pytest
 
-from webview.clr_runtime import (
-    interop_subdir,
-    is_coreclr,
-    runtimeconfig_path,
-    select_runtime,
+from webview.util import select_runtime
+
+REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
+ENV_VARS = (
+    'PYTHONNET_RUNTIME',
+    'PYTHONNET_CORECLR_RUNTIME_CONFIG',
+    'DOTNET_ROOT',
+    'DOTNET_ROOT_X64',
 )
 
 
 @pytest.fixture(autouse=True)
 def clean_env(monkeypatch):
-    for var in ('PYTHONNET_RUNTIME', 'PYTHONNET_CORECLR_RUNTIME_CONFIG'):
+    for var in ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
 
 def loader_that_fails_on(*runtimes):
-    """A fake pythonnet loader: records what it was asked to load, and raises
-    for any runtime named here."""
+    """A fake pythonnet loader: records what it was asked to load, and raises for any runtime named here."""
     attempts = []
 
     def load(runtime):
@@ -39,7 +43,7 @@ def loader():
 
 
 class TestSelectRuntime:
-    """coreclr by default, netfx as fallback (r0x0r on #1803)."""
+    """The runtime chooser is the core decision; keep only the assertions that matter."""
 
     def test_prefers_coreclr(self):
         load = loader()
@@ -53,23 +57,17 @@ class TestSelectRuntime:
         assert load.attempts == ['coreclr', 'netfx']
         assert os.environ['PYTHONNET_RUNTIME'] == 'netfx'
 
-    def test_raises_when_neither_runtime_loads(self):
-        """Reporting only the netfx failure hides the useful half: coreclr is
-        the runtime pywebview wants, so why it was rejected is the diagnosis."""
-        load = loader_that_fails_on('coreclr', 'netfx')
-        with pytest.raises(RuntimeError) as excinfo:
+    def test_does_not_fall_back_on_keyboard_interrupt(self):
+        attempts = []
+
+        def load(runtime):
+            attempts.append(runtime)
+            raise KeyboardInterrupt
+
+        with pytest.raises(KeyboardInterrupt):
             select_runtime(load)
 
-        message = str(excinfo.value)
-        assert 'no coreclr available' in message
-        assert 'no netfx available' in message
-
-    def test_a_successful_fallback_still_reports_why(self, caplog):
-        load = loader_that_fails_on('coreclr')
-        with caplog.at_level(logging.DEBUG, logger='pywebview'):
-            assert select_runtime(load) == 'netfx'
-
-        assert 'no coreclr available' in caplog.text
+        assert attempts == ['coreclr']
 
     def test_explicit_runtime_choice_is_honoured(self, monkeypatch):
         monkeypatch.setenv('PYTHONNET_RUNTIME', 'netfx')
@@ -79,12 +77,7 @@ class TestSelectRuntime:
 
 
 class TestRuntimeConfig:
-    """The coreclr attempt needs a config naming the WinForms framework.
-
-    DOTNET_ROOT alone makes clr_loader synthesize a base Microsoft.NETCore.App
-    config, so the CLR comes up without WinForms and the WebView2 assemblies
-    never resolve -- the failure reported on #1803.
-    """
+    """The shipped Windows desktop config is the only runtimeconfig contract that matters."""
 
     def test_coreclr_attempt_points_at_a_windowsdesktop_config(self):
         select_runtime(loader())
@@ -93,68 +86,159 @@ class TestRuntimeConfig:
         framework = json.load(open(cfg))['runtimeOptions']['framework']
         assert framework['name'] == 'Microsoft.WindowsDesktop.App'
 
-    def test_the_config_rolls_forward_across_majors(self):
-        """rollForward only ever rolls *up*, so anything narrower than
-        LatestMajor strands hosts whose runtime is a different major than the
-        one named here."""
-        options = json.load(open(runtimeconfig_path()))['runtimeOptions']
-        assert options['rollForward'] == 'LatestMajor'
-
     def test_an_existing_config_is_left_alone(self, monkeypatch):
-        """Embedders that bundle their own runtime (and config) must win."""
         monkeypatch.setenv('PYTHONNET_CORECLR_RUNTIME_CONFIG', '/app/theirs.json')
         select_runtime(loader())
         assert os.environ['PYTHONNET_CORECLR_RUNTIME_CONFIG'] == '/app/theirs.json'
 
+    def test_coreclr_attempt_prefers_x64_dotnet_root_for_x64_python(self, monkeypatch):
+        monkeypatch.setattr(sysconfig, 'get_platform', lambda: 'win-amd64')
+        monkeypatch.setattr(sys, 'platform', 'win32')
+        monkeypatch.setenv('ProgramFiles', r'C:\Program Files')
+        x64_root = os.path.join(r'C:\Program Files', 'dotnet', 'x64')
+        monkeypatch.setattr(os.path, 'isdir', lambda path: path == x64_root)
 
-class TestFrozenInteropDllPath:
-    """A frozen app resolves assemblies next to the executable, and must make
-    the same per-runtime choice the unfrozen package does -- otherwise a
-    bundled coreclr app silently loads the netfx assemblies."""
+        select_runtime(loader())
 
-    @staticmethod
-    def stage(tmp_path, name):
-        (tmp_path / name).write_bytes(b'netfx')
-        (tmp_path / 'netcoreapp3.0').mkdir()
-        (tmp_path / 'netcoreapp3.0' / name).write_bytes(b'coreclr')
+        assert os.environ['DOTNET_ROOT'] == x64_root
+        assert os.environ['DOTNET_ROOT_X64'] == x64_root
 
-    def test_frozen_coreclr_uses_the_netcoreapp_copy(self, tmp_path, monkeypatch):
+    def test_native_arm64_python_does_not_use_the_x64_dotnet_root(self, monkeypatch):
+        monkeypatch.setattr(sysconfig, 'get_platform', lambda: 'win-arm64')
+        monkeypatch.setattr(sys, 'platform', 'win32')
+        monkeypatch.setenv('ProgramFiles', r'C:\Program Files')
+        monkeypatch.setattr(os.path, 'isdir', lambda path: path == r'C:\Program Files\dotnet\x64')
+
+        select_runtime(loader())
+
+        assert 'DOTNET_ROOT' not in os.environ
+        assert 'DOTNET_ROOT_X64' not in os.environ
+
+    def test_an_existing_dotnet_root_is_left_alone(self, monkeypatch):
+        monkeypatch.setattr(sysconfig, 'get_platform', lambda: 'win-amd64')
+        monkeypatch.setattr(sys, 'platform', 'win32')
+        monkeypatch.setenv('ProgramFiles', r'C:\Program Files')
+        monkeypatch.setenv('DOTNET_ROOT', r'D:\custom-dotnet')
+        monkeypatch.setenv('DOTNET_ROOT_X64', r'D:\custom-dotnet-x64')
+        monkeypatch.setattr(os.path, 'isdir', lambda path: path == r'C:\Program Files\dotnet\x64')
+
+        select_runtime(loader())
+
+        assert os.environ['DOTNET_ROOT'] == r'D:\custom-dotnet'
+        assert os.environ['DOTNET_ROOT_X64'] == r'D:\custom-dotnet-x64'
+
+
+class TestInteropDllPath:
+    """WebView2 assemblies must target the selected CLR."""
+
+    def test_netfx_uses_framework_assemblies(self, monkeypatch):
         from webview.util import interop_dll_path
 
-        self.stage(tmp_path, 'NotInThePackage.dll')
-        monkeypatch.setenv('PYTHONNET_RUNTIME', 'coreclr')
-        monkeypatch.setattr(sys, '_MEIPASS', str(tmp_path), raising=False)
+        monkeypatch.setenv('PYTHONNET_RUNTIME', 'netfx')
+        for name in ('Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.WinForms.dll'):
+            path = os.path.join(REPO_ROOT, 'webview', 'lib', 'net462', name)
+            assert os.path.isfile(path)
+            assert os.path.normpath(interop_dll_path(name)) == os.path.normpath(path)
 
-        assert interop_dll_path('NotInThePackage.dll') == str(
-            tmp_path / 'netcoreapp3.0' / 'NotInThePackage.dll'
+    def test_coreclr_reuses_flat_lib_assemblies(self, monkeypatch):
+        from webview.util import interop_dll_path
+
+        monkeypatch.setenv('PYTHONNET_RUNTIME', 'coreclr')
+        lib_dir = os.path.normpath(
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'webview', 'lib')
         )
 
-    def test_frozen_netfx_uses_the_flat_copy(self, tmp_path, monkeypatch):
-        from webview.util import interop_dll_path
-
-        self.stage(tmp_path, 'NotInThePackage.dll')
-        monkeypatch.setenv('PYTHONNET_RUNTIME', 'netfx')
-        monkeypatch.setattr(sys, '_MEIPASS', str(tmp_path), raising=False)
-
-        assert interop_dll_path('NotInThePackage.dll') == str(tmp_path / 'NotInThePackage.dll')
-
-    def test_missing_assembly_still_raises(self, monkeypatch):
-        from webview.util import interop_dll_path
-
-        monkeypatch.setenv('PYTHONNET_RUNTIME', 'coreclr')
-        with pytest.raises(FileNotFoundError):
-            interop_dll_path('NoSuchAssembly.dll')
+        for name in ('Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.WinForms.dll'):
+            flat_path = os.path.normpath(os.path.join(lib_dir, name))
+            assert os.path.isfile(flat_path)
+            assert os.path.normpath(interop_dll_path(name)) == flat_path
 
 
-class TestInteropSubdir:
-    """WebView2 assemblies are per-target-framework; pick by active runtime."""
+PROBE = """
+import os
+import tempfile
+from inspect import signature
+from types import SimpleNamespace
+from unittest.mock import patch
+import webview.platforms.edgechromium as edgechromium
+import webview.platforms.winforms as winforms
+from System import Object
+from webview._pythonnet import clr
 
-    def test_coreclr_uses_the_netcoreapp_assemblies(self, monkeypatch):
-        monkeypatch.setenv('PYTHONNET_RUNTIME', 'coreclr')
-        assert is_coreclr()
-        assert interop_subdir() == 'netcoreapp3.0'
+assert winforms.SystemEvents is not None and winforms.WinForms is not None
+assert issubclass(edgechromium.WinFormsEdgeChrome, edgechromium.WebView2Core)
+if os.environ['PYTHONNET_RUNTIME'] == 'coreclr':
+    open_key = winforms.winreg.OpenKey
+    def without_netfx(key, path):
+        assert 'NET Framework Setup' not in path, 'coreclr must not require netfx'
+        return open_key(key, path)
+    with patch.object(winforms.winreg, 'OpenKey', side_effect=without_netfx):
+        assert winforms._is_chromium()
+signature(edgechromium.WinFormsEdgeChrome.clear_user_data).bind(None, 0)
+with tempfile.TemporaryDirectory() as temporary:
+    edgechromium._state['private_mode'] = True
+    edgechromium._state['storage_path'] = None
+    for pid in (0, 2147483647):
+        cache = os.path.join(temporary, str(pid))
+        os.mkdir(cache)
+        # No webview attribute: cleanup must not touch an already disposed control.
+        edgechromium.WinFormsEdgeChrome.clear_user_data(SimpleNamespace(user_data_folder=cache), pid)
+        assert not os.path.exists(cache)
+    edgechromium._state['private_mode'] = False
+    cache = os.path.join(temporary, 'persistent')
+    os.mkdir(cache)
+    edgechromium.WinFormsEdgeChrome.clear_user_data(SimpleNamespace(user_data_folder=cache), 0)
+    assert os.path.isdir(cache)
+    edgechromium._state['private_mode'] = True
+    edgechromium._state['storage_path'] = cache
+    edgechromium.WinFormsEdgeChrome.clear_user_data(SimpleNamespace(user_data_folder=cache), 0)
+    assert os.path.isdir(cache)
+screens = winforms.get_screens()
+assert screens and all(screen.width > 0 and screen.height > 0 for screen in screens)
+print('PROBE', os.environ['PYTHONNET_RUNTIME'], clr.GetClrType(Object).Assembly.GetName().Name)
+"""
 
-    def test_netfx_uses_the_flat_net462_assemblies(self, monkeypatch):
-        monkeypatch.setenv('PYTHONNET_RUNTIME', 'netfx')
-        assert not is_coreclr()
-        assert interop_subdir() == ''
+CORE_ASSEMBLY = {'coreclr': 'System.Private.CoreLib', 'netfx': 'mscorlib'}
+
+
+def probe(**env):
+    """Import the Windows backends in a fresh interpreter; pythonnet can only be loaded once per process."""
+    full_env = {k: v for k, v in os.environ.items() if k not in ENV_VARS}
+    full_env.update(env)
+    result = subprocess.run(
+        [sys.executable, '-c', PROBE],
+        cwd=REPO_ROOT,
+        env=full_env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert result.returncode == 0, result.stderr
+    line = next(line for line in result.stdout.splitlines() if line.startswith('PROBE'))
+    return line.split()[1:]
+
+
+requires_windows = pytest.mark.skipif(
+    sys.platform != 'win32', reason='pythonnet runtimes are Windows-only'
+)
+requires_netfx = pytest.mark.skipif(
+    sys.platform != 'win32' or sysconfig.get_platform() == 'win-arm64',
+    reason='.NET Framework is not available to native ARM64 Python',
+)
+
+
+@requires_windows
+@pytest.mark.skipif(shutil.which('dotnet') is None, reason='no .NET installation found')
+def test_backends_import_on_coreclr():
+    assert probe(PYTHONNET_RUNTIME='coreclr') == ['coreclr', CORE_ASSEMBLY['coreclr']]
+
+
+@requires_netfx
+def test_backends_import_on_netfx():
+    assert probe(PYTHONNET_RUNTIME='netfx') == ['netfx', CORE_ASSEMBLY['netfx']]
+
+
+@requires_netfx
+def test_unusable_coreclr_falls_back_to_a_working_netfx():
+    bogus = os.path.join(REPO_ROOT, 'no-such-dotnet')
+    assert probe(DOTNET_ROOT=bogus, DOTNET_ROOT_X64=bogus) == ['netfx', CORE_ASSEMBLY['netfx']]

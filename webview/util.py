@@ -14,6 +14,7 @@ import logging
 import os
 import re
 import sys
+import sysconfig
 import traceback
 import urllib.parse
 from collections import UserDict
@@ -26,7 +27,6 @@ from typing import TYPE_CHECKING, Any, TypeGuard
 from uuid import uuid4
 
 import webview
-from webview.clr_runtime import interop_subdir
 from webview.dom import _dnd_state
 from webview.errors import WebViewException
 
@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from webview.window import Window
 
 _TOKEN = uuid4().hex
+RUNTIME_CONFIG = 'pywebview-runtimeconfig.json'
 
 DEFAULT_HTML = """
     <!doctype html>
@@ -46,6 +47,62 @@ DEFAULT_HTML = """
 """
 
 logger = logging.getLogger('pywebview')
+
+
+def configure_coreclr() -> None:
+    """Set pythonnet's coreclr environment before importing clr."""
+    runtimeconfig = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', RUNTIME_CONFIG)
+    os.environ.setdefault('PYTHONNET_CORECLR_RUNTIME_CONFIG', runtimeconfig)
+
+    # An x64 Python on Windows ARM64 must use the side-by-side x64 dotnet install.
+    if sys.platform == 'win32' and sysconfig.get_platform() == 'win-amd64':
+        x64_root = os.path.join(
+            os.environ.get('ProgramFiles', r'C:\Program Files'), 'dotnet', 'x64'
+        )
+        if os.path.isdir(x64_root):
+            os.environ.setdefault('DOTNET_ROOT', x64_root)
+            os.environ.setdefault('DOTNET_ROOT_X64', x64_root)
+
+
+def _load(runtime: str) -> None:
+    os.environ['PYTHONNET_RUNTIME'] = runtime
+    try:
+        import clr  # noqa: F401
+    except BaseException:
+        for module in ('clr', 'pythonnet'):
+            sys.modules.pop(module, None)
+        raise
+
+
+def select_runtime(load: Callable[[str], None] = _load) -> str:
+    """Load pythonnet, preferring coreclr and falling back to netfx."""
+    chosen = os.environ.get('PYTHONNET_RUNTIME')
+    if chosen:
+        if chosen == 'coreclr':
+            configure_coreclr()
+        load(chosen)
+        logger.debug('Using .NET framework: %s', chosen)
+        return chosen
+
+    configure_coreclr()
+    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
+    try:
+        load('coreclr')
+    except Exception as coreclr_error:
+        logger.debug('coreclr unavailable, falling back to netfx: %s', coreclr_error)
+        os.environ['PYTHONNET_RUNTIME'] = 'netfx'
+        try:
+            load('netfx')
+        except Exception as netfx_error:
+            raise RuntimeError(
+                f'Could not load pythonnet on either runtime. '
+                f'coreclr: {coreclr_error}. netfx: {netfx_error}.'
+            ) from coreclr_error
+        logger.debug('Using .NET framework: netfx')
+        return 'netfx'
+
+    logger.debug('Using .NET framework: coreclr')
+    return 'coreclr'
 
 
 class ImmutableDict(UserDict):
@@ -81,32 +138,6 @@ def is_local_url(url: str | Callable[..., Any] | None) -> TypeGuard[str]:
     return not (
         url.startswith('http://') or url.startswith('https://') or url.startswith('file://')
     )
-
-
-_DEFAULT_PORTS = {'http': 80, 'https': 443}
-
-
-def _origin(url: str | None) -> tuple[str, str, int] | None:
-    if not url:
-        return None
-    parts = urllib.parse.urlsplit(url)
-    scheme = parts.scheme.lower()
-    if scheme not in _DEFAULT_PORTS or not parts.hostname:
-        return None
-    try:
-        return scheme, parts.hostname, parts.port or _DEFAULT_PORTS[scheme]
-    except ValueError:  # port out of range
-        return None
-
-
-def is_same_origin(url: str | None, other: str | None) -> bool:
-    """
-    Whether two URLs share an origin: scheme, host and port, default ports filled in.
-    Only http(s) URLs have one to share; file:, about: and data: URLs have opaque
-    origins, which match nothing.
-    """
-    origin = _origin(url)
-    return origin is not None and origin == _origin(other)
 
 
 def needs_server(urls: list[str]) -> bool:
@@ -572,48 +603,39 @@ def interop_dll_path(dll_name: str) -> str:
             else 'WebBrowserInterop.x86.dll'
         )
 
-    subdir = interop_subdir()
-
-    def find_in(directory: str) -> str | None:
-        """Assemblies that ship per target framework live in a subdirectory
-        named for the active runtime; the flat copy is the netfx one."""
-        if subdir:
-            path = os.path.join(directory, subdir, dll_name)
-            if os.path.exists(path):
-                return path
-
-        path = os.path.join(directory, dll_name)
-        return path if os.path.exists(path) else None
+    def candidate_paths(base_dir: str) -> list[str]:
+        if os.environ.get('PYTHONNET_RUNTIME') == 'netfx' and dll_name in (
+            'Microsoft.Web.WebView2.Core.dll',
+            'Microsoft.Web.WebView2.WinForms.dll',
+        ):
+            # The flat WinForms assembly targets .NET Core; netfx needs the framework pair.
+            return [os.path.join(base_dir, 'net462', dll_name)]
+        return [
+            os.path.join(base_dir, dll_name),
+            os.path.join(base_dir, 'runtimes', dll_name, 'native'),
+        ]
 
     # Unfrozen path
     lib_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
-    dll_path = find_in(lib_dir)
-    if dll_path:
-        return dll_path
-
-    # Native loader directory, addressed by runtime identifier rather than name
-    dll_path = os.path.join(lib_dir, 'runtimes', dll_name, 'native')
-    if os.path.exists(dll_path):
-        return dll_path
+    for candidate in candidate_paths(lib_dir):
+        if os.path.exists(candidate):
+            return candidate
 
     # Frozen path, dll in the same dir as the executable
-    dll_path = find_in(os.path.dirname(os.path.realpath(sys.argv[0])))
-    if dll_path:
-        return dll_path
+    for candidate in candidate_paths(os.path.dirname(os.path.realpath(sys.argv[0]))):
+        if os.path.exists(candidate):
+            return candidate
 
     try:
         # Frozen path packed as onefile
-        base_dir = None
         if hasattr(sys, '_MEIPASS'):  # Pyinstaller
-            base_dir = sys._MEIPASS
-
+            for candidate in candidate_paths(sys._MEIPASS):
+                if os.path.exists(candidate):
+                    return candidate
         elif getattr(sys, 'frozen', False):  # cx_freeze
-            base_dir = sys.executable
-
-        if base_dir:
-            dll_path = find_in(base_dir)
-            if dll_path:
-                return dll_path
+            for candidate in candidate_paths(os.path.dirname(sys.executable)):
+                if os.path.exists(candidate):
+                    return candidate
     except Exception:
         pass
 

@@ -7,7 +7,7 @@ from threading import Semaphore
 from uuid import uuid1
 
 from webview import _state
-from webview.platforms._pythonnet import clr  # selects the runtime, loads pythonnet
+from webview._pythonnet import clr
 from webview.util import (
     DEFAULT_HTML,
     inject_base_uri,
