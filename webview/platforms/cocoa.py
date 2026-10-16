@@ -949,7 +949,17 @@ class BrowserView:
         AppHelper.callAfter(self.window.close)
 
     def set_title(self, title):
-        AppHelper.callAfter(self.window.setTitle_, title)
+        def _set_title():
+            # The window may have closed since set_title() found it: that
+            # lookup ran on the calling thread, and windowWillClose_ -- which
+            # sets self.closed -- runs here, on the main thread, as this does.
+            # So check here, where nothing can close it under us.
+            if self.closed.is_set():
+                logger.info('set_title: window %s closed before its title was set; skipped', self.uid)
+                return
+            self.window.setTitle_(title)
+
+        AppHelper.callAfter(_set_title)
 
     def toggle_fullscreen(self):
         def toggle():
