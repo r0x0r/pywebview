@@ -78,6 +78,42 @@ class TestSelectRuntime:
         assert select_runtime(load) == 'netfx'
         assert load.attempts == ['netfx'], 'must not override an explicit choice'
 
+    @pytest.mark.parametrize(
+        'kind,expected', [('.NET Framework', 'netfx'), ('CoreCLR', 'coreclr'), ('Mono', 'mono')]
+    )
+    @pytest.mark.parametrize('requested', [None, 'coreclr', 'netfx'])
+    def test_existing_runtime_takes_precedence(self, monkeypatch, kind, expected, requested):
+        if requested:
+            monkeypatch.setenv('PYTHONNET_RUNTIME', requested)
+        monkeypatch.setitem(
+            sys.modules,
+            'pythonnet',
+            SimpleNamespace(get_runtime_info=lambda: SimpleNamespace(kind=kind)),
+        )
+        load = loader()
+
+        assert select_runtime(load) == expected
+        assert load.attempts == [expected]
+        assert os.environ['PYTHONNET_RUNTIME'] == expected
+        assert 'PYTHONNET_CORECLR_RUNTIME_CONFIG' not in os.environ
+
+        if expected == 'netfx':
+            from webview.util import interop_dll_path
+
+            assert (
+                Path(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll')).parent.name
+                == 'net462'
+            )
+
+    def test_imported_pythonnet_without_runtime_still_prefers_coreclr(self, monkeypatch):
+        monkeypatch.setitem(
+            sys.modules, 'pythonnet', SimpleNamespace(get_runtime_info=lambda: None)
+        )
+        load = loader()
+
+        assert select_runtime(load) == 'coreclr'
+        assert load.attempts == ['coreclr']
+
 
 class TestRuntimeConfig:
     """The shipped Windows desktop config is the only runtimeconfig contract that matters."""
@@ -88,6 +124,10 @@ class TestRuntimeConfig:
         assert os.path.isfile(cfg)
         framework = json.load(open(cfg))['runtimeOptions']['framework']
         assert framework['name'] == 'Microsoft.WindowsDesktop.App'
+        assert framework['version'] == '6.0.0'
+        config = json.loads(Path(cfg).read_text())
+        assert config['runtimeOptions']['tfm'] == 'net6.0-windows'
+        assert config['runtimeOptions']['rollForward'] == 'LatestMajor'
 
     def test_an_existing_config_is_left_alone(self, monkeypatch):
         monkeypatch.setenv('PYTHONNET_CORECLR_RUNTIME_CONFIG', '/app/theirs.json')

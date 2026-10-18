@@ -29,7 +29,7 @@ Other optional dependencies are `pywebview[android]`, `pywebview[cef]` and `pywe
 
 ### Windows
 
-[pythonnet](https://github.com/pythonnet/pythonnet). pywebview prefers the .NET 8.0 or newer Desktop Runtime, and otherwise falls back to .NET Framework 4.6.2. Native ARM64 Python on Windows requires the .NET Desktop Runtime because .NET Framework is unavailable for that architecture.
+[pythonnet](https://github.com/pythonnet/pythonnet). pywebview prefers the .NET 6.0 or newer Desktop Runtime, and otherwise falls back to .NET Framework 4.6.2. Native ARM64 Python on Windows requires the .NET Desktop Runtime because .NET Framework is unavailable for that architecture.
 
 To use with the latest Chromium you need [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). If you plan to distribute your software, check out [distribution guidelines](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution) too.
 

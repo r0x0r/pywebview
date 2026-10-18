@@ -8,7 +8,7 @@ The following renderers are used on each platform
 | GTK      | gtk          | WebKit   | WebKit2 (minimum version >2.2)                    |                       |
 | macOS    |              | WebKit   | WebKit.WKWebView (bundled with OS)                |                       |
 | QT       | qt           | WebKit   | QtWebEngine / QtWebKit                            |                       |
-| Windows  | edgechromium | Chromium | .NET 8.0+ Desktop Runtime or .NET Framework 4.6.2+, and Edge Runtime installed | Ever-green Chromium   |
+| Windows  | edgechromium | Chromium | .NET 6.0+ Desktop Runtime or .NET Framework 4.6.2+, and Edge Runtime installed | Ever-green Chromium   |
 | Windows  | winui3       | Chromium | > `pywebview[winui3]` extra, Edge Runtime and Windows App Runtime installed | Ever-green Chromium   |
 | Windows  | cef          | CEF      | CEF Python                                        | Chrome 66             |
 | Windows  | mshtml       | MSHTML   | DEPRECATED  Internet Explorer MSHTML              | IE11 (Windows 10/8/7) |
@@ -23,7 +23,9 @@ On Windows pywebview loads pythonnet on .NET (coreclr) when a runtime is availab
 
 pywebview therefore ships `webview/lib/pywebview-runtimeconfig.json`, a standard .NET runtimeconfig requesting that framework and rolling forward to whichever major is installed. An application shipping its own private .NET can point `PYTHONNET_CORECLR_RUNTIME_CONFIG` at its own file instead; pywebview leaves both variables alone when they are already set. Set them before pywebview initialises a GUI — backend selection happens on the first `webview.start()`, so before `import webview` is the safe rule.
 
-On .NET 8, the folder picker returns a single folder even when `allow_multiple=True`. Multiple-folder selection is supported on .NET 9 or newer and on .NET Framework.
+On .NET 6 through 8, the folder picker returns a single folder even when `allow_multiple=True`. Multiple-folder selection is supported on .NET 9 or newer and on .NET Framework.
+
+If an application has already selected a pythonnet runtime, pywebview preserves it rather than attempting to switch runtimes.
 
 For example to use CEF on Windows
 

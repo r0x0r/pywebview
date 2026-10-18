@@ -76,6 +76,19 @@ def _load(runtime: str) -> None:
 
 def select_runtime(load: Callable[[str], None] = _load) -> str:
     """Load pythonnet, preferring coreclr and falling back to netfx."""
+    pythonnet = sys.modules.get('pythonnet')
+    runtime_info = pythonnet.get_runtime_info() if pythonnet is not None else None
+    if runtime_info is not None:
+        chosen = runtime_info.kind.lower()
+        if chosen == '.net framework':
+            chosen = 'netfx'
+        if chosen not in ('coreclr', 'netfx', 'mono'):
+            raise RuntimeError(f'Unsupported initialized pythonnet runtime: {runtime_info.kind}')
+        os.environ['PYTHONNET_RUNTIME'] = chosen
+        load(chosen)
+        logger.debug('Using existing .NET framework: %s', chosen)
+        return chosen
+
     chosen = os.environ.get('PYTHONNET_RUNTIME')
     if chosen:
         if chosen == 'coreclr':
