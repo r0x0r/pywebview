@@ -63,17 +63,6 @@ jobs:
           done
           cp "${extracted}/LICENSE.txt" "${lib}/Microsoft.Web.WebView2.LICENSE.md"
 
-          # Refresh provenance so the documented version and hashes stay accurate.
-          {
-            printf '# WebView2 .NET Framework assemblies\n\n'
-            printf 'Unmodified `lib/net462` Core and WinForms binaries from Microsoft.Web.WebView2 **%s**.\n' "${{ steps.version.outputs.version }}"
-            printf 'The matching .NET Core assemblies are in the parent directory.\n'
-            printf 'These assemblies are selected only when pythonnet uses `netfx`.\n\n'
-            printf 'Official package: https://www.nuget.org/packages/Microsoft.Web.WebView2/%s\n\n' "${{ steps.version.outputs.version }}"
-            printf 'The WebView2 license is in the parent directory.\n\nSHA-256:\n\n'
-            (cd "${lib}/net462" && sha256sum Microsoft.Web.WebView2.Core.dll Microsoft.Web.WebView2.WinForms.dll)
-          } > "${lib}/net462/README.md"
-
           for arch in win-x86 win-x64 win-arm64; do
             cp "${extracted}/runtimes/${arch}/native/WebView2Loader.dll" \
               "${lib}/runtimes/${arch}/native/WebView2Loader.dll"
