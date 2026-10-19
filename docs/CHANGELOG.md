@@ -4,15 +4,28 @@
 
 ### 🐞 Bug fixes
 
-- `All` Fix a crash when a state key was deleted twice in quick succession (or a key whose value was legitimately `None` was deleted). The JS bridge now logs stale `pywebviewStateUpdate`/`pywebviewStateDelete` messages instead of raising, and `State` no longer confuses "no value" with a real `None` value.
+- `All` Fix a crash when a state key was deleted twice in quick succession. The JS bridge now ignores stale state deletions and logs errors from state updates or deletions instead of raising.
+- `Winforms` Fix frameless windows coming out smaller than requested. Switching `FormBorderStyle` to `None` makes WinForms keep the client area, so a window requested at 1280x820 ended up 1264x781 - a border and caption short. The requested size is applied again after the border is dropped.
+- `Android` Fix window teardown never destroying the WebView. `destroy()` was missing from the pyjnius declaration of `PyWebViewClient`, so closing a window raised `AttributeError` before reaching `WebView.destroy()`, and every closed window leaked its WebView along with the page it was showing. The error was logged and swallowed, so nothing surfaced.
+- `All` Fix deleting a state value of `None`, which raised `AttributeError`/`KeyError` as though the key did not exist. Deletion reported a missing key by returning `None`, which is indistinguishable from successfully removing a key whose value was `None`; it now reports the miss with a sentinel.
+- `Android` Stop reporting requests the WebView has to serve itself as errors. Schemes that cannot be replayed over HTTP - `data:` in particular, which is what `load_html` uses - logged a Java stack trace on every page load and fired a spurious `response_received` event with a status code of 0. They are now handed back to the WebView silently.
+- `Android` Apply the cookie policy when a window is created instead of when the page finishes loading. `CookieManager` is process-wide, so a window started in private mode left cookies switched off for every window created after it, and cookies set by the page being loaded were dropped.
+- `Android` Fix `window.destroy()`, which hung instead of closing the window. `destroy_window()` took no `uid` while the rest of the API passes one, and the destroy event was dispatched without the activity argument its handler expects - two `TypeError`s on the same path, both swallowed by a bare `except`. The window is also removed from `webview.windows` as it closes, so a window created after a destroyed one is the one that gets launched, and `events.closed` now fires on a programmatic destroy as it does on every other platform - both synchronously, since the teardown they used to sit in runs on the UI thread after `start()` has already returned.
+- `Android` Fix the quit confirmation dialog, which only responded to Cancel and then stopped appearing altogether. Quitting read a non-existent `window.closed` attribute instead of `window.events.closed`, and the cancel callback was reused for `OnCancelListener`, whose `onCancel` takes one argument rather than two.
+- `Android` Fix `get_size()` and `get_current_url()` blocking forever when the call on the UI thread raised - most easily after the window was destroyed. The semaphore is now released in a `finally`.
+- `Android` Fix a random `JNI DETECTED ERROR IN APPLICATION: use of deleted global reference` abort when windows are created and destroyed repeatedly in one process. Java-facing pyjnius proxies (activity lifecycle callbacks and `evaluate_js`'s value callbacks) are now kept alive for the life of the process instead of being freed per window, calls to `runOnUiThread` are serialised so concurrent calls cannot release each other's receiver, and the idle `Choreographer` frame loop that amplified both races has been removed.
 
 ### 🚀 Improvements
 
+- `EdgeChromium` Update WebView2 runtime to 1.0.4258.31.
+- `EdgeChromium` Update WebView2 runtime to 1.0.4258.31.
 - `EdgeChromium` Update WebView2 runtime to 1.0.4191.47.
 - `All` Bump minimum Python version to 3.10. Type annotations across the codebase now use PEP 585 / PEP 604 built-in generics and union syntax.
 - `All` Drop the unused `importlib_resources` dependency.
 - `All` CI now tests Python 3.10 through 3.13, type-checks the package, compile-checks every example and audits dependencies with `pip-audit`.
 - `All` The PyPI project page now shows the README. The built distributions previously carried no long description.
+
+### 🐞 Bug fixes
 
 ## 6.2.1
 

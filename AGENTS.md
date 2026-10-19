@@ -226,7 +226,16 @@ release by `.github/workflows/docs.yaml`).
 
 ## Working agreements for agents
 
-- **Keep changes concise.** Express the solution with as little code as practical.
+- **Keep changes concise and avoid over-engineering.** Use the simplest solution that fully
+  addresses the request; avoid unnecessary abstractions, indirection, and scope expansion.
+- **Keep tests focused.** Add tests only for essential behavior, not exhaustive coverage. If new
+  tests are needed, keep them together in one focused test suite instead of scattering them across
+  multiple suites.
+- **Require approval before adding features or public API.** Be conservative about new features:
+  do not add settingsor flags like `webview.settings` or parameters to public functions such as `webview.start()` and
+  `webview.create_window()`, unless an existing ticket has a comment from maintainer `r0x0r`
+  explicitly approving the proposed addition. A feature request or ticket without that approval
+  is not sufficient.
 - **Be conservative about adding files or changing architecture.** Prefer extending existing
   modules and established patterns, and make the smallest structural change that solves the
   problem. Introduce a new file or abstraction only when it has a clear, necessary responsibility.

@@ -101,11 +101,14 @@ def get_app_root() -> str:
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
 
-    if 'pytest' in sys.modules and os.getenv('PYWEBVIEW_TEST'):
-        return os.path.join(os.path.dirname(__file__), '..', 'tests')
-
+    # Before the pytest branch: the suite also runs on-device under pytest,
+    # where there is no sibling tests/ directory and the pytest branch would
+    # return a path that does not exist.
     if hasattr(sys, 'getandroidapilevel'):
         return os.getenv('ANDROID_APP_PATH') or ''
+
+    if 'pytest' in sys.modules and os.getenv('PYWEBVIEW_TEST'):
+        return os.path.join(os.path.dirname(__file__), '..', 'tests')
 
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
