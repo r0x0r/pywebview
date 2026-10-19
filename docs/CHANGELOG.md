@@ -4,6 +4,7 @@
 
 ### 🐞 Bug fixes
 
+- `All` Fix a crash when a state key was deleted twice in quick succession. The JS bridge now ignores stale state deletions and logs errors from state updates or deletions instead of raising.
 - `Winforms` Fix frameless windows coming out smaller than requested. Switching `FormBorderStyle` to `None` makes WinForms keep the client area, so a window requested at 1280x820 ended up 1264x781 - a border and caption short. The requested size is applied again after the border is dropped.
 - `Android` Fix window teardown never destroying the WebView. `destroy()` was missing from the pyjnius declaration of `PyWebViewClient`, so closing a window raised `AttributeError` before reaching `WebView.destroy()`, and every closed window leaked its WebView along with the page it was showing. The error was logged and swallowed, so nothing surfaced.
 - `All` Fix deleting a state value of `None`, which raised `AttributeError`/`KeyError` as though the key did not exist. Deletion reported a missing key by returning `None`, which is indistinguishable from successfully removing a key whose value was `None`; it now reports the miss with a sentinel.
