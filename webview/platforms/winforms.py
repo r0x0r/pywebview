@@ -277,6 +277,12 @@ class BrowserView:
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
+                # Dropping the border style keeps the *client* area and therefore shrinks the outer
+                # size by the border and caption (measured: 1280x820 requested -> 1264x781). Re-apply
+                # the requested size so width/height keep meaning "window size" for frameless windows.
+                self.Size = Size(
+                    int(window.initial_width * scale), int(window.initial_height * scale)
+                )
 
             if window.menu or _state['menu']:
                 self.set_window_menu(window.menu or _state['menu'])
