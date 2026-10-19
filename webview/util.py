@@ -28,6 +28,7 @@ from uuid import uuid4
 import webview
 from webview.dom import _dnd_state
 from webview.errors import WebViewException
+from webview.snapping import hide_preview, rect_for_zone, show_preview, warm_up_preview
 
 if TYPE_CHECKING:
     from webview.window import Window
@@ -331,6 +332,30 @@ def js_bridge_call(
         window.move(*param)
         return
 
+    if func_name == 'pywebviewSnapWindow':
+        # Sent by the page when SNAP_ON_DRAG is on and a drag ended inside a snap zone: [zone, work area].
+        # The zone geometry is computed here (see webview/snapping.py) so it stays unit-testable.
+        work_area = param[1]
+        if isinstance(work_area, dict):  # the page sends {l, t, w, h}
+            work_area = (work_area['l'], work_area['t'], work_area['w'], work_area['h'])
+        rect = rect_for_zone(param[0], tuple(work_area))
+        if rect is not None:
+            window.move(rect[0], rect[1])
+            window.resize(rect[2], rect[3])
+        hide_preview()
+        return
+
+    if func_name == 'pywebviewSnapPreview':
+        # Sent while a drag is in progress so the user can see where the window will land.
+        if param[0] is None:
+            hide_preview()
+            return
+        work_area = param[1]
+        if isinstance(work_area, dict):
+            work_area = (work_area['l'], work_area['t'], work_area['w'], work_area['h'])
+        show_preview(rect_for_zone(param[0], tuple(work_area)))
+        return
+
     if func_name == 'pywebviewEventHandler':
         event = param['event']
         node_id = param['nodeId']
@@ -443,6 +468,9 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
                     'drag_region_direct_target_only': str(
                         webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY']
                     ),
+                    'snap_on_drag': str(webview.settings['SNAP_ON_DRAG'] and window.frameless),
+                    'snap_trigger': str(int(webview.settings['SNAP_TRIGGER'])),
+                    'snap_preview': str(webview.settings['SNAP_PREVIEW']),
                     'zoomable': str(window.zoomable),
                     'draggable': str(window.draggable),
                     'easy_drag': str(
@@ -451,6 +479,14 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
                         and window.frameless
                     ),
                 }
+                if (
+                    webview.settings['SNAP_ON_DRAG']
+                    and webview.settings['SNAP_PREVIEW']
+                    and window.frameless
+                ):
+                    # Create the overlay ahead of the first drag (creating it lazily stalls that drag).
+                    # Off the injection path, so a slow window creation can never hold up the page.
+                    Thread(target=warm_up_preview, daemon=True).start()
             elif name == 'state':
                 params = {'state': escape_string(json.dumps(window.state))}
             elif name == 'finish':
