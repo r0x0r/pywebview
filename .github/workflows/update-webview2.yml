@@ -54,8 +54,13 @@ jobs:
           extracted="${{ steps.download.outputs.workdir }}/extracted"
           lib="webview/lib"
 
-          cp "${extracted}/lib/net462/Microsoft.Web.WebView2.Core.dll" "${lib}/Microsoft.Web.WebView2.Core.dll"
-          cp "${extracted}/lib/net462/Microsoft.Web.WebView2.WinForms.dll" "${lib}/Microsoft.Web.WebView2.WinForms.dll"
+          # Keep the framework-specific managed pairs on the same SDK version.
+          mkdir -p "${lib}/net462"
+          for assembly in Core WinForms; do
+            filename="Microsoft.Web.WebView2.${assembly}.dll"
+            cp "${extracted}/lib_manual/netcoreapp3.0/${filename}" "${lib}/${filename}"
+            cp "${extracted}/lib/net462/${filename}" "${lib}/net462/${filename}"
+          done
           cp "${extracted}/LICENSE.txt" "${lib}/Microsoft.Web.WebView2.LICENSE.md"
 
           for arch in win-x86 win-x64 win-arm64; do

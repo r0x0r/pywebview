@@ -10,13 +10,8 @@ from ctypes import windll, wintypes
 from platform import machine
 from threading import Event, Semaphore
 
-try:
-    import clr
-except Exception:
-    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
-    import clr
-
 from webview import FileDialog, _state, settings, windows
+from webview._pythonnet import clr
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms import win32
@@ -28,13 +23,17 @@ clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Collections')
 clr.AddReference('System.Threading')
 clr.AddReference('System.Reflection')
+if os.environ.get('PYTHONNET_RUNTIME') == 'coreclr':
+    clr.AddReference('Microsoft.Win32.SystemEvents')
 
+import Microsoft.Win32 as Win32  # noqa: E402
 import System.Windows.Forms as WinForms  # noqa: E402
-from Microsoft.Win32 import SystemEvents  # noqa: E402
 from System import Array, Environment, Func, Int32, IntPtr, Object, Type, UInt32  # noqa: E402
 from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF  # noqa: E402
 from System.Reflection import Assembly, BindingFlags  # noqa: E402
 from System.Threading import ApartmentState, Thread, ThreadStart  # noqa: E402
+
+SystemEvents = Win32.SystemEvents
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 logger = logging.getLogger('pywebview')
@@ -85,15 +84,17 @@ def _is_chromium():
 
         return '0'
 
+    is_coreclr = os.environ.get('PYTHONNET_RUNTIME') == 'coreclr'
     net_key = None
     try:
-        net_key = winreg.OpenKey(
-            winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full'
-        )
-        version, _ = winreg.QueryValueEx(net_key, 'Release')
+        if not is_coreclr:
+            net_key = winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full'
+            )
+            version, _ = winreg.QueryValueEx(net_key, 'Release')
 
-        if version < 394802:  # .NET 4.6.2
-            return False
+            if version < 394802:  # .NET 4.6.2
+                return False
 
         build_versions = [
             {
@@ -700,30 +701,79 @@ class OpenFolderDialog:
     foldersFilter = 'Folders|\n'
     flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
     windowsFormsAssembly = Assembly.LoadWithPartialName('System.Windows.Forms')
-    iFileDialogType = windowsFormsAssembly.GetType(
-        'System.Windows.Forms.FileDialogNative+IFileDialog'
-    )
-    OpenFileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.OpenFileDialog')
-    FileDialogType = windowsFormsAssembly.GetType('System.Windows.Forms.FileDialog')
-    createVistaDialogMethodInfo = OpenFileDialogType.GetMethod('CreateVistaDialog', flags)
-    onBeforeVistaDialogMethodInfo = OpenFileDialogType.GetMethod('OnBeforeVistaDialog', flags)
-    getOptionsMethodInfo = FileDialogType.GetMethod('GetOptions', flags)
-    setOptionsMethodInfo = iFileDialogType.GetMethod('SetOptions', flags)
-    fosPickFoldersBitFlag = (
-        windowsFormsAssembly.GetType('System.Windows.Forms.FileDialogNative+FOS')
-        .GetField('FOS_PICKFOLDERS')
-        .GetValue(None)
-    )
+    _vista_dialog_ready = None
 
-    vistaDialogEventsConstructorInfo = windowsFormsAssembly.GetType(
-        'System.Windows.Forms.FileDialog+VistaDialogEvents'
-    ).GetConstructor(flags, None, [FileDialogType], [])
-    adviseMethodInfo = iFileDialogType.GetMethod('Advise')
-    unadviseMethodInfo = iFileDialogType.GetMethod('Unadvise')
-    showMethodInfo = iFileDialogType.GetMethod('Show')
+    @classmethod
+    def _initialize_vista_dialog(cls):
+        if cls._vista_dialog_ready is not None:
+            return cls._vista_dialog_ready
+
+        open_file_dialog_type = cls.windowsFormsAssembly.GetType(
+            'System.Windows.Forms.OpenFileDialog'
+        )
+        file_dialog_type = cls.windowsFormsAssembly.GetType('System.Windows.Forms.FileDialog')
+        i_file_dialog_type = cls.windowsFormsAssembly.GetType(
+            'System.Windows.Forms.FileDialogNative+IFileDialog'
+        )
+        fos_type = cls.windowsFormsAssembly.GetType('System.Windows.Forms.FileDialogNative+FOS')
+        vista_dialog_events_type = cls.windowsFormsAssembly.GetType(
+            'System.Windows.Forms.FileDialog+VistaDialogEvents'
+        )
+
+        if (
+            open_file_dialog_type is None
+            or file_dialog_type is None
+            or i_file_dialog_type is None
+            or fos_type is None
+            or vista_dialog_events_type is None
+        ):
+            cls._vista_dialog_ready = False
+            return False
+
+        cls.createVistaDialogMethodInfo = open_file_dialog_type.GetMethod(
+            'CreateVistaDialog', cls.flags
+        )
+        cls.onBeforeVistaDialogMethodInfo = open_file_dialog_type.GetMethod(
+            'OnBeforeVistaDialog', cls.flags
+        )
+        cls.getOptionsMethodInfo = file_dialog_type.GetMethod('GetOptions', cls.flags)
+        cls.setOptionsMethodInfo = i_file_dialog_type.GetMethod('SetOptions', cls.flags)
+        cls.fosPickFoldersBitFlag = fos_type.GetField('FOS_PICKFOLDERS').GetValue(None)
+        cls.vistaDialogEventsConstructorInfo = vista_dialog_events_type.GetConstructor(
+            cls.flags, None, [file_dialog_type], []
+        )
+        cls.adviseMethodInfo = i_file_dialog_type.GetMethod('Advise')
+        cls.unadviseMethodInfo = i_file_dialog_type.GetMethod('Unadvise')
+        cls.showMethodInfo = i_file_dialog_type.GetMethod('Show')
+        cls._vista_dialog_ready = True
+        return True
+
+    @classmethod
+    def _show_folder_browser_dialog(
+        cls, parent=None, initialDirectory=None, allow_multiple=False, title=None
+    ):
+        dialog = WinForms.FolderBrowserDialog()
+        dialog.InitialDirectory = initialDirectory
+        if hasattr(dialog, 'Multiselect'):
+            dialog.Multiselect = allow_multiple
+        if title:
+            dialog.Description = title
+            dialog.UseDescriptionForTitle = True
+
+        result = dialog.ShowDialog(parent)
+        if result != WinForms.DialogResult.OK:
+            return None
+
+        if allow_multiple and hasattr(dialog, 'SelectedPaths'):
+            return tuple(dialog.SelectedPaths)
+
+        return (dialog.SelectedPath,)
 
     @classmethod
     def show(cls, parent=None, initialDirectory=None, allow_multiple=False, title=None):
+        if not cls._initialize_vista_dialog():
+            return cls._show_folder_browser_dialog(parent, initialDirectory, allow_multiple, title)
+
         openFileDialog = WinForms.OpenFileDialog()
         openFileDialog.InitialDirectory = initialDirectory
         openFileDialog.Title = title

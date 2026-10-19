@@ -17,6 +17,7 @@
 
 ### 🚀 Improvements
 
+- `Winforms` Prefer .NET 6+ with a .NET Framework fallback, preserve an application's initialized runtime, select matching WebView2 assemblies, and support CoreCLR folder dialogs on Windows ARM64. Thanks @smparkes. [#1832](https://github.com/r0x0r/pywebview/pull/1832)
 - `EdgeChromium` Update WebView2 runtime to 1.0.4258.31.
 - `EdgeChromium` Update WebView2 runtime to 1.0.4258.31.
 - `EdgeChromium` Update WebView2 runtime to 1.0.4191.47.
