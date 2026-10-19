@@ -23,6 +23,7 @@ ENV_VARS = (
 
 @pytest.fixture(autouse=True)
 def clean_env(monkeypatch):
+    monkeypatch.delitem(sys.modules, 'pythonnet', raising=False)
     for var in ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
@@ -77,6 +78,21 @@ class TestSelectRuntime:
         load = loader()
         assert select_runtime(load) == 'netfx'
         assert load.attempts == ['netfx'], 'must not override an explicit choice'
+
+    @pytest.mark.parametrize('platform,expected', [('win32', 'netfx'), ('darwin', 'mono')])
+    def test_default_runtime_uses_platform_default(self, monkeypatch, platform, expected):
+        monkeypatch.setattr(sys, 'platform', platform)
+        monkeypatch.setenv('PYTHONNET_RUNTIME', 'default')
+        load = loader()
+
+        assert select_runtime(load) == expected
+        assert load.attempts == [expected]
+        assert os.environ['PYTHONNET_RUNTIME'] == expected
+        if expected == 'netfx':
+            from webview.util import interop_dll_path
+
+            for name in ('Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.WinForms.dll'):
+                assert Path(interop_dll_path(name)).parent.name == 'net462'
 
     @pytest.mark.parametrize(
         'kind,expected', [('.NET Framework', 'netfx'), ('CoreCLR', 'coreclr'), ('Mono', 'mono')]

@@ -91,6 +91,9 @@ def select_runtime(load: Callable[[str], None] = _load) -> str:
 
     chosen = os.environ.get('PYTHONNET_RUNTIME')
     if chosen:
+        if chosen == 'default':
+            chosen = 'netfx' if sys.platform == 'win32' else 'mono'
+            os.environ['PYTHONNET_RUNTIME'] = chosen
         if chosen == 'coreclr':
             configure_coreclr()
         load(chosen)

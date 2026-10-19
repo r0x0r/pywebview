@@ -19,6 +19,8 @@ To change a default renderer set either `PYWEBVIEW_GUI` environment variable or 
 
 On Windows pywebview loads pythonnet on .NET (coreclr) when a runtime is available, and falls back to .NET Framework otherwise. To choose explicitly, set `PYTHONNET_RUNTIME` to `coreclr` or `netfx`.
 
+Setting `PYTHONNET_RUNTIME=default` selects pythonnet's platform default, which is .NET Framework on Windows.
+
 .NET Framework needs no configuration for this — WinForms is part of the framework itself. On .NET (Core) it is not: WinForms lives in the `Microsoft.WindowsDesktop.App` shared framework, and a runtimeconfig is how it is selected. Without one, the runtime starts without WinForms and loading `System.Windows.Forms` fails.
 
 pywebview therefore ships `webview/lib/pywebview-runtimeconfig.json`, a standard .NET runtimeconfig requesting that framework and rolling forward to whichever major is installed. An application shipping its own private .NET can point `PYTHONNET_CORECLR_RUNTIME_CONFIG` at its own file instead; pywebview leaves both variables alone when they are already set. Set them before pywebview initialises a GUI — backend selection happens on the first `webview.start()`, so before `import webview` is the safe rule.
