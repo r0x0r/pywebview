@@ -6,15 +6,8 @@ from ctypes import windll
 from threading import Semaphore
 from uuid import uuid1
 
-try:
-    import clr
-except Exception:
-    import os
-
-    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
-    import clr
-
 from webview import _state
+from webview._pythonnet import clr
 from webview.util import (
     DEFAULT_HTML,
     inject_base_uri,

@@ -4,7 +4,9 @@
 
 ### 🐞 Bug fixes
 
-- `All` Handle JavaScript resource and initial injection failures without letting exceptions escape native navigation callbacks or leave load waiters blocked. Template errors now identify the failing script; an unsuccessful injection does not mark the bridge ready.
+- `All` Handle JavaScript resource and initial injection failures without letting exceptions escape native navigation callbacks or leave load waiters blocked. Template errors now identify the failing script; an unsuccessful injection does not mark the bridge ready. Thanks @FiraSenax.
+- `All` Fix a crash when a state key was deleted twice in quick succession. The JS bridge now ignores stale state deletions and logs errors from state updates or deletions instead of raising.
+- `Winforms` Fix frameless windows coming out smaller than requested. Switching `FormBorderStyle` to `None` makes WinForms keep the client area, so a window requested at 1280x820 ended up 1264x781 - a border and caption short. The requested size is applied again after the border is dropped.
 - `Android` Fix window teardown never destroying the WebView. `destroy()` was missing from the pyjnius declaration of `PyWebViewClient`, so closing a window raised `AttributeError` before reaching `WebView.destroy()`, and every closed window leaked its WebView along with the page it was showing. The error was logged and swallowed, so nothing surfaced.
 - `All` Fix deleting a state value of `None`, which raised `AttributeError`/`KeyError` as though the key did not exist. Deletion reported a missing key by returning `None`, which is indistinguishable from successfully removing a key whose value was `None`; it now reports the miss with a sentinel.
 - `Android` Stop reporting requests the WebView has to serve itself as errors. Schemes that cannot be replayed over HTTP - `data:` in particular, which is what `load_html` uses - logged a Java stack trace on every page load and fired a spurious `response_received` event with a status code of 0. They are now handed back to the WebView silently.
@@ -16,7 +18,8 @@
 
 ### 🚀 Improvements
 
-- `EdgeChromium` Update WebView2 runtime to 1.0.4191.47.
+- `Winforms` Prefer .NET 6+ with a .NET Framework fallback, preserve an application's initialized runtime, select matching WebView2 assemblies, and support CoreCLR folder dialogs on Windows ARM64. Thanks @smparkes. [#1832](https://github.com/r0x0r/pywebview/pull/1832)
+- `EdgeChromium` Update WebView2 runtime to 1.0.4258.31.
 - `All` Bump minimum Python version to 3.10. Type annotations across the codebase now use PEP 585 / PEP 604 built-in generics and union syntax.
 - `All` Drop the unused `importlib_resources` dependency.
 - `All` CI now tests Python 3.10 through 3.13, type-checks the package, compile-checks every example and audits dependencies with `pip-audit`.
