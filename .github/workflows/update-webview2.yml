@@ -85,7 +85,6 @@ jobs:
 
           version, changelog_path = sys.argv[1], sys.argv[2]
           entry = f"- `EdgeChromium` Update WebView2 runtime to {version}."
-          entry_prefix = "- `EdgeChromium` Update WebView2 runtime to "
 
           with open(changelog_path, encoding="utf-8") as f:
               content = f.read()
@@ -103,20 +102,13 @@ jobs:
               if next_release == -1:
                   next_release = len(content)
               section = content[start:next_release]
-              lines = [
-                  line for line in section.splitlines() if not line.startswith(entry_prefix)
-              ]
 
-              if "### 🚀 Improvements" in lines:
-                  heading = lines.index("### 🚀 Improvements")
-                  insertion_point = heading + 1
-                  if insertion_point < len(lines) and not lines[insertion_point]:
-                      insertion_point += 1
-                  lines.insert(insertion_point, entry)
+              if "\n### 🚀 Improvements\n" in section:
+                  section = section.replace(
+                      "### 🚀 Improvements\n\n", f"### 🚀 Improvements\n\n{entry}\n", 1
+                  )
               else:
-                  lines.extend(["", "### 🚀 Improvements", "", entry])
-
-              section = "\n".join(lines) + "\n"
+                  section = section.rstrip("\n") + f"\n\n### 🚀 Improvements\n\n{entry}\n\n"
 
               content = content[:start] + section + content[next_release:]
 
