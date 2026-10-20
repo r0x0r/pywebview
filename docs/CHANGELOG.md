@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### ⚡ Features
+
+- `All` Support coroutine results from JS API methods and exposed functions using an application-owned asyncio event loop passed to `webview.start()`. Thanks @KaHuier.
+
 ### 🐞 Bug fixes
 
 - `All` Fix a crash when a state key was deleted twice in quick succession. The JS bridge now ignores stale state deletions and logs errors from state updates or deletions instead of raising.

@@ -29,3 +29,22 @@ Exposed function returns a promise that is resolved to its result value. Excepti
 `pywebview.api` is not guaranteed to be available on the `window.onload` event. Subscribe to the `window.pywebviewready` event instead to make sure that `pywebview.api` is ready.
 
 [See example](/examples/js_api.html).
+
+### Async Python functions
+
+Pass an already-running asyncio event loop to `webview.start(event_loop=loop)` to expose `async def` methods and functions. This works with both `js_api` and `window.expose()`, including ordinary functions that return a coroutine. The event loop is shared by all windows.
+
+```python
+class Api:
+    async def greet(self, name):
+        await asyncio.sleep(1)
+        return f'Hello, {name}!'
+```
+
+Javascript calls remain unchanged: `await window.pywebview.api.greet('Alice')` resolves to the coroutine's return value. Exceptions and cancellation reject the promise through the existing bridge error handling. Synchronous Python functions still execute on bridge threads; coroutine bodies execute on the supplied asyncio loop and can cooperate with other coroutines there. This does not make GUI methods or shared application data thread-safe.
+
+The application must run the loop in a separate thread before calling `start()`, keep it running while the GUI is active, and stop and close it afterwards. pywebview does not manage the supplied loop or cancel tasks when a window closes. Startup rejects stopped or closed loops. A coroutine call without a configured running loop rejects its promise and closes the unsubmitted coroutine. If the loop stops during a call, the bridge releases its waiting thread and reports an error; the application is still responsible for cleaning up pending tasks.
+
+Only coroutine results are supported; asyncio Futures, Tasks and arbitrary awaitable objects are not implicitly awaited. There is no automatic timeout. Use `asyncio.wait_for()` inside your API method when a timeout is needed. Avoid coroutine code that blocks the event loop.
+
+See `examples/async_js_api.py` for a complete example with startup synchronization, concurrent calls and cleanup.
