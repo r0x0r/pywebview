@@ -285,6 +285,12 @@ class BrowserView:
                     int(window.initial_width * scale), int(window.initial_height * scale)
                 )
 
+                if settings['KEEP_FRAME_STYLES']:
+                    # Give the system back the frame styles it needs to manage the window at all
+                    # (Win+arrows, snap, maximize, system menu) while still drawing no frame.
+                    self._frame_styles = win32.FrameStyles(self.Handle.ToInt64())
+                    self._frame_styles.install()
+
             if window.menu or _state['menu']:
                 self.set_window_menu(window.menu or _state['menu'])
 

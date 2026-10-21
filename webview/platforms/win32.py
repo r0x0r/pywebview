@@ -890,3 +890,200 @@ def pick_save_file_win32(
             _com_release(item)
     finally:
         _com_release(dialog)
+
+
+# --- Frame styles for frameless windows -------------------------------------
+
+_GWL_STYLE = -16
+_GWLP_WNDPROC = -4
+_WM_NCCALCSIZE = 0x0083
+_WM_GETMINMAXINFO = 0x0024
+_WS_THICKFRAME = 0x00040000
+_WS_MINIMIZEBOX = 0x00020000
+_WS_MAXIMIZEBOX = 0x00010000
+_WS_SYSMENU = 0x00080000
+_SWP_NOMOVE = 0x0002
+_SWP_NOZORDER = 0x0004
+_SWP_FRAMECHANGED = 0x0020
+_MONITOR_DEFAULTTONEAREST = 2
+
+#: The frame styles ``frameless=True`` removes. ``WS_THICKFRAME`` is what makes the
+#: system manage the window again (``Win``+arrows, snap, maximize, restore); the other
+#: two keep the window in the taskbar's window menu and give it a system menu.
+FRAME_STYLES = _WS_THICKFRAME | _WS_MINIMIZEBOX | _WS_MAXIMIZEBOX | _WS_SYSMENU
+
+
+def with_frame_styles(style: int) -> int:
+    """Return the window ``style`` with the frame styles a frameless window lacks.
+
+    Idempotent: passing a style that already has them changes nothing.
+    """
+    return int(style) | FRAME_STYLES
+
+
+class _MINMAXINFO(ctypes.Structure):
+    _fields_ = [
+        ('ptReserved', wintypes.POINT),
+        ('ptMaxSize', wintypes.POINT),
+        ('ptMaxPosition', wintypes.POINT),
+        ('ptMinTrackSize', wintypes.POINT),
+        ('ptMaxTrackSize', wintypes.POINT),
+    ]
+
+
+class _MONITORINFO(ctypes.Structure):
+    _fields_ = [
+        ('cbSize', wintypes.DWORD),
+        ('rcMonitor', wintypes.RECT),
+        ('rcWork', wintypes.RECT),
+        ('dwFlags', wintypes.DWORD),
+    ]
+
+
+class FrameStyles:
+    """Give a frameless window back the frame styles it lost, without drawing a frame.
+
+    ``frameless=True`` removes ``WS_CAPTION``/``WS_THICKFRAME``, and the system then
+    stops managing the window: ``Win``+arrows do nothing, there is no snapping, no
+    maximize on ``Win``+``Up`` and no system menu. Re-adding the frame styles brings
+    all of that back while ``WM_NCCALCSIZE`` returning 0 keeps the non-client area at
+    zero size, so no frame is drawn: the client rectangle stays equal to the window
+    rectangle, exactly as a frameless window wants.
+
+    ``WS_THICKFRAME`` has a side effect worth knowing about: when the system maximizes
+    the window it includes the invisible frame thickness, which on a 2560x1400 work
+    area produced 2574x1454 at (-7, -7) - larger than the screen and covering the
+    taskbar. ``WM_GETMINMAXINFO`` therefore clamps the maximized size and position to
+    the work area of the monitor the window is on.
+
+    Mouse resizing is *not* restored by this: the web content is hosted in a child
+    window covering the client area, so the top-level window is never asked where the
+    cursor is (see the drag/snapping notes in the docs). Resize borders belong in the
+    page, where the app can theme them anyway.
+
+    The window proc is subclassed *before* the styles change: the other way around,
+    the ``WM_NCCALCSIZE`` that ``SWP_FRAMECHANGED`` triggers is still handled by the
+    old proc and a 7px system frame gets drawn.
+    """
+
+    def __init__(self, hwnd: int) -> None:
+        self.hwnd = ctypes.c_void_p(int(hwnd))
+        self.installed = False
+        self._user32 = None
+        self._proc = None  # keeps the callback alive; a collected WNDPROC crashes the app
+        self._old_proc = None
+        self._old_style = None
+
+    def install(self) -> bool:
+        """Subclass the window and add the frame styles. Returns False if it did not work."""
+        # A private WinDLL on purpose: setting prototypes on ctypes.windll would change
+        # the shared function table for the whole process and break unrelated calls
+        # (SetWindowPos in particular, which every backend uses).
+        user32 = ctypes.WinDLL('user32', use_last_error=True)
+        self._user32 = user32
+
+        try:
+            user32.SetWindowLongPtrW.restype = ctypes.c_void_p
+            user32.SetWindowLongPtrW.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p]
+            user32.CallWindowProcW.restype = ctypes.c_longlong
+            user32.CallWindowProcW.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+                ctypes.c_uint,
+                ctypes.c_ulonglong,
+                ctypes.c_longlong,
+            ]
+            user32.SetWindowPos.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_uint,
+            ]
+            user32.MonitorFromWindow.restype = ctypes.c_void_p
+            user32.MonitorFromWindow.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+            user32.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+
+            proc_type = ctypes.WINFUNCTYPE(
+                ctypes.c_longlong,
+                ctypes.c_void_p,
+                ctypes.c_uint,
+                ctypes.c_ulonglong,
+                ctypes.c_longlong,
+            )
+            self._proc = proc_type(self._wndproc)
+            self._old_proc = user32.SetWindowLongPtrW(
+                self.hwnd, _GWLP_WNDPROC, ctypes.cast(self._proc, ctypes.c_void_p)
+            )
+            if not self._old_proc:
+                self._proc = None
+                return False
+
+            self._old_style = user32.GetWindowLongW(self.hwnd, _GWL_STYLE)
+            wanted = with_frame_styles(self._old_style)
+            if wanted != self._old_style:
+                user32.SetWindowLongW(self.hwnd, _GWL_STYLE, wanted)
+                user32.SetWindowPos(
+                    self.hwnd,
+                    None,
+                    0,
+                    0,
+                    0,
+                    0,
+                    _SWP_NOMOVE | _SWP_NOSIZE | _SWP_NOZORDER | _SWP_FRAMECHANGED,
+                )
+            self.installed = True
+            return True
+        except Exception as e:
+            _log.warning('Could not apply frame styles to hwnd=0x%x: %s', self.hwnd.value or 0, e)
+            self._proc = None
+            return False
+
+    def uninstall(self) -> None:
+        """Restore the original window proc and styles."""
+        if not self.installed or self._user32 is None:
+            return
+        try:
+            self._user32.SetWindowLongPtrW(self.hwnd, _GWLP_WNDPROC, self._old_proc)
+            if self._old_style is not None:
+                self._user32.SetWindowLongW(self.hwnd, _GWL_STYLE, self._old_style)
+                self._user32.SetWindowPos(
+                    self.hwnd,
+                    None,
+                    0,
+                    0,
+                    0,
+                    0,
+                    _SWP_NOMOVE | _SWP_NOSIZE | _SWP_NOZORDER | _SWP_FRAMECHANGED,
+                )
+        finally:
+            self._proc = None
+            self.installed = False
+
+    def _wndproc(self, hwnd, message, wparam, lparam):
+        if message == _WM_NCCALCSIZE and wparam:
+            return 0  # a non-client area of zero size: nothing is drawn outside the client rect
+
+        if message == _WM_GETMINMAXINFO:
+            # Let the default proc fill in the other fields first, then clamp maximizing
+            # to the work area of the monitor the window is on (see the class docstring).
+            result = self._user32.CallWindowProcW(self._old_proc, hwnd, message, wparam, lparam)
+            try:
+                info = ctypes.cast(ctypes.c_void_p(lparam), ctypes.POINTER(_MINMAXINFO)).contents
+                monitor = self._user32.MonitorFromWindow(hwnd, _MONITOR_DEFAULTTONEAREST)
+                monitor_info = _MONITORINFO()
+                monitor_info.cbSize = ctypes.sizeof(_MONITORINFO)
+                if self._user32.GetMonitorInfoW(monitor, ctypes.byref(monitor_info)):
+                    work = monitor_info.rcWork
+                    info.ptMaxPosition.x, info.ptMaxPosition.y = work.left, work.top
+                    info.ptMaxSize.x, info.ptMaxSize.y = (
+                        work.right - work.left,
+                        work.bottom - work.top,
+                    )
+            except Exception as e:
+                _log.warning('Could not clamp the maximized size for hwnd=0x%x: %s', hwnd, e)
+            return result
+
+        return self._user32.CallWindowProcW(self._old_proc, hwnd, message, wparam, lparam)
