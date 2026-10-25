@@ -34,7 +34,10 @@ class State(dict):
 
     def __update_js(self, key: str, value: Any) -> None:
         special_key = '__pywebviewHaltUpdate__' + key
-        script = f"window.pywebview.state.{special_key} = JSON.parse('{escape_string(json.dumps(value))}')"
+        script = (
+            f'window.pywebview.state[{json.dumps(special_key)}] = '
+            f"JSON.parse('{escape_string(json.dumps(value))}')"
+        )
         self.__window.run_js(script)
 
     def __notify_handlers(self, type: StateEventType, key: str, value: Any = None) -> None:
@@ -88,7 +91,7 @@ class State(dict):
 
             if should_update_js:
                 special_key = '__pywebviewHaltUpdate__' + key
-                self.__window.run_js(f'delete window.pywebview.state.{special_key}')
+                self.__window.run_js(f'delete window.pywebview.state[{json.dumps(special_key)}]')
 
             self.__notify_handlers(StateEventType.DELETE, key, old_value)
             return old_value
