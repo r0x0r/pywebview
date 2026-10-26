@@ -22,6 +22,7 @@
 - `EdgeChromium` Update WebView2 runtime to 1.0.4258.31.
 - `All` Bump minimum Python version to 3.10. Type annotations across the codebase now use PEP 585 / PEP 604 built-in generics and union syntax.
 - `All` Drop the unused `importlib_resources` dependency.
+- `All` Drop the `proxy_tools` dependency. Deprecated `OPEN_DIALOG`, `FOLDER_DIALOG`, `SAVE_DIALOG` and `DRAG_REGION_SELECTOR` now use a module-level `__getattr__`, and `webview.screens` is a lazy sequence that queries displays only when used. [#1851](https://github.com/r0x0r/pywebview/issues/1851)
 - `All` CI now tests Python 3.10 through 3.13, type-checks the package, compile-checks every example and audits dependencies with `pip-audit`.
 - `All` The PyPI project page now shows the README. The built distributions previously carried no long description.
 
