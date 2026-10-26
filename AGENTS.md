@@ -244,7 +244,7 @@ release by `.github/workflows/docs.yaml`).
   Binaries in `webview/lib` are built from `interop/` — change the source there and note that the
   binary needs rebuilding.
 - **Do not add dependencies** to `pyproject.toml` without asking. The small dependency footprint
-  (`bottle`, `proxy_tools`, `typing_extensions` plus per-platform bindings) is a deliberate
+  (`bottle`, `typing_extensions` plus per-platform bindings) is a deliberate
   design goal.
 - **A change to one backend is usually a change to all of them.** Before declaring a fix
   complete, grep the other platform modules for the same pattern and say explicitly which
@@ -252,7 +252,7 @@ release by `.github/workflows/docs.yaml`).
 - **You cannot test most backends.** macOS/Windows/Linux/Android behaviour cannot be verified
   from a single machine. Prefer changes that are obviously correct by inspection, keep them
   narrow, and flag anything that needs verification on hardware you do not have.
-- **Preserve backwards compatibility.** Deprecations follow the `@module_property` +
+- **Preserve backwards compatibility.** Deprecations follow the module-level `__getattr__` +
   `logger.warning` pattern in `__init__.py` — warn for a release cycle rather than removing.
 - Match the file you are editing. This codebase is old and its styles are not uniform; local
   consistency beats global consistency.
