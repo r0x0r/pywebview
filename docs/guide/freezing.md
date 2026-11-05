@@ -152,10 +152,13 @@ A minimal `pyproject.toml`:
 project_name = "MyApp"
 bundle = "com.example"
 version = "0.1.0"
+license = "MIT"
+license-files = ["LICENSE"]
 
 [tool.briefcase.app.myapp]
 formal_name = "MyApp"
 description = "A pywebview application"
+long_description = "A longer description, required for Linux packages."
 sources = ["src/myapp"]
 requires = ["pywebview"]
 
@@ -167,7 +170,19 @@ system_requires = ["libgirepository1.0-dev", "libcairo2-dev", "pkg-config"]
 system_runtime_requires = ["gir1.2-gtk-3.0", "gir1.2-webkit2-4.1", "libgirepository-1.0-1"]
 ```
 
-Put the HTML in `src/myapp/web/`. Briefcase copies everything under `sources`. Then:
+The project layout:
+
+```
+pyproject.toml
+LICENSE           # required, referenced by license-files
+CHANGELOG         # required for Linux packages (CHANGELOG.md also works)
+src/myapp/
+  __init__.py
+  __main__.py     # entry point: create windows and call webview.start()
+  web/index.html  # Briefcase copies everything under sources
+```
+
+Then:
 
 ``` shell
 briefcase create
@@ -175,7 +190,7 @@ briefcase build
 briefcase package
 ```
 
-On macOS, `briefcase package` also signs and notarizes the app when it is given a Developer ID identity.
+On Linux, run Briefcase from a virtual environment created with the distribution's own `python3`. It refuses to build with a separately installed Python. On macOS, `briefcase package` also signs and notarizes the app when it is given a Developer ID identity.
 
 ## Shipping the WebView2 runtime (Windows)
 
