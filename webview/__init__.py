@@ -10,6 +10,7 @@ http://github.com/r0x0r/pywebview/
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 import enum
 import logging
@@ -143,6 +144,7 @@ _state = ImmutableDict(
         'ssl': False,
         'icon': None,
         'menu': None,
+        'event_loop': None,
     }
 )
 
@@ -178,6 +180,7 @@ def start(
     server_args: dict[Any, Any] | None = None,
     ssl: bool = False,
     icon: str | None = None,
+    event_loop: asyncio.AbstractEventLoop | None = None,
 ):
     """
     Start a GUI loop and display previously created windows. This function must
@@ -204,6 +207,8 @@ def start(
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :param ssl: Enable SSL for local HTTP server. Default is False.
     :param icon: Path to the icon file. Supported on GTK, QT, macOS and Windows.
+    :param event_loop: Already-running asyncio loop for coroutine JS API results.
+        The application owns the loop and must run it in a separate thread.
     """
     global guilib, renderer
 
@@ -247,6 +252,10 @@ def start(
 
     if len(windows) == 0:
         raise WebViewException('You must create a window first before calling this function.')
+
+    if event_loop is not None and (event_loop.is_closed() or not event_loop.is_running()):
+        raise ValueError('event_loop must be running in a separate thread before webview.start().')
+    _state['event_loop'] = event_loop
 
     if menu:
         _state['menu'] = menu

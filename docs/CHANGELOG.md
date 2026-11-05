@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### ⚡ Features
+
+- `All` Support coroutine results from JS API methods and exposed functions using an application-owned asyncio event loop passed to `webview.start()`. Thanks @KaHuier.
+
 ### 🐞 Bug fixes
 
 - `All` Fix Python-to-JavaScript state assignment and deletion for dictionary keys containing spaces, hyphens, quotes or backslashes. Thanks @UmutAlisoglu.
