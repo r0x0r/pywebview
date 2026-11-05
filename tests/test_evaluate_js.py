@@ -78,6 +78,9 @@ def mixed_test(window):
     assert result == 4
     assert window._callbacks == {}
 
+    assert window.evaluate_js('2 + 2', lambda result: None) == 4
+    assert window._callbacks == {}
+
 
 def array_test(window):
     result = window.evaluate_js(

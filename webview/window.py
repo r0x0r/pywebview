@@ -472,8 +472,9 @@ class Window:
                     }}).catch(function evaluate_async(error) {{
                         pywebview._asyncCallback(pywebview.stringify(error), "{unique_id}")
                     }});
-                    "true";
-                }} else {{ {return_result} }}
+                    value = {{ pywebviewPromise420: true }};
+                }}
+                {return_result}
             """
         else:
             escaped_script = f"""
@@ -502,6 +503,12 @@ class Window:
             result = self.gui.evaluate_js(escaped_script, self.uid, True)
         else:
             result = self.gui.evaluate_js(escaped_script, self.uid, True)
+
+        if isinstance(result, dict) and result.get('pywebviewPromise420'):
+            return None
+
+        # no promise to resolve, so the callback will never be called
+        self._callbacks.pop(unique_id, None)
 
         if isinstance(result, dict) and result.get('pywebviewJavascriptError420'):
             del result['pywebviewJavascriptError420']
