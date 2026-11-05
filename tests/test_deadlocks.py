@@ -76,17 +76,21 @@ def test_api_in_blocking_handler(phase, name):
     assert check(window, result['value']), result['value']
 
 
-def test_evaluate_js_before_page_ready():
+@pytest.mark.parametrize('phase', ['before_show', 'before_load'])
+@pytest.mark.parametrize('name', ['evaluate_js', 'get_cookies'])
+def test_page_api_before_page_ready(phase, name):
     window = webview.create_window('Deadlock test', html='<html><body>TEST</body></html>')
+    action = ACTIONS[name][0]
     result = {}
 
-    def on_before_load():
+    def handler():
         try:
-            window.evaluate_js('1 + 1')
+            action(window)
         except webview.errors.WebViewException as e:
             result['error'] = e
 
-    window.events.before_load += on_before_load
+    event = getattr(window.events, phase)
+    event += handler
     window.events.loaded += window.destroy
     webview.start()
 

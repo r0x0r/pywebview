@@ -342,6 +342,10 @@ class Window:
         """
         Get cookies for the current website
         """
+        # only reachable unloaded from a blocking handler, which skips the readiness wait
+        if not self.events.loaded.is_set():
+            raise WebViewException('get_cookies() cannot be called before the page has loaded')
+
         return self.gui.get_cookies(self.uid)
 
     @_loaded_call

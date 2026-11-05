@@ -909,7 +909,7 @@ Window object exposes various lifecycle and window management events. To subscri
 
 #### Calling pywebview from a blocking handler
 
-The blocking events - `closing`, `before_show` and `before_load` - run their handlers on the GUI thread. pywebview API calls work from these handlers: while a call waits for its result, the GUI event loop keeps running, the same way a modal dialog does. This means other events can be processed before the call returns. `window.evaluate_js()` needs the page to be loaded, so calling it from `before_show` or from the first `before_load` raises `WebViewException`. On Android and WinUI3, `window.evaluate_js()` and `window.get_cookies()` cannot be called from a blocking handler and raise `RuntimeError`, as do most dialogs on WinUI3, and on EdgeChromium the same two raise `RuntimeError` from a `before_load` handler; call them from another thread instead.
+The blocking events - `closing`, `before_show` and `before_load` - run their handlers on the GUI thread. pywebview API calls work from these handlers: while a call waits for its result, the GUI event loop keeps running, the same way a modal dialog does. This means other events can be processed before the call returns. `window.evaluate_js()` and `window.get_cookies()` need the page to be loaded, so calling them from `before_show` or from the first `before_load` raises `WebViewException`. On Android and WinUI3, `window.evaluate_js()` and `window.get_cookies()` cannot be called from a blocking handler and raise `RuntimeError`, as do most dialogs on WinUI3, and on EdgeChromium the same two raise `RuntimeError` from a `before_load` handler; call them from another thread instead.
 
 ### window.events.before_show
 
