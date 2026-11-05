@@ -7,7 +7,7 @@ Freezing turns a _pywebview_ application into a self-contained executable or app
 Whichever tool you use, the frozen application must contain:
 
 - `webview/js` – Javascript injected into every page. Without it, page loads fail.
-- `webview/lib` on Windows – WebView2 assemblies, `WebView2Loader.dll` under `lib/runtimes/<arch>/native`, the legacy `WebBrowserInterop` DLLs and `pywebview-runtimeconfig.json`, which _pywebview_ needs to load .NET 6+ through pythonnet.
+- `webview/lib` on Windows – WebView2 assemblies, `WebView2Loader.dll` under `lib/runtimes/<arch>/native` and `pywebview-runtimeconfig.json`, which _pywebview_ needs to load .NET 6+ through pythonnet.
 - `pywebview-android.jar` on Android.
 - Your own HTML, CSS and JS assets.
 
@@ -178,7 +178,7 @@ On macOS, `briefcase package` also signs and notarizes the app when it is given 
 
 ## Shipping the WebView2 runtime (Windows)
 
-The EdgeChromium renderer needs the Microsoft Edge WebView2 Runtime. If it is missing, _pywebview_ silently falls back to the legacy MSHTML (Internet Explorer) renderer, which most modern frontends do not support. There are two ways to make sure the runtime is present.
+The EdgeChromium renderer needs the Microsoft Edge WebView2 Runtime, and your application cannot display content without it. There are two ways to make sure the runtime is present.
 
 ### Evergreen runtime (recommended)
 
