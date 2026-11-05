@@ -39,7 +39,7 @@ The simplest fix is to freeze from a clean virtual environment that contains onl
 - PyInstaller: `--exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide2 --exclude-module PySide6 --exclude-module qtpy --exclude-module gi --exclude-module cefpython3`
 - Nuitka: `--nofollow-import-to=PyQt5 --nofollow-import-to=PySide6 ...` (same list)
 
-Do not exclude the backend you actually use. Set `PYWEBVIEW_GUI` (`qt`, `gtk`, `edgechromium`, ...) if you need a particular renderer regardless of what is installed on the target machine.
+Do not exclude the backend you actually use. To make the frozen application always use a particular backend, pass it to `webview.start(gui='qt')` (or `'gtk'`, `'edgechromium'`, ...). The `PYWEBVIEW_GUI` environment variable does the same, but end users will not have it set, so reserve it for development and debugging.
 
 ### Frontend frameworks
 
@@ -161,7 +161,8 @@ requires = ["pywebview"]
 
 [tool.briefcase.app.myapp.linux]
 requires = ["pywebview[gtk]"]
-# Debian/Ubuntu package names, see the Installation guide for other distributions
+# Debian/Ubuntu package names. The list may be incomplete for your distribution,
+# see the Installation guide
 system_requires = ["libgirepository1.0-dev", "libcairo2-dev", "pkg-config"]
 system_runtime_requires = ["gir1.2-gtk-3.0", "gir1.2-webkit2-4.1", "libgirepository-1.0-1"]
 ```
@@ -191,22 +192,22 @@ Download the [Evergreen Bootstrapper](https://developer.microsoft.com/microsoft-
 Source: "MicrosoftEdgeWebview2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 [Run]
-Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; \
-  StatusMsg: "Installing WebView2 Runtime..."; Check: not IsWebView2Installed
+Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Installing WebView2 Runtime..."; Check: not IsWebView2Installed
 
 [Code]
 function IsWebView2Installed: Boolean;
 var
   Version: String;
 begin
+  // HKLM32 reads the 32-bit registry view, where the per-machine runtime registers itself
   Result :=
-    RegQueryStringValue(HKLM, 'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Version) or
+    RegQueryStringValue(HKLM32, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Version) or
     RegQueryStringValue(HKCU, 'Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Version);
   Result := Result and (Version <> '') and (Version <> '0.0.0.0');
 end;
 ```
 
-These are the same registry keys _pywebview_ checks at start-up. Microsoft also offers a standalone Evergreen installer for offline installs.
+These are the registry keys of the stable Evergreen runtime. _pywebview_ checks the same keys at start-up, and also accepts the Beta, Dev and Canary channels. Microsoft also offers a standalone Evergreen installer for offline installs.
 
 ### Fixed Version runtime
 
@@ -215,6 +216,7 @@ A Fixed Version runtime is a specific WebView2 build that you ship inside your a
 1. Download the Fixed Version `.cab` for your target architecture from the [WebView2 download page](https://developer.microsoft.com/microsoft-edge/webview2/) and extract it:
 
    ``` shell
+   mkdir webview2
    expand Microsoft.WebView2.FixedVersionRuntime.<version>.x64.cab -F:* webview2
    ```
 
@@ -232,11 +234,11 @@ A Fixed Version runtime is a specific WebView2 build that you ship inside your a
 
    With Nuitka, use `--include-data-dir=webview2=webview2`.
 
-If the configured path does not exist, _pywebview_ logs a warning and uses the system runtime.
+If the configured path does not exist, _pywebview_ logs a warning and tries the system runtime instead. If that is not installed either, the window cannot load, so make sure the path is correct in the frozen build.
 
 ### .NET
 
-The WinForms backend loads .NET through pythonnet. It prefers .NET 6 or newer (CoreCLR) and falls back to .NET Framework 4.6.2+. .NET Framework is part of Windows 10 and 11, so no extra installation is normally needed on x64. Windows on ARM64 has no ARM64 .NET Framework, so install the [.NET Desktop Runtime](https://dotnet.microsoft.com/download) 6 or newer there, or ship it with your installer. Set `PYTHONNET_RUNTIME=netfx` or `PYTHONNET_RUNTIME=coreclr` to force one of them.
+The WinForms backend loads .NET through pythonnet. It prefers .NET 6 or newer (CoreCLR) and falls back to .NET Framework 4.6.2+. If .NET 6+ is not installed, the .NET Framework that ships with Windows 10 and 11 is used, so no extra installation is normally needed on x64. pythonnet cannot load .NET Framework from native ARM64 Python, so on Windows on ARM64 install the [.NET Desktop Runtime](https://dotnet.microsoft.com/download) 6 or newer there, or ship it with your installer. Set `PYTHONNET_RUNTIME=netfx` or `PYTHONNET_RUNTIME=coreclr` to force one of them.
 
 ## Signing and notarization (macOS)
 
@@ -265,12 +267,14 @@ Since macOS Catalina, Gatekeeper blocks apps downloaded from the internet unless
      --osx-entitlements-file entitlements.plist
    ```
 
-   For py2app, Nuitka or an already built bundle, sign it with `codesign`:
+   For py2app, Nuitka or an already built bundle, sign it with `codesign`. Sign the nested libraries first and the bundle last. Apple discourages `codesign --deep`, because it applies the bundle's entitlements to every nested binary.
 
    ``` shell
-   codesign --deep --force --options runtime --timestamp \
-     --entitlements entitlements.plist \
-     --sign "Developer ID Application: Your Name (TEAMID)" dist/MyApp.app
+   IDENTITY="Developer ID Application: Your Name (TEAMID)"
+   find dist/MyApp.app/Contents -type f \( -name '*.so' -o -name '*.dylib' \) \
+     -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \;
+   codesign --force --options runtime --timestamp \
+     --entitlements entitlements.plist --sign "$IDENTITY" dist/MyApp.app
    codesign --verify --strict --verbose=2 dist/MyApp.app
    ```
 
