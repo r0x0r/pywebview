@@ -28,7 +28,7 @@ from uuid import uuid4
 
 import webview
 from webview.dom import _dnd_state
-from webview.errors import ReentrantCallError, WebViewException
+from webview.errors import WebViewException
 
 if TYPE_CHECKING:
     from webview.window import Window
@@ -185,21 +185,6 @@ def get_app_root() -> str:
         return os.path.join(os.path.dirname(__file__), '..', 'tests')
 
     return os.path.dirname(os.path.realpath(sys.argv[0]))
-
-
-def reentrant_call_error(api_name: str, reason: str) -> ReentrantCallError:
-    """
-    Build the error raised when `api_name` is called from the GUI thread itself.
-
-    `reason` says what specifically cannot be delivered, so the message names
-    the real constraint rather than just "deadlock". See `ReentrantCallError`.
-    """
-    return ReentrantCallError(
-        f'{api_name}() cannot be called from the GUI thread. {reason} '
-        'The GUI thread runs the closing, before_show and before_load '
-        'handlers synchronously, as well as native event callbacks; call this from '
-        'another thread (e.g. threading.Thread) instead.'
-    )
 
 
 def is_test_mode():

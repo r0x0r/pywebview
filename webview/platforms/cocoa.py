@@ -29,50 +29,24 @@ from webview.util import (
     is_test_mode,
     js_bridge_call,
     parse_file_type,
-    reentrant_call_error,
     stringify_headers,
 )
 from webview.window import FixPoint
 
 
-def _is_ui_thread() -> bool:
-    """True when the caller is already running on the AppKit main thread."""
-    return bool(AppKit.NSThread.isMainThread())
+def _wait(semaphore):
+    """Acquire `semaphore`, running the run loop meanwhile if called from the main thread."""
+    if not AppKit.NSThread.isMainThread():
+        semaphore.acquire()
+        return
 
-
-def _call_on_ui_thread(func, *args):
-    """
-    Run `func` on the AppKit main thread and return its result.
-
-    When the caller is already on the main thread the call runs inline:
-    dispatching via `AppHelper.callAfter()` and then blocking on a semaphore
-    would park the very runloop that has to run the callback, deadlocking
-    permanently. `func` must be *synchronous* -- it has to produce its result
-    before returning, not from a completion handler delivered later. Anything
-    asynchronous cannot be satisfied on this thread at all; those call sites
-    raise `ReentrantCallError` instead.
-    """
-    if _is_ui_thread():
-        return func(*args)
-
-    outcome = []
-    semaphore = Semaphore(0)
-
-    def run():
-        try:
-            outcome.append((True, func(*args)))
-        except BaseException as e:
-            outcome.append((False, e))
-        finally:
-            semaphore.release()
-
-    AppHelper.callAfter(run)
-    semaphore.acquire()
-
-    ok, value = outcome[0]
-    if ok:
-        return value
-    raise value
+    # A blocking handler (closing, before_load, ...) runs on the main thread, so the result can
+    # only be delivered if the run loop keeps running while we wait for it.
+    run_loop = AppKit.NSRunLoop.currentRunLoop()
+    while not semaphore.acquire(blocking=False):
+        run_loop.runMode_beforeDate_(
+            AppKit.NSDefaultRunLoopMode, AppKit.NSDate.dateWithTimeIntervalSinceNow_(0.05)
+        )
 
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
@@ -650,6 +624,7 @@ class BrowserView:
         self.js_bridge = None
         self._file_name = None
         self._file_name_semaphore = Semaphore(0)
+        self._current_url_semaphore = Semaphore(0)
         self.closed = window.events.closed
         self.closing = window.events.closing
         self.shown = window.events.shown
@@ -938,17 +913,6 @@ class BrowserView:
         AppHelper.callAfter(clear)
 
     def get_cookies(self):
-        if _is_ui_thread():
-            # getAllCookies_ delivers its result through a completion handler
-            # posted back to this same runloop, which the acquire() below would
-            # stop from ever running. Raise rather than deadlock -- and rather
-            # than return [], which reads as "no cookies" instead of
-            # "unavailable from here".
-            raise reentrant_call_error(
-                'get_cookies',
-                'The cookie store answers asynchronously on the GUI thread.',
-            )
-
         def handler(cookies):
             for c in cookies:
                 domain = c.domain()[1:] if c.domain().startswith('.') else c.domain()
@@ -974,15 +938,19 @@ class BrowserView:
         _cookies = []
         AppHelper.callAfter(self.datastore.httpCookieStore().getAllCookies_, handler)
         cookie_semaphore = Semaphore(0)
-        cookie_semaphore.acquire()
+        _wait(cookie_semaphore)
 
         return _cookies
 
     def get_current_url(self):
-        # Reading webview.URL() is synchronous, so this is safe to run inline
-        # when the caller is already the main thread (e.g. a closing handler).
-        url = _call_on_ui_thread(lambda: str(self.webview.URL()))
-        return None if url == 'about:blank' else url
+        def get():
+            self._current_url = str(self.webview.URL())
+            self._current_url_semaphore.release()
+
+        AppHelper.callAfter(get)
+
+        _wait(self._current_url_semaphore)
+        return None if self._current_url == 'about:blank' else self._current_url
 
     def load_url(self, url):
         def load(url):
@@ -1020,26 +988,8 @@ class BrowserView:
             result = None
             result_semaphore = Semaphore(0)
 
-        if _is_ui_thread():
-            # evaluateJavaScript_completionHandler_ delivers its result from a
-            # completion handler on this same runloop, so the acquire() below
-            # would park the thread that has to run it. Window.evaluate_js()
-            # (parse_json=True) needs that result -- raise *before* starting the
-            # script, so a caller that catches this and retries doesn't run a
-            # script with side effects twice. Window.run_js() (parse_json=False)
-            # is fire-and-forget by contract, so it can start the script inline
-            # and return.
-            if parse_json:
-                raise reentrant_call_error(
-                    'evaluate_js',
-                    'The script result is only delivered later, by the GUI thread. '
-                    'Use run_js() if you do not need the result.',
-                )
-            eval()
-            return None
-
         AppHelper.callAfter(eval)
-        JSResult.result_semaphore.acquire()
+        _wait(JSResult.result_semaphore)
         return JSResult.result
 
     def create_file_dialog(
@@ -1140,7 +1090,7 @@ class BrowserView:
             create_dialog(dialog_type, allow_multiple, save_filename)
         else:
             AppHelper.callAfter(create_dialog, dialog_type, allow_multiple, save_filename)
-            self._file_name_semaphore.acquire()
+            _wait(self._file_name_semaphore)
 
         return self._file_name
 
@@ -1562,15 +1512,22 @@ def set_title(title, uid):
 
 def create_confirmation_dialog(title, message, uid):
     def _confirm():
+        nonlocal result
+
         i = BrowserView.instances.get(uid)
         ok = i.localization['global.ok']
         cancel = i.localization['global.cancel']
 
-        return BrowserView.display_confirmation_dialog(ok, cancel, message)
+        result = BrowserView.display_confirmation_dialog(ok, cancel, message)
+        semaphore.release()
 
-    # NSAlert.runModal() pumps its own modal runloop and returns the answer
-    # before it returns, so this is safe to run inline on the main thread.
-    return _call_on_ui_thread(_confirm)
+    result = False
+
+    semaphore = Semaphore(0)
+    AppHelper.callAfter(_confirm)
+    _wait(semaphore)
+
+    return result
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
@@ -1583,17 +1540,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         file_filter.append([description, file_extensions or []])
 
     i = BrowserView.instances.get(uid)
-    # NSOpenPanel/NSSavePanel.runModal() pumps its own modal runloop, so when the
-    # caller is already the main thread the existing main_thread path runs the
-    # panel inline rather than posting it to a runloop it has itself blocked.
-    return i.create_file_dialog(
-        dialog_type,
-        directory,
-        allow_multiple,
-        save_filename,
-        file_filter,
-        main_thread=_is_ui_thread(),
-    )
+    return i.create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_filter)
 
 
 def load_url(url, uid):
@@ -1697,32 +1644,49 @@ def evaluate_js(script, uid, parse_json=True):
 
 
 def get_position(uid):
-    def _position():
+    def _position(coordinates):
         frame = i.window.frame()
-        return [
-            int(frame.origin.x),
-            int(_primary_screen_height() - frame.origin.y - frame.size.height),
-        ]
+        coordinates[0] = int(frame.origin.x)
+        coordinates[1] = int(_primary_screen_height() - frame.origin.y - frame.size.height)
+        semaphore.release()
+
+    coordinates = [None, None]
+    semaphore = Semaphore(0)
 
     i = BrowserView.instances.get(uid)
     if not i:
         return None, None
 
-    # Reading the window frame is synchronous, so _call_on_ui_thread() runs it
-    # inline when the caller is already the main thread instead of deadlocking.
-    return _call_on_ui_thread(_position)
+    try:
+        _position(coordinates)
+    except Exception:
+        AppHelper.callAfter(_position, coordinates)
+        _wait(semaphore)
+
+    return coordinates
 
 
 def get_size(uid):
-    def _size():
+    def _size(dimensions):
         size = i.window.frame().size
-        return [size.width, size.height]
+        dimensions[0] = size.width
+        dimensions[1] = size.height
+        semaphore.release()
+
+    dimensions = [None, None]
+    semaphore = Semaphore(0)
 
     i = BrowserView.instances.get(uid)
     if not i:
         return None, None
 
-    return _call_on_ui_thread(_size)
+    try:
+        _size(dimensions)
+    except Exception:
+        AppHelper.callAfter(_size, dimensions)
+        _wait(semaphore)
+
+    return dimensions
 
 
 def get_screens():
