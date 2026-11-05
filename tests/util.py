@@ -5,7 +5,7 @@ import threading
 import time
 import traceback
 from collections.abc import Callable, Iterable
-from multiprocessing import Queue
+from queue import Queue
 from typing import Any
 from uuid import uuid4
 
@@ -42,6 +42,9 @@ def run_test(
     """
     __tracebackhide__ = True
     try:
+        # queue.Queue, not multiprocessing.Queue: nothing crosses a process
+        # boundary, and multiprocessing.Queue's feeder thread means empty() can
+        # report empty while a traceback is in flight.
         queue: Queue = Queue()
         start_args = dict(start_args) if start_args else {}
 

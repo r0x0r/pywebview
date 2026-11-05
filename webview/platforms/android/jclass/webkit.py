@@ -37,11 +37,16 @@ class PyWebViewClient(JavaClass, metaclass=MetaJavaClass):
         setRequestInterceptor:
             Sets a request interceptor to manage and modify WebView requests
             before they are processed.
+
+        destroy:
+            Drops the callback and interceptor references and makes the client
+            ignore any further events, for teardown.
     """
 
     __javaclass__ = 'com/pywebview/PyWebViewClient'
     setCallback = JavaMethod('(Lcom/pywebview/EventCallbackWrapper;Z)V')
     setRequestInterceptor = JavaMethod('(Lcom/pywebview/WebViewRequestInterceptor;)V')
+    destroy = JavaMethod('()V')
 
 
 class PyWebChromeClient(JavaClass, metaclass=MetaJavaClass):
@@ -119,7 +124,7 @@ class CookieManager(JavaClass, metaclass=MetaJavaClass):
         setAcceptCookie(accept: bool): Sets whether the WebView should accept
             cookies globally.
 
-        acceptCookie(accept: bool): Checks whether the web environment accepts cookies.
+        acceptCookie(): Returns whether the web environment accepts cookies.
 
         setAcceptThirdPartyCookies(view, accept: bool): Determines whether the
             specified WebView should accept third-party cookies.
@@ -162,7 +167,9 @@ class CookieManager(JavaClass, metaclass=MetaJavaClass):
 
     getInstance = JavaStaticMethod('()Landroid/webkit/CookieManager;')
     setAcceptCookie = JavaMethod('(Z)V')
-    acceptCookie = JavaMethod('()V')
+    # A getter returning boolean, not a void setter. With ()V the JNI method
+    # lookup fails outright.
+    acceptCookie = JavaMethod('()Z')
     setAcceptThirdPartyCookies = JavaMethod('(Landroid/webkit/WebView;Z)V')
     acceptThirdPartyCookies = JavaMethod('(Landroid/webkit/WebView;)Z')
     setCookie = JavaMultipleMethod(
@@ -301,7 +308,7 @@ class WebView(JavaClass, metaclass=MetaJavaClass):
     getWebViewClient = JavaMethod('()Landroid/webkit/WebViewClient;')
     getWebViewRenderProcess = JavaMethod('()Landroid/webkit/WebViewRenderProcess;')
     setWebViewRenderProcessClient_with_executor = JavaMethod(
-        'Ljava/util/concurrent/Executor;Landroid/webkit/WebViewRenderProcessClient;V'
+        '(Ljava/util/concurrent/Executor;Landroid/webkit/WebViewRenderProcessClient;)V'
     )
     setWebViewRenderProcessClient = JavaMultipleMethod(
         [
@@ -310,7 +317,7 @@ class WebView(JavaClass, metaclass=MetaJavaClass):
                 False,
                 False,
             ),
-            ('Landroid/webkit/WebViewRenderProcessClient;V', False, False),
+            ('(Landroid/webkit/WebViewRenderProcessClient;)V', False, False),
         ]
     )
     getWebViewRenderProcessClient = JavaMethod('()Landroid/webkit/WebViewRenderProcessClient;')

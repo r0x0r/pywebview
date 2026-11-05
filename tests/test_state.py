@@ -1,3 +1,4 @@
+import json
 from threading import Lock
 
 import pytest
@@ -47,6 +48,10 @@ def test_delete_from_js(window):
     run_test(webview, window, delete_from_js_test)
 
 
+def test_delete_none(window):
+    run_test(webview, window, delete_none_test)
+
+
 def test_event_change(window):
     run_test(webview, window, event_change_test)
 
@@ -92,6 +97,10 @@ def test_state_dictionary_assignment(window):
 def test_state_dictionary_deletion(window):
     """Test dictionary-style deletion: del state['key']"""
     run_test(webview, window, dictionary_deletion_test)
+
+
+def test_state_dictionary_special_keys(window):
+    run_test(webview, window, dictionary_special_keys_test)
 
 
 def test_state_mixed_access(window):
@@ -148,6 +157,33 @@ def delete_from_js_test(window):
     assert window.evaluate_js('pywebview.state.test === 420')
     window.run_js('delete pywebview.state.test')
     assert 'test' not in window.state
+
+
+def delete_none_test(window):
+    # A stored None used to be indistinguishable from a missing key, so
+    # deleting one raised instead of removing it.
+    window.state.test = None
+    del window.state.test
+    assert 'test' not in window.state
+    assert window.evaluate_js('Object.keys(pywebview.state).length === 0')
+
+    window.state['test'] = None
+    del window.state['test']
+    assert 'test' not in window.state
+
+    try:
+        del window.state.missing
+    except AttributeError:
+        pass
+    else:
+        raise AssertionError('deleting a missing attribute should raise AttributeError')
+
+    try:
+        del window.state['missing']
+    except KeyError:
+        pass
+    else:
+        raise AssertionError('deleting a missing key should raise KeyError')
 
 
 def event_change_test(window):
@@ -450,3 +486,17 @@ def mixed_access_test(window):
     assert 'attr_set' in keys
     assert 'dict_set' in keys
     assert len(window.state) >= 2
+
+
+def dictionary_special_keys_test(window):
+    for key in ('item-count', 'full name', 'quoted"key\\value'):
+        js_key = json.dumps(key)
+        window.state[key] = 420
+        assert window.evaluate_js(f'pywebview.state[{js_key}]') == 420
+
+        del window.state[key]
+        assert key not in window.state
+        assert (
+            window.evaluate_js(f'Object.prototype.hasOwnProperty.call(pywebview.state, {js_key})')
+            is False
+        )

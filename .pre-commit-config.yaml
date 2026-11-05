@@ -5,6 +5,8 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-added-large-files
+        # Bundled upstream WebView2 .NET Framework assembly.
+        exclude: ^webview/lib/net462/Microsoft\.Web\.WebView2\.Core\.dll$
       - id: check-yaml
       - id: double-quote-string-fixer
       - id: end-of-file-fixer
@@ -18,4 +20,7 @@ repos:
         args: [--fix]
       # Run the formatter.
       - id: ruff-format
-exclude: ^docs/\.vuepress/public/
+# Vendored content: archived documentation snapshots and the bundled runtimes,
+# binaries and third party licenses under webview/lib. Whitespace fixups there
+# would rewrite files that are not ours to reformat.
+exclude: ^(docs/\.vuepress/public/|webview/lib/)

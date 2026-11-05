@@ -14,6 +14,7 @@ import logging
 import os
 import re
 import sys
+import sysconfig
 import traceback
 import urllib.parse
 from collections import UserDict
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
     from webview.window import Window
 
 _TOKEN = uuid4().hex
+RUNTIME_CONFIG = 'pywebview-runtimeconfig.json'
 
 DEFAULT_HTML = """
     <!doctype html>
@@ -45,6 +47,78 @@ DEFAULT_HTML = """
 """
 
 logger = logging.getLogger('pywebview')
+
+
+def configure_coreclr() -> None:
+    """Set pythonnet's coreclr environment before importing clr."""
+    runtimeconfig = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', RUNTIME_CONFIG)
+    os.environ.setdefault('PYTHONNET_CORECLR_RUNTIME_CONFIG', runtimeconfig)
+
+    # An x64 Python on Windows ARM64 must use the side-by-side x64 dotnet install.
+    if sys.platform == 'win32' and sysconfig.get_platform() == 'win-amd64':
+        x64_root = os.path.join(
+            os.environ.get('ProgramFiles', r'C:\Program Files'), 'dotnet', 'x64'
+        )
+        if os.path.isdir(x64_root):
+            os.environ.setdefault('DOTNET_ROOT', x64_root)
+            os.environ.setdefault('DOTNET_ROOT_X64', x64_root)
+
+
+def _load(runtime: str) -> None:
+    os.environ['PYTHONNET_RUNTIME'] = runtime
+    try:
+        import clr  # noqa: F401
+    except BaseException:
+        for module in ('clr', 'pythonnet'):
+            sys.modules.pop(module, None)
+        raise
+
+
+def select_runtime(load: Callable[[str], None] = _load) -> str:
+    """Load pythonnet, preferring coreclr and falling back to netfx."""
+    pythonnet = sys.modules.get('pythonnet')
+    runtime_info = pythonnet.get_runtime_info() if pythonnet is not None else None
+    if runtime_info is not None:
+        chosen = runtime_info.kind.lower()
+        if chosen == '.net framework':
+            chosen = 'netfx'
+        if chosen not in ('coreclr', 'netfx', 'mono'):
+            raise RuntimeError(f'Unsupported initialized pythonnet runtime: {runtime_info.kind}')
+        os.environ['PYTHONNET_RUNTIME'] = chosen
+        load(chosen)
+        logger.debug('Using existing .NET framework: %s', chosen)
+        return chosen
+
+    chosen = os.environ.get('PYTHONNET_RUNTIME')
+    if chosen:
+        if chosen == 'default':
+            chosen = 'netfx' if sys.platform == 'win32' else 'mono'
+            os.environ['PYTHONNET_RUNTIME'] = chosen
+        if chosen == 'coreclr':
+            configure_coreclr()
+        load(chosen)
+        logger.debug('Using .NET framework: %s', chosen)
+        return chosen
+
+    configure_coreclr()
+    os.environ['PYTHONNET_RUNTIME'] = 'coreclr'
+    try:
+        load('coreclr')
+    except Exception as coreclr_error:
+        logger.debug('coreclr unavailable, falling back to netfx: %s', coreclr_error)
+        os.environ['PYTHONNET_RUNTIME'] = 'netfx'
+        try:
+            load('netfx')
+        except Exception as netfx_error:
+            raise RuntimeError(
+                f'Could not load pythonnet on either runtime. '
+                f'coreclr: {coreclr_error}. netfx: {netfx_error}.'
+            ) from coreclr_error
+        logger.debug('Using .NET framework: netfx')
+        return 'netfx'
+
+    logger.debug('Using .NET framework: coreclr')
+    return 'coreclr'
 
 
 class ImmutableDict(UserDict):
@@ -101,11 +175,14 @@ def get_app_root() -> str:
     if getattr(sys, 'frozen', False):  # cx_freeze
         return os.path.dirname(sys.executable)
 
-    if 'pytest' in sys.modules and os.getenv('PYWEBVIEW_TEST'):
-        return os.path.join(os.path.dirname(__file__), '..', 'tests')
-
+    # Before the pytest branch: the suite also runs on-device under pytest,
+    # where there is no sibling tests/ directory and the pytest branch would
+    # return a path that does not exist.
     if hasattr(sys, 'getandroidapilevel'):
         return os.getenv('ANDROID_APP_PATH') or ''
+
+    if 'pytest' in sys.modules and os.getenv('PYWEBVIEW_TEST'):
+        return os.path.join(os.path.dirname(__file__), '..', 'tests')
 
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -273,10 +350,9 @@ def inject_pywebview(platform: str, window: Window) -> None:
         return [{'func': name, 'params': params} for name, params in functions.items()]
 
     def generate_js_object():
-        window.run_js(js_code)
-        logger.debug('_pywebviewready event fired')
-
         try:
+            window.run_js(js_code)
+            logger.debug('_pywebviewready event fired')
             with window._expose_lock:
                 func_list = generate_func()
                 window.run_js(finish_script % {'functions': json.dumps(func_list)})
@@ -289,7 +365,13 @@ def inject_pywebview(platform: str, window: Window) -> None:
 
     window.events.before_load.set()
     logger.debug('before_load event fired. injecting pywebview object')
-    js_code, finish_script = load_js_files(window, platform)
+    try:
+        js_code, finish_script = load_js_files(window, platform)
+    except Exception:
+        # Called from native navigation callbacks: Python exceptions must not escape.
+        logger.exception('Failed to load pywebview JavaScript')
+        window.events.loaded.set()
+        return
     thread = Thread(target=generate_js_object)
     thread.start()
 
@@ -390,12 +472,22 @@ def js_bridge_call(
         return
 
     if func_name == 'pywebviewStateUpdate':
-        window.state.__setattr__(param['key'], param['value'], False)
+        try:
+            window.state.__setattr__(param['key'], param['value'], False)
+        except Exception:
+            logger.exception('Error occurred while updating state key %s', param.get('key'))
         return
 
     if func_name == 'pywebviewStateDelete':
         special_key = '__pywebviewHaltUpdate__' + param
-        delattr(window.state, special_key)
+        try:
+            delattr(window.state, special_key)
+        except AttributeError:
+            # The key was already removed on the Python side (e.g. a race with a
+            # concurrent delete or update); nothing left to do on the JS side.
+            pass
+        except Exception:
+            logger.exception('Error occurred while deleting state key %s', param)
         return
 
     func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
@@ -461,7 +553,10 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
             elif name == 'polyfill' and platform != 'mshtml':
                 continue
 
-            js_code += content % params
+            try:
+                js_code += content % params
+            except (KeyError, TypeError, ValueError) as e:
+                raise WebViewException(f'Failed to format JavaScript file {file!r}: {e}') from e
 
     return js_code, finish_script
 
@@ -560,32 +655,39 @@ def interop_dll_path(dll_name: str) -> str:
             else 'WebBrowserInterop.x86.dll'
         )
 
-    # Unfrozen path
-    dll_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', dll_name)
-    if os.path.exists(dll_path):
-        return dll_path
+    def candidate_paths(base_dir: str) -> list[str]:
+        if os.environ.get('PYTHONNET_RUNTIME') == 'netfx' and dll_name in (
+            'Microsoft.Web.WebView2.Core.dll',
+            'Microsoft.Web.WebView2.WinForms.dll',
+        ):
+            # The flat WinForms assembly targets .NET Core; netfx needs the framework pair.
+            return [os.path.join(base_dir, 'net462', dll_name)]
+        return [
+            os.path.join(base_dir, dll_name),
+            os.path.join(base_dir, 'runtimes', dll_name, 'native'),
+        ]
 
-    dll_path = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), 'lib', 'runtimes', dll_name, 'native'
-    )
-    if os.path.exists(dll_path):
-        return dll_path
+    # Unfrozen path
+    lib_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
+    for candidate in candidate_paths(lib_dir):
+        if os.path.exists(candidate):
+            return candidate
 
     # Frozen path, dll in the same dir as the executable
-    dll_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), dll_name)
-    if os.path.exists(dll_path):
-        return dll_path
+    for candidate in candidate_paths(os.path.dirname(os.path.realpath(sys.argv[0]))):
+        if os.path.exists(candidate):
+            return candidate
 
     try:
         # Frozen path packed as onefile
         if hasattr(sys, '_MEIPASS'):  # Pyinstaller
-            dll_path = os.path.join(sys._MEIPASS, dll_name)
-
+            for candidate in candidate_paths(sys._MEIPASS):
+                if os.path.exists(candidate):
+                    return candidate
         elif getattr(sys, 'frozen', False):  # cx_freeze
-            dll_path = os.path.join(sys.executable, dll_name)
-
-        if os.path.exists(dll_path):
-            return dll_path
+            for candidate in candidate_paths(os.path.dirname(sys.executable)):
+                if os.path.exists(candidate):
+                    return candidate
     except Exception:
         pass
 

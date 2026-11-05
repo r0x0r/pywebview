@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Get latest Microsoft.Web.WebView2 version
         id: version
@@ -54,8 +54,13 @@ jobs:
           extracted="${{ steps.download.outputs.workdir }}/extracted"
           lib="webview/lib"
 
-          cp "${extracted}/lib/net462/Microsoft.Web.WebView2.Core.dll" "${lib}/Microsoft.Web.WebView2.Core.dll"
-          cp "${extracted}/lib/net462/Microsoft.Web.WebView2.WinForms.dll" "${lib}/Microsoft.Web.WebView2.WinForms.dll"
+          # Keep the framework-specific managed pairs on the same SDK version.
+          mkdir -p "${lib}/net462"
+          for assembly in Core WinForms; do
+            filename="Microsoft.Web.WebView2.${assembly}.dll"
+            cp "${extracted}/lib_manual/netcoreapp3.0/${filename}" "${lib}/${filename}"
+            cp "${extracted}/lib/net462/${filename}" "${lib}/net462/${filename}"
+          done
           cp "${extracted}/LICENSE.txt" "${lib}/Microsoft.Web.WebView2.LICENSE.md"
 
           for arch in win-x86 win-x64 win-arm64; do
@@ -80,6 +85,7 @@ jobs:
 
           version, changelog_path = sys.argv[1], sys.argv[2]
           entry = f"- `EdgeChromium` Update WebView2 runtime to {version}."
+          entry_prefix = "- `EdgeChromium` Update WebView2 runtime to "
 
           with open(changelog_path, encoding="utf-8") as f:
               content = f.read()
@@ -97,13 +103,20 @@ jobs:
               if next_release == -1:
                   next_release = len(content)
               section = content[start:next_release]
+              lines = [
+                  line for line in section.splitlines() if not line.startswith(entry_prefix)
+              ]
 
-              if "\n### 🚀 Improvements\n" in section:
-                  section = section.replace(
-                      "### 🚀 Improvements\n\n", f"### 🚀 Improvements\n\n{entry}\n", 1
-                  )
+              if "### 🚀 Improvements" in lines:
+                  heading = lines.index("### 🚀 Improvements")
+                  insertion_point = heading + 1
+                  if insertion_point < len(lines) and not lines[insertion_point]:
+                      insertion_point += 1
+                  lines.insert(insertion_point, entry)
               else:
-                  section = section.rstrip("\n") + f"\n\n### 🚀 Improvements\n\n{entry}\n\n"
+                  lines.extend(["", "### 🚀 Improvements", "", entry])
+
+              section = "\n".join(lines) + "\n"
 
               content = content[:start] + section + content[next_release:]
 
@@ -113,7 +126,7 @@ jobs:
 
       - name: Create pull request
         if: steps.replace.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "[EdgeChromium] Update WebView2 runtime to ${{ steps.version.outputs.version }}"

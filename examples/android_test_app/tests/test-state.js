@@ -96,32 +96,31 @@ describe('State Tests', function() {
             eventListeners = [];
         });
 
-        it('should trigger change events when state is modified', function(done) {
-            let eventTriggered = false;
-
-            function onChange(event) {
-                try {
-                    expect(event.detail.key).to.equal('test');
-                    expect(event.detail.value).to.equal(420);
-                    eventTriggered = true;
+        it('should trigger change events when state is modified', async function() {
+            const changeEvent = new Promise((resolve, reject) => {
+                function onChange(event) {
                     window.pywebview.state.removeEventListener('change', onChange);
-                    done();
-                } catch (error) {
-                    done(error);
+                    try {
+                        expect(event.detail.key).to.equal('test');
+                        expect(event.detail.value).to.equal(420);
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
                 }
-            }
+                window.pywebview.state.addEventListener('change', onChange);
+                eventListeners.push({ type: 'change', listener: onChange });
+            });
 
-            window.pywebview.state.addEventListener('change', onChange);
-            eventListeners.push({ type: 'change', listener: onChange });
             window.pywebview.state.test = 420;
+            await changeEvent;
 
-            // Fallback timeout in case event doesn't fire
-            setTimeout(() => {
-
-                if (!eventTriggered) {
-                    done(new Error('Change event was not triggered'));
-                }
-            }, 10000);
+            // Wait for the Python-side round trip to actually finish before
+            // cleaning up, otherwise the delete below can race a still
+            // in-flight pywebviewStateUpdate for the same key.
+            expect(await window.pywebview.api.eval('window.state.test')).to.equal(420);
+            delete window.pywebview.state.test;
+            expect(await window.pywebview.api.eval('hasattr(window.state, "test")')).to.be.false;
         });
 
         it('should trigger change events for predefined state modifications', function(done) {

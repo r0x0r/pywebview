@@ -1,130 +1,147 @@
-import logging
-import random
+"""
+CI entrypoint for the Android pytest suite.
 
-from bottle import Bottle, static_file
+Runs the tests symlinked into shared/ and reports results over stdout, which
+python-for-android's bootstrap pipes to logcat. CI tails logcat for the
+`PYWEBVIEW_TEST_RESULT::` markers rather than pulling a file off the device,
+since app storage paths are more fragile than a stream CI already reads.
+"""
 
-import webview
-from webview.util import get_app_root
+import faulthandler
+import os
+import sys
+import threading
 
-logger = logging.getLogger('pywebview')
+import pytest
 
-app = Bottle()
-
-
-@app.route('/')
-def index():
-    resp = static_file('index.html', root=get_app_root())
-    resp.set_cookie('serverCookie', 'test', httponly=True, secure=True, samesite='Strict')
-    return resp
-
-
-@app.route('/<filename:path>')
-def static_files(filename):
-    resp = static_file(filename, root=get_app_root())
-
-    if filename.endswith('index.html'):
-        logger.debug(f'Serving {filename} with serverCookie set')
-        resp.set_cookie('serverCookie', 'test', httponly=True)
-
-    return resp
+# Per-test watchdog. pytest-timeout cannot be used here: it has no
+# python-for-android recipe, and adding it makes p4a resolve the whole
+# requirement set through pip, which cannot build proxy_tools. Without it a
+# hung test stalls until CI's shell timeout with nothing naming it, and a hang
+# is exactly what this suite exists to catch.
+TEST_TIMEOUT = 60
 
 
-class TestAPI:
-    def getRandomNumber(self):
-        return random.randint(0, 100)
+class LogcatReporter:
+    """Prints one marker line per test result.
 
-    def sayHelloTo(self, name):
-        return {'message': f'Hello {name}!'}
+    One line per event, rather than an end-of-run blob, keeps each line well
+    under logcat's ~4KB per-line truncation limit.
+    """
 
-    def error(self):
-        raise Exception('This is a Python exception')
+    def __init__(self):
+        self.results = {}
+        self.watchdog = None
 
-    def getInteger(self):
-        return 420
+    @staticmethod
+    def _message(report):
+        """The failing assertion or exception, not the head of the long repr.
 
-    def getString(self):
-        return 'This is a string from Python'
+        str(longrepr) starts with the source listing and the locals, so
+        truncating it cuts off before anything useful. reprcrash holds just the
+        final error line.
+        """
+        crash = getattr(report.longrepr, 'reprcrash', None)
+        text = crash.message if crash else str(report.longrepr)
+        # Well inside logcat's ~4KB per-line limit, while still carrying the
+        # nested traceback run_test() puts in the failure message. If the run
+        # crashes, pytest never gets to print its own FAILURES section.
+        return text.replace('\n', ' | ')[:1500]
 
-    def getFloat(self):
-        return 4.20
+    def pytest_runtest_logstart(self, nodeid, location):
+        self.watchdog = threading.Timer(TEST_TIMEOUT, self._timed_out, (nodeid,))
+        self.watchdog.daemon = True
+        self.watchdog.start()
 
-    def getList(self):
-        return [1, 2, 3, 4, 5]
+    def pytest_runtest_logfinish(self, nodeid, location):
+        if self.watchdog is not None:
+            self.watchdog.cancel()
+            self.watchdog = None
 
-    def getNone(self):
-        return None
+    def _timed_out(self, nodeid):
+        """Report the hung test and kill the process from the watchdog thread.
 
-    def getDict(self):
-        return {'key1': 'value1', 'key2': 'value2'}
+        The test is blocked, so pytest will never resume to report anything
+        itself. Emitting the markers here means CI fails naming the test rather
+        than timing out on a stream that stopped.
+        """
+        message = f'timed out after {TEST_TIMEOUT}s'
+        self.results[nodeid] = {'status': 'FAIL', 'message': message}
+        print(f'PYWEBVIEW_TEST_RESULT::FAIL::{nodeid}::{message}')
+        faulthandler.dump_traceback(file=sys.stdout)
+        self.pytest_sessionfinish(None, 1)
 
+        sys.stdout.flush()
+        sys.stderr.flush()
+        # Not sys.exit(): that only raises in this thread, and the main thread
+        # is the one that is stuck.
+        os._exit(1)
 
-class Api:
-    def eval(self, code):
-        """Evaluate Python code in the context of this module."""
-        try:
-            result = eval(code)
-            return result
-        except Exception as e:
-            logger.error(f'Error evaluating Python code: {code}\n{e}')
-            return None
+    def pytest_runtest_logreport(self, report):
+        # A test reports up to three times - setup, call, teardown - and any of
+        # them can fail. Fold them into one outcome and print it at teardown,
+        # so a test that passes and then fails to tear down is not counted
+        # twice, and a failed setup is not also reported as a skipped call.
+        result = self.results.setdefault(report.nodeid, {'status': None, 'message': ''})
 
-    def get_size(self):
-        return self._window.height, self._window.width
+        if report.failed:
+            # Failure wins over an earlier pass, but the first failure's message
+            # is the one that explains the run.
+            if result['status'] != 'FAIL':
+                result['status'] = 'FAIL'
+                result['message'] = self._message(report)
+        elif result['status'] is None:
+            if report.skipped:
+                # Recorded rather than ignored: a skip silently shrinks a run
+                # that is meant to execute in full.
+                result['status'] = 'SKIP'
+            elif report.when == 'call' and report.passed:
+                result['status'] = 'PASS'
 
-    def evaluate_js(self, code):
-        result = self._window.evaluate_js(code)
-        return result
+        if report.when != 'teardown':
+            return
 
-    def run_js(self, code):
-        return self._window.run_js(code)
+        status = result['status'] or 'SKIP'
+        line = f'PYWEBVIEW_TEST_RESULT::{status}::{report.nodeid}'
+        print(f'{line}::{result["message"]}' if status == 'FAIL' else line)
 
-    def get_cookies(self):
-        cookies = self._window.get_cookies()
-        logger.debug(f'Cookies: {cookies}')
-        return [cookie.output() for cookie in cookies]
+    def pytest_sessionfinish(self, session, exitstatus):
+        counts = {'PASS': 0, 'FAIL': 0, 'SKIP': 0}
 
-    def clear_cookies(self):
-        self._window.clear_cookies()
+        for result in self.results.values():
+            counts[result['status'] or 'SKIP'] += 1
 
-    _window = None
-    _dom = None
-    test1 = TestAPI()
-    test2 = TestAPI()
-
-
-def create_state(state):
-    state.number = 0
-    state.message = 'test'
-    state.dict = {'key': 'value'}
-    state.list = [1, 2, 3]
-    state.nested = {
-        'a': 1,
-        'b': [1, 2, 3],
-    }
-
-
-events = {}
-
-
-def set_event(name, value):
-    events[name] = value
+        print(
+            f'PYWEBVIEW_TEST_RESULT::DONE::{exitstatus}::'
+            f'{counts["PASS"]}::{counts["FAIL"]}::{counts["SKIP"]}'
+        )
 
 
 if __name__ == '__main__':
-    api = Api()
-    window = webview.create_window('Android test suite', app, js_api=api, text_select=True)
-    create_state(window.state)
+    reporter = LogcatReporter()
 
-    # Window events
-    window.events.loaded += lambda: set_event('loaded', True)
-    window.events.before_load += lambda: set_event('before_load', True)
-    window.events.before_show += lambda: set_event('before_show', True)
-    window.events.shown += lambda: set_event('shown', True)
-    window.events.request_sent += lambda request: set_event('request_sent', request.__dict__)
-    window.events.response_received += lambda response: set_event(
-        'response_received', response.__dict__
-    )
+    test_args = [
+        '-p',
+        'no:cacheprovider',
+        '-v',
+        # Capture off: the watchdog prints from another thread while a test is
+        # still running, and captured output is discarded when it kills the
+        # process. Everything here goes to logcat regardless.
+        '-s',
+        '--rootdir',
+        '.',
+        'shared/test_state.py',
+        'shared/test_evaluate_js.py',
+        'shared/test_js_api.py',
+        'shared/test_dom.py',
+        'shared/test_events.py',
+        'shared/test_window_android.py',
+        'shared/test_request_android.py',
+        'shared/test_cookies_android.py',
+    ]
 
-    api._window = window
-    api._dom = window.dom
-    webview.start(ssl=True, private_mode=False)
+    print('PYWEBVIEW_TEST_RESULT::START')
+    pytest.main(test_args, plugins=[reporter])
+
+    sys.stdout.flush()
+    sys.stderr.flush()
