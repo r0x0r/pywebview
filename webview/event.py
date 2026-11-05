@@ -14,6 +14,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger('pywebview')
 
+# Number of blocking (should_lock) handlers currently running on each thread.
+_blocking_dispatch = threading.local()
+
+
+def in_blocking_handler() -> bool:
+    """Return whether the current thread is running a blocking event handler."""
+    return getattr(_blocking_dispatch, 'depth', 0) > 0
+
 
 class EventContainer:
     _serializable = False
@@ -53,7 +61,11 @@ class Event:
 
         if len(self._items):
             if self._should_lock:
-                execute()
+                _blocking_dispatch.depth = getattr(_blocking_dispatch, 'depth', 0) + 1
+                try:
+                    execute()
+                finally:
+                    _blocking_dispatch.depth -= 1
             else:
                 t = threading.Thread(target=execute)
                 t.start()

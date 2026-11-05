@@ -16,6 +16,8 @@
 - `Android` Fix the quit confirmation dialog, which only responded to Cancel and then stopped appearing altogether. Quitting read a non-existent `window.closed` attribute instead of `window.events.closed`, and the cancel callback was reused for `OnCancelListener`, whose `onCancel` takes one argument rather than two.
 - `Android` Fix `get_size()` and `get_current_url()` blocking forever when the call on the UI thread raised - most easily after the window was destroyed. The semaphore is now released in a `finally`.
 - `Android` Fix a random `JNI DETECTED ERROR IN APPLICATION: use of deleted global reference` abort when windows are created and destroyed repeatedly in one process. Java-facing pyjnius proxies (activity lifecycle callbacks and `evaluate_js`'s value callbacks) are now kept alive for the life of the process instead of being freed per window, calls to `runOnUiThread` are serialised so concurrent calls cannot release each other's receiver, and the idle `Choreographer` frame loop that amplified both races has been removed.
+- `All` Fix deadlocks when a pywebview API, such as `evaluate_js()`, `get_cookies()`, `get_current_url()`, `window.width` or a dialog, is called from a blocking event handler (`closing`, `before_show`, `before_load`). The GUI event loop now keeps running while the call waits for its result, and `before_show`/`before_load` handlers no longer wait 20 seconds for an event that cannot fire until they return.
+- `Android` `evaluate_js()` and `get_cookies()` raise `RuntimeError` instead of deadlocking when called from a blocking event handler.
 
 ### 🚀 Improvements
 
@@ -26,8 +28,6 @@
 - `All` Drop the unused `importlib_resources` dependency.
 - `All` CI now tests Python 3.10 through 3.13, type-checks the package, compile-checks every example and audits dependencies with `pip-audit`.
 - `All` The PyPI project page now shows the README. The built distributions previously carried no long description.
-
-### 🐞 Bug fixes
 
 ## 6.2.1
 

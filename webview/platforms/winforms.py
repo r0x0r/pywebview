@@ -489,10 +489,11 @@ class BrowserView:
                 logger.error('get_cookies() is not implemented for this platform')
                 return cookies
 
+            self.browser.raise_if_in_navigation_completed('get_cookies')
             semaphore = Semaphore(0)
 
             self.Invoke(Func[Type](_get_cookies))
-            semaphore.acquire()
+            Chromium.wait(semaphore, self)
 
             return cookies
 

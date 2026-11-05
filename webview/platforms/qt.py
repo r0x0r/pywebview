@@ -8,7 +8,7 @@ import sys
 import webbrowser
 from copy import copy, deepcopy
 from functools import partial
-from threading import Event, Semaphore, Thread
+from threading import Event, Semaphore, Thread, current_thread, main_thread
 from uuid import uuid1
 
 from qtpy import PYQT6, PYSIDE6, QtCore
@@ -49,6 +49,19 @@ except ImportError:
 
 logger = logging.getLogger('pywebview')
 logger.debug(f'Using Qt {QtCore.__version__}')
+
+
+def _wait(semaphore):
+    """Acquire `semaphore`, processing Qt events meanwhile if called from the GUI thread."""
+    if current_thread() is not main_thread():
+        semaphore.acquire()
+        return
+
+    # A blocking handler (closing, before_load, ...) runs on the GUI thread, so the result can
+    # only be delivered if the event loop keeps running while we wait for it.
+    while not semaphore.acquire(blocking=False):
+        QApplication.processEvents(QtCore.QEventLoop.WaitForMoreEvents)
+
 
 if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos', 'rhel', 'pop']:
     # I don't know why, but it's a common solution for #890 (White screen displayed)
@@ -764,7 +777,7 @@ class BrowserView(QMainWindow):
 
     def get_current_url(self):
         self.current_url_trigger.emit()
-        self._current_url_semaphore.acquire()
+        _wait(self._current_url_semaphore)
 
         return self._current_url
 
@@ -783,7 +796,7 @@ class BrowserView(QMainWindow):
         }
 
         self.confirmation_dialog_trigger.emit(title, message, unique_id)
-        result_semaphore.acquire()
+        _wait(result_semaphore)
 
         result = self._confirmation_dialog_results[unique_id]['result']
         del self._confirmation_dialog_results[unique_id]
@@ -796,7 +809,7 @@ class BrowserView(QMainWindow):
         self.file_dialog_trigger.emit(
             dialog_type, directory, allow_multiple, save_filename, file_filter
         )
-        self._file_name_semaphore.acquire()
+        _wait(self._file_name_semaphore)
 
         if dialog_type == FileDialog.FOLDER:
             file_names = (self._file_name,)
@@ -851,7 +864,7 @@ class BrowserView(QMainWindow):
         }
 
         self.evaluate_js_trigger.emit(script, unique_id)
-        result_semaphore.acquire()
+        _wait(result_semaphore)
 
         result = deepcopy(self._js_results[unique_id]['result'])
         del self._js_results[unique_id]
