@@ -33,6 +33,8 @@ Other optional dependencies are `pywebview[android]`, `pywebview[cef]` and `pywe
 
 To use with the latest Chromium you need [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). If you plan to distribute your software, check out [distribution guidelines](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution) too.
 
+To use WebView2 without .NET or the Windows App Runtime, install `pywebview[win32]` (Python 3.11 or newer) and start with `gui='win32'`. It needs only packages from PyPI and the WebView2 Runtime, which Windows 11 includes.
+
 To use with CEF you need
 [cefpython](https://github.com/cztomczak/cefpython/)
 

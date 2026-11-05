@@ -70,7 +70,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `func` - function to invoke upon starting the GUI loop.
 * `args` - function arguments. Can be either a single value or a tuple of values.
 * `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
-* `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `mshtml`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
+* `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `mshtml`, `edgechromium`, `win32` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server for absolute local paths. For relative paths HTTP server is started automatically and cannot be disabled. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `http_port` - specify a port number for the HTTP server. By default port is randomized.
@@ -130,7 +130,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `JS_API_MAX_DEPTH` Maximum depth of nested `js_api` objects that are walked when exposing functions to Javascript. Guards against runaway recursion into objects whose attributes return a fresh object on every access (e.g. native GUI objects). Default is 10.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
-* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`, `winui3` or `qt`. Disabled by default.
+* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`, `win32`, `winui3` or `qt`. Disabled by default.
 * `SHOW_DEFAULT_MENUS` Show default menu on Cocoa. Enabled by default.
 * `WEBVIEW2_RUNTIME_PATH` Path to WebView2 runtime. You can use relative paths, which will be resolved relative to the application entry point with support of path resolution for most bundlers. If not set, the system installed runtime is used if present.
 

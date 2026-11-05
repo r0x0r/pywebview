@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### ⚡ Features
+
+- `Win32` New `win32` backend: WebView2 hosted in a plain Win32 window through PyWinRT, with nothing to install outside pip besides the WebView2 Runtime (no .NET, no Windows App Runtime). Install `pywebview[win32]` (Python 3.11+) and start with `gui='win32'`.
+
 ### 🐞 Bug fixes
 
 - `All` Fix Python-to-JavaScript state assignment and deletion for dictionary keys containing spaces, hyphens, quotes or backslashes. Thanks @UmutAlisoglu.
