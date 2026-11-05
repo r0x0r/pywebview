@@ -40,9 +40,15 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
     def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
         event = getattr(self.events, event_type)
 
-        # A blocking handler holds up the very events being waited for (before_show runs before
-        # shown, before_load before loaded), so it calls through to the backend directly.
-        if not in_blocking_handler() and not event.wait(20):
+        if not event.is_set() and in_blocking_handler():
+            # A blocking handler holds up the very events being waited for (before_show runs
+            # before shown, before_load before loaded), so it calls through to the backend
+            # directly. The JS bridge cannot exist yet though, so fail at once instead.
+            if event_type == '_pywebviewready':
+                raise WebViewException(
+                    f'{function.__name__}() cannot be called before the page has loaded'
+                )
+        elif not event.wait(20):
             raise WebViewException('Main window failed to start')
 
         if self.gui is None:

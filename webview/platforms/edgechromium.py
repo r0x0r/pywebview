@@ -87,6 +87,7 @@ class WinFormsEdgeChrome(WebView2Core):
         form.Controls.Add(self.webview)
 
         self.js_results = {}
+        self._in_navigation_completed = False
         self.webview.Dock = WinForms.DockStyle.Fill
         self.webview.BringToFront()
         self.webview.CoreWebView2InitializationCompleted += self.on_webview_ready
@@ -104,6 +105,13 @@ class WinFormsEdgeChrome(WebView2Core):
         self.webview.EnsureCoreWebView2Async(None)
 
     def evaluate_js(self, script: str, parse_json: bool):
+        if self.on_ui_thread():
+            if not parse_json:
+                # run_js() needs no result, and before_show runs before WebView2 is initialized
+                self.webview.ExecuteScriptAsync(script)
+                return None
+            self.raise_if_in_navigation_completed('evaluate_js')
+
         def _callback(res):
             nonlocal result
             if parse_json and res is not None:
@@ -339,7 +347,23 @@ class WinFormsEdgeChrome(WebView2Core):
     def on_navigation_completed(self, sender, _):
         url = str(sender.Source)
         self.url = None if self.ishtml else url
-        inject_pywebview(renderer, self.pywebview_window)
+        self._in_navigation_completed = True
+        try:
+            inject_pywebview(renderer, self.pywebview_window)
+        finally:
+            self._in_navigation_completed = False
+
+    def on_ui_thread(self):
+        return self.webview.IsHandleCreated and not self.webview.InvokeRequired
+
+    def raise_if_in_navigation_completed(self, api_name):
+        # before_load runs inside NavigationCompleted, and WebView2 does not deliver async results
+        # to a message loop nested in one of its own event handlers
+        if self._in_navigation_completed and self.on_ui_thread():
+            raise RuntimeError(
+                f'{api_name}() cannot be called from a before_load handler on EdgeChromium. '
+                'Call it from another thread.'
+            )
 
 
 # Backward-compatible alias used by winforms.py

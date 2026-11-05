@@ -74,3 +74,20 @@ def test_api_in_blocking_handler(phase, name):
     assert result, f'{phase} handler never ran'
     assert 'error' not in result, result['error']
     assert check(window, result['value']), result['value']
+
+
+def test_evaluate_js_before_page_ready():
+    window = webview.create_window('Deadlock test', html='<html><body>TEST</body></html>')
+    result = {}
+
+    def on_before_load():
+        try:
+            window.evaluate_js('1 + 1')
+        except webview.errors.WebViewException as e:
+            result['error'] = e
+
+    window.events.before_load += on_before_load
+    window.events.loaded += window.destroy
+    webview.start()
+
+    assert 'error' in result

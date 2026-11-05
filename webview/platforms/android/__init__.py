@@ -533,16 +533,14 @@ def evaluate_js(js_code, _, parse_json=True):
 
     if _is_ui_thread():
         # The result is delivered later on this same thread, and Android offers no way to run the
-        # Looper while waiting for it. run_js() does not need the result, so it can just start.
+        # Looper while waiting for it. run_js() does not need the result, so it can start the
+        # script directly, without a callback.
         if parse_json:
             raise RuntimeError(
                 'evaluate_js() cannot be called from the UI thread on Android. '
                 'Call it from another thread or use run_js().'
             )
-        _evaluate_js()
-        if value_callback is not None:
-            # The WebView holds it until the result arrives, so it cannot go back to the pool.
-            _retained_proxies.append(value_callback)
+        app.view.webview.evaluateJavascript(js_code, None)
         return None
 
     _evaluate_js()
