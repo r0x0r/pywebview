@@ -507,8 +507,10 @@ class Window:
         if isinstance(result, dict) and result.get('pywebviewPromise420'):
             return None
 
-        # no promise to resolve, so the callback will never be called
-        self._callbacks.pop(unique_id, None)
+        # no promise to resolve, so the callback will never be called. None is ambiguous, as Qt's
+        # fallback without a result handler returns None, so keep the callback in that case
+        if result is not None:
+            self._callbacks.pop(unique_id, None)
 
         if isinstance(result, dict) and result.get('pywebviewJavascriptError420'):
             del result['pywebviewJavascriptError420']
