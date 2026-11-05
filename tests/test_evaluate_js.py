@@ -1,3 +1,6 @@
+import threading
+import time
+
 import pytest
 
 import webview
@@ -64,6 +67,10 @@ def test_exception(window):
     run_test(webview, window, exception_test)
 
 
+def test_promise(window):
+    run_test(webview, window, promise_test)
+
+
 def mixed_test(window):
     result = window.evaluate_js(
         """
@@ -76,6 +83,13 @@ def mixed_test(window):
     """
     )
     assert result == 4
+    assert window._callbacks == {}
+
+    assert window.evaluate_js('2 + 2', lambda result: None) == 4
+    assert window._callbacks == {}
+
+    # only a call with a callback produces the promise marker
+    assert window.evaluate_js('({pywebviewPromise420: true})') == {'pywebviewPromise420': True}
 
 
 def array_test(window):
@@ -203,3 +217,32 @@ def node_test(window):
 def exception_test(window):
     with pytest.raises(webview.errors.JavascriptException):
         window.evaluate_js('eklmn')
+
+    with pytest.raises(webview.errors.JavascriptException):
+        window.evaluate_js('eklmn', lambda result: None)
+    assert window._callbacks == {}
+
+
+def promise_test(window):
+    results = []
+    done = threading.Event()
+
+    def callback(result):
+        results.append(result)
+        done.set()
+
+    script = 'new Promise(function (resolve) { window.resolveTestPromise = resolve })'
+    assert window.evaluate_js(script, callback) is None
+    assert len(window._callbacks) == 1
+
+    window.evaluate_js('window.resolveTestPromise(42)')
+
+    assert done.wait(10)
+    assert results == [42]
+
+    # the entry is removed right after the callback returns
+    for _ in range(50):
+        if not window._callbacks:
+            break
+        time.sleep(0.1)
+    assert window._callbacks == {}
