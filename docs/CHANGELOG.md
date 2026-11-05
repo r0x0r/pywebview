@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### ⚡ Features
+
+- `Winforms` New `webview.settings['KEEP_FRAME_STYLES']` (default `False`) gives a frameless window back the frame styles the system needs to manage it, while still drawing no frame: the non-client area is collapsed to zero size, so the client rectangle stays equal to the window rectangle. `Win`+`Left`/`Right` snap to the halves of the work area, `Win`+`Up` maximizes, `Win`+`Down` restores and `Alt`+`Space` opens the system menu. Without it `Win`+`Left`/`Right` do nothing and `Win`+`Up` maximizes to the whole screen, covering the taskbar. Thanks @YorickFin. [#1857](https://github.com/r0x0r/pywebview/issues/1857)
+
 ### 🐞 Bug fixes
 
 - `All` Fix Python-to-JavaScript state assignment and deletion for dictionary keys containing spaces, hyphens, quotes or backslashes. Thanks @UmutAlisoglu.
