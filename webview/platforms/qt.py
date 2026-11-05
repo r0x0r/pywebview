@@ -291,14 +291,24 @@ class BrowserView(QMainWindow):
         if is_webengine:
 
             def onFeaturePermissionRequested(self, url, feature):
-                if feature in (
+                # Media capture, and the clipboard where Qt asks for it (6.8+): the other backends
+                # let a user gesture's navigator.clipboard.write through without a prompt.
+                granted = (
                     QWebPage.Feature.MediaAudioCapture,
                     QWebPage.Feature.MediaVideoCapture,
                     QWebPage.Feature.MediaAudioVideoCapture,
-                ):
-                    self.setFeaturePermission(url, feature, 1)  # QWebPage.PermissionGrantedByUser
-                else:
-                    self.setFeaturePermission(url, feature, 2)  # QWebPage.PermissionDeniedByUser
+                    getattr(QWebPage.Feature, 'ClipboardReadWrite', None),
+                )
+                # The policy must be the enum: PyQt6 rejects an int with a TypeError inside this
+                # slot, which aborts the whole process.
+                policy = QWebPage.PermissionPolicy
+                self.setFeaturePermission(
+                    url,
+                    feature,
+                    policy.PermissionGrantedByUser
+                    if feature in granted
+                    else policy.PermissionDeniedByUser,
+                )
         else:
 
             def acceptNavigationRequest(self, frame, request, type):
