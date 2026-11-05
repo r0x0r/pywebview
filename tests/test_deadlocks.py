@@ -22,9 +22,6 @@ ACTIONS = {
     'get_cookies': (lambda w: w.get_cookies(), lambda w, v: isinstance(v, list)),
 }
 
-# Backends that cannot run their event loop while waiting, so these calls raise instead.
-RAISES = {'evaluate_js': {'winui3', 'android-webkit'}, 'get_cookies': {'winui3', 'android-webkit'}}
-
 # The result of these is produced by the page, which only exists once it starts loading.
 NEEDS_PAGE = {'evaluate_js', 'get_cookies'}
 
@@ -75,8 +72,5 @@ def test_api_in_blocking_handler(phase, name):
     webview.start()
 
     assert result, f'{phase} handler never ran'
-    if window.gui.renderer in RAISES.get(name, ()):
-        assert isinstance(result.get('error'), RuntimeError), result
-    else:
-        assert 'error' not in result, result['error']
-        assert check(window, result['value']), result['value']
+    assert 'error' not in result, result['error']
+    assert check(window, result['value']), result['value']
