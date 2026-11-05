@@ -4,6 +4,7 @@
 
 ### 🐞 Bug fixes
 
+- `All` Fix `evaluate_js` leaving an unused entry in `window._callbacks` on every call without a callback, including the calls the JS API bridge makes to return results. Thanks @Nanahuse. [#1874](https://github.com/r0x0r/pywebview/issues/1874)
 - `All` Handle JavaScript resource and initial injection failures without letting exceptions escape native navigation callbacks or leave load waiters blocked. Template errors now identify the failing script; an unsuccessful injection does not mark the bridge ready. Thanks @FiraSenax.
 - `All` Fix a crash when a state key was deleted twice in quick succession. The JS bridge now ignores stale state deletions and logs errors from state updates or deletions instead of raising.
 - `Winforms` Fix frameless windows coming out smaller than requested. Switching `FormBorderStyle` to `None` makes WinForms keep the client area, so a window requested at 1280x820 ended up 1264x781 - a border and caption short. The requested size is applied again after the border is dropped.

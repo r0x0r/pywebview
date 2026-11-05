@@ -76,6 +76,7 @@ def mixed_test(window):
     """
     )
     assert result == 4
+    assert window._callbacks == {}
 
 
 def array_test(window):

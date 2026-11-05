@@ -451,7 +451,8 @@ class Window:
 
         """
         unique_id = uuid1().hex
-        self._callbacks[unique_id] = callback
+        if callback:
+            self._callbacks[unique_id] = callback
 
         if self.gui.renderer == 'cef':
             return_result = (
