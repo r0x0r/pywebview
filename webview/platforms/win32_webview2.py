@@ -30,6 +30,7 @@ from typing import cast
 
 from winrt.microsoft.web.webview2.core import (
     CoreWebView2,
+    CoreWebView2CompositionController,
     CoreWebView2Controller,
     CoreWebView2ControllerWindowReference,
     CoreWebView2Cookie,
@@ -38,6 +39,8 @@ from winrt.microsoft.web.webview2.core import (
     CoreWebView2Environment,
     CoreWebView2EnvironmentOptions,
     CoreWebView2File,
+    CoreWebView2MouseEventKind,
+    CoreWebView2MouseEventVirtualKeys,
     CoreWebView2MoveFocusReason,
     CoreWebView2NavigationCompletedEventArgs,
     CoreWebView2NewWindowRequestedEventArgs,
@@ -68,6 +71,10 @@ from winrt.windows.system.interop import (
     create_dispatcher_queue_controller,
 )
 from winrt.windows.ui import Color
+from winrt.windows.ui.composition import Compositor
+from winrt.windows.ui.composition.desktop import DesktopWindowTarget
+from winrt.windows.ui.composition.interop import create_desktop_window_target
+from winrt.windows.ui.core import CoreCursorType
 from winrt.windows.ui.popups import IUICommand, MessageDialog, UICommand
 
 from webview import FileDialog, _state, windows
@@ -282,12 +289,31 @@ _AppendMenuW = _declare(
 )
 _GetMenu = _declare(_user32, 'GetMenu', wintypes.HMENU, _HWND)
 _SetMenu = _declare(_user32, 'SetMenu', _BOOL, _HWND, wintypes.HMENU)
+_SetCursor = _declare(_user32, 'SetCursor', wintypes.HANDLE, wintypes.HANDLE)
+_SetCapture = _declare(_user32, 'SetCapture', _HWND, _HWND)
+_ReleaseCapture = _declare(_user32, 'ReleaseCapture', _BOOL)
+_GetCapture = _declare(_user32, 'GetCapture', _HWND)
+_ScreenToClient = _declare(_user32, 'ScreenToClient', _BOOL, _HWND, ctypes.POINTER(wintypes.POINT))
+
+
+class _TRACKMOUSEEVENT(ctypes.Structure):
+    _fields_ = [
+        ('cbSize', wintypes.DWORD),
+        ('dwFlags', wintypes.DWORD),
+        ('hwndTrack', _HWND),
+        ('dwHoverTime', wintypes.DWORD),
+    ]
+
+
+_TrackMouseEvent = _declare(_user32, 'TrackMouseEvent', _BOOL, ctypes.POINTER(_TRACKMOUSEEVENT))
 _DestroyMenu = _declare(_user32, 'DestroyMenu', _BOOL, wintypes.HMENU)
 _DrawMenuBar = _declare(_user32, 'DrawMenuBar', _BOOL, _HWND)
 _FillRect = _declare(
     _user32, 'FillRect', _INT, wintypes.HDC, ctypes.POINTER(wintypes.RECT), wintypes.HBRUSH
 )
+_GetAncestor = _declare(_user32, 'GetAncestor', _HWND, _HWND, wintypes.UINT)
 _GetCursorPos = _declare(_user32, 'GetCursorPos', _BOOL, ctypes.POINTER(wintypes.POINT))
+_WindowFromPoint = _declare(_user32, 'WindowFromPoint', _HWND, wintypes.POINT)
 _MonitorFromPoint = _declare(
     _user32, 'MonitorFromPoint', wintypes.HMONITOR, wintypes.POINT, wintypes.DWORD
 )
@@ -365,6 +391,91 @@ _WS_OVERLAPPEDWINDOW = (
 _WS_EX_TOPMOST = 0x00000008
 _WS_EX_NOACTIVATE = 0x08000000
 _WS_EX_APPWINDOW = 0x00040000
+_WS_EX_NOREDIRECTIONBITMAP = 0x00200000
+
+_WM_NCHITTEST = 0x0084
+_WM_SETCURSOR = 0x0020
+_WM_MOUSEMOVE = 0x0200
+_WM_LBUTTONDOWN = 0x0201
+_WM_LBUTTONUP = 0x0202
+_WM_LBUTTONDBLCLK = 0x0203
+_WM_RBUTTONDOWN = 0x0204
+_WM_RBUTTONUP = 0x0205
+_WM_RBUTTONDBLCLK = 0x0206
+_WM_MBUTTONDOWN = 0x0207
+_WM_MBUTTONUP = 0x0208
+_WM_MBUTTONDBLCLK = 0x0209
+_WM_MOUSEWHEEL = 0x020A
+_WM_XBUTTONDOWN = 0x020B
+_WM_XBUTTONUP = 0x020C
+_WM_XBUTTONDBLCLK = 0x020D
+_WM_MOUSEHWHEEL = 0x020E
+_WM_CAPTURECHANGED = 0x0215
+_WM_MOUSELEAVE = 0x02A3
+_HTCLIENT = 1
+_TME_LEAVE = 0x00000002
+_MK_BUTTONS = 0x0001 | 0x0002 | 0x0010 | 0x0020 | 0x0040
+_GA_ROOT = 2
+# The mouse messages a visually hosted WebView2 is sent, each as the
+# CoreWebView2MouseEventKind of the same value.
+_FORWARDED_MOUSE_MESSAGES = frozenset(
+    {
+        _WM_MOUSEMOVE,
+        _WM_LBUTTONDOWN,
+        _WM_LBUTTONUP,
+        _WM_LBUTTONDBLCLK,
+        _WM_RBUTTONDOWN,
+        _WM_RBUTTONUP,
+        _WM_RBUTTONDBLCLK,
+        _WM_MBUTTONDOWN,
+        _WM_MBUTTONUP,
+        _WM_MBUTTONDBLCLK,
+        _WM_MOUSEWHEEL,
+        _WM_XBUTTONDOWN,
+        _WM_XBUTTONUP,
+        _WM_XBUTTONDBLCLK,
+        _WM_MOUSEHWHEEL,
+        _WM_MOUSELEAVE,
+    }
+)
+# Where WebView2 is sent the release of a press whose capture was taken
+# away: outside the page, as for a press dragged out of it, so that the
+# page sees the release but no element is clicked.
+_RELEASE_OUTSIDE_POINT = (-32000, -32000)
+# For each press (a double click's second press is one too), the release
+# that ends it.
+_BUTTON_RELEASES = {
+    _WM_LBUTTONDOWN: CoreWebView2MouseEventKind.LEFT_BUTTON_UP,
+    _WM_LBUTTONDBLCLK: CoreWebView2MouseEventKind.LEFT_BUTTON_UP,
+    _WM_RBUTTONDOWN: CoreWebView2MouseEventKind.RIGHT_BUTTON_UP,
+    _WM_RBUTTONDBLCLK: CoreWebView2MouseEventKind.RIGHT_BUTTON_UP,
+    _WM_MBUTTONDOWN: CoreWebView2MouseEventKind.MIDDLE_BUTTON_UP,
+    _WM_MBUTTONDBLCLK: CoreWebView2MouseEventKind.MIDDLE_BUTTON_UP,
+    _WM_XBUTTONDOWN: CoreWebView2MouseEventKind.X_BUTTON_UP,
+    _WM_XBUTTONDBLCLK: CoreWebView2MouseEventKind.X_BUTTON_UP,
+}
+_BUTTON_UP_MESSAGES = frozenset({_WM_LBUTTONUP, _WM_RBUTTONUP, _WM_MBUTTONUP, _WM_XBUTTONUP})
+_X_BUTTON_MESSAGES = frozenset({_WM_XBUTTONDOWN, _WM_XBUTTONUP, _WM_XBUTTONDBLCLK})
+
+# The system cursor for each cursor WebView2 asks for. A custom cursor (CSS
+# `cursor: url(...)`) has no system equivalent and shows as the arrow.
+_SYSTEM_CURSORS = {
+    CoreCursorType.ARROW: 32512,  # IDC_ARROW
+    CoreCursorType.CROSS: 32515,  # IDC_CROSS
+    CoreCursorType.HAND: 32649,  # IDC_HAND
+    CoreCursorType.HELP: 32651,  # IDC_HELP
+    CoreCursorType.IBEAM: 32513,  # IDC_IBEAM
+    CoreCursorType.SIZE_ALL: 32646,  # IDC_SIZEALL
+    CoreCursorType.SIZE_NORTHEAST_SOUTHWEST: 32643,  # IDC_SIZENESW
+    CoreCursorType.SIZE_NORTH_SOUTH: 32645,  # IDC_SIZENS
+    CoreCursorType.SIZE_NORTHWEST_SOUTHEAST: 32642,  # IDC_SIZENWSE
+    CoreCursorType.SIZE_WEST_EAST: 32644,  # IDC_SIZEWE
+    CoreCursorType.UNIVERSAL_NO: 32648,  # IDC_NO
+    CoreCursorType.UP_ARROW: 32516,  # IDC_UPARROW
+    CoreCursorType.WAIT: 32514,  # IDC_WAIT
+    CoreCursorType.PIN: 32671,  # IDC_PIN
+    CoreCursorType.PERSON: 32672,  # IDC_PERSON
+}
 _GWL_STYLE = -16
 
 _SW_HIDE = 0
@@ -408,6 +519,7 @@ _SM_CYSMICON = 50
 _IDC_ARROW = 32512
 _CS_HREDRAW = 0x0002
 _CS_VREDRAW = 0x0001
+_CS_DBLCLKS = 0x0008
 
 _WINDOW_CLASS = 'pywebview.Win32WebView2'
 
@@ -485,6 +597,17 @@ def _parse_hex_color(hex_color: str) -> tuple[int, int, int]:
 _dispatcher_controller: DispatcherQueueController | None = None
 _dispatcher_queue: DispatcherQueue | None = None
 _ui_thread_id = 0
+# The Compositor transparent windows share. It needs the DispatcherQueue
+# above, so it is made on the UI thread, the first time one is needed.
+_compositor: Compositor | None = None
+
+
+def _get_compositor() -> Compositor:
+    global _compositor
+
+    if _compositor is None:
+        _compositor = Compositor()
+    return _compositor
 
 
 def _enqueue(callback: Callable[[], None]) -> bool:
@@ -621,6 +744,10 @@ class Win32EdgeChrome(WebView2Core):
         self._drag_hwnd = form.hwnd
         self.user_data_folder = cache_dir
         self.controller: CoreWebView2Controller | None = None
+        # Set for a transparent window, which WebView2 renders into a
+        # composition visual instead of a child window of its own.
+        self.composition_controller: CoreWebView2CompositionController | None = None
+        self._window_target: DesktopWindowTarget | None = None
         self.webview: CoreWebView2 | None = None
         self._js_result_semaphores: set[Semaphore] = set()
         self._js_result_lock = Lock()
@@ -628,10 +755,8 @@ class Win32EdgeChrome(WebView2Core):
         self._pending_load: tuple[str, str, str] | None = None
 
         r, g, b = _parse_hex_color(window.background_color)
-        self._background_color = Color(255, r, g, b)
-
-        if window.transparent:
-            logger.warning('Transparent background is not supported by the win32 backend.')
+        self._transparent = window.transparent
+        self._background_color = Color(0, 0, 0, 0) if window.transparent else Color(255, r, g, b)
 
         env_options = CoreWebView2EnvironmentOptions()
         env_options.additional_browser_arguments = self._build_browser_args()
@@ -685,14 +810,24 @@ class Win32EdgeChrome(WebView2Core):
                 ctrl_options.is_in_private_mode_enabled = _state['private_mode']
 
                 parent = CoreWebView2ControllerWindowReference.create_from_window_handle(form.hwnd)
-                ctrl_op = env.create_core_webview2_controller_async(parent, ctrl_options)
+                if self._transparent:
+                    # Windowed hosting draws into a child window that can
+                    # only show its parent through; visual hosting
+                    # composes the page, alpha and all, onto the desktop.
+                    ctrl_op = env.create_core_webview2_composition_controller_async(
+                        parent, ctrl_options
+                    )
+                else:
+                    ctrl_op = env.create_core_webview2_controller_async(parent, ctrl_options)
             except BaseException as error:
                 logger.exception('Error setting up CoreWebView2 environment')
                 fail(error)
                 return
 
             def on_ctrl_op_completed(
-                op: IAsyncOperation[CoreWebView2Controller], status: AsyncStatus
+                op: IAsyncOperation[CoreWebView2Controller]
+                | IAsyncOperation[CoreWebView2CompositionController],
+                status: AsyncStatus,
             ):
                 if status != AsyncStatus.COMPLETED:
                     error = _async_creation_error('CoreWebView2Controller', op, status)
@@ -723,6 +858,20 @@ class Win32EdgeChrome(WebView2Core):
     def _on_controller_created(self, controller: CoreWebView2Controller) -> None:
         self.controller = controller
         controller.default_background_color = self._background_color
+
+        if isinstance(controller, CoreWebView2CompositionController):
+            self.composition_controller = controller
+
+            # The window has no redirection surface; a composition visual
+            # tree, sized with it, is all that is drawn in its client area.
+            compositor = _get_compositor()
+            self._window_target = create_desktop_window_target(compositor, self.form.hwnd)
+            root = compositor.create_container_visual()
+            root.relative_size_adjustment = (1, 1)
+            self._window_target.root = root
+            controller.root_visual_target = root
+
+            controller.add_cursor_changed(self.on_cursor_changed)
 
         core = controller.core_webview2
         self.webview = core
@@ -775,15 +924,41 @@ class Win32EdgeChrome(WebView2Core):
         """Close the controller and return the browser process id, or 0."""
         process_id = 0
         controller = self.controller
+        window_target = self._window_target
         self.controller = None
+        self.composition_controller = None
+        self._window_target = None
         self.webview = None
 
-        if controller is not None:
-            with contextlib.suppress(OSError):
-                process_id = int(controller.core_webview2.browser_process_id)
-            controller.close()
+        try:
+            if controller is not None:
+                with contextlib.suppress(OSError):
+                    process_id = int(controller.core_webview2.browser_process_id)
+                controller.close()
+        finally:
+            if window_target is not None:
+                window_target.close()
 
         return process_id
+
+    def on_cursor_changed(self, sender: CoreWebView2CompositionController, _) -> None:
+        # Only while the pointer is over the page: the change can come after
+        # it has moved onto a border, whose sizing cursor must stay.
+        if self.form.pointer_in_client():
+            self.form.update_cursor()
+
+    def system_cursor(self) -> int:
+        """The system cursor (IDC_*) for what the page asks for, or the arrow."""
+        controller = self.composition_controller
+        if controller is None:
+            return _IDC_ARROW
+        try:
+            cursor = controller.cursor
+        except OSError:
+            return _IDC_ARROW
+        if cursor is None:
+            return _IDC_ARROW
+        return _SYSTEM_CURSORS.get(cursor.type, _IDC_ARROW)
 
     def evaluate_js(self, script: str, parse_json: bool):
         result = None
@@ -1013,6 +1188,7 @@ class Win32EdgeChrome(WebView2Core):
         logger.error('The WebView2 browser process exited: %s', args.reason.name)
         controller = self.controller
         self.controller = None
+        self.composition_controller = None
         if controller is not None:
             controller.close()
 
@@ -1172,7 +1348,8 @@ def _register_window_class() -> None:
 
     wc = _WNDCLASSEXW()
     wc.cbSize = ctypes.sizeof(_WNDCLASSEXW)
-    wc.style = _CS_HREDRAW | _CS_VREDRAW
+    # CS_DBLCLKS: a visually hosted WebView2 is sent double clicks as such.
+    wc.style = _CS_HREDRAW | _CS_VREDRAW | _CS_DBLCLKS
     wc.lpfnWndProc = _window_procedure
     wc.hInstance = _GetModuleHandleW(None)
     wc.hCursor = _LoadCursorW(None, ctypes.c_void_p(_IDC_ARROW))
@@ -1236,6 +1413,10 @@ class BrowserView:
             self.destroyed = False
             self._created = False
             self._is_active = False
+            self._tracking_mouse_leave = False
+            # Visual hosting: the releases owed to WebView2 for the presses
+            # it was sent, each with its mouse data (which X button).
+            self._pressed_buttons: set[tuple[CoreWebView2MouseEventKind, int]] = set()
             self._confirming_close = False
             self._min_size = window.min_size
             self._size_kind = _SIZE_RESTORED
@@ -1254,6 +1435,9 @@ class BrowserView:
                     style &= ~(_WS_THICKFRAME | _WS_MAXIMIZEBOX)
 
             ex_style = 0
+            if window.transparent:
+                # No opaque surface of its own behind the composed page.
+                ex_style |= _WS_EX_NOREDIRECTIONBITMAP
             if window.on_top:
                 ex_style |= _WS_EX_TOPMOST
             if not window.focus:
@@ -1368,6 +1552,23 @@ class BrowserView:
 
         def handle_message(self, msg: int, wparam: int, lparam: int) -> int | None:
             """Handle a window message; None means DefWindowProcW's default."""
+            if msg in _FORWARDED_MOUSE_MESSAGES:
+                if self._forward_mouse(msg, wparam, lparam):
+                    return 0
+                return None
+
+            if msg == _WM_CAPTURECHANGED:
+                # lparam is the window that has the mouse now.
+                if lparam != self.hwnd:
+                    self._on_capture_lost()
+                return 0
+
+            if msg == _WM_SETCURSOR:
+                if _loword(lparam) == _HTCLIENT and self._is_visually_hosted():
+                    self.update_cursor()
+                    return 1
+                return None
+
             if msg == _WM_GETMINMAXINFO:
                 info = _MINMAXINFO.from_address(lparam)
                 scale = self._scale
@@ -1407,9 +1608,12 @@ class BrowserView:
                 return 0
 
             if msg == _WM_ERASEBKGND:
-                rect = wintypes.RECT()
-                _GetClientRect(self.hwnd, ctypes.byref(rect))
-                _FillRect(wparam, ctypes.byref(rect), self._background_brush)
+                # A transparent window has nothing to erase: what it shows is
+                # composed, and GDI would draw into a surface it lacks.
+                if not self.pywebview_window.transparent:
+                    rect = wintypes.RECT()
+                    _GetClientRect(self.hwnd, ctypes.byref(rect))
+                    _FillRect(wparam, ctypes.byref(rect), self._background_brush)
                 return 1
 
             if msg == _WM_COMMAND:
@@ -1448,6 +1652,124 @@ class BrowserView:
                 return None
 
             return None
+
+        def _is_visually_hosted(self) -> bool:
+            return self.browser is not None and self.browser.composition_controller is not None
+
+        def _forward_mouse(self, msg: int, wparam: int, lparam: int) -> bool:
+            """
+            Send a mouse message to a visually hosted WebView2, which, unlike
+            a windowed one, has no window of its own to receive it. Returns
+            False if there is none to send it to.
+            """
+            controller = self.browser.composition_controller if self.browser else None
+            if controller is None:
+                return False
+
+            if msg == _WM_MOUSELEAVE:
+                self._tracking_mouse_leave = False
+                controller.send_mouse_input(
+                    CoreWebView2MouseEventKind.LEAVE,
+                    CoreWebView2MouseEventVirtualKeys.NONE,
+                    0,
+                    (0, 0),
+                )
+                return True
+
+            point = wintypes.POINT(
+                ctypes.c_short(_loword(lparam)).value, ctypes.c_short(_hiword(lparam)).value
+            )
+            mouse_data = 0
+
+            if msg in (_WM_MOUSEWHEEL, _WM_MOUSEHWHEEL):
+                # Wheel messages carry screen coordinates and a signed delta.
+                _ScreenToClient(self.hwnd, ctypes.byref(point))
+                mouse_data = ctypes.c_short(_hiword(wparam)).value & 0xFFFFFFFF
+                # The wheel may go to the focused window wherever the
+                # pointer is; the page gets it only over the page, or
+                # mid-drag.
+                client = wintypes.RECT()
+                _GetClientRect(self.hwnd, ctypes.byref(client))
+                inside = 0 <= point.x < client.right and 0 <= point.y < client.bottom
+                if not inside and _GetCapture() != self.hwnd:
+                    return False
+            elif msg in _X_BUTTON_MESSAGES:
+                mouse_data = _hiword(wparam)  # XBUTTON1 or XBUTTON2
+
+            if msg == _WM_MOUSEMOVE and not self._tracking_mouse_leave:
+                # Ask for the WM_MOUSELEAVE that tells WebView2 the pointer left.
+                track = _TRACKMOUSEEVENT()
+                track.cbSize = ctypes.sizeof(_TRACKMOUSEEVENT)
+                track.dwFlags = _TME_LEAVE
+                track.hwndTrack = self.hwnd
+                self._tracking_mouse_leave = bool(_TrackMouseEvent(ctypes.byref(track)))
+
+            keys = _loword(wparam)
+
+            if msg in _BUTTON_RELEASES:
+                # Keep receiving the mouse while a button drags outside the window.
+                self._pressed_buttons.add((_BUTTON_RELEASES[msg], mouse_data))
+                _SetCapture(self.hwnd)
+            elif msg in _BUTTON_UP_MESSAGES:
+                self._pressed_buttons.discard((CoreWebView2MouseEventKind(msg), mouse_data))
+
+            try:
+                controller.send_mouse_input(
+                    CoreWebView2MouseEventKind(msg),
+                    CoreWebView2MouseEventVirtualKeys(keys),
+                    mouse_data,
+                    (point.x, point.y),
+                )
+            finally:
+                # Released only after the release is sent, so that the
+                # WM_CAPTURECHANGED this causes finds no button still pressed.
+                if msg in _BUTTON_UP_MESSAGES and not keys & _MK_BUTTONS:
+                    if _GetCapture() == self.hwnd:
+                        _ReleaseCapture()
+
+            return True
+
+        def _on_capture_lost(self) -> None:
+            """
+            The mouse was taken away mid-press: by a window drag (easy_drag
+            hands the press to Windows' move loop), Alt+Tab or a menu. The
+            release never comes here, so WebView2 is sent one, or the page
+            would go on acting as if the button were held.
+            """
+            pressed = self._pressed_buttons
+            self._pressed_buttons = set()
+            if not pressed:
+                return
+
+            def release() -> None:
+                controller = self.browser.composition_controller if self.browser else None
+                if controller is None:
+                    return
+                for kind, mouse_data in pressed:
+                    controller.send_mouse_input(
+                        kind,
+                        CoreWebView2MouseEventVirtualKeys.NONE,
+                        mouse_data,
+                        _RELEASE_OUTSIDE_POINT,
+                    )
+
+            # Later, from the message loop, not from inside the capture change.
+            _enqueue(release)
+
+        def pointer_in_client(self) -> bool:
+            """Whether the pointer is over this window's client area."""
+            cursor = wintypes.POINT()
+            _GetCursorPos(ctypes.byref(cursor))
+            # Not over another window on top of this one, such as another
+            # pywebview window, which shares this thread's cursor.
+            if _GetAncestor(_WindowFromPoint(cursor), _GA_ROOT) != self.hwnd:
+                return False
+            position = ((cursor.y & 0xFFFF) << 16) | (cursor.x & 0xFFFF)
+            return _SendMessageW(self.hwnd, _WM_NCHITTEST, 0, position) == _HTCLIENT
+
+        def update_cursor(self) -> None:
+            if self.browser is not None:
+                _SetCursor(_LoadCursorW(None, ctypes.c_void_p(self.browser.system_cursor())))
 
         def update_webview_bounds(self) -> None:
             controller = self.browser.controller if self.browser else None
@@ -1710,6 +2032,12 @@ class BrowserView:
 
         @invoke_on_ui_thread
         def set_window_menu(self, menu_list: Iterable[Menu]):
+            if self.pywebview_window.transparent:
+                # A menu bar is painted into the surface a transparent window
+                # does without, so it would take clicks without being seen.
+                logger.warning('The win32 backend shows no menu bar on a transparent window.')
+                return
+
             actions: dict[int, MenuAction] = {}
 
             def append_items(hmenu: int, items: Iterable[Menu | MenuAction | MenuSeparator]):
@@ -2005,13 +2333,18 @@ def _teardown_app() -> None:
     Shut the DispatcherQueue down, running what is still queued, then leave
     the apartment, so that the next webview.start() begins afresh.
     """
-    global _app_setup, _dispatcher_controller, _dispatcher_queue
+    global _app_setup, _dispatcher_controller, _dispatcher_queue, _compositor
 
     msg = wintypes.MSG()
 
     # Windows still open here were never closed, e.g. after an exception
     # escaped the loop; they would otherwise stay on screen, unresponsive.
     _destroy_all_windows()
+
+    # The Compositor belongs to the DispatcherQueue shut down below.
+    if _compositor is not None:
+        _compositor.close()
+        _compositor = None
 
     controller = _dispatcher_controller
     if controller is not None:

@@ -60,6 +60,15 @@ webview.start(gui='qt')
 
 ## Known issues and limitations
 
+## Win32
+
+A transparent window (`transparent=True`) has WebView2 compose the page onto the desktop instead of drawing it in a window of its own, and pywebview passes it the mouse input. In such a window:
+
+* Drag and drop does not work in the page, neither files from Explorer nor elements dragged within the page
+* Touch and pen act as a mouse: dragging a finger selects text instead of scrolling, and there is no pinch zoom
+* The page can only show the standard Windows cursors; others, such as `grab`, `zoom-in` or a CSS cursor image (`cursor: url(...)`), show as the arrow. WebView2's WinRT API, which pywebview uses, reports no other cursor ([WebView2Feedback#2766](https://github.com/MicrosoftEdge/WebView2Feedback/issues/2766), [WebView2Feedback#3388](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3388))
+* There is no menu bar
+
 ## QtWebKit
 
 * Debugging is not supported

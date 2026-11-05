@@ -5,6 +5,7 @@
 ### ⚡ Features
 
 - `Win32` New `win32` backend: WebView2 hosted in a plain Win32 window through PyWinRT, with nothing to install outside pip besides the WebView2 Runtime (no .NET, no Windows App Runtime). Install `pywebview[win32]` (Python 3.11+) and start with `gui='win32'`.
+- `Win32` Support transparent windows (`transparent=True`). See [Web Engine](/guide/web_engine.md) for their limitations.
 
 ### 🐞 Bug fixes
 

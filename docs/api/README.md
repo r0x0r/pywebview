@@ -47,7 +47,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `on_top` - Set window to be always on top of other windows. Default is False.
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
-* `transparent` - Create a transparent window. Not supported on Windows. Default is False. Note that this setting does not hide or make window chrome transparent. To hide window chrome set `frameless` to True.
+* `transparent` - Create a transparent window. On Windows only the `win32` backend supports it, with the limitations listed in [Web Engine](/guide/web_engine.md). Default is False. Note that this setting does not hide or make window chrome transparent. To hide window chrome set `frameless` to True.
 * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) CSS property.
 * `zoomable` - Enable document zooming. Default is False
 * `draggable` - Enable image and link object dragging. Default is False
