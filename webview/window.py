@@ -464,8 +464,7 @@ class Window:
             return_result = 'pywebview.stringify(value);'
 
         if callback:
-            escaped_script = f"""
-                var value = eval("{escape_string(script)}");
+            handle_promise = f"""
                 if (pywebview._isPromise(value)) {{
                     value.then(function evaluate_async(result) {{
                         pywebview._asyncCallback(pywebview.stringify(result), "{unique_id}")
@@ -474,23 +473,25 @@ class Window:
                     }});
                     value = {{ pywebviewPromise420: true }};
                 }}
-                {return_result}
             """
         else:
-            escaped_script = f"""
-                var value;
-                try {{
-                    value = eval("{escape_string(script)}");
-                }} catch (e) {{
-                    value = {{
-                        name: e.name,
-                        pywebviewJavascriptError420: true,
-                    }}
-                    var keys = Object.getOwnPropertyNames(e);
-                    keys.forEach(function(key) {{ value[key] = e[key] }})
+            handle_promise = ''
+
+        escaped_script = f"""
+            var value;
+            try {{
+                value = eval("{escape_string(script)}");
+                {handle_promise}
+            }} catch (e) {{
+                value = {{
+                    name: e.name,
+                    pywebviewJavascriptError420: true,
                 }}
-                {return_result};
-            """
+                var keys = Object.getOwnPropertyNames(e);
+                keys.forEach(function(key) {{ value[key] = e[key] }})
+            }}
+            {return_result};
+        """
 
         if self.gui.renderer == 'cef':
             result = self.gui.evaluate_js(escaped_script, self.uid, True, unique_id)
@@ -504,13 +505,14 @@ class Window:
         else:
             result = self.gui.evaluate_js(escaped_script, self.uid, True)
 
-        if isinstance(result, dict) and result.get('pywebviewPromise420'):
-            return None
+        if callback:
+            if isinstance(result, dict) and result.get('pywebviewPromise420'):
+                return None
 
-        # no promise to resolve, so the callback will never be called. None is ambiguous, as Qt's
-        # fallback without a result handler returns None, so keep the callback in that case
-        if result is not None:
-            self._callbacks.pop(unique_id, None)
+            # no promise to resolve, so the callback will never be called. None is ambiguous, as
+            # Qt's fallback without a result handler returns None, so keep the callback then
+            if result is not None:
+                self._callbacks.pop(unique_id, None)
 
         if isinstance(result, dict) and result.get('pywebviewJavascriptError420'):
             del result['pywebviewJavascriptError420']

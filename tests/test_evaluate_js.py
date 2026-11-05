@@ -88,6 +88,9 @@ def mixed_test(window):
     assert window.evaluate_js('2 + 2', lambda result: None) == 4
     assert window._callbacks == {}
 
+    # only a call with a callback produces the promise marker
+    assert window.evaluate_js('({pywebviewPromise420: true})') == {'pywebviewPromise420': True}
+
 
 def array_test(window):
     result = window.evaluate_js(
@@ -215,6 +218,10 @@ def exception_test(window):
     with pytest.raises(webview.errors.JavascriptException):
         window.evaluate_js('eklmn')
 
+    with pytest.raises(webview.errors.JavascriptException):
+        window.evaluate_js('eklmn', lambda result: None)
+    assert window._callbacks == {}
+
 
 def promise_test(window):
     results = []
@@ -224,9 +231,11 @@ def promise_test(window):
         results.append(result)
         done.set()
 
-    script = 'new Promise(function (resolve) { setTimeout(function () { resolve(42) }, 500) })'
+    script = 'new Promise(function (resolve) { window.resolveTestPromise = resolve })'
     assert window.evaluate_js(script, callback) is None
     assert len(window._callbacks) == 1
+
+    window.evaluate_js('window.resolveTestPromise(42)')
 
     assert done.wait(10)
     assert results == [42]
