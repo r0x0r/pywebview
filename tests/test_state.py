@@ -1,3 +1,4 @@
+import json
 from threading import Lock
 
 import pytest
@@ -96,6 +97,10 @@ def test_state_dictionary_assignment(window):
 def test_state_dictionary_deletion(window):
     """Test dictionary-style deletion: del state['key']"""
     run_test(webview, window, dictionary_deletion_test)
+
+
+def test_state_dictionary_special_keys(window):
+    run_test(webview, window, dictionary_special_keys_test)
 
 
 def test_state_mixed_access(window):
@@ -481,3 +486,17 @@ def mixed_access_test(window):
     assert 'attr_set' in keys
     assert 'dict_set' in keys
     assert len(window.state) >= 2
+
+
+def dictionary_special_keys_test(window):
+    for key in ('item-count', 'full name', 'quoted"key\\value'):
+        js_key = json.dumps(key)
+        window.state[key] = 420
+        assert window.evaluate_js(f'pywebview.state[{js_key}]') == 420
+
+        del window.state[key]
+        assert key not in window.state
+        assert (
+            window.evaluate_js(f'Object.prototype.hasOwnProperty.call(pywebview.state, {js_key})')
+            is False
+        )
