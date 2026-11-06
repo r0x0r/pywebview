@@ -59,6 +59,10 @@ webview.start(gui='qt')
 
 ## Known issues and limitations
 
+## WinUI3
+
+* The page can only show the standard Windows cursors; others, such as `grab`, `zoom-in` or a CSS cursor image (`cursor: url(...)`), show as the arrow. The WinUI 3 WebView2 control gets the cursor from WebView2's WinRT API, which reports no other ([WebView2Feedback#2766](https://github.com/MicrosoftEdge/WebView2Feedback/issues/2766), [WebView2Feedback#3388](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3388))
+
 ## QtWebKit
 
 * Debugging is not supported
