@@ -92,6 +92,9 @@ win32 = [
     "winrt-Windows.UI.Composition.Desktop>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
     "winrt-Windows.UI.Composition.Interop>=4;sys_platform=='win32' and python_version>='3.11'",
     "winrt-Windows.UI.Core>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    # and the touch and pen input they are sent.
+    "winrt-Windows.Devices.Input>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.UI.Input>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
 ]
 cef = ["cefpython3"]
 gtk = ["PyGObject==3.50.0", "PyGObject-stubs"]

@@ -44,6 +44,7 @@ from winrt.microsoft.web.webview2.core import (
     CoreWebView2MoveFocusReason,
     CoreWebView2NavigationCompletedEventArgs,
     CoreWebView2NewWindowRequestedEventArgs,
+    CoreWebView2PointerEventKind,
     CoreWebView2ProcessFailedEventArgs,
     CoreWebView2ProcessFailedKind,
     CoreWebView2ServerCertificateErrorAction,
@@ -56,7 +57,8 @@ from winrt.microsoft.web.webview2.core import (
 )
 from winrt.runtime import ApartmentType, init_apartment, uninit_apartment
 from winrt.runtime.interop import initialize_with_window
-from winrt.windows.foundation import AsyncStatus, IAsyncAction, IAsyncOperation
+from winrt.windows.devices.input import PointerDeviceType
+from winrt.windows.foundation import AsyncStatus, IAsyncAction, IAsyncOperation, Rect
 from winrt.windows.storage import ApplicationData, StorageFile, StorageFolder
 from winrt.windows.storage.pickers import (
     FileOpenPicker,
@@ -75,6 +77,7 @@ from winrt.windows.ui.composition import Compositor
 from winrt.windows.ui.composition.desktop import DesktopWindowTarget
 from winrt.windows.ui.composition.interop import create_desktop_window_target
 from winrt.windows.ui.core import CoreCursorType
+from winrt.windows.ui.input import PointerPoint
 from winrt.windows.ui.popups import IUICommand, MessageDialog, UICommand
 
 from webview import FileDialog, _state, windows
@@ -313,6 +316,7 @@ _FillRect = _declare(
 )
 _GetAncestor = _declare(_user32, 'GetAncestor', _HWND, _HWND, wintypes.UINT)
 _GetCursorPos = _declare(_user32, 'GetCursorPos', _BOOL, ctypes.POINTER(wintypes.POINT))
+_GetMessageTime = _declare(_user32, 'GetMessageTime', wintypes.LONG)
 _WindowFromPoint = _declare(_user32, 'WindowFromPoint', _HWND, wintypes.POINT)
 _MonitorFromPoint = _declare(
     _user32, 'MonitorFromPoint', wintypes.HMONITOR, wintypes.POINT, wintypes.DWORD
@@ -456,6 +460,33 @@ _BUTTON_RELEASES = {
 }
 _BUTTON_UP_MESSAGES = frozenset({_WM_LBUTTONUP, _WM_RBUTTONUP, _WM_MBUTTONUP, _WM_XBUTTONUP})
 _X_BUTTON_MESSAGES = frozenset({_WM_XBUTTONDOWN, _WM_XBUTTONUP, _WM_XBUTTONDBLCLK})
+
+_WM_POINTERUPDATE = 0x0245
+_WM_POINTERDOWN = 0x0246
+_WM_POINTERUP = 0x0247
+_WM_POINTERENTER = 0x0249
+_WM_POINTERLEAVE = 0x024A
+# The touch and pen messages a visually hosted WebView2 is sent, each as the
+# CoreWebView2PointerEventKind of the same value. Not WM_POINTERACTIVATE,
+# whose lparam is a window, not a point: activating the window is the
+# default's to do.
+_FORWARDED_POINTER_MESSAGES = frozenset(
+    {_WM_POINTERUPDATE, _WM_POINTERDOWN, _WM_POINTERUP, _WM_POINTERENTER, _WM_POINTERLEAVE}
+)
+# The POINTER_FLAG_DOWN or _UP that a message stands for, or else _UPDATE;
+# the message's other flags are the high word of its wparam.
+_POINTER_EVENT_FLAGS = {
+    _WM_POINTERDOWN: 0x00010000,
+    _WM_POINTERUP: 0x00040000,
+}
+_POINTER_FLAG_UPDATE = 0x00020000
+_PT_TOUCH = 2
+_PT_PEN = 3
+_TOUCH_MASK_ALL = 0x7  # TOUCH_MASK_CONTACTAREA | _ORIENTATION | _PRESSURE
+_PEN_MASK_ALL = 0xF  # PEN_MASK_PRESSURE | _ROTATION | _TILT_X | _TILT_Y
+_PEN_FLAG_BARREL = 0x1
+_PEN_FLAG_INVERTED = 0x2
+_PEN_FLAG_ERASER = 0x4
 
 # The system cursor for each cursor WebView2 asks for. A custom cursor (CSS
 # `cursor: url(...)`) has no system equivalent and shows as the arrow.
@@ -748,6 +779,9 @@ class Win32EdgeChrome(WebView2Core):
         # composition visual instead of a child window of its own.
         self.composition_controller: CoreWebView2CompositionController | None = None
         self._window_target: DesktopWindowTarget | None = None
+        # Makes the pointer info that a visually hosted WebView2 is sent
+        # touch and pen in.
+        self.environment: CoreWebView2Environment | None = None
         self.webview: CoreWebView2 | None = None
         self._js_result_semaphores: set[Semaphore] = set()
         self._js_result_lock = Lock()
@@ -872,6 +906,7 @@ class Win32EdgeChrome(WebView2Core):
             controller.root_visual_target = root
 
             controller.add_cursor_changed(self.on_cursor_changed)
+            self.environment = controller.core_webview2.environment
 
         core = controller.core_webview2
         self.webview = core
@@ -928,6 +963,7 @@ class Win32EdgeChrome(WebView2Core):
         self.controller = None
         self.composition_controller = None
         self._window_target = None
+        self.environment = None
         self.webview = None
 
         try:
@@ -1557,6 +1593,11 @@ class BrowserView:
                     return 0
                 return None
 
+            if msg in _FORWARDED_POINTER_MESSAGES:
+                if self._forward_pointer(msg, wparam, lparam):
+                    return 0
+                return None
+
             if msg == _WM_CAPTURECHANGED:
                 # lparam is the window that has the mouse now.
                 if lparam != self.hwnd:
@@ -1727,6 +1768,86 @@ class BrowserView:
                     if _GetCapture() == self.hwnd:
                         _ReleaseCapture()
 
+            return True
+
+        def _forward_pointer(self, msg: int, wparam: int, lparam: int) -> bool:
+            """
+            Send a touch or pen message to a visually hosted WebView2, so that
+            the page scrolls, zooms and gets touch and pen pointer events as
+            a windowed one does, rather than the mouse messages Windows would
+            make of it. Returns False if there is none to send it to, and for
+            a mouse, which comes as mouse messages.
+            """
+            browser = self.browser
+            controller = browser.composition_controller if browser else None
+            environment = browser.environment if browser else None
+            if controller is None or environment is None:
+                return False
+
+            pointer_id = _loword(wparam)
+            current = PointerPoint.get_current_point(pointer_id)
+            device_type = current.pointer_device.pointer_device_type
+            if device_type not in (PointerDeviceType.TOUCH, PointerDeviceType.PEN):
+                return False
+
+            # WebView2 takes physical pixels from its own corner, which is the
+            # client area's. The message has the location in screen pixels;
+            # PointerPoint has it and the contact in device-independent pixels.
+            point = wintypes.POINT(
+                ctypes.c_short(_loword(lparam)).value, ctypes.c_short(_hiword(lparam)).value
+            )
+            _ScreenToClient(self.hwnd, ctypes.byref(point))
+            x, y = point.x, point.y
+            scale = self._scale
+            position = current.position
+            raw = current.raw_position
+            raw_x = x + (raw.x - position.x) * scale
+            raw_y = y + (raw.y - position.y) * scale
+
+            def to_pixels(rect: Rect, at_x: float, at_y: float) -> Rect:
+                return Rect(
+                    at_x + (rect.x - position.x) * scale,
+                    at_y + (rect.y - position.y) * scale,
+                    rect.width * scale,
+                    rect.height * scale,
+                )
+
+            properties = current.properties
+            info = environment.create_core_webview2_pointer_info()
+            info.pointer_kind = _PT_PEN if device_type == PointerDeviceType.PEN else _PT_TOUCH
+            info.pointer_id = pointer_id
+            info.frame_id = current.frame_id
+            info.pointer_flags = _hiword(wparam) | _POINTER_EVENT_FLAGS.get(
+                msg, _POINTER_FLAG_UPDATE
+            )
+            info.pixel_location = (x, y)
+            info.pixel_location_raw = (raw_x, raw_y)
+            info.time = _GetMessageTime() & 0xFFFFFFFF
+            info.history_count = 1
+            # POINTER_BUTTON_CHANGE_TYPE is numbered as PointerUpdateKind is.
+            info.button_change_kind = int(properties.pointer_update_kind)
+
+            # PointerPoint's pressure goes from 0 to 1, Win32's to 1024.
+            pressure = round(properties.pressure * 1024)
+            if device_type == PointerDeviceType.PEN:
+                info.pen_flags = (
+                    (_PEN_FLAG_BARREL if properties.is_barrel_button_pressed else 0)
+                    | (_PEN_FLAG_INVERTED if properties.is_inverted else 0)
+                    | (_PEN_FLAG_ERASER if properties.is_eraser else 0)
+                )
+                info.pen_mask = _PEN_MASK_ALL
+                info.pen_pressure = pressure
+                info.pen_rotation = round(properties.twist) % 360
+                info.pen_tilt_x = round(properties.x_tilt)
+                info.pen_tilt_y = round(properties.y_tilt)
+            else:
+                info.touch_mask = _TOUCH_MASK_ALL
+                info.touch_contact = to_pixels(properties.contact_rect, x, y)
+                info.touch_contact_raw = to_pixels(properties.contact_rect_raw, raw_x, raw_y)
+                info.touch_orientation = round(properties.orientation) % 360
+                info.touch_pressure = pressure
+
+            controller.send_pointer_input(CoreWebView2PointerEventKind(msg), info)
             return True
 
         def _on_capture_lost(self) -> None:
