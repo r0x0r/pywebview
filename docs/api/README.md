@@ -1039,3 +1039,69 @@ With a frameless _pywebview_ window, A window can be moved or dragged by adding 
 The magic class name can be overriden by re-assigning the `webview.settings['DRAG_REGION_SELECTOR']` property.
 
 [Example](/examples/drag_region.html)
+
+### Frameless windows on Windows: snapping and resizing
+
+`frameless=True` removes the caption and the sizing border. On Windows that also removes what
+normally comes with them: dragging the window against a screen edge does not snap it, and there are
+no borders to resize the window with.
+
+The drag itself is already handed to the system on EdgeChromium and WinUI3: a drag region calls
+`pywebviewStartDrag`, which ends up in `start_drag()` and, on WinForms, is `ReleaseCapture()` +
+`SendMessage(WM_NCLBUTTONDOWN, HT_CAPTION, 0)`. That runs a real move loop - the window follows the
+cursor - but it still does not produce snapping, so snapping has to come from the page. The `Win`
+arrow keys do keep working as long as the window retains `WS_THICKFRAME`, `WS_SYSMENU` and
+`WS_MAXIMIZEBOX` (`Left`/`Right` snap to the halves, `Up` maximizes, `Down` restores). On Windows 11
+the Snap Layouts flyout of the maximize button is out of reach, because it is driven by
+`HTMAXBUTTON` hit-testing rather than by the page.
+
+The reason is Windows hit-testing. The web content is hosted in a child window (`WebView2` under
+EdgeChromium, the browser control under WinForms), and that child answers `WM_NCHITTEST` with
+`HTCLIENT` for every point it covers. The top-level window is never asked whether the cursor is over
+a caption, a resize border or client content, so a move loop started from the page is never a caption
+drag and the shell offers no snap target for it.
+
+Edge snapping can also be enabled from Python, without any page code: set
+`webview.settings['SNAP_ON_DRAG'] = True` and a frameless window snaps to half or a quarter of the
+work area when it is released near a screen edge (`webview.settings['SNAP_TRIGGER']`, default `12`
+pixels, controls how close to the edge counts). With snapping enabled the drag is handled in the page
+rather than by the native move loop, so the page sees the mouse-up that decides the zone. A
+preview of where the window will land is shown during the drag (`webview.settings['SNAP_PREVIEW']`,
+default `True`, inert unless snapping is on; Windows only - elsewhere the page can draw its own hint). See
+[examples/frameless_snap.py](https://github.com/r0x0r/pywebview/blob/master/examples/frameless_snap.py).
+
+Resizable borders and a snap preview still have to come from the page, which is what the rest of this
+section describes:
+
+* drag with `screenX`/`screenY` (not `clientX`/`clientY`, which change as the window moves) and call
+  `window.move()` through your own js_api method;
+* treat the cursor as "snapping" when it is within a few pixels of the work area from
+  `screen.availLeft`/`availTop`/`availWidth`/`availHeight`, and on mouse-up call `window.move()` and
+  `window.resize()` with the half or quarter of the work area;
+* resize borders work the same way: a few pixels wide element on each edge that calls
+  `window.move()`/`window.resize()` while the mouse is down;
+* a translucent snap **preview** cannot be a page element, because page content is clipped to the
+  window and the target area is usually outside it. Either skip the preview or draw it in a second
+  frameless, always-on-top, click-through window.
+* if you re-add `WS_THICKFRAME`, which is what makes the `Win` arrow keys work, also answer
+  `WM_GETMINMAXINFO` with the monitor work area from `MonitorFromWindow` + `rcWork`. Otherwise the
+  maximized window is a frame's worth larger than the screen - measured 2574x1454 on a 2560x1440
+  screen at (-7, -7) - so it covers the taskbar and clips content along every edge.
+
+```js
+const TRIGGER = 12   // px from the screen edge that arms a snap
+
+function zoneAt(x, y) {
+  const s = screen
+  const l = s.availLeft ?? 0, t = s.availTop ?? 0
+  const left = x <= l + TRIGGER, right = x >= l + s.availWidth - 1 - TRIGGER, top = y <= t + TRIGGER
+  if (top && left) return 'tl'
+  if (top && right) return 'tr'
+  if (top) return 'max'
+  if (left) return 'left'
+  if (right) return 'right'
+  return null
+}
+```
+
+A runnable drag region example lives in [Drag area](/examples/drag_region.html).

@@ -1,6 +1,8 @@
 import ctypes
 import logging as _logging
 import os
+import sys
+import threading
 from ctypes import wintypes
 
 from webview.util import parse_file_type
@@ -890,3 +892,270 @@ def pick_save_file_win32(
             _com_release(item)
     finally:
         _com_release(dialog)
+
+
+# --- Snap preview overlay -----------------------------------------------------
+# A drag preview has to be a real window: page content is clipped to its own window and the
+# target area is usually outside it. This one is layered and click-through (WS_EX_TRANSPARENT
+# plus HTTRANSPARENT in the window proc), so it can never swallow the mouse-up that decides
+# where the window lands. ``webview/snapping.py`` forwards to it on Windows.
+
+#: Preview overlay colours. ``PREVIEW_FILL`` is BGR, so ``0x00FF8D4C`` is #4C8DFF.
+PREVIEW_FILL = 0x00FF8D4C
+PREVIEW_ALPHA = 90
+
+
+class SnapPreview:
+    """A translucent, click-through, always-on-top overlay showing where a drag will snap.
+
+    Windows only. It has to be a real window rather than a page element: page content is clipped to
+    its own window, and the preview belongs to another screen area entirely. It also has to be
+    click-through (``WS_EX_TRANSPARENT`` plus ``HTTRANSPARENT``), otherwise the overlay would swallow
+    the very mouse-up that ends the drag.
+
+    On other platforms, and if the window cannot be created, every method degrades to a no-op so the
+    page can draw its own hint instead.
+    """
+
+    CLASS_NAME = 'PywebviewSnapPreview'
+    WINDOW_TITLE = 'pywebview-snap-preview'
+
+    def __init__(self, fill: int = PREVIEW_FILL, alpha: int = PREVIEW_ALPHA) -> None:
+        self._fill = fill
+        self._alpha = alpha
+        self._hwnd: int | None = None
+        self._thread: threading.Thread | None = None
+        self._ready = threading.Event()
+        self._pending: tuple[int, int, int, int] | None = None
+        self._proc = None  # keeps the WNDPROC callback from being collected
+
+    @property
+    def supported(self) -> bool:
+        return sys.platform == 'win32'
+
+    def start(self) -> int | None:
+        """Create the overlay window (idempotent). Call it before a drag, not during one."""
+        if not self.supported:
+            return None
+
+        if self._thread is not None and self._thread.is_alive():
+            return self._hwnd
+
+        self._ready.clear()
+        self._thread = threading.Thread(target=self._run, name='snap-preview', daemon=True)
+        self._thread.start()
+        self._ready.wait(5)
+        return self._hwnd
+
+    def stop(self) -> None:
+        """Destroy the overlay window, e.g. when the last window it belonged to is gone."""
+        if self._hwnd:
+            self._post(0x0010)  # WM_CLOSE
+            self._hwnd = None
+
+    def show(self, rect: tuple[int, int, int, int] | None) -> bool:
+        """Show the overlay at ``rect`` (``None`` hides it). Non-blocking."""
+        if rect is None:
+            return self.hide()
+        if not self.supported or self.start() is None:
+            return False
+
+        self._pending = (int(rect[0]), int(rect[1]), int(rect[2]), int(rect[3]))
+        return self._post(0x8001)  # WM_APP + 1
+
+    def hide(self) -> bool:
+        if not self.supported or not self._hwnd:
+            return False
+        return self._post(0x8002)  # WM_APP + 2
+
+    # ---------------------------------------------------------------- internals
+    def _post(self, message: int) -> bool:
+        try:
+            ctypes.windll.user32.PostMessageW(ctypes.c_void_p(self._hwnd), message, 0, 0)
+            return True
+        except Exception:
+            return False
+
+    def _run(self) -> None:
+        # Private WinDLL instances: pywebview's own move/resize also call into ctypes.windll, and
+        # setting prototypes on those shared functions breaks them (learned the hard way).
+        user32 = ctypes.WinDLL('user32', use_last_error=True)
+        gdi32 = ctypes.WinDLL('gdi32', use_last_error=True)
+        kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+
+        class WNDCLASSW(ctypes.Structure):
+            _fields_ = [
+                ('style', ctypes.c_uint),
+                ('lpfnWndProc', ctypes.c_void_p),
+                ('cbClsExtra', ctypes.c_int),
+                ('cbWndExtra', ctypes.c_int),
+                ('hInstance', ctypes.c_void_p),
+                ('hIcon', ctypes.c_void_p),
+                ('hCursor', ctypes.c_void_p),
+                ('hbrBackground', ctypes.c_void_p),
+                ('lpszMenuName', ctypes.c_wchar_p),
+                ('lpszClassName', ctypes.c_wchar_p),
+            ]
+
+        class MSG(ctypes.Structure):
+            # 48 bytes on x64: without lPrivate, GetMessageW writes past the struct.
+            _fields_ = [
+                ('hwnd', ctypes.c_void_p),
+                ('message', ctypes.c_uint),
+                ('wParam', ctypes.c_ulonglong),
+                ('lParam', ctypes.c_longlong),
+                ('time', ctypes.c_ulong),
+                ('pt_x', ctypes.c_long),
+                ('pt_y', ctypes.c_long),
+                ('lPrivate', ctypes.c_ulong),
+            ]
+
+        wndproc_type = ctypes.WINFUNCTYPE(
+            ctypes.c_longlong, ctypes.c_void_p, ctypes.c_uint, ctypes.c_ulonglong, ctypes.c_longlong
+        )
+
+        def wndproc(hwnd, msg, wparam, lparam):
+            if msg == 0x0084:  # WM_NCHITTEST
+                return -1  # HTTRANSPARENT - let the mouse reach the window being dragged
+            if msg == 0x8001:  # show
+                if self._pending is not None:
+                    user32.SetWindowPos(
+                        ctypes.c_void_p(hwnd),
+                        ctypes.c_void_p(-1),  # HWND_TOPMOST
+                        self._pending[0],
+                        self._pending[1],
+                        self._pending[2],
+                        self._pending[3],
+                        0x0010 | 0x0040,  # SWP_NOACTIVATE | SWP_SHOWWINDOW
+                    )
+                return 0
+            if msg == 0x8002:  # hide
+                user32.ShowWindow(ctypes.c_void_p(hwnd), 0)  # SW_HIDE
+                return 0
+            if msg == 0x0010:  # WM_CLOSE
+                user32.DestroyWindow(ctypes.c_void_p(hwnd))
+                return 0
+            if msg == 0x0002:  # WM_DESTROY
+                user32.PostQuitMessage(0)
+                return 0
+            return user32.DefWindowProcW(ctypes.c_void_p(hwnd), msg, wparam, lparam)
+
+        try:
+            self._proc = wndproc_type(wndproc)
+
+            # These return pointer-sized values; the ctypes default (c_int) truncates them, which
+            # makes RegisterClassW/CreateWindowExW fail silently.
+            kernel32.GetModuleHandleW.restype = ctypes.c_void_p
+            kernel32.GetModuleHandleW.argtypes = [ctypes.c_wchar_p]
+            gdi32.CreateSolidBrush.restype = ctypes.c_void_p
+            gdi32.CreateSolidBrush.argtypes = [ctypes.c_uint32]
+            user32.RegisterClassW.restype = ctypes.c_uint16
+            user32.RegisterClassW.argtypes = [ctypes.c_void_p]
+            user32.CreateWindowExW.restype = ctypes.c_void_p
+            user32.CreateWindowExW.argtypes = [
+                ctypes.c_uint32,
+                ctypes.c_wchar_p,
+                ctypes.c_wchar_p,
+                ctypes.c_uint32,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+            ]
+            user32.DefWindowProcW.restype = ctypes.c_longlong
+            user32.DefWindowProcW.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_uint,
+                ctypes.c_ulonglong,
+                ctypes.c_longlong,
+            ]
+            user32.SetWindowPos.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_uint,
+            ]
+            user32.GetMessageW.restype = ctypes.c_int
+            user32.GetMessageW.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+                ctypes.c_uint,
+                ctypes.c_uint,
+            ]
+
+            window_class = WNDCLASSW()
+            window_class.lpfnWndProc = ctypes.cast(self._proc, ctypes.c_void_p)
+            window_class.hInstance = kernel32.GetModuleHandleW(None)
+            window_class.hbrBackground = gdi32.CreateSolidBrush(self._fill)
+            window_class.lpszClassName = self.CLASS_NAME
+            user32.RegisterClassW(ctypes.byref(window_class))
+
+            flags = (
+                0x00080000 | 0x00000020 | 0x00000080 | 0x08000000
+            )  # LAYERED|TRANSPARENT|TOOLWINDOW|NOACTIVATE
+            hwnd = user32.CreateWindowExW(
+                flags,
+                self.CLASS_NAME,
+                self.WINDOW_TITLE,
+                0x80000000,  # WS_POPUP
+                -2000,
+                -2000,
+                10,
+                10,
+                None,
+                None,
+                window_class.hInstance,
+                None,
+            )
+            if hwnd:
+                user32.SetWindowTextW(ctypes.c_void_p(hwnd), self.WINDOW_TITLE)
+                user32.SetLayeredWindowAttributes(
+                    ctypes.c_void_p(hwnd),
+                    0,
+                    self._alpha,
+                    0x00000002,  # LWA_ALPHA
+                )
+                self._hwnd = hwnd
+        except Exception:
+            self._hwnd = None
+
+        self._ready.set()
+
+        if not self._hwnd:
+            return
+
+        message = MSG()
+        while True:
+            if user32.GetMessageW(ctypes.byref(message), None, 0, 0) <= 0:
+                break
+            user32.TranslateMessage(ctypes.byref(message))
+            user32.DispatchMessageW(ctypes.byref(message))
+
+
+#: One overlay per process is enough - only one drag can be in flight at a time.
+_snap_preview = SnapPreview()
+
+
+def show_snap_preview(rect: tuple[int, int, int, int] | None) -> bool:
+    """Show (or hide, with ``None``) the snap preview overlay."""
+    return _snap_preview.show(rect)
+
+
+def hide_snap_preview() -> bool:
+    return _snap_preview.hide()
+
+
+def warm_up_snap_preview() -> None:
+    """Create the overlay ahead of the first drag: creating it lazily stalls that drag."""
+    _snap_preview.start()
+
+
+def stop_snap_preview() -> None:
+    _snap_preview.stop()
