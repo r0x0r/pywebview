@@ -118,7 +118,7 @@ class FileDialog(enum.IntEnum):
 settings = ImmutableDict(
     {
         'ALLOW_DOWNLOADS': False,
-        'ALLOW_FILE_URLS': True,
+        'ALLOW_FILE_URLS': False,
         'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
         'DRAG_REGION_DIRECT_TARGET_ONLY': False,
         'DEFAULT_HTTP_PORT': 42001,

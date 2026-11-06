@@ -18,13 +18,13 @@ Treat every exposed function as a public endpoint:
 
 ## Local files
 
-`webview.settings['ALLOW_FILE_URLS']` is `True` by default. It lets scripts on a page loaded from a `file://` URL read any other local file the user can read, for example with `fetch('file:///...')`. Set it to `False` unless your application needs this. Pages still load their own scripts, styles and images from `file://` URLs with the setting off.
+`webview.settings['ALLOW_FILE_URLS']` lets scripts on a page loaded from a `file://` URL read any other local file the user can read, for example with `fetch('file:///...')`. It is `False` by default. Enable it only if your application needs it:
 
 ``` python
-webview.settings['ALLOW_FILE_URLS'] = False
+webview.settings['ALLOW_FILE_URLS'] = True
 ```
 
-Serving your files through the built-in HTTP server, which is what happens when you pass a relative path to `create_window`, avoids `file://` pages altogether.
+With the setting off, `file://` pages still load their own scripts, styles and images, except on Qt, where QtWebEngine blocks those as well. Serving your files through the built-in HTTP server avoids `file://` pages altogether. This is what happens when you pass a plain file path, such as `create_window('App', 'index.html')`, rather than a `file://` URL.
 
 ## External links
 
@@ -45,6 +45,6 @@ A Content Security Policy limits where a page can load scripts and other resourc
 
 - Load only content you control in windows that have a JS API.
 - Validate the arguments of every exposed function.
-- Set `ALLOW_FILE_URLS` to `False`, or serve your files through the built-in HTTP server.
+- Leave `ALLOW_FILE_URLS` off, and serve your files through the built-in HTTP server.
 - Use a Content Security Policy.
 - Use `webview.token` to protect any REST API your page calls.

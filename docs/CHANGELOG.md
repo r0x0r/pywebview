@@ -21,6 +21,7 @@
 
 ### 🚀 Improvements
 
+- `All` `ALLOW_FILE_URLS` is now disabled by default, so scripts on `file://` pages can no longer read other local files. Set `webview.settings['ALLOW_FILE_URLS'] = True` to restore the previous behaviour. On Qt, `file://` pages also need it to load their own scripts, styles and images. Pages served through the built-in HTTP server are not affected. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `All` Document the JS API's exposure, `ALLOW_FILE_URLS`, external links and Content Security Policy in the security guide, and correct the documented default of `ALLOW_FILE_URLS`. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `All` The JS bridge only dispatches calls to functions advertised in `window.pywebview.api`. Other attribute paths on the `js_api` object are rejected and logged. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `EdgeChromium` Update WebView2 runtime to 1.0.4314.35.
