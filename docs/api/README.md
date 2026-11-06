@@ -105,7 +105,7 @@ Return a list of available displays (as `Screen` objects) with the primary displ
 ``` python
 webview.settings = {
   'ALLOW_DOWNLOADS': False,
-  'ALLOW_FILE_URLS': True,
+  'ALLOW_FILE_URLS': False,
   'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
   'DRAG_REGION_DIRECT_TARGET_ONLY': False,
   'DEFAULT_HTTP_PORT': 42001,
@@ -122,7 +122,7 @@ webview.settings = {
 Additional options that override default behaviour of _pywebview_ to address popular feature requests.
 
 * `ALLOW_DOWNLOADS` Allow file downloads. Disabled by default.
-* `ALLOW_FILE_URLS` Allow scripts on `file://` pages to read other local files. Enabled by default. See [Security](/guide/security.md#local-files).
+* `ALLOW_FILE_URLS` Allow scripts on `file://` pages to read other local files. Disabled by default. On Qt, it must be enabled for `file://` pages to load their own scripts, styles and images. See [Security](/guide/security.md#local-files).
 * `DRAG_REGION_SELECTOR` CSS selector for a drag region in easy drag mode. Default selector is `.pywebview-drag-region`.
 * `DRAG_REGION_DIRECT_TARGET_ONLY` When set to True, only elements that directly match the drag region selector are draggable. When False, child elements of a drag region are also draggable. Default is False.
 * `DEFAULT_HTTP_PORT` Port used for the internal HTTP server when private mode is disabled and no explicit port is given. Default is 42001.
