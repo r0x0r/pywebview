@@ -5,7 +5,6 @@ import platform
 import signal
 import socket
 import sys
-import webbrowser
 from copy import copy, deepcopy
 from functools import partial
 from threading import Event, Semaphore, Thread
@@ -27,6 +26,7 @@ from webview.util import (
     environ_append,
     inject_pywebview,
     js_bridge_call,
+    open_external_url,
 )
 from webview.window import FixPoint, Window
 
@@ -266,7 +266,7 @@ class BrowserView(QMainWindow):
 
         def acceptNavigationRequest(self, url, type, is_main_frame):
             if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
-                webbrowser.open(url.toString(), 2, True)
+                open_external_url(url.toString(), 2, True)
                 return False
             else:
                 self._parent.load_url(url.toString())
@@ -303,7 +303,7 @@ class BrowserView(QMainWindow):
 
             def acceptNavigationRequest(self, frame, request, type):
                 if frame is None:
-                    webbrowser.open(request.url().toString(), 2, True)
+                    open_external_url(request.url().toString(), 2, True)
                     return False
                 return True
 

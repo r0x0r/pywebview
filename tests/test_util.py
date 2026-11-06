@@ -299,8 +299,8 @@ class TestBridgeTokenValidation:
         assert not is_js_bridge_token_valid(window, 'not-the-token')
 
 
-class TestBridgeDispatch:
-    """Tests that js_bridge_call dispatches only the js_api names advertised to the page."""
+class TestJsBridgeHardening:
+    """What a page can reach through the JS bridge and external links."""
 
     class Child:
         def __init__(self, called):
@@ -315,7 +315,7 @@ class TestBridgeDispatch:
     class Api:
         def __init__(self, called):
             self._called = called
-            self.child = TestBridgeDispatch.Child(called)
+            self.child = TestJsBridgeHardening.Child(called)
 
         def public(self):
             self._called.set('public')
@@ -384,3 +384,31 @@ class TestBridgeDispatch:
 
         assert window.state._State__event_handlers is handlers
         assert window.state['_State__event_handlers'] is None
+
+    @pytest.mark.parametrize(
+        'url',
+        ['http://example.com', 'HTTPS://example.com/a?b=c', 'mailto:someone@example.com'],
+    )
+    def test_external_url_is_opened(self, monkeypatch, url):
+        opened = Mock()
+        monkeypatch.setattr(util.webbrowser, 'open', opened)
+        util.open_external_url(url)
+        opened.assert_called_once_with(url, 0, True)
+
+    @pytest.mark.parametrize(
+        'url',
+        [
+            'file:///C:/Users/Public/run.bat',
+            'FILE:///etc/passwd',
+            'ms-settings:privacy',
+            'javascript:alert(1)',
+            'C:\\Windows\\System32\\calc.exe',
+            '/usr/bin/xterm',
+            '',
+        ],
+    )
+    def test_non_web_url_is_not_opened(self, monkeypatch, url):
+        opened = Mock()
+        monkeypatch.setattr(util.webbrowser, 'open', opened)
+        util.open_external_url(url)
+        opened.assert_not_called()

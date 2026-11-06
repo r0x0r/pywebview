@@ -1,7 +1,6 @@
 import json
 import logging
 import sys
-import webbrowser
 from ctypes import windll
 from threading import Semaphore
 from uuid import uuid1
@@ -14,6 +13,7 @@ from webview.util import (
     inject_pywebview,
     interop_dll_path,
     js_bridge_call,
+    open_external_url,
 )
 
 clr.AddReference('System.Windows.Forms')
@@ -219,7 +219,7 @@ class MSHTML:
 
     def on_new_window(self, sender, args):
         args.Cancel = True
-        webbrowser.open(args.Url)
+        open_external_url(args.Url)
 
     def on_download_complete(self, *_):
         pass

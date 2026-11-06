@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import sys
-import webbrowser
 from copy import copy
 from ctypes import windll
 from functools import wraps
@@ -14,7 +13,13 @@ from urllib.parse import quote
 from cefpython3 import cefpython as cef
 
 from webview import _state, settings
-from webview.util import DEFAULT_HTML, create_cookie, inject_pywebview, js_bridge_call
+from webview.util import (
+    DEFAULT_HTML,
+    create_cookie,
+    inject_pywebview,
+    js_bridge_call,
+    open_external_url,
+)
 
 sys.excepthook = cef.ExceptHook
 instances = {}
@@ -222,7 +227,7 @@ class LoadHandler:
         user_gesture = args['user_gesture']
 
         if user_gesture:
-            webbrowser.open(url)
+            open_external_url(url)
 
         return True
 
