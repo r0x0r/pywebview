@@ -326,33 +326,42 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v7
       with:
-        python-version: '3.10'
+        # The oldest Python PyWinRT 4 supports.
+        python-version: '3.11'
 
     - name: Install WebView2 Runtime
       run: |
         choco install webview2-runtime -y
-
-    - name: Install Windows App Runtime
-      shell: pwsh
-      run: |
-        # Must match the Windows App SDK version the installed pywinrt/winui3
-        # wheels (pyproject.toml's `winui3` extra, currently pywinrt 3.2.x)
-        # were built against — see https://github.com/pywinrt/pywinrt/blob/main/CHANGELOG.md.
-        # A mismatched runtime makes the app's ON_NO_MATCH_SHOW_UI bootstrap
-        # try to show an (invisible, on a CI runner) install prompt and hang
-        # instead of raising, so pin this to the exact version, not latest.
-        $installer = Join-Path $env:RUNNER_TEMP 'WindowsAppRuntimeInstall.exe'
-        Invoke-WebRequest -Uri 'https://aka.ms/windowsappsdk/1.7/1.7.250513003/windowsappruntimeinstall-x64.exe' -OutFile $installer
-        $proc = Start-Process -FilePath $installer -ArgumentList '--quiet' -Wait -PassThru
-        if ($proc.ExitCode -ne 0) {
-          throw "WindowsAppRuntimeInstall.exe failed with exit code $($proc.ExitCode)"
-        }
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[winui3]"
         pip install pytest pytest-timeout
+
+    - name: Install Windows App Runtime
+      shell: pwsh
+      run: |
+        # The runtime the installed bootstrap loads, which is the Windows App
+        # SDK release its version names. A runtime older than that makes the
+        # ON_NO_MATCH_SHOW_UI bootstrap show an install prompt (invisible on
+        # a CI runner) and hang instead of raising, so it is read from the
+        # bootstrap rather than pinned here.
+        $runtime = python -c "from winrt.microsoft.windows.applicationmodel.dynamicdependency.bootstrap import RUNTIME_VERSION; print(RUNTIME_VERSION)"
+        $parts = $runtime.Split('.')
+        $channel = "$($parts[0]).$($parts[1])"
+        $url = "https://aka.ms/windowsappsdk/$channel/$channel.$($parts[2])/windowsappruntimeinstall-x64.exe"
+        Write-Host "Installing Windows App Runtime $runtime from $url"
+        $installer = Join-Path $env:RUNNER_TEMP 'WindowsAppRuntimeInstall.exe'
+        Invoke-WebRequest -Uri $url -OutFile $installer
+        # An unknown aka.ms link redirects to a search page rather than failing.
+        if ((Get-Item $installer).Length -lt 1MB) {
+          throw "No Windows App Runtime installer at $url"
+        }
+        $proc = Start-Process -FilePath $installer -ArgumentList '--quiet' -Wait -PassThru
+        if ($proc.ExitCode -ne 0) {
+          throw "WindowsAppRuntimeInstall.exe failed with exit code $($proc.ExitCode)"
+        }
 
     - name: Run WinUI3 tests
       shell: pwsh

@@ -15,7 +15,54 @@ from http.cookies import SimpleCookie
 from threading import Event, Lock, Semaphore
 from typing import cast
 
-from webview2.microsoft.web.webview2.core import (
+from winrt.microsoft.ui import DisplayId
+from winrt.microsoft.ui.interop import get_window_from_window_id
+from winrt.microsoft.ui.windowing import (
+    AppWindow,
+    AppWindowChangedEventArgs,
+    AppWindowClosingEventArgs,
+    AppWindowPresenterKind,
+    DisplayArea,
+    DisplayAreaFallback,
+    FullScreenPresenter,
+    IconShowOptions,
+    OverlappedPresenter,
+    OverlappedPresenterState,
+)
+from winrt.microsoft.ui.xaml import (
+    Application,
+    ApplicationInitializationCallbackParams,
+    LaunchActivatedEventArgs,
+    UIElement,
+    Visibility,
+    Window,
+    WindowActivatedEventArgs,
+    WindowActivationState,
+    WindowEventArgs,
+    WindowSizeChangedEventArgs,
+)
+from winrt.microsoft.ui.xaml.controls import (
+    ContentDialog,
+    ContentDialogButton,
+    ContentDialogResult,
+    CoreWebView2InitializedEventArgs,
+    Grid,
+    MenuBar,
+    MenuBarItem,
+    MenuFlyoutItem,
+    MenuFlyoutSeparator,
+    MenuFlyoutSubItem,
+    WebView2,
+    XamlControlsResources,
+)
+from winrt.microsoft.ui.xaml.markup import (
+    IXamlMetadataProvider,
+    IXamlType,
+    XamlReader,
+    XmlnsDefinition,
+)
+from winrt.microsoft.ui.xaml.xamltypeinfo import XamlControlsXamlMetaDataProvider
+from winrt.microsoft.web.webview2.core import (
     CoreWebView2,
     CoreWebView2Cookie,
     CoreWebView2CookieSameSiteKind,
@@ -34,6 +81,11 @@ from webview2.microsoft.web.webview2.core import (
     CoreWebView2WebResourceRequestedEventArgs,
     CoreWebView2WebResourceResponseReceivedEventArgs,
 )
+from winrt.microsoft.windows.applicationmodel.dynamicdependency.bootstrap import (
+    InitializeOptions,
+    initialize,
+)
+from winrt.microsoft.windows.storage import ApplicationData
 from winrt.runtime import ApartmentType, init_apartment, uninit_apartment
 from winrt.runtime.interop import initialize_with_window
 from winrt.system import Array, Object, box_string
@@ -41,7 +93,6 @@ from winrt.windows.foundation import (
     AsyncStatus,
     IAsyncAction,
     IAsyncOperation,
-    Uri,
 )
 from winrt.windows.storage import StorageFile, StorageFolder
 from winrt.windows.storage.pickers import (
@@ -52,58 +103,6 @@ from winrt.windows.storage.pickers import (
 )
 from winrt.windows.ui import Color
 from winrt.windows.ui.xaml.interop import TypeKind, TypeName
-from winui3.microsoft.ui import DisplayId
-from winui3.microsoft.ui.interop import get_window_from_window_id
-from winui3.microsoft.ui.windowing import (
-    AppWindow,
-    AppWindowChangedEventArgs,
-    AppWindowClosingEventArgs,
-    AppWindowPresenterKind,
-    DisplayArea,
-    DisplayAreaFallback,
-    FullScreenPresenter,
-    IconShowOptions,
-    OverlappedPresenter,
-    OverlappedPresenterState,
-)
-from winui3.microsoft.ui.xaml import (
-    Application,
-    ApplicationInitializationCallbackParams,
-    LaunchActivatedEventArgs,
-    UIElement,
-    Visibility,
-    Window,
-    WindowActivatedEventArgs,
-    WindowActivationState,
-    WindowEventArgs,
-    WindowSizeChangedEventArgs,
-)
-from winui3.microsoft.ui.xaml.controls import (
-    ContentDialog,
-    ContentDialogButton,
-    ContentDialogResult,
-    CoreWebView2InitializedEventArgs,
-    Grid,
-    MenuBar,
-    MenuBarItem,
-    MenuFlyoutItem,
-    MenuFlyoutSeparator,
-    MenuFlyoutSubItem,
-    WebView2,
-    XamlControlsResources,
-)
-from winui3.microsoft.ui.xaml.markup import (
-    IXamlMetadataProvider,
-    IXamlType,
-    XamlReader,
-    XmlnsDefinition,
-)
-from winui3.microsoft.ui.xaml.xamltypeinfo import XamlControlsXamlMetaDataProvider
-from winui3.microsoft.windows.applicationmodel.dynamicdependency.bootstrap import (
-    InitializeOptions,
-    initialize,
-)
-from winui3.microsoft.windows.storage import ApplicationData
 
 from webview import (
     FileDialog,
@@ -403,9 +402,7 @@ class WinUI3EdgeChrome(WebView2Core):
                 ctrl_options = env.create_core_webview2_controller_options()
                 ctrl_options.is_in_private_mode_enabled = _state['private_mode']
 
-                ensure_op = self.webview.ensure_core_webview2_with_environment_and_options_async(
-                    env, ctrl_options
-                )
+                ensure_op = self.webview.ensure_core_webview2_async(env, ctrl_options)
             except BaseException as error:
                 logger.exception('Error setting up CoreWebView2 environment')
                 if is_master:
@@ -457,7 +454,7 @@ class WinUI3EdgeChrome(WebView2Core):
                     if status == AsyncStatus.ERROR:
                         logger.error(
                             'Error executing script: %r',
-                            WinError(op.error_code.value),
+                            WinError(op.error_code),
                         )
                         _callback(None)
                     elif status == AsyncStatus.CANCELED:
@@ -564,7 +561,7 @@ class WinUI3EdgeChrome(WebView2Core):
                 if status == AsyncStatus.ERROR:
                     logger.error(
                         'Error getting cookies: %r',
-                        WinError(op.error_code.value),
+                        WinError(op.error_code),
                     )
                     semaphore.release()
                     return
@@ -601,7 +598,10 @@ class WinUI3EdgeChrome(WebView2Core):
             self._pending_load = ('url', url, '')
             return
 
-        self.webview.source = Uri(url)
+        # Setting the control's `source` navigates in the first webview.start()
+        # of a process and does nothing in a later one, so navigate the
+        # CoreWebView2 itself, as load_html does.
+        self.webview.core_webview2.navigate(url)
 
     def on_certificate_error(
         self, _: CoreWebView2, args: CoreWebView2ServerCertificateErrorDetectedEventArgs
@@ -619,7 +619,7 @@ class WinUI3EdgeChrome(WebView2Core):
 
         def on_completed(op: IAsyncOperation[ContentDialogResult], status: AsyncStatus):
             if status == AsyncStatus.ERROR:
-                logger.error('Error showing ContentDialog: %r', WinError(op.error_code.value))
+                logger.error('Error showing ContentDialog: %r', WinError(op.error_code))
                 return
             if status == AsyncStatus.COMPLETED:
                 op.get_results()
@@ -627,14 +627,14 @@ class WinUI3EdgeChrome(WebView2Core):
         op.completed = on_completed
 
     def _extract_dropped_files(self, additional_objects) -> list:
-        return [
-            (os.path.basename(file.path), file.path)
-            for file in [
-                obj.as_(CoreWebView2File)
-                for obj in additional_objects
-                if obj._runtime_class_name_.endswith('CoreWebView2File')
-            ]
+        # An element of the Object collection is a plain winrt.system.Object:
+        # isinstance() tests the WinRT class, and as_() gives its members.
+        files = [
+            obj.as_(CoreWebView2File)
+            for obj in additional_objects
+            if isinstance(obj, CoreWebView2File)
         ]
+        return [(os.path.basename(file.path), file.path) for file in files]
 
     def _apply_settings(self, settings):
         settings.are_browser_accelerator_keys_enabled = _state['debug']
@@ -676,10 +676,10 @@ class WinUI3EdgeChrome(WebView2Core):
         self.ishtml = False
 
     def on_webview_ready(self, sender: WebView2, args: CoreWebView2InitializedEventArgs):
-        if args.exception.value:
+        if args.exception:
             logger.error(
                 'WebView2 initialization failed with exception:\n%s',
-                WinError(args.exception.value).strerror,
+                WinError(args.exception).strerror,
             )
             return
 
@@ -739,12 +739,12 @@ class WinUI3EdgeChrome(WebView2Core):
 
             operation = picker.pick_save_file_async()
 
-            def on_completed(op: IAsyncOperation[StorageFile], status: AsyncStatus):
+            def on_completed(op: IAsyncOperation[StorageFile | None], status: AsyncStatus):
                 try:
                     if status == AsyncStatus.ERROR:
                         logger.error(
                             'Error selecting download destination: %r',
-                            WinError(op.error_code.value),
+                            WinError(op.error_code),
                         )
                     elif status == AsyncStatus.COMPLETED:
                         selected_file = op.get_results()
@@ -1079,7 +1079,7 @@ class BrowserView:
                 self.pywebview_window.events.shown.set()
 
             if not self.pywebview_window.focus:
-                self.window.app_window.show_with_activation(False)
+                self.window.app_window.show(False)
 
         def on_close(self, sender: Object, args: WindowEventArgs):
             if self.uid == 'master' and not _main_window_created.is_set():
@@ -1185,7 +1185,7 @@ class BrowserView:
                     if status == AsyncStatus.ERROR:
                         logger.error(
                             'Error showing ContentDialog: %r',
-                            WinError(op.error_code.value),
+                            WinError(op.error_code),
                         )
                         return
 
@@ -1468,7 +1468,7 @@ _private_cleanup_thread: threading.Thread | None = None
 
 def _async_creation_error(component: str, operation, status: AsyncStatus) -> RuntimeError:
     if status == AsyncStatus.ERROR:
-        return RuntimeError(f'Error creating {component}: {WinError(operation.error_code.value)}')
+        return RuntimeError(f'Error creating {component}: {WinError(operation.error_code)}')
     return RuntimeError(f'Creating {component} was canceled')
 
 
@@ -1591,7 +1591,7 @@ def create_window(window: _Window):
                 # is the only way to avoid stealing it from the previously
                 # focused app, since that focus can't be reliably restored
                 # afterwards once activate() has already taken it.
-                browser.window.app_window.show_with_activation(False)
+                browser.window.app_window.show(False)
 
             if not window.events.shown.is_set():
                 window.events.shown.set()
@@ -1732,7 +1732,7 @@ def create_confirmation_dialog(title: str, message: str, uid: str) -> bool | Non
 
         def on_completed(op: IAsyncOperation[ContentDialogResult], status: AsyncStatus):
             if status == AsyncStatus.ERROR:
-                fut.set_exception(WinError(op.error_code.value))
+                fut.set_exception(WinError(op.error_code))
             elif status == AsyncStatus.CANCELED:
                 fut.set_result(False)
             elif status == AsyncStatus.COMPLETED:
@@ -1763,9 +1763,9 @@ def _folder_dialog_callback(
 
         op = picker.pick_single_folder_async()
 
-        def on_completed(op: IAsyncOperation[StorageFolder], status: AsyncStatus):
+        def on_completed(op: IAsyncOperation[StorageFolder | None], status: AsyncStatus):
             if status == AsyncStatus.ERROR:
-                fut.set_exception(WinError(op.error_code.value))
+                fut.set_exception(WinError(op.error_code))
             elif status == AsyncStatus.CANCELED:
                 fut.set_result(None)
             elif status == AsyncStatus.COMPLETED:
@@ -1821,7 +1821,7 @@ def _open_dialog_callback(
 
             def on_completed(op: IAsyncOperation[Sequence[StorageFile]], status: AsyncStatus):
                 if status == AsyncStatus.ERROR:
-                    fut.set_exception(WinError(op.error_code.value))
+                    fut.set_exception(WinError(op.error_code))
                 elif status == AsyncStatus.CANCELED:
                     fut.set_result(None)
                 elif status == AsyncStatus.COMPLETED:
@@ -1835,9 +1835,9 @@ def _open_dialog_callback(
         else:
             op = picker.pick_single_file_async()
 
-            def on_completed(op: IAsyncOperation[StorageFile], status: AsyncStatus):
+            def on_single_completed(op: IAsyncOperation[StorageFile | None], status: AsyncStatus):
                 if status == AsyncStatus.ERROR:
-                    fut.set_exception(WinError(op.error_code.value))
+                    fut.set_exception(WinError(op.error_code))
                 elif status == AsyncStatus.CANCELED:
                     fut.set_result(None)
                 elif status == AsyncStatus.COMPLETED:
@@ -1847,7 +1847,7 @@ def _open_dialog_callback(
                         return
                     fut.set_result((result.path,))
 
-            op.completed = on_completed
+            op.completed = on_single_completed
 
     return callback
 
@@ -1892,9 +1892,9 @@ def _save_dialog_callback(
 
         op = picker.pick_save_file_async()
 
-        def on_completed(op: IAsyncOperation[StorageFile], status: AsyncStatus):
+        def on_completed(op: IAsyncOperation[StorageFile | None], status: AsyncStatus):
             if status == AsyncStatus.ERROR:
-                fut.set_exception(WinError(op.error_code.value))
+                fut.set_exception(WinError(op.error_code))
             elif status == AsyncStatus.CANCELED:
                 fut.set_result(None)
             elif status == AsyncStatus.COMPLETED:
