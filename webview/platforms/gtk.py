@@ -3,7 +3,6 @@ import logging
 import os
 import pathlib
 import sys
-import webbrowser
 from threading import Semaphore, Thread, current_thread, main_thread
 from typing import Any
 from uuid import uuid1
@@ -18,6 +17,7 @@ from webview.util import (
     create_cookie,
     inject_pywebview,
     js_bridge_call,
+    open_external_url,
     parse_file_type,
 )
 from webview.window import FixPoint, Window
@@ -499,7 +499,7 @@ class BrowserView:
 
             if decision.get_navigation_action().get_frame_name() == '_blank':
                 if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
-                    webbrowser.open(uri, 2, True)
+                    open_external_url(uri, 2, True)
                     decision.ignore()
                 else:
                     self.load_url(uri)

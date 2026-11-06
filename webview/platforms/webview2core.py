@@ -3,7 +3,6 @@ import ctypes
 import json
 import logging
 import shutil
-import webbrowser
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from ctypes import wintypes
@@ -13,7 +12,7 @@ from webview import settings as webview_settings
 from webview.dom import _dnd_state
 from webview.models import Request, Response
 from webview.platforms.win32 import start_drag
-from webview.util import DEFAULT_HTML, is_js_bridge_token_valid, js_bridge_call
+from webview.util import DEFAULT_HTML, is_js_bridge_token_valid, js_bridge_call, open_external_url
 
 logger = logging.getLogger('pywebview')
 
@@ -190,7 +189,7 @@ class WebView2Core(ABC):
 
     def _handle_new_window_request(self, uri: str) -> None:
         if webview_settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
-            webbrowser.open(uri)
+            open_external_url(uri)
         else:
             self.load_url(uri)
 

@@ -17,6 +17,7 @@ import sys
 import sysconfig
 import traceback
 import urllib.parse
+import webbrowser
 from collections import UserDict
 from collections.abc import Callable
 from glob import glob
@@ -369,6 +370,21 @@ def is_js_bridge_token_valid(window: Window, token: str | None) -> bool:
         return False
 
     return True
+
+
+EXTERNAL_URL_SCHEMES = ('http', 'https', 'mailto')
+
+
+def open_external_url(url: str, new: int = 0, autoraise: bool = True) -> None:
+    """
+    Open a link from a page in the system browser. Only web and mailto links are handed to the
+    OS, which would otherwise open file: and custom scheme URLs with whatever handler is
+    registered for them.
+    """
+    if urllib.parse.urlsplit(url).scheme.lower() in EXTERNAL_URL_SCHEMES:
+        webbrowser.open(url, new, autoraise)
+    else:
+        logger.warning('Refusing to open %s externally: only http(s) and mailto are allowed', url)
 
 
 def js_bridge_call(

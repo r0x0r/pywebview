@@ -6,7 +6,6 @@ import logging
 import os
 import urllib
 import uuid
-import webbrowser
 from concurrent.futures import ThreadPoolExecutor
 from threading import Semaphore, Thread, main_thread
 
@@ -28,6 +27,7 @@ from webview.util import (
     inject_pywebview,
     is_test_mode,
     js_bridge_call,
+    open_external_url,
     parse_file_type,
     stringify_headers,
 )
@@ -314,7 +314,7 @@ class BrowserView:
         ):
             if action.navigationType() == getattr(WebKit, 'WKNavigationTypeLinkActivated', 0):
                 if webview_settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
-                    webbrowser.open(action.request().URL().absoluteString(), 2, True)
+                    open_external_url(action.request().URL().absoluteString(), 2, True)
                 else:
                     webview.loadRequest_(action.request())
             return nil
