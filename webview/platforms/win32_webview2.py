@@ -55,6 +55,7 @@ from winrt.microsoft.web.webview2.core import (
     CoreWebView2WebResourceRequestedEventArgs,
     CoreWebView2WebResourceResponseReceivedEventArgs,
 )
+from winrt.microsoft.web.webview2.interop import DropTarget, register_drop_target
 from winrt.runtime import ApartmentType, init_apartment, uninit_apartment
 from winrt.runtime.interop import initialize_with_window
 from winrt.windows.devices.input import PointerDeviceType
@@ -779,6 +780,8 @@ class Win32EdgeChrome(WebView2Core):
         # composition visual instead of a child window of its own.
         self.composition_controller: CoreWebView2CompositionController | None = None
         self._window_target: DesktopWindowTarget | None = None
+        # Hands what is dragged over a transparent window to its WebView2.
+        self._drop_target: DropTarget | None = None
         # Makes the pointer info that a visually hosted WebView2 is sent
         # touch and pen in.
         self.environment: CoreWebView2Environment | None = None
@@ -906,6 +909,10 @@ class Win32EdgeChrome(WebView2Core):
             controller.root_visual_target = root
 
             controller.add_cursor_changed(self.on_cursor_changed)
+            try:
+                self._drop_target = register_drop_target(controller, self.form.hwnd)
+            except OSError as error:
+                logger.warning('Drag and drop will not work in this window: %s', error)
             self.environment = controller.core_webview2.environment
 
         core = controller.core_webview2
@@ -960,20 +967,24 @@ class Win32EdgeChrome(WebView2Core):
         process_id = 0
         controller = self.controller
         window_target = self._window_target
+        drop_target = self._drop_target
         self.controller = None
         self.composition_controller = None
         self._window_target = None
+        self._drop_target = None
         self.environment = None
         self.webview = None
 
-        try:
+        # Each is closed even if closing another raises.
+        with contextlib.ExitStack() as stack:
+            if window_target is not None:
+                stack.callback(window_target.close)
+            if drop_target is not None:
+                stack.enter_context(drop_target)
             if controller is not None:
                 with contextlib.suppress(OSError):
                     process_id = int(controller.core_webview2.browser_process_id)
                 controller.close()
-        finally:
-            if window_target is not None:
-                window_target.close()
 
         return process_id
 

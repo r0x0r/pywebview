@@ -95,6 +95,8 @@ win32 = [
     # and the touch and pen input they are sent.
     "winrt-Windows.Devices.Input>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
     "winrt-Windows.UI.Input>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    # and what is dragged onto them.
+    "winrt-Microsoft.Web.WebView2.Interop>=4!1.0.4314.35.1;sys_platform=='win32' and python_version>='3.11'",
 ]
 cef = ["cefpython3"]
 gtk = ["PyGObject==3.50.0", "PyGObject-stubs"]
