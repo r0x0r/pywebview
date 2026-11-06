@@ -1365,6 +1365,9 @@ class BrowserView:
                         item = create_submenu(menu_item.title, menu_item.items)
                     elif isinstance(menu_item, MenuSeparator):
                         item = MenuFlyoutSeparator()
+                    else:
+                        # Skipped, as create_submenu and the WinForms backend do.
+                        continue
 
                     m.items.append(item)
 
