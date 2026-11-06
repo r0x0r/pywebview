@@ -50,6 +50,7 @@ def test_injection_failure_releases_loaded_without_claiming_bridge_ready(monkeyp
         _expose_lock=threading.Lock(),
         _js_api=None,
         _functions={},
+        _js_api_origins=set(),
         run_js=Mock(
             side_effect=[
                 RuntimeError('initial injection failed') if fail_on == 1 else None,
@@ -412,3 +413,34 @@ class TestJsBridgeHardening:
         monkeypatch.setattr(util.webbrowser, 'open', opened)
         util.open_external_url(url)
         opened.assert_not_called()
+
+    @pytest.mark.parametrize(
+        'url, origin',
+        [
+            ('HTTPS://Example.COM:443/path?q=1', 'https://example.com'),
+            ('http://127.0.0.1:8080/index.html', 'http://127.0.0.1:8080'),
+            ('http://[::1]:8080/', 'http://[::1]:8080'),
+            ('file:///home/user/index.html', 'file:'),
+            ('about:blank', 'about:'),
+            ('data:text/html,hi', 'data:'),
+            (None, 'about:'),
+            ('http://example.com:bad/', 'invalid:'),
+        ],
+    )
+    def test_js_api_origin(self, url, origin):
+        assert util.js_api_origin(url) == origin
+
+    def test_js_api_allowed_origins(self, monkeypatch):
+        window = SimpleNamespace(_js_api_origins={'http://127.0.0.1:8080'})
+        settings = {'JS_API_ALLOWED_ORIGINS': ['https://Example.com/']}
+        monkeypatch.setattr(util.webview, 'settings', settings)
+
+        assert util.is_js_api_allowed(window, 'http://127.0.0.1:8080/page.html')
+        assert util.is_js_api_allowed(window, 'https://example.com/app')
+        assert not util.is_js_api_allowed(window, 'http://127.0.0.1:9090/')
+        assert not util.is_js_api_allowed(window, 'https://www.example.com/')
+        assert not util.is_js_api_allowed(window, 'file:///etc/passwd')
+
+        settings['JS_API_ALLOWED_ORIGINS'] = ['*']
+        assert util.is_js_api_allowed(window, 'https://anything.example/')
+        assert util.js_api_guard(window) == 'true'

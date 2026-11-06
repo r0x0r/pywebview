@@ -211,8 +211,15 @@ class BrowserView:
             body = json.loads(message.body())
             if body['params'] is WebKit.WebUndefined.undefined():
                 body['params'] = None
+            request = message.frameInfo().request()
+            source_url = request.URL().absoluteString() if request and request.URL() else ''
             js_bridge_call(
-                self.window, body['funcName'], body['params'], body['id'], body.get('token', '')
+                self.window,
+                body['funcName'],
+                body['params'],
+                body['id'],
+                body.get('token', ''),
+                str(source_url),
             )
 
     class DownloadDelegate(AppKit.NSObject):
@@ -459,7 +466,10 @@ class BrowserView:
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                inject_pywebview('cocoa', i.js_bridge.window)
+                url = webview.URL()
+                inject_pywebview(
+                    'cocoa', i.js_bridge.window, str(url.absoluteString()) if url else ''
+                )
 
                 if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
                     BrowserView._open_web_inspector(webview)

@@ -135,7 +135,7 @@ class Browser:
         self.cookie_visitor = CookieVisitor()
 
         self.browser.GetJavascriptBindings().Rebind()
-        inject_pywebview('cef', self.window)
+        inject_pywebview('cef', self.window, self.browser.GetUrl())
 
         sleep(0.1)  # wait for window.pywebview to load
         self.initialized = True

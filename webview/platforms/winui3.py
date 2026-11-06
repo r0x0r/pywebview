@@ -652,7 +652,9 @@ class WinUI3EdgeChrome(WebView2Core):
 
     def on_script_notify(self, sender: WebView2, args: CoreWebView2WebMessageReceivedEventArgs):
         try:
-            self._route_script_message(args.web_message_as_json, lambda: args.additional_objects)
+            self._route_script_message(
+                args.web_message_as_json, lambda: args.additional_objects, args.source
+            )
         except Exception:
             logger.exception('Exception occurred during on_script_notify')
 
@@ -810,7 +812,8 @@ class WinUI3EdgeChrome(WebView2Core):
         url = str(sender.source)
         self.url = None if self.ishtml else url
 
-        inject_pywebview(renderer, self.pywebview_window)
+        # CoreWebView2.source is the page URL as a string, unlike the control's Uri
+        inject_pywebview(renderer, self.pywebview_window, sender.core_webview2.source)
 
 
 _WINDOW_XAML = """

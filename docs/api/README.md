@@ -113,6 +113,7 @@ webview.settings = {
   'OPEN_DEVTOOLS_IN_DEBUG': True,
   'REMOTE_DEBUGGING_PORT': None,
   'IGNORE_SSL_ERRORS': False,
+  'JS_API_ALLOWED_ORIGINS': [],
   'JS_API_MAX_DEPTH': 10,
   'SHOW_DEFAULT_MENUS': True,
   'WEBVIEW2_RUNTIME_PATH': None
@@ -127,6 +128,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `DRAG_REGION_DIRECT_TARGET_ONLY` When set to True, only elements that directly match the drag region selector are draggable. When False, child elements of a drag region are also draggable. Default is False.
 * `DEFAULT_HTTP_PORT` Port used for the internal HTTP server when private mode is disabled and no explicit port is given. Default is 42001.
 * `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
+* `JS_API_ALLOWED_ORIGINS` Additional origins, such as `'https://example.com'`, whose pages get the JS API (`window.pywebview`). Pages loaded from Python with `create_window`, `load_url` or `load_html` always get it. Pages the window navigates to on its own, by following a link or a redirect, get it only if their origin is listed. `['*']` allows every origin. Empty by default. See [Security](/guide/security.md#which-pages-get-the-js-api).
 * `JS_API_MAX_DEPTH` Maximum depth of nested `js_api` objects that are walked when exposing functions to Javascript. Guards against runaway recursion into objects whose attributes return a fresh object on every access (e.g. native GUI objects). Default is 10.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.

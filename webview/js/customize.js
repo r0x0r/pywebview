@@ -6,11 +6,11 @@
 
     if (platform == 'edgechromium' || platform == 'winui3') {
         window.alert = function (message) {
-            window.chrome.webview.postMessage(['_pywebviewAlert', pywebview.stringify(message), 'alert']);
+            window.chrome.webview.postMessage(['_pywebviewAlert', pywebview.stringify(message), 'alert', window.pywebview.token]);
         }
     } else if (platform == 'gtkwebkit2') {
         window.alert = function (message) {
-            window.webkit.messageHandlers.jsBridge.postMessage(pywebview.stringify({funcName: '_pywebviewAlert', params: message, id: 'alert'}));
+            window.webkit.messageHandlers.jsBridge.postMessage(pywebview.stringify({funcName: '_pywebviewAlert', params: message, id: 'alert', token: window.pywebview.token}));
         }
     } else if (platform == 'cocoa') {
         window.print = function() {

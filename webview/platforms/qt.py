@@ -25,6 +25,8 @@ from webview.util import (
     create_cookie,
     environ_append,
     inject_pywebview,
+    is_js_api_allowed,
+    is_js_bridge_token_valid,
     js_bridge_call,
     open_external_url,
 )
@@ -142,10 +144,17 @@ class BrowserView(QMainWindow):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
 
+            source_url = self._parent.webview.url().toString()
+
             if func_name == '_pywebviewAlert':
-                QMessageBox.information(self._parent, 'Message', str(param))
+                if is_js_bridge_token_valid(self.window, token) and is_js_api_allowed(
+                    self.window, source_url
+                ):
+                    QMessageBox.information(self._parent, 'Message', str(param))
             else:
-                return js_bridge_call(self.window, func_name, json.loads(param), value_id, token)
+                return js_bridge_call(
+                    self.window, func_name, json.loads(param), value_id, token, source_url
+                )
 
     class WebView(QWebView):
         def __init__(self, parent=None):
@@ -886,7 +895,7 @@ class BrowserView(QMainWindow):
             frame = self.webview.page().mainFrame()
             _register_window_object()
 
-        inject_pywebview(renderer, self.js_bridge.window)
+        inject_pywebview(renderer, self.js_bridge.window, self.webview.url().toString())
 
     @staticmethod
     def _convert_string(result):

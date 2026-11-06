@@ -258,11 +258,77 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def inject_pywebview(platform: str, window: Window) -> None:
+# Pages with these schemes are trusted when the window loads HTML: load_html pages report
+# about:blank, data: or their file: base URI depending on the backend
+HTML_PAGE_SCHEMES = ('about:', 'data:', 'file:')
+
+
+def js_api_origin(url: str | None) -> str:
+    """
+    Return the origin of an http(s) URL as location.origin reports it, or the scheme followed by
+    a colon (location.protocol) for any other URL.
+    """
+    parts = urllib.parse.urlsplit(url or 'about:blank')
+    scheme = parts.scheme.lower()
+    if scheme not in ('http', 'https'):
+        return f'{scheme}:'
+
+    try:
+        port = parts.port
+    except ValueError:
+        return 'invalid:'
+
+    host = parts.hostname or ''
+    if ':' in host:
+        host = f'[{host}]'
+    default_port = 80 if scheme == 'http' else 443
+    return f'{scheme}://{host}' + (f':{port}' if port and port != default_port else '')
+
+
+def _js_api_trusted_origins(window: Window) -> set[str] | None:
+    """Origins allowed to use the JS API in the window, or None if every origin is allowed."""
+    allowed = webview.settings['JS_API_ALLOWED_ORIGINS']
+    if '*' in allowed:
+        return None
+    # A top-level about:blank page, such as a WebKit error page, holds no script of a site
+    return {'about:'} | window._js_api_origins | {js_api_origin(origin) for origin in allowed}
+
+
+def is_js_api_allowed(window: Window, url: str | None) -> bool:
+    """Return whether the page at url may use the window's JS API."""
+    trusted = _js_api_trusted_origins(window)
+    return trusted is None or js_api_origin(url) in trusted
+
+
+def js_api_guard(window: Window) -> str:
+    """
+    Return a Javascript expression that is true only on a page the window's JS API is allowed on.
+    It is evaluated in the page itself, which may have navigated since Python last checked it.
+    The page cannot spoof location, and the comparison avoids prototype methods it could replace.
+    """
+    trusted = _js_api_trusted_origins(window)
+    if trusted is None:
+        return 'true'
+
+    origins = sorted(origin for origin in trusted if '://' in origin)
+    schemes = sorted(origin for origin in trusted if '://' not in origin)
+    return (
+        '(function (o, s) { var l = window.location, i; '
+        'for (i = 0; i < o.length; i++) { if (o[i] === l.origin) { return true } } '
+        'for (i = 0; i < s.length; i++) { if (s[i] === l.protocol) { return true } } '
+        f'return false }})({json.dumps(origins)}, {json.dumps(schemes)})'
+    )
+
+
+def inject_pywebview(platform: str, window: Window, url: str | None = None) -> None:
     """ "
     Generates and injects a global window.pywebview object. The object contains exposed API functions
     as well as utility functions required by pywebview. The function fires before_load event before
     injecting the object and loaded event after the object is injected.
+
+    :param url: URL of the page that has loaded. The object is not injected into pages whose
+        origin is not allowed to use the JS API. None skips this check, but the injected script
+        still checks the page's actual location before it defines anything.
     """
     exposed_objects = []
 
@@ -351,9 +417,23 @@ def inject_pywebview(platform: str, window: Window) -> None:
             window.events.loaded.set()
 
     window.events.before_load.set()
+
+    if url is not None and not is_js_api_allowed(window, url):
+        logger.warning(
+            'JS API is not available on %s. Add its origin to '
+            "webview.settings['JS_API_ALLOWED_ORIGINS'] to allow it.",
+            url,
+        )
+        window.events.loaded.set()
+        return
+
     logger.debug('before_load event fired. injecting pywebview object')
     try:
         js_code, finish_script = load_js_files(window, platform)
+        # Stop the scripts if the page navigated to a disallowed origin before they ran
+        guard = f'if (!({js_api_guard(window)})) {{ throw new Error("pywebview: JS API not allowed") }}\n'
+        js_code = guard + js_code
+        finish_script = guard.replace('%', '%%') + finish_script
     except Exception:
         # Called from native navigation callbacks: Python exceptions must not escape.
         logger.exception('Failed to load pywebview JavaScript')
@@ -388,14 +468,26 @@ def open_external_url(url: str, new: int = 0, autoraise: bool = True) -> None:
 
 
 def js_bridge_call(
-    window: Window, func_name: str, param: Any, value_id: str, token: str | None = None
+    window: Window,
+    func_name: str,
+    param: Any,
+    value_id: str,
+    token: str | None = None,
+    source_url: str | None = None,
 ) -> None:
     """
     Calls a function from the JS API and executes it in Python. The function is executed in a separate
     thread to prevent blocking the UI thread. The result is then passed back to the JS API.
+
+    :param source_url: URL of the page that sent the call, if the backend knows it. Calls from
+        pages whose origin is not allowed to use the JS API are rejected.
     """
 
     if not is_js_bridge_token_valid(window, token):
+        return
+
+    if source_url is not None and not is_js_api_allowed(window, source_url):
+        logger.error('Rejected JS bridge call from %s: origin is not allowed', source_url)
         return
 
     def _call():
@@ -409,8 +501,10 @@ def js_bridge_call(
             result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
             retval = f"{{isError: true, value: '{result}'}}"
 
+        # The page may have navigated while the function ran
         window.evaluate_js(
-            f'window.pywebview._returnValuesCallbacks["{func_name}"]["{value_id}"]({retval})'
+            f'if ({js_api_guard(window)}) {{ '
+            f'window.pywebview._returnValuesCallbacks["{func_name}"]["{value_id}"]({retval}) }}'
         )
 
     def get_nested_attribute(obj: object, attr_str: str):

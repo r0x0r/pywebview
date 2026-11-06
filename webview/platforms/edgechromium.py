@@ -232,7 +232,9 @@ class WinFormsEdgeChrome(WebView2Core):
 
     def on_script_notify(self, _, args):
         try:
-            self._route_script_message(args.get_WebMessageAsJson(), args.get_AdditionalObjects)
+            self._route_script_message(
+                args.get_WebMessageAsJson(), args.get_AdditionalObjects, str(args.Source)
+            )
         except Exception:
             logger.exception('Exception occurred during on_script_notify')
 
@@ -349,7 +351,7 @@ class WinFormsEdgeChrome(WebView2Core):
         self.url = None if self.ishtml else url
         self._in_navigation_completed = True
         try:
-            inject_pywebview(renderer, self.pywebview_window)
+            inject_pywebview(renderer, self.pywebview_window, url)
         finally:
             self._in_navigation_completed = False
 
