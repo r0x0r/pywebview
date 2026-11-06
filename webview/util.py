@@ -323,6 +323,8 @@ def inject_pywebview(platform: str, window: Window) -> None:
 
     def generate_func():
         functions = get_functions(window._js_api)
+        # The bridge dispatches only what is advertised here, see js_bridge_call
+        window._js_api_names = frozenset(functions)
 
         if len(window._functions) > 0:
             expose_functions = {name: get_args(f) for name, f in window._functions.items()}
@@ -472,7 +474,9 @@ def js_bridge_call(
             logger.exception('Error occurred while deleting state key %s', param)
         return
 
-    func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
+    func = window._functions.get(func_name)
+    if func is None and func_name in window._js_api_names:
+        func = get_nested_attribute(window._js_api, func_name)
 
     if func is not None:
         try:

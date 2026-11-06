@@ -162,6 +162,8 @@ class Window:
 
         self._js_api = js_api
         self._functions: dict[str, Callable[..., Any]] = {}
+        # js_api attribute paths advertised to Javascript on the current page
+        self._js_api_names: frozenset[str] = frozenset()
         self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
         self.events = EventContainer()
