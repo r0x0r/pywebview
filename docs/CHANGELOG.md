@@ -4,6 +4,7 @@
 
 ### 🐞 Bug fixes
 
+- `All` State updates from JavaScript are stored as state values only and can no longer overwrite the internal attributes of `window.state`. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `All` Fix Python-to-JavaScript state assignment and deletion for dictionary keys containing spaces, hyphens, quotes or backslashes. Thanks @UmutAlisoglu.
 - `All` Handle JavaScript resource and initial injection failures without letting exceptions escape native navigation callbacks or leave load waiters blocked. Template errors now identify the failing script; an unsuccessful injection does not mark the bridge ready. Thanks @FiraSenax.
 - `All` Fix a crash when a state key was deleted twice in quick succession. The JS bridge now ignores stale state deletions and logs errors from state updates or deletions instead of raising.

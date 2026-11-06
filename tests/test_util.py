@@ -366,3 +366,21 @@ class TestBridgeDispatch:
         util.inject_pywebview('test', window)
 
         assert window._js_api_names == frozenset({'public', 'child.method'})
+
+    def test_state_update_cannot_reach_private_attributes(self):
+        from webview.state import State
+
+        window = MagicMock()
+        window.state = State(window)
+        handlers = window.state._State__event_handlers
+
+        js_bridge_call(
+            window,
+            'pywebviewStateUpdate',
+            {'key': '_State__event_handlers', 'value': None},
+            'value_id',
+            _TOKEN,
+        )
+
+        assert window.state._State__event_handlers is handlers
+        assert window.state['_State__event_handlers'] is None

@@ -460,7 +460,8 @@ def js_bridge_call(
 
     if func_name == 'pywebviewStateUpdate':
         try:
-            window.state.__setattr__(param['key'], param['value'], False)
+            # Store as a state value: __setattr__ would let a page reach State's private attributes
+            window.state._set_state_value(param['key'], param['value'], False)
         except Exception:
             logger.exception('Error occurred while updating state key %s', param.get('key'))
         return
