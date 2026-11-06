@@ -297,3 +297,72 @@ class TestBridgeTokenValidation:
 
         assert is_js_bridge_token_valid(window, _TOKEN)
         assert not is_js_bridge_token_valid(window, 'not-the-token')
+
+
+class TestBridgeDispatch:
+    """Tests that js_bridge_call dispatches only the js_api names advertised to the page."""
+
+    class Child:
+        def __init__(self, called):
+            self._called = called
+
+        def method(self):
+            self._called.set('child.method')
+
+        def _hidden(self):
+            self._called.set('child._hidden')
+
+    class Api:
+        def __init__(self, called):
+            self._called = called
+            self.child = TestBridgeDispatch.Child(called)
+
+        def public(self):
+            self._called.set('public')
+
+        def _private(self):
+            self._called.set('_private')
+
+    class Recorder:
+        def __init__(self):
+            self.name = None
+            self.event = threading.Event()
+
+        def set(self, name):
+            self.name = name
+            self.event.set()
+
+    def _call(self, func_name, advertised):
+        called = self.Recorder()
+        window = MagicMock()
+        window._functions = {}
+        window._js_api = self.Api(called)
+        window._js_api_names = frozenset(advertised)
+        js_bridge_call(window, func_name, [], 'value_id', _TOKEN)
+        return called
+
+    @pytest.mark.parametrize('func_name', ['public', 'child.method'])
+    def test_advertised_name_is_dispatched(self, func_name):
+        called = self._call(func_name, {'public', 'child.method'})
+        assert called.event.wait(2)
+        assert called.name == func_name
+
+    @pytest.mark.parametrize(
+        'func_name', ['_private', 'child._hidden', '_called.set', 'child', 'public.__call__']
+    )
+    def test_unadvertised_name_is_rejected(self, func_name):
+        called = self._call(func_name, {'public', 'child.method'})
+        assert not called.event.wait(0.5)
+
+    def test_names_match_inject_pywebview(self, monkeypatch):
+        """The dispatch set is the one inject_pywebview advertises to Javascript."""
+        api = self.Api(self.Recorder())
+        window = MagicMock()
+        window._js_api = api
+        window._functions = {}
+        monkeypatch.setattr(util, 'load_js_files', lambda window, platform: ('', '%(functions)s'))
+        monkeypatch.setattr(util, 'Thread', lambda target: SimpleNamespace(start=target))
+
+        util.inject_pywebview('test', window)
+
+        assert window._js_api_names == frozenset({'public', 'child.method'})
