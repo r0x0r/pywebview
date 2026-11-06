@@ -250,7 +250,7 @@ class MSHTML:
             self.first_load = False
 
         self.url = None if args.Url.AbsoluteUri == 'about:blank' else str(args.Url.AbsoluteUri)
-        inject_pywebview(renderer, self.pywebview_window)
+        inject_pywebview(renderer, self.pywebview_window, str(args.Url.AbsoluteUri))
 
         if self.pywebview_window.easy_drag:
             document.MouseMove += self.on_mouse_move

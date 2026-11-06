@@ -16,6 +16,8 @@ from webview.util import (
     DEFAULT_HTML,
     create_cookie,
     inject_pywebview,
+    is_js_api_allowed,
+    is_js_bridge_token_valid,
     js_bridge_call,
     open_external_url,
     parse_file_type,
@@ -371,8 +373,13 @@ class BrowserView:
     def on_js_bridge_call(self, manager, message):
         body = json.loads(message.get_js_value().to_string())
 
+        source_url = self.webview.get_uri()
+
         if body['funcName'] == '_pywebviewAlert':
-            self.message_box(body['params'])
+            if is_js_bridge_token_valid(
+                self.pywebview_window, body.get('token', '')
+            ) and is_js_api_allowed(self.pywebview_window, source_url):
+                self.message_box(body['params'])
         else:
             js_bridge_call(
                 self.pywebview_window,
@@ -380,6 +387,7 @@ class BrowserView:
                 body['params'],
                 body['id'],
                 body.get('token', ''),
+                source_url,
             )
 
     def on_window_resize(self, window, allocation):
@@ -472,7 +480,7 @@ class BrowserView:
             glib.idle_add(webview.set_opacity, 1.0)
 
         if status == webkit.LoadEvent.FINISHED and not self.request_headers_mutated:
-            inject_pywebview(renderer, self.js_bridge.window)
+            inject_pywebview(renderer, self.js_bridge.window, webview.get_uri())
 
         if self.request_headers_mutated:
             self.request_headers_mutated = False

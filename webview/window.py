@@ -21,8 +21,16 @@ from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
 from webview.state import State
+from webview.util import (
+    HTML_PAGE_SCHEMES,
+    escape_string,
+    is_app,
+    is_local_url,
+    js_api_guard,
+    js_api_origin,
+    parse_file_type,
+)
 from webview.util import base_uri as get_base_uri
-from webview.util import escape_string, is_app, is_local_url, parse_file_type
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -156,6 +164,8 @@ class Window:
         self._functions: dict[str, Callable[..., Any]] = {}
         # js_api attribute paths advertised to Javascript on the current page
         self._js_api_names: frozenset[str] = frozenset()
+        # Origins of the pages loaded from Python, which may use the JS API
+        self._js_api_origins: set[str] = set()
         self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
         self.events = EventContainer()
@@ -211,6 +221,7 @@ class Window:
             http.global_server.js_api_endpoint if http.global_server is not None else None
         )
         self.real_url = self._resolve_url(self.original_url)
+        self._allow_js_api_on(self.real_url)
 
         abort = self.events.initialized.set(gui.renderer)
         return not abort
@@ -283,6 +294,7 @@ class Window:
             self._url_prefix, self._common_path, self._server = http.start_server([url])
 
         self.real_url = self._resolve_url(url)
+        self._allow_js_api_on(self.real_url)
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
@@ -301,6 +313,7 @@ class Window:
         if base_uri is None:
             base_uri = get_base_uri()
 
+        self._allow_js_api_on(None)
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
@@ -565,7 +578,18 @@ class Window:
                 func_list.append({'func': name, 'params': params})
 
         if self.events.loaded.is_set():
-            self.run_js(f'window.pywebview._createApi({func_list})')
+            self._run_js_api_js(f'window.pywebview._createApi({func_list})')
+
+    def _allow_js_api_on(self, url: str | None) -> None:
+        """Allow the JS API on the origin of a page loaded from Python. None means HTML content."""
+        if url:
+            self._js_api_origins.add(js_api_origin(url))
+        else:
+            self._js_api_origins.update(HTML_PAGE_SCHEMES)
+
+    def _run_js_api_js(self, script: str) -> None:
+        """Run pywebview's own script only if the current page may use the JS API."""
+        self.run_js(f'if ({js_api_guard(self)}) {{ {script} }}')
 
     def _resolve_url(self, url: str | Callable[..., Any] | None) -> str | None:
         if is_app(url):

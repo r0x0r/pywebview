@@ -12,7 +12,13 @@ from webview import settings as webview_settings
 from webview.dom import _dnd_state
 from webview.models import Request, Response
 from webview.platforms.win32 import start_drag
-from webview.util import DEFAULT_HTML, is_js_bridge_token_valid, js_bridge_call, open_external_url
+from webview.util import (
+    DEFAULT_HTML,
+    is_js_api_allowed,
+    is_js_bridge_token_valid,
+    js_bridge_call,
+    open_external_url,
+)
 
 logger = logging.getLogger('pywebview')
 
@@ -81,7 +87,9 @@ class WebView2Core(ABC):
             return 'html', self.pywebview_window.html
         return 'default', DEFAULT_HTML
 
-    def _route_script_message(self, message_json: str, get_additional_objects) -> None:
+    def _route_script_message(
+        self, message_json: str, get_additional_objects, source_url: str | None = None
+    ) -> None:
         """
         Route an incoming WebMessage to DnD, alert, console, or JS bridge.
 
@@ -106,15 +114,22 @@ class WebView2Core(ABC):
         token = message[3] if len(message) > 3 else ''
         func_param = json.loads(func_param)
 
+        if func_name in ('_pywebviewAlert', 'pywebviewStartDrag', 'console'):
+            if not is_js_bridge_token_valid(self.pywebview_window, token):
+                return
+            if source_url is not None and not is_js_api_allowed(self.pywebview_window, source_url):
+                return
+
         if func_name == '_pywebviewAlert':
             self._show_alert(str(func_param))
         elif func_name == 'pywebviewStartDrag':
-            if is_js_bridge_token_valid(self.pywebview_window, token):
-                start_drag(self._drag_hwnd)
+            start_drag(self._drag_hwnd)
         elif func_name == 'console':
             print(func_param)
         else:
-            js_bridge_call(self.pywebview_window, func_name, func_param, value_id, token)
+            js_bridge_call(
+                self.pywebview_window, func_name, func_param, value_id, token, source_url
+            )
 
     def _compute_request_header_diff(self, original: dict, uri: str, method: str):
         """

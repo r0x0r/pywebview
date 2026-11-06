@@ -83,7 +83,7 @@ class BrowserView:
                 @run_on_ui_thread
                 def _handle_page_finished():
                     try:
-                        inject_pywebview(renderer, self.pywebview_window)
+                        inject_pywebview(renderer, self.pywebview_window, str(data or ''))
                         # Get fresh CookieManager reference to avoid stale Java object references
                         cookie_manager = CookieManager.getInstance()
                         if not _state['private_mode']:
