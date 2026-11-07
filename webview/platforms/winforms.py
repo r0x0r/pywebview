@@ -145,8 +145,9 @@ elif is_chromium:
     renderer = 'edgechromium'
 else:
     raise RuntimeError(
-        'Edge WebView2 Runtime (86.0.622.0 or newer) and .NET Framework 4.6.2 or newer are '
-        'required. See https://pywebview.flowrl.com/guide/web_engine.html'
+        'Edge WebView2 Runtime (86.0.622.0 or newer) and either the .NET 6.0+ Desktop Runtime '
+        'or .NET Framework 4.6.2 or newer are required. '
+        'See https://pywebview.flowrl.com/guide/web_engine.html'
     )
 
 
