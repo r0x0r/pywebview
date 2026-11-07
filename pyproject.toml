@@ -44,33 +44,26 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-# Pinned to the pywinrt 3.2.x release train, which is built against Windows
-# App SDK 1.7.250513003 (see pywinrt's CHANGELOG.md) — the exact runtime
-# version .github/workflows/ci.yml's tests-winui3 job installs. An open
-# floor (e.g. `>=3.1`) would let a future pywinrt release silently resolve
-# here, built against a different Windows App SDK version than what CI
-# installs, reintroducing the ON_NO_MATCH_SHOW_UI bootstrap hang that pin
-# was added to fix. Bump both together, deliberately, when upgrading.
+# PyWinRT 4, which needs Python 3.11. Each Windows App SDK distribution is
+# versioned at the App SDK release it is generated from, and the bootstrap
+# loads that release's runtime (its RUNTIME_VERSION), so the Windows App
+# Runtime a machine needs follows the bootstrap version that resolves here;
+# .github/workflows/ci.yml's tests-winui3 job installs the runtime it names.
 winui3 = [
-    "winrt-runtime>=3.2,<3.3;sys_platform=='win32'",
-    "winrt-Windows.Foundation>=3.2,<3.3;sys_platform=='win32'",
-    "winrt-Windows.Foundation.Collections>=3.2,<3.3;sys_platform=='win32'",
-    "winrt-Windows.Graphics>=3.2,<3.3;sys_platform=='win32'",
-    "winrt-Windows.Storage>=3.2,<3.3;sys_platform=='win32'",
-    "winrt-Windows.Storage.Pickers>=3.2,<3.3;sys_platform=='win32'",
-    "winrt-Windows.UI>=3.2,<3.3;sys_platform=='win32'",
-    "winrt-Windows.UI.Xaml.Interop>=3.2,<3.3;sys_platform=='win32'",
-    "webview2-Microsoft.Web.WebView2.Core>=3.2,<3.3;sys_platform=='win32'",
-    "winui3-Microsoft.UI>=3.2,<3.3;sys_platform=='win32'",
-    "winui3-Microsoft.UI.Dispatching>=3.2,<3.3;sys_platform=='win32'",
-    "winui3-Microsoft.UI.Interop>=3.2,<3.3;sys_platform=='win32'",
-    "winui3-Microsoft.UI.Windowing>=3.2,<3.3;sys_platform=='win32'",
-    "winui3-Microsoft.UI.Xaml>=3.2,<3.3;sys_platform=='win32'",
-    "winui3-Microsoft.UI.Xaml.Controls>=3.2,<3.3;sys_platform=='win32'",
-    "winui3-Microsoft.UI.Xaml.Markup>=3.2,<3.3;sys_platform=='win32'",
-    "winui3-Microsoft.UI.Xaml.XamlTypeInfo>=3.2,<3.3;sys_platform=='win32'",
-    "winui3-Microsoft.Windows.ApplicationModel.DynamicDependency.Bootstrap>=3.2,<3.3;sys_platform=='win32'",
-    "winui3-Microsoft.Windows.Storage>=3.2,<3.3;sys_platform=='win32'",
+    "winrt-runtime>=4.0.3;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.Foundation>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.Foundation.Collections>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.Graphics>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.Storage>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.Storage.Pickers>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.UI>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.UI.Xaml.Interop>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Microsoft.Web.WebView2>=4!1.0.4191.47;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Microsoft.WindowsAppSDK.Foundation>=4!2.5.1;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Microsoft.WindowsAppSDK.InteractiveExperiences>=4!2.5.1;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Microsoft.WindowsAppSDK.WinUI>=4!2.5.1;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Microsoft.UI.Interop>=4!2.5.1;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Microsoft.WindowsAppRuntime.Bootstrap>=4!2.5.1;sys_platform=='win32' and python_version>='3.11'",
 ]
 cef = ["cefpython3"]
 gtk = ["PyGObject==3.50.0", "PyGObject-stubs"]
