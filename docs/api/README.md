@@ -906,6 +906,10 @@ Get DOM document's window `window` as an `Element` object
 
 Window object exposes various lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g., `window.events.loaded += func`. Duplicate subscriptions are ignored, and the function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, e.g., `window.events.loaded -= func`. To access the window object from the event handler, supply the `window` parameter as the first positional argument of the handler. Most window events are asynchronous, and event handlers are executed in separate threads. The `before_show` and `before_load` events are synchronous and block the main thread until handled. The `request_sent` event is also synchronous - the underlying HTTP request is held up until the handler returns - but its execution context is backend-dependent; see its own entry below.
 
+#### Calling pywebview from a blocking handler
+
+The blocking events - `closing`, `before_show` and `before_load` - run their handlers on the GUI thread. pywebview API calls work from these handlers: while a call waits for its result, the GUI event loop keeps running, the same way a modal dialog does. This means other events can be processed before the call returns. `window.evaluate_js()` and `window.get_cookies()` need the page to be loaded, so calling them from `before_show` or from the first `before_load` raises `WebViewException`. On Android and WinUI3, `window.evaluate_js()` and `window.get_cookies()` cannot be called from a blocking handler and raise `RuntimeError`, as do most dialogs on WinUI3, and on EdgeChromium the same two raise `RuntimeError` from a `before_load` handler; call them from another thread instead.
+
 ### window.events.before_show
 
 This event is fired just before pywebview window is shown. This is the earliest event that exposes `window.native` property. This event is blocking.

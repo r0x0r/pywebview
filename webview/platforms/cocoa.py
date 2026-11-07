@@ -33,6 +33,22 @@ from webview.util import (
 )
 from webview.window import FixPoint
 
+
+def _wait(semaphore):
+    """Acquire `semaphore`, running the run loop meanwhile if called from the main thread."""
+    if not AppKit.NSThread.isMainThread():
+        semaphore.acquire()
+        return
+
+    # A blocking handler (closing, before_load, ...) runs on the main thread, so the result can
+    # only be delivered if the run loop keeps running while we wait for it.
+    run_loop = AppKit.NSRunLoop.currentRunLoop()
+    while not semaphore.acquire(blocking=False):
+        run_loop.runMode_beforeDate_(
+            AppKit.NSDefaultRunLoopMode, AppKit.NSDate.dateWithTimeIntervalSinceNow_(0.05)
+        )
+
+
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
 info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
@@ -922,7 +938,7 @@ class BrowserView:
         _cookies = []
         AppHelper.callAfter(self.datastore.httpCookieStore().getAllCookies_, handler)
         cookie_semaphore = Semaphore(0)
-        cookie_semaphore.acquire()
+        _wait(cookie_semaphore)
 
         return _cookies
 
@@ -933,7 +949,7 @@ class BrowserView:
 
         AppHelper.callAfter(get)
 
-        self._current_url_semaphore.acquire()
+        _wait(self._current_url_semaphore)
         return None if self._current_url == 'about:blank' else self._current_url
 
     def load_url(self, url):
@@ -973,7 +989,7 @@ class BrowserView:
             result_semaphore = Semaphore(0)
 
         AppHelper.callAfter(eval)
-        JSResult.result_semaphore.acquire()
+        _wait(JSResult.result_semaphore)
         return JSResult.result
 
     def create_file_dialog(
@@ -1074,7 +1090,7 @@ class BrowserView:
             create_dialog(dialog_type, allow_multiple, save_filename)
         else:
             AppHelper.callAfter(create_dialog, dialog_type, allow_multiple, save_filename)
-            self._file_name_semaphore.acquire()
+            _wait(self._file_name_semaphore)
 
         return self._file_name
 
@@ -1509,7 +1525,7 @@ def create_confirmation_dialog(title, message, uid):
 
     semaphore = Semaphore(0)
     AppHelper.callAfter(_confirm)
-    semaphore.acquire()
+    _wait(semaphore)
 
     return result
 
@@ -1645,7 +1661,7 @@ def get_position(uid):
         _position(coordinates)
     except Exception:
         AppHelper.callAfter(_position, coordinates)
-        semaphore.acquire()
+        _wait(semaphore)
 
     return coordinates
 
@@ -1668,7 +1684,7 @@ def get_size(uid):
         _size(dimensions)
     except Exception:
         AppHelper.callAfter(_size, dimensions)
-        semaphore.acquire()
+        _wait(semaphore)
 
     return dimensions
 

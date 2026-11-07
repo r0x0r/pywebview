@@ -16,7 +16,7 @@ from typing_extensions import ParamSpec
 import webview.http as http
 from webview.dom.dom import DOM
 from webview.errors import JavascriptException, WebViewException
-from webview.event import Event, EventContainer
+from webview.event import Event, EventContainer, in_blocking_handler
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
@@ -40,7 +40,15 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
     def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
         event = getattr(self.events, event_type)
 
-        if not event.wait(20):
+        if not event.is_set() and in_blocking_handler():
+            # A blocking handler holds up the very events being waited for (before_show runs
+            # before shown, before_load before loaded), so it calls through to the backend
+            # directly. The JS bridge cannot exist yet though, so fail at once instead.
+            if event_type == '_pywebviewready':
+                raise WebViewException(
+                    f'{function.__name__}() cannot be called before the page has loaded'
+                )
+        elif not event.wait(20):
             raise WebViewException('Main window failed to start')
 
         if self.gui is None:
@@ -334,6 +342,10 @@ class Window:
         """
         Get cookies for the current website
         """
+        # only reachable unloaded from a blocking handler, which skips the readiness wait
+        if not self.events.loaded.is_set():
+            raise WebViewException('get_cookies() cannot be called before the page has loaded')
+
         return self.gui.get_cookies(self.uid)
 
     @_loaded_call
