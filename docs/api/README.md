@@ -47,7 +47,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `on_top` - Set window to be always on top of other windows. Default is False.
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
-* `transparent` - Create a transparent window. Not supported on Windows. Default is False. Note that this setting does not hide or make window chrome transparent. To hide window chrome set `frameless` to True.
+* `transparent` - Create a transparent window. On Windows only the `win32` backend supports it, with the limitations listed in [Web Engine](/guide/web_engine.md). Default is False. Note that this setting does not hide or make window chrome transparent. To hide window chrome set `frameless` to True.
 * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) CSS property.
 * `zoomable` - Enable document zooming. Default is False
 * `draggable` - Enable image and link object dragging. Default is False
@@ -70,7 +70,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `func` - function to invoke upon starting the GUI loop.
 * `args` - function arguments. Can be either a single value or a tuple of values.
 * `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
-* `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `mshtml`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
+* `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `mshtml`, `edgechromium`, `win32` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server for absolute local paths. For relative paths HTTP server is started automatically and cannot be disabled. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `http_port` - specify a port number for the HTTP server. By default port is randomized.
@@ -130,7 +130,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `JS_API_MAX_DEPTH` Maximum depth of nested `js_api` objects that are walked when exposing functions to Javascript. Guards against runaway recursion into objects whose attributes return a fresh object on every access (e.g. native GUI objects). Default is 10.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
-* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`, `winui3` or `qt`. Disabled by default.
+* `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`, `win32`, `winui3` or `qt`. Disabled by default.
 * `SHOW_DEFAULT_MENUS` Show default menu on Cocoa. Enabled by default.
 * `WEBVIEW2_RUNTIME_PATH` Path to WebView2 runtime. You can use relative paths, which will be resolved relative to the application entry point with support of path resolution for most bundlers. If not set, the system installed runtime is used if present.
 

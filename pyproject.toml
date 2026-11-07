@@ -72,6 +72,32 @@ winui3 = [
     "winui3-Microsoft.Windows.ApplicationModel.DynamicDependency.Bootstrap>=3.2,<3.3;sys_platform=='win32'",
     "winui3-Microsoft.Windows.Storage>=3.2,<3.3;sys_platform=='win32'",
 ]
+# WebView2 in a plain Win32 window through PyWinRT 4, which needs nothing
+# installed outside pip: no Windows App Runtime, and the WebView2 Runtime is
+# part of Windows 11 and serviced on Windows 10. PyWinRT 4 needs Python 3.11.
+win32 = [
+    "winrt-runtime>=4;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Microsoft.Web.WebView2>=4!1.0.4191.47;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.Foundation>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.Foundation.Collections>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.Storage>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.Storage.Pickers>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.System>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.System.Interop>=4;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.UI>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.UI.Popups>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    # Transparent windows: WebView2 composed onto the desktop.
+    "winrt-Windows.Foundation.Numerics>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.UI.Composition>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.UI.Composition.Desktop>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.UI.Composition.Interop>=4;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.UI.Core>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    # and the touch and pen input they are sent.
+    "winrt-Windows.Devices.Input>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    "winrt-Windows.UI.Input>=4!10.0.28000.2705;sys_platform=='win32' and python_version>='3.11'",
+    # and what is dragged onto them.
+    "winrt-Microsoft.Web.WebView2.Interop>=4!1.0.4314.35.1;sys_platform=='win32' and python_version>='3.11'",
+]
 cef = ["cefpython3"]
 gtk = ["PyGObject==3.50.0", "PyGObject-stubs"]
 pyside2 = ["QtPy", "PySide2"]

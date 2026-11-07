@@ -11,7 +11,7 @@ from typing import Any, Literal, TypeAlias, cast, get_args
 from webview import WebViewException
 
 GUIType: TypeAlias = Literal[
-    'qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android', 'cocoa', 'winui3'
+    'qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android', 'cocoa', 'winui3', 'win32'
 ]
 GUI_TYPES = list(get_args(GUIType))
 
@@ -90,6 +90,22 @@ def initialize(forced_gui: GUIType | None = None):
             logger.exception('WinRT cannot be loaded')
             return False
 
+    def import_win32():
+        global guilib
+
+        try:
+            import webview.platforms.win32_webview2 as guilib
+
+            return True
+        except ImportError:
+            # Only an error when asked for: as a fallback, its absence (no
+            # extra, or Python 3.10) is expected.
+            if forced_gui == 'win32':
+                logger.exception('WinRT cannot be loaded')
+            else:
+                logger.debug('WinRT cannot be loaded', exc_info=True)
+            return False
+
     def try_import(guis: list[Callable[[], Any]]) -> bool:
         while guis:
             import_func = guis.pop(0)
@@ -139,7 +155,10 @@ def initialize(forced_gui: GUIType | None = None):
 
     elif platform.system() == 'Windows':
         if forced_gui == 'qt':
-            guis = [import_qt, import_winforms, import_winui3]
+            guis = [import_qt, import_winforms, import_win32, import_winui3]
+        elif forced_gui == 'win32':
+            # Explicitly requested, like winui3 below: no silent fallback.
+            guis = [import_win32]
         elif forced_gui == 'winui3':
             # Explicitly requested: don't silently fall back to WinForms if
             # the WinUI 3 import fails, or callers asking for winui3 could
@@ -151,10 +170,15 @@ def initialize(forced_gui: GUIType | None = None):
             # reason as the winui3 case above.
             guis = [import_winforms]
         else:
-            guis = [import_winforms, import_winui3]
+            guis = [import_winforms, import_win32, import_winui3]
 
         if not try_import(guis):
-            if forced_gui == 'winui3':
+            if forced_gui == 'win32':
+                raise WebViewException(
+                    'You must have Python 3.11 or newer, the pywebview[win32] extra and the Edge '
+                    'WebView2 Runtime installed, in order to use pywebview.'
+                )
+            elif forced_gui == 'winui3':
                 # Only the winui3 extra could satisfy this branch — pythonnet
                 # wouldn't help, and mentioning it would send the user
                 # chasing the wrong dependency.
@@ -170,8 +194,8 @@ def initialize(forced_gui: GUIType | None = None):
                     'You must have pythonnet installed in order to use pywebview.'
                 )
             raise WebViewException(
-                'You must have pythonnet installed, or the pywebview[winui3] extra, the Edge '
-                'WebView2 Runtime and Windows App Runtime installed, in order to use pywebview.'
+                'You must have pythonnet installed, or the pywebview[win32] extra and the Edge '
+                'WebView2 Runtime installed, in order to use pywebview.'
             )
     else:
         raise WebViewException(

@@ -16,6 +16,7 @@ Supported platforms and their renderers:
 | Platform | Module | Renderer |
 | --- | --- | --- |
 | Windows | `webview/platforms/winforms.py` | WinForms host for `edgechromium.py` (WebView2) or `mshtml.py` (deprecated legacy IE) |
+| Windows | `webview/platforms/win32_webview2.py` | Plain Win32 window hosting WebView2 through PyWinRT |
 | Windows | `webview/platforms/winui3.py` | WinUI 3 host for WebView2 |
 | Windows | `webview/platforms/cef.py` | CEF (opt-in, `cefpython3`) |
 | macOS | `webview/platforms/cocoa.py` | Cocoa + WKWebView via PyObjC |
@@ -52,7 +53,9 @@ _pywebview_ requires Python 3.10 or newer. Install it according to the target pl
 - **Windows:** `pip install pywebview` installs the WinForms dependencies. WebView2 requires the
   Microsoft WebView2 Runtime; use `pip install "pywebview[cef]"` for the optional CEF backend.
   The released WinUI 3 backend can be installed with `pip install "pywebview[winui3]"` and
-  requires the Windows App Runtime.
+  requires the Windows App Runtime. The `win32` backend (`pip install "pywebview[win32]"`,
+  Python 3.11+) hosts WebView2 in a plain Win32 window through PyWinRT and needs nothing
+  installed outside pip besides the WebView2 Runtime.
 - **macOS:** `pip install pywebview` installs the PyObjC dependencies for Cocoa. The optional Qt
   backend can be installed with `pip install "pywebview[qt]"`.
 - **Linux/BSD:** choose a backend explicitly with `pip install "pywebview[gtk]"` or
