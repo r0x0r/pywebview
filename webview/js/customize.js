@@ -4,11 +4,7 @@
     var disableText = '%(text_select)s' === 'False';
     var disableTextCss = 'body {-webkit-user-select: none; -khtml-user-select: none; -ms-user-select: none; user-select: none; cursor: default;}'
 
-    if (platform == 'mshtml') {
-        window.alert = function(msg) {
-            window.external.alert(msg);
-        }
-    } else if (platform == 'edgechromium' || platform == 'winui3') {
+    if (platform == 'edgechromium' || platform == 'winui3') {
         window.alert = function (message) {
             window.chrome.webview.postMessage(['_pywebviewAlert', pywebview.stringify(message), 'alert']);
         }

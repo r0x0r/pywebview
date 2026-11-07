@@ -21,7 +21,6 @@ from collections import UserDict
 from collections.abc import Callable
 from glob import glob
 from http.cookies import SimpleCookie
-from platform import architecture
 from threading import Thread
 from typing import TYPE_CHECKING, Any, TypeGuard
 from uuid import uuid4
@@ -363,9 +362,7 @@ def inject_pywebview(platform: str, window: Window) -> None:
 
 def is_js_bridge_token_valid(window: Window, token: str | None) -> bool:
     """Return whether a native bridge message carries the session token."""
-    # MSHTML does not support passing a token through its JS bridge, so it is
-    # excluded from token validation.
-    if window.gui.renderer != 'mshtml' and not hmac.compare_digest(str(token), _TOKEN):
+    if not hmac.compare_digest(str(token), _TOKEN):
         logger.error('Rejected JS bridge call with an invalid token')
         return False
 
@@ -491,7 +488,7 @@ def js_bridge_call(
 def load_js_files(window: Window, platform: str) -> tuple[str, str]:
     """
     Load JS files in the order they should be loaded.
-    The order is polyfill, api, the rest and finish.js.
+    The order is api, the rest and finish.js.
     Return the concatenated JS code and the finish script, which must be loaded last and
     separately in order to
     """
@@ -535,8 +532,6 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
             elif name == 'finish':
                 finish_script = content
                 continue
-            elif name == 'polyfill' and platform != 'mshtml':
-                continue
 
             try:
                 js_code += content % params
@@ -572,10 +567,10 @@ def get_js_dir() -> str:
 
 def sort_js_files(js_files: list[str]) -> list[str]:
     """
-    Sorts JS files in the order they should be loaded. Polyfill first, then API, then the rest and
+    Sorts JS files in the order they should be loaded. API first, then state, then the rest and
     finally finish.js that fires a pywebviewready event.
     """
-    LOAD_ORDER = {'polyfill': 0, 'api': 1, 'state': 2}
+    LOAD_ORDER = {'api': 0, 'state': 1}
 
     ordered_js_files = []
     remaining_js_files = []
@@ -633,13 +628,6 @@ def inject_base_uri(content: str, base_uri: str) -> str:
 
 
 def interop_dll_path(dll_name: str) -> str:
-    if dll_name == 'WebBrowserInterop.dll':
-        dll_name = (
-            'WebBrowserInterop.x64.dll'
-            if architecture()[0] == '64bit'
-            else 'WebBrowserInterop.x86.dll'
-        )
-
     def candidate_paths(base_dir: str) -> list[str]:
         if os.environ.get('PYTHONNET_RUNTIME') == 'netfx' and dll_name in (
             'Microsoft.Web.WebView2.Core.dll',

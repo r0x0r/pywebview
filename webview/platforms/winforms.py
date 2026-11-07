@@ -131,31 +131,23 @@ def _is_chromium():
 
 
 is_cef = forced_gui_ == 'cef'
-is_chromium = not is_cef and _is_chromium() and forced_gui_ != 'mshtml'
+is_chromium = not is_cef and _is_chromium()
 
 if is_cef:
     from . import cef as CEF
-
-    IWebBrowserInterop = object
 
     logger.debug('Using WinForms / CEF')
     renderer = 'cef'
 elif is_chromium:
     from . import edgechromium as Chromium
 
-    IWebBrowserInterop = object
-
     logger.debug('Using WinForms / Chromium')
     renderer = 'edgechromium'
 else:
-    from . import mshtml as IE
-
-    logger.warning(
-        'MSHTML is deprecated. See https://pywebview.flowrl.com/guide/web_engine.html on details how to use Edge Chromium'
+    raise RuntimeError(
+        'Edge WebView2 Runtime (86.0.622.0 or newer) and .NET Framework 4.6.2 or newer are '
+        'required. See https://pywebview.flowrl.com/guide/web_engine.html'
     )
-    logger.debug('Using WinForms / MSHTML')
-    IE._set_ie_mode()
-    renderer = 'mshtml'
 
 
 def DwmSetWindowAttribute(hwnd, attr, value, size=4):
@@ -294,9 +286,6 @@ class BrowserView:
             elif is_chromium:
                 self.browser = Chromium.EdgeChrome(self, window, cache_dir)
                 self.webview = self.browser.webview
-            else:
-                self.browser = IE.MSHTML(self, window, BrowserView.alert)
-                self.webview = self.browser.webview
 
             if (
                 window.transparent and self.browser
@@ -339,7 +328,6 @@ class BrowserView:
                     logger.warning(f'Failed to get DPI for window: {e}')
                     return 1.0
             else:
-                # MSHTML doesn't need scaling
                 return 1.0
 
         def on_system_theme_changed(self, sender, e):

@@ -15,6 +15,4 @@ Debugging Python code on Android is not possible apart from printing message to 
 
 Remote debugging is supported with the `edgechromium`, `winui3` and `qt` renderers. To take remote debugging into use set `webview.settings['REMOTE_DEBUGGING_PORT']` to the port number you wish to run a debugger on.
 
-There is no way to attach an external debugger to MSHTML. The `debug` flag enables Javascript error reporting and right-click context menu.
-
 To turn on debug logging for `pywebiew` itself, set `PYWEBVIEW_LOG=debug` environment variable before starting the application.
