@@ -70,7 +70,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `func` - function to invoke upon starting the GUI loop.
 * `args` - function arguments. Can be either a single value or a tuple of values.
 * `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
-* `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `mshtml`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
+* `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server for absolute local paths. For relative paths HTTP server is started automatically and cannot be disabled. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `http_port` - specify a port number for the HTTP server. By default port is randomized.
@@ -791,7 +791,6 @@ The `native` property is available after the `before_show` event is fired.
 You can also each platform's WebView object via `window.native.webview`. WebView's types are as follows.
 
 `Microsoft.Web.WebView2.WinForms.WebView2` - Windows / EdgeChromium
-`System.Windows.Forms.WebBrowser` - Windows / MSHTML
 `WebKit.WKWebView` - macOS
 `gi.repository.WebKit2.WebView` - GTK
 `QtWebEngineWidgets.QWebEngineView` /  `QtWebKitWidgets.QWebView`- QT

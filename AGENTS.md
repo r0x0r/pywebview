@@ -15,7 +15,7 @@ Supported platforms and their renderers:
 
 | Platform | Module | Renderer |
 | --- | --- | --- |
-| Windows | `webview/platforms/winforms.py` | WinForms host for `edgechromium.py` (WebView2) or `mshtml.py` (deprecated legacy IE) |
+| Windows | `webview/platforms/winforms.py` | WinForms host for `edgechromium.py` (WebView2) |
 | Windows | `webview/platforms/winui3.py` | WinUI 3 host for WebView2 |
 | Windows | `webview/platforms/cef.py` | CEF (opt-in, `cefpython3`) |
 | macOS | `webview/platforms/cocoa.py` | Cocoa + WKWebView via PyObjC |
@@ -39,7 +39,7 @@ webview/              the library
   platforms/          one module per backend (see table above)
   lib/                bundled binaries (WebView2 DLLs, Android jar) — do not edit by hand
   __pyinstaller/      PyInstaller hook
-interop/              C# (mshtml) and Java (Android) sources for the binaries in webview/lib
+interop/              Java (Android) sources for the binary in webview/lib
 tests/                pytest suite — each test opens a real window
 examples/             runnable single-file examples, one feature each
 docs/                 VuePress site (guide, api, contributing, CHANGELOG)
@@ -77,7 +77,7 @@ set of module-level functions in `webview/platforms/cocoa.py`: `setup_app`, `cre
 `maximize`, `minimize`, `restore`, `move`, `get_current_url`, `clear_cookies`, `get_cookies`,
 `evaluate_js`, `get_position`, `get_size`, `get_screens`, `add_tls_cert`, plus a module-level
 `renderer` string. **Adding a method to `Window` means adding it to every backend** — including
-`cef.py`, `mshtml.py` and `android/`, which are easy to forget. If a backend genuinely cannot
+`cef.py` and `android/`, which are easy to forget. If a backend genuinely cannot
 support a feature, log a warning and return a sane default rather than raising.
 
 **Windows are addressed by `uid`.** Backends keep their own registry of native windows keyed by
@@ -96,7 +96,7 @@ UI must be marshalled onto the GUI thread using that backend's mechanism
 (`PyObjCTools.AppHelper.callAfter`, `GLib.idle_add`, `Invoke`, Qt signals, …).
 
 **The JS bridge.** `util.inject_pywebview()` builds the injected script from `webview/js/*.js` in
-a fixed order (polyfill → api → the rest → `finish.js`, which must be evaluated last and
+a fixed order (api → state → the rest → `finish.js`, which must be evaluated last and
 separately). `%(name)s` placeholders in those files are filled by `load_js_files()`; if you add a
 placeholder to a JS file you must add the matching key there or every page load breaks with a
 `KeyError`. Calls from JS arrive at `util.js_bridge_call()`, which also handles the internal
@@ -209,15 +209,15 @@ release by `.github/workflows/docs.yaml`).
   heading (create it if the top of the file is a released version),
   in the established format: `` - `Backend` Description. Thanks @user. [#1234](link) `` grouped
   under **⚡ Features**, **🚀 Improvements** or **🐞 Bug fixes**. `Backend` is `All`, `Cocoa`,
-  `GTK`, `QT`, `Winforms`, `EdgeChromium`, `CEF`, `MSHTML` or `Android`.
+  `GTK`, `QT`, `Winforms`, `EdgeChromium`, `CEF` or `Android`.
 - User-facing strings must go through `webview/localization.py`, not be hardcoded in a backend.
 
 ## Commits and pull requests
 
 - Commit subject format used in this repo: `[Scope] Imperative description`, where scope is the
   backend or area — `[Core]`, `[Cocoa]`, `[GTK]`, `[Qt]`, `[Winforms]`, `[EdgeChromium]`,
-  `[CEF]`, `[MSHTML]`, `[Android]`, `[Docs]`. Multiple scopes are slash-separated:
-  `[Winforms/EdgeChromium/MSHTML] Fix ...`.
+  `[CEF]`, `[Android]`, `[Docs]`. Multiple scopes are slash-separated:
+  `[Winforms/EdgeChromium] Fix ...`.
 - One logical change per commit. Do not mix a fix with reformatting.
 - Branch off `master` and open the PR against `master`.
 - The version number is derived from git tags by `setuptools_scm` and written to
