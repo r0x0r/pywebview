@@ -17,7 +17,7 @@ import os
 import re
 import tempfile
 import threading
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any, cast
 from uuid import uuid4
 
@@ -38,7 +38,6 @@ __all__ = (
     'create_window',
     'token',
     'renderer',
-    'screens',
     'settings',
     # From event
     'Event',
@@ -142,10 +141,17 @@ def __getattr__(name: str) -> Any:
         )
         return settings['DRAG_REGION_SELECTOR']
 
+    if name == 'screens':
+        # Queried on every access, so displays are not enumerated on import
+        return _get_screens()
+
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
 
 
 guilib = None
+
+# Served by __getattr__
+screens: list[Screen]
 
 token = _TOKEN
 windows: list[Window] = []
@@ -525,57 +531,3 @@ def _get_screens() -> list[Screen]:
         renderer = guilib.renderer
 
     return guilib.get_screens()
-
-
-class _LazyScreens(Sequence):
-    """List-like view of the available screens. Displays are queried on every use rather than on
-    import, and each operation works on a single fresh snapshot."""
-
-    def __getitem__(self, index):
-        return _get_screens()[index]
-
-    def __len__(self) -> int:
-        return len(_get_screens())
-
-    def __iter__(self):
-        return iter(_get_screens())
-
-    def __reversed__(self):
-        return reversed(_get_screens())
-
-    def __contains__(self, item: object) -> bool:
-        return item in _get_screens()
-
-    def index(self, *args):
-        return _get_screens().index(*args)
-
-    def count(self, item):
-        return _get_screens().count(item)
-
-    def __add__(self, other):
-        return _get_screens() + other
-
-    def __radd__(self, other):
-        return other + _get_screens()
-
-    def __mul__(self, times):
-        return _get_screens() * times
-
-    __rmul__ = __mul__
-
-    def __getattr__(self, name: str) -> Any:
-        # Remaining list API (copy, ...) on a fresh snapshot
-        if name.startswith('_'):
-            raise AttributeError(name)
-        return getattr(_get_screens(), name)
-
-    def __repr__(self) -> str:
-        return repr(_get_screens())
-
-    def __eq__(self, other: object) -> bool:
-        return _get_screens() == other
-
-    __hash__ = None  # type: ignore[assignment]
-
-
-screens: Sequence[Screen] = _LazyScreens()
