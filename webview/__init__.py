@@ -546,20 +546,26 @@ class _LazyScreens(Sequence):
     def __contains__(self, item: object) -> bool:
         return item in _get_screens()
 
+    def index(self, *args):
+        return _get_screens().index(*args)
+
+    def count(self, item):
+        return _get_screens().count(item)
+
     def __add__(self, other):
         return _get_screens() + other
 
     def __radd__(self, other):
         return other + _get_screens()
 
-    def __mul__(self, count):
-        return _get_screens() * count
+    def __mul__(self, times):
+        return _get_screens() * times
 
     __rmul__ = __mul__
 
     def __getattr__(self, name: str) -> Any:
-        # Remaining list API (copy, index, count, ...) on a fresh snapshot
-        if name.startswith('__'):
+        # Remaining list API (copy, ...) on a fresh snapshot
+        if name.startswith('_'):
             raise AttributeError(name)
         return getattr(_get_screens(), name)
 

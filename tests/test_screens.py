@@ -1,3 +1,5 @@
+import pytest
+
 import webview
 
 
@@ -173,3 +175,37 @@ def test_screen_origin_scale_prevents_overlap_any_topology():
     # And physical_x/width must still recover the true physical geometry.
     assert secondary.physical_x == -1920
     assert secondary.physical_width == 1920
+
+
+def test_screens_list_operations(monkeypatch):
+    """webview.screens keeps the list API and queries displays once per operation."""
+    calls = []
+
+    def fake_get_screens():
+        calls.append(1)
+        return ['a', 'b', 'c']
+
+    monkeypatch.setattr(webview, '_get_screens', fake_get_screens)
+    screens = webview.screens
+
+    assert calls == []  # nothing is queried until the value is used
+
+    for operation, expected in [
+        (lambda: list(screens), ['a', 'b', 'c']),
+        (lambda: screens.index('c'), 2),
+        (lambda: screens.count('a'), 1),
+        (lambda: screens.copy(), ['a', 'b', 'c']),
+        (lambda: screens + ['d'], ['a', 'b', 'c', 'd']),
+        (lambda: ['z'] + screens, ['z', 'a', 'b', 'c']),
+        (lambda: 'b' in screens, True),
+        (lambda: screens == ['a', 'b', 'c'], True),
+    ]:
+        calls.clear()
+        assert operation() == expected
+        # list() also asks for len(), everything else is a single query
+        assert len(calls) <= 2
+
+    calls.clear()
+    with pytest.raises(ValueError):
+        screens.index('missing')
+    assert len(calls) == 1
