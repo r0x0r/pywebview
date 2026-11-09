@@ -585,7 +585,9 @@ class BrowserView(QMainWindow):
 
     def on_current_url(self):
         url = BrowserView._convert_string(self.webview.url().toString())
-        self._current_url = None if url == '' or url.startswith('data:text/html') else url
+        self._current_url = (
+            None if url in ('', 'about:blank') or url.startswith('data:text/html') else url
+        )
         self._current_url_semaphore.release()
 
     def on_load_url(self, url):
