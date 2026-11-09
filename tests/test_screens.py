@@ -1,3 +1,6 @@
+import subprocess
+import sys
+
 import webview
 
 
@@ -188,3 +191,14 @@ def test_screens_is_queried_on_access(monkeypatch):
     assert webview.screens == ['a', 'b']
     assert webview.screens is not webview.screens
     assert len(calls) == 3
+
+
+def test_import_does_not_initialize_gui():
+    """Importing webview, including a star import, must not query displays."""
+    code = (
+        'import sys, webview\n'
+        'exec("from webview import *", {})\n'
+        'assert webview.guilib is None\n'
+        "assert not [m for m in sys.modules if m.startswith('webview.platforms')]\n"
+    )
+    subprocess.run([sys.executable, '-c', code], check=True)
