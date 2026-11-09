@@ -199,6 +199,7 @@ def test_import_does_not_initialize_gui():
         'import sys, webview\n'
         'exec("from webview import *", {})\n'
         'assert webview.guilib is None\n'
+        "assert 'screens' in dir(webview)\n"
         "assert not [m for m in sys.modules if m.startswith('webview.platforms')]\n"
     )
     subprocess.run([sys.executable, '-c', code], check=True)
