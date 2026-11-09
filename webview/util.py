@@ -7,6 +7,7 @@ http://github.com/r0x0r/pywebview/
 
 from __future__ import annotations
 
+import asyncio
 import hmac
 import inspect
 import json
@@ -21,7 +22,7 @@ from collections import UserDict
 from collections.abc import Callable
 from glob import glob
 from http.cookies import SimpleCookie
-from threading import Thread
+from threading import Lock, Thread
 from typing import TYPE_CHECKING, Any, TypeGuard
 from uuid import uuid4
 
@@ -46,6 +47,87 @@ DEFAULT_HTML = """
 """
 
 logger = logging.getLogger('pywebview')
+
+
+# The asyncio event loop that runs coroutines returned by JS API functions and event handlers.
+# `owned` is True when pywebview created the loop itself and is responsible for closing it.
+_async_lock = Lock()
+_async_state: dict[str, Any] = {'loop': None, 'thread': None, 'owned': False}
+
+
+def set_event_loop(loop: asyncio.AbstractEventLoop | None) -> None:
+    """
+    Set the event loop used to run coroutines. A loop that is not running is run in a background
+    thread. With None, a loop is created on demand the first time a coroutine needs to run.
+    """
+    stop_event_loop()
+
+    with _async_lock:
+        _async_state.update(loop=loop, thread=None, owned=False)
+        if loop is not None and not loop.is_running():
+            _start_loop_thread(loop)
+
+
+def _start_loop_thread(loop: asyncio.AbstractEventLoop) -> None:
+    thread = Thread(target=loop.run_forever, name='pywebview-asyncio', daemon=True)
+    thread.start()
+    _async_state['thread'] = thread
+
+
+def get_event_loop() -> asyncio.AbstractEventLoop:
+    """Return the event loop for running coroutines, starting one if none is set."""
+    with _async_lock:
+        loop = _async_state['loop']
+        if loop is None or loop.is_closed():
+            loop = asyncio.new_event_loop()
+            _async_state.update(loop=loop, owned=True)
+            _start_loop_thread(loop)
+        return loop
+
+
+def run_async(awaitable: Any) -> Any:
+    """Run an awaitable on the event loop and block the calling thread until it completes."""
+
+    async def _await():
+        return await awaitable
+
+    loop = get_event_loop()
+    try:
+        running_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        running_loop = None
+
+    if running_loop is loop:
+        raise WebViewException('Cannot block the event loop thread waiting for a coroutine')
+
+    return asyncio.run_coroutine_threadsafe(_await(), loop).result()
+
+
+def stop_event_loop() -> None:
+    """Cancel pending tasks and close the event loop if pywebview created it."""
+    with _async_lock:
+        loop, thread, owned = _async_state['loop'], _async_state['thread'], _async_state['owned']
+        _async_state.update(loop=None, thread=None, owned=False)
+
+    if not owned or loop is None or loop.is_closed():
+        return
+
+    async def _cancel_tasks():
+        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+    try:
+        asyncio.run_coroutine_threadsafe(_cancel_tasks(), loop).result(5)
+    except Exception:
+        logger.exception('Error while cancelling pending coroutines')
+
+    loop.call_soon_threadsafe(loop.stop)
+    if thread is not None:
+        thread.join(5)
+    if not loop.is_running():
+        loop.close()
 
 
 def configure_coreclr() -> None:
@@ -383,6 +465,8 @@ def js_bridge_call(
     def _call():
         try:
             result = func(*func_params)
+            if inspect.isawaitable(result):
+                result = run_async(result)
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
             retval = f"{{value: '{result}'}}"
         except Exception as e:
@@ -429,8 +513,16 @@ def js_bridge_call(
                 file['pywebviewFullPath'] = urllib.parse.unquote(path[0][1])
                 _dnd_state['paths'].remove(path[0])
 
+        def _call_handler(handler, event):
+            try:
+                result = handler(event)
+                if inspect.isawaitable(result):
+                    run_async(result)
+            except Exception:
+                logger.exception('Error in DOM event handler')
+
         for handler in element._event_handlers.get(event['type'], []):
-            thread = Thread(target=handler, args=(event,))
+            thread = Thread(target=_call_handler, args=(handler, event))
             thread.start()
 
         return

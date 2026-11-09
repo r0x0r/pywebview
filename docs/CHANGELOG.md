@@ -6,6 +6,10 @@
 
 - `MSHTML` Remove the deprecated MSHTML (Internet Explorer) renderer, together with the `WebBrowserInterop` DLLs and the IE11 JavaScript polyfill. `gui='mshtml'` is no longer accepted; the WinForms backend now requires the Edge WebView2 Runtime (or CEF) and pywebview falls back to WinUI 3 when it is missing. Windows 7/8 without WebView2 are no longer supported. [#1846](https://github.com/r0x0r/pywebview/issues/1846)
 
+### ⚡ Features
+
+- `All` Support `async` JS API functions, exposed functions and event handlers. Coroutines run on an asyncio event loop passed via the new `event_loop` parameter of `webview.start`, or on one started automatically when the first coroutine needs to run.
+
 ### 🐞 Bug fixes
 
 - `All` Fix `evaluate_js` leaving an unused entry in `window._callbacks` on every call without a callback, including the calls the JS API bridge makes to return results, and on calls with a callback whose script did not return a promise. With a callback and a promise, `evaluate_js` now returns `None` on every backend; CEF no longer hangs in that case. Thanks @Nanahuse. [#1874](https://github.com/r0x0r/pywebview/issues/1874)

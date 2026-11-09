@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any
 
 from typing_extensions import Self
 
+from webview.util import run_async
+
 if TYPE_CHECKING:
     from typing import type_check_only
 
@@ -52,6 +54,10 @@ class Event:
                         value = func(self._window, *args, **kwargs)
                     else:
                         value = func(*args, **kwargs)
+
+                    if inspect.isawaitable(value):
+                        value = run_async(value)
+
                     return_values.append(value)
 
                 except Exception as e:

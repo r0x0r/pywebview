@@ -62,7 +62,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 webview.start(func=None, args=None, localization={}, gui=None, debug=False,
               http_server=False, http_port=None, user_agent=None, private_mode=True,
               storage_path=None, menu=[], server=http.BottleServer, ssl=False,
-              server_args={}, icon=None):
+              server_args={}, icon=None, event_loop=None):
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
@@ -82,6 +82,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server. You need to have `cryptography` pip dependency installed in order to use `ssl`. It is not installed by default.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 * `icon` - path to application icon. Generally icon should be specified during bundling, but if you need to set it manually, you can use this parameter. Supported formats are `.ico` on Windows and `.icns` on macOS. On Linux support depends on the desktop environment, but generally `.png` icons are supported.
+* `event_loop` - an asyncio event loop to run `async` JS API functions and event handlers on. If the loop is not running, it is run in a background thread. If not supplied, _pywebview_ starts a loop automatically when the first coroutine needs to run and closes it when the GUI loop exits.
 
 #### Examples
 

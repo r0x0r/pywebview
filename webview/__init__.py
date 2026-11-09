@@ -10,6 +10,7 @@ http://github.com/r0x0r/pywebview/
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 import enum
 import logging
@@ -30,7 +31,15 @@ from webview.guilib import GUIType, initialize
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import _TOKEN, ImmutableDict, abspath, is_app, is_local_url
+from webview.util import (
+    _TOKEN,
+    ImmutableDict,
+    abspath,
+    is_app,
+    is_local_url,
+    set_event_loop,
+    stop_event_loop,
+)
 from webview.window import Window
 
 __all__ = (
@@ -178,6 +187,7 @@ def start(
     server_args: dict[Any, Any] | None = None,
     ssl: bool = False,
     icon: str | None = None,
+    event_loop: asyncio.AbstractEventLoop | None = None,
 ):
     """
     Start a GUI loop and display previously created windows. This function must
@@ -204,6 +214,9 @@ def start(
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :param ssl: Enable SSL for local HTTP server. Default is False.
     :param icon: Path to the icon file. Supported on GTK, QT, macOS and Windows.
+    :param event_loop: asyncio event loop to run async JS API functions and event handlers on.
+        A loop that is not running is run in a background thread. If None, a loop is started
+        automatically when the first coroutine needs to run and closed when the GUI loop exits.
     """
     global guilib, renderer
 
@@ -251,6 +264,7 @@ def start(
     if menu:
         _state['menu'] = menu
 
+    set_event_loop(event_loop)
     guilib = initialize(gui)
     renderer = guilib.renderer
 
@@ -290,6 +304,7 @@ def start(
             guilib, server_args=cast(http.ServerArgs, server_args)
         )
         if should_initialize:
+            stop_event_loop()
             return
 
     if ssl:
@@ -312,6 +327,8 @@ def start(
     try:
         guilib.create_window(windows[0])
     finally:
+        stop_event_loop()
+
         if generated_ssl_cert:
             for path in (keyfile, certfile):
                 if path and os.path.exists(path):
