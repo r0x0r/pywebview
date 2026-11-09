@@ -201,7 +201,11 @@ class WinFormsEdgeChrome(WebView2Core):
 
     def load_url(self, url: str):
         self.ishtml = False
-        self.webview.Source = Uri(url)
+        if self.webview.CoreWebView2:
+            # Assigning an unchanged Source skips navigation, including HTML to about:blank.
+            self.webview.CoreWebView2.Navigate(url)
+        else:
+            self.webview.Source = Uri(url)
 
     def _show_alert(self, message: str):
         WinForms.MessageBox.Show(message)
