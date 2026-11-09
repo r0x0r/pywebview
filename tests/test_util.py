@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
+import webview
 from webview import util
 from webview.errors import WebViewException
 from webview.util import (
@@ -267,7 +268,7 @@ class TestCreateCookie:
 
 
 class TestBridgeTokenValidation:
-    """Tests that js_bridge_call enforces the session token before dispatching a call."""
+    """Tests that bridge calls require the current document's token and a native URL."""
 
     def _make_window(self, called_event):
         def target():
@@ -276,13 +277,17 @@ class TestBridgeTokenValidation:
 
         window = MagicMock()
         window._functions = {'target': target}
+        window._js_api_token = 'document-token'
+        window._js_api_origins = {'https://trusted.example'}
         return window
 
     def test_valid_token_invokes_function(self):
         """A call carrying the correct token is dispatched to the exposed function"""
         called = threading.Event()
         window = self._make_window(called)
-        js_bridge_call(window, 'target', [], 'value_id', _TOKEN)
+        js_bridge_call(
+            window, 'target', [], 'value_id', window._js_api_token, 'https://trusted.example'
+        )
         assert called.wait(2), 'Function was not called for a valid token'
 
     def test_invalid_token_rejects_call(self):
@@ -295,9 +300,41 @@ class TestBridgeTokenValidation:
     def test_internal_command_token_validation(self):
         window = MagicMock()
         window.gui.renderer = 'winui3'
+        window._js_api_token = 'document-token'
 
-        assert is_js_bridge_token_valid(window, _TOKEN)
+        assert is_js_bridge_token_valid(window, window._js_api_token)
         assert not is_js_bridge_token_valid(window, 'not-the-token')
+        assert not is_js_bridge_token_valid(window, _TOKEN)
+
+    @pytest.mark.parametrize('source_url', [None, 'https://untrusted.example'])
+    def test_missing_or_untrusted_native_url_is_rejected(self, source_url):
+        called = threading.Event()
+        window = self._make_window(called)
+        js_bridge_call(window, 'target', [], 'value_id', window._js_api_token, source_url)
+        assert not called.wait(0.1)
+
+    def test_navigation_revokes_document_token(self):
+        window = webview.create_window('Token', html='<html></html>')
+        window._js_api_token = 'old-document'
+        window._js_api_pending_html = False
+        window._js_api_origins.add('about:blank')
+        window._invalidate_js_api()
+        assert not is_js_bridge_token_valid(window, 'old-document')
+        assert not util.is_js_api_allowed(window, 'about:blank')
+
+    def test_result_uses_native_execution_and_document_guard(self, monkeypatch):
+        called = threading.Event()
+        window = self._make_window(called)
+        monkeypatch.setattr(util, 'Thread', lambda target: SimpleNamespace(start=target))
+
+        js_bridge_call(
+            window, 'target', [], 'value_id', window._js_api_token, 'https://trusted.example'
+        )
+
+        window.evaluate_js.assert_not_called()
+        script = window.run_js.call_args.args[0]
+        assert '._bridgeToken === "document-token"' in script
+        assert 'https://trusted.example' in script
 
 
 class TestJsBridgeHardening:
@@ -339,7 +376,11 @@ class TestJsBridgeHardening:
         window._functions = {}
         window._js_api = self.Api(called)
         window._js_api_names = frozenset(advertised)
-        js_bridge_call(window, func_name, [], 'value_id', _TOKEN)
+        window._js_api_token = 'document-token'
+        window._js_api_origins = {'https://trusted.example'}
+        js_bridge_call(
+            window, func_name, [], 'value_id', window._js_api_token, 'https://trusted.example'
+        )
         return called
 
     @pytest.mark.parametrize('func_name', ['public', 'child.method'])
@@ -373,6 +414,8 @@ class TestJsBridgeHardening:
 
         window = MagicMock()
         window.state = State(window)
+        window._js_api_token = 'document-token'
+        window._js_api_origins = {'https://trusted.example'}
         handlers = window.state._State__event_handlers
 
         js_bridge_call(
@@ -380,7 +423,8 @@ class TestJsBridgeHardening:
             'pywebviewStateUpdate',
             {'key': '_State__event_handlers', 'value': None},
             'value_id',
-            _TOKEN,
+            window._js_api_token,
+            'https://trusted.example',
         )
 
         assert window.state._State__event_handlers is handlers
@@ -420,10 +464,13 @@ class TestJsBridgeHardening:
             ('HTTPS://Example.COM:443/path?q=1', 'https://example.com'),
             ('http://127.0.0.1:8080/index.html', 'http://127.0.0.1:8080'),
             ('http://[::1]:8080/', 'http://[::1]:8080'),
-            ('file:///home/user/index.html', 'file:'),
-            ('about:blank', 'about:'),
-            ('data:text/html,hi', 'data:'),
-            (None, 'about:'),
+            ('https://bücher.example/path', 'https://xn--bcher-kva.example'),
+            ('file:///home/user/index.html', 'file:///home/user/index.html'),
+            ('file:///home/app/../user/', 'file:///home/user/'),
+            ('file:///home/user name/', 'file:///home/user%20name/'),
+            ('about:blank', 'about:blank'),
+            ('data:text/html,hi', 'data:text/html,hi'),
+            (None, 'invalid:'),
             ('http://example.com:bad/', 'invalid:'),
         ],
     )
@@ -444,3 +491,26 @@ class TestJsBridgeHardening:
         settings['JS_API_ALLOWED_ORIGINS'] = ['*']
         assert util.is_js_api_allowed(window, 'https://anything.example/')
         assert util.js_api_guard(window) == 'true'
+
+    def test_html_trust_is_document_specific(self):
+        window = webview.create_window('HTML')
+        window._allow_js_api_on(None)
+        window._allow_js_api_on('file:///app/index.html')
+        window._allow_js_api_on('data:text/html,owned')
+
+        assert util.is_js_api_allowed(window, 'about:blank')
+        assert util.is_js_api_allowed(window, 'file:///app/index.html#section')
+        assert util.is_js_api_allowed(window, 'data:text/html,owned')
+        assert not util.is_js_api_allowed(window, 'about:srcdoc')
+        assert not util.is_js_api_allowed(window, 'file:///app/untrusted.html')
+        assert not util.is_js_api_allowed(window, 'data:text/html,untrusted')
+        assert not util.is_js_api_allowed(window, None)
+
+    def test_html_base_uri_origin_is_trusted(self):
+        window = webview.create_window('HTML')
+        window.gui = Mock()
+        window.events.shown.set()
+
+        window.load_html('<html></html>', 'https://base.example/app/')
+
+        assert util.is_js_api_allowed(window, 'https://base.example/app/')

@@ -12,6 +12,7 @@ import inspect
 import json
 import logging
 import os
+import posixpath
 import re
 import sys
 import sysconfig
@@ -258,27 +259,33 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-# Pages with these schemes are trusted when the window loads HTML: load_html pages report
-# about:blank, data: or their file: base URI depending on the backend
-HTML_PAGE_SCHEMES = ('about:', 'data:', 'file:')
-
-
 def js_api_origin(url: str | None) -> str:
     """
-    Return the origin of an http(s) URL as location.origin reports it, or the scheme followed by
-    a colon (location.protocol) for any other URL.
+    Return an HTTP(S) origin, or an exact document URL for opaque/local documents.
     """
-    parts = urllib.parse.urlsplit(url or 'about:blank')
+    if not url:
+        return 'invalid:'
+
+    parts = urllib.parse.urlsplit(url)
     scheme = parts.scheme.lower()
+    if scheme == 'file':
+        path = posixpath.normpath(urllib.parse.unquote(parts.path))
+        if parts.path.endswith('/') and not path.endswith('/'):
+            path += '/'
+        path = urllib.parse.quote(path, safe="/:@!$&'()*+,;=-._~")
+        return urllib.parse.urlunsplit(('file', parts.netloc, path, parts.query, ''))
     if scheme not in ('http', 'https'):
-        return f'{scheme}:'
+        return urllib.parse.urldefrag(url)[0]
 
     try:
         port = parts.port
     except ValueError:
         return 'invalid:'
 
-    host = parts.hostname or ''
+    try:
+        host = (parts.hostname or '').encode('idna').decode('ascii')
+    except UnicodeError:
+        return 'invalid:'
     if ':' in host:
         host = f'[{host}]'
     default_port = 80 if scheme == 'http' else 443
@@ -290,8 +297,7 @@ def _js_api_trusted_origins(window: Window) -> set[str] | None:
     allowed = webview.settings['JS_API_ALLOWED_ORIGINS']
     if '*' in allowed:
         return None
-    # A top-level about:blank page, such as a WebKit error page, holds no script of a site
-    return {'about:'} | window._js_api_origins | {js_api_origin(origin) for origin in allowed}
+    return window._js_api_origins | {js_api_origin(origin) for origin in allowed}
 
 
 def is_js_api_allowed(window: Window, url: str | None) -> bool:
@@ -310,13 +316,15 @@ def js_api_guard(window: Window) -> str:
     if trusted is None:
         return 'true'
 
-    origins = sorted(origin for origin in trusted if '://' in origin)
-    schemes = sorted(origin for origin in trusted if '://' not in origin)
+    origins = sorted(origin for origin in trusted if origin.startswith(('http://', 'https://')))
+    documents = sorted(trusted - set(origins))
     return (
-        '(function (o, s) { var l = window.location, i; '
+        '(function (o, d) { var l = window.location, i; '
+        'if (window !== window.top) { return false } '
         'for (i = 0; i < o.length; i++) { if (o[i] === l.origin) { return true } } '
-        'for (i = 0; i < s.length; i++) { if (s[i] === l.protocol) { return true } } '
-        f'return false }})({json.dumps(origins)}, {json.dumps(schemes)})'
+        'for (i = 0; i < d.length; i++) { '
+        'if (d[i] === l.href || d[i] + l.hash === l.href) { return true } } '
+        f'return false }})({json.dumps(origins)}, {json.dumps(documents)})'
     )
 
 
@@ -404,9 +412,13 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
 
     def generate_js_object():
         try:
+            if window._js_api_token != bridge_token:
+                return
             window.run_js(js_code)
             logger.debug('_pywebviewready event fired')
             with window._expose_lock:
+                if window._js_api_token != bridge_token:
+                    return
                 func_list = generate_func()
                 window.run_js(finish_script % {'functions': json.dumps(func_list)})
                 window.events._pywebviewready.set()
@@ -427,8 +439,11 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
         window.events.loaded.set()
         return
 
+    window._js_api_pending_html = False
     logger.debug('before_load event fired. injecting pywebview object')
     try:
+        bridge_token = uuid4().hex
+        window._js_api_token = bridge_token
         js_code, finish_script = load_js_files(window, platform)
         # Stop the scripts if the page navigated to a disallowed origin before they ran
         guard = f'if (!({js_api_guard(window)})) {{ throw new Error("pywebview: JS API not allowed") }}\n'
@@ -444,8 +459,9 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
 
 
 def is_js_bridge_token_valid(window: Window, token: str | None) -> bool:
-    """Return whether a native bridge message carries the session token."""
-    if not hmac.compare_digest(str(token), _TOKEN):
+    """Return whether a native bridge message carries the current document's capability."""
+    expected = window._js_api_token
+    if not expected or not isinstance(token, str) or not hmac.compare_digest(token, expected):
         logger.error('Rejected JS bridge call with an invalid token')
         return False
 
@@ -479,14 +495,14 @@ def js_bridge_call(
     Calls a function from the JS API and executes it in Python. The function is executed in a separate
     thread to prevent blocking the UI thread. The result is then passed back to the JS API.
 
-    :param source_url: URL of the page that sent the call, if the backend knows it. Calls from
-        pages whose origin is not allowed to use the JS API are rejected.
+    :param source_url: Native URL of the main document. The document-specific token also
+        prevents calls from other frames on transports that do not identify the sender frame.
     """
 
     if not is_js_bridge_token_valid(window, token):
         return
 
-    if source_url is not None and not is_js_api_allowed(window, source_url):
+    if source_url is None or not is_js_api_allowed(window, source_url):
         logger.error('Rejected JS bridge call from %s: origin is not allowed', source_url)
         return
 
@@ -502,8 +518,9 @@ def js_bridge_call(
             retval = f"{{isError: true, value: '{result}'}}"
 
         # The page may have navigated while the function ran
-        window.evaluate_js(
-            f'if ({js_api_guard(window)}) {{ '
+        window.run_js(
+            f'if (({js_api_guard(window)}) && window.pywebview && '
+            f'window.pywebview._bridgeToken === {json.dumps(token)}) {{ '
             f'window.pywebview._returnValuesCallbacks["{func_name}"]["{value_id}"]({retval}) }}'
         )
 
@@ -623,6 +640,7 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
             if name == 'api':
                 params = {
                     'token': _TOKEN,
+                    'bridge_token': window._js_api_token,
                     'platform': platform,
                     'uid': window.uid,
                     'js_api_endpoint': window.js_api_endpoint,

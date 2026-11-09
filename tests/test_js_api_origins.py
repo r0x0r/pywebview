@@ -16,6 +16,10 @@ window.pywebview = {state: {}, _returnValuesCallbacks: {}};
 
 PLAIN_PAGE = '<html><head><title>plain</title></head><body>other origin</body></html>'
 
+CAPTURE_PAGE = """<html><head><title>capture</title><script>
+window.eval = function(code) { window.captured = code; };
+</script></head><body>other origin</body></html>"""
+
 
 class Api:
     def echo(self, value):
@@ -28,6 +32,7 @@ def other_origin(tmp_path_factory):
     root = tmp_path_factory.mktemp('other_origin')
     (root / 'spoof.html').write_text(SPOOF_PAGE)
     (root / 'plain.html').write_text(PLAIN_PAGE)
+    (root / 'capture.html').write_text(CAPTURE_PAGE)
 
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(root))
     server = ThreadingHTTPServer(('127.0.0.1', 0), handler)
@@ -38,6 +43,8 @@ def other_origin(tmp_path_factory):
 
 
 def wait_for_title(window, title, timeout=10):
+    if window.gui.renderer == 'cef':
+        pytest.skip('CEF run_js is fire-and-forget and cannot observe an untrusted page')
     deadline = time.time() + timeout
     while time.time() < deadline:
         if window.run_js('document.title') == title:
@@ -95,5 +102,39 @@ def test_origin_loaded_from_python_gets_api(other_origin):
     def check(window):
         window.load_url(f'{other_origin}/plain.html')
         assert window.evaluate_js('typeof pywebview.api.echo') == 'function'
+
+    run_test(webview, window, check)
+
+
+def test_result_after_navigation_does_not_reach_page_eval(other_origin):
+    class DelayedApi:
+        def __init__(self):
+            self.started = threading.Event()
+            self.release = threading.Event()
+            self.finished = threading.Event()
+
+        def delayed(self):
+            self.started.set()
+            assert self.release.wait(10)
+            self.finished.set()
+            return 'sensitive-api-result'
+
+    api = DelayedApi()
+    window = webview.create_window('Delayed result', html='<html>start</html>', js_api=api)
+
+    def check(window):
+        if window.gui.renderer == 'cef':
+            pytest.skip('CEF run_js cannot observe an untrusted page')
+        try:
+            window.run_js('pywebview.api.delayed()')
+            assert api.started.wait(2)
+            window.run_js(f"window.location.href = '{other_origin}/capture.html'")
+            wait_for_title(window, 'capture')
+            api.release.set()
+            assert api.finished.wait(2)
+            time.sleep(0.5)
+            assert window.run_js('window.captured === undefined') is True
+        finally:
+            api.release.set()
 
     run_test(webview, window, check)

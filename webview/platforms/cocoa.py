@@ -208,6 +208,9 @@ class BrowserView:
             return self
 
         def userContentController_didReceiveScriptMessage_(self, controller, message):
+            if not message.frameInfo().isMainFrame():
+                logger.warning('Rejected JS bridge call from a subframe')
+                return
             body = json.loads(message.body())
             if body['params'] is WebKit.WebUndefined.undefined():
                 body['params'] = None
@@ -457,6 +460,11 @@ class BrowserView:
                         logger.exception(moveError)
 
         # Show the webview when it finishes loading
+        def webView_didStartProvisionalNavigation_(self, webview, nav):
+            i = BrowserView.get_instance('webview', webview)
+            if i:
+                i.pywebview_window._invalidate_js_api()
+
         def webView_didFinishNavigation_(self, webview, nav):
             # Add the webview to the window if it's not yet the contentView
             i = BrowserView.get_instance('webview', webview)

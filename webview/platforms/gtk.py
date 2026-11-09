@@ -473,6 +473,9 @@ class BrowserView:
         webview.load_request(request)
 
     def on_load_finish(self, webview, status):
+        if status == webkit.LoadEvent.STARTED:
+            self.pywebview_window._invalidate_js_api()
+
         # Show the webview if it's not already visible
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)

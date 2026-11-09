@@ -804,7 +804,7 @@ class WinUI3EdgeChrome(WebView2Core):
         self._dispatch_request_event(dispatch_event)
 
     def on_navigation_start(self, sender: WebView2, args: CoreWebView2NavigationStartingEventArgs):
-        pass
+        self.pywebview_window._invalidate_js_api()
 
     def on_navigation_completed(
         self, sender: WebView2, _: CoreWebView2NavigationCompletedEventArgs

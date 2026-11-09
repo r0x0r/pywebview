@@ -10,6 +10,8 @@ Every script running in a window's page can call that window's JS API. That cove
 
 `window.pywebview.token` does not decide which pages may use the JS API: every page that gets the API can read it. The token protects your own REST API from requests made by *other* sites (see above).
 
+The native bridge uses a separate, per-document capability that is revoked when the main document starts navigating. Knowing the session's REST token does not grant bridge access. The API is injected only into the main document, not into subframes.
+
 ## Which pages get the JS API
 
 Pages you load from Python get the JS API: the URL passed to `create_window` or `load_url`, and HTML passed to `create_window(html=...)` or `load_html`. A page the window reaches on its own, by following a link, a redirect or a `location.href` change, gets it only if its origin is listed in `webview.settings['JS_API_ALLOWED_ORIGINS']`:
@@ -21,6 +23,8 @@ webview.settings['JS_API_ALLOWED_ORIGINS'] = ['https://www.example.com']
 An origin is a scheme, host and port, such as `https://example.com` or `http://127.0.0.1:8080`. A page from any other origin gets no `window.pywebview` object, and _pywebview_ logs a warning naming its URL. Calls it makes to the bridge are rejected, and changes to `window.state` are not sent to it. `['*']` restores the old behaviour of giving every page the API.
 
 Redirects count as navigation by the page. If `https://example.com` redirects to `https://www.example.com`, list the second origin.
+
+Non-HTTP documents are authorized by their exact URL, not by their entire scheme. Loading HTML does not authorize arbitrary `file:`, `data:` or `about:srcdoc` documents. An HTTP(S) `base_uri` passed to `load_html` also authorizes that origin.
 
 `window.evaluate_js()` relies on the injected object, so it does not work on a page without the JS API. `window.run_js()` does.
 

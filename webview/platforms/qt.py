@@ -467,6 +467,7 @@ class BrowserView(QMainWindow):
             )
 
         self.webview.page().loadFinished.connect(self.on_load_finished)
+        self.webview.page().loadStarted.connect(window._invalidate_js_api)
 
         if settings['ALLOW_DOWNLOADS']:
             self.webview.page().profile().downloadRequested.connect(self.on_download_requested)
@@ -504,9 +505,9 @@ class BrowserView(QMainWindow):
         elif window.uid == 'web_inspector':
             self.webview.setUrl(QtCore.QUrl(window.original_url))
         elif window.html:
-            self.webview.setHtml(window.html, QtCore.QUrl(''))
+            self.on_load_html(window.html, '')
         else:
-            self.webview.setHtml(DEFAULT_HTML, QtCore.QUrl(''))
+            self.on_load_html(DEFAULT_HTML, '')
 
         if window.initial_x is not None and window.initial_y is not None:
             self.move(self.screen.x() + window.initial_x, self.screen.y() + window.initial_y)
@@ -591,7 +592,7 @@ class BrowserView(QMainWindow):
         self.webview.setUrl(QtCore.QUrl(url))
 
     def on_load_html(self, content, base_uri):
-        self.webview.setHtml(content, QtCore.QUrl(base_uri))
+        self.webview.setHtml(content, QtCore.QUrl(base_uri or 'about:blank'))
 
     def on_set_on_top(self, top):
         flags = self.windowFlags()

@@ -301,6 +301,7 @@ class WinFormsEdgeChrome(WebView2Core):
             args.Cancel = True
 
     def on_navigation_start(self, sender, args):
+        self.pywebview_window._invalidate_js_api()
         if self.pywebview_window.transparent:
             self.form.Show()
             self.form.Activate()

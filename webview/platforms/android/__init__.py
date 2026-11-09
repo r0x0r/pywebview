@@ -78,14 +78,25 @@ class BrowserView:
 
     @run_on_ui_thread
     def create_webview(self):
+        @run_on_ui_thread
         def js_api_handler(func, params, id, token):
-            js_bridge_call(self.pywebview_window, func, json.loads(params), id, token)
+            if self.webview is not None:
+                js_bridge_call(
+                    self.pywebview_window,
+                    func,
+                    json.loads(params),
+                    id,
+                    token,
+                    str(self.webview.getUrl() or ''),
+                )
 
         def chrome_callback(event, data):
             logger.debug('WebChromeClient event %s: %s', event, data)
 
         def webview_callback(event, data):
-            if event == 'onPageFinished':
+            if event == 'onPageStarted':
+                self.pywebview_window._invalidate_js_api()
+            elif event == 'onPageFinished':
 
                 @run_on_ui_thread
                 def _handle_page_finished():
@@ -128,7 +139,7 @@ class BrowserView:
         self._cookies = []
         self.webview = WebView(activity)
         webview_settings = self.webview.getSettings()
-        webview_settings.setAllowFileAccessFromFileURLs(True)
+        webview_settings.setAllowFileAccessFromFileURLs(settings['ALLOW_FILE_URLS'])
         webview_settings.setJavaScriptEnabled(True)
         webview_settings.setUseWideViewPort(False)
         webview_settings.setLoadWithOverviewMode(True)

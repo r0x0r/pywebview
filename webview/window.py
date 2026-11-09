@@ -21,8 +21,8 @@ from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
 from webview.state import State
+from webview.util import base_uri as get_base_uri
 from webview.util import (
-    HTML_PAGE_SCHEMES,
     escape_string,
     is_app,
     is_local_url,
@@ -30,7 +30,6 @@ from webview.util import (
     js_api_origin,
     parse_file_type,
 )
-from webview.util import base_uri as get_base_uri
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -174,6 +173,8 @@ class Window:
         self._js_api_names: frozenset[str] = frozenset()
         # Origins of the pages loaded from Python, which may use the JS API
         self._js_api_origins: set[str] = set()
+        self._js_api_token: str | None = None
+        self._js_api_pending_html = False
         self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
         self.events = EventContainer()
@@ -302,6 +303,8 @@ class Window:
             self._url_prefix, self._common_path, self._server = http.start_server([url])
 
         self.real_url = self._resolve_url(url)
+        self._js_api_pending_html = False
+        self._invalidate_js_api()
         self._allow_js_api_on(self.real_url)
         self.events.loaded.clear()
         self.events.before_load.clear()
@@ -321,7 +324,9 @@ class Window:
         if base_uri is None:
             base_uri = get_base_uri()
 
+        self._invalidate_js_api()
         self._allow_js_api_on(None)
+        self._allow_js_api_on(base_uri)
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
@@ -609,7 +614,14 @@ class Window:
         if url:
             self._js_api_origins.add(js_api_origin(url))
         else:
-            self._js_api_origins.update(HTML_PAGE_SCHEMES)
+            self._js_api_origins.add('about:blank')
+            self._js_api_pending_html = True
+
+    def _invalidate_js_api(self) -> None:
+        """Revoke bridge access as soon as the main document starts navigating."""
+        self._js_api_token = None
+        if not self._js_api_pending_html:
+            self._js_api_origins.discard('about:blank')
 
     def _run_js_api_js(self, script: str) -> None:
         """Run pywebview's own script only if the current page may use the JS API."""
