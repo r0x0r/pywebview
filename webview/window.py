@@ -304,7 +304,6 @@ class Window:
 
         self.real_url = self._resolve_url(url)
         self._js_api_pending_html = False
-        self._invalidate_js_api()
         self._allow_js_api_on(self.real_url)
         self.events.loaded.clear()
         self.events.before_load.clear()

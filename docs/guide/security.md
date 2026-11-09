@@ -10,7 +10,7 @@ Every script running in a window's page can call that window's JS API. That cove
 
 `window.pywebview.token` does not decide which pages may use the JS API: every page that gets the API can read it. The token protects your own REST API from requests made by *other* sites (see above).
 
-The native bridge uses a separate, per-document capability that is revoked when the main document starts navigating. Knowing the session's REST token does not grant bridge access. The API is injected only into the main document, not into subframes.
+The native bridge uses a separate, per-document capability that is revoked on navigation (on document commit in Cocoa, so a failed provisional navigation does not disable the surviving page). Knowing the session's REST token does not grant bridge access. The API is injected only into the main document, not into subframes.
 
 ## Which pages get the JS API
 
@@ -21,6 +21,8 @@ webview.settings['JS_API_ALLOWED_ORIGINS'] = ['https://www.example.com']
 ```
 
 An origin is a scheme, host and port, such as `https://example.com` or `http://127.0.0.1:8080`. A page from any other origin gets no `window.pywebview` object, and _pywebview_ logs a warning naming its URL. Calls it makes to the bridge are rejected, and changes to `window.state` are not sent to it. `['*']` restores the old behaviour of giving every page the API.
+
+Use the ASCII Punycode form for international hostnames with ambiguous Unicode mappings, such as `https://xn--fa-hia.example` for `https://faß.example`. Such Unicode spellings are rejected rather than authorizing a different hostname.
 
 Redirects count as navigation by the page. If `https://example.com` redirects to `https://www.example.com`, list the second origin.
 

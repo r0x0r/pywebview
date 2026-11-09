@@ -228,6 +228,8 @@ def promise_test(window):
     done = threading.Event()
 
     def callback(result):
+        if window.gui.renderer == 'android-webkit':
+            assert window.evaluate_js('21 * 2') == result
         results.append(result)
         done.set()
 

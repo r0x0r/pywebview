@@ -460,7 +460,7 @@ class BrowserView:
                         logger.exception(moveError)
 
         # Show the webview when it finishes loading
-        def webView_didStartProvisionalNavigation_(self, webview, nav):
+        def webView_didCommitNavigation_(self, webview, nav):
             i = BrowserView.get_instance('webview', webview)
             if i:
                 i.pywebview_window._invalidate_js_api()

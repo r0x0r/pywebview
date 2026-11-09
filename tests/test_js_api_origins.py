@@ -1,4 +1,6 @@
 import functools
+import os
+import sys
 import threading
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -7,7 +9,7 @@ import pytest
 
 import webview
 
-from .util import run_test
+from .util import assert_js, run_test
 
 # A page that prepares its own window.pywebview to receive whatever pywebview writes into it
 SPOOF_PAGE = """<html><head><title>spoof</title><script>
@@ -43,8 +45,6 @@ def other_origin(tmp_path_factory):
 
 
 def wait_for_title(window, title, timeout=10):
-    if window.gui.renderer == 'cef':
-        pytest.skip('CEF run_js is fire-and-forget and cannot observe an untrusted page')
     deadline = time.time() + timeout
     while time.time() < deadline:
         if window.run_js('document.title') == title:
@@ -63,6 +63,9 @@ def wait_for_api(window, timeout=10):
     raise AssertionError('JS API was not injected')
 
 
+@pytest.mark.skipif(
+    os.environ.get('PYWEBVIEW_GUI') == 'cef', reason='CEF run_js is fire-and-forget'
+)
 def test_navigated_origin_gets_no_api(other_origin):
     window = webview.create_window('Origins', html='<html>start</html>', js_api=Api())
 
@@ -84,6 +87,9 @@ def test_navigated_origin_gets_no_api(other_origin):
     run_test(webview, window, check)
 
 
+@pytest.mark.skipif(
+    os.environ.get('PYWEBVIEW_GUI') == 'cef', reason='CEF run_js is fire-and-forget'
+)
 def test_listed_origin_gets_api(other_origin):
     webview.settings['JS_API_ALLOWED_ORIGINS'] = [other_origin]
     window = webview.create_window('Origins', html='<html>start</html>', js_api=Api())
@@ -106,6 +112,9 @@ def test_origin_loaded_from_python_gets_api(other_origin):
     run_test(webview, window, check)
 
 
+@pytest.mark.skipif(
+    os.environ.get('PYWEBVIEW_GUI') == 'cef', reason='CEF run_js is fire-and-forget'
+)
 def test_result_after_navigation_does_not_reach_page_eval(other_origin):
     class DelayedApi:
         def __init__(self):
@@ -123,8 +132,6 @@ def test_result_after_navigation_does_not_reach_page_eval(other_origin):
     window = webview.create_window('Delayed result', html='<html>start</html>', js_api=api)
 
     def check(window):
-        if window.gui.renderer == 'cef':
-            pytest.skip('CEF run_js cannot observe an untrusted page')
         try:
             window.run_js('pywebview.api.delayed()')
             assert api.started.wait(2)
@@ -136,5 +143,23 @@ def test_result_after_navigation_does_not_reach_page_eval(other_origin):
             assert window.run_js('window.captured === undefined') is True
         finally:
             api.release.set()
+
+    run_test(webview, window, check)
+
+
+@pytest.mark.skipif(
+    sys.platform != 'darwin' or os.environ.get('PYWEBVIEW_GUI', 'cocoa') != 'cocoa',
+    reason='WKWebView provisional navigation behavior',
+)
+def test_failed_provisional_navigation_preserves_bridge():
+    window = webview.create_window('Navigation failure', html='<html>start</html>', js_api=Api())
+
+    def check(window):
+        token = window.evaluate_js('pywebview._bridgeToken')
+        window.run_js("window.location.href = 'http://127.0.0.1:1/'")
+        time.sleep(2)
+        assert window.evaluate_js('pywebview._bridgeToken') == token
+        assert window.evaluate_js('pywebview.api.echo !== undefined')
+        assert_js(window, 'echo', 'still active', 'still active')
 
     run_test(webview, window, check)

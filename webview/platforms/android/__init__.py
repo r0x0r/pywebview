@@ -1,7 +1,7 @@
 import json
 import logging
 from http.cookies import SimpleCookie
-from threading import Lock, Semaphore
+from threading import Lock, Semaphore, Thread
 from urllib.parse import urlparse
 
 from android.activity import _activity as activity  # noqa
@@ -81,14 +81,17 @@ class BrowserView:
         @run_on_ui_thread
         def js_api_handler(func, params, id, token):
             if self.webview is not None:
-                js_bridge_call(
-                    self.pywebview_window,
-                    func,
-                    json.loads(params),
-                    id,
-                    token,
-                    str(self.webview.getUrl() or ''),
-                )
+                Thread(
+                    target=js_bridge_call,
+                    args=(
+                        self.pywebview_window,
+                        func,
+                        json.loads(params),
+                        id,
+                        token,
+                        str(self.webview.getUrl() or ''),
+                    ),
+                ).start()
 
         def chrome_callback(event, data):
             logger.debug('WebChromeClient event %s: %s', event, data)

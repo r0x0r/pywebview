@@ -283,7 +283,11 @@ def js_api_origin(url: str | None) -> str:
         return 'invalid:'
 
     try:
-        host = (parts.hostname or '').encode('idna').decode('ascii')
+        hostname = parts.hostname or ''
+        host = hostname.encode('idna').decode('ascii')
+        if not hostname.isascii() and host.encode('ascii').decode('idna') != hostname:
+            logger.warning('Unsupported Unicode hostname %s; use its Punycode form', hostname)
+            return 'invalid:'
     except UnicodeError:
         return 'invalid:'
     if ':' in host:
@@ -297,7 +301,7 @@ def _js_api_trusted_origins(window: Window) -> set[str] | None:
     allowed = webview.settings['JS_API_ALLOWED_ORIGINS']
     if '*' in allowed:
         return None
-    return window._js_api_origins | {js_api_origin(origin) for origin in allowed}
+    return (window._js_api_origins | {js_api_origin(origin) for origin in allowed}) - {'invalid:'}
 
 
 def is_js_api_allowed(window: Window, url: str | None) -> bool:
@@ -521,7 +525,8 @@ def js_bridge_call(
         window.run_js(
             f'if (({js_api_guard(window)}) && window.pywebview && '
             f'window.pywebview._bridgeToken === {json.dumps(token)}) {{ '
-            f'window.pywebview._returnValuesCallbacks["{func_name}"]["{value_id}"]({retval}) }}'
+            f'window.pywebview._returnValuesCallbacks'
+            f'[{json.dumps(func_name)}][{json.dumps(value_id)}]({retval}) }}'
         )
 
     def get_nested_attribute(obj: object, attr_str: str):

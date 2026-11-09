@@ -1,3 +1,4 @@
+import json
 import threading
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock
@@ -336,6 +337,19 @@ class TestBridgeTokenValidation:
         assert '._bridgeToken === "document-token"' in script
         assert 'https://trusted.example' in script
 
+    def test_callback_id_is_a_quoted_property_key(self, monkeypatch):
+        called = threading.Event()
+        window = self._make_window(called)
+        monkeypatch.setattr(util, 'Thread', lambda target: SimpleNamespace(start=target))
+        value_id = '"]; } window.captured = "secret"; //'
+
+        js_bridge_call(
+            window, 'target', [], value_id, window._js_api_token, 'https://trusted.example'
+        )
+
+        script = window.run_js.call_args.args[0]
+        assert f'_returnValuesCallbacks["target"][{json.dumps(value_id)}]' in script
+
 
 class TestJsBridgeHardening:
     """What a page can reach through the JS bridge and external links."""
@@ -465,6 +479,8 @@ class TestJsBridgeHardening:
             ('http://127.0.0.1:8080/index.html', 'http://127.0.0.1:8080'),
             ('http://[::1]:8080/', 'http://[::1]:8080'),
             ('https://bücher.example/path', 'https://xn--bcher-kva.example'),
+            ('https://faß.example/', 'invalid:'),
+            ('https://xn--fa-hia.example/', 'https://xn--fa-hia.example'),
             ('file:///home/user/index.html', 'file:///home/user/index.html'),
             ('file:///home/app/../user/', 'file:///home/user/'),
             ('file:///home/user name/', 'file:///home/user%20name/'),
@@ -505,6 +521,16 @@ class TestJsBridgeHardening:
         assert not util.is_js_api_allowed(window, 'file:///app/untrusted.html')
         assert not util.is_js_api_allowed(window, 'data:text/html,untrusted')
         assert not util.is_js_api_allowed(window, None)
+
+    def test_ambiguous_unicode_origin_never_authorizes_another_host(self, monkeypatch):
+        window = SimpleNamespace(_js_api_origins=set())
+        monkeypatch.setitem(
+            util.webview.settings, 'JS_API_ALLOWED_ORIGINS', ['https://faß.example']
+        )
+
+        assert not util.is_js_api_allowed(window, 'https://fass.example/')
+        assert not util.is_js_api_allowed(window, 'https://faß.example/')
+        assert 'invalid:' not in util.js_api_guard(window)
 
     def test_html_base_uri_origin_is_trusted(self):
         window = webview.create_window('HTML')
