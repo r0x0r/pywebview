@@ -112,6 +112,16 @@ def test_origin_loaded_from_python_gets_api(other_origin):
     run_test(webview, window, check)
 
 
+def test_blank_loaded_from_python_gets_api():
+    window = webview.create_window('Blank', html='<html>start</html>', js_api=Api())
+
+    def check(window):
+        window.load_url('about:blank')
+        assert window.evaluate_js('typeof pywebview.api.echo') == 'function'
+
+    run_test(webview, window, check)
+
+
 @pytest.mark.skipif(
     os.environ.get('PYWEBVIEW_GUI') == 'cef', reason='CEF run_js is fire-and-forget'
 )

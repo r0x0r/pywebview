@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import hmac
 import inspect
+import ipaddress
 import json
 import logging
 import os
 import posixpath
 import re
+import socket
 import sys
 import sysconfig
 import traceback
@@ -153,7 +155,10 @@ def is_local_url(url: str | Callable[..., Any] | None) -> TypeGuard[str]:
     if is_app(url) or not url or not isinstance(url, str):
         return False
     return not (
-        url.startswith('http://') or url.startswith('https://') or url.startswith('file://')
+        url.startswith('http://')
+        or url.startswith('https://')
+        or url.startswith('file://')
+        or urllib.parse.urldefrag(url)[0] == 'about:blank'
     )
 
 
@@ -291,9 +296,16 @@ def js_api_origin(url: str | None) -> str:
     except UnicodeError:
         return 'invalid:'
     if ':' in host:
-        host = f'[{host}]'
+        if '%' in host:
+            return 'invalid:'
+        host = f'[{ipaddress.IPv6Address(host).compressed}]'
+    elif re.fullmatch(r'[0-9]+|0[xX][0-9a-fA-F]+', host.removesuffix('.').rsplit('.', 1)[-1]):
+        try:
+            host = socket.inet_ntoa(socket.inet_aton(host.removesuffix('.')))
+        except OSError:
+            return 'invalid:'
     default_port = 80 if scheme == 'http' else 443
-    return f'{scheme}://{host}' + (f':{port}' if port and port != default_port else '')
+    return f'{scheme}://{host}' + (f':{port}' if port is not None and port != default_port else '')
 
 
 def _js_api_trusted_origins(window: Window) -> set[str] | None:

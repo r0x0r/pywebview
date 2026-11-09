@@ -478,6 +478,10 @@ class TestJsBridgeHardening:
             ('HTTPS://Example.COM:443/path?q=1', 'https://example.com'),
             ('http://127.0.0.1:8080/index.html', 'http://127.0.0.1:8080'),
             ('http://[::1]:8080/', 'http://[::1]:8080'),
+            ('http://[0:0:0:0:0:0:0:1]:8080/', 'http://[::1]:8080'),
+            ('http://127.1:8080/', 'http://127.0.0.1:8080'),
+            ('http://2130706433/', 'http://127.0.0.1'),
+            ('http://example.com:0/', 'http://example.com:0'),
             ('https://bücher.example/path', 'https://xn--bcher-kva.example'),
             ('https://faß.example/', 'invalid:'),
             ('https://xn--fa-hia.example/', 'https://xn--fa-hia.example'),
@@ -540,3 +544,11 @@ class TestJsBridgeHardening:
         window.load_html('<html></html>', 'https://base.example/app/')
 
         assert util.is_js_api_allowed(window, 'https://base.example/app/')
+
+    def test_explicit_blank_document_survives_navigation_invalidation(self):
+        window = webview.create_window('Blank')
+        window._allow_js_api_on('about:blank')
+        window._invalidate_js_api()
+
+        assert not util.is_local_url('about:blank')
+        assert util.is_js_api_allowed(window, 'about:blank')

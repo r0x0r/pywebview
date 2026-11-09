@@ -610,14 +610,13 @@ class Window:
 
     def _allow_js_api_on(self, url: str | None) -> None:
         """Allow the JS API on the origin of a page loaded from Python. None means HTML content."""
-        if url:
-            self._js_api_origins.add(js_api_origin(url))
-        else:
-            self._js_api_origins.add('about:blank')
+        origin = js_api_origin(url) if url else 'about:blank'
+        self._js_api_origins.add(origin)
+        if origin == 'about:blank':
             self._js_api_pending_html = True
 
     def _invalidate_js_api(self) -> None:
-        """Revoke bridge access as soon as the main document starts navigating."""
+        """Revoke bridge access at the native backend's document transition."""
         self._js_api_token = None
         if not self._js_api_pending_html:
             self._js_api_origins.discard('about:blank')
