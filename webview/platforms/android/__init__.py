@@ -78,20 +78,26 @@ class BrowserView:
 
     @run_on_ui_thread
     def create_webview(self):
-        @run_on_ui_thread
         def js_api_handler(func, params, id, token):
-            if self.webview is not None:
-                Thread(
-                    target=js_bridge_call,
-                    args=(
-                        self.pywebview_window,
-                        func,
-                        json.loads(params),
-                        id,
-                        token,
-                        str(self.webview.getUrl() or ''),
-                    ),
-                ).start()
+            source_url = None
+            ready = Semaphore(0)
+
+            @run_on_ui_thread
+            def capture_source():
+                nonlocal source_url
+                try:
+                    if self.webview is not None:
+                        source_url = str(self.webview.getUrl() or '')
+                finally:
+                    ready.release()
+
+            capture_source()
+            ready.acquire()
+            args = (self.pywebview_window, func, json.loads(params), id, token, source_url)
+            if func == 'pywebviewAsyncCallback':
+                Thread(target=js_bridge_call, args=args).start()
+            else:
+                js_bridge_call(*args)
 
         def chrome_callback(event, data):
             logger.debug('WebChromeClient event %s: %s', event, data)
