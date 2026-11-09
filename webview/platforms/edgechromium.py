@@ -232,7 +232,8 @@ class WinFormsEdgeChrome(WebView2Core):
             settings.UserAgent = _state['user_agent']
 
     def on_certificate_error(self, _, args):
-        args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
+        if self._allow_certificate(lambda: args.ServerCertificate.ToPemEncoding()):
+            args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
 
     def on_script_notify(self, _, args):
         try:

@@ -25,10 +25,12 @@ from webview.util import (
     DEFAULT_HTML,
     create_cookie,
     inject_pywebview,
+    is_local_tls_cert,
     is_test_mode,
     js_bridge_call,
     open_external_url,
     parse_file_type,
+    set_local_tls_cert,
     stringify_headers,
 )
 from webview.window import FixPoint
@@ -265,11 +267,18 @@ class BrowserView:
         ):
             # Prevent `ObjCPointerWarning: PyObjCPointer created: ... type ^{__SecTrust=}`
 
-            # this allows any server cert
-            if webview_settings['IGNORE_SSL_ERRORS'] or _state['ssl']:
-                credential = AppKit.NSURLCredential.credentialForTrust_(
-                    challenge.protectionSpace().serverTrust()
-                )
+            # IGNORE_SSL_ERRORS accepts any server certificate, ssl=True only the local server's
+            space = challenge.protectionSpace()
+            trust = (
+                space.serverTrust()
+                if space.authenticationMethod() == Foundation.NSURLAuthenticationMethodServerTrust
+                else None
+            )
+            if trust is not None and (
+                webview_settings['IGNORE_SSL_ERRORS']
+                or (_state['ssl'] and is_local_tls_cert(BrowserView._leaf_certificate(trust)))
+            ):
+                credential = AppKit.NSURLCredential.credentialForTrust_(trust)
                 handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
             else:
                 handler(AppKit.NSURLSessionAuthChallengePerformDefaultHandling, nil)
@@ -1329,6 +1338,22 @@ class BrowserView:
         return val
 
     @staticmethod
+    def _leaf_certificate(trust):
+        """Return the server's own certificate in a SecTrust as DER bytes, or None."""
+        try:
+            import Security
+
+            if hasattr(Security, 'SecTrustCopyCertificateChain'):  # macOS 12+
+                chain = Security.SecTrustCopyCertificateChain(trust)
+                leaf = chain[0] if chain else None
+            else:
+                leaf = Security.SecTrustGetCertificateAtIndex(trust, 0)
+            return bytes(Security.SecCertificateCopyData(leaf)) if leaf is not None else None
+        except Exception:
+            logger.exception('Could not read the server certificate')
+            return None
+
+    @staticmethod
     def nscolor_from_hex(hex_string, alpha=1.0):
         """
         Convert given hex color to NSColor.
@@ -1723,6 +1748,5 @@ def get_screens():
 
 
 def add_tls_cert(certfile):
-    # does not auth against the certfile
-    # see webView_didReceiveAuthenticationChallenge_completionHandler_
-    pass
+    # Checked in webView_didReceiveAuthenticationChallenge_completionHandler_
+    set_local_tls_cert(certfile)

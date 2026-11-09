@@ -16,8 +16,10 @@ from webview.util import (
     DEFAULT_HTML,
     is_js_api_allowed,
     is_js_bridge_token_valid,
+    is_local_tls_cert,
     js_bridge_call,
     open_external_url,
+    pem_to_der,
 )
 
 logger = logging.getLogger('pywebview')
@@ -71,6 +73,19 @@ class WebView2Core(ABC):
 
     def _should_ignore_ssl(self) -> bool:
         return _state['ssl'] or webview_settings['IGNORE_SSL_ERRORS']
+
+    def _allow_certificate(self, get_pem) -> bool:
+        """
+        Decide a certificate error. IGNORE_SSL_ERRORS accepts any certificate; ssl=True accepts
+        only the local HTTP server's own. get_pem returns the server certificate as PEM text.
+        """
+        if webview_settings['IGNORE_SSL_ERRORS']:
+            return True
+        try:
+            return is_local_tls_cert(pem_to_der(get_pem()))
+        except Exception:
+            logger.exception('Could not read the server certificate')
+            return False
 
     def _parse_hex_color(self, hex_color: str) -> tuple:
         c = hex_color.lstrip('#')

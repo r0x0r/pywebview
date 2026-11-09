@@ -134,6 +134,7 @@ from webview.util import (
     inject_base_uri,
     inject_pywebview,
     parse_file_type,
+    set_local_tls_cert,
 )
 from webview.window import FixPoint
 from webview.window import Window as _Window
@@ -606,7 +607,8 @@ class WinUI3EdgeChrome(WebView2Core):
     def on_certificate_error(
         self, _: CoreWebView2, args: CoreWebView2ServerCertificateErrorDetectedEventArgs
     ):
-        args.action = CoreWebView2ServerCertificateErrorAction.ALWAYS_ALLOW
+        if self._allow_certificate(lambda: args.server_certificate.to_pem_encoding()):
+            args.action = CoreWebView2ServerCertificateErrorAction.ALWAYS_ALLOW
 
     def _show_alert(self, message: str):
         dialog = ContentDialog()
@@ -2155,5 +2157,5 @@ def get_screens():
     return screens
 
 
-def add_tls_cert(_):
-    return
+def add_tls_cert(certfile):
+    set_local_tls_cert(certfile)

@@ -7,6 +7,7 @@ http://github.com/r0x0r/pywebview/
 
 from __future__ import annotations
 
+import base64
 import hmac
 import inspect
 import ipaddress
@@ -482,6 +483,33 @@ def is_js_bridge_token_valid(window: Window, token: str | None) -> bool:
         return False
 
     return True
+
+
+# DER bytes of the local HTTP server's certificate, see set_local_tls_cert
+_local_tls_cert: bytes | None = None
+
+
+def pem_to_der(pem: str) -> bytes | None:
+    """Return the DER bytes of the first certificate in PEM text, or None if there is none."""
+    match = re.search(r'-----BEGIN CERTIFICATE-----(.+?)-----END CERTIFICATE-----', pem, re.S)
+    if not match:
+        return None
+    try:
+        return base64.b64decode(''.join(match.group(1).split()), validate=True)
+    except ValueError:
+        return None
+
+
+def set_local_tls_cert(certfile: str) -> None:
+    """Remember the certificate of the local HTTP server started with webview.start(ssl=True)."""
+    global _local_tls_cert
+    with open(certfile, encoding='ascii') as f:
+        _local_tls_cert = pem_to_der(f.read())
+
+
+def is_local_tls_cert(cert: bytes | None) -> bool:
+    """Return whether a server certificate, as DER bytes, is the local HTTP server's own."""
+    return cert is not None and _local_tls_cert is not None and cert == _local_tls_cert
 
 
 EXTERNAL_URL_SCHEMES = ('http', 'https', 'mailto')

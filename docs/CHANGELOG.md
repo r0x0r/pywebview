@@ -11,6 +11,7 @@
 
 ### 🐞 Bug fixes
 
+- `EdgeChromium` `Cocoa` `webview.start(ssl=True)` no longer disables certificate checks for every site. Only the local HTTP server's own certificate is accepted; other sites are validated as usual. `IGNORE_SSL_ERRORS` still accepts any certificate. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `EdgeChromium` Navigate explicitly when loading the current URL, including `about:blank` after HTML content.
 - `All` Bind bridge calls to a revocable per-document token, reject missing native URLs and subframe injection, and deliver API results without page-controlled `eval`. Match local/opaque documents by exact URL, normalize hostnames and IP literals, and honor HTML base URI origins and Python-loaded `about:blank`. Android now honors `ALLOW_FILE_URLS`.
 - `All` Fix `evaluate_js` leaving an unused entry in `window._callbacks` on every call without a callback, including the calls the JS API bridge makes to return results, and on calls with a callback whose script did not return a promise. With a callback and a promise, `evaluate_js` now returns `None` on every backend; CEF no longer hangs in that case. Thanks @Nanahuse. [#1874](https://github.com/r0x0r/pywebview/issues/1874)

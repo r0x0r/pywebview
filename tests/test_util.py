@@ -552,3 +552,35 @@ class TestJsBridgeHardening:
 
         assert not util.is_local_url('about:blank')
         assert util.is_js_api_allowed(window, 'about:blank')
+
+
+class TestLocalTlsCert:
+    """ssl=True trusts the local HTTP server's own certificate, not every certificate."""
+
+    @staticmethod
+    def _pem(der):
+        import base64
+        import textwrap
+
+        body = '\n'.join(textwrap.wrap(base64.b64encode(der).decode(), 64))
+        return f'-----BEGIN CERTIFICATE-----\n{body}\n-----END CERTIFICATE-----\n'
+
+    def test_pem_to_der(self):
+        der = bytes(range(200))
+        assert util.pem_to_der(self._pem(der)) == der
+        assert util.pem_to_der(self._pem(der).replace('\n', '\r\n')) == der
+        assert util.pem_to_der('no certificate here') is None
+        assert util.pem_to_der('-----BEGIN CERTIFICATE-----\n!!\n-----END CERTIFICATE-----') is None
+
+    def test_only_the_local_certificate_is_accepted(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(util, '_local_tls_cert', None)
+        local, other = b'local certificate', b'some other certificate'
+        assert not util.is_local_tls_cert(local)
+
+        certfile = tmp_path / 'cert.pem'
+        certfile.write_text(self._pem(local))
+        util.set_local_tls_cert(str(certfile))
+
+        assert util.is_local_tls_cert(local)
+        assert not util.is_local_tls_cert(other)
+        assert not util.is_local_tls_cert(None)
