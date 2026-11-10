@@ -173,7 +173,7 @@ renderer: str | None = None
 
 
 def start(
-    func: Callable[..., None] | None = None,
+    func: Callable[..., Any] | None = None,
     args: Iterable[Any] | None = None,
     localization: dict[str, str] | None = None,
     gui: GUIType | None = None,
