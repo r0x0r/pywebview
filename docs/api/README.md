@@ -27,7 +27,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `title` - Window title
 * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point. Alternatively a WSGI server object can be passed to start a local web server.
 * `html` - HTML code to load. If both URL and HTML are specified, HTML takes precedence.
-* `js_api` - Expose a python object to the Javascript domain of the current `pywebview` window. Methods of the `js_api` object can be invoked from Javascript by calling `window.pywebview.api.<methodname>(<parameters>)` functions. Exposed function return a promise that return once function returns. Only basic Python objects (like int, str, dict, ...) can be returned to Javascript.
+* `js_api` - Expose a python object to the Javascript domain of the current `pywebview` window. Methods of the `js_api` object can be invoked from Javascript by calling `window.pywebview.api.<methodname>(<parameters>)` functions. Exposed function return a promise that return once function returns. Only basic Python objects (like int, str, dict, ...) can be returned to Javascript. Methods can be `async`; the promise resolves to the coroutine's result. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
 * `width` - Window width in logical pixels. Default is 800px.
 * `height` - Window height in logical pixels. Default is 600px.
 * `x` - Window x coordinate in logical pixels. Default is centered.
@@ -67,7 +67,7 @@ webview.start(func=None, args=None, localization={}, gui=None, debug=False,
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
 
-* `func` - function to invoke upon starting the GUI loop.
+* `func` - function to invoke upon starting the GUI loop. Can be an `async` function, in which case it runs on the asyncio event loop (see `event_loop`).
 * `args` - function arguments. Can be either a single value or a tuple of values.
 * `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
 * `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
@@ -257,7 +257,7 @@ Empty element by removing all its children.
 element.events
 ```
 
-A container object of element's all DOM events, ie `events.click`, `event.keydown`. This container is dynamically populated and its contents depend on the events a node has. To subscribe to a DOM event, use the `+=` syntax, e.g. `element.events.click += callback`. Similarly to remove an event listener use `-=`, eg. `element.events.click -= callback`. Callback can be either a function or an instance of `DOMEventHandler` if you need to control propagation of the event.
+A container object of element's all DOM events, ie `events.click`, `event.keydown`. This container is dynamically populated and its contents depend on the events a node has. To subscribe to a DOM event, use the `+=` syntax, e.g. `element.events.click += callback`. Similarly to remove an event listener use `-=`, eg. `element.events.click -= callback`. Callback can be either a function or an instance of `DOMEventHandler` if you need to control propagation of the event. The callback can be an `async` function. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
 
 ### element.focus
 
@@ -458,7 +458,7 @@ Instantiate to create a menu that can be either top level menu or a nested menu.
 ### menu.MenuAction
 
 `MenuAction(title, function)`
-Instantiate to create a menu item. `title` is the name of the item and function is a callback that should be called when menu action is clicked.
+Instantiate to create a menu item. `title` is the name of the item and function is a callback that should be called when menu action is clicked. The callback can be an `async` function. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
 
 ### menu.MenuSeparator
 
@@ -663,12 +663,12 @@ Destroy the window.
 window.evaluate_js(script, callback=None)
 ```
 
-Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. DOM nodes are serialized using custom serialization. Functions are omitted and circular references are converted to the `[Circular Reference]` string literal. `webview.error.JavascriptException` is thrown if executed codes raises an error.
+Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. DOM nodes are serialized using custom serialization. Functions are omitted and circular references are converted to the `[Circular Reference]` string literal. `webview.error.JavascriptException` is thrown if executed codes raises an error. The callback can be an `async` function. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
 r-strings is a recommended way to load Javascript. Note that the `evaluate_js` employs `eval`, which will fail if `unsafe-eval` CSP is set. Alternatively you may use `window.run_js(code)` that executes Javascript code as is without returning a result.
 
 ### window.expose
 
-Expose a Python function or functions to JS API. Functions are exposed as `window.pywebview.api.func_name`
+Expose a Python function or functions to JS API. Functions are exposed as `window.pywebview.api.func_name`. Functions can be `async`. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
 
 [Example](/examples/expose.html)
 
@@ -907,6 +907,8 @@ Get DOM document's window `window` as an `Element` object
 
 Window object exposes various lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g., `window.events.loaded += func`. Duplicate subscriptions are ignored, and the function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, e.g., `window.events.loaded -= func`. To access the window object from the event handler, supply the `window` parameter as the first positional argument of the handler. Most window events are asynchronous, and event handlers are executed in separate threads. The `before_show` and `before_load` events are synchronous and block the main thread until handled. The `request_sent` event is also synchronous - the underlying HTTP request is held up until the handler returns - but its execution context is backend-dependent; see its own entry below.
 
+Event handlers can be `async` functions. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically. For synchronous events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`), the event waits for the coroutine to finish and uses its return value, e.g. returning `False` from an async `closing` handler still cancels closing. Note that an async handler runs on the event loop thread rather than the thread that fired the event, so calling window methods from an async handler of a synchronous event may block until they time out. Use a regular function for those handlers if they need to call window methods.
+
 #### Calling pywebview from a blocking handler
 
 The blocking events - `closing`, `before_show` and `before_load` - run their handlers on the GUI thread. pywebview API calls work from these handlers: while a call waits for its result, the GUI event loop keeps running, the same way a modal dialog does. This means other events can be processed before the call returns. `window.evaluate_js()` and `window.get_cookies()` need the page to be loaded, so calling them from `before_show` or from the first `before_load` raises `WebViewException`. On Android and WinUI3, `window.evaluate_js()` and `window.get_cookies()` cannot be called from a blocking handler and raise `RuntimeError`, as do most dialogs on WinUI3, and on EdgeChromium the same two raise `RuntimeError` from a `before_load` handler; call them from another thread instead.
@@ -1004,7 +1006,7 @@ The event is fired when pywebview window is shown.
 
 ### window.state
 
-An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. Both class (`state.<property>`) and index (`state['property']`) notations are supported. Object mutations are not detected. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
+An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. Both class (`state.<property>`) and index (`state['property']`) notations are supported. Object mutations are not detected. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). Handlers can be `async` functions. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically. See also [Javascript state events](#state-events)
 
 ## Javascript API
 
