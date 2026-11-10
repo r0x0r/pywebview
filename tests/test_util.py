@@ -553,6 +553,30 @@ class TestJsBridgeHardening:
         assert not util.is_local_url('about:blank')
         assert util.is_js_api_allowed(window, 'about:blank')
 
+    @pytest.mark.parametrize(
+        'url, granted',
+        [
+            ('https://example.com/app', True),
+            ('http://127.0.0.1:42001/index.html', True),
+            ('http://localhost:5173/', True),
+            ('http://[::1]:8000/', True),
+            ('http://example.com/app', False),
+            ('http://192.168.1.10:8000/', False),
+        ],
+    )
+    def test_python_loaded_origin_is_granted_unless_plain_remote_http(self, url, granted):
+        window = webview.create_window('Auto trust')
+        window._allow_js_api_on(url)
+
+        assert util.is_js_api_allowed(window, url) == granted
+
+    def test_listed_plain_http_origin_is_allowed(self, monkeypatch):
+        window = webview.create_window('Auto trust')
+        monkeypatch.setitem(util.webview.settings, 'JS_API_ALLOWED_ORIGINS', ['http://example.com'])
+        window._allow_js_api_on('http://example.com/app')
+
+        assert util.is_js_api_allowed(window, 'http://example.com/app')
+
 
 class TestLocalTlsCert:
     """ssl=True trusts the local HTTP server's own certificate, not every certificate."""

@@ -8,6 +8,7 @@
 ### ⚡ Features
 
 - `All` The JS API is only available on pages loaded from Python and on origins listed in the new `webview.settings['JS_API_ALLOWED_ORIGINS']`. A page the window navigates to on its own, through a link or a redirect, no longer gets `window.pywebview`, cannot call the bridge and does not receive `window.state` changes. Set the setting to `['*']` to restore the previous behaviour. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
+- `All` A plain `http://` URL on another machine, loaded from Python, no longer gets the JS API automatically, because it can be modified in transit. List its origin in `JS_API_ALLOWED_ORIGINS` or use HTTPS. Loopback URLs, including the built-in HTTP server, are not affected. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 
 ### 🐞 Bug fixes
 

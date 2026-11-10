@@ -14,7 +14,7 @@ The native bridge uses a separate, per-document capability that is revoked on na
 
 ## Which pages get the JS API
 
-Pages you load from Python get the JS API: the URL passed to `create_window` or `load_url`, and HTML passed to `create_window(html=...)` or `load_html`. A page the window reaches on its own, by following a link, a redirect or a `location.href` change, gets it only if its origin is listed in `webview.settings['JS_API_ALLOWED_ORIGINS']`:
+Pages you load from Python get the JS API: the URL passed to `create_window` or `load_url`, and HTML passed to `create_window(html=...)` or `load_html`. The exception is plain `http://` from another machine, which anyone on the network path can modify: list such an origin in `JS_API_ALLOWED_ORIGINS` if you need it, or better, use HTTPS. Loopback addresses such as `http://127.0.0.1` and `http://localhost`, which the built-in HTTP server uses, are granted as usual. A page the window reaches on its own, by following a link, a redirect or a `location.href` change, gets it only if its origin is listed in `webview.settings['JS_API_ALLOWED_ORIGINS']`:
 
 ``` python
 webview.settings['JS_API_ALLOWED_ORIGINS'] = ['https://www.example.com']
@@ -26,7 +26,7 @@ Use the ASCII Punycode form for international hostnames with ambiguous Unicode m
 
 Redirects count as navigation by the page. If `https://example.com` redirects to `https://www.example.com`, list the second origin.
 
-Non-HTTP documents are authorized by their exact URL, not by their entire scheme. Loading HTML does not authorize arbitrary `file:`, `data:` or `about:srcdoc` documents. An HTTP(S) `base_uri` passed to `load_html` also authorizes that origin.
+Non-HTTP documents are authorized by their exact URL, not by their entire scheme. Loading HTML does not authorize arbitrary `file:`, `data:` or `about:srcdoc` documents. An HTTP(S) `base_uri` passed to `load_html` also authorizes that origin, under the same rule for plain HTTP.
 
 `window.evaluate_js()` relies on the injected object, so it does not work on a page without the JS API. `window.run_js()` does.
 

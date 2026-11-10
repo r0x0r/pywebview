@@ -26,8 +26,8 @@ from webview.util import (
     escape_string,
     is_app,
     is_local_url,
+    js_api_auto_origin,
     js_api_guard,
-    js_api_origin,
     parse_file_type,
 )
 
@@ -610,7 +610,9 @@ class Window:
 
     def _allow_js_api_on(self, url: str | None) -> None:
         """Allow the JS API on the origin of a page loaded from Python. None means HTML content."""
-        origin = js_api_origin(url) if url else 'about:blank'
+        origin = js_api_auto_origin(url) if url else 'about:blank'
+        if origin is None:
+            return
         self._js_api_origins.add(origin)
         if origin == 'about:blank':
             self._js_api_pending_html = True
