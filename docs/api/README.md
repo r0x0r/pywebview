@@ -82,7 +82,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server. You need to have `cryptography` pip dependency installed in order to use `ssl`. It is not installed by default.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 * `icon` - path to application icon. Generally icon should be specified during bundling, but if you need to set it manually, you can use this parameter. Supported formats are `.ico` on Windows and `.icns` on macOS. On Linux support depends on the desktop environment, but generally `.png` icons are supported.
-* `event_loop` - an asyncio event loop to run `async` JS API functions and event handlers on. If the loop is not running, it is run in a background thread. It must not be the loop that calls `webview.start`, since `start` blocks it; a `WebViewException` is raised in that case. If not supplied, _pywebview_ starts a loop automatically when the first coroutine needs to run and closes it when the GUI loop exits.
+* `event_loop` - an asyncio event loop for `async` JS API functions and event handlers. If the loop is not running, _pywebview_ runs it in a background thread. Do not pass the loop that calls `webview.start`: `start` blocks that loop, so a `WebViewException` is raised. If `event_loop` is not set, _pywebview_ starts a loop when the first coroutine runs and closes it when the GUI loop exits.
 
 #### Examples
 
@@ -907,7 +907,14 @@ Get DOM document's window `window` as an `Element` object
 
 Window object exposes various lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g., `window.events.loaded += func`. Duplicate subscriptions are ignored, and the function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, e.g., `window.events.loaded -= func`. To access the window object from the event handler, supply the `window` parameter as the first positional argument of the handler. Most window events are asynchronous, and event handlers are executed in separate threads. The `before_show` and `before_load` events are synchronous and block the main thread until handled. The `request_sent` event is also synchronous - the underlying HTTP request is held up until the handler returns - but its execution context is backend-dependent; see its own entry below.
 
-Event handlers can be `async` functions. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically. Async handlers of synchronous events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) are the exception: they run to completion on the thread that fired the event, using a temporary event loop, and the event uses their return value, e.g. returning `False` from an async `closing` handler still cancels closing. This lets them call window methods the same way as regular handlers, but they must not use objects tied to the shared event loop. While they run, the thread that fired the event (usually the GUI thread) is blocked.
+Event handlers can be `async` functions. Their coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on a loop that _pywebview_ starts.
+
+Async handlers of synchronous events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) work differently:
+
+- The handler runs on the thread that fired the event (usually the GUI thread), with a temporary event loop. It does not run on the shared loop, so it must not use objects that belong to the shared loop.
+- The event waits for the handler to finish and uses its return value. For example, if an async `closing` handler returns `False`, the window does not close.
+- The handler can call window methods directly, like a regular handler.
+- While the handler runs, the GUI thread does not process events. Do not call window methods from another thread (for example with `asyncio.to_thread`), and do not wait for anything that needs the GUI thread, such as a coroutine on the shared loop that calls window methods. This causes a deadlock.
 
 #### Calling pywebview from a blocking handler
 
