@@ -35,6 +35,7 @@ from webview.util import (
     _TOKEN,
     ImmutableDict,
     abspath,
+    call_maybe_async,
     is_app,
     is_local_url,
     set_event_loop,
@@ -319,9 +320,9 @@ def start(
         if args is not None:
             if not hasattr(args, '__iter__'):
                 args = (args,)
-            thread = threading.Thread(target=func, args=args)
+            thread = threading.Thread(target=call_maybe_async, args=(func, *args))
         else:
-            thread = threading.Thread(target=func)
+            thread = threading.Thread(target=call_maybe_async, args=(func,))
         thread.start()
 
     try:

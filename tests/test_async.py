@@ -6,6 +6,8 @@ import pytest
 
 from webview import util
 from webview.event import Event
+from webview.menu import MenuAction
+from webview.state import State
 from webview.util import _TOKEN, js_bridge_call
 
 
@@ -65,3 +67,52 @@ def test_automatic_event_loop_is_closed_on_stop():
     loop = util.run_async(running_loop())
     util.stop_event_loop()
     assert loop.is_closed()
+
+
+def test_async_evaluate_js_callback():
+    called = threading.Event()
+    window = MagicMock()
+
+    async def callback(value):
+        await asyncio.sleep(0.01)
+        assert value == {'a': 1}
+        called.set()
+
+    window._callbacks = {'value_id': callback}
+    js_bridge_call(window, 'pywebviewAsyncCallback', '{"a": 1}', 'value_id', _TOKEN)
+
+    assert called.wait(2)
+
+
+def test_async_state_handler():
+    called = threading.Event()
+    state = State(MagicMock())
+
+    async def handler(event_type, key, value):
+        await asyncio.sleep(0.01)
+        assert (key, value) == ('foo', 'bar')
+        called.set()
+
+    state += handler
+    state.foo = 'bar'
+
+    assert called.wait(2)
+
+
+def test_async_menu_action():
+    async def action():
+        await asyncio.sleep(0.01)
+        return 'done'
+
+    menu_action = MenuAction('Action', action)
+
+    assert menu_action.function.__name__ == 'action'
+    assert menu_action.function() == 'done'
+
+
+def test_async_start_func():
+    async def func(value):
+        await asyncio.sleep(0.01)
+        return value
+
+    assert util.call_maybe_async(func, 42) == 42

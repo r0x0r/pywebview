@@ -103,6 +103,14 @@ def run_async(awaitable: Any) -> Any:
     return asyncio.run_coroutine_threadsafe(_await(), loop).result()
 
 
+def call_maybe_async(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+    """Call a function, running the awaitable it returns (if any) on the event loop."""
+    result = func(*args, **kwargs)
+    if inspect.isawaitable(result):
+        result = run_async(result)
+    return result
+
+
 def stop_event_loop() -> None:
     """Cancel pending tasks and close the event loop if pywebview created it."""
     with _async_lock:
@@ -536,7 +544,10 @@ def js_bridge_call(
 
         callback = window._callbacks[value_id]
         if callable(callback):
-            callback(value)
+            result = callback(value)
+            # The bridge may be called on the GUI thread, so do not block it on a coroutine
+            if inspect.isawaitable(result):
+                Thread(target=run_async, args=(result,)).start()
         else:
             logger.error(
                 f'Async function executed and callback is not callable. Returned value {value}'
