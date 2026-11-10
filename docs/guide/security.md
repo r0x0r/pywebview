@@ -28,6 +28,8 @@ Redirects count as navigation by the page. If `https://example.com` redirects to
 
 Non-HTTP documents are authorized by their exact URL, not by their entire scheme. Loading HTML does not authorize arbitrary `file:`, `data:` or `about:srcdoc` documents. An HTTP(S) `base_uri` passed to `load_html` also authorizes that origin, under the same rule for plain HTTP.
 
+Loading a remote URL into a window that has a JS API trusts that whole origin, not just the page. Any page on it, and every script those pages include, such as analytics, advertising or a library from a CDN, can call your API. If the site is compromised, or its domain changes hands, so is your application. Load only sites you control into windows with a JS API, restrict what they load with a Content Security Policy and [subresource integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity), and show third-party content, such as a login provider or documentation, in a window without `js_api`. `IGNORE_SSL_ERRORS` removes the protection HTTPS gives these pages, and _pywebview_ logs a warning when it is combined with a remote page that has the JS API.
+
 `window.evaluate_js()` relies on the injected object, so it does not work on a page without the JS API. `window.run_js()` does.
 
 Treat every exposed function as a public endpoint:

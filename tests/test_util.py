@@ -577,6 +577,14 @@ class TestJsBridgeHardening:
 
         assert util.is_js_api_allowed(window, 'http://example.com/app')
 
+    def test_https_with_ignored_ssl_errors_warns(self, monkeypatch, caplog):
+        window = webview.create_window('Auto trust')
+        monkeypatch.setitem(util.webview.settings, 'IGNORE_SSL_ERRORS', True)
+        window._allow_js_api_on('https://example.com/app')
+
+        assert util.is_js_api_allowed(window, 'https://example.com/app')
+        assert 'IGNORE_SSL_ERRORS' in caplog.text
+
 
 class TestLocalTlsCert:
     """ssl=True trusts the local HTTP server's own certificate, not every certificate."""

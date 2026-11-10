@@ -329,6 +329,12 @@ def js_api_auto_origin(url: str) -> str | None:
                 url,
             )
             return None
+    elif origin.startswith('https://') and webview.settings['IGNORE_SSL_ERRORS']:
+        logger.warning(
+            'IGNORE_SSL_ERRORS is enabled, so anyone who can intercept the connection to %s can '
+            'use its JS API.',
+            origin,
+        )
     return origin
 
 
