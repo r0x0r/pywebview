@@ -84,6 +84,9 @@ def test_navigated_origin_gets_no_api(other_origin):
         time.sleep(0.5)
         assert window.run_js('window.pywebview.state.secret === undefined') is True
 
+        # The window UI script still runs, so alerts and drag regions work
+        assert window.run_js("String(window.alert).indexOf('_pywebviewAlert') !== -1") is True
+
     run_test(webview, window, check)
 
 

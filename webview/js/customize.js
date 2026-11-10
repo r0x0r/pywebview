@@ -1,24 +1,44 @@
 
 (function() {
-    var platform = window.pywebview.platform;
+    // Pages without the JS API get this script alone, with a sender that needs no token
+    var pywebview = '%(ui_only)s' === 'True' ? {
+        platform: '%(platform)s',
+        _jsApiCallback: function (funcName, params, id) {
+            var message = JSON.stringify(params);
+            switch (this.platform) {
+                case 'edgechromium':
+                case 'winui3':
+                    return window.chrome.webview.postMessage([funcName, message, id, '']);
+                case 'cocoa':
+                case 'gtkwebkit2':
+                    return window.webkit.messageHandlers.jsBridge.postMessage(
+                        JSON.stringify({funcName: funcName, params: params, id: id, token: ''})
+                    );
+                case 'qtwebengine':
+                    if (window.qt && typeof QWebChannel !== 'undefined') {
+                        new QWebChannel(qt.webChannelTransport, function (channel) {
+                            channel.objects.external.call(funcName, message, id, '');
+                        });
+                    }
+                    return;
+                case 'cef':
+                case 'android-webkit':
+                    return window.external.call(funcName, message, id, '');
+            }
+        }
+    } : window.pywebview;
+    var platform = pywebview.platform;
     var disableText = '%(text_select)s' === 'False';
     var disableTextCss = 'body {-webkit-user-select: none; -khtml-user-select: none; -ms-user-select: none; user-select: none; cursor: default;}'
 
-    if (platform == 'edgechromium' || platform == 'winui3') {
+    if (platform == 'edgechromium' || platform == 'winui3' || platform == 'gtkwebkit2' || platform === 'qtwebengine') {
         window.alert = function (message) {
-            window.chrome.webview.postMessage(['_pywebviewAlert', pywebview.stringify(message), 'alert', window.pywebview._bridgeToken]);
-        }
-    } else if (platform == 'gtkwebkit2') {
-        window.alert = function (message) {
-            window.webkit.messageHandlers.jsBridge.postMessage(pywebview.stringify({funcName: '_pywebviewAlert', params: message, id: 'alert', token: window.pywebview._bridgeToken}));
+            var text = arguments.length ? message : '';
+            pywebview._jsApiCallback('_pywebviewAlert', text == null ? String(text) : text, 'alert');
         }
     } else if (platform == 'cocoa') {
         window.print = function() {
             window.webkit.messageHandlers.browserDelegate.postMessage('print');
-        }
-    } else if (platform === 'qtwebengine') {
-        window.alert = function (message) {
-            window.pywebview._QWebChannel.objects.external.call('_pywebviewAlert', pywebview.stringify(message), 'alert', window.pywebview._bridgeToken);
         }
     } else if (platform === 'qtwebkit') {
         window.alert = function (message) {
@@ -40,7 +60,7 @@
         function onMouseMove(ev) {
             var x = ev.screenX - initialX;
             var y = ev.screenY - initialY;
-            window.pywebview._jsApiCallback('pywebviewMoveWindow', [x, y], 'move');
+            pywebview._jsApiCallback('pywebviewMoveWindow', [x, y], 'move');
         }
 
         function onMouseUp() {
@@ -57,7 +77,7 @@
             }
 
             if (platform === 'edgechromium' || platform === 'winui3') {
-                window.pywebview._jsApiCallback('pywebviewStartDrag', [], 'drag');
+                pywebview._jsApiCallback('pywebviewStartDrag', [], 'drag');
                 return;
             }
 

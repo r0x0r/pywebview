@@ -577,6 +577,23 @@ class TestJsBridgeHardening:
 
         assert util.is_js_api_allowed(window, 'http://example.com/app')
 
+    def test_window_move_is_accepted_from_any_page(self):
+        window = MagicMock()
+        js_bridge_call(window, 'pywebviewMoveWindow', [10, 20], 'move', 'not-the-token', None)
+        window.move.assert_called_once_with(10, 20)
+
+        window.move.reset_mock()
+        js_bridge_call(window, 'pywebviewMoveWindow', ['x', {}], 'move', '', None)
+        window.move.assert_not_called()
+
+    def test_ui_script_carries_no_api_or_token(self):
+        window = webview.create_window('UI')
+        script = util.load_ui_js(window, 'edgechromium')
+
+        assert "'True' === 'True'" in script
+        assert util._TOKEN not in script
+        assert 'window.pywebview =' not in script
+
     def test_https_with_ignored_ssl_errors_warns(self, monkeypatch, caplog):
         window = webview.create_window('Auto trust')
         monkeypatch.setitem(util.webview.settings, 'IGNORE_SSL_ERRORS', True)

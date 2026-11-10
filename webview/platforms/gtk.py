@@ -16,8 +16,6 @@ from webview.util import (
     DEFAULT_HTML,
     create_cookie,
     inject_pywebview,
-    is_js_api_allowed,
-    is_js_bridge_token_valid,
     js_bridge_call,
     open_external_url,
     parse_file_type,
@@ -373,11 +371,9 @@ class BrowserView:
 
         source_url = self.webview.get_uri()
 
+        # Alerts are available on every page, see util.load_ui_js
         if body['funcName'] == '_pywebviewAlert':
-            if is_js_bridge_token_valid(
-                self.pywebview_window, body.get('token', '')
-            ) and is_js_api_allowed(self.pywebview_window, source_url):
-                self.message_box(body['params'])
+            self.message_box(body['params'])
         else:
             js_bridge_call(
                 self.pywebview_window,

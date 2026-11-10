@@ -129,12 +129,13 @@ class WebView2Core(ABC):
         token = message[3] if len(message) > 3 else ''
         func_param = json.loads(func_param)
 
-        if func_name in ('_pywebviewAlert', 'pywebviewStartDrag', 'console'):
+        if func_name == 'console':
             if not is_js_bridge_token_valid(self.pywebview_window, token):
                 return
             if source_url is not None and not is_js_api_allowed(self.pywebview_window, source_url):
                 return
 
+        # Alerts and window dragging are available on every page, see util.load_ui_js
         if func_name == '_pywebviewAlert':
             self._show_alert(str(func_param))
         elif func_name == 'pywebviewStartDrag':

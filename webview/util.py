@@ -482,7 +482,16 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
             "webview.settings['JS_API_ALLOWED_ORIGINS'] to allow it.",
             url,
         )
-        window.events.loaded.set()
+
+        def inject_ui():
+            try:
+                window.run_js(load_ui_js(window, platform))
+            except Exception:
+                logger.exception('Failed to inject the window UI script')
+            finally:
+                window.events.loaded.set()
+
+        Thread(target=inject_ui).start()
         return
 
     window._js_api_pending_html = False
@@ -572,6 +581,15 @@ def js_bridge_call(
         prevents calls from other frames on transports that do not identify the sender frame.
     """
 
+    # Window UI messages, which pages without the JS API send as well, see load_ui_js
+    if func_name == 'pywebviewMoveWindow':
+        try:
+            x, y = (int(value) for value in param)
+        except (TypeError, ValueError):
+            return
+        window.move(x, y)
+        return
+
     if not is_js_bridge_token_valid(window, token):
         return
 
@@ -605,10 +623,6 @@ def js_bridge_call(
             if obj is None:
                 return None
         return obj
-
-    if func_name == 'pywebviewMoveWindow':
-        window.move(*param)
-        return
 
     if func_name == 'pywebviewEventHandler':
         event = param['event']
@@ -720,20 +734,7 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
                     'js_api_endpoint': window.js_api_endpoint,
                 }
             elif name == 'customize':
-                params = {
-                    'text_select': str(window.text_select),
-                    'drag_selector': webview.settings['DRAG_REGION_SELECTOR'],
-                    'drag_region_direct_target_only': str(
-                        webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY']
-                    ),
-                    'zoomable': str(window.zoomable),
-                    'draggable': str(window.draggable),
-                    'easy_drag': str(
-                        platform in ('edgechromium', 'winui3')
-                        and window.easy_drag
-                        and window.frameless
-                    ),
-                }
+                params = _customize_params(window, platform, ui_only=False)
             elif name == 'state':
                 params = {'state': escape_string(json.dumps(window.state))}
             elif name == 'finish':
@@ -746,6 +747,31 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
                 raise WebViewException(f'Failed to format JavaScript file {file!r}: {e}') from e
 
     return js_code, finish_script
+
+
+def _customize_params(window: Window, platform: str, ui_only: bool) -> dict[str, Any]:
+    return {
+        'platform': platform,
+        'ui_only': str(ui_only),
+        'text_select': str(window.text_select),
+        'drag_selector': webview.settings['DRAG_REGION_SELECTOR'],
+        'drag_region_direct_target_only': str(webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY']),
+        'zoomable': str(window.zoomable),
+        'draggable': str(window.draggable),
+        'easy_drag': str(
+            platform in ('edgechromium', 'winui3') and window.easy_drag and window.frameless
+        ),
+    }
+
+
+def load_ui_js(window: Window, platform: str) -> str:
+    """
+    Load the window UI script (alert dialogs, drag regions, text selection and zoom) for a page
+    that does not get the JS API. It defines no window.pywebview and carries no token.
+    """
+    path = os.path.join(get_js_dir(), 'customize.js')
+    with open(path) as f:
+        return f.read() % _customize_params(window, platform, ui_only=True)
 
 
 def get_js_dir() -> str:

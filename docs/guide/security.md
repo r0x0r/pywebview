@@ -20,7 +20,7 @@ Pages you load from Python get the JS API: the URL passed to `create_window` or 
 webview.settings['JS_API_ALLOWED_ORIGINS'] = ['https://www.example.com']
 ```
 
-An origin is a scheme, host and port, such as `https://example.com` or `http://127.0.0.1:8080`. A page from any other origin gets no `window.pywebview` object, and _pywebview_ logs a warning naming its URL. Calls it makes to the bridge are rejected, and changes to `window.state` are not sent to it. `['*']` restores the old behaviour of giving every page the API.
+An origin is a scheme, host and port, such as `https://example.com` or `http://127.0.0.1:8080`. A page from any other origin gets no `window.pywebview` object, and _pywebview_ logs a warning naming its URL. Calls it makes to the bridge are rejected, and changes to `window.state` are not sent to it. The window's own behaviour still works there: _pywebview_'s alert dialogs, drag regions and easy drag, and the `text_select`, `zoomable` and `draggable` options of `create_window`. Because of that, any page can show a native alert and move the window. `['*']` restores the old behaviour of giving every page the API.
 
 Use the ASCII Punycode form for international hostnames with ambiguous Unicode mappings, such as `https://xn--fa-hia.example` for `https://faß.example`. Such Unicode spellings are rejected rather than authorizing a different hostname.
 
