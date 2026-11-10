@@ -233,7 +233,7 @@ class ImmutableDict(UserDict):
 
 
 def is_app(url: str | Callable[..., Any] | None) -> TypeGuard[Callable[..., Any]]:
-    """Returns true if 'url' is a WSGI or ASGI app."""
+    """Returns true if 'url' is a WSGI app."""
     return callable(url)
 
 
