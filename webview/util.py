@@ -19,6 +19,7 @@ import traceback
 import urllib.parse
 from collections import UserDict
 from collections.abc import Callable
+from glob import escape as glob_escape
 from glob import glob
 from http.cookies import SimpleCookie
 from threading import Thread
@@ -494,7 +495,7 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
     """
     js_dir = get_js_dir()
     logger.debug('Loading JS files from %s', js_dir)
-    js_files = glob(os.path.join(js_dir, '**', '*.js'), recursive=True)
+    js_files = glob(os.path.join(glob_escape(js_dir), '**', '*.js'), recursive=True)
     ordered_js_files = sort_js_files(js_files)
     js_code = ''
     finish_script = ''

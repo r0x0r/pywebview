@@ -23,6 +23,7 @@
 - `Android` Fix a random `JNI DETECTED ERROR IN APPLICATION: use of deleted global reference` abort when windows are created and destroyed repeatedly in one process. Java-facing pyjnius proxies (activity lifecycle callbacks and `evaluate_js`'s value callbacks) are now kept alive for the life of the process instead of being freed per window, calls to `runOnUiThread` are serialised so concurrent calls cannot release each other's receiver, and the idle `Choreographer` frame loop that amplified both races has been removed.
 - `All` Fix deadlocks when a pywebview API, such as `evaluate_js()`, `get_cookies()`, `get_current_url()`, `window.width` or a dialog, is called from a blocking event handler (`closing`, `before_show`, `before_load`). The GUI event loop now keeps running while the call waits for its result, and `before_show`/`before_load` handlers no longer wait 20 seconds for an event that cannot fire until they return.
 - `Android` `evaluate_js()` and `get_cookies()` raise `RuntimeError` instead of deadlocking when called from a blocking event handler.
+- `All` Fix the JS bridge silently missing when pywebview is installed under a path containing glob metacharacters such as `[ ]`, e.g. a portable app in `D:\Apps\MyApp [P]\`. `load_js_files()` passed the path to `glob()` unescaped, so no JavaScript was injected, `window.pywebview.api` was never defined and `evaluate_js()` returned `None`. [#1883](https://github.com/r0x0r/pywebview/issues/1883)
 
 ### 🚀 Improvements
 
