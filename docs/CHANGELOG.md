@@ -14,6 +14,7 @@
 
 ### 🐞 Bug fixes
 
+- `All` Window moves requested by a page, which drag regions send, are only accepted for frameless windows and are kept within the extent of the screens. Previously any page could move any window to any position, and very large values raised errors in the backend. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `All` Page alerts are shown one at a time, after the bridge message has been handled, and further alerts are dropped while one is open. A page could previously stack hundreds of nested modal dialogs. On Qt, alerts are shown as plain text, so a page can no longer render clickable links in them. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `EdgeChromium` `Cocoa` `webview.start(ssl=True)` no longer disables certificate checks for every site. Only the local HTTP server's own certificate is accepted; other sites are validated as usual. `IGNORE_SSL_ERRORS` still accepts any certificate. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `EdgeChromium` Navigate explicitly when loading the current URL, including `about:blank` after HTML content.

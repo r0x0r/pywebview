@@ -565,6 +565,31 @@ def open_external_url(url: str, new: int = 0, autoraise: bool = True) -> None:
         logger.warning('Refusing to open %s externally: only http(s) and mailto are allowed', url)
 
 
+def _page_window_move(window: Window, param: Any) -> tuple[int, int] | None:
+    """
+    Validate a window move requested by a page, which drag regions send while the user drags.
+    Only frameless windows are dragged from the page. Each coordinate is kept within the total
+    width or height of all screens, which holds whatever the backend's coordinate origin is.
+    """
+    if not window.frameless:
+        return None
+    try:
+        x, y = (int(value) for value in param)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+    try:
+        screens = window.gui.get_screens()
+        limit_x = sum(abs(screen.width) for screen in screens)
+        limit_y = sum(abs(screen.height) for screen in screens)
+    except Exception:
+        limit_x = limit_y = 0
+    if not limit_x or not limit_y:
+        limit_x = limit_y = 100_000
+
+    return max(-limit_x, min(x, limit_x)), max(-limit_y, min(y, limit_y))
+
+
 def js_bridge_call(
     window: Window,
     func_name: str,
@@ -583,11 +608,9 @@ def js_bridge_call(
 
     # Window UI messages, which pages without the JS API send as well, see load_ui_js
     if func_name == 'pywebviewMoveWindow':
-        try:
-            x, y = (int(value) for value in param)
-        except (TypeError, ValueError):
-            return
-        window.move(x, y)
+        move = _page_window_move(window, param)
+        if move is not None:
+            window.move(*move)
         return
 
     if not is_js_bridge_token_valid(window, token):

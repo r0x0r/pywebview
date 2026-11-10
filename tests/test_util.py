@@ -577,14 +577,27 @@ class TestJsBridgeHardening:
 
         assert util.is_js_api_allowed(window, 'http://example.com/app')
 
-    def test_window_move_is_accepted_from_any_page(self):
-        window = MagicMock()
-        js_bridge_call(window, 'pywebviewMoveWindow', [10, 20], 'move', 'not-the-token', None)
-        window.move.assert_called_once_with(10, 20)
+    def test_window_move_from_a_page(self):
+        window = MagicMock(frameless=True)
+        window.gui.get_screens.return_value = [
+            SimpleNamespace(width=1920, height=1080),
+            SimpleNamespace(width=1280, height=1024),
+        ]
 
-        window.move.reset_mock()
-        js_bridge_call(window, 'pywebviewMoveWindow', ['x', {}], 'move', '', None)
-        window.move.assert_not_called()
+        def move(param):
+            window.move.reset_mock()
+            js_bridge_call(window, 'pywebviewMoveWindow', param, 'move', 'not-the-token', None)
+            return window.move.call_args.args if window.move.called else None
+
+        # Accepted without a token, from any page
+        assert move([10, -20]) == (10, -20)
+        # Kept within the total extent of the screens, which also stops overflowing values
+        assert move([1e12, -1e12]) == (3200, -2104)
+        assert move(['x', {}]) is None
+        assert move([1]) is None
+
+        window.frameless = False
+        assert move([10, 20]) is None
 
     def test_ui_script_carries_no_api_or_token(self):
         window = webview.create_window('UI')
