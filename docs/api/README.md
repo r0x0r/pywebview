@@ -995,7 +995,7 @@ The event is fired when pywebview window is shown.
 
 ### window.state
 
-An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. Both class (`state.<property>`) and index (`state['property']`) notations are supported. Object mutations are not detected. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
+An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. Both class (`state.<property>`) and index (`state['property']`) notations are supported. Object mutations are not detected. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `window.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
 
 ## Javascript API
 
