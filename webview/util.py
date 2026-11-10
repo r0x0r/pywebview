@@ -103,6 +103,23 @@ def run_async(awaitable: Any) -> Any:
     return asyncio.run_coroutine_threadsafe(_await(), loop).result()
 
 
+def run_async_on_current_thread(awaitable: Any) -> Any:
+    """
+    Run an awaitable to completion on the calling thread using a temporary event loop. Used for
+    blocking event handlers, which run on the GUI thread: running the coroutine there, rather than
+    on the shared loop, lets it call window methods without deadlocking against the GUI thread.
+    """
+
+    async def _await():
+        return await awaitable
+
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(_await())
+    finally:
+        loop.close()
+
+
 def call_maybe_async(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     """Call a function, running the awaitable it returns (if any) on the event loop."""
     result = func(*args, **kwargs)

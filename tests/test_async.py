@@ -4,8 +4,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
+import webview
 from webview import util
-from webview.event import Event
+from webview.errors import WebViewException
+from webview.event import Event, in_blocking_handler
 from webview.menu import MenuAction
 from webview.state import State
 from webview.util import _TOKEN, js_bridge_call
@@ -37,13 +39,26 @@ def test_async_js_api_function():
 
 def test_async_event_handler_return_value():
     event = Event(MagicMock(), should_lock=True)
+    calls = []
 
     async def handler():
         await asyncio.sleep(0.01)
+        calls.append((threading.current_thread(), in_blocking_handler()))
         return False
 
     event += handler
     assert event.set() is True
+    # Blocking handlers run on the thread that fired the event, not on the shared loop
+    assert calls == [(threading.current_thread(), True)]
+
+
+def test_start_rejects_its_own_running_loop():
+    async def main():
+        webview.create_window('Async test', html='<html></html>')
+        with pytest.raises(WebViewException, match='event_loop'):
+            webview.start(event_loop=asyncio.get_running_loop())
+
+    asyncio.run(main())
 
 
 def test_supplied_event_loop_is_used_and_left_open():

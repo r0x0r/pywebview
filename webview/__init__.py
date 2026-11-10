@@ -216,10 +216,23 @@ def start(
     :param ssl: Enable SSL for local HTTP server. Default is False.
     :param icon: Path to the icon file. Supported on GTK, QT, macOS and Windows.
     :param event_loop: asyncio event loop to run async JS API functions and event handlers on.
-        A loop that is not running is run in a background thread. If None, a loop is started
-        automatically when the first coroutine needs to run and closed when the GUI loop exits.
+        A loop that is not running is run in a background thread. It must not be the loop that
+        calls start(). If None, a loop is started automatically when the first coroutine needs
+        to run and closed when the GUI loop exits.
     """
     global guilib, renderer
+
+    if event_loop is not None and event_loop.is_running():
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+
+        if running_loop is event_loop:
+            raise WebViewException(
+                'event_loop must not be the loop running webview.start(), as start() blocks it. '
+                'Run the loop in another thread or omit event_loop.'
+            )
 
     localization = localization if localization is not None else {}
     menu = menu if menu is not None else []

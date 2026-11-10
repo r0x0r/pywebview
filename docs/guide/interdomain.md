@@ -28,6 +28,8 @@ Exposed function returns a promise that is resolved to its result value. Excepti
 
 Exposed functions can also be `async`. Coroutines are run on an asyncio event loop: either the one passed as `webview.start(event_loop=loop)`, or one that _pywebview_ starts in a background thread the first time a coroutine needs to run and closes when the GUI loop exits. A supplied loop that is not running is run in a background thread. Event handlers (`window.events`, DOM events and state changes), the function passed to `webview.start`, menu actions and `evaluate_js` callbacks can be `async` as well. See an [example](/examples/async_api.html).
 
+Window methods such as `evaluate_js` are synchronous. Calling one from a coroutine blocks the event loop until the call returns, holding up other coroutines in the meantime. To keep the loop responsive, call them with `await asyncio.to_thread(window.evaluate_js, script)`. Async handlers of synchronous events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) run on the thread that fired the event instead of the shared loop. See [Window events](/api/#window-events) for details.
+
 `pywebview.api` is not guaranteed to be available on the `window.onload` event. Subscribe to the `window.pywebviewready` event instead to make sure that `pywebview.api` is ready.
 
 [See example](/examples/js_api.html).

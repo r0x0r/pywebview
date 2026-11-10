@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from typing_extensions import Self
 
-from webview.util import run_async
+from webview.util import run_async, run_async_on_current_thread
 
 if TYPE_CHECKING:
     from typing import type_check_only
@@ -56,7 +56,12 @@ class Event:
                         value = func(*args, **kwargs)
 
                     if inspect.isawaitable(value):
-                        value = run_async(value)
+                        # Blocking handlers run on the thread that fired the event (usually the
+                        # GUI thread), so their coroutines must not wait on the shared loop
+                        if self._should_lock:
+                            value = run_async_on_current_thread(value)
+                        else:
+                            value = run_async(value)
 
                     return_values.append(value)
 
