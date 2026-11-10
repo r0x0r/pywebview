@@ -14,6 +14,7 @@
 
 ### 🐞 Bug fixes
 
+- `All` Page alerts are shown one at a time, after the bridge message has been handled, and further alerts are dropped while one is open. A page could previously stack hundreds of nested modal dialogs. On Qt, alerts are shown as plain text, so a page can no longer render clickable links in them. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `EdgeChromium` `Cocoa` `webview.start(ssl=True)` no longer disables certificate checks for every site. Only the local HTTP server's own certificate is accepted; other sites are validated as usual. `IGNORE_SSL_ERRORS` still accepts any certificate. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `EdgeChromium` Navigate explicitly when loading the current URL, including `about:blank` after HTML content.
 - `All` Bind bridge calls to a revocable per-document token, reject missing native URLs and subframe injection, and deliver API results without page-controlled `eval`. Match local/opaque documents by exact URL, normalize hostnames and IP literals, and honor HTML base URI origins and Python-loaded `about:blank`. Android now honors `ALLOW_FILE_URLS`.

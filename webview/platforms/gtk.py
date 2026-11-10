@@ -84,6 +84,7 @@ class BrowserView:
         global _app
 
         BrowserView.instances[window.uid] = self
+        self._alert_open = False
         self.uid = window.uid
         self.pywebview_window = window
 
@@ -373,7 +374,11 @@ class BrowserView:
 
         # Alerts are available on every page, see util.load_ui_js
         if body['funcName'] == '_pywebviewAlert':
-            self.message_box(body['params'])
+            # One alert at a time, shown after this handler returns, so a page cannot stack
+            # nested modal dialogs
+            if not self._alert_open:
+                self._alert_open = True
+                glib.idle_add(self._show_alert, body['params'])
         else:
             js_bridge_call(
                 self.pywebview_window,
@@ -746,6 +751,13 @@ class BrowserView:
         del self.js_results[unique_id]
 
         return result
+
+    def _show_alert(self, message):
+        try:
+            self.message_box(str(message))
+        finally:
+            self._alert_open = False
+        return False
 
     def message_box(self, message):
         dialog = gtk.MessageDialog(

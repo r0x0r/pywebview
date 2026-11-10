@@ -54,6 +54,8 @@ class WebView2Core(ABC):
 
     def __init__(self, window):
         self.pywebview_window = window
+        # Set while a page's alert is shown; the backend's _show_alert clears it when it closes
+        self._alert_open = False
         self.url = None
         self.ishtml = False
         self.html = DEFAULT_HTML
@@ -137,7 +139,10 @@ class WebView2Core(ABC):
 
         # Alerts and window dragging are available on every page, see util.load_ui_js
         if func_name == '_pywebviewAlert':
-            self._show_alert(str(func_param))
+            # One alert at a time, so a page cannot stack nested modal dialogs
+            if not self._alert_open:
+                self._alert_open = True
+                self._show_alert(str(func_param))
         elif func_name == 'pywebviewStartDrag':
             start_drag(self._drag_hwnd)
         elif func_name == 'console':

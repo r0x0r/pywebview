@@ -617,9 +617,14 @@ class WinUI3EdgeChrome(WebView2Core):
         dialog.close_button_text = self.pywebview_window.localization['global.ok']
         dialog.default_button = ContentDialogButton.CLOSE
 
-        op = dialog.show_async()
+        try:
+            op = dialog.show_async()
+        except Exception:
+            self._alert_open = False
+            raise
 
         def on_completed(op: IAsyncOperation[ContentDialogResult], status: AsyncStatus):
+            self._alert_open = False
             if status == AsyncStatus.ERROR:
                 logger.error('Error showing ContentDialog: %r', WinError(op.error_code.value))
                 return

@@ -146,7 +146,7 @@ class BrowserView(QMainWindow):
 
             # Alerts are available on every page, see util.load_ui_js
             if func_name == '_pywebviewAlert':
-                QMessageBox.information(self._parent, 'Message', str(param))
+                self._parent.show_alert(str(param))
             else:
                 return js_bridge_call(
                     self.window, func_name, json.loads(param), value_id, token, source_url
@@ -338,6 +338,7 @@ class BrowserView(QMainWindow):
     def __init__(self, window):
         super().__init__()
         BrowserView.instances[window.uid] = self
+        self._alert_open = False
         self.uid = window.uid
         self.pywebview_window = window
         self.pywebview_window.native = self
@@ -794,6 +795,25 @@ class BrowserView(QMainWindow):
 
     def load_html(self, content, base_uri):
         self.html_trigger.emit(content, base_uri)
+
+    def show_alert(self, message):
+        """
+        Show a page's alert as plain text, one at a time and outside the bridge call, so a page
+        cannot render links or stack nested modal dialogs.
+        """
+        if self._alert_open:
+            return
+        self._alert_open = True
+
+        def show():
+            try:
+                box = QMessageBox(QMessageBox.Information, 'Message', message, QMessageBox.Ok, self)
+                box.setTextFormat(QtCore.Qt.PlainText)
+                box.exec_()
+            finally:
+                self._alert_open = False
+
+        QtCore.QTimer.singleShot(0, show)
 
     def create_confirmation_dialog(self, title, message):
         result_semaphore = Semaphore(0)

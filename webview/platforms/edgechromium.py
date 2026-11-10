@@ -208,7 +208,14 @@ class WinFormsEdgeChrome(WebView2Core):
             self.webview.Source = Uri(url)
 
     def _show_alert(self, message: str):
-        WinForms.MessageBox.Show(message)
+        # Show it after the WebView2 event handler returns rather than in a nested loop inside it
+        def show():
+            try:
+                WinForms.MessageBox.Show(message)
+            finally:
+                self._alert_open = False
+
+        self.webview.BeginInvoke(Action(show))
 
     def _extract_dropped_files(self, additional_objects) -> list:
         return [
