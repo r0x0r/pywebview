@@ -21,8 +21,6 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import Any, cast
 from uuid import uuid4
 
-from proxy_tools import module_property
-
 import webview.http as http
 from webview.errors import JavascriptException, WebViewException
 from webview.event import Event
@@ -40,7 +38,6 @@ __all__ = (
     'create_window',
     'token',
     'renderer',
-    'screens',
     'settings',
     # From event
     'Event',
@@ -85,30 +82,6 @@ def _setup_logger() -> logging.Logger:
 logger = _setup_logger()
 
 
-@module_property
-def OPEN_DIALOG():
-    logger.warning(
-        "OPEN_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.OPEN' instead."
-    )
-    return 10
-
-
-@module_property
-def FOLDER_DIALOG():
-    logger.warning(
-        "FOLDER_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.FOLDER' instead."
-    )
-    return 20
-
-
-@module_property
-def SAVE_DIALOG():
-    logger.warning(
-        "SAVE_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.SAVE' instead."
-    )
-    return 30
-
-
 class FileDialog(enum.IntEnum):
     OPEN = 10
     FOLDER = 20
@@ -147,15 +120,42 @@ _state = ImmutableDict(
 )
 
 
-@module_property
-def DRAG_REGION_SELECTOR():
-    logger.warning(
-        'DRAG_REGION_SELECTOR is deprecated and will be removed in a future version. Use \'settings["DRAG_REGION_SELECTOR"]\' instead.'
-    )
-    return settings['DRAG_REGION_SELECTOR']
+_DEPRECATED_DIALOGS = {
+    'OPEN_DIALOG': ('FileDialog.OPEN', 10),
+    'FOLDER_DIALOG': ('FileDialog.FOLDER', 20),
+    'SAVE_DIALOG': ('FileDialog.SAVE', 30),
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _DEPRECATED_DIALOGS:
+        replacement, value = _DEPRECATED_DIALOGS[name]
+        logger.warning(
+            f"{name} is deprecated and will be removed in a future version. Use '{replacement}' instead."
+        )
+        return value
+
+    if name == 'DRAG_REGION_SELECTOR':
+        logger.warning(
+            'DRAG_REGION_SELECTOR is deprecated and will be removed in a future version. Use \'settings["DRAG_REGION_SELECTOR"]\' instead.'
+        )
+        return settings['DRAG_REGION_SELECTOR']
+
+    if name == 'screens':
+        # Queried on every access, so displays are not enumerated on import
+        return _get_screens()
+
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+
+
+def __dir__() -> list[str]:
+    return sorted([*globals(), 'screens'])
 
 
 guilib = None
+
+# Served by __getattr__
+screens: list[Screen]
 
 token = _TOKEN
 windows: list[Window] = []
@@ -527,13 +527,11 @@ def active_window() -> Window | None:
     return None
 
 
-@module_property
-def screens() -> list[Screen]:
+def _get_screens() -> list[Screen]:
     global renderer, guilib
 
     if not guilib:
         guilib = initialize()
         renderer = guilib.renderer
 
-    screens = guilib.get_screens()
-    return screens
+    return guilib.get_screens()

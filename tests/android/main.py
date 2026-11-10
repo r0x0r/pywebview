@@ -16,7 +16,7 @@ import pytest
 
 # Per-test watchdog. pytest-timeout cannot be used here: it has no
 # python-for-android recipe, and adding it makes p4a resolve the whole
-# requirement set through pip, which cannot build proxy_tools. Without it a
+# requirement set through pip, which can fail to build. Without it a
 # hung test stalls until CI's shell timeout with nothing naming it, and a hang
 # is exactly what this suite exists to catch.
 TEST_TIMEOUT = 60
