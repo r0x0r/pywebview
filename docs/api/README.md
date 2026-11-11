@@ -905,16 +905,43 @@ Get DOM document's window `window` as an `Element` object
 
 ## Window events
 
-Window object exposes various lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g., `window.events.loaded += func`. Duplicate subscriptions are ignored, and the function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, e.g., `window.events.loaded -= func`. To access the window object from the event handler, supply the `window` parameter as the first positional argument of the handler. Most window events are asynchronous, and event handlers are executed in separate threads. The `before_show` and `before_load` events are synchronous and block the main thread until handled. The `request_sent` event is also synchronous - the underlying HTTP request is held up until the handler returns - but its execution context is backend-dependent; see its own entry below.
+Window object exposes lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g. `window.events.loaded += func`. To unsubscribe, use the `-=` syntax, e.g. `window.events.loaded -= func`. Duplicate subscriptions are ignored. To access the window object from a handler, add a `window` parameter as the first positional argument of the handler.
 
-Event handlers can be `async` functions. Their coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on a loop that _pywebview_ starts.
+Events are either blocking or non-blocking:
 
-Async handlers of synchronous events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) work differently:
+| Event | Type | When the handler runs | Async handlers |
+| --- | --- | --- | --- |
+| `before_show`, `before_load`, `closing`, `initialized`, `request_sent` | Blocking | _pywebview_ waits for the handler to return and uses its result | Not allowed |
+| All other events | Non-blocking | In a separate thread. _pywebview_ does not wait for it | Allowed |
 
-- The handler runs on the thread that fired the event (usually the GUI thread), with a temporary event loop. It does not run on the shared loop, so it must not use objects that belong to the shared loop.
-- The event waits for the handler to finish and uses its return value. For example, if an async `closing` handler returns `False`, the window does not close.
-- The handler can call window methods directly, like a regular handler.
-- While the handler runs, the GUI thread does not process events. Do not call window methods from another thread (for example with `asyncio.to_thread`), and do not wait for anything that needs the GUI thread, such as a coroutine on the shared loop that calls window methods. This causes a deadlock.
+Blocking events wait for their handlers, because the result controls what happens next. For example, if a `closing` handler returns `False`, the window stays open. Because of this, handlers of blocking events must be regular functions. Subscribing an `async` function to a blocking event raises `TypeError`. Blocking handlers should return quickly, because the window or the HTTP request waits for them. Where a `request_sent` handler runs depends on the backend; see its own entry below.
+
+Handlers of non-blocking events can be `async` functions. Their coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on a loop that _pywebview_ starts.
+
+#### Running async code before closing
+
+A `closing` handler cannot be async. To run async code before the window closes, cancel closing, run the coroutine on your event loop, and close the window with `window.destroy()` when the coroutine is done. Some backends fire `closing` again on `window.destroy()`, so use a flag to let the second close through.
+
+``` python
+loop = asyncio.new_event_loop()
+can_close = False
+
+def on_closing():
+    if can_close:
+        return True
+
+    asyncio.run_coroutine_threadsafe(save_and_close(), loop)
+    return False  # keep the window open for now
+
+async def save_and_close():
+    global can_close
+    await save()  # your async code
+    can_close = True
+    window.destroy()
+
+window.events.closing += on_closing
+webview.start(event_loop=loop)
+```
 
 #### Calling pywebview from a blocking handler
 
@@ -922,11 +949,11 @@ The blocking events - `closing`, `before_show` and `before_load` - run their han
 
 ### window.events.before_show
 
-This event is fired just before pywebview window is shown. This is the earliest event that exposes `window.native` property. This event is blocking.
+This event is fired just before pywebview window is shown. This is the earliest event that exposes `window.native` property. This event is blocking. Handlers must be regular functions.
 
 ### window.events.before_load
 
-The event is fired right before _pywebview_ code is injected into the page. The event roughly corresponds to `DOMContentLoaded` DOM event. This event is blocking.
+The event is fired right before _pywebview_ code is injected into the page. The event roughly corresponds to `DOMContentLoaded` DOM event. This event is blocking. Handlers must be regular functions.
 
 ### window.events.closed
 
@@ -936,13 +963,13 @@ The event is fired just before _pywebview_ window is closed.
 
 ### window.events.closing
 
-The event is fired when _pywebview_ window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled.
+The event is fired when _pywebview_ window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled. This event is blocking. Handlers must be regular functions. To run async code before closing, see [Running async code before closing](#running-async-code-before-closing).
 
 [Example](/examples/events.html)
 
 ### window.events.initialized
 
-The event is fired right after GUI is chosen and HTTP server is started (if applicable). The first parameter `renderer` has a value of the chosen GUI library / web renderer. If event handler returns False, the window creation will be cancelled and GUI loop will not be started (for windows created before the GUI loop is started). This event is blocking.
+The event is fired right after GUI is chosen and HTTP server is started (if applicable). The first parameter `renderer` has a value of the chosen GUI library / web renderer. If event handler returns False, the window creation will be cancelled and GUI loop will not be started (for windows created before the GUI loop is started). This event is blocking. Handlers must be regular functions.
 
 [Example](/examples/events.html)
 
@@ -970,7 +997,7 @@ The event is fired when window is moved.
 
 ### window.events.request_sent
 
-The event is fired when a HTTP request is sent. The event is emitted for every HTTP request, except on macOS where it is emitted only for the main document. Unlike most window events, this event is blocking: the request is held up until the handler returns, so it must return promptly. Where the handler actually runs is backend-dependent: on GTK it runs inline on the main/webview thread (WebKitGTK has no way to defer the request), so it must not call APIs that need to run on that same thread (e.g. `evaluate_js`), or an exception will be raised; on macOS and Windows it runs on a separate worker thread instead, matching most other window events.
+The event is fired when a HTTP request is sent. The event is emitted for every HTTP request, except on macOS where it is emitted only for the main document. Unlike most window events, this event is blocking: the request is held up until the handler returns, so it must return promptly. Where the handler actually runs is backend-dependent: on GTK it runs inline on the main/webview thread (WebKitGTK has no way to defer the request), so it must not call APIs that need to run on that same thread (e.g. `evaluate_js`), or an exception will be raised; on macOS and Windows it runs on a separate worker thread instead, matching most other window events. This event is blocking. Handlers must be regular functions.
 The event handler can accept a single argument - a `Request` object that contains the following properties:
 
 * `url` - URL of the request

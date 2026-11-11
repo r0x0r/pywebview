@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from typing_extensions import Self
 
-from webview.util import run_async, run_async_on_current_thread
+from webview.util import run_async
 
 if TYPE_CHECKING:
     from typing import type_check_only
@@ -38,11 +38,24 @@ class EventContainer:
 
 
 class Event:
-    def __init__(self, window: Any, should_lock: bool = False) -> None:
+    def __init__(self, window: Any, should_lock: bool = False, name: str = '') -> None:
         self._items: list[Callable[..., Any]] = []
         self._should_lock = should_lock
+        self._name = name
         self._event = threading.Event()
         self._window = window
+
+    def _async_error(self) -> str:
+        return (
+            f'window.events.{self._name} is a blocking event and cannot have async handlers. '
+            'Use a regular function. To run async code before the window closes, cancel closing '
+            'and call window.destroy() when done. '
+            'See https://pywebview.flowrl.com/api/#window-events'
+        )
+
+    def _check_handler(self, item: Callable[..., Any]) -> None:
+        if self._should_lock and inspect.iscoroutinefunction(item):
+            raise TypeError(self._async_error())
 
     def set(self, *args: Any, **kwargs: Any) -> bool:
         def execute():
@@ -56,12 +69,15 @@ class Event:
                         value = func(*args, **kwargs)
 
                     if inspect.isawaitable(value):
-                        # Blocking handlers run on the thread that fired the event (usually the
-                        # GUI thread), so their coroutines must not wait on the shared loop
                         if self._should_lock:
-                            value = run_async_on_current_thread(value)
-                        else:
-                            value = run_async(value)
+                            # A regular function returned a coroutine (e.g. a lambda wrapping
+                            # one). Blocking events cannot wait for it, so discard it.
+                            if inspect.iscoroutine(value):
+                                value.close()
+                            logger.error(self._async_error())
+                            continue
+
+                        value = run_async(value)
 
                     return_values.append(value)
 
@@ -96,6 +112,7 @@ class Event:
         return self._event.clear()
 
     def __add__(self, item: Callable[..., Any]) -> Self:
+        self._check_handler(item)
         self._items.append(item)
         return self
 
@@ -107,6 +124,7 @@ class Event:
         return self
 
     def __iadd__(self, item: Callable[..., Any]) -> Self:
+        self._check_handler(item)
         self._items.append(item)
         return self
 

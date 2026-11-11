@@ -164,20 +164,22 @@ class Window:
         self._functions: dict[str, Callable[..., Any]] = {}
         self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
+        # Blocking events (should_lock=True) wait for their handlers and use their return value,
+        # so they cannot have async handlers. All other events run handlers in a separate thread.
         self.events = EventContainer()
         self.events.closed = Event(self)
-        self.events.closing = Event(self, True)
+        self.events.closing = Event(self, True, 'closing')
         self.events.loaded = Event(self)
-        self.events.before_load = Event(self, True)
-        self.events.before_show = Event(self, True)
-        self.events.initialized = Event(self, True)
+        self.events.before_load = Event(self, True, 'before_load')
+        self.events.before_show = Event(self, True, 'before_show')
+        self.events.initialized = Event(self, True, 'initialized')
         self.events.shown = Event(self)
         self.events.minimized = Event(self)
         self.events.maximized = Event(self)
         self.events.restored = Event(self)
         self.events.resized = Event(self)
         self.events.moved = Event(self)
-        self.events.request_sent = Event(self, True)
+        self.events.request_sent = Event(self, True, 'request_sent')
         self.events.response_received = Event(self)
 
         self.events._pywebviewready = Event(self)

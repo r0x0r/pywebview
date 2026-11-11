@@ -34,9 +34,23 @@ async def on_loaded(window):
     print(f'Page loaded: {window.get_current_url()}')
 
 
+async def on_closing():
+    await asyncio.sleep(0.1)
+    return True
+
+
 if __name__ == '__main__':
     window = webview.create_window('Async API example', html=html, js_api=Api())
+
+    # loaded is a non-blocking event, so its handler can be async
     window.events.loaded += on_loaded
+
+    # closing is a blocking event: pywebview waits for its handlers and uses their return
+    # value, so they must be regular functions. Subscribing an async handler raises TypeError.
+    try:
+        window.events.closing += on_closing
+    except TypeError as e:
+        print(e)
 
     # An event loop is started automatically for async functions. To use your own loop,
     # pass it with webview.start(event_loop=loop).

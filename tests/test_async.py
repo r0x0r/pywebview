@@ -7,7 +7,7 @@ import pytest
 import webview
 from webview import util
 from webview.errors import WebViewException
-from webview.event import Event, in_blocking_handler
+from webview.event import Event
 from webview.menu import MenuAction
 from webview.state import State
 from webview.util import _TOKEN, js_bridge_call
@@ -37,19 +37,43 @@ def test_async_js_api_function():
     assert "{value: '42'}" in window.evaluate_js.call_args[0][0]
 
 
-def test_async_event_handler_return_value():
-    event = Event(MagicMock(), should_lock=True)
-    calls = []
+def test_async_handler_on_non_blocking_event():
+    called = threading.Event()
+    event = Event(MagicMock())
 
     async def handler():
         await asyncio.sleep(0.01)
-        calls.append((threading.current_thread(), in_blocking_handler()))
-        return False
+        called.set()
 
     event += handler
-    assert event.set() is True
-    # Blocking handlers run on the thread that fired the event, not on the shared loop
-    assert calls == [(threading.current_thread(), True)]
+    event.set()
+
+    assert called.wait(2)
+
+
+def test_blocking_event_rejects_async_handler():
+    event = Event(MagicMock(), should_lock=True, name='closing')
+
+    async def handler():
+        return False
+
+    with pytest.raises(TypeError, match='window.events.closing is a blocking event'):
+        event += handler
+
+    assert len(event) == 0
+
+
+def test_blocking_event_discards_returned_coroutine(caplog):
+    event = Event(MagicMock(), should_lock=True, name='closing')
+
+    async def handler():
+        return False
+
+    event += lambda: handler()
+
+    # The coroutine is not awaited, so its False return value does not cancel closing
+    assert event.set() is False
+    assert 'cannot have async handlers' in caplog.text
 
 
 def test_start_rejects_its_own_running_loop():

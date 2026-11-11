@@ -5,10 +5,8 @@ thread could deliver. Each call here is made directly from the handler, so a reg
 until pytest-timeout fails the test.
 """
 
-import asyncio
 import os
 import threading
-import time
 
 import pytest
 
@@ -51,9 +49,8 @@ def _close(window):
         window.destroy()
 
 
-@pytest.mark.parametrize('use_async', [False, True], ids=['sync', 'async'])
 @pytest.mark.parametrize('phase,name', list(_params()))
-def test_api_in_blocking_handler(phase, name, use_async):
+def test_api_in_blocking_handler(phase, name):
     window = webview.create_window('Deadlock test', html='<html><body>TEST</body></html>')
     action, check = ACTIONS[name]
     result = {}
@@ -64,11 +61,8 @@ def test_api_in_blocking_handler(phase, name, use_async):
         except Exception as e:
             result['error'] = e
 
-    async def async_handler():
-        handler()
-
     event = getattr(window.events, phase)
-    event += async_handler if use_async else handler
+    event += handler
 
     def closer():
         window.events.loaded.wait(10)
@@ -101,34 +95,3 @@ def test_page_api_before_page_ready(phase, name):
     webview.start()
 
     assert 'error' in result
-
-
-def test_blocking_call_on_shared_loop_during_async_closing():
-    """
-    A coroutine on the shared loop blocks in a window method while an async closing handler is
-    pending. The handler must not need the shared loop, or neither side can proceed.
-    """
-    result = {}
-
-    class Api:
-        async def quit(self):
-            window.destroy()
-            time.sleep(0.3)  # let the GUI thread enter the closing handler
-            result['value'] = window.evaluate_js('1 + 1')
-
-    async def closing():
-        await asyncio.sleep(0)
-        result['closing'] = True
-
-    window = webview.create_window(
-        'Deadlock test', html='<html><body>TEST</body></html>', js_api=Api()
-    )
-    window.events.closing += closing
-
-    def func():
-        window.events.loaded.wait(10)
-        window.evaluate_js('pywebview.api.quit()')
-
-    webview.start(func)
-
-    assert result.get('closing'), result
