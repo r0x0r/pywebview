@@ -485,9 +485,11 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
 
     restricted = url is not None and not is_js_api_allowed(window, url)
     if restricted:
-        logger.warning(
-            'JS API is not available on %s. Add its origin to '
-            "webview.settings['ALLOWED_ORIGINS'] to allow it.",
+        # Only worth a warning if the window has something the page now cannot reach
+        uses_js_api = window._js_api is not None or bool(window._functions) or bool(window.state)
+        (logger.warning if uses_js_api else logger.debug)(
+            'window.pywebview.api, window.pywebview.token and window.state are not available '
+            "on %s. Add its origin to webview.settings['ALLOWED_ORIGINS'] to allow them.",
             url,
         )
     else:

@@ -652,6 +652,22 @@ class TestJsBridgeHardening:
         window._functions['target'].assert_not_called()
         assert 'secret' not in window.state
 
+    @pytest.mark.parametrize('js_api, warned', [(None, False), (object(), True)])
+    def test_restricted_page_warns_only_if_window_has_an_api(
+        self, monkeypatch, caplog, js_api, warned
+    ):
+        caplog.set_level(logging.DEBUG, logger='pywebview')
+        window = webview.create_window('Restricted', js_api=js_api)
+        window.js_api_endpoint = None
+        window.run_js = Mock()
+        monkeypatch.setattr(util, 'Thread', lambda target: SimpleNamespace(start=target))
+
+        util.inject_pywebview('gtkwebkit2', window, 'https://www.example.com/')
+
+        records = [r for r in caplog.records if 'are not available on' in r.getMessage()]
+        assert len(records) == 1
+        assert (records[0].levelno == logging.WARNING) == warned
+
     def test_https_with_ignored_ssl_errors_warns(self, monkeypatch, caplog):
         # CI runs with PYWEBVIEW_LOG=error, which would drop the warning
         caplog.set_level(logging.WARNING, logger='pywebview')
