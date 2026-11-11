@@ -84,8 +84,13 @@ def test_navigated_origin_gets_no_api(other_origin):
         time.sleep(0.5)
         assert window.run_js('window.pywebview.state.secret === undefined') is True
 
-        # The window UI script still runs, so alerts and drag regions work
-        assert window.run_js("String(window.alert).indexOf('_pywebviewAlert') !== -1") is True
+        # The window UI script still runs. Cocoa keeps the native alert, so check what every
+        # backend applies: the default text_select=False adds a user-select style
+        has_ui_style = (
+            "Array.prototype.some.call(document.querySelectorAll('style'), "
+            "function (s) { return s.innerHTML.indexOf('user-select') !== -1 })"
+        )
+        assert window.run_js(has_ui_style) is True
 
     run_test(webview, window, check)
 

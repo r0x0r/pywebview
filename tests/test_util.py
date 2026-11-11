@@ -1,4 +1,5 @@
 import json
+import logging
 import threading
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock
@@ -608,6 +609,8 @@ class TestJsBridgeHardening:
         assert 'window.pywebview =' not in script
 
     def test_https_with_ignored_ssl_errors_warns(self, monkeypatch, caplog):
+        # CI runs with PYWEBVIEW_LOG=error, which would drop the warning
+        caplog.set_level(logging.WARNING, logger='pywebview')
         window = webview.create_window('Auto trust')
         monkeypatch.setitem(util.webview.settings, 'IGNORE_SSL_ERRORS', True)
         window._allow_js_api_on('https://example.com/app')
