@@ -144,7 +144,7 @@ class BrowserView(QMainWindow):
 
             source_url = self._parent.webview.url().toString()
 
-            # Alerts are available on every page, see util.load_ui_js
+            # Alerts are available on every page, without the JS API too
             if func_name == '_pywebviewAlert':
                 self._parent.show_alert(str(param))
             else:

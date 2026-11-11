@@ -137,7 +137,7 @@ class WebView2Core(ABC):
             if source_url is not None and not is_js_api_allowed(self.pywebview_window, source_url):
                 return
 
-        # Alerts and window dragging are available on every page, see util.load_ui_js
+        # Alerts and window dragging are available on every page, without the JS API too
         if func_name == '_pywebviewAlert':
             # One alert at a time, so a page cannot stack nested modal dialogs
             if not self._alert_open:

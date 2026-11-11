@@ -66,7 +66,7 @@ def wait_for_api(window, timeout=10):
 @pytest.mark.skipif(
     os.environ.get('PYWEBVIEW_GUI') == 'cef', reason='CEF run_js is fire-and-forget'
 )
-def test_navigated_origin_gets_no_api(other_origin):
+def test_navigated_origin_gets_dom_but_no_api(other_origin):
     window = webview.create_window('Origins', html='<html>start</html>', js_api=Api())
 
     def check(window):
@@ -76,13 +76,27 @@ def test_navigated_origin_gets_no_api(other_origin):
         wait_for_title(window, 'spoof')
         time.sleep(1)  # allow the load handler to run
 
-        assert window.run_js('window.pywebview.token === undefined') is True
-        assert window.run_js('window.pywebview.api === undefined') is True
+        # window.pywebview is injected for the DOM API, without the API or the session token
+        assert window.evaluate_js('typeof pywebview.api.echo') == 'undefined'
+        assert window.evaluate_js('pywebview.token') == ''
 
-        # State changes from Python must not reach the page
+        # State changes from Python must not reach the page, nor the page's reach Python
         window.state.secret = 'value'
         time.sleep(0.5)
-        assert window.run_js('window.pywebview.state.secret === undefined') is True
+        assert window.evaluate_js('pywebview.state.secret === undefined') is True
+        window.run_js(
+            "pywebview._jsApiCallback('pywebviewStateUpdate', {key: 'forged', value: 1}, 'x')"
+        )
+        time.sleep(0.5)
+        assert 'forged' not in window.state
+
+        # The DOM API and its event handlers work
+        body = window.dom.get_element('body')
+        assert 'other origin' in body.text
+        clicked = threading.Event()
+        body.events.click += lambda event: clicked.set()
+        window.run_js('document.body.click()')
+        assert clicked.wait(5)
 
         # The window UI script still runs. Cocoa keeps the native alert, so check what every
         # backend applies: the default text_select=False adds a user-select style

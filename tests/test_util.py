@@ -1,6 +1,7 @@
 import json
 import logging
 import threading
+import time
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock
 
@@ -417,7 +418,9 @@ class TestJsBridgeHardening:
         window = MagicMock()
         window._js_api = api
         window._functions = {}
-        monkeypatch.setattr(util, 'load_js_files', lambda window, platform: ('', '%(functions)s'))
+        monkeypatch.setattr(
+            util, 'load_js_files', lambda window, platform, restricted=False: ('', '%(functions)s')
+        )
         monkeypatch.setattr(util, 'Thread', lambda target: SimpleNamespace(start=target))
 
         util.inject_pywebview('test', window)
@@ -600,13 +603,56 @@ class TestJsBridgeHardening:
         window.frameless = False
         assert move([10, 20]) is None
 
-    def test_ui_script_carries_no_api_or_token(self):
-        window = webview.create_window('UI')
-        script = util.load_ui_js(window, 'edgechromium')
+    def test_restricted_page_gets_pywebview_without_tokens_or_state(self):
+        window = webview.create_window('Restricted')
+        window.js_api_endpoint = None
+        window.state.secret = 'value'
+        window._js_api_token = 'document-token'
 
-        assert "'True' === 'True'" in script
+        script, _ = util.load_js_files(window, 'edgechromium', restricted=True)
         assert util._TOKEN not in script
-        assert 'window.pywebview =' not in script
+        assert 'secret' not in script
+        assert 'window.pywebview = {' in script
+
+        script, _ = util.load_js_files(window, 'edgechromium')
+        assert util._TOKEN in script
+        assert 'secret' in script
+
+    @pytest.mark.parametrize('func_name', ['pywebviewEventHandler', 'pywebviewAsyncCallback'])
+    def test_dom_calls_are_accepted_from_any_origin(self, func_name):
+        window = webview.create_window('DOM')
+        window._js_api_token = 'document-token'
+        handled = threading.Event()
+        window.dom._elements['node'] = SimpleNamespace(
+            _event_handlers={'click': [lambda event: handled.set()]}
+        )
+        window._callbacks['value-id'] = lambda value: handled.set()
+
+        param = {'event': {'type': 'click'}, 'nodeId': 'node'}
+        if func_name == 'pywebviewAsyncCallback':
+            param = '"result"'
+        js_bridge_call(
+            window, func_name, param, 'value-id', 'document-token', 'https://untrusted.example/'
+        )
+        assert handled.wait(2)
+
+    @pytest.mark.parametrize('func_name', ['target', 'pywebviewStateUpdate'])
+    def test_api_and_state_calls_need_an_allowed_origin(self, func_name):
+        window = webview.create_window('DOM')
+        window._js_api_token = 'document-token'
+        window._functions['target'] = Mock()
+
+        js_bridge_call(
+            window,
+            func_name,
+            {'key': 'secret', 'value': 1},
+            'value-id',
+            'document-token',
+            'https://untrusted.example/',
+        )
+        time.sleep(0.2)
+        window._functions['target'].assert_not_called()
+        assert 'secret' not in window.state
 
     def test_https_with_ignored_ssl_errors_warns(self, monkeypatch, caplog):
         # CI runs with PYWEBVIEW_LOG=error, which would drop the warning

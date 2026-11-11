@@ -372,7 +372,7 @@ class BrowserView:
 
         source_url = self.webview.get_uri()
 
-        # Alerts are available on every page, see util.load_ui_js
+        # Alerts are available on every page, without the JS API too
         if body['funcName'] == '_pywebviewAlert':
             # One alert at a time, shown after this handler returns, so a page cannot stack
             # nested modal dialogs

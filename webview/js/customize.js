@@ -1,33 +1,6 @@
 
 (function() {
-    // Pages without the JS API get this script alone, with a sender that needs no token
-    var pywebview = '%(ui_only)s' === 'True' ? {
-        platform: '%(platform)s',
-        _jsApiCallback: function (funcName, params, id) {
-            var message = JSON.stringify(params);
-            switch (this.platform) {
-                case 'edgechromium':
-                case 'winui3':
-                    return window.chrome.webview.postMessage([funcName, message, id, '']);
-                case 'cocoa':
-                case 'gtkwebkit2':
-                    return window.webkit.messageHandlers.jsBridge.postMessage(
-                        JSON.stringify({funcName: funcName, params: params, id: id, token: ''})
-                    );
-                case 'qtwebengine':
-                    if (window.qt && typeof QWebChannel !== 'undefined') {
-                        new QWebChannel(qt.webChannelTransport, function (channel) {
-                            channel.objects.external.call(funcName, message, id, '');
-                        });
-                    }
-                    return;
-                case 'cef':
-                case 'qtwebkit':
-                case 'android-webkit':
-                    return window.external.call(funcName, message, id, '');
-            }
-        }
-    } : window.pywebview;
+    var pywebview = window.pywebview;
     var platform = pywebview.platform;
     var disableText = '%(text_select)s' === 'False';
     var disableTextCss = 'body {-webkit-user-select: none; -khtml-user-select: none; -ms-user-select: none; user-select: none; cursor: default;}'

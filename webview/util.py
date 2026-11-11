@@ -380,9 +380,12 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
     as well as utility functions required by pywebview. The function fires before_load event before
     injecting the object and loaded event after the object is injected.
 
-    :param url: URL of the page that has loaded. The object is not injected into pages whose
-        origin is not allowed to use the JS API. None skips this check, but the injected script
-        still checks the page's actual location before it defines anything.
+    :param url: URL of the page that has loaded. Every page gets window.pywebview, so the DOM
+        API with its event handlers, evaluate_js and the window UI work everywhere. A page whose
+        origin is not allowed to use the JS API gets it without exposed functions, the session
+        token or window state, and the bridge accepts only DOM events and evaluate_js results
+        from it. None skips the origin check, but the injected script still checks the page's
+        actual location before it defines the session token.
     """
     exposed_objects = []
 
@@ -443,6 +446,10 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
         return functions
 
     def generate_func():
+        if restricted:
+            window._js_api_names = frozenset()
+            return []
+
         functions = get_functions(window._js_api)
         # The bridge dispatches only what is advertised here, see js_bridge_call
         window._js_api_names = frozenset(functions)
@@ -476,34 +483,28 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
 
     window.events.before_load.set()
 
-    if url is not None and not is_js_api_allowed(window, url):
+    restricted = url is not None and not is_js_api_allowed(window, url)
+    if restricted:
         logger.warning(
             'JS API is not available on %s. Add its origin to '
             "webview.settings['JS_API_ALLOWED_ORIGINS'] to allow it.",
             url,
         )
+    else:
+        window._js_api_pending_html = False
 
-        def inject_ui():
-            try:
-                window.run_js(load_ui_js(window, platform))
-            except Exception:
-                logger.exception('Failed to inject the window UI script')
-            finally:
-                window.events.loaded.set()
-
-        Thread(target=inject_ui).start()
-        return
-
-    window._js_api_pending_html = False
     logger.debug('before_load event fired. injecting pywebview object')
     try:
+        # Every document gets a capability; for a restricted page the bridge accepts it only for
+        # DOM events and evaluate_js results, see js_bridge_call
         bridge_token = uuid4().hex
         window._js_api_token = bridge_token
-        js_code, finish_script = load_js_files(window, platform)
-        # Stop the scripts if the page navigated to a disallowed origin before they ran
-        guard = f'if (!({js_api_guard(window)})) {{ throw new Error("pywebview: JS API not allowed") }}\n'
-        js_code = guard + js_code
-        finish_script = guard.replace('%', '%%') + finish_script
+        js_code, finish_script = load_js_files(window, platform, restricted)
+        if not restricted:
+            # Stop the scripts if the page navigated to a disallowed origin before they ran
+            guard = f'if (!({js_api_guard(window)})) {{ throw new Error("pywebview: JS API not allowed") }}\n'
+            js_code = guard + js_code
+            finish_script = guard.replace('%', '%%') + finish_script
     except Exception:
         # Called from native navigation callbacks: Python exceptions must not escape.
         logger.exception('Failed to load pywebview JavaScript')
@@ -590,6 +591,10 @@ def _page_window_move(window: Window, param: Any) -> tuple[int, int] | None:
     return max(-limit_x, min(x, limit_x)), max(-limit_y, min(y, limit_y))
 
 
+# Bridge calls that pages without the JS API may make, see js_bridge_call
+DOM_BRIDGE_CALLS = frozenset(('pywebviewEventHandler', 'pywebviewAsyncCallback'))
+
+
 def js_bridge_call(
     window: Window,
     func_name: str,
@@ -606,7 +611,7 @@ def js_bridge_call(
         prevents calls from other frames on transports that do not identify the sender frame.
     """
 
-    # Window UI messages, which pages without the JS API send as well, see load_ui_js
+    # Window UI messages, which every page sends, need no token
     if func_name == 'pywebviewMoveWindow':
         move = _page_window_move(window, param)
         if move is not None:
@@ -616,7 +621,11 @@ def js_bridge_call(
     if not is_js_bridge_token_valid(window, token):
         return
 
-    if source_url is None or not is_js_api_allowed(window, source_url):
+    # Pages from other origins have window.pywebview for the DOM API, but may only report DOM
+    # events and evaluate_js results, both of which answer to handlers Python registered
+    if source_url is None or (
+        func_name not in DOM_BRIDGE_CALLS and not is_js_api_allowed(window, source_url)
+    ):
         logger.error('Rejected JS bridge call from %s: origin is not allowed', source_url)
         return
 
@@ -728,12 +737,15 @@ def js_bridge_call(
         logger.error('Function %s() does not exist', func_name)
 
 
-def load_js_files(window: Window, platform: str) -> tuple[str, str]:
+def load_js_files(window: Window, platform: str, restricted: bool = False) -> tuple[str, str]:
     """
     Load JS files in the order they should be loaded.
     The order is api, the rest and finish.js.
     Return the concatenated JS code and the finish script, which must be loaded last and
     separately in order to
+
+    :param restricted: Load them for a page that may not use the JS API: without the session
+        token and the window state.
     """
     js_dir = get_js_dir()
     logger.debug('Loading JS files from %s', js_dir)
@@ -750,16 +762,17 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
 
             if name == 'api':
                 params = {
-                    'token': _TOKEN,
-                    'bridge_token': window._js_api_token,
+                    'token': '' if restricted else _TOKEN,
+                    'bridge_token': window._js_api_token or '',
                     'platform': platform,
                     'uid': window.uid,
                     'js_api_endpoint': window.js_api_endpoint,
                 }
             elif name == 'customize':
-                params = _customize_params(window, platform, ui_only=False)
+                params = _customize_params(window, platform)
             elif name == 'state':
-                params = {'state': escape_string(json.dumps(window.state))}
+                state = {} if restricted else window.state
+                params = {'state': escape_string(json.dumps(state))}
             elif name == 'finish':
                 finish_script = content
                 continue
@@ -772,10 +785,8 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
     return js_code, finish_script
 
 
-def _customize_params(window: Window, platform: str, ui_only: bool) -> dict[str, Any]:
+def _customize_params(window: Window, platform: str) -> dict[str, Any]:
     return {
-        'platform': platform,
-        'ui_only': str(ui_only),
         'text_select': str(window.text_select),
         'drag_selector': webview.settings['DRAG_REGION_SELECTOR'],
         'drag_region_direct_target_only': str(webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY']),
@@ -785,16 +796,6 @@ def _customize_params(window: Window, platform: str, ui_only: bool) -> dict[str,
             platform in ('edgechromium', 'winui3') and window.easy_drag and window.frameless
         ),
     }
-
-
-def load_ui_js(window: Window, platform: str) -> str:
-    """
-    Load the window UI script (alert dialogs, drag regions, text selection and zoom) for a page
-    that does not get the JS API. It defines no window.pywebview and carries no token.
-    """
-    path = os.path.join(get_js_dir(), 'customize.js')
-    with open(path) as f:
-        return f.read() % _customize_params(window, platform, ui_only=True)
 
 
 def get_js_dir() -> str:

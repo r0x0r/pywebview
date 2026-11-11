@@ -20,7 +20,7 @@ Pages you load from Python get the JS API: the URL passed to `create_window` or 
 webview.settings['JS_API_ALLOWED_ORIGINS'] = ['https://www.example.com']
 ```
 
-An origin is a scheme, host and port, such as `https://example.com` or `http://127.0.0.1:8080`. A page from any other origin gets no `window.pywebview` object, and _pywebview_ logs a warning naming its URL. Calls it makes to the bridge are rejected, and changes to `window.state` are not sent to it. The window's own behaviour still works there: _pywebview_'s alert dialogs, drag regions and easy drag, and the `text_select`, `zoomable` and `draggable` options of `create_window`. Because of that, any page can show a native alert, one at a time and as plain text, and drag a frameless window. Window moves from a page are ignored for windows that are not frameless. `['*']` restores the old behaviour of giving every page the API.
+An origin is a scheme, host and port, such as `https://example.com` or `http://127.0.0.1:8080`. A page from any other origin still gets `window.pywebview`, but without your API: `window.pywebview.api` has none of your functions, `window.pywebview.token` is empty, and _pywebview_ logs a warning naming the page's URL. Calls it makes to your API are rejected, and `window.state` is not synchronized with it in either direction. Everything else works there: `window.evaluate_js()`, the [DOM API](/guide/dom.md) including its event handlers, _pywebview_'s alert dialogs, drag regions and easy drag, and the `text_select`, `zoomable` and `draggable` options of `create_window`. Keep in mind that the page itself controls what `evaluate_js()` and DOM events report to Python. Because of that, any page can show a native alert, one at a time and as plain text, and drag a frameless window. Window moves from a page are ignored for windows that are not frameless. `['*']` restores the old behaviour of giving every page the API.
 
 Use the ASCII Punycode form for international hostnames with ambiguous Unicode mappings, such as `https://xn--fa-hia.example` for `https://faß.example`. Such Unicode spellings are rejected rather than authorizing a different hostname.
 
@@ -29,8 +29,6 @@ Redirects count as navigation by the page. If `https://example.com` redirects to
 Non-HTTP documents are authorized by their exact URL, not by their entire scheme. Loading HTML does not authorize arbitrary `file:`, `data:` or `about:srcdoc` documents. An HTTP(S) `base_uri` passed to `load_html` also authorizes that origin, under the same rule for plain HTTP.
 
 Loading a remote URL into a window that has a JS API trusts that whole origin, not just the page. Any page on it, and every script those pages include, such as analytics, advertising or a library from a CDN, can call your API. If the site is compromised, or its domain changes hands, so is your application. Load only sites you control into windows with a JS API, restrict what they load with a Content Security Policy and [subresource integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity), and show third-party content, such as a login provider or documentation, in a window without `js_api`. `IGNORE_SSL_ERRORS` removes the protection HTTPS gives these pages, and _pywebview_ logs a warning when it is combined with a remote page that has the JS API.
-
-`window.evaluate_js()` relies on the injected object, so it does not work on a page without the JS API. `window.run_js()` does.
 
 Treat every exposed function as a public endpoint:
 
