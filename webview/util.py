@@ -22,7 +22,7 @@ from collections import UserDict
 from collections.abc import Callable
 from glob import glob
 from http.cookies import SimpleCookie
-from threading import Lock, Thread
+from threading import RLock, Thread
 from typing import TYPE_CHECKING, Any, TypeGuard
 from uuid import uuid4
 
@@ -51,8 +51,13 @@ logger = logging.getLogger('pywebview')
 
 # The asyncio event loop that runs coroutines returned by JS API functions and event handlers.
 # `owned` is True when pywebview created the loop itself and is responsible for closing it.
-_async_lock = Lock()
-_async_state: dict[str, Any] = {'loop': None, 'thread': None, 'owned': False}
+_async_lock = RLock()
+_async_state: dict[str, Any] = {
+    'loop': None,
+    'thread': None,
+    'owned': False,
+    'stopped': False,
+}
 
 
 def set_event_loop(loop: asyncio.AbstractEventLoop | None) -> None:
@@ -63,7 +68,7 @@ def set_event_loop(loop: asyncio.AbstractEventLoop | None) -> None:
     stop_event_loop()
 
     with _async_lock:
-        _async_state.update(loop=loop, thread=None, owned=False)
+        _async_state.update(loop=loop, thread=None, owned=False, stopped=False)
         if loop is not None and not loop.is_running():
             _start_loop_thread(loop)
 
@@ -77,6 +82,9 @@ def _start_loop_thread(loop: asyncio.AbstractEventLoop) -> None:
 def get_event_loop() -> asyncio.AbstractEventLoop:
     """Return the event loop for running coroutines, starting one if none is set."""
     with _async_lock:
+        if _async_state['stopped']:
+            raise WebViewException('Cannot run coroutines after the event loop has been stopped')
+
         loop = _async_state['loop']
         if loop is None or loop.is_closed():
             loop = asyncio.new_event_loop()
@@ -91,16 +99,27 @@ def run_async(awaitable: Any) -> Any:
     async def _await():
         return await awaitable
 
-    loop = get_event_loop()
+    coroutine = _await()
     try:
-        running_loop = asyncio.get_running_loop()
-    except RuntimeError:
-        running_loop = None
+        # Submit under the lifecycle lock so shutdown cancels every accepted coroutine.
+        with _async_lock:
+            loop = get_event_loop()
+            try:
+                running_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                running_loop = None
 
-    if running_loop is loop:
-        raise WebViewException('Cannot block the event loop thread waiting for a coroutine')
+            if running_loop is loop:
+                raise WebViewException('Cannot block the event loop thread waiting for a coroutine')
 
-    return asyncio.run_coroutine_threadsafe(_await(), loop).result()
+            future = asyncio.run_coroutine_threadsafe(coroutine, loop)
+    except Exception:
+        coroutine.close()
+        if inspect.iscoroutine(awaitable):
+            awaitable.close()
+        raise
+
+    return future.result()
 
 
 def call_maybe_async(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
@@ -115,7 +134,7 @@ def stop_event_loop() -> None:
     """Cancel pending tasks and close the event loop if pywebview created it."""
     with _async_lock:
         loop, thread, owned = _async_state['loop'], _async_state['thread'], _async_state['owned']
-        _async_state.update(loop=None, thread=None, owned=False)
+        _async_state.update(loop=None, thread=None, owned=False, stopped=True)
 
     if not owned or loop is None or loop.is_closed():
         return

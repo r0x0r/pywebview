@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import inspect
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from webview.util import run_async
+from webview.util import call_maybe_async
 
 
 class Menu:
@@ -24,16 +23,12 @@ class Menu:
 class MenuAction:
     def __init__(self, title: str, function: Callable[[], Any]) -> None:
         self.title = title
-        self.function = function
 
-        # Backends call the function synchronously in a thread, so run coroutines to completion
-        if inspect.iscoroutinefunction(function):
+        @wraps(function)
+        def invoke() -> Any:
+            return call_maybe_async(function)
 
-            @wraps(function)
-            def run_coroutine() -> Any:
-                return run_async(function())
-
-            self.function = run_coroutine
+        self.function = invoke
         # TODO: support platform-agnostic shortcut
         # self.shortcut = shortcut
 

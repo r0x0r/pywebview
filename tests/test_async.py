@@ -1,5 +1,6 @@
 import asyncio
 import threading
+from concurrent.futures import CancelledError
 from unittest.mock import MagicMock
 
 import pytest
@@ -108,6 +109,49 @@ def test_automatic_event_loop_is_closed_on_stop():
     assert loop.is_closed()
 
 
+def test_shutdown_rejects_callbacks_dispatched_during_cancellation():
+    started = threading.Event()
+    errors = []
+    workers = []
+
+    async def nested():
+        return 'unexpected'
+
+    def dispatch():
+        try:
+            util.run_async(nested())
+        except WebViewException as error:
+            errors.append(str(error))
+
+    async def callback():
+        try:
+            started.set()
+            await asyncio.Event().wait()
+        finally:
+            worker = threading.Thread(target=dispatch, daemon=True)
+            workers.append(worker)
+            worker.start()
+
+    def run_callback():
+        try:
+            util.run_async(callback())
+        except CancelledError:
+            pass
+
+    caller = threading.Thread(target=run_callback, daemon=True)
+    caller.start()
+    assert started.wait(2)
+    util.stop_event_loop()
+    caller.join(2)
+    for worker in workers:
+        worker.join(2)
+        assert not worker.is_alive()
+
+    assert not caller.is_alive()
+    assert errors == ['Cannot run coroutines after the event loop has been stopped']
+    assert util._async_state['loop'] is None
+
+
 def test_async_evaluate_js_callback():
     called = threading.Event()
     window = MagicMock()
@@ -147,6 +191,20 @@ def test_async_menu_action():
 
     assert menu_action.function.__name__ == 'action'
     assert menu_action.function() == 'done'
+
+
+def test_menu_actions_returning_awaitables():
+    async def action():
+        await asyncio.sleep(0.01)
+        return 'done'
+
+    class AsyncAction:
+        async def __call__(self):
+            return await action()
+
+    assert MenuAction('Lambda', lambda: action()).function() == 'done'
+    assert MenuAction('Callable', AsyncAction()).function() == 'done'
+    assert MenuAction('Sync', lambda: 'sync').function() == 'sync'
 
 
 def test_async_start_func():
