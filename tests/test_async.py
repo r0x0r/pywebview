@@ -250,6 +250,29 @@ def test_owned_loop_shutdown_allows_awaited_callback_cleanup():
     assert loop.is_closed()
 
 
+def test_owned_loop_shutdown_finalizes_async_generators():
+    cleaned_up = threading.Event()
+
+    async def generate():
+        try:
+            yield 1
+        finally:
+            await asyncio.sleep(0.01)
+            cleaned_up.set()
+
+    async def open_generator():
+        generator = generate()
+        assert await anext(generator) == 1
+        return generator
+
+    generator = util.run_async(open_generator())
+    assert not cleaned_up.is_set()
+    util.stop_event_loop()
+
+    assert cleaned_up.is_set()
+    assert generator.ag_frame is None
+
+
 def test_shutdown_settles_submissions_when_task_cancellation_times_out(monkeypatch, caplog):
     loop = MagicMock()
     loop.is_closed.return_value = False

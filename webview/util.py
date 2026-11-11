@@ -150,6 +150,7 @@ def stop_event_loop() -> None:
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        await loop.shutdown_asyncgens()
 
     close_loop = owned and loop is not None and not loop.is_closed()
     if close_loop:
