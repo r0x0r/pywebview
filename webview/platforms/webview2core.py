@@ -144,7 +144,9 @@ class WebView2Core(ABC):
                 self._alert_open = True
                 self._show_alert(str(func_param))
         elif func_name == 'pywebviewStartDrag':
-            start_drag(self._drag_hwnd)
+            # As with pywebviewMoveWindow, only frameless windows are dragged from the page
+            if self.pywebview_window.frameless:
+                start_drag(self._drag_hwnd)
         elif func_name == 'console':
             print(func_param)
         else:
