@@ -145,22 +145,25 @@ def stop_event_loop() -> None:
         futures = list(_async_futures)
         _async_futures.clear()
 
-    for future in futures:
-        future.cancel()
-
-    if not owned or loop is None or loop.is_closed():
-        return
-
     async def _cancel_tasks():
         tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
 
-    try:
-        asyncio.run_coroutine_threadsafe(_cancel_tasks(), loop).result(5)
-    except Exception:
-        logger.exception('Error while cancelling pending coroutines')
+    close_loop = owned and loop is not None and not loop.is_closed()
+    if close_loop:
+        try:
+            asyncio.run_coroutine_threadsafe(_cancel_tasks(), loop).result(5)
+        except Exception:
+            logger.exception('Error while cancelling pending coroutines')
+
+    # Let owned-loop tasks finish cancellation cleanup before settling any remaining waiters.
+    for future in futures:
+        future.cancel()
+
+    if not close_loop:
+        return
 
     loop.call_soon_threadsafe(loop.stop)
     if thread is not None:

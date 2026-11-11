@@ -218,6 +218,38 @@ def test_shutdown_cancels_submissions_but_preserves_supplied_loop_tasks():
         loop.close()
 
 
+def test_owned_loop_shutdown_allows_awaited_callback_cleanup():
+    started = threading.Event()
+    cleaned_up = threading.Event()
+    cancelled = threading.Event()
+
+    async def callback():
+        try:
+            started.set()
+            await asyncio.Event().wait()
+        finally:
+            await asyncio.sleep(0.05)
+            cleaned_up.set()
+
+    def run_callback():
+        try:
+            util.run_async(callback())
+        except CancelledError:
+            cancelled.set()
+
+    worker = threading.Thread(target=run_callback, daemon=True)
+    worker.start()
+    assert started.wait(2)
+    loop = util.get_event_loop()
+    util.stop_event_loop()
+    worker.join(2)
+
+    assert cleaned_up.is_set()
+    assert cancelled.is_set()
+    assert not worker.is_alive()
+    assert loop.is_closed()
+
+
 def test_shutdown_settles_submissions_when_task_cancellation_times_out(monkeypatch, caplog):
     loop = MagicMock()
     loop.is_closed.return_value = False
