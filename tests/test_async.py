@@ -1,6 +1,6 @@
 import asyncio
 import threading
-from concurrent.futures import CancelledError
+from concurrent.futures import CancelledError, Future
 from unittest.mock import MagicMock
 
 import pytest
@@ -60,6 +60,19 @@ def test_blocking_event_rejects_async_handler():
 
     with pytest.raises(TypeError, match='window.events.closing is a blocking event'):
         event += handler
+
+    assert len(event) == 0
+
+
+def test_blocking_event_rejects_async_callable_object():
+    event = Event(MagicMock(), should_lock=True, name='closing')
+
+    class AsyncHandler:
+        async def __call__(self):
+            return False
+
+    with pytest.raises(TypeError, match='window.events.closing is a blocking event'):
+        event += AsyncHandler()
 
     assert len(event) == 0
 
@@ -150,6 +163,84 @@ def test_shutdown_rejects_callbacks_dispatched_during_cancellation():
     assert not caller.is_alive()
     assert errors == ['Cannot run coroutines after the event loop has been stopped']
     assert util._async_state['loop'] is None
+
+
+def test_shutdown_cancels_submissions_but_preserves_supplied_loop_tasks():
+    loop = asyncio.new_event_loop()
+    util.set_event_loop(loop)
+    loop_thread = util._async_state['thread']
+    started = threading.Event()
+    cancelled = threading.Event()
+    release_cleanup = threading.Event()
+
+    async def unrelated():
+        await asyncio.Event().wait()
+
+    unrelated_future = asyncio.run_coroutine_threadsafe(unrelated(), loop)
+
+    async def callback():
+        try:
+            started.set()
+            await asyncio.Event().wait()
+        finally:
+            while not release_cleanup.is_set():
+                await asyncio.sleep(0.01)
+
+    def run_callback():
+        try:
+            util.run_async(callback())
+        except CancelledError:
+            cancelled.set()
+
+    worker = threading.Thread(target=run_callback, daemon=True)
+    worker.start()
+    try:
+        assert started.wait(2)
+        util.stop_event_loop()
+        assert cancelled.wait(2)
+        worker.join(2)
+        assert not worker.is_alive()
+        assert not unrelated_future.done()
+        assert loop.is_running()
+        assert not loop.is_closed()
+    finally:
+        release_cleanup.set()
+
+        async def cleanup():
+            tasks = [task for task in asyncio.all_tasks() if task is not asyncio.current_task()]
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+        asyncio.run_coroutine_threadsafe(cleanup(), loop).result(2)
+        loop.call_soon_threadsafe(loop.stop)
+        loop_thread.join(2)
+        loop.close()
+
+
+def test_shutdown_settles_submissions_when_task_cancellation_times_out(monkeypatch, caplog):
+    loop = MagicMock()
+    loop.is_closed.return_value = False
+    loop.is_running.return_value = False
+    submission = Future()
+    util._async_state.update(loop=loop, owned=True)
+    util._async_futures.add(submission)
+
+    def submit(coroutine, target_loop):
+        assert target_loop is loop
+        coroutine.close()
+        future = Future()
+        future.set_exception(TimeoutError('Cancellation timed out'))
+        return future
+
+    monkeypatch.setattr(asyncio, 'run_coroutine_threadsafe', submit)
+    util.stop_event_loop()
+
+    assert submission.cancelled()
+    assert not util._async_futures
+    assert 'Error while cancelling pending coroutines' in caplog.text
+    loop.call_soon_threadsafe.assert_called_once_with(loop.stop)
+    loop.close.assert_called_once()
 
 
 def test_async_evaluate_js_callback():

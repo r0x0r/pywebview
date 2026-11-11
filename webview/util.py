@@ -20,6 +20,7 @@ import traceback
 import urllib.parse
 from collections import UserDict
 from collections.abc import Callable
+from concurrent.futures import Future
 from glob import glob
 from http.cookies import SimpleCookie
 from threading import RLock, Thread
@@ -52,6 +53,7 @@ logger = logging.getLogger('pywebview')
 # The asyncio event loop that runs coroutines returned by JS API functions and event handlers.
 # `owned` is True when pywebview created the loop itself and is responsible for closing it.
 _async_lock = RLock()
+_async_futures: set[Future[Any]] = set()
 _async_state: dict[str, Any] = {
     'loop': None,
     'thread': None,
@@ -113,13 +115,18 @@ def run_async(awaitable: Any) -> Any:
                 raise WebViewException('Cannot block the event loop thread waiting for a coroutine')
 
             future = asyncio.run_coroutine_threadsafe(coroutine, loop)
+            _async_futures.add(future)
     except Exception:
         coroutine.close()
         if inspect.iscoroutine(awaitable):
             awaitable.close()
         raise
 
-    return future.result()
+    try:
+        return future.result()
+    finally:
+        with _async_lock:
+            _async_futures.discard(future)
 
 
 def call_maybe_async(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
@@ -131,10 +138,15 @@ def call_maybe_async(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any
 
 
 def stop_event_loop() -> None:
-    """Cancel pending tasks and close the event loop if pywebview created it."""
+    """Cancel callback submissions and close the event loop if pywebview created it."""
     with _async_lock:
         loop, thread, owned = _async_state['loop'], _async_state['thread'], _async_state['owned']
         _async_state.update(loop=None, thread=None, owned=False, stopped=True)
+        futures = list(_async_futures)
+        _async_futures.clear()
+
+    for future in futures:
+        future.cancel()
 
     if not owned or loop is None or loop.is_closed():
         return

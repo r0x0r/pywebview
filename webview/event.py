@@ -54,7 +54,10 @@ class Event:
         )
 
     def _check_handler(self, item: Callable[..., Any]) -> None:
-        if self._should_lock and inspect.iscoroutinefunction(item):
+        if self._should_lock and (
+            inspect.iscoroutinefunction(item)
+            or inspect.iscoroutinefunction(getattr(item, '__call__', None))
+        ):
             raise TypeError(self._async_error())
 
     def set(self, *args: Any, **kwargs: Any) -> bool:

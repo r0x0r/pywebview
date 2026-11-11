@@ -82,7 +82,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server. You need to have `cryptography` pip dependency installed in order to use `ssl`. It is not installed by default.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 * `icon` - path to application icon. Generally icon should be specified during bundling, but if you need to set it manually, you can use this parameter. Supported formats are `.ico` on Windows and `.icns` on macOS. On Linux support depends on the desktop environment, but generally `.png` icons are supported.
-* `event_loop` - an asyncio event loop for `async` JS API functions and event handlers. If the loop is not running, _pywebview_ runs it in a background thread. Do not pass the loop that calls `webview.start`: `start` blocks that loop, so a `WebViewException` is raised. If `event_loop` is not set, _pywebview_ starts a loop when the first coroutine runs and closes it when the GUI loop exits.
+* `event_loop` - an asyncio event loop for `async` JS API functions and event handlers. If the loop is not running, _pywebview_ runs it in a background thread. Do not pass the loop that calls `webview.start`: `start` blocks that loop, so a `WebViewException` is raised. If `event_loop` is not set, _pywebview_ starts a loop when the first coroutine runs and closes it when the GUI loop exits. Pending pywebview callback submissions are cancelled on exit, including when a loop is supplied. A supplied loop and its unrelated tasks are left running; stopping and closing that loop is the caller's responsibility.
 
 #### Examples
 
