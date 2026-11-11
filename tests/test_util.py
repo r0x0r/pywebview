@@ -503,7 +503,7 @@ class TestJsBridgeHardening:
 
     def test_js_api_allowed_origins(self, monkeypatch):
         window = SimpleNamespace(_js_api_origins={'http://127.0.0.1:8080'})
-        settings = {'JS_API_ALLOWED_ORIGINS': ['https://Example.com/']}
+        settings = {'ALLOWED_ORIGINS': ['https://Example.com/']}
         monkeypatch.setattr(util.webview, 'settings', settings)
 
         assert util.is_js_api_allowed(window, 'http://127.0.0.1:8080/page.html')
@@ -512,7 +512,7 @@ class TestJsBridgeHardening:
         assert not util.is_js_api_allowed(window, 'https://www.example.com/')
         assert not util.is_js_api_allowed(window, 'file:///etc/passwd')
 
-        settings['JS_API_ALLOWED_ORIGINS'] = ['*']
+        settings['ALLOWED_ORIGINS'] = ['*']
         assert util.is_js_api_allowed(window, 'https://anything.example/')
         assert util.js_api_guard(window) == 'true'
 
@@ -532,9 +532,7 @@ class TestJsBridgeHardening:
 
     def test_ambiguous_unicode_origin_never_authorizes_another_host(self, monkeypatch):
         window = SimpleNamespace(_js_api_origins=set())
-        monkeypatch.setitem(
-            util.webview.settings, 'JS_API_ALLOWED_ORIGINS', ['https://faß.example']
-        )
+        monkeypatch.setitem(util.webview.settings, 'ALLOWED_ORIGINS', ['https://faß.example'])
 
         assert not util.is_js_api_allowed(window, 'https://fass.example/')
         assert not util.is_js_api_allowed(window, 'https://faß.example/')
@@ -576,7 +574,7 @@ class TestJsBridgeHardening:
 
     def test_listed_plain_http_origin_is_allowed(self, monkeypatch):
         window = webview.create_window('Auto trust')
-        monkeypatch.setitem(util.webview.settings, 'JS_API_ALLOWED_ORIGINS', ['http://example.com'])
+        monkeypatch.setitem(util.webview.settings, 'ALLOWED_ORIGINS', ['http://example.com'])
         window._allow_js_api_on('http://example.com/app')
 
         assert util.is_js_api_allowed(window, 'http://example.com/app')

@@ -106,6 +106,7 @@ Return a list of available displays (as `Screen` objects) with the primary displ
 webview.settings = {
   'ALLOW_DOWNLOADS': False,
   'ALLOW_FILE_URLS': False,
+  'ALLOWED_ORIGINS': [],
   'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
   'DRAG_REGION_DIRECT_TARGET_ONLY': False,
   'DEFAULT_HTTP_PORT': 42001,
@@ -113,7 +114,6 @@ webview.settings = {
   'OPEN_DEVTOOLS_IN_DEBUG': True,
   'REMOTE_DEBUGGING_PORT': None,
   'IGNORE_SSL_ERRORS': False,
-  'JS_API_ALLOWED_ORIGINS': [],
   'JS_API_MAX_DEPTH': 10,
   'SHOW_DEFAULT_MENUS': True,
   'WEBVIEW2_RUNTIME_PATH': None
@@ -124,11 +124,11 @@ Additional options that override default behaviour of _pywebview_ to address pop
 
 * `ALLOW_DOWNLOADS` Allow file downloads. Disabled by default.
 * `ALLOW_FILE_URLS` Allow scripts on `file://` pages to read other local files. Disabled by default. On Qt, it must be enabled for `file://` pages to load their own scripts, styles and images. See [Security](/guide/security.md#local-files).
+* `ALLOWED_ORIGINS` Additional origins, such as `'https://example.com'`, whose pages get the JS API: the functions in `window.pywebview.api`, `window.pywebview.token` and `window.state`. Pages loaded from Python with `create_window`, `load_url` or `load_html` always get it. Pages the window navigates to on its own, by following a link or a redirect, get it only if their origin is listed. Other pages still get `window.pywebview` for `evaluate_js()` and the DOM API. `['*']` allows every origin. Empty by default. See [Security](/guide/security.md#which-pages-get-the-js-api).
 * `DRAG_REGION_SELECTOR` CSS selector for a drag region in easy drag mode. Default selector is `.pywebview-drag-region`.
 * `DRAG_REGION_DIRECT_TARGET_ONLY` When set to True, only elements that directly match the drag region selector are draggable. When False, child elements of a drag region are also draggable. Default is False.
 * `DEFAULT_HTTP_PORT` Port used for the internal HTTP server when private mode is disabled and no explicit port is given. Default is 42001.
 * `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
-* `JS_API_ALLOWED_ORIGINS` Additional origins, such as `'https://example.com'`, whose pages get the JS API: the functions in `window.pywebview.api`, `window.pywebview.token` and `window.state`. Pages loaded from Python with `create_window`, `load_url` or `load_html` always get it. Pages the window navigates to on its own, by following a link or a redirect, get it only if their origin is listed. Other pages still get `window.pywebview` for `evaluate_js()` and the DOM API. `['*']` allows every origin. Empty by default. See [Security](/guide/security.md#which-pages-get-the-js-api).
 * `JS_API_MAX_DEPTH` Maximum depth of nested `js_api` objects that are walked when exposing functions to Javascript. Guards against runaway recursion into objects whose attributes return a fresh object on every access (e.g. native GUI objects). Default is 10.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.

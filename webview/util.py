@@ -313,7 +313,7 @@ def js_api_auto_origin(url: str) -> str | None:
     """
     Return the origin that a page loaded from Python grants the JS API to, or None if it is not
     granted automatically. Plain HTTP from another machine can be modified in transit, so it must
-    be listed in JS_API_ALLOWED_ORIGINS. Loopback HTTP, such as the built-in server, is granted.
+    be listed in ALLOWED_ORIGINS. Loopback HTTP, such as the built-in server, is granted.
     """
     origin = js_api_origin(url)
     if origin.startswith('http://'):
@@ -325,7 +325,7 @@ def js_api_auto_origin(url: str) -> str | None:
         if not loopback:
             logger.warning(
                 'JS API is not enabled automatically on %s, because plain HTTP can be modified '
-                "in transit. Use HTTPS or add the origin to webview.settings['JS_API_ALLOWED_ORIGINS'].",
+                "in transit. Use HTTPS or add the origin to webview.settings['ALLOWED_ORIGINS'].",
                 url,
             )
             return None
@@ -340,7 +340,7 @@ def js_api_auto_origin(url: str) -> str | None:
 
 def _js_api_trusted_origins(window: Window) -> set[str] | None:
     """Origins allowed to use the JS API in the window, or None if every origin is allowed."""
-    allowed = webview.settings['JS_API_ALLOWED_ORIGINS']
+    allowed = webview.settings['ALLOWED_ORIGINS']
     if '*' in allowed:
         return None
     return (window._js_api_origins | {js_api_origin(origin) for origin in allowed}) - {'invalid:'}
@@ -487,7 +487,7 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
     if restricted:
         logger.warning(
             'JS API is not available on %s. Add its origin to '
-            "webview.settings['JS_API_ALLOWED_ORIGINS'] to allow it.",
+            "webview.settings['ALLOWED_ORIGINS'] to allow it.",
             url,
         )
     else:

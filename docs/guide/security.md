@@ -14,10 +14,10 @@ The native bridge uses a separate, per-document capability that is revoked on na
 
 ## Which pages get the JS API
 
-Pages you load from Python get the JS API: the URL passed to `create_window` or `load_url`, and HTML passed to `create_window(html=...)` or `load_html`. The exception is plain `http://` from another machine, which anyone on the network path can modify: list such an origin in `JS_API_ALLOWED_ORIGINS` if you need it, or better, use HTTPS. Loopback addresses such as `http://127.0.0.1` and `http://localhost`, which the built-in HTTP server uses, are granted as usual. A page the window reaches on its own, by following a link, a redirect or a `location.href` change, gets it only if its origin is listed in `webview.settings['JS_API_ALLOWED_ORIGINS']`:
+Pages you load from Python get the JS API: the URL passed to `create_window` or `load_url`, and HTML passed to `create_window(html=...)` or `load_html`. The exception is plain `http://` from another machine, which anyone on the network path can modify: list such an origin in `ALLOWED_ORIGINS` if you need it, or better, use HTTPS. Loopback addresses such as `http://127.0.0.1` and `http://localhost`, which the built-in HTTP server uses, are granted as usual. A page the window reaches on its own, by following a link, a redirect or a `location.href` change, gets it only if its origin is listed in `webview.settings['ALLOWED_ORIGINS']`:
 
 ``` python
-webview.settings['JS_API_ALLOWED_ORIGINS'] = ['https://www.example.com']
+webview.settings['ALLOWED_ORIGINS'] = ['https://www.example.com']
 ```
 
 An origin is a scheme, host and port, such as `https://example.com` or `http://127.0.0.1:8080`. A page from any other origin still gets `window.pywebview`, but without your API: `window.pywebview.api` has none of your functions, `window.pywebview.token` is empty, and _pywebview_ logs a warning naming the page's URL. Calls it makes to your API are rejected, and `window.state` is not synchronized with it in either direction. Everything else works there: `window.evaluate_js()`, the [DOM API](/guide/dom.md) including its event handlers, _pywebview_'s alert dialogs, drag regions and easy drag, and the `text_select`, `zoomable` and `draggable` options of `create_window`. Keep in mind that the page itself controls what `evaluate_js()` and DOM events report to Python. Because of that, any page can show a native alert, one at a time and as plain text, and drag a frameless window. Window moves from a page are ignored for windows that are not frameless. `['*']` restores the old behaviour of giving every page the API.
@@ -63,7 +63,7 @@ A Content Security Policy limits where a page can load scripts and other resourc
 
 ## Checklist
 
-- Load only content you control in windows that have a JS API, and keep `JS_API_ALLOWED_ORIGINS` to the origins you need.
+- Load only content you control in windows that have a JS API, and keep `ALLOWED_ORIGINS` to the origins you need.
 - Validate the arguments of every exposed function.
 - Leave `ALLOW_FILE_URLS` off, and serve your files through the built-in HTTP server.
 - Use a Content Security Policy.

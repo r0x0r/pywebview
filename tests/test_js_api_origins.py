@@ -113,7 +113,7 @@ def test_navigated_origin_gets_dom_but_no_api(other_origin):
     os.environ.get('PYWEBVIEW_GUI') == 'cef', reason='CEF run_js is fire-and-forget'
 )
 def test_listed_origin_gets_api(other_origin):
-    webview.settings['JS_API_ALLOWED_ORIGINS'] = [other_origin]
+    webview.settings['ALLOWED_ORIGINS'] = [other_origin]
     window = webview.create_window('Origins', html='<html>start</html>', js_api=Api())
 
     def check(window):
