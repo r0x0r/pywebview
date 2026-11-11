@@ -22,6 +22,7 @@
                     }
                     return;
                 case 'cef':
+                case 'qtwebkit':
                 case 'android-webkit':
                     return window.external.call(funcName, message, id, '');
             }
