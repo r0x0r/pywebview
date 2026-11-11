@@ -124,6 +124,38 @@ def test_listed_origin_gets_api(other_origin):
     run_test(webview, window, check)
 
 
+@pytest.mark.skipif(
+    os.environ.get('PYWEBVIEW_GUI') == 'cef', reason='CEF run_js is fire-and-forget'
+)
+def test_allowed_origins_apply_from_the_next_page_load(other_origin):
+    calls = []
+
+    def exposed(value):
+        calls.append(value)
+
+    window = webview.create_window('Origins', html='<html>start</html>', js_api=Api())
+
+    def check(window):
+        window.expose(exposed)
+        window.run_js(f"window.location.href = '{other_origin}/plain.html'")
+        wait_for_title(window, 'plain')
+        time.sleep(1)  # allow the load handler to run
+
+        # Allowing the origin does not change the page that is already loaded
+        webview.settings['ALLOWED_ORIGINS'] = [other_origin]
+        window.run_js("pywebview._jsApiCallback('exposed', [1], 'call')")
+        time.sleep(0.5)
+        assert calls == []
+
+        window.run_js('window.location.reload()')
+        wait_for_api(window)
+        window.run_js("pywebview._jsApiCallback('exposed', [2], 'call')")
+        time.sleep(0.5)
+        assert calls == [2]
+
+    run_test(webview, window, check)
+
+
 def test_origin_loaded_from_python_gets_api(other_origin):
     window = webview.create_window('Origins', html='<html>start</html>', js_api=Api())
 

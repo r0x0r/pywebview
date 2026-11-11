@@ -282,6 +282,8 @@ class TestBridgeTokenValidation:
         window._functions = {'target': target}
         window._js_api_token = 'document-token'
         window._js_api_origins = {'https://trusted.example'}
+        window._js_api_restricted = False
+        window._js_api_document_url = 'https://trusted.example/'
         return window
 
     def test_valid_token_invokes_function(self):
@@ -394,6 +396,8 @@ class TestJsBridgeHardening:
         window._js_api_names = frozenset(advertised)
         window._js_api_token = 'document-token'
         window._js_api_origins = {'https://trusted.example'}
+        window._js_api_restricted = False
+        window._js_api_document_url = 'https://trusted.example/'
         js_bridge_call(
             window, func_name, [], 'value_id', window._js_api_token, 'https://trusted.example'
         )
@@ -434,6 +438,8 @@ class TestJsBridgeHardening:
         window.state = State(window)
         window._js_api_token = 'document-token'
         window._js_api_origins = {'https://trusted.example'}
+        window._js_api_restricted = False
+        window._js_api_document_url = 'https://trusted.example/'
         handlers = window.state._State__event_handlers
 
         js_bridge_call(
@@ -667,6 +673,60 @@ class TestJsBridgeHardening:
         records = [r for r in caplog.records if 'are not available on' in r.getMessage()]
         assert len(records) == 1
         assert (records[0].levelno == logging.WARNING) == warned
+
+    def _document(self, url, restricted):
+        window = webview.create_window('Document')
+        window._js_api_token = 'document-token'
+        window._js_api_restricted = restricted
+        window._js_api_document_url = url
+        window._functions['target'] = Mock(return_value='ok')
+        window.gui = Mock()  # receives the result of accepted calls
+        window.events.before_load.set()
+        return window
+
+    def _send(self, window, source_url):
+        window._functions['target'].reset_mock()
+        js_bridge_call(window, 'target', [], 'value-id', 'document-token', source_url)
+        time.sleep(0.2)
+        return window._functions['target'].called
+
+    def test_trust_holds_for_the_document_until_navigation(self, monkeypatch):
+        url = 'https://trusted.example/app'
+        window = self._document(url, restricted=False)
+        monkeypatch.setitem(util.webview.settings, 'ALLOWED_ORIGINS', [])
+        assert self._send(window, url)
+
+        # Restricted when injected: allowing the origin later changes nothing for it
+        window = self._document(url, restricted=True)
+        monkeypatch.setitem(util.webview.settings, 'ALLOWED_ORIGINS', ['https://trusted.example'])
+        assert not self._send(window, url)
+
+        # A navigation resets the decision until the next injection
+        window = self._document(url, restricted=False)
+        window._invalidate_js_api()
+        window._js_api_token = 'document-token'
+        assert not self._send(window, url)
+
+    def test_sender_must_be_the_trusted_document(self):
+        window = self._document('https://trusted.example/app', restricted=False)
+        assert self._send(window, 'https://trusted.example/other-page')
+        assert not self._send(window, 'https://untrusted.example/')
+
+    @pytest.mark.parametrize('restricted', [True, False])
+    def test_expose_warns_on_a_restricted_document(self, caplog, restricted):
+        caplog.set_level(logging.WARNING, logger='pywebview')
+        window = self._document('https://www.example.com/', restricted)
+        window.gui.reset_mock()
+        window.events.loaded.set()
+
+        def late():
+            pass
+
+        window.expose(late)
+
+        warned = 'Exposed functions are not available on https://www.example.com/' in caplog.text
+        assert warned == restricted
+        assert window.gui.evaluate_js.called != restricted
 
     def test_https_with_ignored_ssl_errors_warns(self, monkeypatch, caplog):
         # CI runs with PYWEBVIEW_LOG=error, which would drop the warning

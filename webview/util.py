@@ -352,13 +352,19 @@ def is_js_api_allowed(window: Window, url: str | None) -> bool:
     return trusted is None or js_api_origin(url) in trusted
 
 
-def js_api_guard(window: Window) -> str:
+def js_api_guard(window: Window, document: bool = False) -> str:
     """
     Return a Javascript expression that is true only on a page the window's JS API is allowed on.
     It is evaluated in the page itself, which may have navigated since Python last checked it.
     The page cannot spoof location, and the comparison avoids prototype methods it could replace.
+
+    :param document: Check only that the page is still the document whose trust was decided when
+        it was injected, rather than checking it against ALLOWED_ORIGINS as it is now.
     """
-    trusted = _js_api_trusted_origins(window)
+    if document and window._js_api_document_url is not None:
+        trusted: set[str] | None = {js_api_origin(window._js_api_document_url)}
+    else:
+        trusted = _js_api_trusted_origins(window)
     if trusted is None:
         return 'true'
 
@@ -484,6 +490,10 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
     window.events.before_load.set()
 
     restricted = url is not None and not is_js_api_allowed(window, url)
+    # The trust decision holds for this document until the next navigation, whatever
+    # ALLOWED_ORIGINS later becomes, see js_bridge_call and Window._run_js_api_js
+    window._js_api_restricted = restricted
+    window._js_api_document_url = url
     if restricted:
         # Only worth a warning if the window has something the page now cannot reach
         uses_js_api = window._js_api is not None or bool(window._functions) or bool(window.state)
@@ -593,6 +603,18 @@ def _page_window_move(window: Window, param: Any) -> tuple[int, int] | None:
     return max(-limit_x, min(x, limit_x)), max(-limit_y, min(y, limit_y))
 
 
+def _is_trusted_document(window: Window, source_url: str) -> bool:
+    """
+    Return whether the current document may use the JS API, as decided when it was injected.
+    The sender must also be the document that decision was made for.
+    """
+    if window._js_api_restricted:
+        return False
+    if window._js_api_document_url is None:  # injected without a URL to check
+        return is_js_api_allowed(window, source_url)
+    return js_api_origin(source_url) == js_api_origin(window._js_api_document_url)
+
+
 # Bridge calls that pages without the JS API may make, see js_bridge_call
 DOM_BRIDGE_CALLS = frozenset(('pywebviewEventHandler', 'pywebviewAsyncCallback'))
 
@@ -626,7 +648,7 @@ def js_bridge_call(
     # Pages from other origins have window.pywebview for the DOM API, but may only report DOM
     # events and evaluate_js results, both of which answer to handlers Python registered
     if source_url is None or (
-        func_name not in DOM_BRIDGE_CALLS and not is_js_api_allowed(window, source_url)
+        func_name not in DOM_BRIDGE_CALLS and not _is_trusted_document(window, source_url)
     ):
         logger.error('Rejected JS bridge call from %s: origin is not allowed', source_url)
         return
@@ -644,7 +666,7 @@ def js_bridge_call(
 
         # The page may have navigated while the function ran
         window.run_js(
-            f'if (({js_api_guard(window)}) && window.pywebview && '
+            f'if (({js_api_guard(window, document=True)}) && window.pywebview && '
             f'window.pywebview._bridgeToken === {json.dumps(token)}) {{ '
             f'window.pywebview._returnValuesCallbacks'
             f'[{json.dumps(func_name)}][{json.dumps(value_id)}]({retval}) }}'

@@ -174,6 +174,10 @@ class Window:
         # Origins of the pages loaded from Python, which may use the JS API
         self._js_api_origins: set[str] = set()
         self._js_api_token: str | None = None
+        # Trust decided for the current document when it was injected, see inject_pywebview.
+        # Nothing is trusted until then, and a navigation resets it.
+        self._js_api_restricted = True
+        self._js_api_document_url: str | None = None
         self._js_api_pending_html = False
         self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
@@ -605,8 +609,14 @@ class Window:
                 params = list(inspect.getfullargspec(func).args)
                 func_list.append({'func': name, 'params': params})
 
-        if self.events.loaded.is_set():
-            self._run_js_api_js(f'window.pywebview._createApi({func_list})')
+        if self.events.loaded.is_set() and not self._run_js_api_js(
+            f'window.pywebview._createApi({func_list})'
+        ):
+            logger.warning(
+                'Exposed functions are not available on %s. Add its origin to '
+                "webview.settings['ALLOWED_ORIGINS'] to allow them.",
+                self._js_api_document_url or 'the current page',
+            )
 
     def _allow_js_api_on(self, url: str | None) -> None:
         """Allow the JS API on the origin of a page loaded from Python. None means HTML content."""
@@ -620,12 +630,21 @@ class Window:
     def _invalidate_js_api(self) -> None:
         """Revoke bridge access at the native backend's document transition."""
         self._js_api_token = None
+        self._js_api_restricted = True
+        self._js_api_document_url = None
         if not self._js_api_pending_html:
             self._js_api_origins.discard('about:blank')
 
-    def _run_js_api_js(self, script: str) -> None:
-        """Run pywebview's own script only if the current page may use the JS API."""
-        self.run_js(f'if ({js_api_guard(self)}) {{ {script} }}')
+    def _run_js_api_js(self, script: str) -> bool:
+        """
+        Run pywebview's own script only if the current document may use the JS API. Return
+        whether it was sent. The script also checks the page's location, in case the page has
+        navigated since it was injected.
+        """
+        if self._js_api_restricted:
+            return False
+        self.run_js(f'if ({js_api_guard(self, document=True)}) {{ {script} }}')
+        return True
 
     def _resolve_url(self, url: str | Callable[..., Any] | None) -> str | None:
         if is_app(url):
