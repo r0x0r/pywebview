@@ -75,6 +75,16 @@ def test_invalid_js_template_identifies_the_resource(tmp_path, monkeypatch):
     assert isinstance(caught.value.__cause__, KeyError)
 
 
+def test_js_dir_with_glob_metacharacters(tmp_path, monkeypatch):
+    js_dir = tmp_path / 'app [1]' / 'js'
+    js_dir.mkdir(parents=True)
+    (js_dir / 'custom.js').write_text('var loaded = true;', encoding='utf-8')
+    monkeypatch.setattr(util, 'get_js_dir', lambda: str(js_dir))
+
+    js_code, _ = util.load_js_files(SimpleNamespace(), 'cocoa')
+    assert js_code == 'var loaded = true;'
+
+
 class TestParseFileType:
     """Tests for the parse_file_type function"""
 
