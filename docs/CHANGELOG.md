@@ -26,6 +26,7 @@
 - `All` Fix the JS bridge silently missing when pywebview is installed under a path containing glob metacharacters such as `[ ]`, e.g. a portable app in `D:\Apps\MyApp [P]\`. `load_js_files()` passed the path to `glob()` unescaped, so no JavaScript was injected, `window.pywebview.api` was never defined and `evaluate_js()` returned `None`. [#1883](https://github.com/r0x0r/pywebview/issues/1883)
 - `All` Fix the built-in HTTP server handling only one request at a time when `ssl=True`, so a long-running request such as a video stream blocked every other request.
 - `All` Fix the built-in HTTP server occasionally failing to start because the random port it picked was taken before it could bind. The operating system now assigns a free port, and a port passed explicitly with `http_port` that is already in use raises `OSError` instead of failing silently in a background thread.
+- `All` Fix a second application with `private_mode=False` loading the first application's files when both run at once. Both tried to serve on `DEFAULT_HTTP_PORT`, the second server silently failed to start, and its window loaded pages from the other application's server. It now falls back to a random port and logs a warning.
 
 ### 🚀 Improvements
 

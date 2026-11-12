@@ -282,8 +282,21 @@ def start(
     # start the global server if it's not running and we need it
     if (http.global_server is None) and (http_server or has_local_urls):
         if not _state['private_mode'] and not http_port:
-            http_port = settings['DEFAULT_HTTP_PORT']
-        http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
+            try:
+                http.start_global_server(
+                    http_port=settings['DEFAULT_HTTP_PORT'],
+                    urls=urls,
+                    server=server,
+                    **server_args,
+                )
+            except OSError:
+                logger.warning(
+                    f'Port {settings["DEFAULT_HTTP_PORT"]} is in use, using a random port. '
+                    'Web storage will not persist between sessions.'
+                )
+
+        if http.global_server is None:
+            http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
 
     for window in windows:
         should_initialize = not window._initialize(
