@@ -76,7 +76,7 @@ class WebView2Core(ABC):
     def _should_ignore_ssl(self) -> bool:
         return _state['ssl'] or webview_settings['IGNORE_SSL_ERRORS']
 
-    def _allow_certificate(self, get_pem) -> bool:
+    def _allow_certificate(self, get_pem, uri: str) -> bool:
         """
         Decide a certificate error. IGNORE_SSL_ERRORS accepts any certificate; ssl=True accepts
         only the local HTTP server's own. get_pem returns the server certificate as PEM text.
@@ -84,10 +84,18 @@ class WebView2Core(ABC):
         if webview_settings['IGNORE_SSL_ERRORS']:
             return True
         try:
-            return is_local_tls_cert(pem_to_der(get_pem()))
+            der = pem_to_der(get_pem())
         except Exception:
-            logger.exception('Could not read the server certificate')
+            logger.exception('Could not read the server certificate of %s', uri)
             return False
+        if is_local_tls_cert(der):
+            return True
+        logger.error(
+            'Rejected the certificate of %s: it is not the local HTTP server certificate%s',
+            uri,
+            '' if der else ' (no certificate was received)',
+        )
+        return False
 
     def _parse_hex_color(self, hex_color: str) -> tuple:
         c = hex_color.lstrip('#')

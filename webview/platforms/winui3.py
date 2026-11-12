@@ -607,7 +607,9 @@ class WinUI3EdgeChrome(WebView2Core):
     def on_certificate_error(
         self, _: CoreWebView2, args: CoreWebView2ServerCertificateErrorDetectedEventArgs
     ):
-        if self._allow_certificate(lambda: args.server_certificate.to_pem_encoding()):
+        if self._allow_certificate(
+            lambda: args.server_certificate.to_pem_encoding(), str(args.request_uri)
+        ):
             args.action = CoreWebView2ServerCertificateErrorAction.ALWAYS_ALLOW
 
     def _show_alert(self, message: str):
