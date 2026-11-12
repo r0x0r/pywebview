@@ -18,6 +18,9 @@ from webview.util import (
     parse_file_type,
 )
 
+# Many of these tests exercise error paths that log tracebacks on purpose
+pytestmark = pytest.mark.usefixtures('quiet_console_log')
+
 
 @pytest.mark.parametrize('error', [FileNotFoundError('missing JS'), ValueError('invalid JS')])
 def test_injection_resource_failure_does_not_escape_native_callback(monkeypatch, caplog, error):
