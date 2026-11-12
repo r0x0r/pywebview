@@ -28,7 +28,7 @@ from webview.guilib import GUIType, initialize
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import _TOKEN, ImmutableDict, abspath, is_app, is_local_url
+from webview.util import _TOKEN, ImmutableDict, abspath, is_app, is_local_url, set_local_tls_cert
 from webview.window import Window
 
 __all__ = (
@@ -91,7 +91,8 @@ class FileDialog(enum.IntEnum):
 settings = ImmutableDict(
     {
         'ALLOW_DOWNLOADS': False,
-        'ALLOW_FILE_URLS': True,
+        'ALLOW_FILE_URLS': False,
+        'ALLOWED_ORIGINS': [],
         'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
         'DRAG_REGION_DIRECT_TARGET_ONLY': False,
         'DEFAULT_HTTP_PORT': 42001,
@@ -292,6 +293,7 @@ def start(
         if should_initialize:
             return
 
+    set_local_tls_cert(None)
     if ssl:
         for window in windows:
             window.gui.add_tls_cert(certfile)

@@ -7,16 +7,21 @@ http://github.com/r0x0r/pywebview/
 
 from __future__ import annotations
 
+import base64
 import hmac
 import inspect
+import ipaddress
 import json
 import logging
 import os
+import posixpath
 import re
+import socket
 import sys
 import sysconfig
 import traceback
 import urllib.parse
+import webbrowser
 from collections import UserDict
 from collections.abc import Callable
 from glob import escape as glob_escape
@@ -152,7 +157,10 @@ def is_local_url(url: str | Callable[..., Any] | None) -> TypeGuard[str]:
     if is_app(url) or not url or not isinstance(url, str):
         return False
     return not (
-        url.startswith('http://') or url.startswith('https://') or url.startswith('file://')
+        url.startswith('http://')
+        or url.startswith('https://')
+        or url.startswith('file://')
+        or urllib.parse.urldefrag(url)[0] == 'about:blank'
     )
 
 
@@ -258,11 +266,133 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def inject_pywebview(platform: str, window: Window) -> None:
+def js_api_origin(url: str | None) -> str:
+    """
+    Return an HTTP(S) origin, or an exact document URL for opaque/local documents.
+    """
+    if not url:
+        return 'invalid:'
+
+    parts = urllib.parse.urlsplit(url)
+    scheme = parts.scheme.lower()
+    if scheme == 'file':
+        path = posixpath.normpath(urllib.parse.unquote(parts.path))
+        if parts.path.endswith('/') and not path.endswith('/'):
+            path += '/'
+        path = urllib.parse.quote(path, safe="/:@!$&'()*+,;=-._~")
+        return urllib.parse.urlunsplit(('file', parts.netloc, path, parts.query, ''))
+    if scheme not in ('http', 'https'):
+        return urllib.parse.urldefrag(url)[0]
+
+    try:
+        port = parts.port
+    except ValueError:
+        return 'invalid:'
+
+    try:
+        hostname = parts.hostname or ''
+        host = hostname.encode('idna').decode('ascii')
+        if not hostname.isascii() and host.encode('ascii').decode('idna') != hostname:
+            logger.warning('Unsupported Unicode hostname %s; use its Punycode form', hostname)
+            return 'invalid:'
+    except UnicodeError:
+        return 'invalid:'
+    if ':' in host:
+        if '%' in host:
+            return 'invalid:'
+        host = f'[{ipaddress.IPv6Address(host).compressed}]'
+    elif re.fullmatch(r'[0-9]+|0[xX][0-9a-fA-F]+', host.removesuffix('.').rsplit('.', 1)[-1]):
+        try:
+            host = socket.inet_ntoa(socket.inet_aton(host.removesuffix('.')))
+        except OSError:
+            return 'invalid:'
+    default_port = 80 if scheme == 'http' else 443
+    return f'{scheme}://{host}' + (f':{port}' if port is not None and port != default_port else '')
+
+
+def js_api_auto_origin(url: str) -> str | None:
+    """
+    Return the origin that a page loaded from Python grants the JS API to, or None if it is not
+    granted automatically. Plain HTTP from another machine can be modified in transit, so it must
+    be listed in ALLOWED_ORIGINS. Loopback HTTP, such as the built-in server, is granted.
+    """
+    origin = js_api_origin(url)
+    if origin.startswith('http://'):
+        host = urllib.parse.urlsplit(origin).hostname or ''
+        try:
+            loopback = host == 'localhost' or ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            loopback = False
+        if not loopback:
+            logger.warning(
+                'JS API is not enabled automatically on %s, because plain HTTP can be modified '
+                "in transit. Use HTTPS or add the origin to webview.settings['ALLOWED_ORIGINS'].",
+                url,
+            )
+            return None
+    elif origin.startswith('https://') and webview.settings['IGNORE_SSL_ERRORS']:
+        logger.warning(
+            'IGNORE_SSL_ERRORS is enabled, so anyone who can intercept the connection to %s can '
+            'use its JS API.',
+            origin,
+        )
+    return origin
+
+
+def _js_api_trusted_origins(window: Window) -> set[str] | None:
+    """Origins allowed to use the JS API in the window, or None if every origin is allowed."""
+    allowed = webview.settings['ALLOWED_ORIGINS']
+    if '*' in allowed:
+        return None
+    return (window._js_api_origins | {js_api_origin(origin) for origin in allowed}) - {'invalid:'}
+
+
+def is_js_api_allowed(window: Window, url: str | None) -> bool:
+    """Return whether the page at url may use the window's JS API."""
+    trusted = _js_api_trusted_origins(window)
+    return trusted is None or js_api_origin(url) in trusted
+
+
+def js_api_guard(window: Window, document: bool = False) -> str:
+    """
+    Return a Javascript expression that is true only on a page the window's JS API is allowed on.
+    It is evaluated in the page itself, which may have navigated since Python last checked it.
+    The page cannot spoof location, and the comparison avoids prototype methods it could replace.
+
+    :param document: Check only that the page is still the document whose trust was decided when
+        it was injected, rather than checking it against ALLOWED_ORIGINS as it is now.
+    """
+    if document and window._js_api_document_url is not None:
+        trusted: set[str] | None = {js_api_origin(window._js_api_document_url)}
+    else:
+        trusted = _js_api_trusted_origins(window)
+    if trusted is None:
+        return 'true'
+
+    origins = sorted(origin for origin in trusted if origin.startswith(('http://', 'https://')))
+    documents = sorted(trusted - set(origins))
+    return (
+        '(function (o, d) { var l = window.location, i; '
+        'if (window !== window.top) { return false } '
+        'for (i = 0; i < o.length; i++) { if (o[i] === l.origin) { return true } } '
+        'for (i = 0; i < d.length; i++) { '
+        'if (d[i] === l.href || d[i] + l.hash === l.href) { return true } } '
+        f'return false }})({json.dumps(origins)}, {json.dumps(documents)})'
+    )
+
+
+def inject_pywebview(platform: str, window: Window, url: str | None = None) -> None:
     """ "
     Generates and injects a global window.pywebview object. The object contains exposed API functions
     as well as utility functions required by pywebview. The function fires before_load event before
     injecting the object and loaded event after the object is injected.
+
+    :param url: URL of the page that has loaded. Every page gets window.pywebview, so the DOM
+        API with its event handlers, evaluate_js and the window UI work everywhere. A page whose
+        origin is not allowed to use the JS API gets it without exposed functions, the session
+        token or window state, and the bridge accepts only DOM events and evaluate_js results
+        from it. None skips the origin check, but the injected script still checks the page's
+        actual location before it defines the session token.
     """
     exposed_objects = []
 
@@ -323,7 +453,13 @@ def inject_pywebview(platform: str, window: Window) -> None:
         return functions
 
     def generate_func():
+        if restricted:
+            window._js_api_names = frozenset()
+            return []
+
         functions = get_functions(window._js_api)
+        # The bridge dispatches only what is advertised here, see js_bridge_call
+        window._js_api_names = frozenset(functions)
 
         if len(window._functions) > 0:
             expose_functions = {name: get_args(f) for name, f in window._functions.items()}
@@ -336,9 +472,13 @@ def inject_pywebview(platform: str, window: Window) -> None:
 
     def generate_js_object():
         try:
+            if window._js_api_token != bridge_token:
+                return
             window.run_js(js_code)
             logger.debug('_pywebviewready event fired')
             with window._expose_lock:
+                if window._js_api_token != bridge_token:
+                    return
                 func_list = generate_func()
                 window.run_js(finish_script % {'functions': json.dumps(func_list)})
                 window.events._pywebviewready.set()
@@ -349,9 +489,35 @@ def inject_pywebview(platform: str, window: Window) -> None:
             window.events.loaded.set()
 
     window.events.before_load.set()
+
+    restricted = url is not None and not is_js_api_allowed(window, url)
+    # The trust decision holds for this document until the next navigation, whatever
+    # ALLOWED_ORIGINS later becomes, see js_bridge_call and Window._run_js_api_js
+    window._js_api_restricted = restricted
+    window._js_api_document_url = url
+    if restricted:
+        # Only worth a warning if the window has something the page now cannot reach
+        uses_js_api = window._js_api is not None or bool(window._functions) or bool(window.state)
+        (logger.warning if uses_js_api else logger.debug)(
+            'window.pywebview.api, window.pywebview.token and window.state are not available '
+            "on %s. Add its origin to webview.settings['ALLOWED_ORIGINS'] to allow them.",
+            url,
+        )
+    else:
+        window._js_api_pending_html = False
+
     logger.debug('before_load event fired. injecting pywebview object')
     try:
-        js_code, finish_script = load_js_files(window, platform)
+        # Every document gets a capability; for a restricted page the bridge accepts it only for
+        # DOM events and evaluate_js results, see js_bridge_call
+        bridge_token = uuid4().hex
+        window._js_api_token = bridge_token
+        js_code, finish_script = load_js_files(window, platform, restricted)
+        if not restricted:
+            # Stop the scripts if the page navigated to a disallowed origin before they ran
+            guard = f'if (!({js_api_guard(window)})) {{ throw new Error("pywebview: JS API not allowed") }}\n'
+            js_code = guard + js_code
+            finish_script = guard.replace('%', '%%') + finish_script
     except Exception:
         # Called from native navigation callbacks: Python exceptions must not escape.
         logger.exception('Failed to load pywebview JavaScript')
@@ -362,23 +528,155 @@ def inject_pywebview(platform: str, window: Window) -> None:
 
 
 def is_js_bridge_token_valid(window: Window, token: str | None) -> bool:
-    """Return whether a native bridge message carries the session token."""
-    if not hmac.compare_digest(str(token), _TOKEN):
+    """Return whether a native bridge message carries the current document's capability."""
+    expected = window._js_api_token
+    if not expected or not isinstance(token, str) or not hmac.compare_digest(token, expected):
         logger.error('Rejected JS bridge call with an invalid token')
         return False
 
     return True
 
 
+# DER bytes of the local HTTP server's certificate, see set_local_tls_cert
+_local_tls_cert: bytes | None = None
+
+
+def pem_to_der(pem: str) -> bytes | None:
+    """Return the DER bytes of the first certificate in PEM text, or None if there is none."""
+    match = re.search(r'-----BEGIN CERTIFICATE-----(.+?)-----END CERTIFICATE-----', pem, re.S)
+    if not match:
+        return None
+    try:
+        return base64.b64decode(''.join(match.group(1).split()), validate=True)
+    except ValueError:
+        return None
+
+
+def set_local_tls_cert(certfile: str | None) -> None:
+    """
+    Remember the certificate of the local HTTP server started with webview.start(ssl=True), or
+    forget it when certfile is None. Backends use this rather than their imported webview._state,
+    which a reload of webview, as in the test suite, would leave stale.
+    """
+    global _local_tls_cert
+    if certfile is None:
+        _local_tls_cert = None
+        return
+    with open(certfile, encoding='ascii') as f:
+        _local_tls_cert = pem_to_der(f.read())
+
+
+def has_local_tls_cert() -> bool:
+    """Return whether the local HTTP server runs with webview.start(ssl=True)."""
+    return _local_tls_cert is not None
+
+
+def is_local_server_url(url: str) -> bool:
+    """Return whether url points at an HTTPS server that pywebview started, by its exact origin."""
+    from webview import http
+
+    servers = [http.global_server] + [window._server for window in webview.windows]
+    origins = {
+        js_api_origin(server.address)
+        for server in servers
+        if server is not None and server.address.startswith('https://')
+    }
+    return js_api_origin(url) in origins
+
+
+def is_local_tls_cert(cert: bytes | None) -> bool:
+    """Return whether a server certificate, as DER bytes, is the local HTTP server's own."""
+    return cert is not None and _local_tls_cert is not None and cert == _local_tls_cert
+
+
+EXTERNAL_URL_SCHEMES = ('http', 'https', 'mailto')
+
+
+def open_external_url(url: str, new: int = 0, autoraise: bool = True) -> None:
+    """
+    Open a link from a page in the system browser. Only web and mailto links are handed to the
+    OS, which would otherwise open file: and custom scheme URLs with whatever handler is
+    registered for them.
+    """
+    if urllib.parse.urlsplit(url).scheme.lower() in EXTERNAL_URL_SCHEMES:
+        webbrowser.open(url, new, autoraise)
+    else:
+        logger.warning('Refusing to open %s externally: only http(s) and mailto are allowed', url)
+
+
+def _page_window_move(window: Window, param: Any) -> tuple[int, int] | None:
+    """
+    Validate a window move requested by a page, which drag regions send while the user drags.
+    Only frameless windows are dragged from the page. Each coordinate is kept within the total
+    width or height of all screens, which holds whatever the backend's coordinate origin is.
+    """
+    if not window.frameless:
+        return None
+    try:
+        x, y = (int(value) for value in param)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+    try:
+        screens = window.gui.get_screens()
+        limit_x = sum(abs(screen.width) for screen in screens)
+        limit_y = sum(abs(screen.height) for screen in screens)
+    except Exception:
+        limit_x = limit_y = 0
+    if not limit_x or not limit_y:
+        limit_x = limit_y = 100_000
+
+    return max(-limit_x, min(x, limit_x)), max(-limit_y, min(y, limit_y))
+
+
+def _is_trusted_document(window: Window, source_url: str) -> bool:
+    """
+    Return whether the current document may use the JS API, as decided when it was injected.
+    The sender must also be the document that decision was made for.
+    """
+    if window._js_api_restricted:
+        return False
+    if window._js_api_document_url is None:  # injected without a URL to check
+        return is_js_api_allowed(window, source_url)
+    return js_api_origin(source_url) == js_api_origin(window._js_api_document_url)
+
+
+# Bridge calls that pages without the JS API may make, see js_bridge_call
+DOM_BRIDGE_CALLS = frozenset(('pywebviewEventHandler', 'pywebviewAsyncCallback'))
+
+
 def js_bridge_call(
-    window: Window, func_name: str, param: Any, value_id: str, token: str | None = None
+    window: Window,
+    func_name: str,
+    param: Any,
+    value_id: str,
+    token: str | None = None,
+    source_url: str | None = None,
 ) -> None:
     """
     Calls a function from the JS API and executes it in Python. The function is executed in a separate
     thread to prevent blocking the UI thread. The result is then passed back to the JS API.
+
+    :param source_url: Native URL of the main document. The document-specific token also
+        prevents calls from other frames on transports that do not identify the sender frame.
     """
 
+    # Window UI messages, which every page sends, need no token
+    if func_name == 'pywebviewMoveWindow':
+        move = _page_window_move(window, param)
+        if move is not None:
+            window.move(*move)
+        return
+
     if not is_js_bridge_token_valid(window, token):
+        return
+
+    # Pages from other origins have window.pywebview for the DOM API, but may only report DOM
+    # events and evaluate_js results, both of which answer to handlers Python registered
+    if source_url is None or (
+        func_name not in DOM_BRIDGE_CALLS and not _is_trusted_document(window, source_url)
+    ):
+        logger.error('Rejected JS bridge call from %s: origin is not allowed', source_url)
         return
 
     def _call():
@@ -392,8 +690,12 @@ def js_bridge_call(
             result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
             retval = f"{{isError: true, value: '{result}'}}"
 
-        window.evaluate_js(
-            f'window.pywebview._returnValuesCallbacks["{func_name}"]["{value_id}"]({retval})'
+        # The page may have navigated while the function ran
+        window.run_js(
+            f'if (({js_api_guard(window, document=True)}) && window.pywebview && '
+            f'window.pywebview._bridgeToken === {json.dumps(token)}) {{ '
+            f'window.pywebview._returnValuesCallbacks'
+            f'[{json.dumps(func_name)}][{json.dumps(value_id)}]({retval}) }}'
         )
 
     def get_nested_attribute(obj: object, attr_str: str):
@@ -403,10 +705,6 @@ def js_bridge_call(
             if obj is None:
                 return None
         return obj
-
-    if func_name == 'pywebviewMoveWindow':
-        window.move(*param)
-        return
 
     if func_name == 'pywebviewEventHandler':
         event = param['event']
@@ -456,7 +754,8 @@ def js_bridge_call(
 
     if func_name == 'pywebviewStateUpdate':
         try:
-            window.state.__setattr__(param['key'], param['value'], False)
+            # Store as a state value: __setattr__ would let a page reach State's private attributes
+            window.state._set_state_value(param['key'], param['value'], False)
         except Exception:
             logger.exception('Error occurred while updating state key %s', param.get('key'))
         return
@@ -473,7 +772,9 @@ def js_bridge_call(
             logger.exception('Error occurred while deleting state key %s', param)
         return
 
-    func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
+    func = window._functions.get(func_name)
+    if func is None and func_name in window._js_api_names:
+        func = get_nested_attribute(window._js_api, func_name)
 
     if func is not None:
         try:
@@ -486,12 +787,15 @@ def js_bridge_call(
         logger.error('Function %s() does not exist', func_name)
 
 
-def load_js_files(window: Window, platform: str) -> tuple[str, str]:
+def load_js_files(window: Window, platform: str, restricted: bool = False) -> tuple[str, str]:
     """
     Load JS files in the order they should be loaded.
     The order is api, the rest and finish.js.
     Return the concatenated JS code and the finish script, which must be loaded last and
     separately in order to
+
+    :param restricted: Load them for a page that may not use the JS API: without the session
+        token and the window state.
     """
     js_dir = get_js_dir()
     logger.debug('Loading JS files from %s', js_dir)
@@ -508,28 +812,17 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
 
             if name == 'api':
                 params = {
-                    'token': _TOKEN,
+                    'token': '' if restricted else _TOKEN,
+                    'bridge_token': window._js_api_token or '',
                     'platform': platform,
                     'uid': window.uid,
                     'js_api_endpoint': window.js_api_endpoint,
                 }
             elif name == 'customize':
-                params = {
-                    'text_select': str(window.text_select),
-                    'drag_selector': webview.settings['DRAG_REGION_SELECTOR'],
-                    'drag_region_direct_target_only': str(
-                        webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY']
-                    ),
-                    'zoomable': str(window.zoomable),
-                    'draggable': str(window.draggable),
-                    'easy_drag': str(
-                        platform in ('edgechromium', 'winui3')
-                        and window.easy_drag
-                        and window.frameless
-                    ),
-                }
+                params = _customize_params(window, platform)
             elif name == 'state':
-                params = {'state': escape_string(json.dumps(window.state))}
+                state = {} if restricted else window.state
+                params = {'state': escape_string(json.dumps(state))}
             elif name == 'finish':
                 finish_script = content
                 continue
@@ -540,6 +833,19 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
                 raise WebViewException(f'Failed to format JavaScript file {file!r}: {e}') from e
 
     return js_code, finish_script
+
+
+def _customize_params(window: Window, platform: str) -> dict[str, Any]:
+    return {
+        'text_select': str(window.text_select),
+        'drag_selector': webview.settings['DRAG_REGION_SELECTOR'],
+        'drag_region_direct_target_only': str(webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY']),
+        'zoomable': str(window.zoomable),
+        'draggable': str(window.draggable),
+        'easy_drag': str(
+            platform in ('edgechromium', 'winui3') and window.easy_drag and window.frameless
+        ),
+    }
 
 
 def get_js_dir() -> str:

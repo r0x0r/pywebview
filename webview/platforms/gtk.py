@@ -3,7 +3,6 @@ import logging
 import os
 import pathlib
 import sys
-import webbrowser
 from threading import Semaphore, Thread, current_thread, main_thread
 from typing import Any
 from uuid import uuid1
@@ -18,6 +17,7 @@ from webview.util import (
     create_cookie,
     inject_pywebview,
     js_bridge_call,
+    open_external_url,
     parse_file_type,
 )
 from webview.window import FixPoint, Window
@@ -84,6 +84,7 @@ class BrowserView:
         global _app
 
         BrowserView.instances[window.uid] = self
+        self._alert_open = False
         self.uid = window.uid
         self.pywebview_window = window
 
@@ -369,8 +370,15 @@ class BrowserView:
     def on_js_bridge_call(self, manager, message):
         body = json.loads(message.get_js_value().to_string())
 
+        source_url = self.webview.get_uri()
+
+        # Alerts are available on every page, without the JS API too
         if body['funcName'] == '_pywebviewAlert':
-            self.message_box(body['params'])
+            # One alert at a time, shown after this handler returns, so a page cannot stack
+            # nested modal dialogs
+            if not self._alert_open:
+                self._alert_open = True
+                glib.idle_add(self._show_alert, body['params'])
         else:
             js_bridge_call(
                 self.pywebview_window,
@@ -378,6 +386,7 @@ class BrowserView:
                 body['params'],
                 body['id'],
                 body.get('token', ''),
+                source_url,
             )
 
     def on_window_resize(self, window, allocation):
@@ -465,12 +474,15 @@ class BrowserView:
         webview.load_request(request)
 
     def on_load_finish(self, webview, status):
+        if status == webkit.LoadEvent.STARTED:
+            self.pywebview_window._invalidate_js_api()
+
         # Show the webview if it's not already visible
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)
 
         if status == webkit.LoadEvent.FINISHED and not self.request_headers_mutated:
-            inject_pywebview(renderer, self.js_bridge.window)
+            inject_pywebview(renderer, self.js_bridge.window, webview.get_uri())
 
         if self.request_headers_mutated:
             self.request_headers_mutated = False
@@ -499,7 +511,7 @@ class BrowserView:
 
             if decision.get_navigation_action().get_frame_name() == '_blank':
                 if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
-                    webbrowser.open(uri, 2, True)
+                    open_external_url(uri, 2, True)
                     decision.ignore()
                 else:
                     self.load_url(uri)
@@ -739,6 +751,13 @@ class BrowserView:
         del self.js_results[unique_id]
 
         return result
+
+    def _show_alert(self, message):
+        try:
+            self.message_box(str(message))
+        finally:
+            self._alert_open = False
+        return False
 
     def message_box(self, message):
         dialog = gtk.MessageDialog(

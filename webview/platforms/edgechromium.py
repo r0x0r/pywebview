@@ -201,10 +201,21 @@ class WinFormsEdgeChrome(WebView2Core):
 
     def load_url(self, url: str):
         self.ishtml = False
-        self.webview.Source = Uri(url)
+        if self.webview.CoreWebView2:
+            # Assigning an unchanged Source skips navigation, including HTML to about:blank.
+            self.webview.CoreWebView2.Navigate(url)
+        else:
+            self.webview.Source = Uri(url)
 
     def _show_alert(self, message: str):
-        WinForms.MessageBox.Show(message)
+        # Show it after the WebView2 event handler returns rather than in a nested loop inside it
+        def show():
+            try:
+                WinForms.MessageBox.Show(message)
+            finally:
+                self._alert_open = False
+
+        self.webview.BeginInvoke(Action(show))
 
     def _extract_dropped_files(self, additional_objects) -> list:
         return [
@@ -228,11 +239,16 @@ class WinFormsEdgeChrome(WebView2Core):
             settings.UserAgent = _state['user_agent']
 
     def on_certificate_error(self, _, args):
-        args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
+        if self._allow_certificate(
+            lambda: args.ServerCertificate.ToPemEncoding(), str(args.RequestUri)
+        ):
+            args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
 
     def on_script_notify(self, _, args):
         try:
-            self._route_script_message(args.get_WebMessageAsJson(), args.get_AdditionalObjects)
+            self._route_script_message(
+                args.get_WebMessageAsJson(), args.get_AdditionalObjects, str(args.Source)
+            )
         except Exception:
             logger.exception('Exception occurred during on_script_notify')
 
@@ -299,6 +315,7 @@ class WinFormsEdgeChrome(WebView2Core):
             args.Cancel = True
 
     def on_navigation_start(self, sender, args):
+        self.pywebview_window._invalidate_js_api()
         if self.pywebview_window.transparent:
             self.form.Show()
             self.form.Activate()
@@ -349,7 +366,7 @@ class WinFormsEdgeChrome(WebView2Core):
         self.url = None if self.ishtml else url
         self._in_navigation_completed = True
         try:
-            inject_pywebview(renderer, self.pywebview_window)
+            inject_pywebview(renderer, self.pywebview_window, url)
         finally:
             self._in_navigation_completed = False
 
