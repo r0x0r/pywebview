@@ -21,6 +21,7 @@
 ### 🐞 Bug fixes
 
 - `All` Page alerts are shown one at a time, after the bridge message has been handled, and further alerts are dropped while one is open. A page could previously stack hundreds of nested modal dialogs. On Qt, alerts are shown as plain text, so a page can no longer render clickable links in them. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
+- `QT` Fix `webview.start(ssl=True)` on QtWebEngine, which showed a certificate error instead of the page because QtWebEngine does not use the certificate added to `QSslConfiguration`. Only the local HTTP server's own certificate is accepted. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `EdgeChromium` `Cocoa` `webview.start(ssl=True)` no longer disables certificate checks for every site. Only the local HTTP server's own certificate is accepted; other sites are validated as usual. `IGNORE_SSL_ERRORS` still accepts any certificate. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `EdgeChromium` Navigate explicitly when loading the current URL, including `about:blank` after HTML content.
 - `All` Fix `evaluate_js` leaving an unused entry in `window._callbacks` on every call without a callback, including the calls the JS API bridge makes to return results, and on calls with a callback whose script did not return a promise. With a callback and a promise, `evaluate_js` now returns `None` on every backend; CEF no longer hangs in that case. Thanks @Nanahuse. [#1874](https://github.com/r0x0r/pywebview/issues/1874)

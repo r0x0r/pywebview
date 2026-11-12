@@ -25,8 +25,10 @@ from webview.util import (
     create_cookie,
     environ_append,
     inject_pywebview,
+    is_local_tls_cert,
     js_bridge_call,
     open_external_url,
+    set_local_tls_cert,
 )
 from webview.window import FixPoint, Window
 
@@ -299,6 +301,8 @@ class BrowserView(QMainWindow):
 
             if is_webengine:
                 self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
+                if _qt6:
+                    self.certificateError.connect(self.onCertificateError)
                 self.nav_handler = BrowserView.NavigationHandler(self)
             else:
                 self.nav_handler = None
@@ -317,6 +321,33 @@ class BrowserView(QMainWindow):
                     self.setFeaturePermission(url, feature, 1)  # QWebPage.PermissionGrantedByUser
                 else:
                     self.setFeaturePermission(url, feature, 2)  # QWebPage.PermissionDeniedByUser
+
+            def _allow_certificate(self, error):
+                """
+                IGNORE_SSL_ERRORS accepts any certificate; ssl=True accepts only the local HTTP
+                server's own. QtWebEngine does not use QSslConfiguration, see add_tls_cert.
+                """
+                if settings['IGNORE_SSL_ERRORS']:
+                    return True
+                try:
+                    chain = error.certificateChain()
+                    leaf = bytes(chain[0].toDer()) if chain else None
+                except Exception:
+                    logger.exception('Could not read the server certificate')
+                    return False
+                return bool(_state['ssl']) and is_local_tls_cert(leaf)
+
+            if _qt6:
+
+                def onCertificateError(self, error):
+                    if self._allow_certificate(error):
+                        error.acceptCertificate()
+                    else:
+                        error.rejectCertificate()
+            else:
+
+                def certificateError(self, error):
+                    return self._allow_certificate(error)
         else:
 
             def acceptNavigationRequest(self, frame, request, type):
@@ -1225,6 +1256,8 @@ def get_screens():
 
 
 def add_tls_cert(certfile):
+    # QtWebEngine checks it in WebPage._allow_certificate; QtWebKit uses QSslConfiguration
+    set_local_tls_cert(certfile)
     config = QSslConfiguration.defaultConfiguration()
     certs = config.caCertificates()
     cert = QSslCertificate.fromPath(certfile)[0]
