@@ -52,6 +52,16 @@ class _ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
             super().finish_request(tls_request, client_address)
 
 
+def _multithreaded(app: Callable[..., Any]) -> Callable[..., Any]:
+    """Report wsgi.multithread correctly, which wsgiref always sets to False."""
+
+    def wrapper(environ, start_response):
+        environ['wsgi.multithread'] = True
+        return app(environ, start_response)
+
+    return wrapper
+
+
 class _QuietHandler(WSGIRequestHandler):
     def log_request(self, *args, **kwargs) -> None:
         pass
@@ -122,7 +132,7 @@ class BottleServer:
         httpd = make_server(
             '127.0.0.1',
             http_port or 0,
-            app,
+            _multithreaded(app),
             server_class=_ThreadingWSGIServer,
             handler_class=WSGIRequestHandler if _state['debug'] else _QuietHandler,
         )
