@@ -14,6 +14,7 @@ from webview.models import Request, Response
 from webview.platforms.win32 import start_drag
 from webview.util import (
     DEFAULT_HTML,
+    has_local_tls_cert,
     is_js_api_allowed,
     is_js_bridge_token_valid,
     is_local_tls_cert,
@@ -74,7 +75,7 @@ class WebView2Core(ABC):
         return args
 
     def _should_ignore_ssl(self) -> bool:
-        return _state['ssl'] or webview_settings['IGNORE_SSL_ERRORS']
+        return has_local_tls_cert() or webview_settings['IGNORE_SSL_ERRORS']
 
     def _allow_certificate(self, get_pem, uri: str) -> bool:
         """

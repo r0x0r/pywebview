@@ -551,11 +551,23 @@ def pem_to_der(pem: str) -> bytes | None:
         return None
 
 
-def set_local_tls_cert(certfile: str) -> None:
-    """Remember the certificate of the local HTTP server started with webview.start(ssl=True)."""
+def set_local_tls_cert(certfile: str | None) -> None:
+    """
+    Remember the certificate of the local HTTP server started with webview.start(ssl=True), or
+    forget it when certfile is None. Backends use this rather than their imported webview._state,
+    which a reload of webview, as in the test suite, would leave stale.
+    """
     global _local_tls_cert
+    if certfile is None:
+        _local_tls_cert = None
+        return
     with open(certfile, encoding='ascii') as f:
         _local_tls_cert = pem_to_der(f.read())
+
+
+def has_local_tls_cert() -> bool:
+    """Return whether the local HTTP server runs with webview.start(ssl=True)."""
+    return _local_tls_cert is not None
 
 
 def is_local_server_url(url: str) -> bool:

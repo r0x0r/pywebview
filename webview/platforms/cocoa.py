@@ -24,6 +24,7 @@ from webview.screen import Screen
 from webview.util import (
     DEFAULT_HTML,
     create_cookie,
+    has_local_tls_cert,
     inject_pywebview,
     is_local_tls_cert,
     is_test_mode,
@@ -276,7 +277,9 @@ class BrowserView:
             )
             if trust is not None and (
                 webview_settings['IGNORE_SSL_ERRORS']
-                or (_state['ssl'] and is_local_tls_cert(BrowserView._leaf_certificate(trust)))
+                or (
+                    has_local_tls_cert() and is_local_tls_cert(BrowserView._leaf_certificate(trust))
+                )
             ):
                 credential = AppKit.NSURLCredential.credentialForTrust_(trust)
                 handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)

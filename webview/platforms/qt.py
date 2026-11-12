@@ -24,6 +24,7 @@ from webview.util import (
     DEFAULT_HTML,
     create_cookie,
     environ_append,
+    has_local_tls_cert,
     inject_pywebview,
     is_local_server_url,
     is_local_tls_cert,
@@ -330,7 +331,7 @@ class BrowserView(QMainWindow):
                 """
                 if settings['IGNORE_SSL_ERRORS']:
                     return True
-                if not _state['ssl']:
+                if not has_local_tls_cert():
                     return False
                 try:
                     chain = error.certificateChain()

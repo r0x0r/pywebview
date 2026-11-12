@@ -761,6 +761,7 @@ class TestLocalTlsCert:
         monkeypatch.setattr(util, '_local_tls_cert', None)
         local, other = b'local certificate', b'some other certificate'
         assert not util.is_local_tls_cert(local)
+        assert not util.has_local_tls_cert()
 
         certfile = tmp_path / 'cert.pem'
         certfile.write_text(self._pem(local))
@@ -769,3 +770,9 @@ class TestLocalTlsCert:
         assert util.is_local_tls_cert(local)
         assert not util.is_local_tls_cert(other)
         assert not util.is_local_tls_cert(None)
+        assert util.has_local_tls_cert()
+
+        # start() without ssl=True forgets it
+        util.set_local_tls_cert(None)
+        assert not util.has_local_tls_cert()
+        assert not util.is_local_tls_cert(local)
