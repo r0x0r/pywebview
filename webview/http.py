@@ -48,6 +48,8 @@ class BottleServer:
         self.common_path: str | None = None
         self.port: int = 0
         self.thread: threading.Thread | None = None
+        self.serves_files = True  # False when serving a WSGI app
+        self._httpd: WSGIServer | None = None
 
     @classmethod
     def start_server(
@@ -66,6 +68,7 @@ class BottleServer:
         if len(apps) > 0:
             app = apps[0]
             common_path = '.'
+            server.serves_files = False
         else:
             local_urls = [u.split('#')[0] for u in urls if is_local_url(u)]
             common_path = os.path.commonpath(local_urls) if len(local_urls) > 0 else None
@@ -103,6 +106,7 @@ class BottleServer:
             ssl_context.load_cert_chain(certfile, keyfile)
             httpd.socket = ssl_context.wrap_socket(httpd.socket, server_side=True)
 
+        server._httpd = httpd
         server.port = httpd.server_port
         server.thread = threading.Thread(target=httpd.serve_forever, daemon=True)
         server.thread.start()
@@ -117,6 +121,14 @@ class BottleServer:
     @property
     def is_running(self) -> bool:
         return self.running
+
+    def stop(self) -> None:
+        """Stop the server and release its port."""
+        httpd, self._httpd = self._httpd, None
+        if httpd is not None:
+            httpd.shutdown()
+            httpd.server_close()
+        self.running = False
 
 
 class ServerArgs(TypedDict, total=False):

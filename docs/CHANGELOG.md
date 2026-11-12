@@ -27,6 +27,9 @@
 - `All` Fix the built-in HTTP server handling only one request at a time when `ssl=True`, so a long-running request such as a video stream blocked every other request.
 - `All` Fix the built-in HTTP server occasionally failing to start because the random port it picked was taken before it could bind. The operating system now assigns a free port, and a port passed explicitly with `http_port` that is already in use raises `OSError` instead of failing silently in a background thread.
 - `All` Fix a second application with `private_mode=False` loading the first application's files when both run at once. Both tried to serve on `DEFAULT_HTTP_PORT`, the second server silently failed to start, and its window loaded pages from the other application's server. It now falls back to a random port and logs a warning.
+- `All` Fix `window.load_url()` failing with a 403 for a local file outside the folder served by the window's HTTP server. Such a file now gets a server of its own. Loading a WSGI app with `load_url()` also showed the previous server's pages instead of the app.
+- `All` Stop the HTTP server dedicated to a window when the window closes. Servers started for windows created after `webview.start()` and by `load_url()` were never stopped, so every such window left a port and a thread behind.
+- `All` Start HTTP servers for windows created after `webview.start()`, and for `load_url()`, with the `ssl`, `server` and `server_args` given to `webview.start()`. They used plain HTTP and the default server class.
 
 ### 🚀 Improvements
 

@@ -21,8 +21,8 @@ from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
 from webview.state import State
+from webview.util import abspath, escape_string, is_app, is_local_url, parse_file_type
 from webview.util import base_uri as get_base_uri
-from webview.util import escape_string, is_app, is_local_url, parse_file_type
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -181,6 +181,7 @@ class Window:
         self.events.response_received = Event(self)
 
         self.events._pywebviewready = Event(self)
+        self.events.closed += self._stop_server
 
         self._expose_lock = Lock()
         self.dom = DOM(self)
@@ -188,12 +189,7 @@ class Window:
         self.native: Any = None  # set in the gui after window creation
         self._state = State(self)
 
-    def _initialize(
-        self,
-        gui: Any,
-        server: http.BottleServer | None = None,
-        server_args: http.ServerArgs | None = None,
-    ):
+    def _initialize(self, gui: Any, server: http.BottleServer | None = None):
         self.gui = gui
 
         self.localization = original_localization.copy()
@@ -201,12 +197,7 @@ class Window:
             self.localization.update(self.localization_override)
 
         if is_app(self.original_url) and (server is None or server == http.global_server):
-            *_, server = http.start_server(
-                urls=[self.original_url],
-                http_port=self._http_port,
-                server=self._server_class or http.BottleServer,
-                **(self._server_args or server_args or {}),
-            )
+            server = self._create_server(self.original_url)
         elif server is None:
             server = http.global_server
 
@@ -280,10 +271,11 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if ((self._server is None) or (not self._server.running)) and (
-            is_app(url) or is_local_url(url)
-        ):
-            self._url_prefix, self._common_path, self._server = http.start_server([url])
+        if is_app(url) or (is_local_url(url) and not self._server_serves(url)):
+            self._stop_server()
+            self._server = self._create_server(url)
+            self._url_prefix = self._server.address
+            self._common_path = self._server.common_path
 
         self.real_url = self._resolve_url(url)
         self.events.loaded.clear()
@@ -585,6 +577,45 @@ class Window:
 
         if self.events.loaded.is_set():
             self.run_js(f'window.pywebview._createApi({func_list})')
+
+    def _create_server(self, url: str | Callable[..., Any]) -> http.BottleServer:
+        """Start a server dedicated to this window, configured like the one in start()."""
+        from webview import _state
+
+        server_class = self._server_class
+        if server_class in (None, http.BottleServer):
+            server_class = _state['server']
+        *_, server = http.start_server(
+            [url],
+            http_port=self._http_port,
+            server=server_class,
+            **(self._server_args or _state['server_args']),
+        )
+        return server
+
+    def _stop_server(self) -> None:
+        """Stop the server dedicated to this window, if it has one."""
+        server = self._server
+        if server is not None and server is not http.global_server:
+            self._server = None
+            if hasattr(server, 'stop'):
+                server.stop()
+
+    def _server_serves(self, url: str) -> bool:
+        """Return True if the window's current server can serve the local URL."""
+        server = self._server
+        if server is None or not server.running:
+            return False
+        if not getattr(server, 'serves_files', True):
+            return True  # a WSGI app handles its own routes
+        if not server.root_path:
+            return False
+
+        path = abspath(url.split('#')[0].split('?')[0])
+        try:
+            return os.path.commonpath([path, server.root_path]) == server.root_path
+        except ValueError:  # paths on different drives
+            return False
 
     def _resolve_url(self, url: str | Callable[..., Any] | None) -> str | None:
         if is_app(url):

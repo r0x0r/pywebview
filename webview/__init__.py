@@ -18,7 +18,7 @@ import re
 import tempfile
 import threading
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, cast
+from typing import Any
 from uuid import uuid4
 
 import webview.http as http
@@ -116,6 +116,8 @@ _state = ImmutableDict(
         'ssl': False,
         'icon': None,
         'menu': None,
+        'server': http.BottleServer,
+        'server_args': {},
     }
 )
 
@@ -298,10 +300,11 @@ def start(
         if http.global_server is None:
             http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
 
+    _state['server'] = server
+    _state['server_args'] = server_args
+
     for window in windows:
-        should_initialize = not window._initialize(
-            guilib, server_args=cast(http.ServerArgs, server_args)
-        )
+        should_initialize = not window._initialize(guilib)
         if should_initialize:
             return
 
@@ -448,7 +451,7 @@ def create_window(
             # Start a dedicated server for this URL. The global server serves
             # from its original root_path, so reusing it would 404 for a local
             # file that lives outside that root.
-            _, _, server_instance = http.start_server([url], server=server, **server_args)
+            server_instance = window._create_server(url)
         else:
             server_instance = None
 
