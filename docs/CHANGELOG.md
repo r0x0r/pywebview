@@ -24,6 +24,8 @@
 - `All` Fix deadlocks when a pywebview API, such as `evaluate_js()`, `get_cookies()`, `get_current_url()`, `window.width` or a dialog, is called from a blocking event handler (`closing`, `before_show`, `before_load`). The GUI event loop now keeps running while the call waits for its result, and `before_show`/`before_load` handlers no longer wait 20 seconds for an event that cannot fire until they return.
 - `Android` `evaluate_js()` and `get_cookies()` raise `RuntimeError` instead of deadlocking when called from a blocking event handler.
 - `All` Fix the JS bridge silently missing when pywebview is installed under a path containing glob metacharacters such as `[ ]`, e.g. a portable app in `D:\Apps\MyApp [P]\`. `load_js_files()` passed the path to `glob()` unescaped, so no JavaScript was injected, `window.pywebview.api` was never defined and `evaluate_js()` returned `None`. [#1883](https://github.com/r0x0r/pywebview/issues/1883)
+- `All` Fix the built-in HTTP server handling only one request at a time when `ssl=True`, so a long-running request such as a video stream blocked every other request.
+- `All` Fix the built-in HTTP server occasionally failing to start because the random port it picked was taken before it could bind. The operating system now assigns a free port, and a port passed explicitly with `http_port` that is already in use raises `OSError` instead of failing silently in a background thread.
 
 ### 🚀 Improvements
 
@@ -35,6 +37,8 @@
 - `All` Drop the `proxy_tools` dependency. Deprecated `OPEN_DIALOG`, `FOLDER_DIALOG`, `SAVE_DIALOG` and `DRAG_REGION_SELECTOR` now use a module-level `__getattr__`, as does `webview.screens`. `webview.screens` now returns a plain list of the displays at the time of access, rather than a proxy that re-queries them on every use. `screens` is no longer exported by `from webview import *`, so that importing _pywebview_ never initializes the GUI backend. [#1851](https://github.com/r0x0r/pywebview/issues/1851)
 - `All` CI now tests Python 3.10 through 3.13, type-checks the package, compile-checks every example and audits dependencies with `pip-audit`.
 - `All` The PyPI project page now shows the README. The built distributions previously carried no long description.
+- `All` Require `bottle` 0.13 or newer, the first release that works on Python 3.13.
+- `All` Remove the unused `/js_api` endpoint from the built-in HTTP server, along with the `Window.js_api_endpoint` and `BottleServer.js_api_endpoint` attributes. It was left over from the old GTK JS bridge and accepted cross-origin POST requests.
 
 ## 6.2.1
 

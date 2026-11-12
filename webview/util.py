@@ -144,7 +144,7 @@ class ImmutableDict(UserDict):
 
 
 def is_app(url: str | Callable[..., Any] | None) -> TypeGuard[Callable[..., Any]]:
-    """Returns true if 'url' is a WSGI or ASGI app."""
+    """Returns true if 'url' is a WSGI app."""
     return callable(url)
 
 
@@ -511,7 +511,6 @@ def load_js_files(window: Window, platform: str) -> tuple[str, str]:
                     'token': _TOKEN,
                     'platform': platform,
                     'uid': window.uid,
-                    'js_api_endpoint': window.js_api_endpoint,
                 }
             elif name == 'customize':
                 params = {

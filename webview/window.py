@@ -213,9 +213,6 @@ class Window:
         self._url_prefix = server.address if server is not None else None
         self._common_path = server.common_path if server is not None else None
         self._server = server
-        self.js_api_endpoint = (
-            http.global_server.js_api_endpoint if http.global_server is not None else None
-        )
         self.real_url = self._resolve_url(self.original_url)
 
         abort = self.events.initialized.set(gui.renderer)

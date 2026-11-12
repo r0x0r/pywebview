@@ -356,7 +356,7 @@ def create_window(
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
     :param title: Window title
-    :param url: URL or WSGI/ASGI app to load
+    :param url: URL or WSGI app to load
     :param html: HTML content to load
     :param width: window width. Default is 800px
     :param height: window height. Default is 600px
