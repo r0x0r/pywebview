@@ -25,6 +25,7 @@ from webview.util import (
     create_cookie,
     environ_append,
     inject_pywebview,
+    is_local_server_url,
     is_local_tls_cert,
     js_bridge_call,
     open_external_url,
@@ -329,13 +330,19 @@ class BrowserView(QMainWindow):
                 """
                 if settings['IGNORE_SSL_ERRORS']:
                     return True
+                if not _state['ssl']:
+                    return False
                 try:
                     chain = error.certificateChain()
                     leaf = bytes(chain[0].toDer()) if chain else None
                 except Exception:
                     logger.exception('Could not read the server certificate')
                     return False
-                return bool(_state['ssl']) and is_local_tls_cert(leaf)
+                if leaf:
+                    return is_local_tls_cert(leaf)
+                # Qt cannot read certificates without its SSL backend, e.g. Qt 5 built against
+                # OpenSSL 1.1 on a system with OpenSSL 3. Accept only the local server's address.
+                return is_local_server_url(error.url().toString())
 
             if _qt6:
 
@@ -1258,9 +1265,13 @@ def get_screens():
 def add_tls_cert(certfile):
     # QtWebEngine checks it in WebPage._allow_certificate; QtWebKit uses QSslConfiguration
     set_local_tls_cert(certfile)
+    # Empty when Qt's own SSL backend is unavailable, e.g. Qt 5 built against OpenSSL 1.1 on a
+    # system with OpenSSL 3; QtWebEngine does not need it
+    loaded = QSslCertificate.fromPath(certfile)
+    if not loaded:
+        return
     config = QSslConfiguration.defaultConfiguration()
     certs = config.caCertificates()
-    cert = QSslCertificate.fromPath(certfile)[0]
-    certs.append(cert)
+    certs.append(loaded[0])
     config.setCaCertificates(certs)
     QSslConfiguration.setDefaultConfiguration(config)

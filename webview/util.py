@@ -558,6 +558,19 @@ def set_local_tls_cert(certfile: str) -> None:
         _local_tls_cert = pem_to_der(f.read())
 
 
+def is_local_server_url(url: str) -> bool:
+    """Return whether url points at an HTTPS server that pywebview started, by its exact origin."""
+    from webview import http
+
+    servers = [http.global_server] + [window._server for window in webview.windows]
+    origins = {
+        js_api_origin(server.address)
+        for server in servers
+        if server is not None and server.address.startswith('https://')
+    }
+    return js_api_origin(url) in origins
+
+
 def is_local_tls_cert(cert: bytes | None) -> bool:
     """Return whether a server certificate, as DER bytes, is the local HTTP server's own."""
     return cert is not None and _local_tls_cert is not None and cert == _local_tls_cert
