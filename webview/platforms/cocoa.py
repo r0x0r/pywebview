@@ -942,10 +942,13 @@ class BrowserView:
             self.datastore.removeDataOfTypes_modifiedSince_completionHandler_(
                 WebKit.WKWebsiteDataStore.allWebsiteDataTypes(),
                 Foundation.NSDate.dateWithTimeIntervalSince1970_(0),
-                lambda: None,
+                lambda: semaphore.release(),
             )
 
+        # Wait for the removal, so that a following get_cookies() does not see the old cookies
+        semaphore = Semaphore(0)
         AppHelper.callAfter(clear)
+        _wait(semaphore)
 
     def get_cookies(self):
         def handler(cookies):
