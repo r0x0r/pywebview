@@ -7,6 +7,9 @@ import webview
 html = """
 <!DOCTYPE html>
 <html>
+<head>
+  <title>Async API example</title>
+</head>
 <body>
   <button onclick="fetchData()">Fetch data</button>
   <div id="result"></div>
@@ -30,8 +33,9 @@ class Api:
 
 
 async def on_loaded(window):
-    await asyncio.sleep(0.1)
-    print(f'Page loaded: {window.get_current_url()}')
+    # Window methods are synchronous. Run them in a thread so the event loop is not blocked.
+    title = await asyncio.to_thread(window.evaluate_js, 'document.title')
+    print(f'Page loaded: {title}')
 
 
 async def on_closing():
