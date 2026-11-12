@@ -28,6 +28,7 @@ from webview.util import (
     is_local_url,
     js_api_auto_origin,
     js_api_guard,
+    js_api_origin,
     parse_file_type,
 )
 from webview.util import base_uri as get_base_uri
@@ -650,9 +651,16 @@ class Window:
 
     def _stop_server(self) -> None:
         """Stop the server dedicated to this window, if it has one."""
+        import webview
+
         server = self._server
         if server is not None and server is not http.global_server:
             self._server = None
+            # Revoke the JS API on the server's origin before releasing its port, which
+            # another process could then bind
+            origin = js_api_origin(server.address)
+            for window in {self, *webview.windows}:
+                window._js_api_origins.discard(origin)
             if hasattr(server, 'stop'):
                 server.stop()
 
@@ -662,8 +670,9 @@ class Window:
         if server is None or not server.running:
             return False
         if not getattr(server, 'serves_files', True):
-            # A relative URL is a route of the WSGI app, an absolute one a file on disk
-            return not os.path.isabs(url)
+            # A route of the WSGI app, unless the URL is an absolute path to an existing file
+            path = url.split('#')[0].split('?')[0]
+            return not (os.path.isabs(path) and os.path.isfile(path))
         if not server.root_path:
             return False
 
