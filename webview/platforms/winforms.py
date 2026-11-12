@@ -16,7 +16,7 @@ from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms import win32
 from webview.screen import Screen
-from webview.util import inject_base_uri, parse_file_type
+from webview.util import inject_base_uri, parse_file_type, set_local_tls_cert
 from webview.window import FixPoint
 
 clr.AddReference('System.Windows.Forms')
@@ -1174,5 +1174,5 @@ def get_screens():
     return screens
 
 
-def add_tls_cert(_):
-    return
+def add_tls_cert(certfile):
+    set_local_tls_cert(certfile)

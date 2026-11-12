@@ -21,7 +21,15 @@ from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
 from webview.state import State
-from webview.util import abspath, escape_string, is_app, is_local_url, parse_file_type
+from webview.util import (
+    abspath,
+    escape_string,
+    is_app,
+    is_local_url,
+    js_api_auto_origin,
+    js_api_guard,
+    parse_file_type,
+)
 from webview.util import base_uri as get_base_uri
 
 P = ParamSpec('P')
@@ -162,6 +170,16 @@ class Window:
 
         self._js_api = js_api
         self._functions: dict[str, Callable[..., Any]] = {}
+        # js_api attribute paths advertised to Javascript on the current page
+        self._js_api_names: frozenset[str] = frozenset()
+        # Origins of the pages loaded from Python, which may use the JS API
+        self._js_api_origins: set[str] = set()
+        self._js_api_token: str | None = None
+        # Trust decided for the current document when it was injected, see inject_pywebview.
+        # Nothing is trusted until then, and a navigation resets it.
+        self._js_api_restricted = True
+        self._js_api_document_url: str | None = None
+        self._js_api_pending_html = False
         self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
         self.events = EventContainer()
@@ -205,6 +223,7 @@ class Window:
         self._common_path = server.common_path if server is not None else None
         self._server = server
         self.real_url = self._resolve_url(self.original_url)
+        self._allow_js_api_on(self.real_url)
 
         abort = self.events.initialized.set(gui.renderer)
         return not abort
@@ -278,6 +297,8 @@ class Window:
             self._common_path = self._server.common_path
 
         self.real_url = self._resolve_url(url)
+        self._js_api_pending_html = False
+        self._allow_js_api_on(self.real_url)
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
@@ -296,6 +317,9 @@ class Window:
         if base_uri is None:
             base_uri = get_base_uri()
 
+        self._invalidate_js_api()
+        self._allow_js_api_on(None)
+        self._allow_js_api_on(base_uri)
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
@@ -575,8 +599,42 @@ class Window:
                 params = list(inspect.getfullargspec(func).args)
                 func_list.append({'func': name, 'params': params})
 
-        if self.events.loaded.is_set():
-            self.run_js(f'window.pywebview._createApi({func_list})')
+        if self.events.loaded.is_set() and not self._run_js_api_js(
+            f'window.pywebview._createApi({func_list})'
+        ):
+            logger.warning(
+                'Exposed functions are not available on %s. Add its origin to '
+                "webview.settings['ALLOWED_ORIGINS'] to allow them.",
+                self._js_api_document_url or 'the current page',
+            )
+
+    def _allow_js_api_on(self, url: str | None) -> None:
+        """Allow the JS API on the origin of a page loaded from Python. None means HTML content."""
+        origin = js_api_auto_origin(url) if url else 'about:blank'
+        if origin is None:
+            return
+        self._js_api_origins.add(origin)
+        if origin == 'about:blank':
+            self._js_api_pending_html = True
+
+    def _invalidate_js_api(self) -> None:
+        """Revoke bridge access at the native backend's document transition."""
+        self._js_api_token = None
+        self._js_api_restricted = True
+        self._js_api_document_url = None
+        if not self._js_api_pending_html:
+            self._js_api_origins.discard('about:blank')
+
+    def _run_js_api_js(self, script: str) -> bool:
+        """
+        Run pywebview's own script only if the current document may use the JS API. Return
+        whether it was sent. The script also checks the page's location, in case the page has
+        navigated since it was injected.
+        """
+        if self._js_api_restricted:
+            return False
+        self.run_js(f'if ({js_api_guard(self, document=True)}) {{ {script} }}')
+        return True
 
     def _create_server(self, url: str | Callable[..., Any]) -> http.BottleServer:
         """Start a server dedicated to this window, configured like the one in start()."""
