@@ -662,7 +662,8 @@ class Window:
         if server is None or not server.running:
             return False
         if not getattr(server, 'serves_files', True):
-            return True  # a WSGI app handles its own routes
+            # A relative URL is a route of the WSGI app, an absolute one a file on disk
+            return not os.path.isabs(url)
         if not server.root_path:
             return False
 
