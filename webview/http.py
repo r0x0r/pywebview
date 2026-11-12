@@ -84,10 +84,12 @@ class BottleServer:
             def asset(file):
                 if not server.root_path:
                     return ''
-                bottle.response.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-                bottle.response.set_header('Pragma', 'no-cache')
-                bottle.response.set_header('Expires', 0)
-                return bottle.static_file(file, root=server.root_path)
+                # static_file returns its own response, so headers must be set on it
+                response = bottle.static_file(file, root=server.root_path)
+                response.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                response.set_header('Pragma', 'no-cache')
+                response.set_header('Expires', '0')
+                return response
 
         server.root_path = abspath(common_path) if common_path is not None else None
 

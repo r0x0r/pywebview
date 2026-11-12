@@ -30,6 +30,7 @@
 - `All` Fix `window.load_url()` failing with a 403 for a local file outside the folder served by the window's HTTP server. Such a file now gets a server of its own. Loading a WSGI app with `load_url()` also showed the previous server's pages instead of the app.
 - `All` Stop the HTTP server dedicated to a window when the window closes. Servers started for windows created after `webview.start()` and by `load_url()` were never stopped, so every such window left a port and a thread behind.
 - `All` Start HTTP servers for windows created after `webview.start()`, and for `load_url()`, with the `ssl`, `server` and `server_args` given to `webview.start()`. They used plain HTTP and the default server class.
+- `All` Fix the built-in HTTP server never sending its no-cache headers, so the web engine could show stale copies of local files after they changed. `bottle.static_file()` returns its own response, which replaced the headers set on the global one.
 
 ### 🚀 Improvements
 
