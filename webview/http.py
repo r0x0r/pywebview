@@ -20,6 +20,7 @@ import random
 import socket
 import ssl
 import threading
+import time
 import uuid
 from socketserver import ThreadingMixIn
 from typing import TYPE_CHECKING
@@ -49,6 +50,24 @@ def _get_random_port() -> int:
                 continue
             else:
                 return port
+
+
+def _wait_until_listening(port: int, thread: threading.Thread, timeout: float = 5) -> None:
+    """Block until the server thread accepts connections.
+
+    The socket is bound on the server thread, so returning right after starting it lets a window
+    navigate to the address first and be refused, which shows as a browser error page.
+    """
+    deadline = time.monotonic() + timeout
+
+    while thread.is_alive() and time.monotonic() < deadline:
+        try:
+            socket.create_connection(('127.0.0.1', port), timeout=0.5).close()
+            return
+        except OSError:
+            time.sleep(0.01)
+
+    logger.warning(f'HTTP server on port {port} is not accepting connections')
 
 
 class ThreadedAdapter(bottle.ServerAdapter):
@@ -151,6 +170,7 @@ class BottleServer:
             daemon=True,
         )
         server.thread.start()
+        _wait_until_listening(server.port, server.thread)
 
         server.running = True
         protocol = 'https' if keyfile and certfile else 'http'
