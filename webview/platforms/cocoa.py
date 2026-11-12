@@ -11,6 +11,8 @@ from threading import Semaphore, Thread, main_thread
 
 import AppKit
 import Foundation
+import objc
+import Security  # loaded early so PyObjC returns SecTrustRef objects, not raw pointers
 import WebKit
 from objc import nil, super
 from PyObjCTools import AppHelper
@@ -26,6 +28,7 @@ from webview.util import (
     create_cookie,
     has_local_tls_cert,
     inject_pywebview,
+    is_local_server_url,
     is_local_tls_cert,
     is_test_mode,
     js_bridge_call,
@@ -266,8 +269,6 @@ class BrowserView:
         def webView_didReceiveAuthenticationChallenge_completionHandler_(
             self, webview, challenge, handler
         ):
-            # Prevent `ObjCPointerWarning: PyObjCPointer created: ... type ^{__SecTrust=}`
-
             # IGNORE_SSL_ERRORS accepts any server certificate, ssl=True only the local server's
             space = challenge.protectionSpace()
             trust = (
@@ -277,9 +278,7 @@ class BrowserView:
             )
             if trust is not None and (
                 webview_settings['IGNORE_SSL_ERRORS']
-                or (
-                    has_local_tls_cert() and is_local_tls_cert(BrowserView._leaf_certificate(trust))
-                )
+                or BrowserView._is_local_server_trust(space, trust)
             ):
                 credential = AppKit.NSURLCredential.credentialForTrust_(trust)
                 handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
@@ -1341,11 +1340,23 @@ class BrowserView:
         return val
 
     @staticmethod
+    def _is_local_server_trust(space, trust):
+        """Return whether a server-trust challenge comes from the local server started with ssl=True."""
+        if not has_local_tls_cert():
+            return False
+        leaf = BrowserView._leaf_certificate(trust)
+        if leaf is not None:
+            return is_local_tls_cert(leaf)
+        # The certificate could not be read: accept only the local server's own address
+        return is_local_server_url(f'https://{space.host()}:{space.port()}/')
+
+    @staticmethod
     def _leaf_certificate(trust):
         """Return the server's own certificate in a SecTrust as DER bytes, or None."""
+        if isinstance(trust, objc.PyObjCPointer):
+            # An untyped pointer would crash the Security framework rather than raise
+            return None
         try:
-            import Security
-
             if hasattr(Security, 'SecTrustCopyCertificateChain'):  # macOS 12+
                 chain = Security.SecTrustCopyCertificateChain(trust)
                 leaf = chain[0] if chain else None
