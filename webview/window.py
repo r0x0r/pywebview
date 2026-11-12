@@ -608,9 +608,10 @@ class Window:
         if not server.root_path:
             return False
 
-        path = abspath(url.split('#')[0].split('?')[0])
+        path = os.path.normcase(abspath(url.split('#')[0].split('?')[0]))
+        root = os.path.normcase(server.root_path)
         try:
-            return os.path.commonpath([path, server.root_path]) == server.root_path
+            return os.path.commonpath([path, root]) == root
         except ValueError:  # paths on different drives
             return False
 

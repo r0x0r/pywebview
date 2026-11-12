@@ -111,6 +111,13 @@ class BottleServer:
 
         server.root_path = abspath(common_path) if common_path is not None else None
 
+        # Load the certificate before binding, so a bad one does not leave the port bound
+        ssl_context = None
+        if keyfile and certfile:
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+            ssl_context.load_cert_chain(certfile, keyfile)
+
         # Port 0 lets the OS assign a free port
         httpd = make_server(
             '127.0.0.1',
@@ -119,12 +126,7 @@ class BottleServer:
             server_class=_ThreadingWSGIServer,
             handler_class=WSGIRequestHandler if _state['debug'] else _QuietHandler,
         )
-
-        if keyfile and certfile:
-            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
-            ssl_context.load_cert_chain(certfile, keyfile)
-            httpd.ssl_context = ssl_context
+        httpd.ssl_context = ssl_context
 
         server._httpd = httpd
         server.port = httpd.server_port
