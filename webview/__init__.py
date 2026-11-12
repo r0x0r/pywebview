@@ -364,7 +364,7 @@ def create_window(
     vibrancy: bool = False,
     menu: list[Menu] | None = None,
     localization: Mapping[str, str] | None = None,
-    server: type[http.BottleServer] = http.BottleServer,
+    server: type[http.BottleServer] | None = None,
     http_port: int | None = None,
     server_args: http.ServerArgs | None = None,
 ) -> Window | None:
@@ -393,7 +393,8 @@ def create_window(
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
     :param menu: List of menus to be included in the window menu
-    :param server: Server class. Defaults to BottleServer
+    :param server: Server class. Defaults to the server class passed to start(), which
+                   defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :return: window object or None if window initialization is cancelled in the window.events.initialized event
     """
@@ -451,7 +452,11 @@ def create_window(
             # Start a dedicated server for this URL. The global server serves
             # from its original root_path, so reusing it would 404 for a local
             # file that lives outside that root.
-            server_instance = window._create_server(url)
+            try:
+                server_instance = window._create_server(url)
+            except Exception:
+                windows.remove(window)
+                raise
         else:
             server_instance = None
 

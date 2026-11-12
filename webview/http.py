@@ -32,6 +32,24 @@ global_server = None
 
 class _ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     daemon_threads = True
+    ssl_context: ssl.SSLContext | None = None
+
+    def finish_request(self, request, client_address) -> None:
+        if self.ssl_context is None:
+            return super().finish_request(request, client_address)
+
+        # Handshake in the request thread, not in accept(), so a stalled client
+        # cannot block serve_forever() and with it shutdown()
+        request.settimeout(10)
+        try:
+            tls_request = self.ssl_context.wrap_socket(request, server_side=True)
+        except OSError as e:
+            logger.debug(f'TLS handshake failed: {e}')
+            return
+
+        with tls_request:
+            tls_request.settimeout(None)
+            super().finish_request(tls_request, client_address)
 
 
 class _QuietHandler(WSGIRequestHandler):
@@ -106,7 +124,7 @@ class BottleServer:
             ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
             ssl_context.load_cert_chain(certfile, keyfile)
-            httpd.socket = ssl_context.wrap_socket(httpd.socket, server_side=True)
+            httpd.ssl_context = ssl_context
 
         server._httpd = httpd
         server.port = httpd.server_port

@@ -18,7 +18,7 @@ webview.create_window(title, url=None, html=None, js_api=None, width=800, height
                       easy_drag=True, shadow=True, focus=True, minimized=False, maximized=False, menu=[],
                       on_top=False, confirm_close=False, background_color='#FFFFFF',
                       transparent=False, text_select=False, zoomable=False,
-                      draggable=False, vibrancy=False, server=http.BottleServer, server_args={},
+                      draggable=False, vibrancy=False, server=None, server_args={},
                       localization=None)
 ```
 
@@ -52,7 +52,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `zoomable` - Enable document zooming. Default is False
 * `draggable` - Enable image and link object dragging. Default is False
 * `vibrancy` - Enable window vibrancy. Default is False. macOS only.
-* `server` - A custom WSGI server instance for this window. Defaults to BottleServer.
+* `server` - A custom WSGI server class for this window. Defaults to the `server` passed to `webview.start()`, which defaults to BottleServer.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 * `localization` - pass a localization dictionary for per window localization.
 

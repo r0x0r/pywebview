@@ -582,13 +582,10 @@ class Window:
         """Start a server dedicated to this window, configured like the one in start()."""
         from webview import _state
 
-        server_class = self._server_class
-        if server_class in (None, http.BottleServer):
-            server_class = _state['server']
         *_, server = http.start_server(
             [url],
             http_port=self._http_port,
-            server=server_class,
+            server=self._server_class or _state['server'],
             **(self._server_args or _state['server_args']),
         )
         return server
