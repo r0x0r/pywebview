@@ -276,10 +276,16 @@ class BrowserView:
                 if space.authenticationMethod() == Foundation.NSURLAuthenticationMethodServerTrust
                 else None
             )
-            if trust is not None and (
-                webview_settings['IGNORE_SSL_ERRORS']
-                or BrowserView._is_local_server_trust(space, trust)
-            ):
+            try:
+                accept = trust is not None and (
+                    webview_settings['IGNORE_SSL_ERRORS']
+                    or BrowserView._is_local_server_trust(space, trust)
+                )
+            except Exception:
+                # An exception escaping this delegate would terminate the application
+                logger.exception('Could not check the server certificate')
+                accept = False
+            if accept:
                 credential = AppKit.NSURLCredential.credentialForTrust_(trust)
                 handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
             else:
@@ -1353,8 +1359,9 @@ class BrowserView:
     @staticmethod
     def _leaf_certificate(trust):
         """Return the server's own certificate in a SecTrust as DER bytes, or None."""
-        if isinstance(trust, objc.PyObjCPointer):
-            # An untyped pointer would crash the Security framework rather than raise
+        # An untyped pointer would crash the Security framework rather than raise
+        pointer_type = getattr(objc, 'ObjCPointer', None)
+        if pointer_type is not None and isinstance(trust, pointer_type):
             return None
         try:
             if hasattr(Security, 'SecTrustCopyCertificateChain'):  # macOS 12+
