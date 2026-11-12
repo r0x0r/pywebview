@@ -92,6 +92,11 @@ The backend avoids the race rather than fixing pyjnius:
 
 - `Activity.runOnUiThread` is the only Java method it calls from more than one
   thread, and `base.run_on_ui_thread` holds a lock across the bind and the call.
+- `is_ui_thread()` compares Python's thread id with the one `_run_next` and the lifecycle
+  forwarders record on the UI thread, rather than asking Java via
+  `Looper.getMainLooper().equals(Looper.myLooper())`. That `equals` ran on a fresh temporary
+  from every `evaluate_js()`, on whichever thread called it, so concurrent calls aborted the
+  process with `use of deleted global reference`.
 - `EventLoop.mainloop()` blocks on an `Event` instead of driving a
   `Choreographer` frame callback sixty times a second, which bought nothing and
   amplified the race.

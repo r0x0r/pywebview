@@ -11,7 +11,7 @@ import webview
 from webview import _state, settings
 from webview.models import Request, Response
 from webview.platforms.android.app import App
-from webview.platforms.android.base import run_on_ui_thread
+from webview.platforms.android.base import is_ui_thread, run_on_ui_thread
 from webview.platforms.android.jclass import (
     AlertDialogBuilder,
     Context,
@@ -40,13 +40,6 @@ logger = logging.getLogger('pywebview')
 
 renderer = 'android-webkit'
 app = None
-
-Looper = autoclass('android.os.Looper')
-
-
-def _is_ui_thread() -> bool:
-    return Looper.getMainLooper().equals(Looper.myLooper())
-
 
 # Every Java-facing proxy has to outlive the Python object that made it.
 # pyjnius passes Java a bare pointer to the proxy's Python object and ties the
@@ -531,7 +524,7 @@ def evaluate_js(js_code, _, parse_json=True):
     js_result = None
     value_callback = None
 
-    if _is_ui_thread():
+    if is_ui_thread():
         # The result is delivered later on this same thread, and Android offers no way to run the
         # Looper while waiting for it. run_js() does not need the result, so it can start the
         # script directly, without a callback.
@@ -582,7 +575,7 @@ def clear_cookies(_):
 
 
 def get_cookies(_):
-    if _is_ui_thread():
+    if is_ui_thread():
         raise RuntimeError(
             'get_cookies() cannot be called from the UI thread on Android. '
             'Call it from another thread.'

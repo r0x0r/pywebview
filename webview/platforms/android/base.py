@@ -1,7 +1,7 @@
 import logging
 from collections import deque
 from functools import wraps
-from threading import Event, RLock
+from threading import Event, RLock, get_ident
 
 from android.activity import _activity as activity  # noqa
 from android.activity import register_activity_lifecycle_callbacks  # noqa
@@ -33,6 +33,12 @@ _ui_lock = RLock()
 # a single proxy serves every call site.
 _ui_queue: deque = deque()
 
+# Python's id for the UI thread, learnt from code that runs on it. Asking Java
+# (Looper.getMainLooper().equals(Looper.myLooper())) instead would be an
+# unserialised pyjnius instance call, made on a fresh temporary by every
+# evaluate_js(), from whichever thread calls it - the race described above.
+_ui_thread_ident = None
+
 _LIFECYCLE_EVENTS = {
     'onActivityCreated': 'on_create',
     'onActivityPaused': 'on_pause',
@@ -43,8 +49,19 @@ _LIFECYCLE_EVENTS = {
 }
 
 
+def _remember_ui_thread():
+    global _ui_thread_ident
+
+    _ui_thread_ident = get_ident()
+
+
+def is_ui_thread() -> bool:
+    return get_ident() == _ui_thread_ident
+
+
 def _forward(handler):
     def forward(*args):
+        _remember_ui_thread()
         loop = _current_loop
 
         if loop is not None:
@@ -66,6 +83,8 @@ def _register_lifecycle_callbacks():
 
 
 def _run_next():
+    _remember_ui_thread()
+
     try:
         func, args, kwargs = _ui_queue.popleft()
     except IndexError:
@@ -117,6 +136,8 @@ class EventLoop(EventDispatcher):
 
         _current_loop = self
         _register_lifecycle_callbacks()
+        # Lets the UI thread identify itself before anything asks.
+        run_on_ui_thread(lambda: None)()
 
     def mainloop(self):
         # Parks the calling thread until the window closes. Nothing here runs
