@@ -914,7 +914,7 @@ Events are either blocking or non-blocking:
 | `before_show`, `before_load`, `closing`, `initialized`, `request_sent` | Blocking | _pywebview_ waits for the handler to return and uses its result | Not allowed |
 | All other events | Non-blocking | In a separate thread. _pywebview_ does not wait for it | Allowed |
 
-Blocking events wait for their handlers, because the result controls what happens next. For example, if a `closing` handler returns `False`, the window stays open. Because of this, handlers of blocking events must be regular functions. Subscribing an `async` function to a blocking event raises `TypeError`. Blocking handlers should return quickly, because the window or the HTTP request waits for them. Where a `request_sent` handler runs depends on the backend; see its own entry below.
+Blocking events wait for their handlers, because the result controls what happens next. For example, if a `closing` handler returns `False`, the window stays open. Because of this, handlers of blocking events must be regular functions. Subscribing an `async` function to a blocking event raises `TypeError`. To run async code before the window closes, see [this example](/examples/async_api.html). Blocking handlers should return quickly, because the window or the HTTP request waits for them. Where a `request_sent` handler runs depends on the backend; see its own entry below.
 
 Handlers of non-blocking events can be `async` functions. Their coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on a loop that _pywebview_ starts.
 
@@ -938,7 +938,7 @@ The event is fired just before _pywebview_ window is closed.
 
 ### window.events.closing
 
-The event is fired when _pywebview_ window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled. This event is blocking. Handlers must be regular functions.
+The event is fired when _pywebview_ window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled. This event is blocking. Handlers must be regular functions. To run async code before the window closes, see [this example](/examples/async_api.html).
 
 [Example](/examples/events.html)
 

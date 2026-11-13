@@ -38,12 +38,34 @@ async def on_loaded(window):
     print(f'Page loaded: {title}')
 
 
-async def on_closing():
-    await asyncio.sleep(0.1)
+async def async_on_closing():
     return True
 
 
+can_close = False
+
+
+def on_closing():
+    # closing cannot have an async handler. To run async code before the window closes,
+    # cancel closing, run the coroutine on the event loop and close the window when it is done.
+    if can_close:
+        return True
+
+    asyncio.run_coroutine_threadsafe(save_and_close(), loop)
+    return False  # keep the window open for now
+
+
+async def save_and_close():
+    global can_close
+    await asyncio.sleep(1)  # e.g. save data
+    print('Data saved')
+    # Some backends fire closing again on window.destroy(), so let the second close through
+    can_close = True
+    window.destroy()
+
+
 if __name__ == '__main__':
+    loop = asyncio.new_event_loop()
     window = webview.create_window('Async API example', html=html, js_api=Api())
 
     # loaded is a non-blocking event, so its handler can be async
@@ -52,10 +74,12 @@ if __name__ == '__main__':
     # closing is a blocking event: pywebview waits for its handlers and uses their return
     # value, so they must be regular functions. Subscribing an async handler raises TypeError.
     try:
-        window.events.closing += on_closing
+        window.events.closing += async_on_closing
     except TypeError as e:
         print(e)
 
-    # An event loop is started automatically for async functions. To use your own loop,
-    # pass it with webview.start(event_loop=loop).
-    webview.start()
+    window.events.closing += on_closing
+
+    # Without event_loop, pywebview starts its own loop for async functions. A loop is passed
+    # here so that on_closing can schedule a coroutine on it.
+    webview.start(event_loop=loop)
