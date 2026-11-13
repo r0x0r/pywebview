@@ -26,6 +26,15 @@ Executing Python functions from Javascript can be done with two different mechan
 
 Exposed function returns a promise that is resolved to its result value. Exceptions are rejected and encapsulated inside a Javascript `Error` object. Stacktrace is available via `error.stack`. Exposed functions are executed in separate threads and are not thread-safe.
 
+Exposed functions can be `async`. _pywebview_ runs coroutines on an asyncio event loop:
+
+- If you pass a loop to `webview.start(event_loop=loop)`, that loop is used. If the loop is not running, _pywebview_ runs it in a background thread.
+- Otherwise, _pywebview_ starts its own loop in a background thread when the first coroutine runs. The loop is closed when the GUI loop exits.
+
+These can also be `async`: handlers of non-blocking window events, DOM events and state changes, the function passed to `webview.start`, menu actions and `evaluate_js` callbacks. Handlers of blocking window events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) must be regular functions. See [Window events](/api/#window-events). See an [example](/examples/async_api.html).
+
+Window methods such as `evaluate_js` are synchronous. If a coroutine calls one, the event loop waits until the call returns, and other coroutines cannot run during that time. To avoid this, run the call in a thread: `await asyncio.to_thread(window.evaluate_js, script)`.
+
 `pywebview.api` is not guaranteed to be available on the `window.onload` event. Subscribe to the `window.pywebviewready` event instead to make sure that `pywebview.api` is ready.
 
 [See example](/examples/js_api.html).

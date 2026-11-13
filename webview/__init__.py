@@ -10,6 +10,7 @@ http://github.com/r0x0r/pywebview/
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 import enum
 import logging
@@ -28,7 +29,17 @@ from webview.guilib import GUIType, initialize
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import _TOKEN, ImmutableDict, abspath, is_app, is_local_url, set_local_tls_cert
+from webview.util import (
+    _TOKEN,
+    ImmutableDict,
+    abspath,
+    call_maybe_async,
+    is_app,
+    is_local_url,
+    set_event_loop,
+    set_local_tls_cert,
+    stop_event_loop,
+)
 from webview.window import Window
 
 __all__ = (
@@ -166,7 +177,7 @@ renderer: str | None = None
 
 
 def start(
-    func: Callable[..., None] | None = None,
+    func: Callable[..., Any] | None = None,
     args: Iterable[Any] | None = None,
     localization: dict[str, str] | None = None,
     gui: GUIType | None = None,
@@ -181,6 +192,7 @@ def start(
     server_args: dict[Any, Any] | None = None,
     ssl: bool = False,
     icon: str | None = None,
+    event_loop: asyncio.AbstractEventLoop | None = None,
 ):
     """
     Start a GUI loop and display previously created windows. This function must
@@ -207,8 +219,24 @@ def start(
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :param ssl: Enable SSL for local HTTP server. Default is False.
     :param icon: Path to the icon file. Supported on GTK, QT, macOS and Windows.
+    :param event_loop: asyncio event loop to run async JS API functions and event handlers on.
+        A loop that is not running is run in a background thread. It must not be the loop that
+        calls start(). If None, a loop is started automatically when the first coroutine needs
+        to run and closed when the GUI loop exits.
     """
     global guilib, renderer
+
+    if event_loop is not None and event_loop.is_running():
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+
+        if running_loop is event_loop:
+            raise WebViewException(
+                'event_loop must not be the loop running webview.start(), as start() blocks it. '
+                'Run the loop in another thread or omit event_loop.'
+            )
 
     localization = localization if localization is not None else {}
     menu = menu if menu is not None else []
@@ -254,6 +282,7 @@ def start(
     if menu:
         _state['menu'] = menu
 
+    set_event_loop(event_loop)
     guilib = initialize(gui)
     renderer = guilib.renderer
 
@@ -307,6 +336,7 @@ def start(
     for window in windows:
         should_initialize = not window._initialize(guilib)
         if should_initialize:
+            stop_event_loop()
             return
 
     set_local_tls_cert(None)
@@ -322,14 +352,16 @@ def start(
         if args is not None:
             if not hasattr(args, '__iter__'):
                 args = (args,)
-            thread = threading.Thread(target=func, args=args)
+            thread = threading.Thread(target=call_maybe_async, args=(func, *args))
         else:
-            thread = threading.Thread(target=func)
+            thread = threading.Thread(target=call_maybe_async, args=(func,))
         thread.start()
 
     try:
         guilib.create_window(windows[0])
     finally:
+        stop_event_loop()
+
         if generated_ssl_cert:
             for path in (keyfile, certfile):
                 if path and os.path.exists(path):

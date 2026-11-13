@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from functools import wraps
 from typing import Any
+
+from webview.util import call_maybe_async
 
 
 class Menu:
@@ -20,7 +23,12 @@ class Menu:
 class MenuAction:
     def __init__(self, title: str, function: Callable[[], Any]) -> None:
         self.title = title
-        self.function = function
+
+        @wraps(function)
+        def invoke() -> Any:
+            return call_maybe_async(function)
+
+        self.function = invoke
         # TODO: support platform-agnostic shortcut
         # self.shortcut = shortcut
 

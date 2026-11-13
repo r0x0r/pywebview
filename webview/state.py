@@ -6,7 +6,7 @@ from typing import Any
 
 from typing_extensions import Self
 
-from webview.util import escape_string
+from webview.util import call_maybe_async, escape_string
 
 if sys.version_info >= (3, 11):
     from enum import StrEnum  # Python 3.11 and above
@@ -45,9 +45,9 @@ class State(dict):
             for handler in self.__event_handlers:
                 if callable(handler):
                     if type == StateEventType.CHANGE:
-                        handler(type, key, value)
+                        call_maybe_async(handler, type, key, value)
                     elif type == StateEventType.DELETE:
-                        handler(type, key, value)
+                        call_maybe_async(handler, type, key, value)
 
         t = Thread(target=notify_handlers)
         t.start()

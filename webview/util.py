@@ -7,6 +7,7 @@ http://github.com/r0x0r/pywebview/
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hmac
 import inspect
@@ -24,10 +25,11 @@ import urllib.parse
 import webbrowser
 from collections import UserDict
 from collections.abc import Callable
+from concurrent.futures import Future
 from glob import escape as glob_escape
 from glob import glob
 from http.cookies import SimpleCookie
-from threading import Thread
+from threading import RLock, Thread
 from typing import TYPE_CHECKING, Any, TypeGuard
 from uuid import uuid4
 
@@ -52,6 +54,129 @@ DEFAULT_HTML = """
 """
 
 logger = logging.getLogger('pywebview')
+
+
+# The asyncio event loop that runs coroutines returned by JS API functions and event handlers.
+# `owned` is True when pywebview created the loop itself and is responsible for closing it.
+_async_lock = RLock()
+_async_futures: set[Future[Any]] = set()
+_async_state: dict[str, Any] = {
+    'loop': None,
+    'thread': None,
+    'owned': False,
+    'stopped': False,
+}
+
+
+def set_event_loop(loop: asyncio.AbstractEventLoop | None) -> None:
+    """
+    Set the event loop used to run coroutines. A loop that is not running is run in a background
+    thread. With None, a loop is created on demand the first time a coroutine needs to run.
+    """
+    stop_event_loop()
+
+    with _async_lock:
+        _async_state.update(loop=loop, thread=None, owned=False, stopped=False)
+        if loop is not None and not loop.is_running():
+            _start_loop_thread(loop)
+
+
+def _start_loop_thread(loop: asyncio.AbstractEventLoop) -> None:
+    thread = Thread(target=loop.run_forever, name='pywebview-asyncio', daemon=True)
+    thread.start()
+    _async_state['thread'] = thread
+
+
+def get_event_loop() -> asyncio.AbstractEventLoop:
+    """Return the event loop for running coroutines, starting one if none is set."""
+    with _async_lock:
+        if _async_state['stopped']:
+            raise WebViewException('Cannot run coroutines after the event loop has been stopped')
+
+        loop = _async_state['loop']
+        if loop is None or loop.is_closed():
+            loop = asyncio.new_event_loop()
+            _async_state.update(loop=loop, owned=True)
+            _start_loop_thread(loop)
+        return loop
+
+
+def run_async(awaitable: Any) -> Any:
+    """Run an awaitable on the event loop and block the calling thread until it completes."""
+
+    async def _await():
+        return await awaitable
+
+    coroutine = _await()
+    try:
+        # Submit under the lifecycle lock so shutdown cancels every accepted coroutine.
+        with _async_lock:
+            loop = get_event_loop()
+            try:
+                running_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                running_loop = None
+
+            if running_loop is loop:
+                raise WebViewException('Cannot block the event loop thread waiting for a coroutine')
+
+            future = asyncio.run_coroutine_threadsafe(coroutine, loop)
+            _async_futures.add(future)
+    except Exception:
+        coroutine.close()
+        if inspect.iscoroutine(awaitable):
+            awaitable.close()
+        raise
+
+    try:
+        return future.result()
+    finally:
+        with _async_lock:
+            _async_futures.discard(future)
+
+
+def call_maybe_async(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+    """Call a function, running the awaitable it returns (if any) on the event loop."""
+    result = func(*args, **kwargs)
+    if inspect.isawaitable(result):
+        result = run_async(result)
+    return result
+
+
+def stop_event_loop() -> None:
+    """Cancel callback submissions and close the event loop if pywebview created it."""
+    with _async_lock:
+        loop, thread, owned = _async_state['loop'], _async_state['thread'], _async_state['owned']
+        _async_state.update(loop=None, thread=None, owned=False, stopped=True)
+        futures = list(_async_futures)
+        _async_futures.clear()
+
+    async def _cancel_tasks():
+        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await loop.shutdown_asyncgens()
+
+    close_loop = owned and loop is not None and not loop.is_closed()
+    if close_loop:
+        try:
+            asyncio.run_coroutine_threadsafe(_cancel_tasks(), loop).result(5)
+        except Exception:
+            logger.exception('Error while cancelling pending coroutines')
+
+    # Let owned-loop tasks finish cancellation cleanup before settling any remaining waiters.
+    for future in futures:
+        future.cancel()
+
+    if not close_loop:
+        return
+
+    loop.call_soon_threadsafe(loop.stop)
+    if thread is not None:
+        thread.join(5)
+    if not loop.is_running():
+        loop.close()
 
 
 def configure_coreclr() -> None:
@@ -682,6 +807,8 @@ def js_bridge_call(
     def _call():
         try:
             result = func(*func_params)
+            if inspect.isawaitable(result):
+                result = run_async(result)
             result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
             retval = f"{{value: '{result}'}}"
         except Exception as e:
@@ -728,8 +855,16 @@ def js_bridge_call(
                 file['pywebviewFullPath'] = urllib.parse.unquote(path[0][1])
                 _dnd_state['paths'].remove(path[0])
 
+        def _call_handler(handler, event):
+            try:
+                result = handler(event)
+                if inspect.isawaitable(result):
+                    run_async(result)
+            except Exception:
+                logger.exception('Error in DOM event handler')
+
         for handler in element._event_handlers.get(event['type'], []):
-            thread = Thread(target=handler, args=(event,))
+            thread = Thread(target=_call_handler, args=(handler, event))
             thread.start()
 
         return
@@ -743,7 +878,10 @@ def js_bridge_call(
 
         callback = window._callbacks[value_id]
         if callable(callback):
-            callback(value)
+            result = callback(value)
+            # The bridge may be called on the GUI thread, so do not block it on a coroutine
+            if inspect.isawaitable(result):
+                Thread(target=run_async, args=(result,)).start()
         else:
             logger.error(
                 f'Async function executed and callback is not callable. Returned value {value}'

@@ -12,6 +12,10 @@
 - `All` The JS bridge only dispatches calls to functions advertised in `window.pywebview.api`. Other attribute paths on the `js_api` object are rejected and logged. Call your API through `window.pywebview.api`; hand-built bridge messages to other attribute paths no longer work. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `All` Bridge messages are authorised by a per-document token that is revoked when the page changes, not by `window.pywebview.token`, which remains the session token for protecting your own REST API. Messages from subframes or without a source URL are rejected, and API results are delivered without calling the page's `eval`. Local and opaque documents, such as `file://` pages and `about:blank` loaded from Python, are matched by exact URL; hostnames and IP literals are normalised, and HTML loaded with a base URI gets that URI's origin. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 
+### ⚡ Features
+
+- `All` Support `async` JS API functions, exposed functions, event handlers, the `webview.start` function, state change handlers, menu actions and `evaluate_js` callbacks. Handlers of blocking window events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) must be regular functions; subscribing an `async` one raises `TypeError`. Coroutines run on an asyncio event loop passed via the new `event_loop` parameter of `webview.start`, or on one started automatically when the first coroutine needs to run.
+
 ### 🐞 Bug fixes
 
 - `All` Page alerts are shown one at a time, after the bridge message has been handled, and further alerts are dropped while one is open. A page could previously stack hundreds of nested modal dialogs. On Qt, alerts are shown as plain text, so a page can no longer render clickable links in them. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
