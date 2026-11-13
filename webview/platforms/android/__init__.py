@@ -1,7 +1,7 @@
 import json
 import logging
 from http.cookies import SimpleCookie
-from threading import Lock, Semaphore
+from threading import Lock, Semaphore, Thread
 from urllib.parse import urlparse
 
 from android.activity import _activity as activity  # noqa
@@ -79,18 +79,38 @@ class BrowserView:
     @run_on_ui_thread
     def create_webview(self):
         def js_api_handler(func, params, id, token):
-            js_bridge_call(self.pywebview_window, func, json.loads(params), id, token)
+            source_url = None
+            ready = Semaphore(0)
+
+            @run_on_ui_thread
+            def capture_source():
+                nonlocal source_url
+                try:
+                    if self.webview is not None:
+                        source_url = str(self.webview.getUrl() or '')
+                finally:
+                    ready.release()
+
+            capture_source()
+            ready.acquire()
+            args = (self.pywebview_window, func, json.loads(params), id, token, source_url)
+            if func == 'pywebviewAsyncCallback':
+                Thread(target=js_bridge_call, args=args).start()
+            else:
+                js_bridge_call(*args)
 
         def chrome_callback(event, data):
             logger.debug('WebChromeClient event %s: %s', event, data)
 
         def webview_callback(event, data):
-            if event == 'onPageFinished':
+            if event == 'onPageStarted':
+                self.pywebview_window._invalidate_js_api()
+            elif event == 'onPageFinished':
 
                 @run_on_ui_thread
                 def _handle_page_finished():
                     try:
-                        inject_pywebview(renderer, self.pywebview_window)
+                        inject_pywebview(renderer, self.pywebview_window, str(data or ''))
                         # Get fresh CookieManager reference to avoid stale Java object references
                         cookie_manager = CookieManager.getInstance()
                         if not _state['private_mode']:
@@ -128,7 +148,7 @@ class BrowserView:
         self._cookies = []
         self.webview = WebView(activity)
         webview_settings = self.webview.getSettings()
-        webview_settings.setAllowFileAccessFromFileURLs(True)
+        webview_settings.setAllowFileAccessFromFileURLs(settings['ALLOW_FILE_URLS'])
         webview_settings.setJavaScriptEnabled(True)
         webview_settings.setUseWideViewPort(False)
         webview_settings.setLoadWithOverviewMode(True)

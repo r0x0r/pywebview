@@ -11,7 +11,7 @@ from webview.errors import WebViewException
 from webview.event import Event
 from webview.menu import MenuAction
 from webview.state import State
-from webview.util import _TOKEN, js_bridge_call
+from webview.util import js_bridge_call
 
 
 @pytest.fixture(autouse=True)
@@ -21,21 +21,34 @@ def reset_event_loop():
     util.stop_event_loop()
 
 
+TRUSTED_URL = 'https://trusted.example/'
+
+
+def _bridge_window():
+    """Return a mock window whose JS bridge accepts calls from TRUSTED_URL."""
+    window = MagicMock()
+    window._js_api_token = 'document-token'
+    window._js_api_origins = {'https://trusted.example'}
+    window._js_api_restricted = False
+    window._js_api_document_url = TRUSTED_URL
+    return window
+
+
 def test_async_js_api_function():
     returned = threading.Event()
-    window = MagicMock()
+    window = _bridge_window()
 
     async def target(value):
         await asyncio.sleep(0.01)
         return value * 2
 
     window._functions = {'target': target}
-    window.evaluate_js.side_effect = lambda script: returned.set()
+    window.run_js.side_effect = lambda script: returned.set()
 
-    js_bridge_call(window, 'target', [21], 'value_id', _TOKEN)
+    js_bridge_call(window, 'target', [21], 'value_id', window._js_api_token, TRUSTED_URL)
 
     assert returned.wait(2)
-    assert "{value: '42'}" in window.evaluate_js.call_args[0][0]
+    assert "{value: '42'}" in window.run_js.call_args[0][0]
 
 
 def test_async_handler_on_non_blocking_event():
@@ -300,7 +313,7 @@ def test_shutdown_settles_submissions_when_task_cancellation_times_out(monkeypat
 
 def test_async_evaluate_js_callback():
     called = threading.Event()
-    window = MagicMock()
+    window = _bridge_window()
 
     async def callback(value):
         await asyncio.sleep(0.01)
@@ -308,7 +321,14 @@ def test_async_evaluate_js_callback():
         called.set()
 
     window._callbacks = {'value_id': callback}
-    js_bridge_call(window, 'pywebviewAsyncCallback', '{"a": 1}', 'value_id', _TOKEN)
+    js_bridge_call(
+        window,
+        'pywebviewAsyncCallback',
+        '{"a": 1}',
+        'value_id',
+        window._js_api_token,
+        TRUSTED_URL,
+    )
 
     assert called.wait(2)
 

@@ -134,6 +134,7 @@ from webview.util import (
     inject_base_uri,
     inject_pywebview,
     parse_file_type,
+    set_local_tls_cert,
 )
 from webview.window import FixPoint
 from webview.window import Window as _Window
@@ -606,7 +607,10 @@ class WinUI3EdgeChrome(WebView2Core):
     def on_certificate_error(
         self, _: CoreWebView2, args: CoreWebView2ServerCertificateErrorDetectedEventArgs
     ):
-        args.action = CoreWebView2ServerCertificateErrorAction.ALWAYS_ALLOW
+        if self._allow_certificate(
+            lambda: args.server_certificate.to_pem_encoding(), str(args.request_uri)
+        ):
+            args.action = CoreWebView2ServerCertificateErrorAction.ALWAYS_ALLOW
 
     def _show_alert(self, message: str):
         dialog = ContentDialog()
@@ -615,9 +619,14 @@ class WinUI3EdgeChrome(WebView2Core):
         dialog.close_button_text = self.pywebview_window.localization['global.ok']
         dialog.default_button = ContentDialogButton.CLOSE
 
-        op = dialog.show_async()
+        try:
+            op = dialog.show_async()
+        except Exception:
+            self._alert_open = False
+            raise
 
         def on_completed(op: IAsyncOperation[ContentDialogResult], status: AsyncStatus):
+            self._alert_open = False
             if status == AsyncStatus.ERROR:
                 logger.error('Error showing ContentDialog: %r', WinError(op.error_code.value))
                 return
@@ -652,7 +661,9 @@ class WinUI3EdgeChrome(WebView2Core):
 
     def on_script_notify(self, sender: WebView2, args: CoreWebView2WebMessageReceivedEventArgs):
         try:
-            self._route_script_message(args.web_message_as_json, lambda: args.additional_objects)
+            self._route_script_message(
+                args.web_message_as_json, lambda: args.additional_objects, args.source
+            )
         except Exception:
             logger.exception('Exception occurred during on_script_notify')
 
@@ -802,7 +813,7 @@ class WinUI3EdgeChrome(WebView2Core):
         self._dispatch_request_event(dispatch_event)
 
     def on_navigation_start(self, sender: WebView2, args: CoreWebView2NavigationStartingEventArgs):
-        pass
+        self.pywebview_window._invalidate_js_api()
 
     def on_navigation_completed(
         self, sender: WebView2, _: CoreWebView2NavigationCompletedEventArgs
@@ -810,7 +821,8 @@ class WinUI3EdgeChrome(WebView2Core):
         url = str(sender.source)
         self.url = None if self.ishtml else url
 
-        inject_pywebview(renderer, self.pywebview_window)
+        # CoreWebView2.source is the page URL as a string, unlike the control's Uri
+        inject_pywebview(renderer, self.pywebview_window, sender.core_webview2.source)
 
 
 _WINDOW_XAML = """
@@ -2152,5 +2164,5 @@ def get_screens():
     return screens
 
 
-def add_tls_cert(_):
-    return
+def add_tls_cert(certfile):
+    set_local_tls_cert(certfile)
