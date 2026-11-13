@@ -147,6 +147,8 @@ class BottleServer:
         protocol = 'https' if keyfile and certfile else 'http'
         server.address = f'{protocol}://127.0.0.1:{server.port}/'
         server.common_path = common_path
+        serving = f'app {app!r}' if not server.serves_files else server.root_path
+        logger.debug(f'{cls.__name__} running at {server.address}, serving {serving}')
 
         return server.address, common_path, server
 
