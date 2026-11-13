@@ -116,6 +116,7 @@ webview.settings = {
   'REMOTE_DEBUGGING_PORT': None,
   'IGNORE_SSL_ERRORS': False,
   'JS_API_MAX_DEPTH': 10,
+  'LOG_FORMAT': '[%(name)s] %(levelname)-8s %(message)s',
   'SHOW_DEFAULT_MENUS': True,
   'WEBVIEW2_RUNTIME_PATH': None
 }
@@ -131,6 +132,7 @@ Additional options that override default behaviour of _pywebview_ to address pop
 * `DEFAULT_HTTP_PORT` Port used for the internal HTTP server when private mode is disabled and no explicit port is given. Default is 42001.
 * `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
 * `JS_API_MAX_DEPTH` Maximum depth of nested `js_api` objects that are walked when exposing functions to Javascript. Guards against runaway recursion into objects whose attributes return a fresh object on every access (e.g. native GUI objects). Default is 10.
+* `LOG_FORMAT` Format of pywebview's console log messages, using Python's [`logging.Formatter`](https://docs.python.org/3/library/logging.html#logging.Formatter) percent-style syntax. Default is `'[%(name)s] %(levelname)-8s %(message)s'`, with left-aligned log levels so messages line up. Changes take effect on the next log message, including before `webview.start()`. For example, set `webview.settings['LOG_FORMAT'] = '%(asctime)s [%(levelname)s] %(message)s'` to include timestamps. This does not change application-provided logging handlers or the log level selected by `PYWEBVIEW_LOG` and debug mode.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
 * `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`, `winui3` or `qt`. Disabled by default.

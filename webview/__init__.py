@@ -65,6 +65,10 @@ __all__ = (
 def _setup_logger() -> logging.Logger:
     """Setup logger with console handler and appropriate log level."""
 
+    class _LogFormatter(logging.Formatter):
+        def format(self, record: logging.LogRecord) -> str:
+            return logging.Formatter(settings['LOG_FORMAT']).format(record)
+
     logger = logging.getLogger('pywebview')
 
     # Avoid duplicate setup
@@ -73,7 +77,7 @@ def _setup_logger() -> logging.Logger:
 
     # Create and configure handler
     handler = logging.StreamHandler()
-    formatter = logging.Formatter('[pywebview] %(message)s')
+    formatter = _LogFormatter()
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
@@ -88,9 +92,6 @@ def _setup_logger() -> logging.Logger:
         logger.warning(f"Invalid log level '{log_level_name}', using INFO instead")
 
     return logger
-
-
-logger = _setup_logger()
 
 
 class FileDialog(enum.IntEnum):
@@ -112,10 +113,14 @@ settings = ImmutableDict(
         'REMOTE_DEBUGGING_PORT': None,
         'IGNORE_SSL_ERRORS': False,
         'JS_API_MAX_DEPTH': 10,
+        'LOG_FORMAT': '[%(name)s] %(levelname)-8s %(message)s',
         'SHOW_DEFAULT_MENUS': True,
         'WEBVIEW2_RUNTIME_PATH': None,
     }
 )
+
+
+logger = _setup_logger()
 
 
 _state = ImmutableDict(
