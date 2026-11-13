@@ -18,7 +18,7 @@ import re
 import tempfile
 import threading
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, cast
+from typing import Any
 from uuid import uuid4
 
 import webview.http as http
@@ -117,6 +117,8 @@ _state = ImmutableDict(
         'ssl': False,
         'icon': None,
         'menu': None,
+        'server': http.BottleServer,
+        'server_args': {},
     }
 )
 
@@ -283,13 +285,27 @@ def start(
     # start the global server if it's not running and we need it
     if (http.global_server is None) and (http_server or has_local_urls):
         if not _state['private_mode'] and not http_port:
-            http_port = settings['DEFAULT_HTTP_PORT']
-        http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
+            try:
+                http.start_global_server(
+                    http_port=settings['DEFAULT_HTTP_PORT'],
+                    urls=urls,
+                    server=server,
+                    **server_args,
+                )
+            except OSError:
+                logger.warning(
+                    f'Port {settings["DEFAULT_HTTP_PORT"]} is in use, using a random port. '
+                    'Web storage will not persist between sessions.'
+                )
+
+        if http.global_server is None:
+            http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
+
+    _state['server'] = server
+    _state['server_args'] = server_args
 
     for window in windows:
-        should_initialize = not window._initialize(
-            guilib, server_args=cast(http.ServerArgs, server_args)
-        )
+        should_initialize = not window._initialize(guilib)
         if should_initialize:
             return
 
@@ -350,7 +366,7 @@ def create_window(
     vibrancy: bool = False,
     menu: list[Menu] | None = None,
     localization: Mapping[str, str] | None = None,
-    server: type[http.BottleServer] = http.BottleServer,
+    server: type[http.BottleServer] | None = None,
     http_port: int | None = None,
     server_args: http.ServerArgs | None = None,
 ) -> Window | None:
@@ -358,7 +374,7 @@ def create_window(
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
     :param title: Window title
-    :param url: URL or WSGI/ASGI app to load
+    :param url: URL or WSGI app to load
     :param html: HTML content to load
     :param width: window width. Default is 800px
     :param height: window height. Default is 600px
@@ -379,7 +395,8 @@ def create_window(
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
     :param menu: List of menus to be included in the window menu
-    :param server: Server class. Defaults to BottleServer
+    :param server: Server class. Defaults to the server class passed to start(), which
+                   defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :return: window object or None if window initialization is cancelled in the window.events.initialized event
     """
@@ -437,7 +454,11 @@ def create_window(
             # Start a dedicated server for this URL. The global server serves
             # from its original root_path, so reusing it would 404 for a local
             # file that lives outside that root.
-            _, _, server_instance = http.start_server([url], server=server, **server_args)
+            try:
+                server_instance = window._create_server(url)
+            except Exception:
+                windows.remove(window)
+                raise
         else:
             server_instance = None
 

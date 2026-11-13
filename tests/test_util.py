@@ -620,9 +620,26 @@ class TestJsBridgeHardening:
         window.frameless = False
         assert move([10, 20]) is None
 
+    def test_stopping_a_window_server_revokes_its_origin(self, monkeypatch):
+        monkeypatch.setitem(webview.settings, 'ALLOWED_ORIGINS', ['http://127.0.0.1:1'])
+        window = webview.create_window('Server')
+        other = webview.create_window('Other')
+        server = SimpleNamespace(address='http://127.0.0.1:50123/', stop=Mock())
+        origin = util.js_api_origin(server.address)
+        window._server = server
+        window._js_api_origins.add(origin)
+        other._js_api_origins.add(origin)
+
+        window._stop_server()
+
+        server.stop.assert_called_once()
+        assert window._server is None
+        assert not util.is_js_api_allowed(window, server.address)
+        assert not util.is_js_api_allowed(other, server.address)
+        assert util.is_js_api_allowed(other, 'http://127.0.0.1:1/')
+
     def test_restricted_page_gets_pywebview_without_tokens_or_state(self):
         window = webview.create_window('Restricted')
-        window.js_api_endpoint = None
         window.state.secret = 'value'
         window._js_api_token = 'document-token'
 
@@ -677,7 +694,6 @@ class TestJsBridgeHardening:
     ):
         caplog.set_level(logging.DEBUG, logger='pywebview')
         window = webview.create_window('Restricted', js_api=js_api)
-        window.js_api_endpoint = None
         window.run_js = Mock()
         monkeypatch.setattr(util, 'Thread', lambda target: SimpleNamespace(start=target))
 

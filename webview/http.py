@@ -6,27 +6,20 @@ from collections.abc import Callable
 from typing import Any
 
 if sys.platform == 'win32' and ('pythonw.exe' in sys.executable or getattr(sys, 'frozen', False)):
-    # bottle.py versions prior to 0.12.23 (the latest on PyPi as of Feb 2023) require stdout and
-    # stderr to exist, which is not the case on Windows with pythonw.exe or PyInstaller >= 5.8.0
+    # sys.stdout and sys.stderr are None on Windows with pythonw.exe or PyInstaller >= 5.8.0.
+    # wsgiref writes request logs to sys.stderr and passes it to applications as wsgi.errors.
     if sys.stderr is None:  # type: ignore
         sys.stderr = open(os.devnull, 'w')
     if sys.stdout is None:  # type: ignore
         sys.stdout = open(os.devnull, 'w')
 
 
-import json
 import logging
-import random
-import socket
 import ssl
 import threading
 import uuid
 from socketserver import ThreadingMixIn
-from typing import TYPE_CHECKING
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
-
-if TYPE_CHECKING:
-    from wsgiref.types import WSGIApplication
 
 import bottle
 from typing_extensions import TypedDict, Unpack
@@ -37,37 +30,41 @@ logger = logging.getLogger('pywebview')
 global_server = None
 
 
-def _get_random_port() -> int:
-    while True:
-        port = random.randint(1023, 65535)
+class _ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
+    daemon_threads = True
+    ssl_context: ssl.SSLContext | None = None
 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            try:
-                sock.bind(('localhost', port))
-            except OSError:
-                logger.warning(f'Port {port} is in use')
-                continue
-            else:
-                return port
+    def finish_request(self, request, client_address) -> None:
+        if self.ssl_context is None:
+            return super().finish_request(request, client_address)
+
+        # Handshake in the request thread, not in accept(), so a stalled client
+        # cannot block serve_forever() and with it shutdown()
+        request.settimeout(10)
+        try:
+            tls_request = self.ssl_context.wrap_socket(request, server_side=True)
+        except OSError as e:
+            logger.debug(f'TLS handshake failed: {e}')
+            return
+
+        with tls_request:
+            tls_request.settimeout(None)
+            super().finish_request(tls_request, client_address)
 
 
-class ThreadedAdapter(bottle.ServerAdapter):
-    def run(self, handler: WSGIApplication) -> None:
-        if self.quiet:
+def _multithreaded(app: Callable[..., Any]) -> Callable[..., Any]:
+    """Report wsgi.multithread correctly, which wsgiref always sets to False."""
 
-            class QuietHandler(WSGIRequestHandler):
-                def log_request(*args, **_):
-                    pass
+    def wrapper(environ, start_response):
+        environ['wsgi.multithread'] = True
+        return app(environ, start_response)
 
-            self.options['handler_class'] = QuietHandler
+    return wrapper
 
-        class ThreadAdapter(ThreadingMixIn, WSGIServer):
-            pass
 
-        server = make_server(
-            self.host, self.port, handler, server_class=ThreadAdapter, **self.options
-        )
-        server.serve_forever()
+class _QuietHandler(WSGIRequestHandler):
+    def log_request(self, *args, **kwargs) -> None:
+        pass
 
 
 class BottleServer:
@@ -75,12 +72,12 @@ class BottleServer:
         self.root_path: str | None = '/'
         self.running = False
         self.address: str = ''
-        self.js_callback: dict[str, Callable[..., Any]] = {}
-        self.js_api_endpoint: str | None = None
         self.uid = str(uuid.uuid4())
         self.common_path: str | None = None
         self.port: int = 0
         self.thread: threading.Thread | None = None
+        self.serves_files = True  # False when serving a WSGI app
+        self._httpd: WSGIServer | None = None
 
     @classmethod
     def start_server(
@@ -99,6 +96,7 @@ class BottleServer:
         if len(apps) > 0:
             app = apps[0]
             common_path = '.'
+            server.serves_files = False
         else:
             local_urls = [u.split('#')[0] for u in urls if is_local_url(u)]
             common_path = os.path.commonpath(local_urls) if len(local_urls) > 0 else None
@@ -109,54 +107,48 @@ class BottleServer:
             logger.debug(f'HTTP server root path: {server.root_path}')
             app = bottle.Bottle()
 
-            @app.post(f'/js_api/{server.uid}')
-            def js_api():
-                bottle.response.headers['Access-Control-Allow-Origin'] = '*'
-                bottle.response.headers['Access-Control-Allow-Methods'] = (
-                    'PUT, GET, POST, DELETE, OPTIONS'
-                )
-                bottle.response.headers['Access-Control-Allow-Headers'] = (
-                    'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
-                )
-
-                body = json.loads(bottle.request.body.read().decode('utf-8'))
-                if body['uid'] in server.js_callback:
-                    return json.dumps(server.js_callback[body['uid']](body))
-                else:
-                    logger.error(f'JS callback function is not set for window {body["uid"]}')
-
             @app.route('/')
             @app.route('/<file:path>')
             def asset(file):
                 if not server.root_path:
                     return ''
-                bottle.response.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-                bottle.response.set_header('Pragma', 'no-cache')
-                bottle.response.set_header('Expires', 0)
-                return bottle.static_file(file, root=server.root_path)
+                # static_file returns its own response, so headers must be set on it
+                response = bottle.static_file(file, root=server.root_path)
+                response.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                response.set_header('Pragma', 'no-cache')
+                response.set_header('Expires', '0')
+                return response
 
         server.root_path = abspath(common_path) if common_path is not None else None
-        server.port = http_port or _get_random_port()
+
+        # Load the certificate before binding, so a bad one does not leave the port bound
+        ssl_context = None
         if keyfile and certfile:
-            server_adapter = SSLWSGIRefServer()
-            server_adapter.port = server.port
-            setattr(server_adapter, 'pywebview_keyfile', keyfile)
-            setattr(server_adapter, 'pywebview_certfile', certfile)
-        else:
-            server_adapter = ThreadedAdapter
-        server.thread = threading.Thread(
-            target=lambda: bottle.run(
-                app=app, server=server_adapter, port=server.port, quiet=not _state['debug']
-            ),
-            daemon=True,
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+            ssl_context.load_cert_chain(certfile, keyfile)
+
+        # Port 0 lets the OS assign a free port
+        httpd = make_server(
+            '127.0.0.1',
+            http_port or 0,
+            _multithreaded(app),
+            server_class=_ThreadingWSGIServer,
+            handler_class=WSGIRequestHandler if _state['debug'] else _QuietHandler,
         )
+        httpd.ssl_context = ssl_context
+
+        server._httpd = httpd
+        server.port = httpd.server_port
+        server.thread = threading.Thread(target=httpd.serve_forever, daemon=True)
         server.thread.start()
 
         server.running = True
         protocol = 'https' if keyfile and certfile else 'http'
         server.address = f'{protocol}://127.0.0.1:{server.port}/'
         server.common_path = common_path
-        server.js_api_endpoint = f'{server.address}js_api/{server.uid}'
+        serving = f'app {app!r}' if not server.serves_files else server.root_path
+        logger.debug(f'{cls.__name__} running at {server.address}, serving {serving}')
 
         return server.address, common_path, server
 
@@ -164,42 +156,13 @@ class BottleServer:
     def is_running(self) -> bool:
         return self.running
 
-
-class SSLWSGIRefServer(bottle.ServerAdapter):
-    def run(self, handler: WSGIApplication) -> None:  # pragma: no cover
-        import socket
-        from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
-
-        class FixedHandler(WSGIRequestHandler):
-            def address_string(self) -> str:  # Prevent reverse DNS lookups please.
-                return self.client_address[0]
-
-            def log_request(*args, **kw) -> None:  # type: ignore[override]
-                if not self.quiet:
-                    return WSGIRequestHandler.log_request(*args, **kw)  # type: ignore[arg-type]
-
-        handler_cls: type[WSGIRequestHandler] = self.options.get('handler_class', FixedHandler)
-        server_cls: type[WSGIServer] = self.options.get('server_class', WSGIServer)
-
-        if ':' in self.host:  # Fix wsgiref for IPv6 addresses.
-            if server_cls.address_family == socket.AF_INET:
-
-                class Inet6Server(server_cls):  # type: ignore[valid-type,misc]
-                    address_family = socket.AF_INET6
-
-                server_cls = Inet6Server
-
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
-        ssl_context.load_cert_chain(self.pywebview_certfile, self.pywebview_keyfile)
-        self.srv = make_server(self.host, self.port, handler, server_cls, handler_cls)
-        self.srv.socket = ssl_context.wrap_socket(self.srv.socket, server_side=True)
-        self.port: int = self.srv.server_port  # update port actual port (0 means random)
-        try:
-            self.srv.serve_forever()
-        except KeyboardInterrupt:
-            self.srv.server_close()  # Prevent ResourceWarning: unclosed socket
-            raise
+    def stop(self) -> None:
+        """Stop the server and release its port."""
+        httpd, self._httpd = self._httpd, None
+        if httpd is not None:
+            httpd.shutdown()
+            httpd.server_close()
+        self.running = False
 
 
 class ServerArgs(TypedDict, total=False):

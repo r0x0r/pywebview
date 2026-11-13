@@ -21,15 +21,17 @@ from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
 from webview.state import State
-from webview.util import base_uri as get_base_uri
 from webview.util import (
+    abspath,
     escape_string,
     is_app,
     is_local_url,
     js_api_auto_origin,
     js_api_guard,
+    js_api_origin,
     parse_file_type,
 )
+from webview.util import base_uri as get_base_uri
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -205,12 +207,7 @@ class Window:
         self.native: Any = None  # set in the gui after window creation
         self._state = State(self)
 
-    def _initialize(
-        self,
-        gui: Any,
-        server: http.BottleServer | None = None,
-        server_args: http.ServerArgs | None = None,
-    ):
+    def _initialize(self, gui: Any, server: http.BottleServer | None = None):
         self.gui = gui
 
         self.localization = original_localization.copy()
@@ -218,21 +215,13 @@ class Window:
             self.localization.update(self.localization_override)
 
         if is_app(self.original_url) and (server is None or server == http.global_server):
-            *_, server = http.start_server(
-                urls=[self.original_url],
-                http_port=self._http_port,
-                server=self._server_class or http.BottleServer,
-                **(self._server_args or server_args or {}),
-            )
+            server = self._create_server(self.original_url)
         elif server is None:
             server = http.global_server
 
         self._url_prefix = server.address if server is not None else None
         self._common_path = server.common_path if server is not None else None
         self._server = server
-        self.js_api_endpoint = (
-            http.global_server.js_api_endpoint if http.global_server is not None else None
-        )
         self.real_url = self._resolve_url(self.original_url)
         self._allow_js_api_on(self.real_url)
 
@@ -301,10 +290,11 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if ((self._server is None) or (not self._server.running)) and (
-            is_app(url) or is_local_url(url)
-        ):
-            self._url_prefix, self._common_path, self._server = http.start_server([url])
+        if is_app(url) or (is_local_url(url) and not self._server_serves(url)):
+            self._stop_server()
+            self._server = self._create_server(url)
+            self._url_prefix = self._server.address
+            self._common_path = self._server.common_path
 
         self.real_url = self._resolve_url(url)
         self._js_api_pending_html = False
@@ -645,6 +635,55 @@ class Window:
             return False
         self.run_js(f'if ({js_api_guard(self, document=True)}) {{ {script} }}')
         return True
+
+    def _create_server(self, url: str | Callable[..., Any]) -> http.BottleServer:
+        """Start a server dedicated to this window, configured like the one in start()."""
+        from webview import _state
+
+        *_, server = http.start_server(
+            [url],
+            http_port=self._http_port,
+            server=self._server_class or _state['server'],
+            **(self._server_args or _state['server_args']),
+        )
+        # Only windows with a server of their own get a closed handler, which runs in a thread
+        if self._stop_server not in self.events.closed._items:
+            self.events.closed += self._stop_server
+        return server
+
+    def _stop_server(self) -> None:
+        """Stop the server dedicated to this window, if it has one."""
+        import webview
+
+        server = self._server
+        if server is not None and server is not http.global_server:
+            self._server = None
+            # Revoke the JS API on the server's origin before releasing its port, which
+            # another process could then bind
+            origin = js_api_origin(server.address)
+            for window in {self, *webview.windows}:
+                window._js_api_origins.discard(origin)
+            if hasattr(server, 'stop'):
+                server.stop()
+
+    def _server_serves(self, url: str) -> bool:
+        """Return True if the window's current server can serve the local URL."""
+        server = self._server
+        if server is None or not server.running:
+            return False
+        if not getattr(server, 'serves_files', True):
+            # A route of the WSGI app, unless the URL is an absolute path to an existing file
+            path = url.split('#')[0].split('?')[0]
+            return not (os.path.isabs(path) and os.path.isfile(path))
+        if not server.root_path:
+            return False
+
+        path = os.path.normcase(abspath(url.split('#')[0].split('?')[0]))
+        root = os.path.normcase(server.root_path)
+        try:
+            return os.path.commonpath([path, root]) == root
+        except ValueError:  # paths on different drives
+            return False
 
     def _resolve_url(self, url: str | Callable[..., Any] | None) -> str | None:
         if is_app(url):
