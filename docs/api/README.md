@@ -918,31 +918,6 @@ Blocking events wait for their handlers, because the result controls what happen
 
 Handlers of non-blocking events can be `async` functions. Their coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on a loop that _pywebview_ starts.
 
-#### Running async code before closing
-
-A `closing` handler cannot be async. To run async code before the window closes, cancel closing, run the coroutine on your event loop, and close the window with `window.destroy()` when the coroutine is done. Some backends fire `closing` again on `window.destroy()`, so use a flag to let the second close through.
-
-``` python
-loop = asyncio.new_event_loop()
-can_close = False
-
-def on_closing():
-    if can_close:
-        return True
-
-    asyncio.run_coroutine_threadsafe(save_and_close(), loop)
-    return False  # keep the window open for now
-
-async def save_and_close():
-    global can_close
-    await save()  # your async code
-    can_close = True
-    window.destroy()
-
-window.events.closing += on_closing
-webview.start(event_loop=loop)
-```
-
 #### Calling pywebview from a blocking handler
 
 The blocking events - `closing`, `before_show` and `before_load` - run their handlers on the GUI thread. pywebview API calls work from these handlers: while a call waits for its result, the GUI event loop keeps running, the same way a modal dialog does. This means other events can be processed before the call returns. `window.evaluate_js()` and `window.get_cookies()` need the page to be loaded, so calling them from `before_show` or from the first `before_load` raises `WebViewException`. On Android and WinUI3, `window.evaluate_js()` and `window.get_cookies()` cannot be called from a blocking handler and raise `RuntimeError`, as do most dialogs on WinUI3, and on EdgeChromium the same two raise `RuntimeError` from a `before_load` handler; call them from another thread instead.
@@ -963,7 +938,7 @@ The event is fired just before _pywebview_ window is closed.
 
 ### window.events.closing
 
-The event is fired when _pywebview_ window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled. This event is blocking. Handlers must be regular functions. To run async code before closing, see [Running async code before closing](#running-async-code-before-closing).
+The event is fired when _pywebview_ window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled. This event is blocking. Handlers must be regular functions.
 
 [Example](/examples/events.html)
 
