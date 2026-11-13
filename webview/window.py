@@ -200,7 +200,6 @@ class Window:
         self.events.response_received = Event(self)
 
         self.events._pywebviewready = Event(self)
-        self.events.closed += self._stop_server
 
         self._expose_lock = Lock()
         self.dom = DOM(self)
@@ -647,6 +646,9 @@ class Window:
             server=self._server_class or _state['server'],
             **(self._server_args or _state['server_args']),
         )
+        # Only windows with a server of their own get a closed handler, which runs in a thread
+        if self._stop_server not in self.events.closed._items:
+            self.events.closed += self._stop_server
         return server
 
     def _stop_server(self) -> None:
