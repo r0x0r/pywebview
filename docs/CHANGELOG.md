@@ -12,7 +12,6 @@
 
 ### 🐞 Bug fixes
 
-- `All` Prevent async callbacks from recreating the event loop during shutdown, finalize async generators on automatically created loops, and release pending callback workers even with a caller-supplied loop or slow cancellation. Execute awaitables returned by regular menu callbacks and callable objects, and reject async callable objects as blocking event handlers.
 - `All` Fix `evaluate_js` leaving an unused entry in `window._callbacks` on every call without a callback, including the calls the JS API bridge makes to return results, and on calls with a callback whose script did not return a promise. With a callback and a promise, `evaluate_js` now returns `None` on every backend; CEF no longer hangs in that case. Thanks @Nanahuse. [#1874](https://github.com/r0x0r/pywebview/issues/1874)
 - `All` Fix Python-to-JavaScript state assignment and deletion for dictionary keys containing spaces, hyphens, quotes or backslashes. Thanks @UmutAlisoglu.
 - `All` Handle JavaScript resource and initial injection failures without letting exceptions escape native navigation callbacks or leave load waiters blocked. Template errors now identify the failing script; an unsuccessful injection does not mark the bridge ready. Thanks @FiraSenax.
