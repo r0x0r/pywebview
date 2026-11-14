@@ -931,7 +931,8 @@ class BrowserView:
     def maximize(self):
         def _maximize():
             if not self.window.styleMask() & AppKit.NSResizableWindowMask:
-                logger.warning('Cannot maximize a non-resizable window')
+                # zoom_ has no effect on a non-resizable window, so resize it to the screen
+                self.resize(self.screen.size.width, self.screen.size.height, None)
                 return
 
             if not self.window.isZoomed():
