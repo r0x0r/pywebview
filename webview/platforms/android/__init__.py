@@ -475,6 +475,11 @@ def create_file_dialog(*_):
     logger.warning('Creating file dialogs is not supported on Android')
 
 
+def create_confirmation_dialog(title, message, _):
+    logger.warning('Creating confirmation dialogs is not supported on Android')
+    return False
+
+
 def create_window(window):
     global app
 
@@ -705,7 +710,7 @@ def minimize(_):
     app.pause()
 
 
-def move(_):
+def move(x, y, _):
     logger.warning('Moving window is not supported on Android')
 
 
