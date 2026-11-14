@@ -1,28 +1,18 @@
 
 (function() {
-    var platform = window.pywebview.platform;
+    var pywebview = window.pywebview;
+    var platform = pywebview.platform;
     var disableText = '%(text_select)s' === 'False';
     var disableTextCss = 'body {-webkit-user-select: none; -khtml-user-select: none; -ms-user-select: none; user-select: none; cursor: default;}'
 
-    if (platform == 'mshtml') {
-        window.alert = function(msg) {
-            window.external.alert(msg);
-        }
-    } else if (platform == 'edgechromium' || platform == 'winui3') {
+    if (platform == 'edgechromium' || platform == 'winui3' || platform == 'gtkwebkit2' || platform === 'qtwebengine') {
         window.alert = function (message) {
-            window.chrome.webview.postMessage(['_pywebviewAlert', pywebview.stringify(message), 'alert']);
-        }
-    } else if (platform == 'gtkwebkit2') {
-        window.alert = function (message) {
-            window.webkit.messageHandlers.jsBridge.postMessage(pywebview.stringify({funcName: '_pywebviewAlert', params: message, id: 'alert'}));
+            var text = arguments.length ? message : '';
+            pywebview._jsApiCallback('_pywebviewAlert', text == null ? String(text) : text, 'alert');
         }
     } else if (platform == 'cocoa') {
         window.print = function() {
             window.webkit.messageHandlers.browserDelegate.postMessage('print');
-        }
-    } else if (platform === 'qtwebengine') {
-        window.alert = function (message) {
-            window.pywebview._QWebChannel.objects.external.call('_pywebviewAlert', pywebview.stringify(message), 'alert', window.pywebview.token);
         }
     } else if (platform === 'qtwebkit') {
         window.alert = function (message) {
@@ -44,7 +34,7 @@
         function onMouseMove(ev) {
             var x = ev.screenX - initialX;
             var y = ev.screenY - initialY;
-            window.pywebview._jsApiCallback('pywebviewMoveWindow', [x, y], 'move');
+            pywebview._jsApiCallback('pywebviewMoveWindow', [x, y], 'move');
         }
 
         function onMouseUp() {
@@ -61,7 +51,7 @@
             }
 
             if (platform === 'edgechromium' || platform === 'winui3') {
-                window.pywebview._jsApiCallback('pywebviewStartDrag', [], 'drag');
+                pywebview._jsApiCallback('pywebviewStartDrag', [], 'drag');
                 return;
             }
 

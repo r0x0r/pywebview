@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import sys
-import webbrowser
 from copy import copy
 from ctypes import windll
 from functools import wraps
@@ -14,7 +13,13 @@ from urllib.parse import quote
 from cefpython3 import cefpython as cef
 
 from webview import _state, settings
-from webview.util import DEFAULT_HTML, create_cookie, inject_pywebview, js_bridge_call
+from webview.util import (
+    DEFAULT_HTML,
+    create_cookie,
+    inject_pywebview,
+    js_bridge_call,
+    open_external_url,
+)
 
 sys.excepthook = cef.ExceptHook
 instances = {}
@@ -59,11 +64,12 @@ def _set_dpi_mode(enabled):
 
 
 class JSBridge:
-    def __init__(self, window, eval_events):
+    def __init__(self, window, eval_events, browser):
         self.results = {}
         self.parse_json = {}
         self.window = window
         self.eval_events = eval_events
+        self.browser = browser
 
     def return_result(self, result, uid):
         parse_json = self.parse_json.pop(uid, True)
@@ -84,7 +90,9 @@ class JSBridge:
             event.set()
 
     def call(self, func_name, param, value_id, token=''):
-        js_bridge_call(self.window, func_name, json.loads(param), value_id, token)
+        js_bridge_call(
+            self.window, func_name, json.loads(param), value_id, token, self.browser.GetUrl()
+        )
 
 
 class CookieVisitor:
@@ -119,7 +127,7 @@ class Browser:
         self.shown = window.events.shown
         self.inner_hwnd = self.browser.GetWindowHandle()
         self.eval_events = {}
-        self.js_bridge = JSBridge(window, self.eval_events)
+        self.js_bridge = JSBridge(window, self.eval_events, browser)
         self.initialized = False
 
     def initialize(self):
@@ -130,7 +138,7 @@ class Browser:
         self.cookie_visitor = CookieVisitor()
 
         self.browser.GetJavascriptBindings().Rebind()
-        inject_pywebview('cef', self.window)
+        inject_pywebview('cef', self.window, self.browser.GetUrl())
 
         sleep(0.1)  # wait for window.pywebview to load
         self.initialized = True
@@ -202,7 +210,9 @@ class Browser:
 
     def load_html(self, html):
         self.initialized = False
-        self.browser.LoadUrl(f'data:text/html,{quote(html)}')
+        url = f'data:text/html,{quote(html)}'
+        self.window._allow_js_api_on(url)
+        self.browser.LoadUrl(url)
 
     def focus(self):
         self.browser.SendFocusEvent(True)
@@ -217,12 +227,17 @@ def find_instance(browser):
 
 
 class LoadHandler:
+    def OnLoadStart(self, browser, frame, **_):
+        instance = find_instance(browser)
+        if instance is not None and frame.IsMain():
+            instance.window._invalidate_js_api()
+
     def OnBeforePopup(self, **args):
         url = args['target_url']
         user_gesture = args['user_gesture']
 
         if user_gesture:
-            webbrowser.open(url)
+            open_external_url(url)
 
         return True
 
@@ -308,6 +323,8 @@ def create_browser(window, handle, alert_func, parent):
             if window.html
             else window.real_url or f'data:text/html,{quote(DEFAULT_HTML)}'
         )
+        if not window.real_url:
+            window._allow_js_api_on(real_url)
 
         default_browser_settings = {}
         all_browser_settings = dict(default_browser_settings, **browser_settings)

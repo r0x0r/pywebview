@@ -10,6 +10,7 @@ http://github.com/r0x0r/pywebview/
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 import enum
 import logging
@@ -18,10 +19,8 @@ import re
 import tempfile
 import threading
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, cast
+from typing import Any
 from uuid import uuid4
-
-from proxy_tools import module_property
 
 import webview.http as http
 from webview.errors import JavascriptException, WebViewException
@@ -30,7 +29,17 @@ from webview.guilib import GUIType, initialize
 from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
-from webview.util import _TOKEN, ImmutableDict, abspath, is_app, is_local_url
+from webview.util import (
+    _TOKEN,
+    ImmutableDict,
+    abspath,
+    call_maybe_async,
+    is_app,
+    is_local_url,
+    set_event_loop,
+    set_local_tls_cert,
+    stop_event_loop,
+)
 from webview.window import Window
 
 __all__ = (
@@ -40,7 +49,6 @@ __all__ = (
     'create_window',
     'token',
     'renderer',
-    'screens',
     'settings',
     # From event
     'Event',
@@ -57,6 +65,10 @@ __all__ = (
 def _setup_logger() -> logging.Logger:
     """Setup logger with console handler and appropriate log level."""
 
+    class _LogFormatter(logging.Formatter):
+        def format(self, record: logging.LogRecord) -> str:
+            return logging.Formatter(settings['LOG_FORMAT']).format(record)
+
     logger = logging.getLogger('pywebview')
 
     # Avoid duplicate setup
@@ -65,7 +77,7 @@ def _setup_logger() -> logging.Logger:
 
     # Create and configure handler
     handler = logging.StreamHandler()
-    formatter = logging.Formatter('[pywebview] %(message)s')
+    formatter = _LogFormatter()
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
@@ -82,33 +94,6 @@ def _setup_logger() -> logging.Logger:
     return logger
 
 
-logger = _setup_logger()
-
-
-@module_property
-def OPEN_DIALOG():
-    logger.warning(
-        "OPEN_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.OPEN' instead."
-    )
-    return 10
-
-
-@module_property
-def FOLDER_DIALOG():
-    logger.warning(
-        "FOLDER_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.FOLDER' instead."
-    )
-    return 20
-
-
-@module_property
-def SAVE_DIALOG():
-    logger.warning(
-        "SAVE_DIALOG is deprecated and will be removed in a future version. Use 'FileDialog.SAVE' instead."
-    )
-    return 30
-
-
 class FileDialog(enum.IntEnum):
     OPEN = 10
     FOLDER = 20
@@ -118,7 +103,8 @@ class FileDialog(enum.IntEnum):
 settings = ImmutableDict(
     {
         'ALLOW_DOWNLOADS': False,
-        'ALLOW_FILE_URLS': True,
+        'ALLOW_FILE_URLS': False,
+        'ALLOWED_ORIGINS': [],
         'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
         'DRAG_REGION_DIRECT_TARGET_ONLY': False,
         'DEFAULT_HTTP_PORT': 42001,
@@ -127,10 +113,14 @@ settings = ImmutableDict(
         'REMOTE_DEBUGGING_PORT': None,
         'IGNORE_SSL_ERRORS': False,
         'JS_API_MAX_DEPTH': 10,
+        'LOG_FORMAT': '[%(name)s] %(levelname)-8s %(message)s',
         'SHOW_DEFAULT_MENUS': True,
         'WEBVIEW2_RUNTIME_PATH': None,
     }
 )
+
+
+logger = _setup_logger()
 
 
 _state = ImmutableDict(
@@ -143,19 +133,48 @@ _state = ImmutableDict(
         'ssl': False,
         'icon': None,
         'menu': None,
+        'server': http.BottleServer,
+        'server_args': {},
     }
 )
 
 
-@module_property
-def DRAG_REGION_SELECTOR():
-    logger.warning(
-        'DRAG_REGION_SELECTOR is deprecated and will be removed in a future version. Use \'settings["DRAG_REGION_SELECTOR"]\' instead.'
-    )
-    return settings['DRAG_REGION_SELECTOR']
+_DEPRECATED_DIALOGS = {
+    'OPEN_DIALOG': ('FileDialog.OPEN', 10),
+    'FOLDER_DIALOG': ('FileDialog.FOLDER', 20),
+    'SAVE_DIALOG': ('FileDialog.SAVE', 30),
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _DEPRECATED_DIALOGS:
+        replacement, value = _DEPRECATED_DIALOGS[name]
+        logger.warning(
+            f"{name} is deprecated and will be removed in a future version. Use '{replacement}' instead."
+        )
+        return value
+
+    if name == 'DRAG_REGION_SELECTOR':
+        logger.warning(
+            'DRAG_REGION_SELECTOR is deprecated and will be removed in a future version. Use \'settings["DRAG_REGION_SELECTOR"]\' instead.'
+        )
+        return settings['DRAG_REGION_SELECTOR']
+
+    if name == 'screens':
+        # Queried on every access, so displays are not enumerated on import
+        return _get_screens()
+
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+
+
+def __dir__() -> list[str]:
+    return sorted([*globals(), 'screens'])
 
 
 guilib = None
+
+# Served by __getattr__
+screens: list[Screen]
 
 token = _TOKEN
 windows: list[Window] = []
@@ -163,7 +182,7 @@ renderer: str | None = None
 
 
 def start(
-    func: Callable[..., None] | None = None,
+    func: Callable[..., Any] | None = None,
     args: Iterable[Any] | None = None,
     localization: dict[str, str] | None = None,
     gui: GUIType | None = None,
@@ -178,6 +197,7 @@ def start(
     server_args: dict[Any, Any] | None = None,
     ssl: bool = False,
     icon: str | None = None,
+    event_loop: asyncio.AbstractEventLoop | None = None,
 ):
     """
     Start a GUI loop and display previously created windows. This function must
@@ -189,7 +209,7 @@ def start(
     :param localization: A dictionary with localized strings. Default strings
         and their keys are defined in localization.py.
     :param gui: Force a specific GUI. Allowed values are ``cef``, ``qt``,
-        ``gtk``, ``mshtml``, ``edgechromium`` or ``winui3`` depending on a platform.
+        ``gtk``, ``edgechromium`` or ``winui3`` depending on a platform.
     :param debug: Enable debug mode. Default is False.
     :param http_server: Enable built-in HTTP server. If enabled, local files
         will be served using a local HTTP server on a random port. For each
@@ -204,8 +224,24 @@ def start(
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :param ssl: Enable SSL for local HTTP server. Default is False.
     :param icon: Path to the icon file. Supported on GTK, QT, macOS and Windows.
+    :param event_loop: asyncio event loop to run async JS API functions and event handlers on.
+        A loop that is not running is run in a background thread. It must not be the loop that
+        calls start(). If None, a loop is started automatically when the first coroutine needs
+        to run and closed when the GUI loop exits.
     """
     global guilib, renderer
+
+    if event_loop is not None and event_loop.is_running():
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+
+        if running_loop is event_loop:
+            raise WebViewException(
+                'event_loop must not be the loop running webview.start(), as start() blocks it. '
+                'Run the loop in another thread or omit event_loop.'
+            )
 
     localization = localization if localization is not None else {}
     menu = menu if menu is not None else []
@@ -251,6 +287,7 @@ def start(
     if menu:
         _state['menu'] = menu
 
+    set_event_loop(event_loop)
     guilib = initialize(gui)
     renderer = guilib.renderer
 
@@ -282,16 +319,32 @@ def start(
     # start the global server if it's not running and we need it
     if (http.global_server is None) and (http_server or has_local_urls):
         if not _state['private_mode'] and not http_port:
-            http_port = settings['DEFAULT_HTTP_PORT']
-        http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
+            try:
+                http.start_global_server(
+                    http_port=settings['DEFAULT_HTTP_PORT'],
+                    urls=urls,
+                    server=server,
+                    **server_args,
+                )
+            except OSError:
+                logger.warning(
+                    f'Port {settings["DEFAULT_HTTP_PORT"]} is in use, using a random port. '
+                    'Web storage will not persist between sessions.'
+                )
+
+        if http.global_server is None:
+            http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
+
+    _state['server'] = server
+    _state['server_args'] = server_args
 
     for window in windows:
-        should_initialize = not window._initialize(
-            guilib, server_args=cast(http.ServerArgs, server_args)
-        )
+        should_initialize = not window._initialize(guilib)
         if should_initialize:
+            stop_event_loop()
             return
 
+    set_local_tls_cert(None)
     if ssl:
         for window in windows:
             window.gui.add_tls_cert(certfile)
@@ -304,14 +357,16 @@ def start(
         if args is not None:
             if not hasattr(args, '__iter__'):
                 args = (args,)
-            thread = threading.Thread(target=func, args=args)
+            thread = threading.Thread(target=call_maybe_async, args=(func, *args))
         else:
-            thread = threading.Thread(target=func)
+            thread = threading.Thread(target=call_maybe_async, args=(func,))
         thread.start()
 
     try:
         guilib.create_window(windows[0])
     finally:
+        stop_event_loop()
+
         if generated_ssl_cert:
             for path in (keyfile, certfile):
                 if path and os.path.exists(path):
@@ -348,7 +403,7 @@ def create_window(
     vibrancy: bool = False,
     menu: list[Menu] | None = None,
     localization: Mapping[str, str] | None = None,
-    server: type[http.BottleServer] = http.BottleServer,
+    server: type[http.BottleServer] | None = None,
     http_port: int | None = None,
     server_args: http.ServerArgs | None = None,
 ) -> Window | None:
@@ -356,7 +411,7 @@ def create_window(
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
     :param title: Window title
-    :param url: URL or WSGI/ASGI app to load
+    :param url: URL or WSGI app to load
     :param html: HTML content to load
     :param width: window width. Default is 800px
     :param height: window height. Default is 600px
@@ -377,7 +432,8 @@ def create_window(
     :param text_select: Allow text selection on page. Default is False.
     :param transparent: Don't draw window background.
     :param menu: List of menus to be included in the window menu
-    :param server: Server class. Defaults to BottleServer
+    :param server: Server class. Defaults to the server class passed to start(), which
+                   defaults to BottleServer
     :param server_args: Dictionary of arguments to pass through to the server instantiation
     :return: window object or None if window initialization is cancelled in the window.events.initialized event
     """
@@ -435,7 +491,11 @@ def create_window(
             # Start a dedicated server for this URL. The global server serves
             # from its original root_path, so reusing it would 404 for a local
             # file that lives outside that root.
-            _, _, server_instance = http.start_server([url], server=server, **server_args)
+            try:
+                server_instance = window._create_server(url)
+            except Exception:
+                windows.remove(window)
+                raise
         else:
             server_instance = None
 
@@ -527,13 +587,11 @@ def active_window() -> Window | None:
     return None
 
 
-@module_property
-def screens() -> list[Screen]:
+def _get_screens() -> list[Screen]:
     global renderer, guilib
 
     if not guilib:
         guilib = initialize()
         renderer = guilib.renderer
 
-    screens = guilib.get_screens()
-    return screens
+    return guilib.get_screens()

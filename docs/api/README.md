@@ -18,7 +18,7 @@ webview.create_window(title, url=None, html=None, js_api=None, width=800, height
                       easy_drag=True, shadow=True, focus=True, minimized=False, maximized=False, menu=[],
                       on_top=False, confirm_close=False, background_color='#FFFFFF',
                       transparent=False, text_select=False, zoomable=False,
-                      draggable=False, vibrancy=False, server=http.BottleServer, server_args={},
+                      draggable=False, vibrancy=False, server=None, server_args={},
                       localization=None)
 ```
 
@@ -27,7 +27,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `title` - Window title
 * `url` - URL to load. If the URL does not have a protocol prefix, it is resolved as a path relative to the application entry point. Alternatively a WSGI server object can be passed to start a local web server.
 * `html` - HTML code to load. If both URL and HTML are specified, HTML takes precedence.
-* `js_api` - Expose a python object to the Javascript domain of the current `pywebview` window. Methods of the `js_api` object can be invoked from Javascript by calling `window.pywebview.api.<methodname>(<parameters>)` functions. Exposed function return a promise that return once function returns. Only basic Python objects (like int, str, dict, ...) can be returned to Javascript.
+* `js_api` - Expose a python object to the Javascript domain of the current `pywebview` window. Methods of the `js_api` object can be invoked from Javascript by calling `window.pywebview.api.<methodname>(<parameters>)` functions. Exposed function return a promise that return once function returns. Only basic Python objects (like int, str, dict, ...) can be returned to Javascript. Methods can be `async`; the promise resolves to the coroutine's result. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
 * `width` - Window width in logical pixels. Default is 800px.
 * `height` - Window height in logical pixels. Default is 600px.
 * `x` - Window x coordinate in logical pixels. Default is centered.
@@ -52,7 +52,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `zoomable` - Enable document zooming. Default is False
 * `draggable` - Enable image and link object dragging. Default is False
 * `vibrancy` - Enable window vibrancy. Default is False. macOS only.
-* `server` - A custom WSGI server instance for this window. Defaults to BottleServer.
+* `server` - A custom WSGI server class for this window. Defaults to the `server` passed to `webview.start()`, which defaults to BottleServer.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 * `localization` - pass a localization dictionary for per window localization.
 
@@ -62,15 +62,15 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 webview.start(func=None, args=None, localization={}, gui=None, debug=False,
               http_server=False, http_port=None, user_agent=None, private_mode=True,
               storage_path=None, menu=[], server=http.BottleServer, ssl=False,
-              server_args={}, icon=None):
+              server_args={}, icon=None, event_loop=None):
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
 
-* `func` - function to invoke upon starting the GUI loop.
+* `func` - function to invoke upon starting the GUI loop. Can be an `async` function, in which case it runs on the asyncio event loop (see `event_loop`).
 * `args` - function arguments. Can be either a single value or a tuple of values.
 * `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
-* `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `mshtml`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
+* `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server for absolute local paths. For relative paths HTTP server is started automatically and cannot be disabled. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `http_port` - specify a port number for the HTTP server. By default port is randomized.
@@ -82,6 +82,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `ssl` - If using the default BottleServer (and for now the GTK backend), will use SSL encryption between the webview and the internal server. You need to have `cryptography` pip dependency installed in order to use `ssl`. It is not installed by default.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 * `icon` - path to application icon. Generally icon should be specified during bundling, but if you need to set it manually, you can use this parameter. Supported formats are `.ico` on Windows and `.icns` on macOS. On Linux support depends on the desktop environment, but generally `.png` icons are supported.
+* `event_loop` - an asyncio event loop for `async` JS API functions and event handlers. If the loop is not running, _pywebview_ runs it in a background thread. Do not pass the loop that calls `webview.start`: `start` blocks that loop, so a `WebViewException` is raised. If `event_loop` is not set, _pywebview_ starts a loop when the first coroutine runs and closes it when the GUI loop exits. Pending pywebview callback submissions are cancelled on exit, including when a loop is supplied. A supplied loop and its unrelated tasks are left running; stopping and closing that loop is the caller's responsibility.
 
 #### Examples
 
@@ -105,7 +106,8 @@ Return a list of available displays (as `Screen` objects) with the primary displ
 ``` python
 webview.settings = {
   'ALLOW_DOWNLOADS': False,
-  'ALLOW_FILE_URLS': True,
+  'ALLOW_FILE_URLS': False,
+  'ALLOWED_ORIGINS': [],
   'DRAG_REGION_SELECTOR': '.pywebview-drag-region',
   'DRAG_REGION_DIRECT_TARGET_ONLY': False,
   'DEFAULT_HTTP_PORT': 42001,
@@ -114,6 +116,7 @@ webview.settings = {
   'REMOTE_DEBUGGING_PORT': None,
   'IGNORE_SSL_ERRORS': False,
   'JS_API_MAX_DEPTH': 10,
+  'LOG_FORMAT': '[%(name)s] %(levelname)-8s %(message)s',
   'SHOW_DEFAULT_MENUS': True,
   'WEBVIEW2_RUNTIME_PATH': None
 }
@@ -122,12 +125,14 @@ webview.settings = {
 Additional options that override default behaviour of _pywebview_ to address popular feature requests.
 
 * `ALLOW_DOWNLOADS` Allow file downloads. Disabled by default.
-* `ALLOW_FILE_URLS` Enable `file://` urls. Disabled by default.
+* `ALLOW_FILE_URLS` Allow scripts on `file://` pages to read other local files. Disabled by default. On Qt, it must be enabled for `file://` pages to load their own scripts, styles and images. See [Security](/guide/security.md#local-files).
+* `ALLOWED_ORIGINS` Additional origins, such as `'https://example.com'`, whose pages get the JS API: the functions in `window.pywebview.api`, `window.pywebview.token` and `window.state`. Pages loaded from Python with `create_window`, `load_url` or `load_html` get it automatically, except plain `http://` URLs on another machine, which can be modified in transit and must be listed here (loopback addresses such as the built-in HTTP server are not affected). Pages the window navigates to on its own, by following a link or a redirect, get it only if their origin is listed. Other pages still get `window.pywebview` for `evaluate_js()` and the DOM API. `['*']` allows every origin. Empty by default. Changes apply from the next page load; an open page keeps the access it was given when it loaded. See [Security](/guide/security.md#which-pages-get-the-js-api).
 * `DRAG_REGION_SELECTOR` CSS selector for a drag region in easy drag mode. Default selector is `.pywebview-drag-region`.
 * `DRAG_REGION_DIRECT_TARGET_ONLY` When set to True, only elements that directly match the drag region selector are draggable. When False, child elements of a drag region are also draggable. Default is False.
 * `DEFAULT_HTTP_PORT` Port used for the internal HTTP server when private mode is disabled and no explicit port is given. Default is 42001.
 * `IGNORE_SSL_ERRORS` Ignore SSL errors. Disabled by default.
 * `JS_API_MAX_DEPTH` Maximum depth of nested `js_api` objects that are walked when exposing functions to Javascript. Guards against runaway recursion into objects whose attributes return a fresh object on every access (e.g. native GUI objects). Default is 10.
+* `LOG_FORMAT` Format of pywebview's console log messages, using Python's [`logging.Formatter`](https://docs.python.org/3/library/logging.html#logging.Formatter) percent-style syntax. Default is `'[%(name)s] %(levelname)-8s %(message)s'`, with left-aligned log levels so messages line up. Changes take effect on the next log message, including before `webview.start()`. For example, set `webview.settings['LOG_FORMAT'] = '%(asctime)s [%(levelname)s] %(message)s'` to include timestamps. This does not change application-provided logging handlers or the log level selected by `PYWEBVIEW_LOG` and debug mode.
 * `OPEN_EXTERNAL_LINKS_IN_BROWSER`. Open `target=_blank` link in an external browser. Enabled by default.
 * `OPEN_DEVTOOLS_IN_DEBUG` Open devtools automatically in debug mode. Enabled by default.
 * `REMOTE_DEBUGGING_PORT` Enable remote debugging when using `edgechromium`, `winui3` or `qt`. Disabled by default.
@@ -256,7 +261,7 @@ Empty element by removing all its children.
 element.events
 ```
 
-A container object of element's all DOM events, ie `events.click`, `event.keydown`. This container is dynamically populated and its contents depend on the events a node has. To subscribe to a DOM event, use the `+=` syntax, e.g. `element.events.click += callback`. Similarly to remove an event listener use `-=`, eg. `element.events.click -= callback`. Callback can be either a function or an instance of `DOMEventHandler` if you need to control propagation of the event.
+A container object of element's all DOM events, ie `events.click`, `event.keydown`. This container is dynamically populated and its contents depend on the events a node has. To subscribe to a DOM event, use the `+=` syntax, e.g. `element.events.click += callback`. Similarly to remove an event listener use `-=`, eg. `element.events.click -= callback`. Callback can be either a function or an instance of `DOMEventHandler` if you need to control propagation of the event. The callback can be an `async` function. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
 
 ### element.focus
 
@@ -457,7 +462,7 @@ Instantiate to create a menu that can be either top level menu or a nested menu.
 ### menu.MenuAction
 
 `MenuAction(title, function)`
-Instantiate to create a menu item. `title` is the name of the item and function is a callback that should be called when menu action is clicked.
+Instantiate to create a menu item. `title` is the name of the item and function is a callback that should be called when menu action is clicked. The callback can be an `async` function. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
 
 ### menu.MenuSeparator
 
@@ -662,12 +667,12 @@ Destroy the window.
 window.evaluate_js(script, callback=None)
 ```
 
-Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. DOM nodes are serialized using custom serialization. Functions are omitted and circular references are converted to the `[Circular Reference]` string literal. `webview.error.JavascriptException` is thrown if executed codes raises an error.
+Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. DOM nodes are serialized using custom serialization. Functions are omitted and circular references are converted to the `[Circular Reference]` string literal. `webview.error.JavascriptException` is thrown if executed codes raises an error. The callback can be an `async` function. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
 r-strings is a recommended way to load Javascript. Note that the `evaluate_js` employs `eval`, which will fail if `unsafe-eval` CSP is set. Alternatively you may use `window.run_js(code)` that executes Javascript code as is without returning a result.
 
 ### window.expose
 
-Expose a Python function or functions to JS API. Functions are exposed as `window.pywebview.api.func_name`
+Expose a Python function or functions to JS API. Functions are exposed as `window.pywebview.api.func_name`. Functions can be `async`. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
 
 [Example](/examples/expose.html)
 
@@ -791,7 +796,6 @@ The `native` property is available after the `before_show` event is fired.
 You can also each platform's WebView object via `window.native.webview`. WebView's types are as follows.
 
 `Microsoft.Web.WebView2.WinForms.WebView2` - Windows / EdgeChromium
-`System.Windows.Forms.WebBrowser` - Windows / MSHTML
 `WebKit.WKWebView` - macOS
 `gi.repository.WebKit2.WebView` - GTK
 `QtWebEngineWidgets.QWebEngineView` /  `QtWebKitWidgets.QWebView`- QT
@@ -905,15 +909,30 @@ Get DOM document's window `window` as an `Element` object
 
 ## Window events
 
-Window object exposes various lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g., `window.events.loaded += func`. Duplicate subscriptions are ignored, and the function is invoked only once for duplicate subscribers. To unsubscribe, use the `-=` syntax, e.g., `window.events.loaded -= func`. To access the window object from the event handler, supply the `window` parameter as the first positional argument of the handler. Most window events are asynchronous, and event handlers are executed in separate threads. The `before_show` and `before_load` events are synchronous and block the main thread until handled. The `request_sent` event is also synchronous - the underlying HTTP request is held up until the handler returns - but its execution context is backend-dependent; see its own entry below.
+Window object exposes lifecycle and window management events. To subscribe to an event, use the `+=` syntax, e.g. `window.events.loaded += func`. To unsubscribe, use the `-=` syntax, e.g. `window.events.loaded -= func`. Duplicate subscriptions are ignored. To access the window object from a handler, add a `window` parameter as the first positional argument of the handler.
+
+Events are either blocking or non-blocking:
+
+| Event | Type | When the handler runs | Async handlers |
+| --- | --- | --- | --- |
+| `before_show`, `before_load`, `closing`, `initialized`, `request_sent` | Blocking | _pywebview_ waits for the handler to return and uses its result | Not allowed |
+| All other events | Non-blocking | In a separate thread. _pywebview_ does not wait for it | Allowed |
+
+Blocking events wait for their handlers, because the result controls what happens next. For example, if a `closing` handler returns `False`, the window stays open. Because of this, handlers of blocking events must be regular functions. Subscribing an `async` function to a blocking event raises `TypeError`. To run async code before the window closes, see [this example](/examples/async_api.html). Blocking handlers should return quickly, because the window or the HTTP request waits for them. Where a `request_sent` handler runs depends on the backend; see its own entry below.
+
+Handlers of non-blocking events can be `async` functions. Their coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on a loop that _pywebview_ starts.
+
+#### Calling pywebview from a blocking handler
+
+The blocking events - `closing`, `before_show` and `before_load` - run their handlers on the GUI thread. pywebview API calls work from these handlers: while a call waits for its result, the GUI event loop keeps running, the same way a modal dialog does. This means other events can be processed before the call returns. `window.evaluate_js()` and `window.get_cookies()` need the page to be loaded, so calling them from `before_show` or from the first `before_load` raises `WebViewException`. On Android and WinUI3, `window.evaluate_js()` and `window.get_cookies()` cannot be called from a blocking handler and raise `RuntimeError`, as do most dialogs on WinUI3, and on EdgeChromium the same two raise `RuntimeError` from a `before_load` handler; call them from another thread instead.
 
 ### window.events.before_show
 
-This event is fired just before pywebview window is shown. This is the earliest event that exposes `window.native` property. This event is blocking.
+This event is fired just before pywebview window is shown. This is the earliest event that exposes `window.native` property. This event is blocking. Handlers must be regular functions.
 
 ### window.events.before_load
 
-The event is fired right before _pywebview_ code is injected into the page. The event roughly corresponds to `DOMContentLoaded` DOM event. This event is blocking.
+The event is fired right before _pywebview_ code is injected into the page. The event roughly corresponds to `DOMContentLoaded` DOM event. This event is blocking. Handlers must be regular functions.
 
 ### window.events.closed
 
@@ -923,13 +942,13 @@ The event is fired just before _pywebview_ window is closed.
 
 ### window.events.closing
 
-The event is fired when _pywebview_ window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled.
+The event is fired when _pywebview_ window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled. This event is blocking. Handlers must be regular functions. To run async code before the window closes, see [this example](/examples/async_api.html).
 
 [Example](/examples/events.html)
 
 ### window.events.initialized
 
-The event is fired right after GUI is chosen and HTTP server is started (if applicable). The first parameter `renderer` has a value of the chosen GUI library / web renderer. If event handler returns False, the window creation will be cancelled and GUI loop will not be started (for windows created before the GUI loop is started). This event is blocking.
+The event is fired right after GUI is chosen and HTTP server is started (if applicable). The first parameter `renderer` has a value of the chosen GUI library / web renderer. If event handler returns False, the window creation will be cancelled and GUI loop will not be started (for windows created before the GUI loop is started). This event is blocking. Handlers must be regular functions.
 
 [Example](/examples/events.html)
 
@@ -957,7 +976,7 @@ The event is fired when window is moved.
 
 ### window.events.request_sent
 
-The event is fired when a HTTP request is sent. The event is emitted for every HTTP request, except on macOS where it is emitted only for the main document. Unlike most window events, this event is blocking: the request is held up until the handler returns, so it must return promptly. Where the handler actually runs is backend-dependent: on GTK it runs inline on the main/webview thread (WebKitGTK has no way to defer the request), so it must not call APIs that need to run on that same thread (e.g. `evaluate_js`), or an exception will be raised; on macOS and Windows it runs on a separate worker thread instead, matching most other window events.
+The event is fired when a HTTP request is sent. The event is emitted for every HTTP request, except on macOS where it is emitted only for the main document. Unlike most window events, this event is blocking: the request is held up until the handler returns, so it must return promptly. Where the handler actually runs is backend-dependent: on GTK it runs inline on the main/webview thread (WebKitGTK has no way to defer the request), so it must not call APIs that need to run on that same thread (e.g. `evaluate_js`), or an exception will be raised; on macOS and Windows it runs on a separate worker thread instead, matching most other window events. This event is blocking. Handlers must be regular functions.
 The event handler can accept a single argument - a `Request` object that contains the following properties:
 
 * `url` - URL of the request
@@ -1000,7 +1019,7 @@ The event is fired when pywebview window is shown.
 
 ### window.state
 
-An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. Both class (`state.<property>`) and index (`state['property']`) notations are supported. Object mutations are not detected. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). See also [Javascript state events](#state-events)
+An observable class object that holds the state shared between Python and Javascript. Setting any property of this state will result in `pywebview.state` having updated on the Javascript side and vice versa. Both class (`state.<property>`) and index (`state['property']`) notations are supported. Object mutations are not detected. State is unique to a window and is preserved between page loads. State changes fire events that can be subscribed as `pywebview.state += lambda event_type, key, value: pass`. `event_type` is either `change` or `delete`. `key` is a property name and `value` for its value (`None` for delete events). Handlers can be `async` functions. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically. See also [Javascript state events](#state-events)
 
 ## Javascript API
 

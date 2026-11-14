@@ -1,6 +1,6 @@
 """Single owner of the pythonnet bootstrap.
 
-winforms, edgechromium and mshtml all need ``clr``, and all depend on one
+winforms and edgechromium both need ``clr``, and both depend on one
 easily broken rule: the runtime must be chosen before pythonnet is imported,
 since pythonnet reads ``PYTHONNET_RUNTIME`` as it loads. Each backend used to
 state that rule itself; it lives here once instead.

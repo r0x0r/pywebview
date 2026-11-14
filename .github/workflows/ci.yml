@@ -251,7 +251,7 @@ jobs:
     - name: Install base dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e "."
+        pip install -e ".[ssl]"
         pip install pytest pytest-timeout
 
     - name: Install Qt dependencies (Ubuntu Qt)
@@ -336,7 +336,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[winui3]"
+        pip install -e ".[winui3,ssl]"
         pip install pytest pytest-timeout
 
     - name: Install Windows App Runtime
@@ -429,8 +429,9 @@ jobs:
     # not present on a stock ubuntu-22.04 image.
     - name: Install build toolchain
       run: |
-        sudo apt-get update -q --allow-releaseinfo-change
-        sudo apt-get install --no-install-recommends -y \
+        # Retries ride out the runner's intermittent mirror and DNS failures.
+        sudo apt-get update -q --allow-releaseinfo-change -o Acquire::Retries=3
+        sudo apt-get install --no-install-recommends -y -o Acquire::Retries=3 \
           autoconf \
           automake \
           libtool \
@@ -466,7 +467,10 @@ jobs:
         APP_ANDROID_ARCHS: x86_64
       run: |
         cd tests/android
-        buildozer -v android debug
+        # One retry: Gradle resolves its plugins from Maven on every build, and
+        # a transient miss there ("Could not find ...") fails an otherwise good
+        # build. The retry reuses everything the first attempt built.
+        buildozer -v android debug || buildozer -v android debug
 
     - name: Save buildozer cache
       if: success() && steps.buildozer-cache.outputs.cache-hit != 'true'

@@ -1,5 +1,6 @@
 window.pywebview = {
   token: '%(token)s',
+  _bridgeToken: '%(bridge_token)s',
   platform: '%(platform)s',
   api: {},
   _eventHandlers: {},
@@ -81,10 +82,8 @@ window.pywebview = {
   },
 
   _jsApiCallback: function (funcName, params, id) {
-    var token = window.pywebview.token;
+    var token = window.pywebview._bridgeToken;
     switch (window.pywebview.platform) {
-      case 'mshtml':
-        return window.external.call(funcName, pywebview.stringify(params), id);
       case 'cef':
       case 'qtwebkit':
       case 'android-webkit':

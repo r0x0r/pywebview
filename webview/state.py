@@ -6,7 +6,7 @@ from typing import Any
 
 from typing_extensions import Self
 
-from webview.util import escape_string
+from webview.util import call_maybe_async, escape_string
 
 if sys.version_info >= (3, 11):
     from enum import StrEnum  # Python 3.11 and above
@@ -38,16 +38,16 @@ class State(dict):
             f'window.pywebview.state[{json.dumps(special_key)}] = '
             f"JSON.parse('{escape_string(json.dumps(value))}')"
         )
-        self.__window.run_js(script)
+        self.__window._run_js_api_js(script)
 
     def __notify_handlers(self, type: StateEventType, key: str, value: Any = None) -> None:
         def notify_handlers():
             for handler in self.__event_handlers:
                 if callable(handler):
                     if type == StateEventType.CHANGE:
-                        handler(type, key, value)
+                        call_maybe_async(handler, type, key, value)
                     elif type == StateEventType.DELETE:
-                        handler(type, key, value)
+                        call_maybe_async(handler, type, key, value)
 
         t = Thread(target=notify_handlers)
         t.start()
@@ -91,7 +91,9 @@ class State(dict):
 
             if should_update_js:
                 special_key = '__pywebviewHaltUpdate__' + key
-                self.__window.run_js(f'delete window.pywebview.state[{json.dumps(special_key)}]')
+                self.__window._run_js_api_js(
+                    f'delete window.pywebview.state[{json.dumps(special_key)}]'
+                )
 
             self.__notify_handlers(StateEventType.DELETE, key, old_value)
             return old_value

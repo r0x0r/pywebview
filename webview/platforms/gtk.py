@@ -3,7 +3,6 @@ import logging
 import os
 import pathlib
 import sys
-import webbrowser
 from threading import Semaphore, Thread, current_thread, main_thread
 from typing import Any
 from uuid import uuid1
@@ -18,6 +17,7 @@ from webview.util import (
     create_cookie,
     inject_pywebview,
     js_bridge_call,
+    open_external_url,
     parse_file_type,
 )
 from webview.window import FixPoint, Window
@@ -26,19 +26,17 @@ logger = logging.getLogger('pywebview')
 os.environ['EGL_LOG_LEVEL'] = 'fatal'
 
 
-def _raise_if_reentrant(api_name: str) -> None:
-    """
-    Guard against calling a `glib.idle_add()` + semaphore-wait API from the
-    GTK main thread itself (e.g. a synchronous `request_sent`/`before_load`
-    handler): the idle callback can only ever run once this same thread
-    returns to the main loop, so blocking here on the semaphore would
-    deadlock permanently. Raises instead of hanging.
-    """
-    if current_thread() is main_thread():
-        raise RuntimeError(
-            f'{api_name}() cannot be called from a native GTK callback (e.g. a '
-            'request_sent or before_load handler) without deadlocking the main loop.'
-        )
+def _wait(semaphore):
+    """Acquire `semaphore`, running the main loop meanwhile if called from the GTK main thread."""
+    if current_thread() is not main_thread():
+        semaphore.acquire()
+        return
+
+    # A blocking handler (closing, before_load, ...) runs on the main thread, so the result can
+    # only be delivered if the main loop keeps running while we wait for it.
+    context = glib.MainContext.default()
+    while not semaphore.acquire(blocking=False):
+        context.iteration(True)
 
 
 import gi  # noqa: E402
@@ -86,6 +84,7 @@ class BrowserView:
         global _app
 
         BrowserView.instances[window.uid] = self
+        self._alert_open = False
         self.uid = window.uid
         self.pywebview_window = window
 
@@ -371,8 +370,15 @@ class BrowserView:
     def on_js_bridge_call(self, manager, message):
         body = json.loads(message.get_js_value().to_string())
 
+        source_url = self.webview.get_uri()
+
+        # Alerts are available on every page, without the JS API too
         if body['funcName'] == '_pywebviewAlert':
-            self.message_box(body['params'])
+            # One alert at a time, shown after this handler returns, so a page cannot stack
+            # nested modal dialogs
+            if not self._alert_open:
+                self._alert_open = True
+                glib.idle_add(self._show_alert, body['params'])
         else:
             js_bridge_call(
                 self.pywebview_window,
@@ -380,6 +386,7 @@ class BrowserView:
                 body['params'],
                 body['id'],
                 body.get('token', ''),
+                source_url,
             )
 
     def on_window_resize(self, window, allocation):
@@ -467,12 +474,15 @@ class BrowserView:
         webview.load_request(request)
 
     def on_load_finish(self, webview, status):
+        if status == webkit.LoadEvent.STARTED:
+            self.pywebview_window._invalidate_js_api()
+
         # Show the webview if it's not already visible
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)
 
         if status == webkit.LoadEvent.FINISHED and not self.request_headers_mutated:
-            inject_pywebview(renderer, self.js_bridge.window)
+            inject_pywebview(renderer, self.js_bridge.window, webview.get_uri())
 
         if self.request_headers_mutated:
             self.request_headers_mutated = False
@@ -501,7 +511,7 @@ class BrowserView:
 
             if decision.get_navigation_action().get_frame_name() == '_blank':
                 if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
-                    webbrowser.open(uri, 2, True)
+                    open_external_url(uri, 2, True)
                     decision.ignore()
                 else:
                     self.load_url(uri)
@@ -668,8 +678,6 @@ class BrowserView:
         glib.idle_add(_clear_cookies)
 
     def get_cookies(self):
-        _raise_if_reentrant('get_cookies')
-
         def _get_cookies():
             self.cookie_manager.get_cookies(self.webview.get_uri(), None, callback, None)
 
@@ -685,7 +693,7 @@ class BrowserView:
         cookies = []
         semaphore = Semaphore(0)
         glib.idle_add(_get_cookies)
-        semaphore.acquire()
+        _wait(semaphore)
 
         return cookies
 
@@ -736,33 +744,20 @@ class BrowserView:
 
             result_semaphore.release()
 
-        if current_thread() is main_thread():
-            # Already on the GTK main thread (e.g. a request_sent handler
-            # firing synchronously from resource-load-started).
-            # Window.evaluate_js() (parse_json=True) needs its result, and
-            # the acquire() below would deadlock the very main loop that
-            # has to run _evaluate_js (via glib.idle_add) and deliver it —
-            # raise *before* starting the script, not after, so a caller
-            # that catches this and retries doesn't end up running a
-            # script with side effects twice. Window.run_js()
-            # (parse_json=False) is fire-and-forget by contract — its
-            # docstring says the result isn't guaranteed — so it's the only
-            # case where it's safe to start the script and return.
-            if parse_json:
-                raise RuntimeError(
-                    'evaluate_js() cannot return a result synchronously when called '
-                    'from a native GTK callback without deadlocking the main loop.'
-                )
-            _evaluate_js()
-            return None
-
         unique_id = uuid1().hex
         self.js_results[unique_id] = {'semaphore': result_semaphore}
         glib.idle_add(_evaluate_js)
-        result_semaphore.acquire()
+        _wait(result_semaphore)
         del self.js_results[unique_id]
 
         return result
+
+    def _show_alert(self, message):
+        try:
+            self.message_box(str(message))
+        finally:
+            self._alert_open = False
+        return False
 
     def message_box(self, message):
         dialog = gtk.MessageDialog(
@@ -954,8 +949,6 @@ def get_cookies(uid):
 
 
 def get_current_url(uid):
-    _raise_if_reentrant('get_current_url')
-
     def _get_current_url():
         result['url'] = i.get_current_url()
         semaphore.release()
@@ -968,7 +961,7 @@ def get_current_url(uid):
         return
 
     glib.idle_add(_get_current_url)
-    semaphore.acquire()
+    _wait(semaphore)
 
     return result['url']
 
@@ -992,8 +985,6 @@ def load_html(content, base_uri, uid):
 
 
 def create_confirmation_dialog(title, message, uid):
-    _raise_if_reentrant('create_confirmation_dialog')
-
     def _create():
         nonlocal result
         result = i.create_confirmation_dialog(title, message)
@@ -1005,7 +996,7 @@ def create_confirmation_dialog(title, message, uid):
 
     if i:
         glib.idle_add(_create)
-        result_semaphore.acquire()
+        _wait(result_semaphore)
 
     return result
 
@@ -1075,8 +1066,6 @@ def get_active_window():
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, file_types, uid):
-    _raise_if_reentrant('create_file_dialog')
-
     i = BrowserView.instances.get(uid)
     file_name_semaphore = Semaphore(0)
     file_names = []
@@ -1093,7 +1082,7 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
         file_name_semaphore.release()
 
     glib.idle_add(_create)
-    file_name_semaphore.acquire()
+    _wait(file_name_semaphore)
 
     return file_names[0]
 
@@ -1106,8 +1095,6 @@ def evaluate_js(script, uid, parse_json=True):
 
 
 def get_position(uid):
-    _raise_if_reentrant('get_position')
-
     def _get_position():
         result['position'] = i.window.get_position()
         semaphore.release()
@@ -1120,14 +1107,12 @@ def get_position(uid):
     semaphore = Semaphore(0)
 
     glib.idle_add(_get_position)
-    semaphore.acquire()
+    _wait(semaphore)
 
     return result['position']
 
 
 def get_size(uid):
-    _raise_if_reentrant('get_size')
-
     def _get_size():
         result['size'] = i.window.get_size()
         semaphore.release()
@@ -1140,7 +1125,7 @@ def get_size(uid):
     semaphore = Semaphore(0)
 
     glib.idle_add(_get_size)
-    semaphore.acquire()
+    _wait(semaphore)
 
     return result['size']
 

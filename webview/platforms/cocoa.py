@@ -6,12 +6,13 @@ import logging
 import os
 import urllib
 import uuid
-import webbrowser
 from concurrent.futures import ThreadPoolExecutor
 from threading import Semaphore, Thread, main_thread
 
 import AppKit
 import Foundation
+import objc
+import Security  # loaded early so PyObjC returns SecTrustRef objects, not raw pointers
 import WebKit
 from objc import nil, super
 from PyObjCTools import AppHelper
@@ -25,13 +26,34 @@ from webview.screen import Screen
 from webview.util import (
     DEFAULT_HTML,
     create_cookie,
+    has_local_tls_cert,
     inject_pywebview,
+    is_local_server_url,
+    is_local_tls_cert,
     is_test_mode,
     js_bridge_call,
+    open_external_url,
     parse_file_type,
+    set_local_tls_cert,
     stringify_headers,
 )
 from webview.window import FixPoint
+
+
+def _wait(semaphore):
+    """Acquire `semaphore`, running the run loop meanwhile if called from the main thread."""
+    if not AppKit.NSThread.isMainThread():
+        semaphore.acquire()
+        return
+
+    # A blocking handler (closing, before_load, ...) runs on the main thread, so the result can
+    # only be delivered if the run loop keeps running while we wait for it.
+    run_loop = AppKit.NSRunLoop.currentRunLoop()
+    while not semaphore.acquire(blocking=False):
+        run_loop.runMode_beforeDate_(
+            AppKit.NSDefaultRunLoopMode, AppKit.NSDate.dateWithTimeIntervalSinceNow_(0.05)
+        )
+
 
 # This lines allow to load non-HTTPS resources, like a local app as: http://127.0.0.1:5000
 bundle = AppKit.NSBundle.mainBundle()
@@ -192,11 +214,21 @@ class BrowserView:
             return self
 
         def userContentController_didReceiveScriptMessage_(self, controller, message):
+            if not message.frameInfo().isMainFrame():
+                logger.warning('Rejected JS bridge call from a subframe')
+                return
             body = json.loads(message.body())
             if body['params'] is WebKit.WebUndefined.undefined():
                 body['params'] = None
+            request = message.frameInfo().request()
+            source_url = request.URL().absoluteString() if request and request.URL() else ''
             js_bridge_call(
-                self.window, body['funcName'], body['params'], body['id'], body.get('token', '')
+                self.window,
+                body['funcName'],
+                body['params'],
+                body['id'],
+                body.get('token', ''),
+                str(source_url),
             )
 
     class DownloadDelegate(AppKit.NSObject):
@@ -237,13 +269,24 @@ class BrowserView:
         def webView_didReceiveAuthenticationChallenge_completionHandler_(
             self, webview, challenge, handler
         ):
-            # Prevent `ObjCPointerWarning: PyObjCPointer created: ... type ^{__SecTrust=}`
-
-            # this allows any server cert
-            if webview_settings['IGNORE_SSL_ERRORS'] or _state['ssl']:
-                credential = AppKit.NSURLCredential.credentialForTrust_(
-                    challenge.protectionSpace().serverTrust()
+            # IGNORE_SSL_ERRORS accepts any server certificate, ssl=True only the local server's
+            space = challenge.protectionSpace()
+            trust = (
+                space.serverTrust()
+                if space.authenticationMethod() == Foundation.NSURLAuthenticationMethodServerTrust
+                else None
+            )
+            try:
+                accept = trust is not None and (
+                    webview_settings['IGNORE_SSL_ERRORS']
+                    or BrowserView._is_local_server_trust(space, trust)
                 )
+            except Exception:
+                # An exception escaping this delegate would terminate the application
+                logger.exception('Could not check the server certificate')
+                accept = False
+            if accept:
+                credential = AppKit.NSURLCredential.credentialForTrust_(trust)
                 handler(AppKit.NSURLSessionAuthChallengeUseCredential, credential)
             else:
                 handler(AppKit.NSURLSessionAuthChallengePerformDefaultHandling, nil)
@@ -298,7 +341,7 @@ class BrowserView:
         ):
             if action.navigationType() == getattr(WebKit, 'WKNavigationTypeLinkActivated', 0):
                 if webview_settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
-                    webbrowser.open(action.request().URL().absoluteString(), 2, True)
+                    open_external_url(action.request().URL().absoluteString(), 2, True)
                 else:
                     webview.loadRequest_(action.request())
             return nil
@@ -434,6 +477,11 @@ class BrowserView:
                         logger.exception(moveError)
 
         # Show the webview when it finishes loading
+        def webView_didCommitNavigation_(self, webview, nav):
+            i = BrowserView.get_instance('webview', webview)
+            if i:
+                i.pywebview_window._invalidate_js_api()
+
         def webView_didFinishNavigation_(self, webview, nav):
             # Add the webview to the window if it's not yet the contentView
             i = BrowserView.get_instance('webview', webview)
@@ -443,7 +491,10 @@ class BrowserView:
                     i.window.setContentView_(webview)
                     i.window.makeFirstResponder_(webview)
 
-                inject_pywebview('cocoa', i.js_bridge.window)
+                url = webview.URL()
+                inject_pywebview(
+                    'cocoa', i.js_bridge.window, str(url.absoluteString()) if url else ''
+                )
 
                 if _state['debug'] and webview_settings['OPEN_DEVTOOLS_IN_DEBUG']:
                     BrowserView._open_web_inspector(webview)
@@ -891,10 +942,13 @@ class BrowserView:
             self.datastore.removeDataOfTypes_modifiedSince_completionHandler_(
                 WebKit.WKWebsiteDataStore.allWebsiteDataTypes(),
                 Foundation.NSDate.dateWithTimeIntervalSince1970_(0),
-                lambda: None,
+                lambda: semaphore.release(),
             )
 
+        # Wait for the removal, so that a following get_cookies() does not see the old cookies
+        semaphore = Semaphore(0)
         AppHelper.callAfter(clear)
+        _wait(semaphore)
 
     def get_cookies(self):
         def handler(cookies):
@@ -922,7 +976,7 @@ class BrowserView:
         _cookies = []
         AppHelper.callAfter(self.datastore.httpCookieStore().getAllCookies_, handler)
         cookie_semaphore = Semaphore(0)
-        cookie_semaphore.acquire()
+        _wait(cookie_semaphore)
 
         return _cookies
 
@@ -933,7 +987,7 @@ class BrowserView:
 
         AppHelper.callAfter(get)
 
-        self._current_url_semaphore.acquire()
+        _wait(self._current_url_semaphore)
         return None if self._current_url == 'about:blank' else self._current_url
 
     def load_url(self, url):
@@ -973,7 +1027,7 @@ class BrowserView:
             result_semaphore = Semaphore(0)
 
         AppHelper.callAfter(eval)
-        JSResult.result_semaphore.acquire()
+        _wait(JSResult.result_semaphore)
         return JSResult.result
 
     def create_file_dialog(
@@ -1074,7 +1128,7 @@ class BrowserView:
             create_dialog(dialog_type, allow_multiple, save_filename)
         else:
             AppHelper.callAfter(create_dialog, dialog_type, allow_multiple, save_filename)
-            self._file_name_semaphore.acquire()
+            _wait(self._file_name_semaphore)
 
         return self._file_name
 
@@ -1295,6 +1349,35 @@ class BrowserView:
         return val
 
     @staticmethod
+    def _is_local_server_trust(space, trust):
+        """Return whether a server-trust challenge comes from the local server started with ssl=True."""
+        if not has_local_tls_cert():
+            return False
+        leaf = BrowserView._leaf_certificate(trust)
+        if leaf is not None:
+            return is_local_tls_cert(leaf)
+        # The certificate could not be read: accept only the local server's own address
+        return is_local_server_url(f'https://{space.host()}:{space.port()}/')
+
+    @staticmethod
+    def _leaf_certificate(trust):
+        """Return the server's own certificate in a SecTrust as DER bytes, or None."""
+        # An untyped pointer would crash the Security framework rather than raise
+        pointer_type = getattr(objc, 'ObjCPointer', None)
+        if pointer_type is not None and isinstance(trust, pointer_type):
+            return None
+        try:
+            if hasattr(Security, 'SecTrustCopyCertificateChain'):  # macOS 12+
+                chain = Security.SecTrustCopyCertificateChain(trust)
+                leaf = chain[0] if chain else None
+            else:
+                leaf = Security.SecTrustGetCertificateAtIndex(trust, 0)
+            return bytes(Security.SecCertificateCopyData(leaf)) if leaf is not None else None
+        except Exception:
+            logger.exception('Could not read the server certificate')
+            return None
+
+    @staticmethod
     def nscolor_from_hex(hex_string, alpha=1.0):
         """
         Convert given hex color to NSColor.
@@ -1509,7 +1592,7 @@ def create_confirmation_dialog(title, message, uid):
 
     semaphore = Semaphore(0)
     AppHelper.callAfter(_confirm)
-    semaphore.acquire()
+    _wait(semaphore)
 
     return result
 
@@ -1645,7 +1728,7 @@ def get_position(uid):
         _position(coordinates)
     except Exception:
         AppHelper.callAfter(_position, coordinates)
-        semaphore.acquire()
+        _wait(semaphore)
 
     return coordinates
 
@@ -1668,7 +1751,7 @@ def get_size(uid):
         _size(dimensions)
     except Exception:
         AppHelper.callAfter(_size, dimensions)
-        semaphore.acquire()
+        _wait(semaphore)
 
     return dimensions
 
@@ -1689,6 +1772,5 @@ def get_screens():
 
 
 def add_tls_cert(certfile):
-    # does not auth against the certfile
-    # see webView_didReceiveAuthenticationChallenge_completionHandler_
-    pass
+    # Checked in webView_didReceiveAuthenticationChallenge_completionHandler_
+    set_local_tls_cert(certfile)

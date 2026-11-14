@@ -31,7 +31,6 @@ body:
       description: "Printed on startup with PYWEBVIEW_LOG=debug, or via webview.renderer"
       options:
         - edgechromium
-        - mshtml
         - wkwebview
         - gtkwebkit2
         - qtwebengine

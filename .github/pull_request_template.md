@@ -14,7 +14,6 @@ Fixes #
 - [ ] GTK (Linux)
 - [ ] QT (Linux)
 - [ ] Winforms / EdgeChromium (Windows)
-- [ ] MSHTML (Windows)
 - [ ] CEF (Windows)
 - [ ] Android
 

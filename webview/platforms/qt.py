@@ -5,10 +5,9 @@ import platform
 import signal
 import socket
 import sys
-import webbrowser
 from copy import copy, deepcopy
 from functools import partial
-from threading import Event, Semaphore, Thread
+from threading import Event, Semaphore, Thread, current_thread, main_thread
 from uuid import uuid1
 
 from qtpy import PYQT6, PYSIDE6, QtCore
@@ -25,8 +24,13 @@ from webview.util import (
     DEFAULT_HTML,
     create_cookie,
     environ_append,
+    has_local_tls_cert,
     inject_pywebview,
+    is_local_server_url,
+    is_local_tls_cert,
     js_bridge_call,
+    open_external_url,
+    set_local_tls_cert,
 )
 from webview.window import FixPoint, Window
 
@@ -49,6 +53,19 @@ except ImportError:
 
 logger = logging.getLogger('pywebview')
 logger.debug(f'Using Qt {QtCore.__version__}')
+
+
+def _wait(semaphore):
+    """Acquire `semaphore`, processing Qt events meanwhile if called from the GUI thread."""
+    if current_thread() is not main_thread():
+        semaphore.acquire()
+        return
+
+    # A blocking handler (closing, before_load, ...) runs on the GUI thread, so the result can
+    # only be delivered if the event loop keeps running while we wait for it.
+    while not semaphore.acquire(blocking=False):
+        QApplication.processEvents(QtCore.QEventLoop.WaitForMoreEvents)
+
 
 if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos', 'rhel', 'pop']:
     # I don't know why, but it's a common solution for #890 (White screen displayed)
@@ -129,10 +146,15 @@ class BrowserView(QMainWindow):
             func_name = BrowserView._convert_string(func_name)
             param = BrowserView._convert_string(param)
 
+            source_url = self._parent.webview.url().toString()
+
+            # Alerts are available on every page, without the JS API too
             if func_name == '_pywebviewAlert':
-                QMessageBox.information(self._parent, 'Message', str(param))
+                self._parent.show_alert(str(param))
             else:
-                return js_bridge_call(self.window, func_name, json.loads(param), value_id, token)
+                return js_bridge_call(
+                    self.window, func_name, json.loads(param), value_id, token, source_url
+                )
 
     class WebView(QWebView):
         def __init__(self, parent=None):
@@ -266,7 +288,7 @@ class BrowserView(QMainWindow):
 
         def acceptNavigationRequest(self, url, type, is_main_frame):
             if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
-                webbrowser.open(url.toString(), 2, True)
+                open_external_url(url.toString(), 2, True)
                 return False
             else:
                 self._parent.load_url(url.toString())
@@ -281,6 +303,8 @@ class BrowserView(QMainWindow):
 
             if is_webengine:
                 self.featurePermissionRequested.connect(self.onFeaturePermissionRequested)
+                if _qt6:
+                    self.certificateError.connect(self.onCertificateError)
                 self.nav_handler = BrowserView.NavigationHandler(self)
             else:
                 self.nav_handler = None
@@ -299,11 +323,44 @@ class BrowserView(QMainWindow):
                     self.setFeaturePermission(url, feature, 1)  # QWebPage.PermissionGrantedByUser
                 else:
                     self.setFeaturePermission(url, feature, 2)  # QWebPage.PermissionDeniedByUser
+
+            def _allow_certificate(self, error):
+                """
+                IGNORE_SSL_ERRORS accepts any certificate; ssl=True accepts only the local HTTP
+                server's own. QtWebEngine does not use QSslConfiguration, see add_tls_cert.
+                """
+                if settings['IGNORE_SSL_ERRORS']:
+                    return True
+                if not has_local_tls_cert():
+                    return False
+                try:
+                    chain = error.certificateChain()
+                    leaf = bytes(chain[0].toDer()) if chain else None
+                except Exception:
+                    logger.exception('Could not read the server certificate')
+                    return False
+                if leaf:
+                    return is_local_tls_cert(leaf)
+                # Qt cannot read certificates without its SSL backend, e.g. Qt 5 built against
+                # OpenSSL 1.1 on a system with OpenSSL 3. Accept only the local server's address.
+                return is_local_server_url(error.url().toString())
+
+            if _qt6:
+
+                def onCertificateError(self, error):
+                    if self._allow_certificate(error):
+                        error.acceptCertificate()
+                    else:
+                        error.rejectCertificate()
+            else:
+
+                def certificateError(self, error):
+                    return self._allow_certificate(error)
         else:
 
             def acceptNavigationRequest(self, frame, request, type):
                 if frame is None:
-                    webbrowser.open(request.url().toString(), 2, True)
+                    open_external_url(request.url().toString(), 2, True)
                     return False
                 return True
 
@@ -320,6 +377,7 @@ class BrowserView(QMainWindow):
     def __init__(self, window):
         super().__init__()
         BrowserView.instances[window.uid] = self
+        self._alert_open = False
         self.uid = window.uid
         self.pywebview_window = window
         self.pywebview_window.native = self
@@ -445,6 +503,7 @@ class BrowserView(QMainWindow):
             )
 
         self.webview.page().loadFinished.connect(self.on_load_finished)
+        self.webview.page().loadStarted.connect(window._invalidate_js_api)
 
         if settings['ALLOW_DOWNLOADS']:
             self.webview.page().profile().downloadRequested.connect(self.on_download_requested)
@@ -482,9 +541,9 @@ class BrowserView(QMainWindow):
         elif window.uid == 'web_inspector':
             self.webview.setUrl(QtCore.QUrl(window.original_url))
         elif window.html:
-            self.webview.setHtml(window.html, QtCore.QUrl(''))
+            self.on_load_html(window.html, '')
         else:
-            self.webview.setHtml(DEFAULT_HTML, QtCore.QUrl(''))
+            self.on_load_html(DEFAULT_HTML, '')
 
         if window.initial_x is not None and window.initial_y is not None:
             self.move(self.screen.x() + window.initial_x, self.screen.y() + window.initial_y)
@@ -562,14 +621,16 @@ class BrowserView(QMainWindow):
 
     def on_current_url(self):
         url = BrowserView._convert_string(self.webview.url().toString())
-        self._current_url = None if url == '' or url.startswith('data:text/html') else url
+        self._current_url = (
+            None if url in ('', 'about:blank') or url.startswith('data:text/html') else url
+        )
         self._current_url_semaphore.release()
 
     def on_load_url(self, url):
         self.webview.setUrl(QtCore.QUrl(url))
 
     def on_load_html(self, content, base_uri):
-        self.webview.setHtml(content, QtCore.QUrl(base_uri))
+        self.webview.setHtml(content, QtCore.QUrl(base_uri or 'about:blank'))
 
     def on_set_on_top(self, top):
         flags = self.windowFlags()
@@ -764,7 +825,7 @@ class BrowserView(QMainWindow):
 
     def get_current_url(self):
         self.current_url_trigger.emit()
-        self._current_url_semaphore.acquire()
+        _wait(self._current_url_semaphore)
 
         return self._current_url
 
@@ -773,6 +834,25 @@ class BrowserView(QMainWindow):
 
     def load_html(self, content, base_uri):
         self.html_trigger.emit(content, base_uri)
+
+    def show_alert(self, message):
+        """
+        Show a page's alert as plain text, one at a time and outside the bridge call, so a page
+        cannot render links or stack nested modal dialogs.
+        """
+        if self._alert_open:
+            return
+        self._alert_open = True
+
+        def show():
+            try:
+                box = QMessageBox(QMessageBox.Information, 'Message', message, QMessageBox.Ok, self)
+                box.setTextFormat(QtCore.Qt.PlainText)
+                box.exec_()
+            finally:
+                self._alert_open = False
+
+        QtCore.QTimer.singleShot(0, show)
 
     def create_confirmation_dialog(self, title, message):
         result_semaphore = Semaphore(0)
@@ -783,7 +863,7 @@ class BrowserView(QMainWindow):
         }
 
         self.confirmation_dialog_trigger.emit(title, message, unique_id)
-        result_semaphore.acquire()
+        _wait(result_semaphore)
 
         result = self._confirmation_dialog_results[unique_id]['result']
         del self._confirmation_dialog_results[unique_id]
@@ -796,7 +876,7 @@ class BrowserView(QMainWindow):
         self.file_dialog_trigger.emit(
             dialog_type, directory, allow_multiple, save_filename, file_filter
         )
-        self._file_name_semaphore.acquire()
+        _wait(self._file_name_semaphore)
 
         if dialog_type == FileDialog.FOLDER:
             file_names = (self._file_name,)
@@ -851,7 +931,7 @@ class BrowserView(QMainWindow):
         }
 
         self.evaluate_js_trigger.emit(script, unique_id)
-        result_semaphore.acquire()
+        _wait(result_semaphore)
 
         result = deepcopy(self._js_results[unique_id]['result'])
         del self._js_results[unique_id]
@@ -873,7 +953,7 @@ class BrowserView(QMainWindow):
             frame = self.webview.page().mainFrame()
             _register_window_object()
 
-        inject_pywebview(renderer, self.js_bridge.window)
+        inject_pywebview(renderer, self.js_bridge.window, self.webview.url().toString())
 
     @staticmethod
     def _convert_string(result):
@@ -1184,9 +1264,15 @@ def get_screens():
 
 
 def add_tls_cert(certfile):
+    # QtWebEngine checks it in WebPage._allow_certificate; QtWebKit uses QSslConfiguration
+    set_local_tls_cert(certfile)
+    # Empty when Qt's own SSL backend is unavailable, e.g. Qt 5 built against OpenSSL 1.1 on a
+    # system with OpenSSL 3; QtWebEngine does not need it
+    loaded = QSslCertificate.fromPath(certfile)
+    if not loaded:
+        return
     config = QSslConfiguration.defaultConfiguration()
     certs = config.caCertificates()
-    cert = QSslCertificate.fromPath(certfile)[0]
-    certs.append(cert)
+    certs.append(loaded[0])
     config.setCaCertificates(certs)
     QSslConfiguration.setDefaultConfiguration(config)

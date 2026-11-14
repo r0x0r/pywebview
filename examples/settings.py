@@ -19,6 +19,8 @@ if __name__ == '__main__':
     print(webview.settings)
     webview.settings['OPEN_EXTERNAL_LINKS_IN_BROWSER'] = False
     webview.settings['OPEN_DEVTOOLS_IN_DEBUG'] = False
+    # Origins, besides the pages loaded from Python, whose pages get the JS API
+    webview.settings['ALLOWED_ORIGINS'] = ['https://pywebview.flowrl.com']
 
     window = webview.create_window('Application flags', html=html)
     webview.start()

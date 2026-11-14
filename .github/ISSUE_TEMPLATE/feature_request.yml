@@ -24,7 +24,7 @@ body:
       label: Affected platforms
       description: >
         Which backends would need to implement this (Cocoa, GTK, QT, Winforms,
-        EdgeChromium, MSHTML, CEF, Android)? Features that cannot be supported
+        EdgeChromium, CEF, Android)? Features that cannot be supported
         everywhere are still welcome, but say so up front.
 
   - type: checkboxes

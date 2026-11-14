@@ -1,7 +1,7 @@
 import json
 import logging
 from http.cookies import SimpleCookie
-from threading import Lock, Semaphore
+from threading import Lock, Semaphore, Thread
 from urllib.parse import urlparse
 
 from android.activity import _activity as activity  # noqa
@@ -41,6 +41,21 @@ logger = logging.getLogger('pywebview')
 renderer = 'android-webkit'
 app = None
 
+Looper = autoclass('android.os.Looper')
+
+# Held for the life of the process rather than fetched per call. pyjnius binds an
+# instance method by writing the receiver onto the shared, class-level JavaMethod
+# (see _ui_lock in base.py). With a temporary receiver, a concurrent call from
+# another thread drops the only reference to it between binding and invoking, and
+# the call aborts the process with "use of deleted global reference". With one
+# receiver that never goes away, a concurrent rebind is harmless.
+_main_looper = Looper.getMainLooper()
+
+
+def _is_ui_thread() -> bool:
+    return _main_looper.isCurrentThread()
+
+
 # Every Java-facing proxy has to outlive the Python object that made it.
 # pyjnius passes Java a bare pointer to the proxy's Python object and ties the
 # proxy's JNI global reference to that object's lifetime, so collecting one
@@ -72,18 +87,38 @@ class BrowserView:
     @run_on_ui_thread
     def create_webview(self):
         def js_api_handler(func, params, id, token):
-            js_bridge_call(self.pywebview_window, func, json.loads(params), id, token)
+            source_url = None
+            ready = Semaphore(0)
+
+            @run_on_ui_thread
+            def capture_source():
+                nonlocal source_url
+                try:
+                    if self.webview is not None:
+                        source_url = str(self.webview.getUrl() or '')
+                finally:
+                    ready.release()
+
+            capture_source()
+            ready.acquire()
+            args = (self.pywebview_window, func, json.loads(params), id, token, source_url)
+            if func == 'pywebviewAsyncCallback':
+                Thread(target=js_bridge_call, args=args).start()
+            else:
+                js_bridge_call(*args)
 
         def chrome_callback(event, data):
             logger.debug('WebChromeClient event %s: %s', event, data)
 
         def webview_callback(event, data):
-            if event == 'onPageFinished':
+            if event == 'onPageStarted':
+                self.pywebview_window._invalidate_js_api()
+            elif event == 'onPageFinished':
 
                 @run_on_ui_thread
                 def _handle_page_finished():
                     try:
-                        inject_pywebview(renderer, self.pywebview_window)
+                        inject_pywebview(renderer, self.pywebview_window, str(data or ''))
                         # Get fresh CookieManager reference to avoid stale Java object references
                         cookie_manager = CookieManager.getInstance()
                         if not _state['private_mode']:
@@ -121,7 +156,7 @@ class BrowserView:
         self._cookies = []
         self.webview = WebView(activity)
         webview_settings = self.webview.getSettings()
-        webview_settings.setAllowFileAccessFromFileURLs(True)
+        webview_settings.setAllowFileAccessFromFileURLs(settings['ALLOW_FILE_URLS'])
         webview_settings.setJavaScriptEnabled(True)
         webview_settings.setUseWideViewPort(False)
         webview_settings.setLoadWithOverviewMode(True)
@@ -524,6 +559,18 @@ def evaluate_js(js_code, _, parse_json=True):
     js_result = None
     value_callback = None
 
+    if _is_ui_thread():
+        # The result is delivered later on this same thread, and Android offers no way to run the
+        # Looper while waiting for it. run_js() does not need the result, so it can start the
+        # script directly, without a callback.
+        if parse_json:
+            raise RuntimeError(
+                'evaluate_js() cannot be called from the UI thread on Android. '
+                'Call it from another thread or use run_js().'
+            )
+        app.view.webview.evaluateJavascript(js_code, None)
+        return None
+
     _evaluate_js()
     lock.acquire()
 
@@ -563,6 +610,12 @@ def clear_cookies(_):
 
 
 def get_cookies(_):
+    if _is_ui_thread():
+        raise RuntimeError(
+            'get_cookies() cannot be called from the UI thread on Android. '
+            'Call it from another thread.'
+        )
+
     cookies = app.view._cookies
     cookie_string = evaluate_js('document.cookie', None, False)
 

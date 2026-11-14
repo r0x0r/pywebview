@@ -3,7 +3,6 @@ import ctypes
 import json
 import logging
 import shutil
-import webbrowser
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from ctypes import wintypes
@@ -13,7 +12,16 @@ from webview import settings as webview_settings
 from webview.dom import _dnd_state
 from webview.models import Request, Response
 from webview.platforms.win32 import start_drag
-from webview.util import DEFAULT_HTML, is_js_bridge_token_valid, js_bridge_call
+from webview.util import (
+    DEFAULT_HTML,
+    has_local_tls_cert,
+    is_js_api_allowed,
+    is_js_bridge_token_valid,
+    is_local_tls_cert,
+    js_bridge_call,
+    open_external_url,
+    pem_to_der,
+)
 
 logger = logging.getLogger('pywebview')
 
@@ -47,6 +55,8 @@ class WebView2Core(ABC):
 
     def __init__(self, window):
         self.pywebview_window = window
+        # Set while a page's alert is shown; the backend's _show_alert clears it when it closes
+        self._alert_open = False
         self.url = None
         self.ishtml = False
         self.html = DEFAULT_HTML
@@ -65,7 +75,28 @@ class WebView2Core(ABC):
         return args
 
     def _should_ignore_ssl(self) -> bool:
-        return _state['ssl'] or webview_settings['IGNORE_SSL_ERRORS']
+        return has_local_tls_cert() or webview_settings['IGNORE_SSL_ERRORS']
+
+    def _allow_certificate(self, get_pem, uri: str) -> bool:
+        """
+        Decide a certificate error. IGNORE_SSL_ERRORS accepts any certificate; ssl=True accepts
+        only the local HTTP server's own. get_pem returns the server certificate as PEM text.
+        """
+        if webview_settings['IGNORE_SSL_ERRORS']:
+            return True
+        try:
+            der = pem_to_der(get_pem())
+        except Exception:
+            logger.exception('Could not read the server certificate of %s', uri)
+            return False
+        if is_local_tls_cert(der):
+            return True
+        logger.error(
+            'Rejected the certificate of %s: it is not the local HTTP server certificate%s',
+            uri,
+            '' if der else ' (no certificate was received)',
+        )
+        return False
 
     def _parse_hex_color(self, hex_color: str) -> tuple:
         c = hex_color.lstrip('#')
@@ -82,7 +113,9 @@ class WebView2Core(ABC):
             return 'html', self.pywebview_window.html
         return 'default', DEFAULT_HTML
 
-    def _route_script_message(self, message_json: str, get_additional_objects) -> None:
+    def _route_script_message(
+        self, message_json: str, get_additional_objects, source_url: str | None = None
+    ) -> None:
         """
         Route an incoming WebMessage to DnD, alert, console, or JS bridge.
 
@@ -107,15 +140,28 @@ class WebView2Core(ABC):
         token = message[3] if len(message) > 3 else ''
         func_param = json.loads(func_param)
 
+        if func_name == 'console':
+            if not is_js_bridge_token_valid(self.pywebview_window, token):
+                return
+            if source_url is not None and not is_js_api_allowed(self.pywebview_window, source_url):
+                return
+
+        # Alerts and window dragging are available on every page, without the JS API too
         if func_name == '_pywebviewAlert':
-            self._show_alert(str(func_param))
+            # One alert at a time, so a page cannot stack nested modal dialogs
+            if not self._alert_open:
+                self._alert_open = True
+                self._show_alert(str(func_param))
         elif func_name == 'pywebviewStartDrag':
-            if is_js_bridge_token_valid(self.pywebview_window, token):
+            # As with pywebviewMoveWindow, only frameless windows are dragged from the page
+            if self.pywebview_window.frameless:
                 start_drag(self._drag_hwnd)
         elif func_name == 'console':
             print(func_param)
         else:
-            js_bridge_call(self.pywebview_window, func_name, func_param, value_id, token)
+            js_bridge_call(
+                self.pywebview_window, func_name, func_param, value_id, token, source_url
+            )
 
     def _compute_request_header_diff(self, original: dict, uri: str, method: str):
         """
@@ -190,7 +236,7 @@ class WebView2Core(ABC):
 
     def _handle_new_window_request(self, uri: str) -> None:
         if webview_settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
-            webbrowser.open(uri)
+            open_external_url(uri)
         else:
             self.load_url(uri)
 

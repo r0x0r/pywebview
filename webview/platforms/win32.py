@@ -87,9 +87,8 @@ _user32.IsZoomed.argtypes = [wintypes.HWND]
 _user32.GetWindowRect.restype = wintypes.BOOL
 _user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 # Available since Windows 8.1 – converts physical screen px to process-logical px.
-# This module is imported for every WinForms renderer, including MSHTML (the
-# fallback documented to work on Windows 7), so the lookup must not raise if
-# it's missing there.
+# Look it up defensively so importing this module never raises on systems
+# where it is missing.
 _PhysicalToLogicalPointForPerMonitorDPI = getattr(
     _user32, 'PhysicalToLogicalPointForPerMonitorDPI', None
 )

@@ -44,6 +44,18 @@ logger = logging.getLogger('pywebview')
 renderer = 'edgechromium'
 
 
+def wait(semaphore, control):
+    """Acquire `semaphore`, pumping messages meanwhile if called from `control`'s UI thread."""
+    if not control.IsHandleCreated or control.InvokeRequired:
+        semaphore.acquire()
+        return
+
+    # A blocking handler (closing, before_show, ...) runs on the UI thread, so the result can
+    # only be delivered if messages keep being processed while we wait for it.
+    while not semaphore.acquire(timeout=0.01):
+        WinForms.Application.DoEvents()
+
+
 class WinFormsEdgeChrome(WebView2Core):
     def __init__(self, form: WinForms.Form, window: Window, cache_dir: str):
         super().__init__(window)
@@ -75,6 +87,7 @@ class WinFormsEdgeChrome(WebView2Core):
         form.Controls.Add(self.webview)
 
         self.js_results = {}
+        self._in_navigation_completed = False
         self.webview.Dock = WinForms.DockStyle.Fill
         self.webview.BringToFront()
         self.webview.CoreWebView2InitializationCompleted += self.on_webview_ready
@@ -92,6 +105,13 @@ class WinFormsEdgeChrome(WebView2Core):
         self.webview.EnsureCoreWebView2Async(None)
 
     def evaluate_js(self, script: str, parse_json: bool):
+        if self.on_ui_thread():
+            if not parse_json:
+                # run_js() needs no result, and before_show runs before WebView2 is initialized
+                self.webview.ExecuteScriptAsync(script)
+                return None
+            self.raise_if_in_navigation_completed('evaluate_js')
+
         def _callback(res):
             nonlocal result
             if parse_json and res is not None:
@@ -117,7 +137,7 @@ class WinFormsEdgeChrome(WebView2Core):
                     )
                 )
             )
-            semaphore.acquire()
+            wait(semaphore, self.webview)
         except Exception:
             logger.exception('Error occurred in script')
             semaphore.release()
@@ -181,10 +201,21 @@ class WinFormsEdgeChrome(WebView2Core):
 
     def load_url(self, url: str):
         self.ishtml = False
-        self.webview.Source = Uri(url)
+        if self.webview.CoreWebView2:
+            # Assigning an unchanged Source skips navigation, including HTML to about:blank.
+            self.webview.CoreWebView2.Navigate(url)
+        else:
+            self.webview.Source = Uri(url)
 
     def _show_alert(self, message: str):
-        WinForms.MessageBox.Show(message)
+        # Show it after the WebView2 event handler returns rather than in a nested loop inside it
+        def show():
+            try:
+                WinForms.MessageBox.Show(message)
+            finally:
+                self._alert_open = False
+
+        self.webview.BeginInvoke(Action(show))
 
     def _extract_dropped_files(self, additional_objects) -> list:
         return [
@@ -208,11 +239,16 @@ class WinFormsEdgeChrome(WebView2Core):
             settings.UserAgent = _state['user_agent']
 
     def on_certificate_error(self, _, args):
-        args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
+        if self._allow_certificate(
+            lambda: args.ServerCertificate.ToPemEncoding(), str(args.RequestUri)
+        ):
+            args.set_Action(CoreWebView2ServerCertificateErrorAction.AlwaysAllow)
 
     def on_script_notify(self, _, args):
         try:
-            self._route_script_message(args.get_WebMessageAsJson(), args.get_AdditionalObjects)
+            self._route_script_message(
+                args.get_WebMessageAsJson(), args.get_AdditionalObjects, str(args.Source)
+            )
         except Exception:
             logger.exception('Exception occurred during on_script_notify')
 
@@ -279,6 +315,7 @@ class WinFormsEdgeChrome(WebView2Core):
             args.Cancel = True
 
     def on_navigation_start(self, sender, args):
+        self.pywebview_window._invalidate_js_api()
         if self.pywebview_window.transparent:
             self.form.Show()
             self.form.Activate()
@@ -327,7 +364,23 @@ class WinFormsEdgeChrome(WebView2Core):
     def on_navigation_completed(self, sender, _):
         url = str(sender.Source)
         self.url = None if self.ishtml else url
-        inject_pywebview(renderer, self.pywebview_window)
+        self._in_navigation_completed = True
+        try:
+            inject_pywebview(renderer, self.pywebview_window, url)
+        finally:
+            self._in_navigation_completed = False
+
+    def on_ui_thread(self):
+        return self.webview.IsHandleCreated and not self.webview.InvokeRequired
+
+    def raise_if_in_navigation_completed(self, api_name):
+        # before_load runs inside NavigationCompleted, and WebView2 does not deliver async results
+        # to a message loop nested in one of its own event handlers
+        if self._in_navigation_completed and self.on_ui_thread():
+            raise RuntimeError(
+                f'{api_name}() cannot be called from a before_load handler on EdgeChromium. '
+                'Call it from another thread.'
+            )
 
 
 # Backward-compatible alias used by winforms.py
