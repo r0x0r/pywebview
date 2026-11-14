@@ -161,8 +161,9 @@ def initialize(forced_gui: GUIType | None = None):
                 # wouldn't help, and mentioning it would send the user
                 # chasing the wrong dependency.
                 raise WebViewException(
-                    'You must have the pywebview[winui3] extra, the Edge WebView2 Runtime '
-                    'and Windows App Runtime installed, in order to use pywebview.'
+                    'You must have Python 3.11 or newer, the pywebview[winui3] extra, the Edge '
+                    'WebView2 Runtime and Windows App Runtime 2.x installed, in order to use '
+                    'pywebview.'
                 )
             elif forced_gui in ('cef', 'edgechromium'):
                 # Only pythonnet could satisfy this branch — fallback to

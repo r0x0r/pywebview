@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### 💔 BREAKING CHANGES
+
+- `WinUI3` Move to PyWinRT 4 and the Windows App SDK 2.x. The `winui3` extra now needs Python 3.11 or newer and the Windows App Runtime 2.x, at least the release that the installed `winrt-Microsoft.WindowsAppRuntime.Bootstrap` names (2.6.4 for its version 4!2.6.4). A 1.x runtime no longer works. CI reads that release from the bootstrap rather than pinning one.
+
+### 🐞 Bug fixes
+
+- `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
 ### ⚡ Features
 
 - `All` Include aligned logging levels in console log messages and allow customizing their format through `webview.settings['LOG_FORMAT']`.

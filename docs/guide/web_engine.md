@@ -9,10 +9,11 @@ The following renderers are used on each platform
 | macOS    |              | WebKit   | WebKit.WKWebView (bundled with OS)                |                       |
 | QT       | qt           | WebKit   | QtWebEngine / QtWebKit                            |                       |
 | Windows  | edgechromium | Chromium | .NET 6.0+ Desktop Runtime or .NET Framework 4.6.2+, and Edge Runtime installed | Ever-green Chromium   |
-| Windows  | winui3       | Chromium | > `pywebview[winui3]` extra, Edge Runtime and Windows App Runtime installed | Ever-green Chromium   |
+| Windows  | winui3       | Chromium | > `pywebview[winui3]` extra (Python 3.11+), Edge Runtime and Windows App Runtime 2.x installed | Ever-green Chromium   |
 | Windows  | cef          | CEF      | CEF Python                                        | Chrome 66             |
 
-On Windows the default renderer is chosen in the following order: `edgechromium`, `winui3`. Edge Chromium is provided by the WinForms backend; WinUI 3 is used automatically when WinForms cannot be loaded, or it can be selected explicitly using the `winui3` code. Edge Runtime must be installed in order to use Edge Chromium on Windows. The legacy MSHTML (Internet Explorer) renderer has been removed, so on systems without the Edge Runtime an alternative renderer such as CEF or Qt must be selected explicitly. You can download the [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/), and consult its [distribution guidelines](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution). WinUI 3 hosts the same WebView2 control as `edgechromium`, so it requires the Edge Runtime too, in addition to the Windows App Runtime. Windows App Runtime can be downloaded from the [Windows App SDK downloads page](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads) or redistributed with your application so that users don't have to install it separately.
+On Windows the default renderer is chosen in the following order: `edgechromium`, `winui3`. Edge Chromium is provided by the WinForms backend; WinUI 3 is used automatically when WinForms cannot be loaded, or it can be selected explicitly using the `winui3` code. Edge Runtime must be installed in order to use Edge Chromium on Windows. You can download the [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/), and consult its [distribution guidelines](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution). WinUI 3 hosts the same WebView2 control as `edgechromium`, so it requires the Edge Runtime too, in addition to the Windows App Runtime. That is the Windows App Runtime 2.x, at least the release that the installed `winrt-Microsoft.WindowsAppRuntime.Bootstrap` package names: 2.6.4 or newer for its version 4!2.6.4. Windows App Runtime can be downloaded from the [Windows App SDK downloads page](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads) or redistributed with your application so that users don't have to install it separately.
+
 
 To change a default renderer set either `PYWEBVIEW_GUI` environment variable or  pass the rendered value to `webview.start(gui=code)` function parameter. Check for available values in the Code column from the table above.
 
@@ -57,6 +58,10 @@ webview.start(gui='qt')
 ```
 
 ## Known issues and limitations
+
+## WinUI3
+
+* The page can only show the standard Windows cursors; others, such as `grab`, `zoom-in` or a CSS cursor image (`cursor: url(...)`), show as the arrow. The WinUI 3 WebView2 control gets the cursor from WebView2's WinRT API, which reports no other ([WebView2Feedback#2766](https://github.com/MicrosoftEdge/WebView2Feedback/issues/2766), [WebView2Feedback#3388](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3388))
 
 ## QtWebKit
 
