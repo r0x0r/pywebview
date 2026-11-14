@@ -593,7 +593,14 @@ class BrowserView:
 
     def restore(self):
         def _restore():
-            self.window.deiconify()
+            gdk_window = self.window.get_window()
+            state = gdk_window.get_state() if gdk_window else 0
+
+            # restored is fired by on_window_state_change
+            if state & Gdk.WindowState.ICONIFIED:
+                self.window.deiconify()
+            elif state & Gdk.WindowState.MAXIMIZED:
+                self.window.unmaximize()
             self.window.present()
 
         glib.idle_add(_restore)
