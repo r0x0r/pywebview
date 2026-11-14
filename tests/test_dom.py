@@ -3,6 +3,7 @@ from time import sleep
 import pytest
 
 import webview
+from webview.dom import DOMEventHandler
 
 from .util import run_test
 
@@ -333,6 +334,15 @@ def events_test(window):
     sleep(0.1)
     assert not button_value
     assert window.evaluate_js('Object.keys(pywebview._eventHandlers).length === 0')
+
+    # each handler fires once per event, and stopImmediatePropagation skips later handlers
+    calls = []
+    first = DOMEventHandler(lambda e: calls.append('first'), stop_immediate_propagation=True)
+    button.events.click += first
+    button.events.click += lambda e: calls.append('second')
+    window.evaluate_js('document.getElementById("button").click()')
+    sleep(0.5)
+    assert calls == ['first']
 
 
 def special_char_attributes_test(window):

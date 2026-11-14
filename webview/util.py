@@ -863,9 +863,10 @@ def js_bridge_call(
             except Exception:
                 logger.exception('Error in DOM event handler')
 
-        for handler in element._event_handlers.get(event['type'], []):
-            thread = Thread(target=_call_handler, args=(handler, event))
-            thread.start()
+        handler_id = param.get('handlerId')
+        for (_, handler), registered_id in list(element._event_handler_ids.items()):
+            if registered_id == handler_id:
+                Thread(target=_call_handler, args=(handler, event)).start()
 
         return
 

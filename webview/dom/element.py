@@ -1,5 +1,6 @@
 import json
 import logging
+import secrets
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from functools import wraps
@@ -401,17 +402,18 @@ class Element:
             stop_propagation = ''
             debounce = 0
 
-        callback_func = f"function(e) {{ window.pywebview._jsApiCallback('pywebviewEventHandler', {{ event: e, nodeId: '{self._node_id}' }}, 'eventHandler') }}"
+        # the bridge dispatches each event only to the handler of the listener that fired
+        handler_id = secrets.token_hex(8)
+        callback_func = f"function(e) {{ window.pywebview._jsApiCallback('pywebviewEventHandler', {{ event: e, nodeId: '{self._node_id}', handlerId: '{handler_id}' }}, 'eventHandler') }}"
         if debounce > 0:
             callback_func = f'pywebview._debounce({callback_func}, {debounce})'
 
-        handler_id = self._window.evaluate_js(
+        registered = self._window.evaluate_js(
             f"""
             {self._query_command};
-            var handlerId = null
+            var handlerId = '{handler_id}';
 
             if (element) {{
-                handlerId = Math.random().toString(36).substr(2, 11);
                 // the script runs at page scope, so bind the callback per listener
                 pywebview._eventHandlers[handlerId] = (function(callback) {{
                     return function(e) {{
@@ -423,11 +425,11 @@ class Element:
 
                 element.addEventListener('{escape_string(event)}', pywebview._eventHandlers[handlerId]);
             }};
-            handlerId;
+            !!element;
         """
         )
 
-        if handler_id:
+        if registered:
             self._event_handlers[event].append(callback)
             self._event_handler_ids[(event, callback)] = handler_id
 
