@@ -664,8 +664,6 @@ class BrowserView:
         self.js_bridge = None
         self._file_name = None
         self._file_name_semaphore = Semaphore(0)
-        self._current_url_semaphore = Semaphore(0)
-        self._current_url = None
         self._pending_semaphores = set()
         self._is_closed = False
         self.closed = window.events.closed
@@ -1014,13 +1012,16 @@ class BrowserView:
 
     def get_current_url(self):
         def get():
-            self._current_url = str(self.webview.URL())
-            self._current_url_semaphore.release()
+            nonlocal current_url
+            current_url = str(self.webview.URL())
+            url_semaphore.release()
 
+        current_url = None
+        url_semaphore = Semaphore(0)
         AppHelper.callAfter(get)
 
-        self._wait(self._current_url_semaphore)
-        return None if self._current_url == 'about:blank' else self._current_url
+        self._wait(url_semaphore)
+        return None if current_url == 'about:blank' else current_url
 
     def load_url(self, url):
         def load(url):
