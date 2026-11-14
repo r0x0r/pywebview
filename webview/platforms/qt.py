@@ -403,6 +403,7 @@ class BrowserView(QMainWindow):
                 self.screen = QApplication.primaryScreen().geometry()
 
         self._js_results = {}
+        self._is_closed = False
         self._current_url = None
         self._file_name = None
         self._confirmation_dialog_results = {}
@@ -667,6 +668,7 @@ class BrowserView(QMainWindow):
         event.accept()
 
         # stop waiting for any pending JS results
+        self._is_closed = True
         for res in list(self._js_results.values()):
             res['semaphore'].release()
 
@@ -937,7 +939,9 @@ class BrowserView(QMainWindow):
         }
 
         self.evaluate_js_trigger.emit(script, unique_id)
-        _wait(result_semaphore)
+        # a result registered after the window closed was not released by closeEvent
+        if not self._is_closed:
+            _wait(result_semaphore)
 
         result = deepcopy(self._js_results[unique_id]['result'])
         del self._js_results[unique_id]
