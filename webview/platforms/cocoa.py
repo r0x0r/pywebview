@@ -912,15 +912,29 @@ class BrowserView:
         AppHelper.callAfter(_resize)
 
     def maximize(self):
-        width = self.screen.size.width
-        height = self.screen.size.height
-        self.resize(width, height, None)
+        def _maximize():
+            if not self.window.styleMask() & AppKit.NSResizableWindowMask:
+                logger.warning('Cannot maximize a non-resizable window')
+                return
+
+            if not self.window.isZoomed():
+                self.window.zoom_(self)
+            self.pywebview_window.events.maximized.set()
+
+        AppHelper.callAfter(_maximize)
 
     def minimize(self):
         AppHelper.callAfter(self.window.miniaturize_, self)
 
     def restore(self):
-        AppHelper.callAfter(self.window.deminiaturize_, self)
+        def _restore():
+            if self.window.isMiniaturized():
+                self.window.deminiaturize_(self)  # restored is fired by windowDidDeminiaturize_
+            elif self.window.isZoomed():
+                self.window.zoom_(self)
+                self.pywebview_window.events.restored.set()
+
+        AppHelper.callAfter(_restore)
 
     def move(self, x, y):
         self.window.setFrameTopLeftPoint_(AppKit.NSPoint(x, _primary_screen_height() - y))
