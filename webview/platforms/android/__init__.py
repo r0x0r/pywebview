@@ -697,6 +697,10 @@ def hide(_):
     app.pause()
 
 
+def maximize(_):
+    logger.warning('Maximizing window is not supported on Android')
+
+
 def minimize(_):
     app.pause()
 
