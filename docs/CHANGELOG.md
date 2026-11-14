@@ -29,6 +29,7 @@
 - `Cocoa` `window.maximize()` zooms the window to the visible area of its screen and fires `events.maximized`, and `window.restore()` restores a maximized window and fires `events.restored`. Previously maximizing only resized the window to the screen size without firing an event, and restoring had no effect on a maximized window.
 - `Android` `window.maximize()` logs a warning that maximizing is not supported instead of raising `AttributeError`.
 - `GTK` `window.restore()` restores a maximized window. Previously it only restored minimized windows.
+- `Winforms` `webview.screens` reports screen positions and sizes in logical pixels, as documented. On scaled displays they were reported in physical pixels, so a screen looked larger than a window covering it, and windows created with `screen=` were centered in the wrong place.
 - `Cocoa` `QT` Fix the process hanging on exit after a window was closed by its own JS API call, for example by a custom Close button calling `window.destroy()`. The thread returning the call's result to the page waited forever for a result from the closed window. Pending `evaluate_js()`, `run_js()` and, on Cocoa, `get_cookies()`, `clear_cookies()` and `get_current_url()` calls now return when the window closes.
 - `Android` `window.move()` and `window.create_confirmation_dialog()` log a warning that they are not supported instead of raising `TypeError` and `AttributeError`. `create_confirmation_dialog()` returns `False`.
 - `EdgeChromium` Navigate explicitly when loading the current URL, including `about:blank` after HTML content.

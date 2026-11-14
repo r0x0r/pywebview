@@ -381,6 +381,33 @@ def start_drag(hwnd: int) -> None:
         _user32.SendMessageW(hwnd, _WM_NCLBUTTONDOWN, _HT_CAPTION, 0)
 
 
+_user32.GetDC.restype = wintypes.HDC
+_user32.GetDC.argtypes = [wintypes.HWND]
+_user32.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
+ctypes.windll.gdi32.GetDeviceCaps.argtypes = [wintypes.HDC, ctypes.c_int]
+
+
+def get_system_scale() -> float:
+    """
+    Get the scale of the coordinate space that screen and window bounds are
+    reported in for this process: 1.0 while it is DPI-unaware, which is the
+    case until the GUI starts, and the system DPI scale once it is
+    system-DPI-aware.
+    """
+    try:
+        hdc = _user32.GetDC(None)
+        try:
+            dpi = ctypes.windll.gdi32.GetDeviceCaps(hdc, 88)  # LOGPIXELSX
+        finally:
+            _user32.ReleaseDC(None, hdc)
+        if dpi > 0:
+            return dpi / 96.0
+    except Exception as e:
+        _log.debug(f'Failed to get system scale: {e}')
+
+    return 1.0
+
+
 def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
     """
     Get the DPI scale factor for the monitor containing the given rectangle.

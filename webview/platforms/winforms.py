@@ -1152,20 +1152,21 @@ def get_screens():
     """Get all screens with coordinates in logical pixels."""
     screens = []
 
+    # Bounds are logical before the GUI starts and the process becomes DPI-aware, and in
+    # system-DPI pixels after. Dividing every screen by the same system scale gives logical
+    # pixels in both cases and keeps the screens adjacent on mixed-DPI setups.
+    system_scale = win32.get_system_scale()
+
     for s in WinForms.Screen.AllScreens:
-        # Get logical size from Bounds (already DPI-aware scaled due to SetProcessDPIAware)
-        logical_width = s.Bounds.Width
-        logical_height = s.Bounds.Height
+        bounds = s.Bounds
+        scale = win32.get_monitor_scale(bounds.X, bounds.Y, bounds.Width, bounds.Height)
 
-        scale = win32.get_monitor_scale(s.Bounds.X, s.Bounds.Y, logical_width, logical_height)
-
-        # Bounds are already in logical pixels due to SetProcessDPIAware
         screens.append(
             Screen(
-                s.Bounds.X,
-                s.Bounds.Y,
-                logical_width,
-                logical_height,
+                bounds.X / system_scale,
+                bounds.Y / system_scale,
+                bounds.Width / system_scale,
+                bounds.Height / system_scale,
                 s.WorkingArea,
                 scale,
             )
