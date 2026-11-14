@@ -392,6 +392,8 @@ class Element:
         if isinstance(callback, DOMEventHandler):
             prevent_default = 'e.preventDefault();' if callback.prevent_default else ''
             stop_propagation = 'e.stopPropagation();' if callback.stop_propagation else ''
+            if callback.stop_immediate_propagation:
+                stop_propagation += 'e.stopImmediatePropagation();'
             debounce = callback.debounce
             callback = callback.callback
         else:
@@ -399,12 +401,9 @@ class Element:
             stop_propagation = ''
             debounce = 0
 
-        callback_func = f"window.pywebview._jsApiCallback('pywebviewEventHandler', {{ event: e, nodeId: '{self._node_id}' }}, 'eventHandler')"
-        debounced_func = (
-            f'pywebview._debounce(function() {{ {callback_func} }}, {debounce})'
-            if debounce > 0
-            else callback_func
-        )
+        callback_func = f"function(e) {{ window.pywebview._jsApiCallback('pywebviewEventHandler', {{ event: e, nodeId: '{self._node_id}' }}, 'eventHandler') }}"
+        if debounce > 0:
+            callback_func = f'pywebview._debounce({callback_func}, {debounce})'
 
         handler_id = self._window.evaluate_js(
             f"""
@@ -413,10 +412,11 @@ class Element:
 
             if (element) {{
                 handlerId = Math.random().toString(36).substr(2, 11);
+                var callback = {callback_func};
                 pywebview._eventHandlers[handlerId] = function(e) {{
                     {prevent_default}
                     {stop_propagation}
-                    {debounced_func};
+                    callback(e);
                 }}
 
                 element.addEventListener('{escape_string(event)}', pywebview._eventHandlers[handlerId]);
