@@ -43,9 +43,17 @@ app = None
 
 Looper = autoclass('android.os.Looper')
 
+# Held for the life of the process rather than fetched per call. pyjnius binds an
+# instance method by writing the receiver onto the shared, class-level JavaMethod
+# (see _ui_lock in base.py). With a temporary receiver, a concurrent call from
+# another thread drops the only reference to it between binding and invoking, and
+# the call aborts the process with "use of deleted global reference". With one
+# receiver that never goes away, a concurrent rebind is harmless.
+_main_looper = Looper.getMainLooper()
+
 
 def _is_ui_thread() -> bool:
-    return Looper.getMainLooper().equals(Looper.myLooper())
+    return _main_looper.isCurrentThread()
 
 
 # Every Java-facing proxy has to outlive the Python object that made it.
