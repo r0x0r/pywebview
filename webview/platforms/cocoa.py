@@ -931,6 +931,8 @@ class BrowserView:
             if not self.window.styleMask() & AppKit.NSResizableWindowMask:
                 # zoom_ has no effect on a non-resizable window, so resize it to the screen
                 self.resize(self.screen.size.width, self.screen.size.height, None)
+                # resize() is queued, so fire the event once it has been applied
+                AppHelper.callAfter(self.pywebview_window.events.maximized.set)
                 return
 
             if not self.window.isZoomed():
