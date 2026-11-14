@@ -303,9 +303,17 @@ def events_test(window):
         assert event['target']['id'] == 'button'
         button_value = True
 
+    def child_click_handler(event):
+        nonlocal child_value
+        child_value = True
+
     button_value = False
+    child_value = False
     button = window.dom.get_element('#button')
     button.events.click += click_handler
+    # a listener registered later on another element must not hijack the first one
+    child1 = window.dom.get_element('#child1')
+    child1.events.click += child_click_handler
 
     window.evaluate_js('document.getElementById("button").click()')
 
@@ -316,7 +324,9 @@ def events_test(window):
             break
         sleep(0.1)
     assert button_value
+    assert not child_value
 
+    child1.events.click -= child_click_handler
     button.events.click -= click_handler
     button_value = False
     window.evaluate_js('document.getElementById("button").click()')

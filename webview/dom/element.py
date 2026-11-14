@@ -412,12 +412,14 @@ class Element:
 
             if (element) {{
                 handlerId = Math.random().toString(36).substr(2, 11);
-                var callback = {callback_func};
-                pywebview._eventHandlers[handlerId] = function(e) {{
-                    {prevent_default}
-                    {stop_propagation}
-                    callback(e);
-                }}
+                // the script runs at page scope, so bind the callback per listener
+                pywebview._eventHandlers[handlerId] = (function(callback) {{
+                    return function(e) {{
+                        {prevent_default}
+                        {stop_propagation}
+                        callback(e);
+                    }}
+                }})({callback_func});
 
                 element.addEventListener('{escape_string(event)}', pywebview._eventHandlers[handlerId]);
             }};
