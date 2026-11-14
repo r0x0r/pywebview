@@ -666,6 +666,10 @@ class BrowserView(QMainWindow):
 
         event.accept()
 
+        # stop waiting for any pending JS results
+        for res in list(self._js_results.values()):
+            res['semaphore'].release()
+
         del BrowserView.instances[self.uid]
 
         if self.pywebview_window in windows:
@@ -763,7 +767,9 @@ class BrowserView(QMainWindow):
             result = BrowserView._convert_string(result_)
             uuid_ = BrowserView._convert_string(uuid)
 
-            js_result = self._js_results[uuid_]
+            js_result = self._js_results.get(uuid_)
+            if js_result is None:  # the window was closed and the caller has stopped waiting
+                return
 
             if js_result['parse_json'] and result:
                 try:

@@ -155,6 +155,11 @@ class BrowserView:
 
             del BrowserView.instances[i.uid]
 
+            # Results pending for this window will never arrive, so release their waiters
+            i._is_closed = True
+            for semaphore in list(i._pending_semaphores):
+                semaphore.release()
+
             if i.pywebview_window in windows:
                 windows.remove(i.pywebview_window)
 
@@ -660,6 +665,9 @@ class BrowserView:
         self._file_name = None
         self._file_name_semaphore = Semaphore(0)
         self._current_url_semaphore = Semaphore(0)
+        self._current_url = None
+        self._pending_semaphores = set()
+        self._is_closed = False
         self.closed = window.events.closed
         self.closing = window.events.closing
         self.shown = window.events.shown
@@ -872,6 +880,15 @@ class BrowserView:
     def destroy(self):
         AppHelper.callAfter(self.window.close)
 
+    def _wait(self, semaphore):
+        """Wait for a result from the main thread, giving up once the window is closed."""
+        self._pending_semaphores.add(semaphore)
+        try:
+            if not self._is_closed:
+                _wait(semaphore)
+        finally:
+            self._pending_semaphores.discard(semaphore)
+
     def set_title(self, title):
         AppHelper.callAfter(self.window.setTitle_, title)
 
@@ -962,7 +979,7 @@ class BrowserView:
         # Wait for the removal, so that a following get_cookies() does not see the old cookies
         semaphore = Semaphore(0)
         AppHelper.callAfter(clear)
-        _wait(semaphore)
+        self._wait(semaphore)
 
     def get_cookies(self):
         def handler(cookies):
@@ -990,7 +1007,7 @@ class BrowserView:
         _cookies = []
         AppHelper.callAfter(self.datastore.httpCookieStore().getAllCookies_, handler)
         cookie_semaphore = Semaphore(0)
-        _wait(cookie_semaphore)
+        self._wait(cookie_semaphore)
 
         return _cookies
 
@@ -1001,7 +1018,7 @@ class BrowserView:
 
         AppHelper.callAfter(get)
 
-        _wait(self._current_url_semaphore)
+        self._wait(self._current_url_semaphore)
         return None if self._current_url == 'about:blank' else self._current_url
 
     def load_url(self, url):
@@ -1022,7 +1039,8 @@ class BrowserView:
 
     def evaluate_js(self, script, parse_json):
         def eval():
-            self.webview.evaluateJavaScript_completionHandler_(script, handler)
+            if self.webview:
+                self.webview.evaluateJavaScript_completionHandler_(script, handler)
 
         def handler(result, error):
             if parse_json and result:
@@ -1041,7 +1059,7 @@ class BrowserView:
             result_semaphore = Semaphore(0)
 
         AppHelper.callAfter(eval)
-        _wait(JSResult.result_semaphore)
+        self._wait(JSResult.result_semaphore)
         return JSResult.result
 
     def create_file_dialog(
