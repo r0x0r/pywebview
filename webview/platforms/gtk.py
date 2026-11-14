@@ -90,6 +90,7 @@ class BrowserView:
 
         self.is_fullscreen = False
         self.js_results = {}
+        self._is_closed = False
 
         self.window = gtk.ApplicationWindow(title=window.title, application=_app)
         self.pywebview_window.native = self.window
@@ -314,6 +315,7 @@ class BrowserView:
             if result == gtk.ResponseType.CANCEL:
                 return True
 
+        self._is_closed = True
         for res in list(self.js_results.values()):
             res['semaphore'].release()
 
@@ -754,7 +756,9 @@ class BrowserView:
         unique_id = uuid1().hex
         self.js_results[unique_id] = {'semaphore': result_semaphore}
         glib.idle_add(_evaluate_js)
-        _wait(result_semaphore)
+        # a result registered after the window closed was not released by on_close
+        if not self._is_closed:
+            _wait(result_semaphore)
         del self.js_results[unique_id]
 
         return result
