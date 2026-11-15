@@ -29,7 +29,7 @@ if os.environ.get('PYTHONNET_RUNTIME') == 'coreclr':
 import Microsoft.Win32 as Win32  # noqa: E402
 import System.Windows.Forms as WinForms  # noqa: E402
 from System import Array, Environment, Func, Int32, IntPtr, Object, Type, UInt32  # noqa: E402
-from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF  # noqa: E402
+from System.Drawing import Color, ColorTranslator, Icon, Point, Rectangle, Size, SizeF  # noqa: E402
 from System.Reflection import Assembly, BindingFlags  # noqa: E402
 from System.Threading import ApartmentState, Thread, ThreadStart  # noqa: E402
 
@@ -1158,17 +1158,20 @@ def get_screens():
     # do not scale their coordinates (see BrowserForm._scale), so neither do their screens.
     system_scale = 1.0 if is_cef else win32.get_system_scale()
 
-    for s in WinForms.Screen.AllScreens:
-        bounds = s.Bounds
-        scale = win32.get_monitor_scale(bounds.X, bounds.Y, bounds.Width, bounds.Height)
+    # WinForms.Screen caches its bounds, which go stale once the process becomes DPI-aware
+    for bounds, work in win32.get_monitors():
+        width = bounds.right - bounds.left
+        height = bounds.bottom - bounds.top
+        scale = win32.get_monitor_scale(bounds.left, bounds.top, width, height)
+        frame = Rectangle(work.left, work.top, work.right - work.left, work.bottom - work.top)
 
         screens.append(
             Screen(
-                bounds.X / system_scale,
-                bounds.Y / system_scale,
-                bounds.Width / system_scale,
-                bounds.Height / system_scale,
-                s.WorkingArea,
+                bounds.left / system_scale,
+                bounds.top / system_scale,
+                width / system_scale,
+                height / system_scale,
+                frame,
                 scale,
             )
         )

@@ -381,6 +381,46 @@ def start_drag(hwnd: int) -> None:
         _user32.SendMessageW(hwnd, _WM_NCLBUTTONDOWN, _HT_CAPTION, 0)
 
 
+class _MONITORINFO(ctypes.Structure):
+    _fields_ = [
+        ('cbSize', wintypes.DWORD),
+        ('rcMonitor', wintypes.RECT),
+        ('rcWork', wintypes.RECT),
+        ('dwFlags', wintypes.DWORD),
+    ]
+
+
+_MonitorEnumProcType = ctypes.WINFUNCTYPE(
+    wintypes.BOOL, wintypes.HANDLE, wintypes.HDC, ctypes.POINTER(wintypes.RECT), wintypes.LPARAM
+)
+_user32.EnumDisplayMonitors.restype = wintypes.BOOL
+_user32.EnumDisplayMonitors.argtypes = [
+    wintypes.HDC,
+    ctypes.POINTER(wintypes.RECT),
+    _MonitorEnumProcType,
+    wintypes.LPARAM,
+]
+
+
+def get_monitors() -> list[tuple[wintypes.RECT, wintypes.RECT]]:
+    """
+    Get the (bounds, work area) rectangles of all monitors, in the coordinates of the
+    process's current DPI awareness. Unlike WinForms' Screen.AllScreens, which caches its
+    bounds, this reflects a DPI awareness change made after the first call.
+    """
+    monitors = []
+
+    def callback(hmonitor, hdc, rect, data):
+        info = _MONITORINFO()
+        info.cbSize = ctypes.sizeof(_MONITORINFO)
+        if _user32.GetMonitorInfoW(hmonitor, ctypes.byref(info)):
+            monitors.append((info.rcMonitor, info.rcWork))
+        return True
+
+    _user32.EnumDisplayMonitors(None, None, _MonitorEnumProcType(callback), 0)
+    return monitors
+
+
 _user32.GetDC.restype = wintypes.HDC
 _user32.GetDC.argtypes = [wintypes.HWND]
 _user32.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
