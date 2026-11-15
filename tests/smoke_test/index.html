@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pywebview smoke test</title>
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css">
+    <script>
+        document.cookie = 'testCookie1=value1; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
+        document.cookie = 'testCookie2=value2; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
+        document.cookie = 'testJson=' + JSON.stringify({key: 'value', number: 42})
+            + '; expires=Thu, 18 Dec 2133 12:00:00 UTC;';
+    </script>
+    <style>
+        :root {
+            --bg: #f5f6f8;
+            --surface: #ffffff;
+            --surface-2: #f2f4f7;
+            --border: #e3e6eb;
+            --text: #111827;
+            --muted: #6b7280;
+            --faint: #9ca3af;
+            --brand: #3eaf7c;
+            --pass: #16a34a;
+            --pass-soft: rgba(22, 163, 74, 0.1);
+            --fail: #dc2626;
+            --fail-soft: rgba(220, 38, 38, 0.08);
+            --skip: #c4c9d2;
+            --run: #d97706;
+            --run-soft: rgba(217, 119, 6, 0.1);
+            --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+            --radius: 12px;
+            --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+            color-scheme: light;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0c0e12;
+                --surface: #14171d;
+                --surface-2: #1b1f27;
+                --border: #262b35;
+                --text: #e7e9ee;
+                --muted: #9097a5;
+                --faint: #646b79;
+                --pass: #22c55e;
+                --pass-soft: rgba(34, 197, 94, 0.12);
+                --fail: #f05252;
+                --fail-soft: rgba(240, 82, 82, 0.1);
+                --skip: #3a404c;
+                --run: #f59e0b;
+                --run-soft: rgba(245, 158, 11, 0.12);
+                --shadow: none;
+                color-scheme: dark;
+            }
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font: 14px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            font-variant-numeric: tabular-nums;
+        }
+        button {
+            font: inherit;
+            color: inherit;
+        }
+
+        /* Top bar */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            background: color-mix(in srgb, var(--bg) 85%, transparent);
+            backdrop-filter: saturate(180%) blur(12px);
+            -webkit-backdrop-filter: saturate(180%) blur(12px);
+            border-bottom: 1px solid var(--border);
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+        .brand .muted {
+            color: var(--muted);
+            font-weight: 400;
+        }
+        .logo {
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
+            background: var(--brand);
+            display: grid;
+            place-items: center;
+            color: white;
+        }
+        .spacer {
+            flex: 1;
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 9px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            font: 12px var(--mono);
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .status-pill {
+            cursor: pointer;
+        }
+        .status-pill .indicator {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--run);
+        }
+        .status-pill.pass .indicator {
+            background: var(--pass);
+        }
+        .status-pill.fail .indicator {
+            background: var(--fail);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .btn:hover {
+            background: var(--surface-2);
+        }
+        .btn:active {
+            transform: translateY(1px);
+        }
+        .btn.primary {
+            background: var(--text);
+            border-color: var(--text);
+            color: var(--bg);
+        }
+        .btn.primary:hover {
+            opacity: 0.88;
+        }
+        .btn.ghost {
+            border-color: transparent;
+            background: transparent;
+            box-shadow: none;
+            color: var(--muted);
+        }
+        .btn.ghost:hover {
+            background: var(--surface-2);
+            color: var(--text);
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            gap: 16px;
+            grid-template-columns: minmax(0, 1fr);
+        }
+        @media (min-width: 760px) {
+            .container {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            }
+            .span-2 {
+                grid-column: span 2;
+            }
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            min-width: 0;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 14px 16px 0;
+        }
+        .card-header h2 {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: -0.005em;
+        }
+        .card-body {
+            padding: 12px 16px 16px;
+        }
+        .hint {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        /* Summary */
+        .hero {
+            padding: 20px;
+            display: grid;
+            gap: 16px;
+        }
+        .summary {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .summary-icon {
+            flex: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: var(--run-soft);
+            color: var(--run);
+        }
+        .summary.pass .summary-icon {
+            background: var(--pass-soft);
+            color: var(--pass);
+        }
+        .summary.fail .summary-icon {
+            background: var(--fail-soft);
+            color: var(--fail);
+        }
+        .summary-title {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        .summary-meta {
+            color: var(--muted);
+            font-size: 13px;
+        }
+        .spin {
+            animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .progress {
+            display: flex;
+            height: 6px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: var(--surface-2);
+        }
+        .progress span {
+            transition: width 0.25s ease;
+        }
+        .progress .p-pass { background: var(--pass); }
+        .progress .p-fail { background: var(--fail); }
+        .progress .p-skip { background: var(--skip); }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .stat {
+            background: var(--surface);
+            padding: 10px 14px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stat-value {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--faint);
+            flex: none;
+        }
+        .dot.pass { background: var(--pass); }
+        .dot.fail { background: var(--fail); }
+        .dot.skip { background: var(--skip); }
+        .dot.run { background: var(--run); }
+
+        /* Suites */
+        .suites {
+            border-top: 1px solid var(--border);
+        }
+        .suites:empty {
+            display: none;
+        }
+        .suite-row {
+            display: grid;
+            grid-template-columns: auto 1fr minmax(60px, 140px) auto;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .suite-row:last-child {
+            border-bottom: none;
+        }
+        .suite-name {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .suite-counts {
+            font: 12px var(--mono);
+            color: var(--muted);
+            text-align: right;
+            white-space: nowrap;
+        }
+        .suite-counts .fail {
+            color: var(--fail);
+            font-weight: 600;
+        }
+        .failures {
+            grid-column: 1 / -1;
+            display: grid;
+            gap: 6px;
+        }
+        .failure {
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: var(--fail-soft);
+            border: 1px solid color-mix(in srgb, var(--fail) 25%, transparent);
+            font: 12px/1.45 var(--mono);
+            color: var(--fail);
+            word-break: break-word;
+        }
+        .failure b {
+            display: block;
+            font: 600 13px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        /* Key/value lists */
+        .info-list {
+            display: grid;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 7px 0;
+            border-bottom: 1px dashed var(--border);
+            font-size: 13px;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-row .label {
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .info-row .value {
+            font: 12px var(--mono);
+            text-align: right;
+            word-break: break-all;
+        }
+
+        /* Manual checks */
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .subhead {
+            margin: 18px 0 4px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px 12px;
+            margin-bottom: 12px;
+        }
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font: 12px var(--mono);
+            cursor: pointer;
+        }
+        .option input[type=checkbox] {
+            accent-color: var(--text);
+        }
+        .option input[type=color] {
+            width: 22px;
+            height: 18px;
+            padding: 0;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: none;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: var(--surface-2);
+            font: 12px/1.45 var(--mono);
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+        .result strong {
+            color: var(--muted);
+            font-weight: 500;
+        }
+        .result.error {
+            background: var(--fail-soft);
+            color: var(--fail);
+        }
+
+        @media (max-width: 600px) {
+            .topbar {
+                padding: 10px 16px;
+            }
+            .container {
+                padding: 16px;
+            }
+            .brand .muted,
+            .rerun-label,
+            #renderer,
+            .suite-row .progress {
+                display: none;
+            }
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .suite-row {
+                grid-template-columns: auto minmax(0, 1fr) auto;
+                padding: 10px 16px;
+            }
+            .hero {
+                padding: 16px;
+            }
+            .info-row {
+                flex-direction: column;
+                gap: 2px;
+            }
+            .info-row .value {
+                text-align: left;
+            }
+        }
+        #dom-sandbox:empty {
+            display: none;
+        }
+        #dom-sandbox {
+            padding: 0 20px 16px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .footer {
+            padding: 4px 20px 28px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--faint);
+        }
+        kbd {
+            font: 11px var(--mono);
+            padding: 1px 5px;
+            border: 1px solid var(--border);
+            border-bottom-width: 2px;
+            border-radius: 4px;
+            background: var(--surface);
+        }
+
+        /* Details panel */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 12, 16, 0.45);
+            z-index: 1000;
+            justify-content: flex-end;
+            align-items: flex-end;
+        }
+        .modal.open {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--surface);
+            width: 100%;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            border-radius: 16px 16px 0 0;
+            border: 1px solid var(--border);
+            animation: slideUp 0.22s ease;
+        }
+        @media (min-width: 760px) {
+            .modal {
+                align-items: stretch;
+            }
+            .modal-content {
+                width: 560px;
+                max-height: none;
+                border-radius: 0;
+                animation-name: slideIn;
+            }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px 0;
+        }
+        .modal-header h2 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .tabs {
+            display: inline-flex;
+            gap: 2px;
+            padding: 3px;
+            margin: 12px 16px;
+            background: var(--surface-2);
+            border-radius: 9px;
+            align-self: flex-start;
+        }
+        .tab-btn {
+            padding: 5px 14px;
+            border: none;
+            border-radius: 7px;
+            background: none;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .tab-btn.active {
+            background: var(--surface);
+            color: var(--text);
+            font-weight: 500;
+            box-shadow: var(--shadow);
+        }
+        .tab-content {
+            display: none;
+            padding: 0 16px 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .eval-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface-2);
+            color: var(--text);
+            font: 12px/1.5 var(--mono);
+            margin-bottom: 10px;
+            resize: vertical;
+            outline: none;
+        }
+        .eval-input:focus {
+            border-color: var(--faint);
+        }
+        .row {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Mocha report, restyled to match */
+        #mocha {
+            margin: 0;
+            font: 13px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text);
+        }
+        #mocha-stats,
+        #mocha .replay {
+            display: none;
+        }
+        #mocha .suite {
+            margin-left: 0;
+        }
+        #mocha .suite .suite {
+            margin-left: 14px;
+        }
+        #mocha h1 {
+            margin-top: 14px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        #mocha h2 {
+            font-size: 13px;
+            font-weight: 400;
+        }
+        #mocha h1 a,
+        #mocha h2 {
+            color: var(--text);
+        }
+        #mocha .test {
+            margin-left: 14px;
+        }
+        #mocha .test.pass::before {
+            color: var(--pass);
+        }
+        #mocha .test.fail,
+        #mocha .test.fail h2,
+        #mocha .test.fail::before {
+            color: var(--fail);
+        }
+        #mocha .test.pending,
+        #mocha .test.pending::before {
+            color: var(--faint);
+        }
+        #mocha .test .duration {
+            background: var(--surface-2);
+            color: var(--muted);
+            box-shadow: none;
+        }
+        #mocha .test pre,
+        #mocha .test pre.error {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            box-shadow: none;
+            color: var(--text);
+            border-radius: 8px;
+            max-width: none;
+        }
+        #mocha code .comment { color: var(--muted); }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <div class="logo">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                     stroke-width="1.8" stroke-linejoin="round">
+                    <rect x="1.5" y="2.5" width="13" height="11" rx="2"/>
+                    <path d="M1.5 6h13"/>
+                </svg>
+            </div>
+            <span>pywebview <span class="muted">smoke test</span></span>
+        </div>
+        <span class="chip" id="renderer">—</span>
+        <div class="spacer"></div>
+        <button class="chip status-pill" id="statusPill" onclick="openDevTools('test-runner')">
+            <span class="indicator"></span>
+            <span id="statusText">running…</span>
+        </button>
+        <button class="btn ghost" onclick="openDevTools('evaluator')" title="Python console">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 4.5L6.5 8 3 11.5M8.5 12h4.5"/>
+            </svg>
+            <span class="rerun-label">Console</span>
+        </button>
+        <button class="btn ghost" onclick="pywebview.api.win.toggle_fullscreen_once()"
+                title="Toggle fullscreen">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
+            </svg>
+            <span class="rerun-label">Fullscreen</span>
+        </button>
+        <button class="btn ghost" onclick="location.reload()" title="Re-run all tests">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/>
+            </svg>
+            <span class="rerun-label">Re-run</span>
+        </button>
+    </header>
+
+    <main class="container">
+        <section class="card span-2">
+            <div class="hero">
+                <div id="summary" class="summary">
+                    <div class="summary-icon" id="summaryIcon"></div>
+                    <div>
+                        <div class="summary-title" id="summaryTitle">Waiting for pywebview…</div>
+                        <div class="summary-meta" id="summaryMeta">the bridge is being injected</div>
+                    </div>
+                </div>
+                <div class="progress" id="progress"></div>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-label"><span class="dot pass"></span>Passed</div>
+                        <div class="stat-value" id="statPassed">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label"><span class="dot fail"></span>Failed</div>
+                        <div class="stat-value" id="statFailed">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label"><span class="dot skip"></span>Skipped</div>
+                        <div class="stat-value" id="statSkipped">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label"><span class="dot"></span>Duration</div>
+                        <div class="stat-value" id="statDuration">—</div>
+                    </div>
+                </div>
+            </div>
+            <div id="suites" class="suites"></div>
+            <div id="dom-sandbox"></div>
+        </section>
+
+        <section class="card">
+            <div class="card-header">
+                <h2>Window</h2>
+                <button class="btn ghost" onclick="refreshWindowInfo()">Refresh</button>
+            </div>
+            <div class="card-body">
+                <div id="window-info" class="info-list"></div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-header">
+                <h2>Manual checks</h2>
+            </div>
+            <div class="card-body">
+                <p class="hint">Native dialogs need a human. Each button should open one.</p>
+                <div class="actions">
+                    <button class="btn" onclick="manualCheck('confirmation_dialog')">Confirmation</button>
+                    <button class="btn" onclick="manualCheck('file_dialog', 'open')">Open file</button>
+                    <button class="btn" onclick="manualCheck('file_dialog', 'folder')">Open folder</button>
+                    <button class="btn" onclick="manualCheck('file_dialog', 'save')">Save file</button>
+                </div>
+                <div id="manual-result"></div>
+
+                <h3 class="subhead">Window options</h3>
+                <p class="hint">Open a window with these options and inspect it by hand.</p>
+                <form class="options" id="window-options" onsubmit="return false">
+                    <label class="option"><input type="checkbox" name="frameless" checked>frameless</label>
+                    <label class="option"><input type="checkbox" name="easy_drag" checked>easy_drag</label>
+                    <label class="option"><input type="checkbox" name="shadow" checked>shadow</label>
+                    <label class="option"><input type="checkbox" name="focus" checked>focus</label>
+                    <label class="option"><input type="checkbox" name="zoomable">zoomable</label>
+                    <label class="option"><input type="checkbox" name="draggable">draggable</label>
+                    <label class="option"><input type="checkbox" name="transparent">transparent</label>
+                    <label class="option"><input type="checkbox" name="vibrancy">vibrancy</label>
+                    <label class="option">
+                        <input type="color" name="background_color" value="#1f2937">background_color
+                    </label>
+                </form>
+                <button class="btn primary" style="width: 100%" onclick="openOptionsWindow()">
+                    Open window
+                </button>
+                <div id="options-result"></div>
+            </div>
+        </section>
+
+        <section class="card span-2">
+            <div class="card-header">
+                <h2>Device</h2>
+                <button class="btn ghost" onclick="refreshDeviceInfo()">Refresh</button>
+            </div>
+            <div class="card-body">
+                <div id="device-info" class="info-list"></div>
+            </div>
+        </section>
+    </main>
+
+    <div class="footer">Click the status pill for the full report</div>
+
+    <div id="devModal" class="modal" onclick="if (event.target === this) toggleDevTools()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Details</h2>
+                <div class="spacer"></div>
+                <button class="btn ghost" onclick="toggleDevTools()" aria-label="Close">✕</button>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="test-runner"
+                        onclick="switchTab(event, 'test-runner')">Report</button>
+                <button class="tab-btn" data-tab="evaluator"
+                        onclick="switchTab(event, 'evaluator')">Python console</button>
+            </div>
+
+            <div id="test-runner" class="tab-content active">
+                <div id="mocha"></div>
+            </div>
+
+            <div id="evaluator" class="tab-content">
+                <p class="hint">Evaluate a Python expression in <code>main.py</code>.
+                    <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to run.</p>
+                <textarea id="python-code" class="eval-input" rows="6"
+                          placeholder="window.state"></textarea>
+                <div class="row">
+                    <button class="btn primary" onclick="evaluatePythonCode()">Run</button>
+                    <button class="btn" onclick="clearEvalResult()">Clear</button>
+                </div>
+                <div id="eval-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/mocha/mocha.js"></script>
+    <script src="https://unpkg.com/chai@4.5.0/chai.js"></script>
+    <script>
+        if (typeof mocha === 'undefined' || typeof chai === 'undefined') {
+            // define stubs so the test files load, and report the failure on the summary
+            window.mochaMissing = true;
+            window.describe = window.it = window.before = window.after = window.beforeEach = function() {};
+            window.describe.skip = window.it.skip = function() {};
+        } else {
+            mocha.setup('bdd');
+            mocha.timeout(10000);
+            var expect = chai.expect;
+        }
+    </script>
+    <script src="index.js"></script>
+
+    <script src="tests/test-events.js"></script>
+    <script src="tests/test-js-api.js"></script>
+    <script src="tests/test-state.js"></script>
+    <script src="tests/test-window.js"></script>
+    <script src="tests/test-window-functions.js"></script>
+    <script src="tests/test-dom.js"></script>
+
+    <script>
+        const ICONS = {
+            run: `<svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                    <path d="M21 12a9 9 0 1 1-6.2-8.56"/></svg>`,
+            pass: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
+            fail: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+        };
+
+        function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = String(value);
+            return div.innerHTML;
+        }
+
+        function format(value) {
+            return typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+        }
+
+        function displayResult(elementId, title, value, isError = false) {
+            document.getElementById(elementId).innerHTML =
+                `<div class="result ${isError ? 'error' : ''}"><strong>${escapeHtml(title)}</strong>
+${escapeHtml(format(value))}</div>`;
+        }
+
+        function renderInfoList(elementId, entries) {
+            document.getElementById(elementId).innerHTML = entries.map(([label, value]) => `
+                <div class="info-row">
+                    <span class="label">${escapeHtml(label)}</span>
+                    <span class="value">${escapeHtml(
+                        typeof value === 'string' ? value : JSON.stringify(value)
+                    )}</span>
+                </div>
+            `).join('');
+        }
+
+        async function refreshWindowInfo() {
+            try {
+                const info = await window.pywebview.api.get_window_info();
+                renderInfoList('window-info', [
+                    ['title', info.title],
+                    ['size', `${info.width} × ${info.height}`],
+                    ['position', `${info.x}, ${info.y}`],
+                    ['fullscreen', info.fullscreen],
+                    ['always on top', info.on_top],
+                    ['screens', info.screens.length],
+                ]);
+            } catch (e) {
+                renderInfoList('window-info', [['error', e.message]]);
+            }
+        }
+
+        function refreshDeviceInfo() {
+            try {
+                const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                renderInfoList('device-info', [
+                    ['user agent', navigator.userAgent],
+                    ['platform', navigator.platform || 'n/a'],
+                    ['language', navigator.language],
+                    ['screen', `${screen.width} × ${screen.height}`],
+                    ['pixel ratio', window.devicePixelRatio],
+                    ['orientation', screen.orientation ? screen.orientation.type : 'n/a'],
+                    ['online', navigator.onLine],
+                    ['connection', conn ? conn.effectiveType : 'n/a'],
+                    ['timezone', Intl.DateTimeFormat().resolvedOptions().timeZone],
+                ]);
+            } catch (e) {
+                renderInfoList('device-info', [['error', e.message]]);
+            }
+        }
+
+        async function manualCheck(method, arg) {
+            try {
+                const args = arg === undefined ? [] : [arg];
+                const result = await window.pywebview.api.win[method](...args);
+                displayResult('manual-result', method + (arg ? ` (${arg})` : ''), result);
+            } catch (e) {
+                displayResult('manual-result', method, e.message, true);
+            }
+        }
+
+        async function openOptionsWindow() {
+            const options = {};
+            document.querySelectorAll('#window-options input').forEach(input => {
+                options[input.name] = input.type === 'checkbox' ? input.checked : input.value.toUpperCase();
+            });
+            try {
+                await window.pywebview.api.win.open_for_inspection(options);
+                document.getElementById('options-result').innerHTML = '';
+            } catch (e) {
+                displayResult('options-result', 'open_for_inspection', e.message, true);
+            }
+        }
+
+        function setSummary(state, title, meta = '') {
+            document.getElementById('summary').className = 'summary ' + state;
+            document.getElementById('summaryIcon').innerHTML = ICONS[state] || ICONS.run;
+            document.getElementById('summaryTitle').textContent = title;
+            document.getElementById('summaryMeta').textContent = meta;
+        }
+
+        function renderProgress(counts, total) {
+            const pct = n => total ? `${(n / total) * 100}%` : '0%';
+            document.getElementById('progress').innerHTML =
+                `<span class="p-pass" style="width:${pct(counts.passed)}"></span>` +
+                `<span class="p-fail" style="width:${pct(counts.failed)}"></span>` +
+                `<span class="p-skip" style="width:${pct(counts.skipped)}"></span>`;
+            document.getElementById('statPassed').textContent = counts.passed;
+            document.getElementById('statFailed').textContent = counts.failed;
+            document.getElementById('statSkipped').textContent = counts.skipped;
+        }
+
+        // Per top-level suite pass/fail/skip counts with failure messages
+        function renderSuites(suites) {
+            document.getElementById('suites').innerHTML = Object.entries(suites).map(([name, s]) => {
+                const done = s.passed + s.failed + s.skipped;
+                const state = s.failed ? 'fail' : (s.running ? 'run' : (s.passed ? 'pass' : 'skip'));
+                const pct = n => done ? `${(n / done) * 100}%` : '0%';
+                return `
+                    <div class="suite-row">
+                        <span class="dot ${state}"></span>
+                        <span class="suite-name">${escapeHtml(name)}</span>
+                        <div class="progress">
+                            <span class="p-pass" style="width:${pct(s.passed)}"></span>
+                            <span class="p-fail" style="width:${pct(s.failed)}"></span>
+                            <span class="p-skip" style="width:${pct(s.skipped)}"></span>
+                        </div>
+                        <span class="suite-counts">${
+                            s.failed ? `<span class="fail">${s.failed} failed</span> · ` : ''
+                        }${s.passed}/${done}${s.skipped ? ` · ${s.skipped} skipped` : ''}</span>
+                        ${s.failures.length ? `<div class="failures">${s.failures.map(f => `
+                            <div class="failure"><b>${escapeHtml(f.title)}</b>${escapeHtml(f.message)}</div>
+                        `).join('')}</div>` : ''}
+                    </div>`;
+            }).join('');
+        }
+
+        async function evaluatePythonCode() {
+            const code = document.getElementById('python-code').value.trim();
+            if (!code) {
+                displayResult('eval-result', 'Error', 'Please enter Python code', true);
+                return;
+            }
+
+            try {
+                document.getElementById('eval-result').innerHTML =
+                    '<div class="result">Running…</div>';
+                const result = await window.pywebview.api.eval(code);
+                displayResult('eval-result', 'Result', result);
+            } catch (e) {
+                // Python exceptions arrive with the traceback in e.stack
+                displayResult('eval-result', `${e.name}: ${e.message}`, e.stack || '', true);
+            }
+        }
+
+        function clearEvalResult() {
+            document.getElementById('eval-result').innerHTML = '';
+            document.getElementById('python-code').value = '';
+        }
+
+        function toggleDevTools() {
+            document.getElementById('devModal').classList.toggle('open');
+        }
+
+        function openDevTools(tabName) {
+            document.getElementById('devModal').classList.add('open');
+            if (tabName) {
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tab === tabName);
+                });
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.toggle('active', content.id === tabName);
+                });
+                if (tabName === 'evaluator') document.getElementById('python-code').focus();
+            }
+        }
+
+        function switchTab(event, tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // Runs the Mocha suite once and reflects the results on the summary and status pill
+        function runTests() {
+            const pill = document.getElementById('statusPill');
+            const text = document.getElementById('statusText');
+            pill.classList.remove('pass', 'fail');
+            text.textContent = 'running…';
+
+            if (window.mochaMissing) {
+                pill.classList.add('fail');
+                text.textContent = 'mocha not loaded';
+                setSummary('fail', 'Test runner failed to load',
+                    'Mocha and Chai are loaded from unpkg.com. Check the network connection.');
+                return;
+            }
+
+            const counts = {passed: 0, failed: 0, skipped: 0};
+            const suites = {};
+            const started = performance.now();
+            let current = null;
+
+            function suiteOf(test) {
+                let suite = test.parent;
+                while (suite.parent && !suite.parent.root) suite = suite.parent;
+                const name = suite.title || 'Hooks';
+                suites[name] = suites[name] ||
+                    {passed: 0, failed: 0, skipped: 0, failures: [], running: false};
+                return suites[name];
+            }
+
+            function update(test) {
+                if (current) current.running = false;
+                current = suiteOf(test);
+                current.running = true;
+                const done = counts.passed + counts.failed + counts.skipped;
+                renderProgress(counts, runner.total);
+                renderSuites(suites);
+                setSummary('', `Running ${done} of ${runner.total} checks…`,
+                    test.fullTitle());
+                document.getElementById('statDuration').textContent =
+                    `${((performance.now() - started) / 1000).toFixed(1)}s`;
+            }
+
+            const runner = mocha.run();
+            setSummary('', `Running ${runner.total} checks…`);
+            renderProgress(counts, runner.total);
+
+            runner.on('pass', test => {
+                counts.passed++;
+                suiteOf(test).passed++;
+                update(test);
+            });
+            runner.on('pending', test => {
+                counts.skipped++;
+                suiteOf(test).skipped++;
+                update(test);
+            });
+            runner.on('fail', (test, err) => {
+                counts.failed++;
+                suiteOf(test).failed++;
+                suiteOf(test).failures.push({
+                    title: test.fullTitle(),
+                    message: (err && err.message) || String(err),
+                });
+                update(test);
+            });
+            runner.on('end', () => {
+                if (current) current.running = false;
+                renderSuites(suites);
+                const {passed, failed, skipped} = counts;
+                const seconds = ((performance.now() - started) / 1000).toFixed(1);
+                document.getElementById('statDuration').textContent = `${seconds}s`;
+                pill.classList.add(failed > 0 ? 'fail' : 'pass');
+                text.textContent = failed > 0 ? `${failed} failed` : `${passed} passed`;
+                const meta = `${passed} passed · ${failed} failed · ${skipped} skipped · ${seconds}s`;
+                if (failed > 0) {
+                    setSummary('fail', `${failed} of ${passed + failed} checks failed`, meta);
+                } else {
+                    setSummary('pass', `All ${passed} checks passed`, meta);
+                }
+                const failures = Object.values(suites)
+                    .flatMap(s => s.failures.map(f => `${f.title}: ${f.message}`));
+                window.pywebview.api.report(passed, failed, failures);
+            });
+        }
+
+        document.getElementById('python-code').addEventListener('keydown', function(event) {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                event.preventDefault();
+                evaluatePythonCode();
+            }
+        });
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') document.getElementById('devModal').classList.remove('open');
+        });
+
+        setSummary('', 'Waiting for pywebview…', 'the bridge is being injected');
+
+        // Populate the info cards and start the test suite once the pywebview
+        // JS API bridge has been injected.
+        const readyTimeout = setTimeout(() => {
+            setSummary('fail', 'pywebview did not start',
+                'pywebviewready was not fired within 10 seconds');
+        }, 10000);
+
+        window.addEventListener('pywebviewready', () => {
+            clearTimeout(readyTimeout);
+            window.pywebview.api.win.info()
+                .then(info => { document.getElementById('renderer').textContent = info.renderer; })
+                .catch(() => {});
+            refreshWindowInfo();
+            refreshDeviceInfo();
+            runTests();
+        });
+    </script>
+</body>
+</html>
