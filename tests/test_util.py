@@ -658,11 +658,11 @@ class TestJsBridgeHardening:
         window._js_api_token = 'document-token'
         handled = threading.Event()
         window.dom._elements['node'] = SimpleNamespace(
-            _event_handlers={'click': [lambda event: handled.set()]}
+            _event_handler_ids={('click', lambda event: handled.set()): 'handler'}
         )
         window._callbacks['value-id'] = lambda value: handled.set()
 
-        param = {'event': {'type': 'click'}, 'nodeId': 'node'}
+        param = {'event': {'type': 'click'}, 'nodeId': 'node', 'handlerId': 'handler'}
         if func_name == 'pywebviewAsyncCallback':
             param = '"result"'
         js_bridge_call(
