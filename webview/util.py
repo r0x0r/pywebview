@@ -843,7 +843,7 @@ def js_bridge_call(
 
         if event['type'] == 'drop':
             files = event['dataTransfer'].get('files', [])
-            matched = {}
+            matched = []
             for file in files:
                 path = [
                     item
@@ -851,15 +851,20 @@ def js_bridge_call(
                     if urllib.parse.unquote(item[0]) == file['name']
                 ]
                 if path:
-                    matched[file['name']] = urllib.parse.unquote(path[0][1])
                     _dnd_state['paths'].remove(path[0])
+                    matched.append((file['name'], urllib.parse.unquote(path[0][1])))
+                else:
+                    matched.append((file['name'], None))
 
-            # every drop listener sends its own message, so keep the paths of the latest drop
-            if matched:
+            # Every drop listener sends its own message, so keep the paths of the latest drop.
+            # They are kept by position, as files with the same name can come from different
+            # directories.
+            if any(path for _, path in matched):
                 _dnd_state['dropped'] = matched
-            for file in files:
-                if file['name'] in _dnd_state['dropped']:
-                    file['pywebviewFullPath'] = _dnd_state['dropped'][file['name']]
+            dropped = _dnd_state['dropped']
+            for index, file in enumerate(files):
+                if index < len(dropped) and dropped[index][0] == file['name'] and dropped[index][1]:
+                    file['pywebviewFullPath'] = dropped[index][1]
 
         def _call_handler(handler, event):
             try:
