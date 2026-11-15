@@ -71,7 +71,8 @@ class Element:
             }}
         """.replace('\n', '')
         self._event_handlers: defaultdict[str, list[Callable[..., Any]]] = defaultdict(list)
-        self._event_handler_ids: dict[tuple[str, Callable[..., Any]], str] = {}
+        # listener id -> (event, callback); the same callback may be registered more than once
+        self._event_listeners: dict[str, tuple[str, Callable[..., Any]]] = {}
         self._exists = True
         self._classes = ClassList(self)
         self._style = PropsDict(self, DOMPropType.Style)
@@ -304,9 +305,7 @@ class Element:
         if self._node_id in self._window.dom._elements:
             self._window.dom._elements.pop(self._node_id)
 
-        handler_ids = ','.join(
-            [f'"{handler_id}"' for handler_id in self._event_handler_ids.values()]
-        )
+        handler_ids = ','.join([f'"{handler_id}"' for handler_id in self._event_listeners])
         self._window.run_js(
             f"""
             var handlerIds = [{handler_ids}];
@@ -315,7 +314,7 @@ class Element:
             }})
         """
         )
-        self._event_handler_ids = {}
+        self._event_listeners = {}
         self._event_handlers = defaultdict(list)
         self._exists = False
 
@@ -431,14 +430,22 @@ class Element:
 
         if registered:
             self._event_handlers[event].append(callback)
-            self._event_handler_ids[(event, callback)] = handler_id
+            self._event_listeners[handler_id] = (event, callback)
 
         if event == 'drop':
             _dnd_state['num_listeners'] += 1
 
     @_exists
     def off(self, event: str, callback: Callable) -> None:
-        handler_id = self._event_handler_ids.get((event, callback))
+        # remove the most recently registered listener for this callback
+        handler_id = next(
+            (
+                listener_id
+                for listener_id, listener in reversed(self._event_listeners.items())
+                if listener == (event, callback)
+            ),
+            None,
+        )
 
         if not handler_id:
             return
@@ -454,13 +461,10 @@ class Element:
         """
         )
 
-        del self._event_handler_ids[(event, callback)]
+        del self._event_listeners[handler_id]
+        self._event_handlers[event].remove(callback)
 
-        for handler in self._event_handlers[event]:
-            if handler == callback:
-                self._event_handlers[event].remove(handler)
-
-        if not self._event_handler_ids:
+        if not self._event_listeners:
             self._window.dom._elements.pop(self._node_id, None)
 
         if event == 'drop':

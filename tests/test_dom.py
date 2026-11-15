@@ -344,6 +344,23 @@ def events_test(window):
     sleep(0.5)
     assert calls == ['first']
 
+    # the same callback registered twice is called by both listeners, and off removes one
+    child_calls = []
+
+    def count(e):
+        child_calls.append(1)
+
+    child1.events.click += count
+    child1.events.click += count
+    window.evaluate_js('document.getElementById("child1").click()')
+    sleep(0.5)
+    assert len(child_calls) == 2
+
+    child1.events.click -= count
+    window.evaluate_js('document.getElementById("child1").click()')
+    sleep(0.5)
+    assert len(child_calls) == 3
+
 
 def special_char_attributes_test(window):
     """Test attributes containing special characters like single quotes and backslashes"""

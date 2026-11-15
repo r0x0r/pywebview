@@ -658,7 +658,7 @@ class TestJsBridgeHardening:
         window._js_api_token = 'document-token'
         handled = threading.Event()
         window.dom._elements['node'] = SimpleNamespace(
-            _event_handler_ids={('click', lambda event: handled.set()): 'handler'}
+            _event_listeners={'handler': ('click', lambda event: handled.set())}
         )
         window._callbacks['value-id'] = lambda value: handled.set()
 
@@ -669,6 +669,34 @@ class TestJsBridgeHardening:
             window, func_name, param, 'value-id', 'document-token', 'https://untrusted.example/'
         )
         assert handled.wait(2)
+
+    def test_drop_paths_reach_every_drop_listener(self, monkeypatch):
+        from webview.dom import _dnd_state
+
+        monkeypatch.setitem(_dnd_state, 'paths', [('a.txt', '/tmp/a.txt')])
+        monkeypatch.setitem(_dnd_state, 'dropped', {})
+        window = webview.create_window('DOM')
+        window._js_api_token = 'document-token'
+        received = []
+        handled = threading.Semaphore(0)
+
+        def handler(event):
+            received.append(event['dataTransfer']['files'][0].get('pywebviewFullPath'))
+            handled.release()
+
+        window.dom._elements['node'] = SimpleNamespace(
+            _event_listeners={'first': ('drop', handler), 'second': ('drop', handler)}
+        )
+        for handler_id in ('first', 'second'):
+            event = {'type': 'drop', 'dataTransfer': {'files': [{'name': 'a.txt'}]}}
+            param = {'event': event, 'nodeId': 'node', 'handlerId': handler_id}
+            js_bridge_call(
+                window, 'pywebviewEventHandler', param, 'id', 'document-token', 'https://a.example/'
+            )
+            assert handled.acquire(timeout=2)
+
+        assert received == ['/tmp/a.txt', '/tmp/a.txt']
+        assert _dnd_state['paths'] == []
 
     @pytest.mark.parametrize('func_name', ['target', 'pywebviewStateUpdate'])
     def test_api_and_state_calls_need_an_allowed_origin(self, func_name):

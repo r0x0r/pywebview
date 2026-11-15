@@ -843,17 +843,23 @@ def js_bridge_call(
 
         if event['type'] == 'drop':
             files = event['dataTransfer'].get('files', [])
+            matched = {}
             for file in files:
                 path = [
                     item
                     for item in _dnd_state['paths']
                     if urllib.parse.unquote(item[0]) == file['name']
                 ]
-                if len(path) == 0:
-                    continue
+                if path:
+                    matched[file['name']] = urllib.parse.unquote(path[0][1])
+                    _dnd_state['paths'].remove(path[0])
 
-                file['pywebviewFullPath'] = urllib.parse.unquote(path[0][1])
-                _dnd_state['paths'].remove(path[0])
+            # every drop listener sends its own message, so keep the paths of the latest drop
+            if matched:
+                _dnd_state['dropped'] = matched
+            for file in files:
+                if file['name'] in _dnd_state['dropped']:
+                    file['pywebviewFullPath'] = _dnd_state['dropped'][file['name']]
 
         def _call_handler(handler, event):
             try:
@@ -863,10 +869,9 @@ def js_bridge_call(
             except Exception:
                 logger.exception('Error in DOM event handler')
 
-        handler_id = param.get('handlerId')
-        for (_, handler), registered_id in list(element._event_handler_ids.items()):
-            if registered_id == handler_id:
-                Thread(target=_call_handler, args=(handler, event)).start()
+        listener = element._event_listeners.get(param.get('handlerId'))
+        if listener:
+            Thread(target=_call_handler, args=(listener[1], event)).start()
 
         return
 
