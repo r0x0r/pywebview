@@ -300,6 +300,7 @@ class Element:
     @_exists
     @_ignore_window_document
     def remove(self) -> None:
+        self._share_listeners()
         self._window.run_js(f'{self._query_command}; element.remove()')
 
         if self._node_id in self._window.dom._elements:
@@ -314,8 +315,8 @@ class Element:
             }})
         """
         )
-        self._event_listeners = {}
-        self._event_handlers = defaultdict(list)
+        self._event_listeners.clear()
+        self._event_handlers.clear()
         self._exists = False
 
     @_exists
@@ -356,8 +357,9 @@ class Element:
         """
         )
 
+        self._share_listeners()
         new_element = Element(self._window, node_id)
-        for event, handlers in self._event_handlers.items():
+        for event, handlers in list(self._event_handlers.items()):
             for handler in handlers:
                 new_element.on(event, handler)
 
@@ -384,10 +386,19 @@ class Element:
         )
         return self
 
+    def _share_listeners(self) -> None:
+        """Use the listeners of the element registered for this node, as get_element returns a
+        new wrapper on every call and the bridge dispatches to the registered one."""
+        owner = self._window.dom._elements.get(self._node_id)
+        if owner is not None and owner is not self:
+            self._event_handlers = owner._event_handlers
+            self._event_listeners = owner._event_listeners
+
     @_exists
     def on(self, event: str, callback: Callable | DOMEventHandler) -> None:
         if self._node_id not in self._window.dom._elements:
             self._window.dom._elements[self._node_id] = self
+        self._share_listeners()
 
         if isinstance(callback, DOMEventHandler):
             prevent_default = 'e.preventDefault();' if callback.prevent_default else ''
@@ -437,6 +448,7 @@ class Element:
 
     @_exists
     def off(self, event: str, callback: Callable) -> None:
+        self._share_listeners()
         # remove the most recently registered listener for this callback
         handler_id = next(
             (

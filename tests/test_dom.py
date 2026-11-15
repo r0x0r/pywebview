@@ -361,6 +361,12 @@ def events_test(window):
     sleep(0.5)
     assert len(child_calls) == 3
 
+    # handlers added through another wrapper of the same node are called as well
+    window.dom.get_element('#child1').events.click += count
+    window.evaluate_js('document.getElementById("child1").click()')
+    sleep(0.5)
+    assert len(child_calls) == 5
+
 
 def special_char_attributes_test(window):
     """Test attributes containing special characters like single quotes and backslashes"""
