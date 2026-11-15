@@ -843,7 +843,7 @@ def js_bridge_call(
 
         if event['type'] == 'drop':
             files = event['dataTransfer'].get('files', [])
-            matched = []
+            matched: list[tuple[str, str | None]] = []
             for file in files:
                 path = [
                     item
