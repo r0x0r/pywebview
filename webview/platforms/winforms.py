@@ -1154,8 +1154,9 @@ def get_screens():
 
     # Bounds are logical before the GUI starts and the process becomes DPI-aware, and in
     # system-DPI pixels after. Dividing every screen by the same system scale gives logical
-    # pixels in both cases and keeps the screens adjacent on mixed-DPI setups.
-    system_scale = win32.get_system_scale()
+    # pixels in both cases and keeps the screens adjacent on mixed-DPI setups. CEF windows
+    # do not scale their coordinates (see BrowserForm._scale), so neither do their screens.
+    system_scale = 1.0 if is_cef else win32.get_system_scale()
 
     for s in WinForms.Screen.AllScreens:
         bounds = s.Bounds
