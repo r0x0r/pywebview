@@ -676,7 +676,7 @@ class TestJsBridgeHardening:
         monkeypatch.setitem(
             _dnd_state, 'paths', [('a.txt', '/left/a.txt'), ('a.txt', '/right/a.txt')]
         )
-        monkeypatch.setitem(_dnd_state, 'dropped', [])
+        monkeypatch.setitem(_dnd_state, 'dropped', None)
         window = webview.create_window('DOM')
         window._js_api_token = 'document-token'
         received = []
@@ -691,7 +691,7 @@ class TestJsBridgeHardening:
         )
         for handler_id in ('first', 'second'):
             files = [{'name': 'a.txt'}, {'name': 'a.txt'}]
-            event = {'type': 'drop', 'dataTransfer': {'files': files}}
+            event = {'type': 'drop', 'timeStamp': 1.5, 'dataTransfer': {'files': files}}
             param = {'event': event, 'nodeId': 'node', 'handlerId': handler_id}
             js_bridge_call(
                 window, 'pywebviewEventHandler', param, 'id', 'document-token', 'https://a.example/'
@@ -700,6 +700,15 @@ class TestJsBridgeHardening:
 
         assert received == [['/left/a.txt', '/right/a.txt']] * 2
         assert _dnd_state['paths'] == []
+
+        # a later drop does not reuse the paths of this one
+        event = {'type': 'drop', 'timeStamp': 9.5, 'dataTransfer': {'files': [{'name': 'a.txt'}]}}
+        param = {'event': event, 'nodeId': 'node', 'handlerId': 'first'}
+        js_bridge_call(
+            window, 'pywebviewEventHandler', param, 'id', 'document-token', 'https://a.example/'
+        )
+        assert handled.acquire(timeout=2)
+        assert received[-1] == [None]
 
     @pytest.mark.parametrize('func_name', ['target', 'pywebviewStateUpdate'])
     def test_api_and_state_calls_need_an_allowed_origin(self, func_name):
