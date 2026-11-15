@@ -710,6 +710,23 @@ class TestJsBridgeHardening:
         assert handled.acquire(timeout=2)
         assert received[-1] == [None]
 
+        # nor does a drop with the same timestamp in another document
+        monkeypatch.setitem(_dnd_state, 'paths', [('a.txt', '/left/a.txt')])
+        event = {'type': 'drop', 'timeStamp': 3.0, 'dataTransfer': {'files': [{'name': 'a.txt'}]}}
+        param = {'event': dict(event), 'nodeId': 'node', 'handlerId': 'first'}
+        js_bridge_call(
+            window, 'pywebviewEventHandler', param, 'id', 'document-token', 'https://a.example/'
+        )
+        assert handled.acquire(timeout=2)
+        window._js_api_token = 'other-document'
+        event['dataTransfer'] = {'files': [{'name': 'a.txt'}]}
+        param = {'event': event, 'nodeId': 'node', 'handlerId': 'first'}
+        js_bridge_call(
+            window, 'pywebviewEventHandler', param, 'id', 'other-document', 'https://a.example/'
+        )
+        assert handled.acquire(timeout=2)
+        assert received[-2:] == [['/left/a.txt'], [None]]
+
     @pytest.mark.parametrize('func_name', ['target', 'pywebviewStateUpdate'])
     def test_api_and_state_calls_need_an_allowed_origin(self, func_name):
         window = webview.create_window('DOM')

@@ -857,14 +857,14 @@ def js_bridge_call(
                     matched.append((file['name'], None))
 
             # Every drop listener sends its own message for the same event, so keep the paths
-            # for the other listeners of this drop, identified by the event's timestamp. They
-            # are kept by position, as files with the same name can come from different
-            # directories.
-            timestamp = event.get('timeStamp')
+            # for the other listeners of this drop, identified by the document's bridge token
+            # and the event's timestamp. They are kept by position, as files with the same name
+            # can come from different directories.
+            drop_id = (token, event.get('timeStamp'))
             if any(path for _, path in matched):
-                _dnd_state['dropped'] = (timestamp, matched)
-            dropped_timestamp, dropped = _dnd_state['dropped'] or (None, [])
-            if timestamp is None or dropped_timestamp != timestamp:
+                _dnd_state['dropped'] = (drop_id, matched)
+            dropped_id, dropped = _dnd_state['dropped'] or (None, [])
+            if None in drop_id or dropped_id != drop_id:
                 dropped = matched
             for index, file in enumerate(files):
                 if index < len(dropped) and dropped[index][0] == file['name'] and dropped[index][1]:
