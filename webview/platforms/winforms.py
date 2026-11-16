@@ -6,7 +6,7 @@ import sys
 import tempfile
 import threading
 import winreg
-from ctypes import windll, wintypes
+from ctypes import windll
 from platform import machine
 from threading import Event, Semaphore
 
@@ -15,6 +15,14 @@ from webview._pythonnet import clr
 from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms import win32
+from webview.platforms.win32 import (
+    DWMWA_COLOR_DEFAULT,
+    DWMWA_COLOR_NONE,
+    dwm_set_window_attribute,
+    enable_window_shadow,
+    remove_caption,
+    set_border_color,
+)
 from webview.screen import Screen
 from webview.util import inject_base_uri, parse_file_type, set_local_tls_cert
 from webview.window import FixPoint
@@ -151,46 +159,6 @@ else:
     )
 
 
-def DwmSetWindowAttribute(hwnd, attr, value, size=4):
-    DwmSetWindowAttribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
-    DwmSetWindowAttribute.argtypes = [
-        wintypes.HWND,
-        wintypes.DWORD,
-        ctypes.c_void_p,
-        wintypes.DWORD,
-    ]
-    return DwmSetWindowAttribute(hwnd, attr, ctypes.byref(ctypes.c_int(value)), size)
-
-
-GWL_STYLE = -16
-WS_CAPTION = 0x00C00000
-WS_THICKFRAME = 0x00040000
-WS_MINIMIZEBOX = 0x00020000
-WS_MAXIMIZEBOX = 0x00010000
-WS_SYSMENU = 0x00080000
-DWMWA_BORDER_COLOR = 34
-DWMWA_COLOR_NONE = 0xFFFFFFFE
-DWMWA_COLOR_DEFAULT = 0xFFFFFFFF
-
-
-def ExtendFrameIntoClientArea(hwnd):
-    class _MARGINS(ctypes.Structure):
-        _fields_ = [
-            ('cxLeftWidth', ctypes.c_int),
-            ('cxRightWidth', ctypes.c_int),
-            ('cyTopHeight', ctypes.c_int),
-            ('cyBottomHeight', ctypes.c_int),
-        ]
-
-    DwmExtendFrameIntoClientArea = ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea
-    m = _MARGINS()
-    m.cxLeftWidth = 1
-    m.cxRightWidth = 1
-    m.cyTopHeight = 1
-    m.cyBottomHeight = 1
-    return DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(m))
-
-
 class BrowserView:
     instances = {}
 
@@ -276,8 +244,7 @@ class BrowserView:
 
             if window.shadow and not window.transparent:
                 # Should do this before set frameless
-                ExtendFrameIntoClientArea(hwnd)
-                DwmSetWindowAttribute(hwnd, 2, 2, 4)
+                enable_window_shadow(hwnd)
 
             if window.frameless:
                 self.apply_frameless_style()
@@ -342,55 +309,22 @@ class BrowserView:
                 self.apply_frameless_style()
 
         def apply_frameless_style(self):
-            """
-            Hide the caption and border while keeping the native resize frame, so that Windows
-            still handles resizing, snapping, maximizing and minimizing. The style is changed on
-            the live handle, as a Python subclass cannot override CreateParams.
-            """
-            if self.is_fullscreen:
-                return
-
-            hwnd = self.Handle.ToInt32()
-            style = windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
-            keep = WS_SYSMENU | WS_MINIMIZEBOX
-            if self.pywebview_window.resizable:
-                keep |= WS_THICKFRAME | WS_MAXIMIZEBOX
-            new_style = (style & ~WS_CAPTION) | keep
-
-            if new_style != style:
-                windll.user32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
-                # SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE
-                windll.user32.SetWindowPos(hwnd, None, 0, 0, 0, 0, 0x0020 | 0x0010 | 0x0004 | 0x3)
-
-            actual = windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
-            if actual & WS_CAPTION or (actual & keep) != keep:
-                logger.warning(
-                    f'Frameless style not applied: requested 0x{new_style & 0xFFFFFFFF:08X}, '
-                    f'got 0x{actual & 0xFFFFFFFF:08X}'
-                )
-
-            self.set_frameless_border()
-
-        def set_frameless_border(self):
-            # DWMWA_BORDER_COLOR needs Windows 11. Elsewhere the border stays visible.
-            result = DwmSetWindowAttribute(
-                self.Handle.ToInt32(), DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE
-            )
-            if result != 0:
-                logger.debug(f'Cannot hide the window border: HRESULT 0x{result & 0xFFFFFFFF:08X}')
+            # Python subclasses cannot override CreateParams, so the live handle is changed
+            if not self.is_fullscreen:
+                remove_caption(self.Handle.ToInt32(), self.pywebview_window.resizable)
 
         def on_system_theme_changed(self, sender, e):
             self.update_title_bar_theme()
             if self.pywebview_window.frameless and not self.is_fullscreen:
-                self.set_frameless_border()
+                set_border_color(self.Handle.ToInt32(), DWMWA_COLOR_NONE)
 
         def update_title_bar_theme(self):
             if self.is_dark_theme():
-                DwmSetWindowAttribute(self.Handle.ToInt32(), 20, 1)
-                DwmSetWindowAttribute(self.Handle.ToInt32(), 38, 2)
+                dwm_set_window_attribute(self.Handle.ToInt32(), 20, 1)
+                dwm_set_window_attribute(self.Handle.ToInt32(), 38, 2)
             else:
-                DwmSetWindowAttribute(self.Handle.ToInt32(), 20, 0)
-                DwmSetWindowAttribute(self.Handle.ToInt32(), 38, 1)
+                dwm_set_window_attribute(self.Handle.ToInt32(), 20, 0)
+                dwm_set_window_attribute(self.Handle.ToInt32(), 38, 1)
 
         def is_dark_theme(self):
             try:
@@ -632,11 +566,9 @@ class BrowserView:
                         64,
                     )
                     # disable window rounding
-                    DwmSetWindowAttribute(self.Handle.ToInt32(), 33, 1)
+                    dwm_set_window_attribute(self.Handle.ToInt32(), 33, 1)
                     # hide window border
-                    DwmSetWindowAttribute(
-                        self.Handle.ToInt32(), DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE
-                    )
+                    set_border_color(self.Handle.ToInt32(), DWMWA_COLOR_NONE)
                 else:
                     self.WindowState = WinForms.FormWindowState.Normal
                     self.FormBorderStyle = self.old_style
@@ -653,15 +585,13 @@ class BrowserView:
                         self.Size = self.old_size
 
                     # enable window rounding
-                    DwmSetWindowAttribute(self.Handle.ToInt32(), 33, 0)
+                    dwm_set_window_attribute(self.Handle.ToInt32(), 33, 0)
 
                     if self.pywebview_window.frameless:
                         # restoring FormBorderStyle brings the caption back
                         self.apply_frameless_style()
                     else:
-                        DwmSetWindowAttribute(
-                            self.Handle.ToInt32(), DWMWA_BORDER_COLOR, DWMWA_COLOR_DEFAULT
-                        )
+                        set_border_color(self.Handle.ToInt32(), DWMWA_COLOR_DEFAULT)
 
             if self.InvokeRequired:
                 self.Invoke(Func[Type](_toggle))
