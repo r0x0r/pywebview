@@ -36,6 +36,7 @@ Treat every exposed function as a public endpoint:
 
 - Validate its arguments. Do not pass page-supplied values unchecked to the file system, a shell, `eval` or SQL.
 - Expose only what the page needs. Keep helpers and internal state in attributes starting with an underscore, or outside the `js_api` object altogether.
+- Never store a `Window` in a public attribute of the `js_api` object: use `self._window`. A public one gives the page every window method, such as `evaluate_js` and `load_url`. Called from a JS API function, `load_url` refuses `file://` URLs, but the rest of the window is still reachable.
 - Show untrusted or remote content in a separate window created without `js_api`.
 
 ## Local files

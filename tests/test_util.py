@@ -793,6 +793,27 @@ class TestJsBridgeHardening:
         window._js_api_token = 'document-token'
         assert not self._send(window, url)
 
+    def test_bridge_cannot_load_files_outside_the_served_folder(self, monkeypatch):
+        url = 'https://trusted.example/app'
+        window = self._document(url, restricted=False)
+        window.events.shown.set()
+        server = SimpleNamespace(address='http://127.0.0.1:1/', common_path='/etc', running=True)
+        start_server = Mock(return_value=(server.address, server.common_path, server))
+        monkeypatch.setattr(webview.http, 'start_server', start_server)
+        window._functions['target'] = window.load_url
+
+        for target in ('file:///etc/passwd', 'FILE:///etc/passwd', '/etc/passwd'):
+            js_bridge_call(window, 'target', [target], 'value-id', 'document-token', url)
+        time.sleep(0.2)
+
+        start_server.assert_not_called()
+        window.gui.load_url.assert_not_called()
+
+        # Python may still load them
+        window.load_url('file:///etc/passwd')
+        window.load_url('/etc/passwd')
+        start_server.assert_called_once()
+
     def test_sender_must_be_the_trusted_document(self):
         window = self._document('https://trusted.example/app', restricted=False)
         assert self._send(window, 'https://trusted.example/other-page')

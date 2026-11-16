@@ -8,7 +8,7 @@ from enum import Flag, auto
 from functools import wraps
 from threading import Lock
 from typing import Any, Concatenate, TypeAlias, TypeVar
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 from uuid import uuid1
 
 from typing_extensions import ParamSpec
@@ -21,9 +21,10 @@ from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
 from webview.state import State
+from webview.util import base_uri as get_base_uri
 from webview.util import (
-    abspath,
     escape_string,
+    in_js_bridge_call,
     is_app,
     is_local_url,
     js_api_auto_origin,
@@ -31,7 +32,6 @@ from webview.util import (
     js_api_origin,
     parse_file_type,
 )
-from webview.util import base_uri as get_base_uri
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -292,7 +292,19 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if is_app(url) or (is_local_url(url) and not self._server_serves(url)):
+        if in_js_bridge_call.get():
+            # A page must not reach files outside the folder the window already serves:
+            # neither directly through file:// nor through a server started for another folder
+            if isinstance(url, str) and urlsplit(url).scheme.lower() == 'file':
+                raise WebViewException('file:// URLs cannot be loaded from Javascript')
+            if is_local_url(url) and (self._server is None or not self._server.running):
+                raise WebViewException(
+                    'Local files cannot be loaded from Javascript in a window without a server'
+                )
+
+        if is_app(url) or (
+            is_local_url(url) and (self._server is None or not self._server.running)
+        ):
             self._stop_server()
             self._server = self._create_server(url)
             self._url_prefix = self._server.address
@@ -667,25 +679,6 @@ class Window:
                 window._js_api_origins.discard(origin)
             if hasattr(server, 'stop'):
                 server.stop()
-
-    def _server_serves(self, url: str) -> bool:
-        """Return True if the window's current server can serve the local URL."""
-        server = self._server
-        if server is None or not server.running:
-            return False
-        if not getattr(server, 'serves_files', True):
-            # A route of the WSGI app, unless the URL is an absolute path to an existing file
-            path = url.split('#')[0].split('?')[0]
-            return not (os.path.isabs(path) and os.path.isfile(path))
-        if not server.root_path:
-            return False
-
-        path = os.path.normcase(abspath(url.split('#')[0].split('?')[0]))
-        root = os.path.normcase(server.root_path)
-        try:
-            return os.path.commonpath([path, root]) == root
-        except ValueError:  # paths on different drives
-            return False
 
     def _resolve_url(self, url: str | Callable[..., Any] | None) -> str | None:
         if is_app(url):

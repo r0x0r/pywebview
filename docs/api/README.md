@@ -742,7 +742,7 @@ Load HTML code. Base URL for resolving relative URLs is set to the directory the
 window.load_url(url)
 ```
 
-Load a new URL.
+Load a new URL. A local file must be inside the folder served by the window's HTTP server; a file outside it gets a 403. Called from a JS API function, `load_url` rejects `file://` URLs, and local files in a window that has no HTTP server.
 
 [Example](/examples/change_url.html)
 

@@ -26,6 +26,7 @@ import webbrowser
 from collections import UserDict
 from collections.abc import Callable
 from concurrent.futures import Future
+from contextvars import ContextVar
 from glob import escape as glob_escape
 from glob import glob
 from http.cookies import SimpleCookie
@@ -99,6 +100,10 @@ def get_event_loop() -> asyncio.AbstractEventLoop:
             _async_state.update(loop=loop, owned=True)
             _start_loop_thread(loop)
         return loop
+
+
+# True while a function called from Javascript runs, including coroutines it awaits
+in_js_bridge_call: ContextVar[bool] = ContextVar('pywebview_in_js_bridge_call', default=False)
 
 
 def run_async(awaitable: Any) -> Any:
@@ -805,6 +810,7 @@ def js_bridge_call(
         return
 
     def _call():
+        bridge_call = in_js_bridge_call.set(True)
         try:
             result = func(*func_params)
             if inspect.isawaitable(result):
@@ -816,6 +822,8 @@ def js_bridge_call(
             error = {'message': str(e), 'name': type(e).__name__, 'stack': traceback.format_exc()}
             result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
             retval = f"{{isError: true, value: '{result}'}}"
+        finally:
+            in_js_bridge_call.reset(bridge_call)
 
         # The page may have navigated while the function ran
         window.run_js(
