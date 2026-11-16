@@ -75,7 +75,7 @@ class Api:
 
     def get_window_info(self):
         w = self._window
-        screens = webview.screens()
+        screens = webview.screens
         return {
             'title': w.title,
             'width': w.width,

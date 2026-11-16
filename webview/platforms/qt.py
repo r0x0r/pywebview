@@ -403,6 +403,7 @@ class BrowserView(QMainWindow):
                 self.screen = QApplication.primaryScreen().geometry()
 
         self._js_results = {}
+        self._is_closed = False
         self._current_url = None
         self._file_name = None
         self._confirmation_dialog_results = {}
@@ -666,6 +667,11 @@ class BrowserView(QMainWindow):
 
         event.accept()
 
+        # stop waiting for any pending JS results
+        self._is_closed = True
+        for res in list(self._js_results.values()):
+            res['semaphore'].release()
+
         del BrowserView.instances[self.uid]
 
         if self.pywebview_window in windows:
@@ -763,7 +769,9 @@ class BrowserView(QMainWindow):
             result = BrowserView._convert_string(result_)
             uuid_ = BrowserView._convert_string(uuid)
 
-            js_result = self._js_results[uuid_]
+            js_result = self._js_results.get(uuid_)
+            if js_result is None:  # the window was closed and the caller has stopped waiting
+                return
 
             if js_result['parse_json'] and result:
                 try:
@@ -931,7 +939,9 @@ class BrowserView(QMainWindow):
         }
 
         self.evaluate_js_trigger.emit(script, unique_id)
-        _wait(result_semaphore)
+        # a result registered after the window closed was not released by closeEvent
+        if not self._is_closed:
+            _wait(result_semaphore)
 
         result = deepcopy(self._js_results[unique_id]['result'])
         del self._js_results[unique_id]

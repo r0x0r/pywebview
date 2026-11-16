@@ -47,4 +47,4 @@ class DOMEventHandler:
         return self.__debounce
 
 
-_dnd_state: dict[str, Any] = {'num_listeners': 0, 'paths': []}
+_dnd_state: dict[str, Any] = {'num_listeners': 0, 'paths': [], 'dropped': None}

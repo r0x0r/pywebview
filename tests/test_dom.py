@@ -3,6 +3,7 @@ from time import sleep
 import pytest
 
 import webview
+from webview.dom import DOMEventHandler
 
 from .util import run_test
 
@@ -303,9 +304,17 @@ def events_test(window):
         assert event['target']['id'] == 'button'
         button_value = True
 
+    def child_click_handler(event):
+        nonlocal child_value
+        child_value = True
+
     button_value = False
+    child_value = False
     button = window.dom.get_element('#button')
     button.events.click += click_handler
+    # a listener registered later on another element must not hijack the first one
+    child1 = window.dom.get_element('#child1')
+    child1.events.click += child_click_handler
 
     window.evaluate_js('document.getElementById("button").click()')
 
@@ -316,13 +325,47 @@ def events_test(window):
             break
         sleep(0.1)
     assert button_value
+    assert not child_value
 
+    child1.events.click -= child_click_handler
     button.events.click -= click_handler
     button_value = False
     window.evaluate_js('document.getElementById("button").click()')
     sleep(0.1)
     assert not button_value
     assert window.evaluate_js('Object.keys(pywebview._eventHandlers).length === 0')
+
+    # each handler fires once per event, and stopImmediatePropagation skips later handlers
+    calls = []
+    first = DOMEventHandler(lambda e: calls.append('first'), stop_immediate_propagation=True)
+    button.events.click += first
+    button.events.click += lambda e: calls.append('second')
+    window.evaluate_js('document.getElementById("button").click()')
+    sleep(0.5)
+    assert calls == ['first']
+
+    # the same callback registered twice is called by both listeners, and off removes one
+    child_calls = []
+
+    def count(e):
+        child_calls.append(1)
+
+    child1.events.click += count
+    child1.events.click += count
+    window.evaluate_js('document.getElementById("child1").click()')
+    sleep(0.5)
+    assert len(child_calls) == 2
+
+    child1.events.click -= count
+    window.evaluate_js('document.getElementById("child1").click()')
+    sleep(0.5)
+    assert len(child_calls) == 3
+
+    # handlers added through another wrapper of the same node are called as well
+    window.dom.get_element('#child1').events.click += count
+    window.evaluate_js('document.getElementById("child1").click()')
+    sleep(0.5)
+    assert len(child_calls) == 5
 
 
 def special_char_attributes_test(window):

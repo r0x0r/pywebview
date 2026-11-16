@@ -843,17 +843,32 @@ def js_bridge_call(
 
         if event['type'] == 'drop':
             files = event['dataTransfer'].get('files', [])
+            matched: list[tuple[str, str | None]] = []
             for file in files:
                 path = [
                     item
                     for item in _dnd_state['paths']
                     if urllib.parse.unquote(item[0]) == file['name']
                 ]
-                if len(path) == 0:
-                    continue
+                if path:
+                    _dnd_state['paths'].remove(path[0])
+                    matched.append((file['name'], urllib.parse.unquote(path[0][1])))
+                else:
+                    matched.append((file['name'], None))
 
-                file['pywebviewFullPath'] = urllib.parse.unquote(path[0][1])
-                _dnd_state['paths'].remove(path[0])
+            # Every drop listener sends its own message for the same event, so keep the paths
+            # for the other listeners of this drop, identified by the document's bridge token
+            # and the event's timestamp. They are kept by position, as files with the same name
+            # can come from different directories.
+            drop_id = (token, event.get('timeStamp'))
+            if any(path for _, path in matched):
+                _dnd_state['dropped'] = (drop_id, matched)
+            dropped_id, dropped = _dnd_state['dropped'] or (None, [])
+            if None in drop_id or dropped_id != drop_id:
+                dropped = matched
+            for index, file in enumerate(files):
+                if index < len(dropped) and dropped[index][0] == file['name'] and dropped[index][1]:
+                    file['pywebviewFullPath'] = dropped[index][1]
 
         def _call_handler(handler, event):
             try:
@@ -863,9 +878,9 @@ def js_bridge_call(
             except Exception:
                 logger.exception('Error in DOM event handler')
 
-        for handler in element._event_handlers.get(event['type'], []):
-            thread = Thread(target=_call_handler, args=(handler, event))
-            thread.start()
+        listener = element._event_listeners.get(param.get('handlerId'))
+        if listener:
+            Thread(target=_call_handler, args=(listener[1], event)).start()
 
         return
 

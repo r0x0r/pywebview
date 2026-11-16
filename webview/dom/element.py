@@ -1,5 +1,6 @@
 import json
 import logging
+import secrets
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from functools import wraps
@@ -70,7 +71,8 @@ class Element:
             }}
         """.replace('\n', '')
         self._event_handlers: defaultdict[str, list[Callable[..., Any]]] = defaultdict(list)
-        self._event_handler_ids: dict[tuple[str, Callable[..., Any]], str] = {}
+        # listener id -> (event, callback); the same callback may be registered more than once
+        self._event_listeners: dict[str, tuple[str, Callable[..., Any]]] = {}
         self._exists = True
         self._classes = ClassList(self)
         self._style = PropsDict(self, DOMPropType.Style)
@@ -298,14 +300,13 @@ class Element:
     @_exists
     @_ignore_window_document
     def remove(self) -> None:
+        self._share_listeners()
         self._window.run_js(f'{self._query_command}; element.remove()')
 
         if self._node_id in self._window.dom._elements:
             self._window.dom._elements.pop(self._node_id)
 
-        handler_ids = ','.join(
-            [f'"{handler_id}"' for handler_id in self._event_handler_ids.values()]
-        )
+        handler_ids = ','.join([f'"{handler_id}"' for handler_id in self._event_listeners])
         self._window.run_js(
             f"""
             var handlerIds = [{handler_ids}];
@@ -314,8 +315,8 @@ class Element:
             }})
         """
         )
-        self._event_handler_ids = {}
-        self._event_handlers = defaultdict(list)
+        self._event_listeners.clear()
+        self._event_handlers.clear()
         self._exists = False
 
     @_exists
@@ -356,8 +357,9 @@ class Element:
         """
         )
 
+        self._share_listeners()
         new_element = Element(self._window, node_id)
-        for event, handlers in self._event_handlers.items():
+        for event, handlers in list(self._event_handlers.items()):
             for handler in handlers:
                 new_element.on(event, handler)
 
@@ -384,14 +386,25 @@ class Element:
         )
         return self
 
+    def _share_listeners(self) -> None:
+        """Use the listeners of the element registered for this node, as get_element returns a
+        new wrapper on every call and the bridge dispatches to the registered one."""
+        owner = self._window.dom._elements.get(self._node_id)
+        if owner is not None and owner is not self:
+            self._event_handlers = owner._event_handlers
+            self._event_listeners = owner._event_listeners
+
     @_exists
     def on(self, event: str, callback: Callable | DOMEventHandler) -> None:
         if self._node_id not in self._window.dom._elements:
             self._window.dom._elements[self._node_id] = self
+        self._share_listeners()
 
         if isinstance(callback, DOMEventHandler):
             prevent_default = 'e.preventDefault();' if callback.prevent_default else ''
             stop_propagation = 'e.stopPropagation();' if callback.stop_propagation else ''
+            if callback.stop_immediate_propagation:
+                stop_propagation += 'e.stopImmediatePropagation();'
             debounce = callback.debounce
             callback = callback.callback
         else:
@@ -399,42 +412,52 @@ class Element:
             stop_propagation = ''
             debounce = 0
 
-        callback_func = f"window.pywebview._jsApiCallback('pywebviewEventHandler', {{ event: e, nodeId: '{self._node_id}' }}, 'eventHandler')"
-        debounced_func = (
-            f'pywebview._debounce(function() {{ {callback_func} }}, {debounce})'
-            if debounce > 0
-            else callback_func
-        )
+        # the bridge dispatches each event only to the handler of the listener that fired
+        handler_id = secrets.token_hex(8)
+        callback_func = f"function(e) {{ window.pywebview._jsApiCallback('pywebviewEventHandler', {{ event: e, nodeId: '{self._node_id}', handlerId: '{handler_id}' }}, 'eventHandler') }}"
+        if debounce > 0:
+            callback_func = f'pywebview._debounce({callback_func}, {debounce})'
 
-        handler_id = self._window.evaluate_js(
+        registered = self._window.evaluate_js(
             f"""
             {self._query_command};
-            var handlerId = null
+            var handlerId = '{handler_id}';
 
             if (element) {{
-                handlerId = Math.random().toString(36).substr(2, 11);
-                pywebview._eventHandlers[handlerId] = function(e) {{
-                    {prevent_default}
-                    {stop_propagation}
-                    {debounced_func};
-                }}
+                // the script runs at page scope, so bind the callback per listener
+                pywebview._eventHandlers[handlerId] = (function(callback) {{
+                    return function(e) {{
+                        {prevent_default}
+                        {stop_propagation}
+                        callback(e);
+                    }}
+                }})({callback_func});
 
                 element.addEventListener('{escape_string(event)}', pywebview._eventHandlers[handlerId]);
             }};
-            handlerId;
+            !!element;
         """
         )
 
-        if handler_id:
+        if registered:
             self._event_handlers[event].append(callback)
-            self._event_handler_ids[(event, callback)] = handler_id
+            self._event_listeners[handler_id] = (event, callback)
 
         if event == 'drop':
             _dnd_state['num_listeners'] += 1
 
     @_exists
     def off(self, event: str, callback: Callable) -> None:
-        handler_id = self._event_handler_ids.get((event, callback))
+        self._share_listeners()
+        # remove the most recently registered listener for this callback
+        handler_id = next(
+            (
+                listener_id
+                for listener_id, listener in reversed(self._event_listeners.items())
+                if listener == (event, callback)
+            ),
+            None,
+        )
 
         if not handler_id:
             return
@@ -450,13 +473,10 @@ class Element:
         """
         )
 
-        del self._event_handler_ids[(event, callback)]
+        del self._event_listeners[handler_id]
+        self._event_handlers[event].remove(callback)
 
-        for handler in self._event_handlers[event]:
-            if handler == callback:
-                self._event_handlers[event].remove(handler)
-
-        if not self._event_handler_ids:
+        if not self._event_listeners:
             self._window.dom._elements.pop(self._node_id, None)
 
         if event == 'drop':

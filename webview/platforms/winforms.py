@@ -49,7 +49,7 @@ if os.environ.get('PYTHONNET_RUNTIME') == 'coreclr':
 import Microsoft.Win32 as Win32  # noqa: E402
 import System.Windows.Forms as WinForms  # noqa: E402
 from System import Array, Environment, Func, Int32, IntPtr, Object, Type, UInt32  # noqa: E402
-from System.Drawing import Color, ColorTranslator, Icon, Point, Size, SizeF  # noqa: E402
+from System.Drawing import Color, ColorTranslator, Icon, Point, Rectangle, Size, SizeF  # noqa: E402
 from System.Reflection import Assembly, BindingFlags  # noqa: E402
 from System.Threading import ApartmentState, Thread, ThreadStart  # noqa: E402
 
@@ -1161,21 +1161,31 @@ def get_screens():
     """Get all screens with coordinates in logical pixels."""
     screens = []
 
-    for s in WinForms.Screen.AllScreens:
-        # Get logical size from Bounds (already DPI-aware scaled due to SetProcessDPIAware)
-        logical_width = s.Bounds.Width
-        logical_height = s.Bounds.Height
+    # Bounds are logical before the GUI starts and the process becomes DPI-aware, and in
+    # system-DPI pixels after. Dividing every screen by the same system scale gives logical
+    # pixels in both cases and keeps the screens adjacent on mixed-DPI setups. CEF windows
+    # do not scale their coordinates (see BrowserForm._scale), so neither do their screens.
+    system_scale = 1.0 if is_cef else win32.get_system_scale()
 
-        scale = win32.get_monitor_scale(s.Bounds.X, s.Bounds.Y, logical_width, logical_height)
+    # WinForms.Screen caches its bounds, which go stale once the process becomes DPI-aware
+    for bounds, work in win32.get_monitors():
+        width = bounds.right - bounds.left
+        height = bounds.bottom - bounds.top
+        scale = win32.get_monitor_scale(bounds.left, bounds.top, width, height)
+        frame = Rectangle(
+            int(work.left / system_scale),
+            int(work.top / system_scale),
+            int((work.right - work.left) / system_scale),
+            int((work.bottom - work.top) / system_scale),
+        )
 
-        # Bounds are already in logical pixels due to SetProcessDPIAware
         screens.append(
             Screen(
-                s.Bounds.X,
-                s.Bounds.Y,
-                logical_width,
-                logical_height,
-                s.WorkingArea,
+                bounds.left / system_scale,
+                bounds.top / system_scale,
+                width / system_scale,
+                height / system_scale,
+                frame,
                 scale,
             )
         )
