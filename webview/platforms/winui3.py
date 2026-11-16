@@ -118,6 +118,7 @@ from webview.platforms.webview2core import WebView2Core
 from webview.platforms.win32 import (
     GWL_EXSTYLE,
     WS_EX_APPWINDOW,
+    WS_EX_NOACTIVATE,
     WS_EX_TOOLWINDOW,
     enable_window_shadow,
     get_monitor_scale,
@@ -1029,8 +1030,8 @@ class BrowserView:
             if not window.focus:
                 windll.user32.SetWindowLongW(
                     self.handle,
-                    -20,
-                    windll.user32.GetWindowLongW(self.handle, -20) | 0x8000000,
+                    GWL_EXSTYLE,
+                    windll.user32.GetWindowLongW(self.handle, GWL_EXSTYLE) | WS_EX_NOACTIVATE,
                 )
 
             self.window.add_activated(self.on_activated)

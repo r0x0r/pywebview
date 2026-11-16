@@ -14,9 +14,12 @@ _WM_LBUTTONUP = 0x0202
 _WM_NCLBUTTONDOWN = 0x00A1
 _HT_CAPTION = 0x0002
 _WH_MOUSE_LL = 14
-_SWP_NOSIZE = 0x0001
-_SWP_NOZORDER = 0x0004
-_SWP_NOACTIVATE = 0x0010
+SWP_NOSIZE = 0x0001
+SWP_NOZORDER = 0x0004
+SWP_NOACTIVATE = 0x0010
+SWP_NOMOVE = 0x0002
+SWP_FRAMECHANGED = 0x0020
+SWP_SHOWWINDOW = 0x0040
 _VK_LBUTTON = 0x01
 _VK_RBUTTON = 0x02
 _VK_MBUTTON = 0x04
@@ -37,9 +40,29 @@ _MK_XBUTTON1 = 0x0020
 _MK_XBUTTON2 = 0x0040
 
 # Window-style constants used by frameless-window setup.
+GWL_STYLE = -16
 GWL_EXSTYLE = -20
+WS_CAPTION = 0x00C00000
+WS_SYSMENU = 0x00080000
+WS_THICKFRAME = 0x00040000
+WS_MINIMIZEBOX = 0x00020000
+WS_MAXIMIZEBOX = 0x00010000
 WS_EX_TOOLWINDOW = 0x00000080
 WS_EX_APPWINDOW = 0x00040000
+WS_EX_NOACTIVATE = 0x08000000
+
+DWMWA_NCRENDERING_POLICY = 2
+DWMNCRP_ENABLED = 2
+DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+DWMWA_WINDOW_CORNER_PREFERENCE = 33
+DWMWCP_DEFAULT = 0
+DWMWCP_DONOTROUND = 1
+DWMWA_BORDER_COLOR = 34
+DWMWA_COLOR_NONE = 0xFFFFFFFE
+DWMWA_COLOR_DEFAULT = 0xFFFFFFFF
+DWMWA_SYSTEMBACKDROP_TYPE = 38
+DWMSBT_NONE = 1
+DWMSBT_MAINWINDOW = 2
 
 
 class _MSLLHOOKSTRUCT(ctypes.Structure):
@@ -263,7 +286,7 @@ def install_mouse_hook(hwnd: int):
                             _drag[4] + pt.y - _drag[2],
                             0,
                             0,
-                            _SWP_NOSIZE | _SWP_NOZORDER | _SWP_NOACTIVATE,
+                            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
                         )
                     # fall through so the OS commits the cursor position
 
@@ -463,7 +486,48 @@ def enable_window_shadow(hwnd: int) -> None:
     trick used to give borderless WinForms windows a shadow.
     """
     extend_frame_into_client_area(hwnd)
-    dwm_set_window_attribute(hwnd, 2, 2, 4)  # DWMWA_NCRENDERING_POLICY = DWMNCRP_ENABLED
+    dwm_set_window_attribute(hwnd, DWMWA_NCRENDERING_POLICY, DWMNCRP_ENABLED)
+
+
+def set_border_color(hwnd: int, color: int) -> int:
+    """Set DWMWA_BORDER_COLOR and return the HRESULT. The attribute needs Windows 11."""
+    return dwm_set_window_attribute(hwnd, DWMWA_BORDER_COLOR, color)
+
+
+def remove_caption(hwnd: int, resizable: bool) -> None:
+    """
+    Remove the caption from a window while keeping the native resize frame and window commands,
+    so that Windows still handles resizing, snapping, maximizing and minimizing. The border is
+    hidden where DWM supports it; elsewhere it stays visible.
+    """
+    style = _user32.GetWindowLongW(hwnd, GWL_STYLE)
+    keep = WS_SYSMENU | WS_MINIMIZEBOX
+    if resizable:
+        keep |= WS_THICKFRAME | WS_MAXIMIZEBOX
+    new_style = (style & ~WS_CAPTION) | keep
+
+    if new_style != style:
+        _user32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
+        _user32.SetWindowPos(
+            hwnd,
+            None,
+            0,
+            0,
+            0,
+            0,
+            SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE,
+        )
+
+    actual = _user32.GetWindowLongW(hwnd, GWL_STYLE)
+    if actual & WS_CAPTION or (actual & keep) != keep:
+        _log.warning(
+            f'Frameless style not applied: requested 0x{new_style & 0xFFFFFFFF:08X}, '
+            f'got 0x{actual & 0xFFFFFFFF:08X}'
+        )
+
+    result = set_border_color(hwnd, DWMWA_COLOR_NONE)
+    if result != 0:
+        _log.debug(f'Cannot hide the window border: HRESULT 0x{result & 0xFFFFFFFF:08X}')
 
 
 class _GUID(ctypes.Structure):
