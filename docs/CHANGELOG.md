@@ -20,6 +20,10 @@
 - `All` The JS bridge only dispatches calls to functions advertised in `window.pywebview.api`. Other attribute paths on the `js_api` object are rejected and logged. Call your API through `window.pywebview.api`; hand-built bridge messages to other attribute paths no longer work. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `All` Bridge messages are authorised by a per-document token that is revoked when the page changes, not by `window.pywebview.token`, which remains the session token for protecting your own REST API. Messages from subframes or without a source URL are rejected, and API results are delivered without calling the page's `eval`. Local and opaque documents, such as `file://` pages and `about:blank` loaded from Python, are matched by exact URL; hostnames and IP literals are normalised, and HTML loaded with a base URI gets that URI's origin. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 
+### 🚀 Improvements
+
+- `Winforms` Frameless windows keep the native resize frame instead of using `FormBorderStyle.None`. Only the caption is removed and, on Windows 11, the border is hidden, so Windows itself handles resizing from every edge and corner, Aero Snap, maximize, minimize and restore. On Windows 10 a thin native border remains visible. Because the native frame is kept, frameless windows have the system shadow even with `shadow=False`.
+
 ### 🐞 Bug fixes
 
 - `All` Page alerts are shown one at a time, after the bridge message has been handled, and further alerts are dropped while one is open. A page could previously stack hundreds of nested modal dialogs. On Qt, alerts are shown as plain text, so a page can no longer render clickable links in them. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
