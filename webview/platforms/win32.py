@@ -14,11 +14,12 @@ _WM_LBUTTONUP = 0x0202
 _WM_NCLBUTTONDOWN = 0x00A1
 _HT_CAPTION = 0x0002
 _WH_MOUSE_LL = 14
-_SWP_NOSIZE = 0x0001
-_SWP_NOZORDER = 0x0004
-_SWP_NOACTIVATE = 0x0010
-_SWP_NOMOVE = 0x0002
-_SWP_FRAMECHANGED = 0x0020
+SWP_NOSIZE = 0x0001
+SWP_NOZORDER = 0x0004
+SWP_NOACTIVATE = 0x0010
+SWP_NOMOVE = 0x0002
+SWP_FRAMECHANGED = 0x0020
+SWP_SHOWWINDOW = 0x0040
 _VK_LBUTTON = 0x01
 _VK_RBUTTON = 0x02
 _VK_MBUTTON = 0x04
@@ -48,10 +49,20 @@ WS_MINIMIZEBOX = 0x00020000
 WS_MAXIMIZEBOX = 0x00010000
 WS_EX_TOOLWINDOW = 0x00000080
 WS_EX_APPWINDOW = 0x00040000
+WS_EX_NOACTIVATE = 0x08000000
 
+DWMWA_NCRENDERING_POLICY = 2
+DWMNCRP_ENABLED = 2
+DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+DWMWA_WINDOW_CORNER_PREFERENCE = 33
+DWMWCP_DEFAULT = 0
+DWMWCP_DONOTROUND = 1
 DWMWA_BORDER_COLOR = 34
 DWMWA_COLOR_NONE = 0xFFFFFFFE
 DWMWA_COLOR_DEFAULT = 0xFFFFFFFF
+DWMWA_SYSTEMBACKDROP_TYPE = 38
+DWMSBT_NONE = 1
+DWMSBT_MAINWINDOW = 2
 
 
 class _MSLLHOOKSTRUCT(ctypes.Structure):
@@ -275,7 +286,7 @@ def install_mouse_hook(hwnd: int):
                             _drag[4] + pt.y - _drag[2],
                             0,
                             0,
-                            _SWP_NOSIZE | _SWP_NOZORDER | _SWP_NOACTIVATE,
+                            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
                         )
                     # fall through so the OS commits the cursor position
 
@@ -475,7 +486,7 @@ def enable_window_shadow(hwnd: int) -> None:
     trick used to give borderless WinForms windows a shadow.
     """
     extend_frame_into_client_area(hwnd)
-    dwm_set_window_attribute(hwnd, 2, 2, 4)  # DWMWA_NCRENDERING_POLICY = DWMNCRP_ENABLED
+    dwm_set_window_attribute(hwnd, DWMWA_NCRENDERING_POLICY, DWMNCRP_ENABLED)
 
 
 def set_border_color(hwnd: int, color: int) -> int:
@@ -504,7 +515,7 @@ def remove_caption(hwnd: int, resizable: bool) -> None:
             0,
             0,
             0,
-            _SWP_FRAMECHANGED | _SWP_NOACTIVATE | _SWP_NOZORDER | _SWP_NOMOVE | _SWP_NOSIZE,
+            SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE,
         )
 
     actual = _user32.GetWindowLongW(hwnd, GWL_STYLE)

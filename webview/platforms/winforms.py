@@ -16,8 +16,20 @@ from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms import win32
 from webview.platforms.win32 import (
+    DWMSBT_MAINWINDOW,
+    DWMSBT_NONE,
     DWMWA_COLOR_DEFAULT,
     DWMWA_COLOR_NONE,
+    DWMWA_SYSTEMBACKDROP_TYPE,
+    DWMWA_USE_IMMERSIVE_DARK_MODE,
+    DWMWA_WINDOW_CORNER_PREFERENCE,
+    DWMWCP_DEFAULT,
+    DWMWCP_DONOTROUND,
+    GWL_EXSTYLE,
+    SWP_NOSIZE,
+    SWP_NOZORDER,
+    SWP_SHOWWINDOW,
+    WS_EX_NOACTIVATE,
     dwm_set_window_attribute,
     enable_window_shadow,
     remove_caption,
@@ -270,8 +282,9 @@ class BrowserView:
             if not window.focus:
                 windll.user32.SetWindowLongW(
                     self.Handle.ToInt32(),
-                    -20,
-                    windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000,
+                    GWL_EXSTYLE,
+                    windll.user32.GetWindowLongW(self.Handle.ToInt32(), GWL_EXSTYLE)
+                    | WS_EX_NOACTIVATE,
                 )
 
             self.HandleCreated += self.on_handle_created
@@ -320,11 +333,15 @@ class BrowserView:
 
         def update_title_bar_theme(self):
             if self.is_dark_theme():
-                dwm_set_window_attribute(self.Handle.ToInt32(), 20, 1)
-                dwm_set_window_attribute(self.Handle.ToInt32(), 38, 2)
+                dwm_set_window_attribute(self.Handle.ToInt32(), DWMWA_USE_IMMERSIVE_DARK_MODE, 1)
+                dwm_set_window_attribute(
+                    self.Handle.ToInt32(), DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_MAINWINDOW
+                )
             else:
-                dwm_set_window_attribute(self.Handle.ToInt32(), 20, 0)
-                dwm_set_window_attribute(self.Handle.ToInt32(), 38, 1)
+                dwm_set_window_attribute(self.Handle.ToInt32(), DWMWA_USE_IMMERSIVE_DARK_MODE, 0)
+                dwm_set_window_attribute(
+                    self.Handle.ToInt32(), DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_NONE
+                )
 
         def is_dark_theme(self):
             try:
@@ -348,8 +365,9 @@ class BrowserView:
             if not self.pywebview_window.focus:
                 windll.user32.SetWindowLongW(
                     self.Handle.ToInt32(),
-                    -20,
-                    windll.user32.GetWindowLongW(self.Handle.ToInt32(), -20) | 0x8000000,
+                    GWL_EXSTYLE,
+                    windll.user32.GetWindowLongW(self.Handle.ToInt32(), GWL_EXSTYLE)
+                    | WS_EX_NOACTIVATE,
                 )
 
         def on_shown(self, *_):
@@ -563,10 +581,12 @@ class BrowserView:
                         self.old_screen.Bounds.Y,
                         self.old_screen.Bounds.Width,
                         self.old_screen.Bounds.Height,
-                        64,
+                        SWP_SHOWWINDOW,
                     )
                     # disable window rounding
-                    dwm_set_window_attribute(self.Handle.ToInt32(), 33, 1)
+                    dwm_set_window_attribute(
+                        self.Handle.ToInt32(), DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND
+                    )
                     # hide window border
                     set_border_color(self.Handle.ToInt32(), DWMWA_COLOR_NONE)
                 else:
@@ -585,7 +605,9 @@ class BrowserView:
                         self.Size = self.old_size
 
                     # enable window rounding
-                    dwm_set_window_attribute(self.Handle.ToInt32(), 33, 0)
+                    dwm_set_window_attribute(
+                        self.Handle.ToInt32(), DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT
+                    )
 
                     if self.pywebview_window.frameless:
                         # restoring FormBorderStyle brings the caption back
@@ -615,15 +637,11 @@ class BrowserView:
                 y = y + self.Height - phys_height
 
             windll.user32.SetWindowPos(
-                self.Handle.ToInt32(), None, x, y, phys_width, phys_height, 64
+                self.Handle.ToInt32(), None, x, y, phys_width, phys_height, SWP_SHOWWINDOW
             )
 
         def move(self, x, y):
             # Input x/y are in logical pixels, need to convert to physical
-            SWP_NOSIZE = 0x0001  # Retains the current size
-            SWP_NOZORDER = 0x0004  # Retains the current Z order
-            SWP_SHOWWINDOW = 0x0040  # Displays the window
-
             scale = self._scale
             if scale != 1:
                 # Convert logical pixels to physical pixels
