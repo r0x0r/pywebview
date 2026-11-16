@@ -1163,7 +1163,12 @@ def get_screens():
         width = bounds.right - bounds.left
         height = bounds.bottom - bounds.top
         scale = win32.get_monitor_scale(bounds.left, bounds.top, width, height)
-        frame = Rectangle(work.left, work.top, work.right - work.left, work.bottom - work.top)
+        frame = Rectangle(
+            int(work.left / system_scale),
+            int(work.top / system_scale),
+            int((work.right - work.left) / system_scale),
+            int((work.bottom - work.top) / system_scale),
+        )
 
         screens.append(
             Screen(

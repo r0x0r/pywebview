@@ -123,6 +123,12 @@ if hasattr(_user32, 'GetThreadDpiAwarenessContext'):
     _user32.GetThreadDpiAwarenessContext.argtypes = []
     _user32.GetAwarenessFromDpiAwarenessContext.restype = ctypes.c_int
     _user32.GetAwarenessFromDpiAwarenessContext.argtypes = [ctypes.c_void_p]
+# Windows 10 1607+
+_SetThreadDpiAwarenessContext = getattr(_user32, 'SetThreadDpiAwarenessContext', None)
+if _SetThreadDpiAwarenessContext is not None:
+    _SetThreadDpiAwarenessContext.restype = ctypes.c_void_p
+    _SetThreadDpiAwarenessContext.argtypes = [ctypes.c_void_p]
+_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = ctypes.c_void_p(-4)
 
 _LowLevelMouseProcType = ctypes.WINFUNCTYPE(
     ctypes.c_ssize_t, ctypes.c_int, wintypes.WPARAM, ctypes.c_void_p
@@ -452,23 +458,11 @@ def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
     """
     Get the DPI scale factor for the monitor containing the given rectangle.
 
-    Uses ``GetDpiForMonitor`` directly, which reports the monitor's real DPI
-    for any DPI-*aware* caller — system-DPI-aware or per-monitor-DPI-aware
-    alike. It only falls back to a fixed 96 (i.e. scale 1.0) for a fully
-    DPI-*unaware* caller, which never applies here since every backend using
-    this helper calls ``SetProcessDPIAware()`` (or an equivalent) first.
-
-    An earlier version of this function assumed ``GetDpiForMonitor`` also
-    returns a fixed 96 for system-DPI-aware callers specifically (not just
-    unaware ones), and used a physical/logical ``GetMonitorInfoW`` ratio as a
-    fallback for that case instead. That assumption was wrong — verified
-    empirically on a real single-monitor, system-DPI-aware, 200%-scaled
-    Windows machine: ``GetDpiForMonitor`` correctly reported the true DPI
-    there, while the ratio fallback gave 1.0 (since a system-DPI-aware
-    process sees the monitor that *defines* system DPI, i.e. the only
-    monitor on a single-monitor setup, at its true, unvirtualized physical
-    bounds — so physical/logical is always 1.0 for exactly that monitor,
-    regardless of its real scale). See [[cross_monitor_dpi_positioning_pattern]].
+    ``GetDpiForMonitor`` returns 96 to DPI-unaware threads and the system DPI to
+    system-DPI-aware ones, whatever the monitor's own DPI. The calling thread is
+    therefore switched to per-monitor DPI awareness for the call, so the monitor's
+    real DPI is returned before the GUI starts and on mixed-DPI setups. This does
+    not change the DPI awareness of the process.
 
     The coordinates can be in either logical or physical pixels —
     ``MonitorFromRect`` with ``MONITOR_DEFAULTTONEAREST`` will resolve to the
@@ -485,9 +479,16 @@ def get_monitor_scale(x: int, y: int, width: int, height: int) -> float:
 
         dpi_x = wintypes.UINT()
         dpi_y = wintypes.UINT()
-        hr = ctypes.windll.shcore.GetDpiForMonitor(
-            hmonitor, 0, ctypes.byref(dpi_x), ctypes.byref(dpi_y)
-        )
+        old_context = None
+        if _SetThreadDpiAwarenessContext is not None:
+            old_context = _SetThreadDpiAwarenessContext(_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
+        try:
+            hr = ctypes.windll.shcore.GetDpiForMonitor(
+                hmonitor, 0, ctypes.byref(dpi_x), ctypes.byref(dpi_y)
+            )
+        finally:
+            if old_context:
+                _SetThreadDpiAwarenessContext(old_context)
         if hr == 0 and dpi_x.value > 0:
             return dpi_x.value / 96.0
 
