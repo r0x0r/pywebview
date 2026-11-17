@@ -52,7 +52,7 @@ _pywebview_ requires Python 3.10 or newer. Install it according to the target pl
 - **Windows:** `pip install pywebview` installs the WinForms dependencies. WebView2 requires the
   Microsoft WebView2 Runtime; use `pip install "pywebview[cef]"` for the optional CEF backend.
   The released WinUI 3 backend can be installed with `pip install "pywebview[winui3]"` and
-  requires the Windows App Runtime.
+  requires Python 3.11 or newer and the Windows App Runtime.
 - **macOS:** `pip install pywebview` installs the PyObjC dependencies for Cocoa. The optional Qt
   backend can be installed with `pip install "pywebview[qt]"`.
 - **Linux/BSD:** choose a backend explicitly with `pip install "pywebview[gtk]"` or

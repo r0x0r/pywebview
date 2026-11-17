@@ -93,9 +93,9 @@ def on_before_show(window):
 
     ``window.native`` is the underlying WinUI 3 ``Window``.
     """
-    from winui3.microsoft.ui.xaml import GridLength, GridUnitType
-    from winui3.microsoft.ui.xaml.controls import Button, Grid, RowDefinition
-    from winui3.microsoft.ui.xaml.markup import XamlReader
+    from winrt.microsoft.ui.xaml import GridLength, GridUnitType
+    from winrt.microsoft.ui.xaml.controls import Button, Grid, RowDefinition
+    from winrt.microsoft.ui.xaml.markup import XamlReader
 
     win = window.native
 

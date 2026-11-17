@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### 💔 BREAKING CHANGES
+
+- `WinUI3` Move to PyWinRT 4 and the Windows App SDK 2.x. The `winui3` extra now needs Python 3.11 or newer and the Windows App Runtime 2.x, at least the release that the installed `winrt-Microsoft.WindowsAppRuntime.Bootstrap` names (2.6.4 for its version 4!2.6.4). A 1.x runtime no longer works. CI reads that release from the bootstrap rather than pinning one.
+
+### 🐞 Bug fixes
+
+- `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
 ### ⚡ Features
 
 - `WinUI3` New WinUI 3 backend hosting WebView2, for platforms where pythonnet is unavailable, such as Windows on ARM64. Install it with `pip install "pywebview[winui3]"` and select it with `gui='winui3'`; it is also used automatically when WinForms cannot be loaded. Requires the Edge WebView2 Runtime and the Windows App Runtime. [#1837](https://github.com/r0x0r/pywebview/pull/1837)

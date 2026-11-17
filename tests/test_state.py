@@ -279,8 +279,11 @@ def event_delete_js_test(window):
 
 
 def event_change_from_js_test(window):
+    # The listener skips its own key: setting result fires change too, which
+    # would set it again, one level deeper each time, flooding Python with
+    # updates that may still be arriving when result is read.
     window.run_js(
-        'pywebview.state.addEventListener("change", event => { pywebview.state.result = `${event.detail.key}: ${event.detail.value}` })'
+        'pywebview.state.addEventListener("change", event => { if (event.detail.key !== "result") pywebview.state.result = `${event.detail.key}: ${event.detail.value}` })'
     )
     window.state.test = 0
     assert window.state.result == 'test: 0'
