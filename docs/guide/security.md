@@ -70,7 +70,8 @@ Some `Window` methods are protected: they are never exposed to Javascript, even 
 - `load_url`, `load_html` and `expose` could load `file://` URLs, or load a site of the page's choice, which would get the JS API as a page loaded from Python.
 - `evaluate_js` and `run_js` run script in whatever document the window shows when they run, which need not be the page that asked: another window, or the next site the page navigates to.
 - `get_cookies` returns the document's cookies, including `HttpOnly` ones that its scripts are not meant to read.
- _pywebview_ logs a warning when it leaves a protected method out of the API, and `window.expose()` raises `webview.SecurityException` if you pass it one.
+
+_pywebview_ logs a warning when it leaves a protected method out of the API, and `window.expose()` raises `webview.SecurityException` if you pass it one.
 
 Your own functions can still call them. To let a page navigate, check what it asks for and then call the protected method:
 
