@@ -370,6 +370,7 @@ class Window:
         """
         return self.gui.clear_cookies(self.uid)
 
+    @_protected
     @_loaded_call
     def get_cookies(self):
         """
@@ -473,6 +474,7 @@ class Window:
         """
         self.gui.move(x, y, self.uid)
 
+    @_protected
     @_before_load_call
     def run_js(self, script: str) -> Any:
         """
@@ -482,6 +484,7 @@ class Window:
         """
         return self.gui.evaluate_js(script, self.uid, False)
 
+    @_protected
     @_pywebview_ready_call
     def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None) -> Any:
         """

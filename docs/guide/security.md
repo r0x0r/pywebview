@@ -61,11 +61,16 @@ Treat every exposed function as a public endpoint:
 
 - **Validate its arguments.** Do not pass page-supplied values unchecked to the file system, a shell, `eval` or SQL.
 - **Expose only what the page needs.** Keep helpers and internal state in attributes starting with an underscore, or outside the `js_api` object altogether.
-- **Keep the `Window` private.** Store it as `self._window`, never `self.window`. A public attribute exposes every method of the window that is not protected, such as `evaluate_js`, `create_file_dialog` and `destroy`.
+- **Keep the `Window` private.** Store it as `self._window`, never `self.window`. A public attribute exposes every method of the window that is not protected, such as `create_file_dialog`, `clear_cookies` and `destroy`.
 
 ### Protected methods
 
-`window.load_url`, `window.load_html` and `window.expose` are protected: they are never exposed to Javascript, even when a `Window` is reachable through `js_api`. Called by a page, they could load `file://` URLs, or load a site of the page's choice, which would get the JS API as a page loaded from Python. _pywebview_ logs a warning when it leaves a protected method out of the API, and `window.expose()` raises `webview.SecurityException` if you pass it one.
+Some `Window` methods are protected: they are never exposed to Javascript, even when a `Window` is reachable through `js_api`. Called by a page, each would let it act beyond its own document:
+
+- `load_url`, `load_html` and `expose` could load `file://` URLs, or load a site of the page's choice, which would get the JS API as a page loaded from Python.
+- `evaluate_js` and `run_js` run script in whatever document the window shows when they run, which need not be the page that asked: another window, or the next site the page navigates to.
+- `get_cookies` returns the document's cookies, including `HttpOnly` ones that its scripts are not meant to read.
+ _pywebview_ logs a warning when it leaves a protected method out of the API, and `window.expose()` raises `webview.SecurityException` if you pass it one.
 
 Your own functions can still call them. To let a page navigate, check what it asks for and then call the protected method:
 
