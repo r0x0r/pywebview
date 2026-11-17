@@ -101,6 +101,18 @@ def get_event_loop() -> asyncio.AbstractEventLoop:
         return loop
 
 
+def is_protected(func: object) -> bool:
+    """Return whether func is a Window method that Javascript must not call directly."""
+    return getattr(func, '_pywebview_protected', False) is True
+
+
+def protected_message(name: str) -> str:
+    return (
+        f'{name} is protected and cannot be exposed to Javascript. '
+        'Call it from a function of your own API instead, after checking its arguments.'
+    )
+
+
 def run_async(awaitable: Any) -> Any:
     """Run an awaitable on the event loop and block the calling thread until it completes."""
 
@@ -562,6 +574,11 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
 
                 attr = getattr(obj, name)
                 if not getattr(attr, '_serializable', True):
+                    continue
+                if is_protected(attr):
+                    if full_name not in window._protected_warned:
+                        window._protected_warned.add(full_name)
+                        logger.warning(protected_message(full_name))
                     continue
 
                 if inspect.ismethod(attr) or inspect.isfunction(attr):

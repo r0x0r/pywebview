@@ -15,7 +15,7 @@ from typing_extensions import ParamSpec
 
 import webview.http as http
 from webview.dom.dom import DOM
-from webview.errors import JavascriptException, WebViewException
+from webview.errors import JavascriptException, SecurityException, WebViewException
 from webview.event import Event, EventContainer, in_blocking_handler
 from webview.localization import original_localization
 from webview.menu import Menu
@@ -26,15 +26,18 @@ from webview.util import (
     escape_string,
     is_app,
     is_local_url,
+    is_protected,
     js_api_auto_origin,
     js_api_guard,
     js_api_origin,
     parse_file_type,
+    protected_message,
 )
 from webview.util import base_uri as get_base_uri
 
 P = ParamSpec('P')
 T = TypeVar('T')
+F = TypeVar('F', bound=Callable[..., Any])
 
 logger = logging.getLogger('pywebview')
 
@@ -66,6 +69,15 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
         return function(self, *args, **kwargs)
 
     return wrapper
+
+
+def _protected(function: F) -> F:
+    """
+    Keep a Window method out of the JS API, so that a page cannot call it directly even if the
+    window is reachable through js_api. Python code, including exposed functions, can still call it.
+    """
+    function._pywebview_protected = True  # type: ignore[attr-defined]
+    return function
 
 
 def _shown_call(function: WindowFunc[P, T]) -> WindowFunc[P, T]:
@@ -173,6 +185,7 @@ class Window:
         self._functions: dict[str, Callable[..., Any]] = {}
         # js_api attribute paths advertised to Javascript on the current page
         self._js_api_names: frozenset[str] = frozenset()
+        self._protected_warned: set[str] = set()  # protected js_api names already logged
         # Origins of the pages loaded from Python, which may use the JS API
         self._js_api_origins: set[str] = set()
         self._js_api_token: str | None = None
@@ -284,6 +297,7 @@ class Window:
         if hasattr(self, 'gui') and self.gui is not None:
             self.gui.set_on_top(self.uid, on_top)
 
+    @_protected
     @_shown_call
     def load_url(self, url: str) -> None:
         """
@@ -292,7 +306,10 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if is_app(url) or (is_local_url(url) and not self._server_serves(url)):
+        if is_local_url(url) and self._serves_files() and self._outside_root(url):
+            raise SecurityException(f'{url} is outside the folder served by the window')
+
+        if is_app(url) or (is_local_url(url) and not self._serves_files()):
             self._stop_server()
             self._server = self._create_server(url)
             self._url_prefix = self._server.address
@@ -308,6 +325,7 @@ class Window:
         logger.debug(f'Loading URL: {self.real_url}')
         self.gui.load_url(self.real_url, self.uid)
 
+    @_protected
     @_shown_call
     def load_html(self, html: str, base_uri: str | None = None) -> None:
         """
@@ -352,6 +370,7 @@ class Window:
         """
         return self.gui.clear_cookies(self.uid)
 
+    @_protected
     @_loaded_call
     def get_cookies(self):
         """
@@ -455,6 +474,7 @@ class Window:
         """
         self.gui.move(x, y, self.uid)
 
+    @_protected
     @_before_load_call
     def run_js(self, script: str) -> Any:
         """
@@ -464,6 +484,7 @@ class Window:
         """
         return self.gui.evaluate_js(script, self.uid, False)
 
+    @_protected
     @_pywebview_ready_call
     def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None) -> Any:
         """
@@ -588,9 +609,13 @@ class Window:
             dialog_type, directory, allow_multiple, save_filename, file_types, self.uid
         )
 
+    @_protected
     def expose(self, *functions: Callable[..., Any]) -> None:
         if not all(map(callable, functions)):
             raise TypeError('Parameter must be a function')
+        protected = [func.__name__ for func in functions if is_protected(func)]
+        if protected:
+            raise SecurityException(protected_message(', '.join(protected)))
 
         func_list: list[dict[str, Any]] = []
 
@@ -668,24 +693,25 @@ class Window:
             if hasattr(server, 'stop'):
                 server.stop()
 
-    def _server_serves(self, url: str) -> bool:
-        """Return True if the window's current server can serve the local URL."""
+    def _serves_files(self) -> bool:
+        """Return whether the window's server maps local paths, either to files or to app routes."""
         server = self._server
         if server is None or not server.running:
             return False
-        if not getattr(server, 'serves_files', True):
-            # A route of the WSGI app, unless the URL is an absolute path to an existing file
-            path = url.split('#')[0].split('?')[0]
-            return not (os.path.isabs(path) and os.path.isfile(path))
-        if not server.root_path:
-            return False
+        # A server started without local files, e.g. by start(http_server=True), has no root
+        return not getattr(server, 'serves_files', True) or bool(getattr(server, 'root_path', None))
 
+    def _outside_root(self, url: str) -> bool:
+        """Return whether a local file URL lies outside the folder the window's server serves."""
+        server = self._server
+        if server is None or not getattr(server, 'serves_files', True) or not server.root_path:
+            return False  # no server, or a route of the WSGI app
         path = os.path.normcase(abspath(url.split('#')[0].split('?')[0]))
         root = os.path.normcase(server.root_path)
         try:
-            return os.path.commonpath([path, root]) == root
+            return os.path.commonpath([path, root]) != root
         except ValueError:  # paths on different drives
-            return False
+            return True
 
     def _resolve_url(self, url: str | Callable[..., Any] | None) -> str | None:
         if is_app(url):

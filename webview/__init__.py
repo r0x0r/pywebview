@@ -23,7 +23,7 @@ from typing import Any
 from uuid import uuid4
 
 import webview.http as http
-from webview.errors import JavascriptException, WebViewException
+from webview.errors import JavascriptException, SecurityException, WebViewException
 from webview.event import Event
 from webview.guilib import GUIType, initialize
 from webview.localization import original_localization
@@ -54,6 +54,7 @@ __all__ = (
     'Event',
     # from util    '
     'JavascriptException',
+    'SecurityException',
     'WebViewException',
     # from screen
     'Screen',

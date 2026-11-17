@@ -667,12 +667,12 @@ Destroy the window.
 window.evaluate_js(script, callback=None)
 ```
 
-Execute Javascript code. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. DOM nodes are serialized using custom serialization. Functions are omitted and circular references are converted to the `[Circular Reference]` string literal. `webview.error.JavascriptException` is thrown if executed codes raises an error. The callback can be an `async` function. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
+Execute Javascript code. `evaluate_js` cannot be called from Javascript, even if the window is reachable through `js_api`. The last evaluated expression is returned. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. DOM nodes are serialized using custom serialization. Functions are omitted and circular references are converted to the `[Circular Reference]` string literal. `webview.error.JavascriptException` is thrown if executed codes raises an error. The callback can be an `async` function. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
 r-strings is a recommended way to load Javascript. Note that the `evaluate_js` employs `eval`, which will fail if `unsafe-eval` CSP is set. Alternatively you may use `window.run_js(code)` that executes Javascript code as is without returning a result.
 
 ### window.expose
 
-Expose a Python function or functions to JS API. Functions are exposed as `window.pywebview.api.func_name`. Functions can be `async`. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
+Expose a Python function or functions to JS API. Functions are exposed as `window.pywebview.api.func_name`. Functions can be `async`. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically. `expose` cannot be called from Javascript, and raises `webview.errors.SecurityException` if passed a protected `Window` method, such as `load_url`. See [Security](/guide/security.md#protected-methods). `SecurityException` is a subclass of `WebViewException`.
 
 [Example](/examples/expose.html)
 
@@ -682,7 +682,7 @@ Expose a Python function or functions to JS API. Functions are exposed as `windo
 window.get_cookies()
 ```
 
-Return a list of all the cookies set for the current website (as [SimpleCookie](https://docs.python.org/3/library/http.cookies.html)).
+Return a list of all the cookies set for the current website (as [SimpleCookie](https://docs.python.org/3/library/http.cookies.html)). `get_cookies` cannot be called from Javascript, even if the window is reachable through `js_api`.
 
 ### window.get_current_url
 
@@ -732,7 +732,7 @@ Load CSS as a string.
 window.load_html(content, base_uri=base_uri())
 ```
 
-Load HTML code. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way.
+Load HTML code. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way. `load_html` cannot be called from Javascript, even if the window is reachable through `js_api`.
 
 [Example](/examples/load_html.html)
 
@@ -742,7 +742,7 @@ Load HTML code. Base URL for resolving relative URLs is set to the directory the
 window.load_url(url)
 ```
 
-Load a new URL.
+Load a new URL. A local file must be inside the folder served by the window's HTTP server; for a file outside it, `load_url` raises `webview.SecurityException`. `load_url` cannot be called from Javascript, even if the window is reachable through `js_api`.
 
 [Example](/examples/change_url.html)
 
@@ -828,7 +828,7 @@ Restore minimized window.
 window.run_js('document.body.style.color = "deepred"')
 ```
 
-Execute Javascript as is without wrapping it in `eval` and helper code. This function does not return a result.
+Execute Javascript as is without wrapping it in `eval` and helper code. This function does not return a result. `run_js` cannot be called from Javascript, even if the window is reachable through `js_api`.
 
 [Example](/examples/run_js.html)
 
