@@ -89,7 +89,7 @@ Calls over the native bridge are authorized by a capability that belongs to a si
 
 ## Local files
 
-When you pass a plain file path, such as `create_window('App', 'index.html')`, _pywebview_ serves the folder containing it through its built-in HTTP server on `127.0.0.1`. With several windows, it serves the folder that contains all their files. A file outside that folder gets a 403, including one loaded later with `load_url`. The server has no authentication, so any program on the computer can read what it serves: keep secrets out of that folder.
+When you pass a plain file path, such as `create_window('App', 'index.html')`, _pywebview_ serves the folder containing it through its built-in HTTP server on `127.0.0.1`. With several windows, it serves the folder that contains all their files. Files outside that folder are not served, and `load_url` raises `webview.SecurityException` for one. The server has no authentication, so any program on the computer can read what it serves: keep secrets out of that folder.
 
 The server listens on the port passed to `webview.start(http_port=...)`. Without one, it uses a random port, or, with `private_mode=False`, the fixed port `DEFAULT_HTTP_PORT`, so that web storage persists between sessions. If that port is taken, it falls back to a random one and logs a warning.
 

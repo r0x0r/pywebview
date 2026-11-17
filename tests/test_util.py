@@ -814,6 +814,14 @@ class TestJsBridgeHardening:
             'window.load_url',
         ]
 
+        # Injection issued a new token and forgot the document; restore an authorized one
+        window._js_api_token = 'document-token'
+        window._js_api_restricted = False
+        window._js_api_document_url = url
+        window._functions['target'] = Mock(return_value='ok')
+        js_bridge_call(window, 'target', [], 'value-id', 'document-token', url)
+        window._functions['target'].assert_called_once()  # the bridge accepts this document
+
         for name in ('load_url', 'load_html', 'expose'):
             assert f'window.{name}' not in window._js_api_names
             js_bridge_call(window, f'window.{name}', ['/'], 'value-id', 'document-token', url)
@@ -823,6 +831,33 @@ class TestJsBridgeHardening:
         window.gui.load_url.assert_not_called()
         window.gui.load_html.assert_not_called()
         assert 'window.evaluate_js' in window._js_api_names
+
+    def test_load_url_stays_within_the_served_folder(self, monkeypatch, tmp_path):
+        root = tmp_path / 'public'
+        window = webview.create_window('Files')
+        window.gui = Mock()
+        window.events.shown.set()
+        window._server = SimpleNamespace(
+            address='http://127.0.0.1:1/', running=True, serves_files=True, root_path=str(root)
+        )
+        window._url_prefix, window._common_path = window._server.address, str(root)
+        start_server = Mock()
+        monkeypatch.setattr(webview.http, 'start_server', start_server)
+
+        window.load_url(str(root / 'page.html'))
+        assert window.gui.load_url.call_args[0][0] == 'http://127.0.0.1:1/page.html'
+
+        with pytest.raises(SecurityException):
+            window.load_url(str(tmp_path / 'private' / 'page.html'))
+        assert window.gui.load_url.call_count == 1
+        start_server.assert_not_called()
+
+        # A server without a root, as start(http_server=True) starts, gets a file server
+        window._server.root_path = None
+        server = SimpleNamespace(address='http://127.0.0.1:2/', common_path=str(tmp_path))
+        start_server.return_value = (server.address, server.common_path, server)
+        window.load_url(str(tmp_path / 'private' / 'page.html'))
+        assert window.gui.load_url.call_args[0][0] == 'http://127.0.0.1:2/private/page.html'
 
     def test_sender_must_be_the_trusted_document(self):
         window = self._document('https://trusted.example/app', restricted=False)

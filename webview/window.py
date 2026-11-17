@@ -21,8 +21,8 @@ from webview.localization import original_localization
 from webview.menu import Menu
 from webview.screen import Screen
 from webview.state import State
-from webview.util import base_uri as get_base_uri
 from webview.util import (
+    abspath,
     escape_string,
     is_app,
     is_local_url,
@@ -33,6 +33,7 @@ from webview.util import (
     parse_file_type,
     protected_message,
 )
+from webview.util import base_uri as get_base_uri
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -305,9 +306,10 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if is_app(url) or (
-            is_local_url(url) and (self._server is None or not self._server.running)
-        ):
+        if is_local_url(url) and self._serves_files() and self._outside_root(url):
+            raise SecurityException(f'{url} is outside the folder served by the window')
+
+        if is_app(url) or (is_local_url(url) and not self._serves_files()):
             self._stop_server()
             self._server = self._create_server(url)
             self._url_prefix = self._server.address
@@ -687,6 +689,26 @@ class Window:
                 window._js_api_origins.discard(origin)
             if hasattr(server, 'stop'):
                 server.stop()
+
+    def _serves_files(self) -> bool:
+        """Return whether the window's server maps local paths, either to files or to app routes."""
+        server = self._server
+        if server is None or not server.running:
+            return False
+        # A server started without local files, e.g. by start(http_server=True), has no root
+        return not getattr(server, 'serves_files', True) or bool(getattr(server, 'root_path', None))
+
+    def _outside_root(self, url: str) -> bool:
+        """Return whether a local file URL lies outside the folder the window's server serves."""
+        server = self._server
+        if server is None or not getattr(server, 'serves_files', True) or not server.root_path:
+            return False  # no server, or a route of the WSGI app
+        path = os.path.normcase(abspath(url.split('#')[0].split('?')[0]))
+        root = os.path.normcase(server.root_path)
+        try:
+            return os.path.commonpath([path, root]) != root
+        except ValueError:  # paths on different drives
+            return True
 
     def _resolve_url(self, url: str | Callable[..., Any] | None) -> str | None:
         if is_app(url):
