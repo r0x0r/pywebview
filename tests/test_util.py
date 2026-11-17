@@ -844,8 +844,11 @@ class TestJsBridgeHardening:
         start_server = Mock()
         monkeypatch.setattr(webview.http, 'start_server', start_server)
 
+        def loaded_url():  # relpath() puts backslashes in the URL on Windows
+            return window.gui.load_url.call_args[0][0].replace('\\', '/')
+
         window.load_url(str(root / 'page.html'))
-        assert window.gui.load_url.call_args[0][0] == 'http://127.0.0.1:1/page.html'
+        assert loaded_url() == 'http://127.0.0.1:1/page.html'
 
         with pytest.raises(SecurityException):
             window.load_url(str(tmp_path / 'private' / 'page.html'))
@@ -857,7 +860,7 @@ class TestJsBridgeHardening:
         server = SimpleNamespace(address='http://127.0.0.1:2/', common_path=str(tmp_path))
         start_server.return_value = (server.address, server.common_path, server)
         window.load_url(str(tmp_path / 'private' / 'page.html'))
-        assert window.gui.load_url.call_args[0][0] == 'http://127.0.0.1:2/private/page.html'
+        assert loaded_url() == 'http://127.0.0.1:2/private/page.html'
 
     def test_sender_must_be_the_trusted_document(self):
         window = self._document('https://trusted.example/app', restricted=False)
