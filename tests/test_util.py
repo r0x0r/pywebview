@@ -9,7 +9,7 @@ import pytest
 
 import webview
 from webview import util
-from webview.errors import WebViewException
+from webview.errors import SecurityException, WebViewException
 from webview.util import (
     _TOKEN,
     create_cookie,
@@ -808,7 +808,7 @@ class TestJsBridgeHardening:
         for name in ('load_url', 'load_html', 'expose'):
             assert f'window.{name}' not in window._js_api_names
             js_bridge_call(window, f'window.{name}', ['/'], 'value-id', 'document-token', url)
-            with pytest.raises(WebViewException):
+            with pytest.raises(SecurityException):
                 window.expose(getattr(window, name))
 
         window.gui.load_url.assert_not_called()

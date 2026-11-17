@@ -672,7 +672,7 @@ r-strings is a recommended way to load Javascript. Note that the `evaluate_js` e
 
 ### window.expose
 
-Expose a Python function or functions to JS API. Functions are exposed as `window.pywebview.api.func_name`. Functions can be `async`. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically. `expose` cannot be called from Javascript, and refuses `load_url`, `load_html` and `expose` themselves.
+Expose a Python function or functions to JS API. Functions are exposed as `window.pywebview.api.func_name`. Functions can be `async`. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically. `expose` cannot be called from Javascript, and raises `webview.errors.SecurityException` if passed `load_url`, `load_html` or `expose`. `SecurityException` is a subclass of `WebViewException`.
 
 [Example](/examples/expose.html)
 

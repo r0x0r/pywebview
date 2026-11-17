@@ -15,7 +15,7 @@ from typing_extensions import ParamSpec
 
 import webview.http as http
 from webview.dom.dom import DOM
-from webview.errors import JavascriptException, WebViewException
+from webview.errors import JavascriptException, SecurityException, WebViewException
 from webview.event import Event, EventContainer, in_blocking_handler
 from webview.localization import original_localization
 from webview.menu import Menu
@@ -608,7 +608,7 @@ class Window:
             raise TypeError('Parameter must be a function')
         protected = [func.__name__ for func in functions if is_protected(func)]
         if protected:
-            raise WebViewException(f'Cannot expose protected functions: {", ".join(protected)}')
+            raise SecurityException(f'Cannot expose protected functions: {", ".join(protected)}')
 
         func_list: list[dict[str, Any]] = []
 

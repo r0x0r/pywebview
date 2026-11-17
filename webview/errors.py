@@ -4,3 +4,7 @@ class WebViewException(Exception):
 
 class JavascriptException(Exception):
     pass
+
+
+class SecurityException(WebViewException):
+    """Raised when an operation is refused for security reasons."""
