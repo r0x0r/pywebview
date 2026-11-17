@@ -39,6 +39,20 @@ Treat every exposed function as a public endpoint:
 - Never store a `Window` in a public attribute of the `js_api` object: use `self._window`. A public one gives the page every window method, such as `evaluate_js` and `load_url`. `load_url`, `load_html` and `expose` are never exposed, but the rest of the window is still reachable.
 - Show untrusted or remote content in a separate window created without `js_api`.
 
+`window.load_url`, `window.load_html` and `window.expose` are protected: they are never exposed to Javascript, even when a `Window` is reachable through `js_api`, and _pywebview_ logs a warning when it leaves one out. Called by a page, they could load `file://` URLs or give the JS API to any site. `window.expose()` raises `webview.SecurityException` if you pass it one of them. To let a page navigate, write a function of your own that checks what the page asks for and then calls the protected method:
+
+```python
+PAGES = {'home': 'index.html', 'settings': 'settings.html'}
+
+
+class Api:
+    def __init__(self):
+        self._window = None
+
+    def load_page(self, page):
+        self._window.load_url(PAGES[page])
+```
+
 ## Local files
 
 `webview.settings['ALLOW_FILE_URLS']` lets scripts on a page loaded from a `file://` URL read any other local file the user can read, for example with `fetch('file:///...')`. It is `False` by default. Enable it only if your application needs it:

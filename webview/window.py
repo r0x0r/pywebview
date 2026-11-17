@@ -31,6 +31,7 @@ from webview.util import (
     js_api_guard,
     js_api_origin,
     parse_file_type,
+    protected_message,
 )
 
 P = ParamSpec('P')
@@ -183,6 +184,7 @@ class Window:
         self._functions: dict[str, Callable[..., Any]] = {}
         # js_api attribute paths advertised to Javascript on the current page
         self._js_api_names: frozenset[str] = frozenset()
+        self._protected_warned: set[str] = set()  # protected js_api names already logged
         # Origins of the pages loaded from Python, which may use the JS API
         self._js_api_origins: set[str] = set()
         self._js_api_token: str | None = None
@@ -608,7 +610,7 @@ class Window:
             raise TypeError('Parameter must be a function')
         protected = [func.__name__ for func in functions if is_protected(func)]
         if protected:
-            raise SecurityException(f'Cannot expose protected functions: {", ".join(protected)}')
+            raise SecurityException(protected_message(', '.join(protected)))
 
         func_list: list[dict[str, Any]] = []
 

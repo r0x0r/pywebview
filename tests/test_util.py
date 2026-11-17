@@ -793,7 +793,7 @@ class TestJsBridgeHardening:
         window._js_api_token = 'document-token'
         assert not self._send(window, url)
 
-    def test_protected_window_methods_are_not_callable_from_js(self, monkeypatch):
+    def test_protected_window_methods_are_not_callable_from_js(self, monkeypatch, caplog):
         url = 'https://trusted.example/app'
         window = self._document(url, restricted=False)
         window.events.shown.set()
@@ -803,7 +803,16 @@ class TestJsBridgeHardening:
             util, 'load_js_files', lambda window, platform, restricted=False: ('', '%(functions)s')
         )
         monkeypatch.setattr(util, 'Thread', lambda target: SimpleNamespace(start=target))
+        caplog.set_level(logging.WARNING, logger='pywebview')
         util.inject_pywebview('test', window)
+        util.inject_pywebview('test', window)
+
+        warnings = [r.getMessage() for r in caplog.records if 'is protected' in r.getMessage()]
+        assert sorted(w.split()[0] for w in warnings) == [
+            'window.expose',
+            'window.load_html',
+            'window.load_url',
+        ]
 
         for name in ('load_url', 'load_html', 'expose'):
             assert f'window.{name}' not in window._js_api_names
