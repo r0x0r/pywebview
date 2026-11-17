@@ -34,6 +34,8 @@
 
 ### 🐞 Bug fixes
 
+- `QT` Fix PyQt6 aborting on page permission requests by passing permission-policy enums instead of integers. Keep the existing policy: allow media capture and deny other requests, including clipboard read/write. Thanks @anishpentyala and @derKuba. [#1894](https://github.com/r0x0r/pywebview/pull/1894)
+
 - `All` Page alerts are shown one at a time, after the bridge message has been handled, and further alerts are dropped while one is open. A page could previously stack hundreds of nested modal dialogs. On Qt, alerts are shown as plain text, so a page can no longer render clickable links in them. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `QT` Fix `webview.start(ssl=True)` on QtWebEngine, which showed a certificate error instead of the page because QtWebEngine does not use the certificate added to `QSslConfiguration`. Only the local HTTP server's own certificate is accepted; when Qt cannot read certificates, as with Qt 5 built against OpenSSL 1.1 on a system with OpenSSL 3, only the local server's own address is. `start(ssl=True)` also no longer fails on such a Qt 5 with an `IndexError`. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `EdgeChromium` `Cocoa` `webview.start(ssl=True)` no longer disables certificate checks for every site. Only the local HTTP server's own certificate is accepted; other sites are validated as usual. `IGNORE_SSL_ERRORS` still accepts any certificate. On Cocoa, authentication challenges other than certificate checks, such as HTTP authentication, now get the system's default handling instead of a certificate credential. [#1878](https://github.com/r0x0r/pywebview/issues/1878)

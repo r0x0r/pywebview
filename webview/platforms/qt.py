@@ -320,9 +320,13 @@ class BrowserView(QMainWindow):
                     QWebPage.Feature.MediaVideoCapture,
                     QWebPage.Feature.MediaAudioVideoCapture,
                 ):
-                    self.setFeaturePermission(url, feature, 1)  # QWebPage.PermissionGrantedByUser
+                    self.setFeaturePermission(
+                        url, feature, QWebPage.PermissionPolicy.PermissionGrantedByUser
+                    )
                 else:
-                    self.setFeaturePermission(url, feature, 2)  # QWebPage.PermissionDeniedByUser
+                    self.setFeaturePermission(
+                        url, feature, QWebPage.PermissionPolicy.PermissionDeniedByUser
+                    )
 
             def _allow_certificate(self, error):
                 """
