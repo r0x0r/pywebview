@@ -8,7 +8,7 @@ from enum import Flag, auto
 from functools import wraps
 from threading import Lock
 from typing import Any, Concatenate, TypeAlias, TypeVar
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin
 from uuid import uuid1
 
 from typing_extensions import ParamSpec
@@ -24,9 +24,9 @@ from webview.state import State
 from webview.util import base_uri as get_base_uri
 from webview.util import (
     escape_string,
-    in_js_bridge_call,
     is_app,
     is_local_url,
+    is_protected,
     js_api_auto_origin,
     js_api_guard,
     js_api_origin,
@@ -35,6 +35,7 @@ from webview.util import (
 
 P = ParamSpec('P')
 T = TypeVar('T')
+F = TypeVar('F', bound=Callable[..., Any])
 
 logger = logging.getLogger('pywebview')
 
@@ -66,6 +67,15 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
         return function(self, *args, **kwargs)
 
     return wrapper
+
+
+def _protected(function: F) -> F:
+    """
+    Keep a Window method out of the JS API, so that a page cannot call it directly even if the
+    window is reachable through js_api. Python code, including exposed functions, can still call it.
+    """
+    function._pywebview_protected = True  # type: ignore[attr-defined]
+    return function
 
 
 def _shown_call(function: WindowFunc[P, T]) -> WindowFunc[P, T]:
@@ -284,6 +294,7 @@ class Window:
         if hasattr(self, 'gui') and self.gui is not None:
             self.gui.set_on_top(self.uid, on_top)
 
+    @_protected
     @_shown_call
     def load_url(self, url: str) -> None:
         """
@@ -292,16 +303,6 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if in_js_bridge_call.get():
-            # A page must not reach files outside the folder the window already serves:
-            # neither directly through file:// nor through a server started for another folder
-            if isinstance(url, str) and urlsplit(url).scheme.lower() == 'file':
-                raise WebViewException('file:// URLs cannot be loaded from Javascript')
-            if is_local_url(url) and (self._server is None or not self._server.running):
-                raise WebViewException(
-                    'Local files cannot be loaded from Javascript in a window without a server'
-                )
-
         if is_app(url) or (
             is_local_url(url) and (self._server is None or not self._server.running)
         ):
@@ -320,6 +321,7 @@ class Window:
         logger.debug(f'Loading URL: {self.real_url}')
         self.gui.load_url(self.real_url, self.uid)
 
+    @_protected
     @_shown_call
     def load_html(self, html: str, base_uri: str | None = None) -> None:
         """
@@ -600,9 +602,13 @@ class Window:
             dialog_type, directory, allow_multiple, save_filename, file_types, self.uid
         )
 
+    @_protected
     def expose(self, *functions: Callable[..., Any]) -> None:
         if not all(map(callable, functions)):
             raise TypeError('Parameter must be a function')
+        protected = [func.__name__ for func in functions if is_protected(func)]
+        if protected:
+            raise WebViewException(f'Cannot expose protected functions: {", ".join(protected)}')
 
         func_list: list[dict[str, Any]] = []
 

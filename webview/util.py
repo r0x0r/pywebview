@@ -26,7 +26,6 @@ import webbrowser
 from collections import UserDict
 from collections.abc import Callable
 from concurrent.futures import Future
-from contextvars import ContextVar
 from glob import escape as glob_escape
 from glob import glob
 from http.cookies import SimpleCookie
@@ -102,8 +101,9 @@ def get_event_loop() -> asyncio.AbstractEventLoop:
         return loop
 
 
-# True while a function called from Javascript runs, including coroutines it awaits
-in_js_bridge_call: ContextVar[bool] = ContextVar('pywebview_in_js_bridge_call', default=False)
+def is_protected(func: object) -> bool:
+    """Return whether func is a Window method that Javascript must not call directly."""
+    return bool(getattr(func, '_pywebview_protected', False))
 
 
 def run_async(awaitable: Any) -> Any:
@@ -566,7 +566,7 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
                     continue
 
                 attr = getattr(obj, name)
-                if not getattr(attr, '_serializable', True):
+                if not getattr(attr, '_serializable', True) or is_protected(attr):
                     continue
 
                 if inspect.ismethod(attr) or inspect.isfunction(attr):
@@ -810,7 +810,6 @@ def js_bridge_call(
         return
 
     def _call():
-        bridge_call = in_js_bridge_call.set(True)
         try:
             result = func(*func_params)
             if inspect.isawaitable(result):
@@ -822,8 +821,6 @@ def js_bridge_call(
             error = {'message': str(e), 'name': type(e).__name__, 'stack': traceback.format_exc()}
             result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
             retval = f"{{isError: true, value: '{result}'}}"
-        finally:
-            in_js_bridge_call.reset(bridge_call)
 
         # The page may have navigated while the function ran
         window.run_js(

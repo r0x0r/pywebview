@@ -793,26 +793,27 @@ class TestJsBridgeHardening:
         window._js_api_token = 'document-token'
         assert not self._send(window, url)
 
-    def test_bridge_cannot_load_files_outside_the_served_folder(self, monkeypatch):
+    def test_protected_window_methods_are_not_callable_from_js(self, monkeypatch):
         url = 'https://trusted.example/app'
         window = self._document(url, restricted=False)
         window.events.shown.set()
-        server = SimpleNamespace(address='http://127.0.0.1:1/', common_path='/etc', running=True)
-        start_server = Mock(return_value=(server.address, server.common_path, server))
-        monkeypatch.setattr(webview.http, 'start_server', start_server)
-        window._functions['target'] = window.load_url
+        window._js_api = SimpleNamespace(window=window)
+        window._functions = {}
+        monkeypatch.setattr(
+            util, 'load_js_files', lambda window, platform, restricted=False: ('', '%(functions)s')
+        )
+        monkeypatch.setattr(util, 'Thread', lambda target: SimpleNamespace(start=target))
+        util.inject_pywebview('test', window)
 
-        for target in ('file:///etc/passwd', 'FILE:///etc/passwd', '/etc/passwd'):
-            js_bridge_call(window, 'target', [target], 'value-id', 'document-token', url)
-        time.sleep(0.2)
+        for name in ('load_url', 'load_html', 'expose'):
+            assert f'window.{name}' not in window._js_api_names
+            js_bridge_call(window, f'window.{name}', ['/'], 'value-id', 'document-token', url)
+            with pytest.raises(WebViewException):
+                window.expose(getattr(window, name))
 
-        start_server.assert_not_called()
         window.gui.load_url.assert_not_called()
-
-        # Python may still load them
-        window.load_url('file:///etc/passwd')
-        window.load_url('/etc/passwd')
-        start_server.assert_called_once()
+        window.gui.load_html.assert_not_called()
+        assert 'window.evaluate_js' in window._js_api_names
 
     def test_sender_must_be_the_trusted_document(self):
         window = self._document('https://trusted.example/app', restricted=False)

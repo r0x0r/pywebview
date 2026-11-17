@@ -672,7 +672,7 @@ r-strings is a recommended way to load Javascript. Note that the `evaluate_js` e
 
 ### window.expose
 
-Expose a Python function or functions to JS API. Functions are exposed as `window.pywebview.api.func_name`. Functions can be `async`. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically.
+Expose a Python function or functions to JS API. Functions are exposed as `window.pywebview.api.func_name`. Functions can be `async`. Coroutines run on the event loop passed to `webview.start(event_loop=...)`, or on one started automatically. `expose` cannot be called from Javascript, and refuses `load_url`, `load_html` and `expose` themselves.
 
 [Example](/examples/expose.html)
 
@@ -732,7 +732,7 @@ Load CSS as a string.
 window.load_html(content, base_uri=base_uri())
 ```
 
-Load HTML code. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way.
+Load HTML code. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way. `load_html` cannot be called from Javascript, even if the window is reachable through `js_api`.
 
 [Example](/examples/load_html.html)
 
@@ -742,7 +742,7 @@ Load HTML code. Base URL for resolving relative URLs is set to the directory the
 window.load_url(url)
 ```
 
-Load a new URL. A local file must be inside the folder served by the window's HTTP server; a file outside it gets a 403. Called from a JS API function, `load_url` rejects `file://` URLs, and local files in a window that has no HTTP server.
+Load a new URL. A local file must be inside the folder served by the window's HTTP server; a file outside it gets a 403. `load_url` cannot be called from Javascript, even if the window is reachable through `js_api`.
 
 [Example](/examples/change_url.html)
 
