@@ -80,15 +80,6 @@ Add your HTML, CSS and Javascript files to the package. For PyInstaller, use `--
 
 ## Platform notes
 
-### Terminal window receives key events on macOS
-
-If you create a virtual environment with the Python that comes with macOS, the _pywebview_ window has problems with keyboard focus and Cmd+Tab. Use another Python installation, for example from [Homebrew](https://brew.sh).
-
-``` bash
-brew install python3
-virtualenv pywebview_env -p python3
-```
-
 ### The window is blank on Windows
 
 - Make sure the [WebView2 runtime](/guide/web_engine.md) is installed.
