@@ -28,7 +28,7 @@ from collections.abc import Callable
 from concurrent.futures import Future
 from glob import escape as glob_escape
 from glob import glob
-from http.cookies import SimpleCookie
+from http.cookies import CookieError, SimpleCookie
 from threading import RLock, Thread
 from typing import TYPE_CHECKING, Any, TypeGuard
 from uuid import uuid4
@@ -385,9 +385,34 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie:
         return cookie
 
     if isinstance(input_, str):
-        return SimpleCookie(input_)
+        cookie = SimpleCookie(input_)
+        # SimpleCookie silently drops a cookie whose raw value has quotes or commas, as in a
+        # JSON value. Parse a single Set-Cookie header by hand in that case.
+        return cookie if cookie else _parse_set_cookie(input_)
 
     raise WebViewException('Unknown input to create_cookie')
+
+
+def _parse_set_cookie(header: str) -> SimpleCookie:
+    """Parse one Set-Cookie header (with or without the 'Set-Cookie:' prefix) leniently."""
+    if header[:11].lower() == 'set-cookie:':
+        header = header[11:]
+    name_value, *attributes = header.split(';')
+    name, _, value = name_value.partition('=')
+    cookie = SimpleCookie()
+    try:
+        cookie[name.strip()] = value.strip()
+    except CookieError:
+        logger.debug(f'Cannot parse cookie {header}')
+        return cookie
+
+    morsel = cookie[name.strip()]
+    for attribute in attributes:
+        key, has_value, attribute_value = attribute.partition('=')
+        key = key.strip().lower()
+        if key in morsel:
+            morsel[key] = attribute_value.strip() if has_value else True
+    return cookie
 
 
 def parse_file_type(file_type: str) -> tuple[str, str]:

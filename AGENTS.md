@@ -211,6 +211,11 @@ release by `.github/workflows/docs.yaml`).
   under **⚡ Features**, **🚀 Improvements** or **🐞 Bug fixes**. `Backend` is `All`, `Cocoa`,
   `GTK`, `QT`, `Winforms`, `EdgeChromium`, `CEF` or `Android`.
 - User-facing strings must go through `webview/localization.py`, not be hardcoded in a backend.
+- **Write in simple technical English.** Use short sentences, plain words and the active voice.
+  Prefer "use" over "utilize" and "start" over "initiate". Say what the code does, without
+  marketing language or filler ("simply", "just", "easily"). Use the same term for the same
+  concept throughout, and define a term the first time it appears. Keep examples minimal and
+  runnable.
 
 ## Commits and pull requests
 
