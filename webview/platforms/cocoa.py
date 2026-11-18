@@ -377,9 +377,13 @@ class BrowserView:
 
             original_headers = dict(request.allHTTPHeaderFields())
             i = BrowserView.get_instance('webview', webview)
+            # The request is reissued with loadRequest_, which loads it in the main frame
+            target_frame = action.targetFrame()
 
             if (
                 len(i.pywebview_window.events.request_sent) > 0
+                and target_frame is not None
+                and target_frame.isMainFrame()
                 and 'X-Handled' not in original_headers
                 and str(url) != 'about:blank'
             ):
@@ -434,11 +438,15 @@ class BrowserView:
         ):
             if navigationResponse.canShowMIMEType():
                 response_ = navigationResponse.response()
-                headers = dict(response_.allHeaderFields())
-                response = Response(
-                    response_.URL().absoluteString(), response_.statusCode(), headers
-                )
-                webview.pywebview_window.events.response_received.set(response)
+                # file: and data: responses are plain NSURLResponses without status or headers
+                if len(webview.pywebview_window.events.response_received) > 0 and (
+                    response_.isKindOfClass_(Foundation.NSHTTPURLResponse)
+                ):
+                    headers = dict(response_.allHeaderFields())
+                    response = Response(
+                        response_.URL().absoluteString(), response_.statusCode(), headers
+                    )
+                    webview.pywebview_window.events.response_received.set(response)
 
                 decisionHandler(WebKit.WKNavigationResponsePolicyAllow)
             elif webview_settings['ALLOW_DOWNLOADS']:
