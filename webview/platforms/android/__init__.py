@@ -622,10 +622,11 @@ def get_cookies(_):
         )
 
     cookies = app.view._cookies
-    cookie_string = evaluate_js('document.cookie', None, False)
 
     try:
         current_url = app.view.get_url()
+        # Unlike document.cookie, CookieManager also returns HttpOnly cookies.
+        cookie_string = CookieManager.getInstance().getCookie(current_url) or ''
 
         # Parse URL once outside the loop to avoid repeated parsing
         parsed_url = urlparse(current_url)

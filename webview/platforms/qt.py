@@ -81,6 +81,9 @@ if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos'
 _app_menu = None
 _main_window_created = Event()
 _main_window_created.clear()
+# QtWebEngine requires a profile to outlive the pages that use it. Profiles are kept here until
+# their last page is destroyed, because Python would otherwise free them with their window.
+_profiles_in_use = set()
 
 # suppress invalid style override error message on some Linux distros
 os.environ['QT_STYLE_OVERRIDE'] = ''
@@ -130,6 +133,7 @@ class BrowserView(QMainWindow):
     window_minimize_trigger = QtCore.Signal()
     window_restore_trigger = QtCore.Signal()
     current_url_trigger = QtCore.Signal()
+    clear_cookies_trigger = QtCore.Signal()
     evaluate_js_trigger = QtCore.Signal(str, str)
     on_top_trigger = QtCore.Signal(bool)
 
@@ -261,7 +265,7 @@ class BrowserView(QMainWindow):
                 return
 
             url = info.requestUrl().toString()
-            method = info.requestMethod()
+            method = info.requestMethod().data().decode('utf-8')
 
             if 'httpHeaders' in dir(info):
                 headers = {
@@ -283,7 +287,8 @@ class BrowserView(QMainWindow):
     # New-window-requests handler for Qt 5.5+ only
     class NavigationHandler(QWebPage):
         def __init__(self, page):
-            super().__init__(page.profile())
+            # A child of the page, so it is deleted together with it
+            super().__init__(page.profile(), page)
             self._parent = page.parent
 
         def acceptNavigationRequest(self, url, type, is_main_frame):
@@ -493,7 +498,13 @@ class BrowserView(QMainWindow):
             cookie_store.cookieRemoved.connect(self.on_cookie_removed)
 
             self.profile.setUrlRequestInterceptor(self.request_interceptor)
-            self.webview.setPage(BrowserView.WebPage(self, profile=self.profile))
+            page = BrowserView.WebPage(self, profile=self.profile)
+            self.webview.setPage(page)
+
+            # The navigation handler is the last page using the profile to be destroyed
+            profile = self.profile
+            _profiles_in_use.add(profile)
+            page.nav_handler.destroyed.connect(lambda: _profiles_in_use.discard(profile))
         elif not is_webengine and not _state['private_mode']:
             logger.warning('qtwebkit does not support private_mode')
 
@@ -530,6 +541,7 @@ class BrowserView(QMainWindow):
         self.window_minimize_trigger.connect(self.on_window_minimize)
         self.window_restore_trigger.connect(self.on_window_restore)
         self.current_url_trigger.connect(self.on_current_url)
+        self.clear_cookies_trigger.connect(self.on_clear_cookies)
         self.evaluate_js_trigger.connect(self.on_evaluate_js)
         self.set_title_trigger.connect(self.on_set_title)
         self.on_top_trigger.connect(self.on_set_on_top)
@@ -537,9 +549,8 @@ class BrowserView(QMainWindow):
         if is_webengine and platform.system() != 'OpenBSD':
             self.channel = QWebChannel(self.webview.page())
             self.webview.page().setWebChannel(self.channel)
-
-        if window.fullscreen:
-            self.toggle_fullscreen()
+            # Register once. Registering again after a page has connected makes Qt warn
+            self.channel.registerObject('external', self.js_bridge)
 
         if window.real_url is not None:
             self.webview.setUrl(QtCore.QUrl(window.real_url))
@@ -707,10 +718,8 @@ class BrowserView(QMainWindow):
             self.pywebview_window.events.restored.set()
 
     def resizeEvent(self, e):
-        if (
-            self.pywebview_window.initial_width != self.width()
-            or self.pywebview_window.initial_height != self.height()
-        ):
+        # The first resize when the window is shown has no valid old size
+        if e.oldSize().isValid() and e.oldSize() != e.size():
             self.pywebview_window.events.resized.set(self.width(), self.height())
 
     def eventFilter(self, object, event):
@@ -833,6 +842,10 @@ class BrowserView(QMainWindow):
 
     def clear_cookies(self):
         self.cookies = {}
+        # The cookie store must only be used from the GUI thread
+        self.clear_cookies_trigger.emit()
+
+    def on_clear_cookies(self):
         self.profile.cookieStore().deleteAllCookies()
 
     def get_current_url(self):
@@ -961,7 +974,6 @@ class BrowserView(QMainWindow):
             if qwebchannel_js.open(QtCore.QFile.ReadOnly):
                 source = bytes(qwebchannel_js.readAll()).decode('utf-8')
                 self.webview.page().runJavaScript(source)
-                self.channel.registerObject('external', self.js_bridge)
                 qwebchannel_js.close()
         else:
             frame = self.webview.page().mainFrame()
@@ -1030,7 +1042,10 @@ def create_window(window):
 
         _main_window_created.set()
 
-        if window.maximized:
+        if window.fullscreen:
+            # Going fullscreen in the constructor is undone by positioning and showing the window
+            browser.on_fullscreen()
+        elif window.maximized:
             browser.showMaximized()
         elif window.minimized:
             # showMinimized does not work on start without showNormal first
@@ -1064,6 +1079,8 @@ def create_window(window):
 
         _create()
         _app.exec_()
+        # Delete pages scheduled with deleteLater() before their profiles are released
+        _app.sendPostedEvents(None, QtCore.QEvent.DeferredDelete)
     else:
         _main_window_created.wait()
         i = list(BrowserView.instances.values())[0]  # arbitrary instance

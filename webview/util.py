@@ -28,7 +28,7 @@ from collections.abc import Callable
 from concurrent.futures import Future
 from glob import escape as glob_escape
 from glob import glob
-from http.cookies import CookieError, SimpleCookie
+from http.cookies import CookieError, Morsel, SimpleCookie
 from threading import RLock, Thread
 from typing import TYPE_CHECKING, Any, TypeGuard
 from uuid import uuid4
@@ -386,32 +386,33 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie:
 
     if isinstance(input_, str):
         cookie = SimpleCookie(input_)
-        # SimpleCookie silently drops a cookie whose raw value has quotes or commas, as in a
-        # JSON value. Parse a single Set-Cookie header by hand in that case.
+        # SimpleCookie returns nothing for a cookie whose raw value has quotes, spaces or
+        # commas, as in a JSON value. Parse the Set-Cookie header value by hand in that case.
         return cookie if cookie else _parse_set_cookie(input_)
 
     raise WebViewException('Unknown input to create_cookie')
 
 
 def _parse_set_cookie(header: str) -> SimpleCookie:
-    """Parse one Set-Cookie header (with or without the 'Set-Cookie:' prefix) leniently."""
-    if header[:11].lower() == 'set-cookie:':
-        header = header[11:]
+    """Leniently parse a single Set-Cookie header value, without the 'Set-Cookie:' prefix."""
     name_value, *attributes = header.split(';')
     name, _, value = name_value.partition('=')
+    name = name.strip()
     cookie = SimpleCookie()
     try:
-        cookie[name.strip()] = value.strip()
+        cookie[name] = value.strip()
     except CookieError:
-        logger.debug(f'Cannot parse cookie {header}')
+        logger.debug(f'Cannot parse cookie {name!r}')
         return cookie
 
-    morsel = cookie[name.strip()]
+    morsel = cookie[name]
     for attribute in attributes:
         key, has_value, attribute_value = attribute.partition('=')
         key = key.strip().lower()
-        if key in morsel:
-            morsel[key] = attribute_value.strip() if has_value else True
+        if key in Morsel._flags:
+            morsel[key] = True
+        elif key in morsel and has_value:
+            morsel[key] = attribute_value.strip()
     return cookie
 
 
