@@ -981,7 +981,19 @@ The event handler can accept a single argument - a `Request` object that contain
 
 * `url` - URL of the request
 * `method` - HTTP method
-* `headers` - HTTP request headers as a dictionary. If you mutate mutate headers, modified headers will be used for the request.
+* `headers` - HTTP request headers as a dictionary. If you mutate headers, modified headers will be used for the request.
+
+Header modification is not applied to every request on every platform. Changes that cannot be applied are ignored without a warning.
+
+| Platform | Requests that use modified headers | Notes |
+| --- | --- | --- |
+| Windows | All | |
+| QT | All | Headers can be added or changed, but not removed |
+| GTK | Main document only | The page load is restarted with the modified headers |
+| macOS | Main frame navigations only | The navigation is restarted with the modified headers and an additional `X-Handled: true` header |
+| Android | `https://` and non-loopback `http://` URLs | Pages served from `localhost`, `127.0.0.1` or `::1`, including the built-in HTTP server, are not affected. Affected requests are resent without their body, so POST data is lost |
+
+Not supported on CEF.
 
 [Example](/examples/headers.html)
 
@@ -995,7 +1007,7 @@ The event handler can accept a single argument - a `Response` object that contai
 * `status_code` - HTTP status code
 * `headers` - HTTP response headers as a dictionary
 
-On QT, the event requires Qt 6.6 or newer and is not emitted for redirects.
+On QT, the event requires Qt 6.6 or newer and is not emitted for redirects. Not supported on CEF.
 
 [Example](/examples/headers.html)
 
