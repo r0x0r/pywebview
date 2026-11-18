@@ -80,8 +80,8 @@ describe('Window function tests', function() {
 
         it('moves and fires moved', async function() {
             const result = await window.pywebview.api.win.move(120, 140);
-            expect(Math.abs(result.position[0] - 120)).to.be.below(20);
-            expect(Math.abs(result.position[1] - 140)).to.be.below(40);
+            expect(Math.abs(result.position[0] - result.target[0])).to.be.below(20);
+            expect(Math.abs(result.position[1] - result.target[1])).to.be.below(40);
         });
 
         it('minimizes and restores', async function() {

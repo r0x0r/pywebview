@@ -35,9 +35,10 @@ def frame_size(window):
     try:
         assert framed.events.loaded.wait(10)
         framed_frame = frame(framed)
-        # Some backends (GTK) report the size without the title bar, so there is nothing to compare
+        # Some backends (GTK) report the size without the title bar, so there is nothing to compare.
+        # Return instead of pytest.skip(), which the run_test worker thread does not handle.
         if framed_frame <= 0:
-            pytest.skip('window size does not include the title bar')
+            return
         assert frame(window) < framed_frame
     finally:
         framed.destroy()

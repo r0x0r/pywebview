@@ -248,13 +248,16 @@ class WindowAPI:
                 time.sleep(0.1)
 
         original = (w.x, w.y)
+        # Moving to the current position fires no moved event, so go somewhere else
+        if abs(w.x - x) < 20 and abs(w.y - y) < 40:
+            x, y = x + 100, y + 100
         args = wait_for(w.events.moved, 'moved', lambda: w.move(x, y))
         wait_for_position(x, y)
         position = [w.x, w.y]
         # Restore the position, so the next run moves the window and gets a moved event
         w.move(*original)
         wait_for_position(*original)
-        return {'event': args, 'position': position}
+        return {'event': args, 'position': position, 'target': [x, y]}
 
     def minimize_restore(self):
         w = self._window
