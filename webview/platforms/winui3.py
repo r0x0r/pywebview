@@ -776,7 +776,10 @@ class WinUI3EdgeChrome(WebView2Core):
     def on_web_resource_response(
         self, sender: CoreWebView2, args: CoreWebView2WebResourceResponseReceivedEventArgs
     ):
-        headers = {kv.key: kv.value for kv in args.response.headers}
+        if not len(self.pywebview_window.events.response_received):
+            return
+
+        headers = [(kv.key, kv.value) for kv in args.response.headers]
         self._fire_response_event(args.request.uri, args.response.status_code, headers)
 
     def on_web_resource_request(

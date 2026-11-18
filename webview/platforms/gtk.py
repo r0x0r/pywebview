@@ -798,7 +798,8 @@ class BrowserView:
 
     def _headers_to_dict(self, headers):
         def _assign(k, v):
-            headers_dict[k] = v
+            # join repeated headers, e.g. Set-Cookie, instead of keeping only the last one
+            headers_dict[k] = f'{headers_dict[k]}, {v}' if k in headers_dict else v
 
         headers_dict = {}
 

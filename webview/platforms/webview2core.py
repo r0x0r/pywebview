@@ -188,8 +188,16 @@ class WebView2Core(ABC):
         missing = {k for lower, (k, _) in original_by_lower.items() if lower not in new_by_lower}
         return extra, missing
 
-    def _fire_response_event(self, uri: str, status_code: int, headers: dict) -> None:
-        response = Response(uri, status_code, headers)
+    def _fire_response_event(self, uri: str, status_code: int, headers) -> None:
+        """
+        Fire response_received from (name, value) header pairs. Values of a repeated
+        header, e.g. Set-Cookie, are joined with a comma instead of overwriting each other.
+        """
+        headers_dict: dict[str, str] = {}
+        for key, value in headers:
+            headers_dict[key] = f'{headers_dict[key]}, {value}' if key in headers_dict else value
+
+        response = Response(uri, status_code, headers_dict)
         self.pywebview_window.events.response_received.set(response)
 
     def _should_allow_download(self) -> bool:
