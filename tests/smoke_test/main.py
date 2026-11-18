@@ -385,25 +385,30 @@ class WindowAPI:
             width=400,
             height=300,
         )
-        if not second.events.loaded.wait(10):
-            raise TimeoutError('Second window did not load')
-
-        title = second.evaluate_js('document.title')
-        api_result = evaluate_promise(second, 'pywebview.api.getInteger()')
-        count = len(webview.windows)
-
-        wait_for(
-            second.events.loaded,
-            'loaded',
-            lambda: second.load_html('<html><head><title>reloaded</title></head></html>'),
-        )
-        reloaded_title = second.evaluate_js('document.title')
-
         closed = threading.Event()
         second.events.closed += closed.set
-        second.destroy()
-        if not closed.wait(5):
-            raise TimeoutError('closed event was not fired for the second window')
+        try:
+            if not second.events.loaded.wait(10):
+                raise TimeoutError('Second window did not load')
+
+            title = second.evaluate_js('document.title')
+            api_result = evaluate_promise(second, 'pywebview.api.getInteger()')
+            count = len(webview.windows)
+
+            wait_for(
+                second.events.loaded,
+                'loaded',
+                lambda: second.load_html('<html><head><title>reloaded</title></head></html>'),
+            )
+            reloaded_title = second.evaluate_js('document.title')
+
+            second.destroy()
+            if not closed.wait(5):
+                raise TimeoutError('closed event was not fired for the second window')
+        finally:
+            # Do not leave the window open when a step fails
+            if not closed.is_set():
+                second.destroy()
 
         return {
             'title': title,
