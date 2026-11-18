@@ -4,39 +4,87 @@ next: /guide/installation
 
 # Introduction
 
-_pywebview_ is a lightweight native webview wrapper that allows to display HTML content in its own native GUI window. It gives you power of web technologies in your desktop application, hiding the fact that GUI is browser based. _pywebview_ ships with a built-in HTTP server, DOM support in Python and window management functionality.
+_pywebview_ is a lightweight library for building desktop applications with web technologies. It opens a native window that shows HTML, CSS and Javascript, and connects the page to your Python code.
 
-_pywebview_ is available for Windows, macOS, Linux (GTK or QT) and Android. It uses native GUI for creating a web component window: WinForms on Windows, Cocoa on macOS and QT or GTK on Linux. If you choose to freeze your application, _pywebview_ does not bundle a heavy GUI toolkit or web renderer with it keeping the executable size small.
+_pywebview_ does not bundle a browser or a GUI toolkit. It uses the web engine that the operating system already provides. This keeps frozen applications small.
 
-_pywebview_ provides advanced features like window manipulation functionality, event system, built-in HTTP server, native GUI elements like application menu and various dialogs, two way communication between Javascript ↔ Python and DOM support.
+| Platform | Window | Web engine |
+| --- | --- | --- |
+| Windows | WinForms or WinUI 3 | WebView2 (Chromium). CEF is optional |
+| macOS | Cocoa | WKWebView |
+| Linux | GTK or Qt | WebKit2 or QtWebEngine |
+| Android | Android | Android WebView |
 
-_pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/).
+See [Web engine](/guide/web_engine.md) for details.
+
+## Features
+
+- Window management: size, position, fullscreen, frameless windows, multiple windows
+- Two-way communication between Javascript and Python
+- Shared state between Python and the page
+- Built-in HTTP server for local files
+- DOM access from Python
+- Events for windows and the DOM
+- Native menus and dialogs
+
+## When to use _pywebview_
+
+_pywebview_ is a good fit when you want a desktop interface made with web technologies, and a small application that is easy to ship. It works with any frontend framework, such as React, Vue or plain HTML.
+
+Because _pywebview_ uses the system web engine, your page runs in different engines on different platforms. Test your application on each platform you support. If you need exactly the same engine everywhere, a toolkit that bundles its own browser is a better choice.
 
 ## Install
-
-Generally, you should be able to install _pywebview_ with
 
 ``` bash
 pip install pywebview
 ```
 
-On some Linux platforms you may need to install additional libraries. Refer to the [installation](/guide/installation.html) page for details.
+On some Linux systems you need to install extra libraries. See [Installation](/guide/installation.md).
 
 ## Hello world
 
 ``` python
 import webview
+
 webview.create_window('Hello world', 'https://pywebview.flowrl.com/')
 webview.start()
 ```
 
-## Develop
+`create_window` creates a window. `start` runs the GUI loop and blocks until the last window is closed.
 
-Read the basic concepts in [Usage](/guide/usage), dive into [application architecture](/guide/architecture). Explore [API](/api) and check various [examples](/examples)
+To call Python from the page, expose a class with `js_api`.
+
+``` python
+import webview
+
+class Api:
+    def hello(self, name):
+        return f'Hello, {name}!'
+
+html = """
+<button onclick="pywebview.api.hello('world').then(alert)">Say hello</button>
+"""
+
+webview.create_window('Hello API', html=html, js_api=Api())
+webview.start()
+```
+
+## Where to go next
+
+- [Usage](/guide/usage.md): basic concepts
+- [Application architecture](/guide/architecture.md): how to structure your application
+- [JS–Python bridge](/guide/interdomain.md): call Python from Javascript and the other way round
+- [Security](/guide/security.md): what the page can access
+- [Debugging](/guide/debugging.md) and [FAQ](/guide/faq.md): when something goes wrong
+- [API reference](/api) and [examples](/examples)
 
 ## Contribute
 
-Checkout out [contributing guidelines](/contributing/)
+Read the [contributing guidelines](/contributing/).
+
+## About
+
+_pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/) and is open source.
 
 ## Support the project
 

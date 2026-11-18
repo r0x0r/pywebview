@@ -1,34 +1,104 @@
 # FAQ
 
-## How do I set an application icon?
+## General
 
-For Android, the application icon is set via a bundler and embedded in the resulting executable. On other platforms, you can set the application icon using `webview.start(icon=icon_path)`, but on GTK you might need some additional adjustments to get your icon visible depending on the window manager you use.
+### Why does _pywebview_ have to run on the main thread?
 
-## Why does _pywebview_ have to run on a main thread?
+The underlying GUI libraries require it. Cocoa has a strict rule that the GUI loop runs on the main thread, and other libraries work best that way. Run your own logic in a function passed to `webview.start(func)`, in a thread, or in a separate process with the `multiprocessing` module.
 
-This is dictated by underlying GUI libraries _pywebview_ is based on. GUI loop is expected to run on a main thread. While some libraries allow the GUI to be run in a sub-thread, Cocoa has a strict requirement regarding the main thread. If you need your logic to run in a main thread, use the `multiprocessing` module.
+### `webview` has no attribute `create_window`
 
-## webview has no attribute create_window
+You probably have a file named `webview.py` in the current directory. It hides the _pywebview_ package. Rename the file.
 
-You probably have a file named `webview.py` in the current directory. Renaming it to something else should fix the problem.
+### Which renderer is used?
 
-## What renderer is used?
+Set the `PYWEBVIEW_LOG=debug` environment variable and run your program. The first lines of the output show the renderer. See [Web engine](/guide/web_engine.md) for the available renderers and how to change them.
 
-Set `PYWEBVIEW_LOG=debug` environment variable before running your programme. It will display used renderer in the first line of the program output. See available renderers [here](/guide/web_engine.html)
+### Can I use a frontend framework like React or Vue?
 
-## Terminal window receives key events on macOS
+Yes. Build your frontend and load the output with a relative path, for example `webview.create_window('App', 'dist/index.html')`. During development, you can pass the URL of the dev server, for example `http://localhost:5173`. Pages from a local address that you load from Python can use the JS API. See [Application architecture](/guide/architecture.md).
 
-If you create a virtual environment using the built-in Python on macOS, a pywebview window will have issues with keyboard focus and Cmd+Tab. The issue can be avoided by using other Python installation. For example to use Python 3 via [Homebrew](https://brew.sh).
+### How do I open a new window from a JS API function?
+
+Call `webview.create_window()` inside the function. Windows created after the GUI loop has started are shown immediately.
+
+## Windows and appearance
+
+### How do I set an application icon?
+
+On Android, set the icon in your bundler. On other platforms, use `webview.start(icon=icon_path)`. On GTK you may need extra steps, depending on the window manager. When you freeze your application, set the icon in the packager as well.
+
+### How do I make a transparent or frameless window?
+
+Use `transparent=True` and `frameless=True` in `create_window`. `transparent` makes the web view transparent, and `frameless` removes the window border. Also set a transparent background in your CSS. See the [API reference](/api/#webview-create-window) for platform support.
+
+### How do I move a frameless window?
+
+By default, you can drag a frameless window from any point (`easy_drag=True`). To drag only from certain elements, add the `pywebview-drag-region` class to them. See [drag area](/api.html#drag-area).
+
+### How do I stop users from zooming or selecting text?
+
+Zooming and text selection are off by default. Use the `zoomable` and `text_select` options of `create_window` to turn them on. For per-element control of text selection, use the CSS `user-select` property.
+
+## Links, files and storage
+
+### Links open in my browser instead of the window
+
+Links with `target="_blank"` open in the default browser. To open them in the window, set `webview.settings['OPEN_EXTERNAL_LINKS_IN_BROWSER'] = False`. Regular links navigate inside the window.
+
+Remember that pages you navigate to do not get the JS API unless you allow their origin. See [Security](/guide/security.md#which-pages-get-the-js-api).
+
+### File downloads do not work
+
+Downloads are disabled by default. Set `webview.settings['ALLOW_DOWNLOADS'] = True` before `webview.start()`. See the [downloads example](/examples/downloads.html).
+
+### My local images, styles or scripts do not load
+
+If you use `html=` or `load_html()`, relative paths may not resolve, because there is no server behind the page. Load your files with a relative path in `create_window('index.html')` so that the built-in server serves them, or inline the assets. See [Application architecture](/guide/architecture.md#html-string).
+
+### Cookies and `localStorage` are lost when the application closes
+
+_pywebview_ runs in private mode by default. Start it with `webview.start(private_mode=False)` to keep data. See [Keeping data between runs](/guide/architecture.md#keeping-data-between-runs). On macOS, you cannot change the storage location with `storage_path`.
+
+### How do I get the full path of dropped files?
+
+Use `DOMEventHandler` and subscribe to the `drop` event. The path is in `event['dataTransfer']['files'][0]['pywebviewFullPath']`. See the [drag and drop example](/examples/drag_drop.html).
+
+## JS API
+
+### `pywebview.api` is undefined
+
+The page tried to use the API before it was ready. Wait for the `pywebviewready` event. See [JS–Python bridge](/guide/interdomain.md#wait-for-pywebviewready).
+
+### My JS API function is not found
+
+Methods whose names start with an underscore are not exposed. Check the name, and check that the page is allowed to use the JS API. See [JS–Python bridge](/guide/interdomain.md#js-api).
+
+## Packaging
+
+### Frozen executable is too big
+
+The packager picks up dependencies that you do not use. For example, if `PyQt` is installed but you use WinForms on Windows, PyInstaller bundles both. Use the `--exclude-module` option to leave modules out. See [Freezing](/guide/freezing.md).
+
+### My frozen application shows a console window
+
+With PyInstaller, build with the `--noconsole` (or `--windowed`) option.
+
+### Files are missing in the frozen application
+
+Add your HTML, CSS and Javascript files to the package. For PyInstaller, use `--add-data`. Load them with relative paths. See [Freezing](/guide/freezing.md).
+
+## Platform notes
+
+### Terminal window receives key events on macOS
+
+If you create a virtual environment with the Python that comes with macOS, the _pywebview_ window has problems with keyboard focus and Cmd+Tab. Use another Python installation, for example from [Homebrew](https://brew.sh).
 
 ``` bash
 brew install python3
 virtualenv pywebview_env -p python3
 ```
 
-## Frozen executable is too big
+### The window is blank on Windows
 
-Big executable size is caused by packager picking up unnecessary dependencies. For example if you have `PyQt` installed but use Winforms on Windows, Pyinstaller will bundle both frameworks. To avoid this in Pyinstaller, use `--exclude-module` option to explicitly omit the module.
-
-## How do I get a full path of dropped files in `drop` event?
-
-Use `DOMEventHandler` and subscribe to the `drop` event. The file path information is stored in `event['dataTransfer']['files'][0]['pywebviewFullPath']` property of the event object. See [this example](/examples/drag_drop.html) for details.
+Make sure the [WebView2 runtime](/guide/web_engine.md) is installed. Run the application with `PYWEBVIEW_LOG=debug` and read the log. See [Debugging](/guide/debugging.md#common-problems).
