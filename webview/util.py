@@ -28,7 +28,7 @@ from collections.abc import Callable
 from concurrent.futures import Future
 from glob import escape as glob_escape
 from glob import glob
-from http.cookies import CookieError, Morsel, SimpleCookie
+from http.cookies import CookieError, SimpleCookie
 from threading import RLock, Thread
 from typing import TYPE_CHECKING, Any, TypeGuard
 from uuid import uuid4
@@ -417,7 +417,8 @@ def _parse_set_cookie(header: str) -> SimpleCookie:
     for attribute in attributes:
         key, has_value, attribute_value = attribute.partition('=')
         key = key.strip().lower()
-        if key in Morsel._flags:
+        # Flag attributes have no value. Partitioned is known to Python 3.14 and newer only
+        if key in ('secure', 'httponly', 'partitioned') and key in morsel:
             morsel[key] = True
         elif key in morsel and has_value:
             morsel[key] = attribute_value.strip()
