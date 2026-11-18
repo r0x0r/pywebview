@@ -1007,7 +1007,7 @@ The event handler can accept a single argument - a `Response` object that contai
 * `status_code` - HTTP status code
 * `headers` - HTTP response headers as a dictionary
 
-On QT, the event requires Qt 6.6 or newer and is not emitted for redirects. Not supported on CEF.
+On QT, the event requires Qt 6.6 or newer, is not emitted for redirects, and its headers do not include `Set-Cookie`. Not supported on CEF.
 
 [Example](/examples/headers.html)
 
