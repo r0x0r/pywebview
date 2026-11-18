@@ -263,14 +263,15 @@ class TestCreateCookie:
         output = cookie['foo'].output()
         assert expiry in output
 
-    def test_set_cookie_header_with_json_value(self):
+    @pytest.mark.parametrize('value', ['{"key":"value","number":42}', '{ "key": "value" }'])
+    def test_set_cookie_header_with_json_value(self, value):
         """GTK and Qt pass Set-Cookie header values, and SimpleCookie alone drops a JSON value."""
         header = (
-            'testJson={"key":"value","number":42}; '
+            f'testJson={value}; '
             'expires=Thu, 18 Dec 2133 12:00:00 GMT; Path=/; HttpOnly; Max-Age; Secure=false'
         )
         morsel = create_cookie(header)['testJson']
-        assert morsel.value == '{"key":"value","number":42}'
+        assert morsel.value == value
         assert morsel['expires'] == 'Thu, 18 Dec 2133 12:00:00 GMT'
         assert morsel['path'] == '/'
         assert morsel['httponly'] is True

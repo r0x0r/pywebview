@@ -386,9 +386,13 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie:
 
     if isinstance(input_, str):
         cookie = SimpleCookie(input_)
-        # SimpleCookie returns nothing for a cookie whose raw value has quotes, spaces or
+        # SimpleCookie drops or cuts short a cookie whose raw value has quotes, spaces or
         # commas, as in a JSON value. Parse the Set-Cookie header value by hand in that case.
-        return cookie if cookie else _parse_set_cookie(input_)
+        name, _, value = input_.split(';', 1)[0].partition('=')
+        morsel = cookie.get(name.strip())
+        if morsel is not None and morsel.coded_value == value.strip():
+            return cookie
+        return _parse_set_cookie(input_)
 
     raise WebViewException('Unknown input to create_cookie')
 

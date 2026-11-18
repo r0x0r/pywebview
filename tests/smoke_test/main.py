@@ -239,13 +239,22 @@ class WindowAPI:
 
     def move(self, x, y):
         w = self._window
+
+        def wait_for_position(x, y):
+            # GTK fires moved on every configure, which can come before the move itself lands
+            for _ in range(20):
+                if abs(w.x - x) < 20 and abs(w.y - y) < 40:
+                    break
+                time.sleep(0.1)
+
+        original = (w.x, w.y)
         args = wait_for(w.events.moved, 'moved', lambda: w.move(x, y))
-        # GTK fires moved on every configure, which can come before the move itself lands
-        for _ in range(20):
-            if abs(w.x - x) < 20 and abs(w.y - y) < 40:
-                break
-            time.sleep(0.1)
-        return {'event': args, 'position': [w.x, w.y]}
+        wait_for_position(x, y)
+        position = [w.x, w.y]
+        # Restore the position, so the next run moves the window and gets a moved event
+        w.move(*original)
+        wait_for_position(*original)
+        return {'event': args, 'position': position}
 
     def minimize_restore(self):
         w = self._window
