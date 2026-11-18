@@ -12,7 +12,7 @@ A _pywebview_ application has two parts:
 When you design an application, you make two choices:
 
 1. **How the page is loaded.** From a URL, from local files through an HTTP server, or as an HTML string.
-2. **How the page talks to Python.** Through the built-in JS API bridge, or through HTTP requests to your own web server.
+2. **How the page and Python talk to each other.** Through the built-in JS API bridge and shared state, or through HTTP requests to your own web server. See [Communication between Python and the page](#communication-between-python-and-the-page).
 
 The table below shows the common combinations.
 
@@ -56,7 +56,7 @@ window.addEventListener('pywebviewready', async () => {
 - You can also expose single functions with `window.expose(func)`, at any time.
 - Use `webview.start(ssl=True)` to serve the files over HTTPS.
 
-Read more in [JS–Python bridge](/guide/interdomain.md) and [HTTP server](/guide/usage.md#http-server). See the [todos example](https://github.com/r0x0r/pywebview/tree/master/examples/todos) for a complete application.
+Read more in [HTTP server](/guide/usage.md#http-server). See the [todos example](https://github.com/r0x0r/pywebview/tree/master/examples/todos) for a complete application.
 
 ## Your own web framework
 
@@ -116,3 +116,48 @@ The page talks to its own server as in a normal browser. Be careful when you com
 ## Local files with `file://`
 
 You can load local files directly with an absolute path or a `file://` URL. This is not recommended. Web engines restrict `file://` pages in different ways, and absolute paths make the application harder to distribute. Use the [built-in server](#built-in-server-and-js-api) instead.
+
+## Communication between Python and the page
+
+Without your own web server, there are three ways for Python and the page to work together. You can use them together.
+
+**JS API.** Javascript calls Python functions, as shown [above](#built-in-server-and-js-api). Use it for actions and for requests that return a result.
+
+**Shared state.** `window.state` in Python and `window.pywebview.state` in Javascript are kept in sync. When one side sets a property, the other side gets the new value. Both sides can listen for changes. Use it for data that both sides read, such as settings or progress.
+
+``` python
+window.state.progress = 50  # Javascript now sees pywebview.state.progress === 50
+```
+
+Only top-level properties are synchronized. If you change a nested object, assign it again to send the change. See the [state example](https://github.com/r0x0r/pywebview/blob/master/examples/state.py).
+
+**Driving the page from Python.** You can build and update the user interface from Python with little or no Javascript. `window.evaluate_js()` runs Javascript and returns the result. The DOM API (`window.dom`) creates, finds and changes elements, and lets you handle DOM events in Python.
+
+``` python
+button = window.dom.create_element('<button>Click me</button>')
+button.events.click += lambda event: print('Clicked')
+```
+
+Read more in [JS–Python bridge](/guide/interdomain.md) and [DOM support](/guide/dom.md).
+
+## Multiple windows
+
+Each window loads its content independently, so windows in one application can use different approaches.
+
+- Windows that load local files share one built-in HTTP server.
+- A window that loads a WSGI application gets its own server.
+- Use `create_window(http_port=...)` to choose the port of a window's server, and `server_args` to pass options to it.
+
+See the [multiple servers example](https://github.com/r0x0r/pywebview/blob/master/examples/multiple_servers.py).
+
+## Keeping data between runs
+
+By default, _pywebview_ runs in private mode. Cookies, `localStorage` and other web storage are deleted when the application closes.
+
+To keep them, use `webview.start(private_mode=False)`. Web storage belongs to an origin, which includes the port. For this reason, the built-in server then uses a fixed port (`webview.settings['DEFAULT_HTTP_PORT']`) instead of a random one. If that port is in use, it falls back to a random port, and stored data is not available in that run. To choose the port yourself, use `webview.start(http_port=...)`.
+
+For important data, such as user files or settings, it is more reliable to save the data from Python, for example as a file in the user's application data directory.
+
+## Packaging
+
+Keep your web files in a directory next to your application and load them with a relative path. This works the same way after you package the application. Absolute paths break when the application is installed on another computer. See [Freezing](/guide/freezing.md).
