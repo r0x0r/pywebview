@@ -388,10 +388,14 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie:
         cookie = SimpleCookie(input_)
         # SimpleCookie drops or cuts short a cookie whose raw value has quotes, spaces or
         # commas, as in a JSON value. Parse the Set-Cookie header value by hand in that case.
-        name, _, value = input_.split(';', 1)[0].partition('=')
+        name, _, rest = input_.partition('=')
         morsel = cookie.get(name.strip())
-        if morsel is not None and morsel.coded_value == value.strip():
-            return cookie
+        if morsel is not None:
+            # The whole value was parsed if the end or the next attribute follows it
+            rest = rest.lstrip()
+            if rest.startswith(morsel.coded_value):
+                if rest[len(morsel.coded_value) :].lstrip()[:1] in ('', ';'):
+                    return cookie
         return _parse_set_cookie(input_)
 
     raise WebViewException('Unknown input to create_cookie')

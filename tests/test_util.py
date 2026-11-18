@@ -278,6 +278,11 @@ class TestCreateCookie:
         assert morsel['secure'] is True
         assert morsel['max-age'] == ''
 
+    def test_quoted_value_with_semicolon(self):
+        morsel = create_cookie('prefs="a;b"; Path=/')['prefs']
+        assert morsel.value == 'a;b'
+        assert morsel['path'] == '/'
+
     def test_zero_expiry_is_not_treated_as_session_cookie(self):
         """0 (the Unix epoch) is a real, falsy expiry - must not be normalized away like None."""
         cookie = create_cookie(self._cookie_dict(0))
