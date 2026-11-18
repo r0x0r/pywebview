@@ -147,6 +147,20 @@ INSPECTION_HTML = """
         gap: 10px;
         align-content: start;
     }
+    .see-through {
+        flex: none;
+        height: 96px;
+        margin: 0 16px 16px;
+        border: 2px dashed rgba(229, 231, 235, 0.8);
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        padding: 0 16px;
+        text-align: center;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 3px black;
+    }
     code { font-family: ui-monospace, Menlo, Consolas, monospace; color: #9ca3af; }
     button, input { font: inherit; }
     button {
@@ -170,7 +184,7 @@ INSPECTION_HTML = """
         <div><code>easy_drag</code> On a frameless window, drag from anywhere.</div>
         <div><code>background_color</code> Shows outside this panel and while the page loads.</div>
         <div><code>transparent</code> <code>vibrancy</code> The desktop shows, or is blurred,
-            behind this panel.</div>
+            in the dashed area below and dimly behind this panel.</div>
         <div><code>zoomable</code> Pinch or Ctrl + scroll to zoom this text.</div>
         <div><code>draggable</code> Try dragging the image and the link:
             <img width="24" height="24" style="vertical-align: middle" alt="logo"
@@ -181,6 +195,8 @@ INSPECTION_HTML = """
         <div><code>shadow</code> Look for the shadow and rounded corners around the window.</div>
         <div><code>options</code> <span id="options"></span></div>
     </main>
+    <div class="see-through">No background here: with transparent, the desktop shows through.
+        Otherwise this is background_color.</div>
 </body>
 </html>
 """
@@ -222,8 +238,14 @@ class WindowAPI:
         return {'event': args, 'size': [self._window.width, self._window.height]}
 
     def move(self, x, y):
-        args = wait_for(self._window.events.moved, 'moved', lambda: self._window.move(x, y))
-        return {'event': args, 'position': [self._window.x, self._window.y]}
+        w = self._window
+        args = wait_for(w.events.moved, 'moved', lambda: w.move(x, y))
+        # GTK fires moved on every configure, which can come before the move itself lands
+        for _ in range(20):
+            if abs(w.x - x) < 20 and abs(w.y - y) < 40:
+                break
+            time.sleep(0.1)
+        return {'event': args, 'position': [w.x, w.y]}
 
     def minimize_restore(self):
         w = self._window
@@ -307,7 +329,7 @@ class WindowAPI:
         """Open a window with create_window options and leave it open for manual inspection."""
         api = InspectionAPI()
         window = webview.create_window(
-            'Window options', html=INSPECTION_HTML, js_api=api, width=520, height=440, **options
+            'Window options', html=INSPECTION_HTML, js_api=api, width=520, height=580, **options
         )
         api._window = window
 

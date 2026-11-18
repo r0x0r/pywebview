@@ -260,6 +260,19 @@
             color: var(--muted);
             font-size: 13px;
         }
+        .link {
+            margin-left: auto;
+            padding: 0;
+            border: none;
+            background: none;
+            color: var(--run);
+            font: inherit;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
         .spin {
             animation: spin 0.9s linear infinite;
         }
@@ -492,12 +505,6 @@
             color: var(--muted);
         }
 
-        .footer {
-            padding: 4px 20px 28px;
-            text-align: center;
-            font-size: 12px;
-            color: var(--faint);
-        }
         kbd {
             font: 11px var(--mono);
             padding: 1px 5px;
@@ -507,18 +514,25 @@
             background: var(--surface);
         }
 
-        /* Details panel */
+        /* Details panel. Kept laid out while closed, so opening it after a long test run only
+           has to slide it in instead of laying out the whole report first. */
         .modal {
-            display: none;
+            display: flex;
             position: fixed;
             inset: 0;
-            background: rgba(10, 12, 16, 0.45);
+            background: transparent;
             z-index: 1000;
             justify-content: flex-end;
             align-items: flex-end;
+            visibility: hidden;
+            pointer-events: none;
+            transition: background 0.22s ease, visibility 0s linear 0.22s;
         }
         .modal.open {
-            display: flex;
+            background: rgba(10, 12, 16, 0.45);
+            visibility: visible;
+            pointer-events: auto;
+            transition: background 0.22s ease;
         }
         .modal-content {
             background: var(--surface);
@@ -528,7 +542,11 @@
             flex-direction: column;
             border-radius: 16px 16px 0 0;
             border: 1px solid var(--border);
-            animation: slideUp 0.22s ease;
+            transform: translateY(100%);
+            transition: transform 0.22s ease;
+        }
+        .modal.open .modal-content {
+            transform: none;
         }
         @media (min-width: 760px) {
             .modal {
@@ -538,16 +556,8 @@
                 width: 560px;
                 max-height: none;
                 border-radius: 0;
-                animation-name: slideIn;
+                transform: translateX(100%);
             }
-        }
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
         }
         .modal-header {
             display: flex;
@@ -559,38 +569,10 @@
             font-size: 15px;
             font-weight: 600;
         }
-        .tabs {
-            display: inline-flex;
-            gap: 2px;
-            padding: 3px;
-            margin: 12px 16px;
-            background: var(--surface-2);
-            border-radius: 9px;
-            align-self: flex-start;
-        }
-        .tab-btn {
-            padding: 5px 14px;
-            border: none;
-            border-radius: 7px;
-            background: none;
-            cursor: pointer;
-            font-size: 13px;
-            color: var(--muted);
-        }
-        .tab-btn.active {
-            background: var(--surface);
-            color: var(--text);
-            font-weight: 500;
-            box-shadow: var(--shadow);
-        }
-        .tab-content {
-            display: none;
-            padding: 0 16px 16px;
+        .drawer-body {
+            padding: 12px 16px 16px;
             overflow-y: auto;
             flex: 1;
-        }
-        .tab-content.active {
-            display: block;
         }
         .eval-input {
             width: 100%;
@@ -687,11 +669,11 @@
         </div>
         <span class="chip" id="renderer">—</span>
         <div class="spacer"></div>
-        <button class="chip status-pill" id="statusPill" onclick="openDevTools('test-runner')">
+        <button class="chip status-pill" id="statusPill" onclick="openDrawer('reportDrawer')">
             <span class="indicator"></span>
             <span id="statusText">running…</span>
         </button>
-        <button class="btn ghost" onclick="openDevTools('evaluator')" title="Python console">
+        <button class="btn ghost" onclick="openDrawer('consoleDrawer')" title="Python console">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor"
                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 4.5L6.5 8 3 11.5M8.5 12h4.5"/>
@@ -724,6 +706,7 @@
                         <div class="summary-title" id="summaryTitle">Waiting for pywebview…</div>
                         <div class="summary-meta" id="summaryMeta">the bridge is being injected</div>
                     </div>
+                    <button class="link" onclick="openDrawer('reportDrawer')">View report</button>
                 </div>
                 <div class="progress" id="progress"></div>
                 <div class="stats">
@@ -806,28 +789,27 @@
         </section>
     </main>
 
-    <div class="footer">Click the status pill for the full report</div>
-
-    <div id="devModal" class="modal" onclick="if (event.target === this) toggleDevTools()">
+    <div id="reportDrawer" class="modal" onclick="if (event.target === this) closeDrawer(this.id)">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Details</h2>
+                <h2>Report</h2>
                 <div class="spacer"></div>
-                <button class="btn ghost" onclick="toggleDevTools()" aria-label="Close">✕</button>
+                <button class="btn ghost" onclick="closeDrawer('reportDrawer')" aria-label="Close">✕</button>
             </div>
-
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="test-runner"
-                        onclick="switchTab(event, 'test-runner')">Report</button>
-                <button class="tab-btn" data-tab="evaluator"
-                        onclick="switchTab(event, 'evaluator')">Python console</button>
-            </div>
-
-            <div id="test-runner" class="tab-content active">
+            <div class="drawer-body">
                 <div id="mocha"></div>
             </div>
+        </div>
+    </div>
 
-            <div id="evaluator" class="tab-content">
+    <div id="consoleDrawer" class="modal" onclick="if (event.target === this) closeDrawer(this.id)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Python console</h2>
+                <div class="spacer"></div>
+                <button class="btn ghost" onclick="closeDrawer('consoleDrawer')" aria-label="Close">✕</button>
+            </div>
+            <div class="drawer-body">
                 <p class="hint">Evaluate a Python expression in <code>main.py</code>.
                     <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to run.</p>
                 <textarea id="python-code" class="eval-input" rows="6"
@@ -1027,29 +1009,16 @@ ${escapeHtml(format(value))}</div>`;
             document.getElementById('python-code').value = '';
         }
 
-        function toggleDevTools() {
-            document.getElementById('devModal').classList.toggle('open');
-        }
-
-        function openDevTools(tabName) {
-            document.getElementById('devModal').classList.add('open');
-            if (tabName) {
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.tab === tabName);
-                });
-                document.querySelectorAll('.tab-content').forEach(content => {
-                    content.classList.toggle('active', content.id === tabName);
-                });
-                if (tabName === 'evaluator') document.getElementById('python-code').focus();
+        function openDrawer(id) {
+            document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open'));
+            document.getElementById(id).classList.add('open');
+            if (id === 'consoleDrawer') {
+                document.getElementById('python-code').focus({preventScroll: true});
             }
         }
 
-        function switchTab(event, tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-            event.target.classList.add('active');
-            document.getElementById(tabName).classList.add('active');
+        function closeDrawer(id) {
+            document.getElementById(id).classList.remove('open');
         }
 
         // Runs the Mocha suite once and reflects the results on the summary and status pill
@@ -1145,7 +1114,7 @@ ${escapeHtml(format(value))}</div>`;
         });
 
         document.addEventListener('keydown', event => {
-            if (event.key === 'Escape') document.getElementById('devModal').classList.remove('open');
+            if (event.key === 'Escape') document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open'));
         });
 
         setSummary('', 'Waiting for pywebview…', 'the bridge is being injected');

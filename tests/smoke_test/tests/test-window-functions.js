@@ -134,6 +134,8 @@ describe('Window function tests', function() {
         it('frameless removes the title bar', function() {
             const plainChrome = plain.size[1] - plain.inner[1];
             const customChrome = custom.size[1] - custom.inner[1];
+            // Some backends (GTK) report the size without the title bar, so there is nothing to compare
+            if (plainChrome <= 0) this.skip();
             expect(customChrome).to.be.below(plainChrome);
         });
 
