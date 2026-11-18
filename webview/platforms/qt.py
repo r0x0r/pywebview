@@ -18,7 +18,7 @@ from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMen
 from webview import FileDialog, _state, settings, windows
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
-from webview.models import Request
+from webview.models import Request, Response
 from webview.screen import Screen
 from webview.util import (
     DEFAULT_HTML,
@@ -521,6 +521,9 @@ class BrowserView(QMainWindow):
         self.webview.page().loadFinished.connect(self.on_load_finished)
         self.webview.page().loadStarted.connect(window._invalidate_js_api)
 
+        if is_webengine and hasattr(self.webview.page(), 'loadingChanged'):
+            self.webview.page().loadingChanged.connect(self.on_loading_changed)
+
         if settings['ALLOW_DOWNLOADS']:
             self.webview.page().profile().downloadRequested.connect(self.on_download_requested)
 
@@ -814,6 +817,26 @@ class BrowserView(QMainWindow):
             return_result(result)
         except Exception as e:
             logger.exception(e)
+
+    def on_loading_changed(self, info):
+        if (
+            len(self.pywebview_window.events.response_received) == 0
+            or info.status() == info.LoadStatus.LoadStartedStatus
+            or info.errorDomain() != info.ErrorDomain.HttpStatusCodeDomain
+            or not info.url().scheme().startswith('http')
+            or not hasattr(info, 'responseHeaders')
+        ):
+            return
+
+        headers = {}
+        for key, value in info.responseHeaders().items():
+            values = value if isinstance(value, list) else [value]
+            headers[key.data().decode('utf-8')] = ', '.join(
+                v.data().decode('utf-8') for v in values
+            )
+
+        response = Response(info.url().toString(), info.errorCode(), headers)
+        self.pywebview_window.events.response_received.set(response)
 
     def on_load_finished(self):
         if self.uid == 'web_inspector':

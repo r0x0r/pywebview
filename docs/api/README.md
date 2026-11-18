@@ -988,14 +988,14 @@ The event handler can accept a single argument - a `Request` object that contain
 
 ### window.events.response_received
 
-The event is fired when a HTTP response is received. The event is emitted for every HTTP response, except on macOS where it is emitted only for the main document.
+The event is fired when a HTTP response is received. The event is emitted for every HTTP response, except on macOS and QT where it is emitted only for the main document.
 The event handler can accept a single argument - a `Response` object that contains the following properties:
 
 * `url` - URL of the response
 * `status_code` - HTTP status code
 * `headers` - HTTP response headers as a dictionary
 
-Not supported on QT.
+On QT, the event requires Qt 6.6 or newer and is not emitted for redirects.
 
 [Example](/examples/headers.html)
 

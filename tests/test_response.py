@@ -1,4 +1,3 @@
-import os
 from threading import Lock
 
 import pytest
@@ -21,10 +20,6 @@ def window():
     return window
 
 
-@pytest.mark.skipif(
-    os.environ.get('PYWEBVIEW_GUI') == 'qt',
-    reason='response_received is not supported on QT',
-)
 def test_response_event(window):
     def on_response(response):
         if 'favicon' in response.url:

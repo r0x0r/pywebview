@@ -11,6 +11,8 @@
 - `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
 ### ⚡ Features
 
+- `QT` Support the `response_received` event for the main document on Qt 6.6 or newer.
+
 - `WinUI3` New WinUI 3 backend hosting WebView2, for platforms where pythonnet is unavailable, such as Windows on ARM64. Install it with `pip install "pywebview[winui3]"` and select it with `gui='winui3'`; it is also used automatically when WinForms cannot be loaded. Requires the Edge WebView2 Runtime and the Windows App Runtime. [#1837](https://github.com/r0x0r/pywebview/pull/1837)
 - `All` Support `async` JS API functions, exposed functions, event handlers, the `webview.start` function, state change handlers, menu actions and `evaluate_js` callbacks. Handlers of blocking window events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) must be regular functions; subscribing an `async` one raises `TypeError`. Coroutines run on an asyncio event loop passed via the new `event_loop` parameter of `webview.start`, or on one started automatically when the first coroutine needs to run. [#1886](https://github.com/r0x0r/pywebview/pull/1886)
 - `All` Include aligned logging levels in console log messages and allow customizing their format through `webview.settings['LOG_FORMAT']`. [#1889](https://github.com/r0x0r/pywebview/pull/1889)
