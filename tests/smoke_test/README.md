@@ -42,14 +42,10 @@ What is covered:
   pixel ratio, orientation, connectivity, timezone)
 - **Status pill** — Shows live pass/fail test counts; tap it to open full test details
 
-### Developer Tools (status pill / tests tab)
-- **Tests Tab** — Full Mocha/Chai test suite results
-  - Covers all API bridge, state, lifecycle, and cookie tests
-  - Runs automatically as soon as the app loads — no manual trigger needed
-  - "Re-run all tests" reloads the app to start a fresh test run
-- **Console Tab** — Execute Python code directly from JavaScript
-  - Use Ctrl+Enter to run code quickly
-  - Test arbitrary Python expressions
+### Drawers
+- **Report** — Full Mocha test results. Open it with *View report* in the Checks card or by
+  tapping the status pill. *Re-run* reloads the app to start a fresh test run.
+- **Python console** — Runs Python code in the app. Press Ctrl+Enter to run it.
 
 ## Architecture
 
@@ -61,8 +57,9 @@ What is covered:
   - Implements `get_window_info()` for the Window info card
   - Implements `eval()` for Python code evaluation
   - Sets up window state and event handlers
-- `index.html` — Modern app UI with developer tools modal
+- `index.html` — App UI with the report and Python console drawers
 - `index.js` — Test utilities (state reset, cookie helpers, wait functions)
+- `buildozer.spec` — Android build configuration
 - `manifest.xml` — Android manifest configuration
 - `tests/` — Mocha test suites
   - `test-js-api.js` — API bridge tests
@@ -80,7 +77,14 @@ What is covered:
 3. Tap "Refresh" on either card to re-fetch the latest values
 
 ### For Testing on Android
-The app can be packaged with the `buildozer.spec` in this directory. The supported,
+Build and install the app with the `buildozer.spec` in this directory:
+
+```bash
+cd tests/smoke_test
+buildozer android debug deploy run
+```
+
+The `webview` symlink makes buildozer package the pywebview sources from this checkout. The supported,
 CI-verified way to exercise pywebview on a device is the pytest suite in
 `tests/android/`, which runs the same assertions as every other platform. Use this app as a
 desktop reference and for interactive debugging of the bridge.
