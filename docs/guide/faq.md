@@ -14,14 +14,6 @@ You probably have a file named `webview.py` in the current directory. It hides t
 
 Set the `PYWEBVIEW_LOG=debug` environment variable and run your program. The first lines of the output show the renderer. See [Web engine](/guide/web_engine.md) for the available renderers and how to change them.
 
-### Can I use a frontend framework like React or Vue?
-
-Yes. Build your frontend and load the output with a relative path, for example `webview.create_window('App', 'dist/index.html')`. During development, you can pass the URL of the dev server, for example `http://localhost:5173`. Pages from a local address that you load from Python can use the JS API. See [Application architecture](/guide/architecture.md).
-
-### How do I open a new window from a JS API function?
-
-Call `webview.create_window()` inside the function. Windows created after the GUI loop has started are shown immediately.
-
 ## Windows and appearance
 
 ### How do I set an application icon?
@@ -30,15 +22,17 @@ On Android, set the icon in your bundler. On other platforms, use `webview.start
 
 ### How do I make a transparent or frameless window?
 
-Use `transparent=True` and `frameless=True` in `create_window`. `transparent` makes the web view transparent, and `frameless` removes the window border. Also set a transparent background in your CSS. See the [API reference](/api/#webview-create-window) for platform support.
+Use `transparent=True` and `frameless=True` in `create_window`. `transparent` makes the web view transparent, and `frameless` removes the window border. Also use a transparent background in your CSS.
+
+Transparency is not reliable on Windows. It is a known open problem and works on some machines only. See the [API reference](/api/#webview-create-window) for platform support.
 
 ### How do I move a frameless window?
 
 By default, you can drag a frameless window from any point (`easy_drag=True`). To drag only from certain elements, add the `pywebview-drag-region` class to them. See [drag area](/api.html#drag-area).
 
-### How do I stop users from zooming or selecting text?
+### How do I prevent pinch zoom?
 
-Zooming and text selection are off by default. Use the `zoomable` and `text_select` options of `create_window` to turn them on. For per-element control of text selection, use the CSS `user-select` property.
+Zooming is off by default. If a page still zooms, check that you did not set `zoomable=True` in `create_window`.
 
 ## Links, files and storage
 
@@ -48,10 +42,6 @@ Links with `target="_blank"` open in the default browser. To open them in the wi
 
 Remember that pages you navigate to do not get the JS API unless you allow their origin. See [Security](/guide/security.md#which-pages-get-the-js-api).
 
-### File downloads do not work
-
-Downloads are disabled by default. Set `webview.settings['ALLOW_DOWNLOADS'] = True` before `webview.start()`. See the [downloads example](/examples/downloads.html).
-
 ### My local images, styles or scripts do not load
 
 If you use `html=` or `load_html()`, relative paths may not resolve, because there is no server behind the page. Load your files with a relative path in `create_window('index.html')` so that the built-in server serves them, or inline the assets. See [Application architecture](/guide/architecture.md#html-string).
@@ -59,6 +49,10 @@ If you use `html=` or `load_html()`, relative paths may not resolve, because the
 ### Cookies and `localStorage` are lost when the application closes
 
 _pywebview_ runs in private mode by default. Start it with `webview.start(private_mode=False)` to keep data. See [Keeping data between runs](/guide/architecture.md#keeping-data-between-runs). On macOS, you cannot change the storage location with `storage_path`.
+
+### How do I read cookies?
+
+Use `window.get_cookies()`. Cookie support differs between platforms. To keep cookies between runs, start with `private_mode=False`.
 
 ### How do I get the full path of dropped files?
 
@@ -69,10 +63,6 @@ Use `DOMEventHandler` and subscribe to the `drop` event. The path is in `event['
 ### `pywebview.api` is undefined
 
 The page tried to use the API before it was ready. Wait for the `pywebviewready` event. See [JS–Python bridge](/guide/interdomain.md#wait-for-pywebviewready).
-
-### My JS API function is not found
-
-Methods whose names start with an underscore are not exposed. Check the name, and check that the page is allowed to use the JS API. See [JS–Python bridge](/guide/interdomain.md#js-api).
 
 ## Packaging
 
@@ -101,4 +91,6 @@ virtualenv pywebview_env -p python3
 
 ### The window is blank on Windows
 
-Make sure the [WebView2 runtime](/guide/web_engine.md) is installed. Run the application with `PYWEBVIEW_LOG=debug` and read the log. See [Debugging](/guide/debugging.md#common-problems).
+- Make sure the [WebView2 runtime](/guide/web_engine.md) is installed.
+- Make sure the user can write to the storage directory. Pass another directory with `webview.start(storage_path=...)` if needed.
+- Run the application with `PYWEBVIEW_LOG=debug` and read the log. See [Debugging](/guide/debugging.md#common-problems).
