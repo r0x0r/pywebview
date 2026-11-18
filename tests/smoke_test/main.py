@@ -230,12 +230,12 @@ class WindowAPI:
         return new_title
 
     def resize(self, width, height):
-        args = wait_for(
-            self._window.events.resized,
-            'resized',
-            lambda: self._window.resize(width, height),
-        )
-        return {'event': args, 'size': [self._window.width, self._window.height]}
+        w = self._window
+        # Resizing to the current size fires no resized event, so use another size
+        if abs(w.width - width) < 20 and abs(w.height - height) < 20:
+            width, height = width + 100, height + 100
+        args = wait_for(w.events.resized, 'resized', lambda: w.resize(width, height))
+        return {'event': args, 'size': [w.width, w.height], 'target': [width, height]}
 
     def move(self, x, y):
         w = self._window

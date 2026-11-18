@@ -74,8 +74,8 @@ describe('Window function tests', function() {
             const result = await window.pywebview.api.win.resize(640, 480);
             await window.pywebview.api.win.resize(original[0], original[1]);
             expect(result.event).to.have.lengthOf(2);
-            expect(Math.abs(result.size[0] - 640)).to.be.below(20);
-            expect(Math.abs(result.size[1] - 480)).to.be.below(20);
+            expect(Math.abs(result.size[0] - result.target[0])).to.be.below(20);
+            expect(Math.abs(result.size[1] - result.target[1])).to.be.below(20);
         });
 
         it('moves and fires moved', async function() {

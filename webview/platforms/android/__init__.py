@@ -614,6 +614,26 @@ def clear_cookies(_):
         logger.error('Timed out waiting for cookies to be cleared')
 
 
+def _get_cookie_string(url):
+    lock = Semaphore(0)
+    cookie_string = ''
+
+    # CookieManager is used from the UI thread only, as in the rest of this module
+    @run_on_ui_thread
+    def _get_cookie():
+        nonlocal cookie_string
+        try:
+            cookie_string = CookieManager.getInstance().getCookie(url) or ''
+        except Exception as e:
+            logger.error(f'Error getting cookies: {e}')
+        finally:
+            lock.release()
+
+    _get_cookie()
+    lock.acquire()
+    return cookie_string
+
+
 def get_cookies(_):
     if _is_ui_thread():
         raise RuntimeError(
@@ -626,7 +646,7 @@ def get_cookies(_):
     try:
         current_url = app.view.get_url()
         # Unlike document.cookie, CookieManager also returns HttpOnly cookies.
-        cookie_string = CookieManager.getInstance().getCookie(current_url) or ''
+        cookie_string = _get_cookie_string(current_url)
 
         # Parse URL once outside the loop to avoid repeated parsing
         parsed_url = urlparse(current_url)
