@@ -9,6 +9,7 @@
 ### 🐞 Bug fixes
 
 - `Cocoa` Fix a `request_sent` handler loading iframe navigations in the whole window, and `response_received` failing on non-HTTP responses such as `file://` pages.
+- `Android` Fix `response_received` firing more than once for HTTP error responses.
 - `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
 ### ⚡ Features
 
