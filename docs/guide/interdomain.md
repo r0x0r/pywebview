@@ -79,7 +79,10 @@ window.addEventListener('pywebviewready', async () => {
 })
 ```
 
-- Only simple Python values can be returned, such as numbers, strings, lists and dicts. To send binary data, encode it as Base64.
+- The return value is serialized with Python's `json.dumps` and parsed in the page with `JSON.parse`. _pywebview_ does not use a custom encoder, so you can return only what `json.dumps` accepts: `dict`, `list`, `tuple`, `str`, `int`, `float`, `bool` and `None`.
+  - Tuples become arrays, and dict keys become strings.
+  - Other types raise a `TypeError`, and the promise is rejected with it. Examples are `bytes`, `set`, `datetime` and your own classes. Convert them first, for example a `datetime` with `.isoformat()` and `bytes` with Base64.
+  - `NaN` and `Infinity` are not valid JSON. Do not return them.
 - If the Python function raises an exception, the promise is rejected with a Javascript `Error`. The Python stack trace is in `error.stack`.
 - Each call runs in its own thread. If your functions share data, protect it with locks.
 
