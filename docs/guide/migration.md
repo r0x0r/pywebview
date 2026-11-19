@@ -9,7 +9,7 @@ Most applications that load their own local files need no changes. Read this gui
 - stores a `Window` in its `js_api` object, or exposes `Window` methods
 - opens non-web links in the system browser
 - uses drag regions in windows with a native frame
-- uses the MSHTML renderer, WinUI 3, or Python 3.9 or older
+- uses the MSHTML renderer or Python 3.9 or older
 
 The complete list of changes is in the [changelog](/CHANGELOG.md). The [security guide](/guide/security.md) describes the security model in detail.
 
@@ -208,9 +208,7 @@ Page alerts are shown one at a time. Alerts that the page sends while one is ope
 These changes are not about security, but they can also break applications that upgrade from 6.x.
 
 - **Python 3.10 or newer** is required.
-- **The MSHTML renderer is removed.** `gui='mshtml'` is no longer accepted. On Windows, the WinForms backend requires the Edge WebView2 Runtime, or CEF with `gui='cef'`. Without WebView2, _pywebview_ falls back to WinUI 3. Windows 7 and 8 without WebView2 are no longer supported.
-- **WinUI 3 uses PyWinRT 4 and the Windows App SDK 2.x.** The `winui3` extra needs Python 3.11 or newer and the Windows App Runtime 2.x. The 1.x runtime no longer works.
-- **Async handlers of blocking events raise `TypeError`.** _pywebview_ now supports `async` API functions and event handlers. Handlers of the blocking events `before_show`, `before_load`, `closing`, `initialized` and `request_sent` must still be regular functions, and subscribing an `async` function to one raises `TypeError`.
+- **The MSHTML renderer is removed.** `gui='mshtml'` is no longer accepted. On Windows, the WinForms backend requires the Edge WebView2 Runtime, or CEF with `gui='cef'`. Windows 7 and 8 without WebView2 are no longer supported.
 - **`webview.screens` is a plain list.** It contains the screens at the time of access and is no longer re-queried on every use. It is also no longer exported by `from webview import *`; use `webview.screens`.
 - **`http_port` in use raises `OSError`.** A port passed with `webview.start(http_port=...)` that is already in use raises `OSError` instead of failing silently.
 - **`Window` properties raise `WebViewException`.** `window.width`, `height`, `x`, `y` and `title` raise `WebViewException` instead of `AttributeError` when the window is not ready.
