@@ -37,7 +37,7 @@ In 6.x, every page shown in a window got the JS API. In 7.0, a page gets it only
 
 An origin is a scheme, host and port, such as `https://example.com`. Pages from the built-in HTTP server and other loopback URLs, such as `http://127.0.0.1:5000` or `http://localhost:8000`, are loaded from Python and keep the JS API.
 
-A page that the window reaches by following a link, a redirect or a `location.href` change does not get the API unless its origin is listed. For example, if your application loads `https://example.com` and the site redirects to `https://www.example.com`, list the second origin:
+Access is granted to the whole origin, not to a single page. Pages that the window reaches on the same origin, by following a link, a redirect or a `location.href` change, keep the JS API. A page on another origin gets the API only if that origin is listed. For example, if your application loads `https://example.com` and the site redirects to `https://www.example.com`, list the second origin:
 
 ```python
 import webview
@@ -211,7 +211,7 @@ These changes are not about security, but they can also break applications that 
 - **Python 3.10 or newer** is required.
 - **The MSHTML renderer is removed.** `gui='mshtml'` is no longer accepted. On Windows, the WinForms backend requires the Edge WebView2 Runtime. Windows 7 and 8 without WebView2 are no longer supported.
 - **The CEF renderer is removed.** The `cef` extra is gone. `gui='cef'` logs a warning and uses the default renderer, EdgeChromium. `cefpython3` could not be loaded on any Python version that _pywebview_ 7 supports.
-- **`webview.screens` is a plain list.** It contains the screens at the time of access and is no longer re-queried on every use. It is also no longer exported by `from webview import *`; use `webview.screens`.
+- **`webview.screens` is a plain list.** Each access of `webview.screens` queries the displays and returns a new list. A list you keep in a variable no longer updates when displays change; read `webview.screens` again instead. It is also no longer exported by `from webview import *`; use `webview.screens`.
 - **`http_port` in use raises `OSError`.** A port passed with `webview.start(http_port=...)` that is already in use raises `OSError` instead of failing silently.
 - **`Window` properties raise `WebViewException`.** `window.width`, `height`, `x`, `y` and `title` raise `WebViewException` instead of `AttributeError` when the window is not ready.
 - **State from Javascript is stored as values only.** Updates to `window.pywebview.state` from Javascript can no longer overwrite the internal attributes of `window.state` in Python.
