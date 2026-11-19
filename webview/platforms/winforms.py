@@ -303,6 +303,8 @@ class BrowserView:
             # A recreated handle gets its styles from CreateParams, which include the caption
             if self.pywebview_window.frameless:
                 self.apply_frameless_style()
+                # WinForms resets the styles again after this event while it recreates the handle
+                self.BeginInvoke(Func[Type](self.apply_frameless_style))
             # DWM attributes do not carry over to a recreated handle either
             self.update_title_bar_theme()
 
