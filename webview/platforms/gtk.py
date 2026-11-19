@@ -506,6 +506,8 @@ class BrowserView:
                 request_ = Request(uri, method, original_headers)
 
                 if self.pywebview_window.events.request_sent.set(request_):
+                    # An ignored navigation sends no request for on_request to match
+                    self.navigation_url = None
                     decision.ignore()
                     return True
 
