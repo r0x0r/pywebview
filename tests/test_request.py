@@ -50,24 +50,28 @@ def test_request_headers(headers_window):
 
 def test_request_cancel():
     app = Bottle()
-    blocked_hits = []
+    hits = []
+    cancelled = []
 
     @app.route('/')
     def index():
         return 'index'
 
     @app.route('/blocked')
-    def blocked():
-        blocked_hits.append(request.url)
-        return 'blocked'
+    @app.route('/allowed')
+    def page():
+        name = request.path.strip('/')
+        hits.append(name)
+        return name
 
     def cancel_blocked(request):
         if request.url.endswith('/blocked'):
+            cancelled.append(request.url)
             return False
 
     window = webview.create_window('Cancel test', app)
     window.events.request_sent += cancel_blocked
-    run_test(webview, window, cancel_test, (blocked_hits,))
+    run_test(webview, window, cancel_test, (hits, cancelled))
 
 
 def request_test(window, exceptions, lock):
@@ -82,9 +86,14 @@ def headers_test(window):
     assert 'Pywebview: test' in headers, f'Expected header not found: {headers}'
 
 
-def cancel_test(window, blocked_hits):
+def cancel_test(window, hits, cancelled):
     window.events.loaded.wait()
-    url = window.get_current_url()
-    window.load_url(url.rstrip('/') + '/blocked')
+    url = window.get_current_url().rstrip('/')
+    window.load_url(url + '/blocked')
     time.sleep(2)
-    assert blocked_hits == [], f'Cancelled request reached the server: {blocked_hits}'
+    assert cancelled == [url + '/blocked'], f'request_sent did not see the request: {cancelled}'
+
+    # A request that is not cancelled reaches the server
+    window.load_url(url + '/allowed')
+    assert window.events.loaded.wait(10), 'Allowed page did not load'
+    assert hits == ['allowed'], f'Unexpected server hits: {hits}'
