@@ -1008,14 +1008,14 @@ Not supported on CEF.
 
 ### window.events.response_received
 
-The event is fired when a HTTP response is received. The event is emitted for every HTTP response, except on macOS and QT where it is emitted only for the main document.
+The event is fired when a HTTP response is received. The event is emitted for every HTTP response, except on QT where it is emitted only for the main document.
 The event handler can accept a single argument - a `Response` object that contains the following properties:
 
 * `url` - URL of the response
 * `status_code` - HTTP status code
 * `headers` - HTTP response headers as a dictionary
 
-On QT, the event requires Qt 6.6 or newer, is not emitted for redirects, and its headers do not include `Set-Cookie`. Not supported on CEF.
+On QT, the event requires Qt 6.6 or newer, is not emitted for redirects, and its headers do not include `Set-Cookie`. On macOS, subresource responses are reported through a private WebKit API; where it is unavailable, only navigation responses are reported. Not supported on CEF.
 
 [Example](/examples/headers.html)
 

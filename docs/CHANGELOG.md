@@ -37,6 +37,7 @@
 
 ### 🚀 Improvements
 
+- `Cocoa` Emit `response_received` for every HTTP response, including images, scripts, stylesheets and `fetch` requests, instead of only navigations.
 - `Winforms` Frameless windows keep the native resize frame instead of using `FormBorderStyle.None`. Only the caption is removed and, on Windows 11, the border is hidden, so Windows itself handles resizing from every edge and corner, Aero Snap, maximize, minimize and restore. On Windows 10 a thin native border remains visible. Because the native frame is kept, frameless windows have the system shadow even with `shadow=False`.
 
 ### 🐞 Bug fixes
