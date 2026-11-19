@@ -8,6 +8,7 @@
 
 ### 🐞 Bug fixes
 
+- `GTK` Fix request headers modified in a `request_sent` handler sending the page twice, first with the original headers.
 - `Cocoa` Fix a `request_sent` handler loading iframe navigations in the whole window, and `response_received` failing on non-HTTP responses such as `file://` pages.
 - `Android` Fix `response_received` firing an extra time for HTTP error responses. Error responses to requests that pywebview resends itself, which are `https://` and non-loopback `http://` requests, are still reported twice.
 - `GTK` `EdgeChromium` Fix repeated headers, such as `Set-Cookie`, keeping only their last value in `response_received`. Values are now joined with a comma, as on macOS.

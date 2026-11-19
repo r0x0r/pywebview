@@ -997,7 +997,7 @@ Header modification and cancelling are not applied to every request on every pla
 | --- | --- | --- | --- |
 | Windows | All | All | A cancelled request receives an empty `204 No Content` response, so a cancelled navigation stays on the current page |
 | QT | All | All | Headers can be added or changed, but not removed. A cancelled navigation shows an empty error page |
-| GTK | Main document only | Navigations | The page load is restarted with the modified headers, so the server receives both the original and the modified request. For navigations, the handler receives the headers before WebKit adds `Sec-Fetch-*` and `Upgrade-Insecure-Requests`. Cancelling any other request logs a warning |
+| GTK | `GET` requests for the window URL and URLs loaded with `load_url` | Navigations | For navigations, the handler receives the headers before WebKit adds `Sec-Fetch-*` and `Upgrade-Insecure-Requests`. Cancelling any other request logs a warning |
 | macOS | Main frame navigations only | Main frame navigations | The navigation is restarted with the modified headers and an additional `X-Handled: true` header |
 | Android | `https://` and non-loopback `http://` URLs | All | Pages served from `localhost`, `127.0.0.1` or `::1`, including the built-in HTTP server, do not use modified headers. Affected requests are resent without their body, so POST data is lost. A cancelled request receives an empty `204 No Content` response |
 
