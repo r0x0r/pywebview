@@ -54,7 +54,8 @@ export default defineUserConfig({
           collapsible: false,
           children: [
             '/guide/installation',
-            '/guide/usage'
+            '/guide/usage',
+            '/guide/migration'
           ]
         },
         {
