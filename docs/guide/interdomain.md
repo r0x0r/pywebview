@@ -33,7 +33,7 @@ There are two ways to make Python functions available to Javascript. In both, a 
 
 ### `js_api`
 
-Pass an object to `create_window`. Its public methods are exposed.
+Pass an object to `create_window`. Its public methods are exposed. Names that start with an underscore are not exposed.
 
 ``` python
 class Api:
@@ -46,8 +46,9 @@ class Api:
 webview.create_window('API', 'index.html', js_api=Api())
 ```
 
-- Methods and attributes with a name that starts with an underscore are not exposed.
-- Nested objects are exposed as nested objects, for example `pywebview.api.files.read()`. Set `_serializable = False` on a class to hide it. Nesting is limited by `webview.settings['JS_API_MAX_DEPTH']`.
+- Methods and attributes with a name that starts with an underscore (`_name`) are never exposed. Use this for helpers and internal state.
+- Nested objects are exposed as nested objects, for example `pywebview.api.files.read()`. Set `_serializable = False` on a class to hide it.
+- Nesting is limited to `webview.settings['JS_API_MAX_DEPTH']` levels. The default is 10.
 
 See the [js_api example](/examples/js_api.html).
 
