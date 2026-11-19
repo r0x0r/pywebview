@@ -9,7 +9,7 @@ Most applications that load their own local files need no changes. Read this gui
 - stores a `Window` in its `js_api` object, or exposes `Window` methods
 - opens non-web links in the system browser
 - uses drag regions in windows with a native frame
-- uses the MSHTML renderer or Python 3.9 or older
+- uses the MSHTML or CEF renderer, or Python 3.9 or older
 
 The complete list of changes is in the [changelog](/CHANGELOG.md). The [security guide](/guide/security.md) describes the security model in detail.
 
@@ -25,7 +25,8 @@ The complete list of changes is in the [changelog](/CHANGELOG.md). The [security
 | Stores a `Window` in a public attribute of `js_api` | Rename it to a private attribute, such as `self._window` |
 | Sends bridge messages by hand | Call functions through `window.pywebview.api` |
 | Opens custom URL schemes from links | Open them from Python |
-| Uses `gui='mshtml'` | Install the WebView2 Runtime, or use `gui='cef'` |
+| Uses `gui='mshtml'` | Install the WebView2 Runtime |
+| Uses `gui='cef'` | Remove the `gui` argument to use EdgeChromium |
 
 ## Which pages get the JS API
 
@@ -208,7 +209,8 @@ Page alerts are shown one at a time. Alerts that the page sends while one is ope
 These changes are not about security, but they can also break applications that upgrade from 6.x.
 
 - **Python 3.10 or newer** is required.
-- **The MSHTML renderer is removed.** `gui='mshtml'` is no longer accepted. On Windows, the WinForms backend requires the Edge WebView2 Runtime, or CEF with `gui='cef'`. Windows 7 and 8 without WebView2 are no longer supported.
+- **The MSHTML renderer is removed.** `gui='mshtml'` is no longer accepted. On Windows, the WinForms backend requires the Edge WebView2 Runtime. Windows 7 and 8 without WebView2 are no longer supported.
+- **The CEF renderer is removed.** The `cef` extra is gone. `gui='cef'` logs a warning and uses the default renderer, EdgeChromium. `cefpython3` could not be loaded on any Python version that _pywebview_ 7 supports.
 - **`webview.screens` is a plain list.** It contains the screens at the time of access and is no longer re-queried on every use. It is also no longer exported by `from webview import *`; use `webview.screens`.
 - **`http_port` in use raises `OSError`.** A port passed with `webview.start(http_port=...)` that is already in use raises `OSError` instead of failing silently.
 - **`Window` properties raise `WebViewException`.** `window.width`, `height`, `x`, `y` and `title` raise `WebViewException` instead of `AttributeError` when the window is not ready.
