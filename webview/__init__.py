@@ -209,7 +209,7 @@ def start(
         values.
     :param localization: A dictionary with localized strings. Default strings
         and their keys are defined in localization.py.
-    :param gui: Force a specific GUI. Allowed values are ``cef``, ``qt``,
+    :param gui: Force a specific GUI. Allowed values are ``qt``,
         ``gtk``, ``edgechromium`` or ``winui3`` depending on a platform.
     :param debug: Enable debug mode. Default is False.
     :param http_server: Enable built-in HTTP server. If enabled, local files

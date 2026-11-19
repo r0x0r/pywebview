@@ -1,8 +1,8 @@
 # pywebview Smoke Test App
 
 A smoke test application that exercises as much of pywebview as possible in one run and shows
-at a glance whether anything is broken. It runs on desktop (Cocoa, GTK, Qt, WinForms, WinUI 3,
-CEF) and on Android.
+at a glance whether anything is broken. It runs on desktop (Cocoa, GTK, Qt, WinForms, WinUI 3)
+and on Android.
 
 ```bash
 cd tests/smoke_test

@@ -4,6 +4,7 @@
 
 ### 💔 BREAKING CHANGES
 
+- `Winforms` Remove the CEF renderer. `cefpython3` was last released in 2021 (Chromium 66) and ships binaries only up to Python 3.9, so it could not be loaded on any Python version pywebview supports. The `cef` extra is gone, and `gui='cef'` logs a warning and uses the default renderer.
 - `WinUI3` Move to PyWinRT 4 and the Windows App SDK 2.x. The `winui3` extra now needs Python 3.11 or newer and the Windows App Runtime 2.x, at least the release that the installed `winrt-Microsoft.WindowsAppRuntime.Bootstrap` names (2.6.4 for its version 4!2.6.4). A 1.x runtime no longer works. CI reads that release from the bootstrap rather than pinning one.
 
 ### 🐞 Bug fixes

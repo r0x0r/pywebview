@@ -64,7 +64,6 @@ winui3 = [
     "winrt-Microsoft.UI.Interop>=4!2.5.1;sys_platform=='win32' and python_version>='3.11'",
     "winrt-Microsoft.WindowsAppRuntime.Bootstrap>=4!2.5.1;sys_platform=='win32' and python_version>='3.11'",
 ]
-cef = ["cefpython3"]
 gtk = ["PyGObject==3.50.0", "PyGObject-stubs"]
 pyside2 = ["QtPy", "PySide2"]
 pyside6 = ["QtPy", "PySide6"]

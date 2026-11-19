@@ -502,11 +502,7 @@ class Window:
         if callback:
             self._callbacks[unique_id] = callback
 
-        if self.gui.renderer == 'cef':
-            return_result = (
-                f'window.external.return_result(pywebview.stringify(value), "{unique_id}");'
-            )
-        elif self.gui.renderer == 'android-webkit':
+        if self.gui.renderer == 'android-webkit':
             return_result = 'return pywebview.stringify(value);'
         else:
             return_result = 'pywebview.stringify(value);'
@@ -541,9 +537,7 @@ class Window:
             {return_result};
         """
 
-        if self.gui.renderer == 'cef':
-            result = self.gui.evaluate_js(escaped_script, self.uid, True, unique_id)
-        elif self.gui.renderer == 'android-webkit':
+        if self.gui.renderer == 'android-webkit':
             escaped_script = f"""
                 (function() {{
                     {escaped_script}

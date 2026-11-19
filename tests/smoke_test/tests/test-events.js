@@ -25,8 +25,8 @@ describe('Window events tests', function() {
                 'before_load',
                 'before_show',
                 'shown',
+                'request_sent',
             ];
-            if (requestEvent) expectedEvents.push('request_sent');
             if (responseEvent) expectedEvents.push('response_received');
 
             // Check that all expected events are present and set to true
@@ -37,7 +37,6 @@ describe('Window events tests', function() {
         });
 
         it('should handle request_sent event with data', async function() {
-            if (!requestEvent) this.skip();
             // Check if request_sent event contains request data
             const requestSentValue = await window.pywebview.api.eval('events.get("request_sent")');
             expect(requestSentValue).to.not.be.null;

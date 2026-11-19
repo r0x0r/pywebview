@@ -63,9 +63,6 @@ def wait_for_api(window, timeout=10):
     raise AssertionError('JS API was not injected')
 
 
-@pytest.mark.skipif(
-    os.environ.get('PYWEBVIEW_GUI') == 'cef', reason='CEF run_js is fire-and-forget'
-)
 def test_navigated_origin_gets_dom_but_no_api(other_origin):
     window = webview.create_window('Origins', html='<html>start</html>', js_api=Api())
 
@@ -109,9 +106,6 @@ def test_navigated_origin_gets_dom_but_no_api(other_origin):
     run_test(webview, window, check)
 
 
-@pytest.mark.skipif(
-    os.environ.get('PYWEBVIEW_GUI') == 'cef', reason='CEF run_js is fire-and-forget'
-)
 def test_listed_origin_gets_api(other_origin):
     webview.settings['ALLOWED_ORIGINS'] = [other_origin]
     window = webview.create_window('Origins', html='<html>start</html>', js_api=Api())
@@ -124,9 +118,6 @@ def test_listed_origin_gets_api(other_origin):
     run_test(webview, window, check)
 
 
-@pytest.mark.skipif(
-    os.environ.get('PYWEBVIEW_GUI') == 'cef', reason='CEF run_js is fire-and-forget'
-)
 def test_allowed_origins_apply_from_the_next_page_load(other_origin):
     calls = []
 
@@ -176,9 +167,6 @@ def test_blank_loaded_from_python_gets_api():
     run_test(webview, window, check)
 
 
-@pytest.mark.skipif(
-    os.environ.get('PYWEBVIEW_GUI') == 'cef', reason='CEF run_js is fire-and-forget'
-)
 def test_result_after_navigation_does_not_reach_page_eval(other_origin):
     class DelayedApi:
         def __init__(self):
