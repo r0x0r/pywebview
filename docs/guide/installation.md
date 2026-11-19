@@ -23,7 +23,7 @@ pip install pywebview[qt]
 
 Other QT related options are `pywebview[qt5]`, `pywebview[pyside2]` and `pywebview[pyside6]`
 
-Other optional dependencies are `pywebview[android]`, `pywebview[cef]` and `pywebview[ssl]`. CEF is available only for Windows. `ssl` option installs a `cryptography` package, which is needed for using https in local HTTP server.
+Other optional dependencies are `pywebview[android]` and `pywebview[ssl]`. `ssl` option installs a `cryptography` package, which is needed for using https in local HTTP server.
 
 ## Dependencies
 
@@ -32,9 +32,6 @@ Other optional dependencies are `pywebview[android]`, `pywebview[cef]` and `pywe
 [pythonnet](https://github.com/pythonnet/pythonnet). pywebview prefers the .NET 6.0 or newer Desktop Runtime, and otherwise falls back to .NET Framework 4.6.2. Native ARM64 Python on Windows requires the .NET Desktop Runtime because .NET Framework is unavailable for that architecture.
 
 To use with the latest Chromium you need [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). If you plan to distribute your software, check out [distribution guidelines](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution) too.
-
-To use with CEF you need
-[cefpython](https://github.com/cztomczak/cefpython/)
 
 QT can be used on Windows as well.
 

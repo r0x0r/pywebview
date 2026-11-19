@@ -12,7 +12,6 @@ from threading import Event, Semaphore
 
 from webview import FileDialog, _state, settings, windows
 from webview._pythonnet import clr
-from webview.guilib import forced_gui_
 from webview.menu import Menu, MenuAction, MenuSeparator
 from webview.platforms import win32
 from webview.platforms.win32 import (
@@ -36,7 +35,7 @@ from webview.platforms.win32 import (
     set_border_color,
 )
 from webview.screen import Screen
-from webview.util import inject_base_uri, parse_file_type, set_local_tls_cert
+from webview.util import parse_file_type, set_local_tls_cert
 from webview.window import FixPoint
 
 clr.AddReference('System.Windows.Forms')
@@ -150,25 +149,17 @@ def _is_chromium():
     return False
 
 
-is_cef = forced_gui_ == 'cef'
-is_chromium = not is_cef and _is_chromium()
-
-if is_cef:
-    from . import cef as CEF
-
-    logger.debug('Using WinForms / CEF')
-    renderer = 'cef'
-elif is_chromium:
-    from . import edgechromium as Chromium
-
-    logger.debug('Using WinForms / Chromium')
-    renderer = 'edgechromium'
-else:
+if not _is_chromium():
     raise RuntimeError(
         'Edge WebView2 Runtime (86.0.622.0 or newer) and either the .NET 6.0+ Desktop Runtime '
         'or .NET Framework 4.6.2 or newer are required. '
         'See https://pywebview.flowrl.com/guide/web_engine.html'
     )
+
+from . import edgechromium as Chromium  # noqa: E402
+
+logger.debug('Using WinForms / Chromium')
+renderer = 'edgechromium'
 
 
 class BrowserView:
@@ -264,16 +255,10 @@ class BrowserView:
             if window.menu or _state['menu']:
                 self.set_window_menu(window.menu or _state['menu'])
 
-            if is_cef:
-                self.browser = None
-                CEF.create_browser(window, hwnd, BrowserView.alert, self)
-            elif is_chromium:
-                self.browser = Chromium.EdgeChrome(self, window, cache_dir)
-                self.webview = self.browser.webview
+            self.browser = Chromium.EdgeChrome(self, window, cache_dir)
+            self.webview = self.browser.webview
 
-            if (
-                window.transparent and self.browser
-            ):  # window transparency is supported only with EdgeChromium
+            if window.transparent:
                 self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
                 self.browser.DefaultBackgroundColor = Color.Transparent
             else:
@@ -306,14 +291,11 @@ class BrowserView:
         @property
         def _scale(self):
             """Logical-to-physical pixel scale for the monitor this window is on."""
-            if is_chromium:
-                try:
-                    # Use per-window DPI for accurate multi-monitor support
-                    return windll.user32.GetDpiForWindow(self.Handle.ToInt32()) / 96
-                except Exception as e:
-                    logger.warning(f'Failed to get DPI for window: {e}')
-                    return 1.0
-            else:
+            try:
+                # Use per-window DPI for accurate multi-monitor support
+                return windll.user32.GetDpiForWindow(self.Handle.ToInt32()) / 96
+            except Exception as e:
+                logger.warning(f'Failed to get DPI for window: {e}')
                 return 1.0
 
         def on_handle_created(self, sender, args):
@@ -371,31 +353,22 @@ class BrowserView:
                 )
 
         def on_shown(self, *_):
-            if not is_cef:
-                self.shown.set()
-                self.browser.webview.Focus()
+            self.shown.set()
+            self.browser.webview.Focus()
 
         def on_close(self, *_):
             def _shutdown():
-                if is_cef:
-                    CEF.shutdown()
-                elif is_chromium:
-                    self.hide()
-                    self.browser.clear_user_data(process_id)
-
+                self.hide()
+                self.browser.clear_user_data(process_id)
                 WinForms.Application.Exit()
 
-            if not is_cef:
-                # stop waiting for any pending JS results
-                for res in list(self.browser.js_results.values()):
-                    res['semaphore'].release()
+            # stop waiting for any pending JS results
+            for res in list(self.browser.js_results.values()):
+                res['semaphore'].release()
 
-            if is_cef:
-                CEF.close_window(self.uid)
-            elif is_chromium:
-                core_webview = self.browser.webview.CoreWebView2
-                process_id = int(core_webview.BrowserProcessId) if core_webview else 0
-                self.browser.webview.Dispose()
+            core_webview = self.browser.webview.CoreWebView2
+            process_id = int(core_webview.BrowserProcessId) if core_webview else 0
+            self.browser.webview.Dispose()
 
             del BrowserView.instances[self.uid]
 
@@ -440,9 +413,6 @@ class BrowserView:
 
             self.old_state = self.WindowState
 
-            if is_cef:
-                CEF.resize(self.Width, self.Height, self.uid)
-
             # Convert physical pixel dimensions to logical pixels for the API
             scale = self._scale
             self.pywebview_window.events.resized.set(
@@ -465,10 +435,6 @@ class BrowserView:
             def _clear_cookies():
                 self.browser.clear_cookies()
 
-            if not is_chromium:
-                logger.error('clear_cookies() is not implemented for this platform')
-                return
-
             self.Invoke(Func[Type](_clear_cookies))
 
         def get_cookies(self):
@@ -476,10 +442,6 @@ class BrowserView:
                 self.browser.get_cookies(cookies, semaphore)
 
             cookies = []
-            if not is_chromium:
-                logger.error('get_cookies() is not implemented for this platform')
-                return cookies
-
             self.browser.raise_if_in_navigation_completed('get_cookies')
             semaphore = Semaphore(0)
 
@@ -551,9 +513,7 @@ class BrowserView:
                         top_level_menu.Items.Add(create_action_item(menu))
 
                 top_level_menu.MenuActivate += lambda s, e: top_level_menu.Focus()
-                top_level_menu.MenuDeactivate += lambda s, e: (
-                    CEF.focus(self.uid) if is_cef else self.browser.webview.Focus()
-                )
+                top_level_menu.MenuDeactivate += lambda s, e: self.browser.webview.Focus()
 
                 self.Controls.Add(top_level_menu)
 
@@ -687,10 +647,6 @@ class BrowserView:
                 self.Invoke(Func[Type](_set_on_top))
             else:
                 _set_on_top()
-
-    @staticmethod
-    def alert(message):
-        WinForms.MessageBox.Show(str(message))
 
 
 class OpenFolderDialog:
@@ -856,7 +812,7 @@ def create_window(window):
             browser.Show()
             browser.Hide()
             browser.Opacity = 1
-        elif window.transparent and is_chromium:
+        elif window.transparent:
             # hack to make transparent window work
             # window is started hidden and shown on Navigating event.
             # no idea why this works
@@ -890,14 +846,10 @@ def create_window(window):
         # Set up Ctrl+C handler in main thread (before starting GUI thread)
         signal.signal(signal.SIGINT, _sigint_handler)
 
-        if is_chromium:
-            init_storage()
+        init_storage()
 
         if sys.getwindowsversion().major >= 6:
             windll.user32.SetProcessDPIAware()
-
-        if is_cef:
-            CEF.init(window, cache_dir)
 
         thread = Thread(ThreadStart(create))
         thread.SetApartmentState(ApartmentState.STA)
@@ -1003,8 +955,6 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename, fi
 
 
 def clear_cookies(uid):
-    if is_cef:
-        CEF.clear_cookies(uid)
     i = BrowserView.instances.get(uid)
 
     if i:
@@ -1012,8 +962,6 @@ def clear_cookies(uid):
 
 
 def get_cookies(uid):
-    if is_cef:
-        return CEF.get_cookies(uid)
     i = BrowserView.instances.get(uid)
 
     if i:
@@ -1021,9 +969,6 @@ def get_cookies(uid):
 
 
 def get_current_url(uid):
-    if is_cef:
-        return CEF.get_current_url(uid)
-
     i = BrowserView.instances.get(uid)
     if i:
         return i.browser.url
@@ -1031,21 +976,14 @@ def get_current_url(uid):
 
 def load_url(url, uid):
     i = BrowserView.instances.get(uid)
-    if not i:
-        return
-
-    if is_cef:
-        CEF.load_url(url, uid)
-    else:
+    if i:
         i.load_url(url)
 
 
 def load_html(content, base_uri, uid):
     i = BrowserView.instances.get(uid)
 
-    if is_cef:
-        CEF.load_html(inject_base_uri(content, base_uri), uid)
-    elif i:
+    if i:
         i.load_html(content, base_uri)
 
 
@@ -1131,10 +1069,7 @@ def destroy_window(uid):
     i.Invoke(Func[Type](_close))
 
 
-def evaluate_js(script, uid, parse_json, result_id=None):
-    if is_cef:
-        return CEF.evaluate_js(script, result_id, parse_json, uid)
-
+def evaluate_js(script, uid, parse_json):
     i = BrowserView.instances.get(uid)
     if i:
         return i.evaluate_js(script, parse_json)
@@ -1163,9 +1098,8 @@ def get_screens():
 
     # Bounds are logical before the GUI starts and the process becomes DPI-aware, and in
     # system-DPI pixels after. Dividing every screen by the same system scale gives logical
-    # pixels in both cases and keeps the screens adjacent on mixed-DPI setups. CEF windows
-    # do not scale their coordinates (see BrowserForm._scale), so neither do their screens.
-    system_scale = 1.0 if is_cef else win32.get_system_scale()
+    # pixels in both cases and keeps the screens adjacent on mixed-DPI setups.
+    system_scale = win32.get_system_scale()
 
     # WinForms.Screen caches its bounds, which go stale once the process becomes DPI-aware
     for bounds, work in win32.get_monitors():
