@@ -59,6 +59,13 @@ from gi.repository import WebKit2 as webkit  # noqa: E402
 
 renderer = 'gtkwebkit2'
 webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
+gtk_ver = gtk.get_major_version(), gtk.get_minor_version(), gtk.get_micro_version()
+logger.debug(
+    'GTK %d.%d.%d (Gdk %s), WebKit2 %d.%d.%d',
+    *gtk_ver,
+    Gdk._version,
+    *webkit_ver,
+)
 
 _app = None
 _app_actions = {}  # action_label: function
