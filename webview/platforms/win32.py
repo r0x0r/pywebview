@@ -63,6 +63,8 @@ DWMWA_COLOR_DEFAULT = 0xFFFFFFFF
 DWMWA_SYSTEMBACKDROP_TYPE = 38
 DWMSBT_NONE = 1
 DWMSBT_MAINWINDOW = 2
+DWM_BB_ENABLE = 0x1
+DWM_BB_BLURREGION = 0x2
 
 
 class _MSLLHOOKSTRUCT(ctypes.Structure):
@@ -545,6 +547,40 @@ def extend_frame_into_client_area(hwnd: int) -> int:
     dwm_extend_frame_into_client_area = ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea
     m = _MARGINS(cxLeftWidth=1, cxRightWidth=1, cyTopHeight=1, cyBottomHeight=1)
     return dwm_extend_frame_into_client_area(hwnd, ctypes.byref(m))
+
+
+class _DWM_BLURBEHIND(ctypes.Structure):
+    _fields_ = [
+        ('dwFlags', wintypes.DWORD),
+        ('fEnable', wintypes.BOOL),
+        ('hRgnBlur', wintypes.HANDLE),
+        ('fTransitionOnMaximized', wintypes.BOOL),
+    ]
+
+
+def enable_window_transparency(hwnd: int) -> int:
+    """
+    Make DWM compose the window with per-pixel alpha, so black pixels painted by the window
+    become transparent. Blur-behind with an empty region enables the alpha channel without
+    blurring anything. Extending the frame into the client area does not work for this, as DWM
+    fills the extended area with the opaque frame color on current Windows versions.
+    """
+    dwm_set_window_attribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_NONE)
+
+    gdi32 = ctypes.windll.gdi32
+    gdi32.CreateRectRgn.restype = wintypes.HRGN
+    gdi32.DeleteObject.argtypes = [wintypes.HGDIOBJ]
+    dwm_enable_blur_behind_window = ctypes.windll.dwmapi.DwmEnableBlurBehindWindow
+    dwm_enable_blur_behind_window.argtypes = [wintypes.HWND, ctypes.c_void_p]
+
+    region = gdi32.CreateRectRgn(0, 0, -1, -1)
+    blur_behind = _DWM_BLURBEHIND(
+        dwFlags=DWM_BB_ENABLE | DWM_BB_BLURREGION, fEnable=True, hRgnBlur=region
+    )
+    try:
+        return dwm_enable_blur_behind_window(hwnd, ctypes.byref(blur_behind))
+    finally:
+        gdi32.DeleteObject(region)
 
 
 def enable_window_shadow(hwnd: int) -> None:

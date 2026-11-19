@@ -9,6 +9,7 @@
 
 ### 🐞 Bug fixes
 
+- `Winforms` Fix transparent windows. The window now enables per-pixel transparency in DWM instead of relying on undocumented compositing behaviour, which worked on some systems only. A transparent window no longer gets the Mica backdrop in dark mode, which made it opaque after a theme change or after locking and unlocking Windows. [#1887](https://github.com/r0x0r/pywebview/issues/1887)
 - `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
 ### ⚡ Features
 
