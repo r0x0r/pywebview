@@ -28,7 +28,7 @@ from collections.abc import Callable
 from concurrent.futures import Future
 from glob import escape as glob_escape
 from glob import glob
-from http.cookies import SimpleCookie
+from http.cookies import CookieError, SimpleCookie
 from threading import RLock, Thread
 from typing import TYPE_CHECKING, Any, TypeGuard
 from uuid import uuid4
@@ -385,9 +385,44 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie:
         return cookie
 
     if isinstance(input_, str):
-        return SimpleCookie(input_)
+        cookie = SimpleCookie(input_)
+        # SimpleCookie drops or cuts short a cookie whose raw value has quotes, spaces or
+        # commas, as in a JSON value. Parse the Set-Cookie header value by hand in that case.
+        name, _, rest = input_.partition('=')
+        morsel = cookie.get(name.strip())
+        if morsel is not None:
+            # The whole value was parsed if the end or the next attribute follows it
+            rest = rest.lstrip()
+            if rest.startswith(morsel.coded_value):
+                if rest[len(morsel.coded_value) :].lstrip()[:1] in ('', ';'):
+                    return cookie
+        return _parse_set_cookie(input_)
 
     raise WebViewException('Unknown input to create_cookie')
+
+
+def _parse_set_cookie(header: str) -> SimpleCookie:
+    """Leniently parse a single Set-Cookie header value, without the 'Set-Cookie:' prefix."""
+    name_value, *attributes = header.split(';')
+    name, _, value = name_value.partition('=')
+    name = name.strip()
+    cookie = SimpleCookie()
+    try:
+        cookie[name] = value.strip()
+    except CookieError:
+        logger.debug(f'Cannot parse cookie {name!r}')
+        return cookie
+
+    morsel = cookie[name]
+    for attribute in attributes:
+        key, has_value, attribute_value = attribute.partition('=')
+        key = key.strip().lower()
+        # Flag attributes have no value. Partitioned is known to Python 3.14 and newer only
+        if key in ('secure', 'httponly', 'partitioned') and key in morsel:
+            morsel[key] = True
+        elif key in morsel and has_value:
+            morsel[key] = attribute_value.strip()
+    return cookie
 
 
 def parse_file_type(file_type: str) -> tuple[str, str]:
