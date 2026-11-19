@@ -19,8 +19,8 @@ The complete list of changes is in the [changelog](/CHANGELOG.md). The [security
 | --- | --- |
 | Uses the JS API on pages it navigates to | List their origins in `webview.settings['ALLOWED_ORIGINS']` |
 | Loads a remote `http://` site with the JS API | Use HTTPS, or list the origin in `ALLOWED_ORIGINS` |
-| Reads local files from a `file://` page | Serve the files through the built-in HTTP server, or set `ALLOW_FILE_URLS = True` |
-| Loads `file://` pages on Qt | Serve the files through the built-in HTTP server, or set `ALLOW_FILE_URLS = True` |
+| Reads local files from a `file://` page | Serve the files through the built-in HTTP server, or set `webview.settings['ALLOW_FILE_URLS'] = True` |
+| Loads `file://` pages on Qt | Serve the files through the built-in HTTP server, or set `webview.settings['ALLOW_FILE_URLS'] = True` |
 | Calls `load_url`, `load_html`, `expose`, `evaluate_js`, `run_js` or `get_cookies` from Javascript | Wrap the call in a function of your own API |
 | Stores a `Window` in a public attribute of `js_api` | Rename it to a private attribute, such as `self._window` |
 | Sends bridge messages by hand | Call functions through `window.pywebview.api` |
