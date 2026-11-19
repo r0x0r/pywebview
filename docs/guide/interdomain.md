@@ -1,40 +1,136 @@
 # Javascript–Python bridge
 
-_pywebview_ offers two-way communication between Javascript and Python, enabling interaction between the two languages without a HTTP server.
+_pywebview_ connects Javascript and Python without an HTTP server. There are three tools:
 
-## Shared state
+| Direction | Tool | Use it for |
+| --- | --- | --- |
+| Python → Javascript | `window.evaluate_js()`, `window.run_js()` | Running code in the page and reading results |
+| Javascript → Python | `js_api` and `window.expose()` | Calling Python functions from the page |
+| Both ways | `window.state` and `pywebview.state` | Data that both sides read and change |
 
-`NEW 6.0` Data can be shared via the `Window.state` (Python) and `pywebview.state` (Javascript) objects. Modifying any property on either state object will result in the state being updated on the other side and vice versa. For example, setting `window.state.hello = 'world'` in Python will automatically propagate to `pywebview.state.hello` in Javascript. Only changes on the top level are propagated, ie if you mutate an object, it won't be updated on the other side. State is specific to its window and is preserved between page (re)loads. Binary data can be passed by converting it to Base64 or such.
-
-State changes trigger events that can be subscribed to using `pywebview.state += lambda event_type, key, value: pass`. The `event_type` is either `change` or `delete`. The `key` is the property name, and the `value` is the property's value (`None` for delete events).
+Only pages that [get the JS API](/guide/security.md#which-pages-get-the-js-api) can call Python. Read the [Security](/guide/security.md) guide before you expose functions.
 
 ## Run Javascript from Python
 
-`window.evaluate_js(code, callback=None)` allows you to execute arbitrary Javascript code with a last value returned synchronously. If callback function is supplied, then promises are resolved and the callback function is called with the result as a parameter. Javascript types are converted to Python types, eg. JS objects to dicts, arrays to lists, undefined to None. If executed Javascript code results in an error, the error is rethrown as a `webview.util.JavascriptException` in Python. `evaluate_js` wraps Javascript code in a helper wrapper and executes it using `eval`.
+`window.evaluate_js(code, callback=None)` runs Javascript in the page and returns the value of the last expression.
 
-[See example](/examples/evaluate_js.html)
+``` python
+title = window.evaluate_js('document.title')
+```
 
-`Window.run_js(code)` executes Javascript code as is without any wrapper code. `run_js` does not return a result or handle exceptions. This can be useful in scenarios, where you need to execute Javascript code with the `unsafe-eval` CSP policy set.
+- Javascript values are converted to Python values: objects to `dict`, arrays to `list`, `undefined` and `null` to `None`.
+- If the code throws an error, `evaluate_js` raises `webview.errors.JavascriptException` in Python.
+- If the code returns a promise, pass a `callback`. _pywebview_ waits for the promise and calls the callback with the result.
+- `evaluate_js` wraps your code in a helper and runs it with `eval`.
+
+`window.run_js(code)` runs the code as it is, without a wrapper. It returns nothing and does not report errors. Use it when the page has a Content Security Policy that blocks `unsafe-eval`.
+
+See the [evaluate_js example](/examples/evaluate_js.html).
 
 ## Run Python from Javascript
 
-Executing Python functions from Javascript can be done with two different mechanisms.
+There are two ways to make Python functions available to Javascript. In both, a function becomes `pywebview.api.<name>` in the page.
 
-- by exposing an instance of a Python class to the `js_api` parameter of `create_window`. All the callable methods of the class will be exposed to the JS domain as `pywebview.api.method_name` with correct parameter signatures. Method name must not start with an underscore. Nested classes are allowed and are converted into a nested objects in Javascript. Class attributes starting with an underscore are not exposed. Also nested classes that have `_serializable = False` class attribute are ommited. See an [example](/examples/js_api.html).
+### `js_api`
 
-- by passing your function(s) to window object's `expose(func)`. This will expose a function or functions to the JS domain as `pywebview.api.func_name`. Unlike JS API, `expose` allows to expose functions also at the runtime. If there is a name clash between JS API and exposed functions, the latter takes precedence. See an [example](/examples/expose.html).
+Pass an object to `create_window`. Its public methods are exposed. Names that start with an underscore are not exposed.
 
-Exposed function returns a promise that is resolved to its result value. Exceptions are rejected and encapsulated inside a Javascript `Error` object. Stacktrace is available via `error.stack`. Exposed functions are executed in separate threads and are not thread-safe.
+``` python
+class Api:
+    def add(self, a, b):
+        return a + b
 
-Exposed functions can be `async`. _pywebview_ runs coroutines on an asyncio event loop:
+    def _private(self):  # not exposed
+        pass
 
-- If you pass a loop to `webview.start(event_loop=loop)`, that loop is used. If the loop is not running, _pywebview_ runs it in a background thread.
-- Otherwise, _pywebview_ starts its own loop in a background thread when the first coroutine runs. The loop is closed when the GUI loop exits.
+webview.create_window('API', 'index.html', js_api=Api())
+```
 
-These can also be `async`: handlers of non-blocking window events, DOM events and state changes, the function passed to `webview.start`, menu actions and `evaluate_js` callbacks. Handlers of blocking window events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) must be regular functions. See [Window events](/api/#window-events). See an [example](/examples/async_api.html).
+- Methods and attributes with a name that starts with an underscore (`_name`) are never exposed. Use this for helpers and internal state.
+- Nested objects are exposed as nested objects, for example `pywebview.api.files.read()`. Set `_serializable = False` on a class to hide it.
+- Nesting is limited to `webview.settings['JS_API_MAX_DEPTH']` levels. The default is 10.
 
-Window methods such as `evaluate_js` are synchronous. If a coroutine calls one, the event loop waits until the call returns, and other coroutines cannot run during that time. To avoid this, run the call in a thread: `await asyncio.to_thread(window.evaluate_js, script)`.
+See the [js_api example](/examples/js_api.html).
 
-`pywebview.api` is not guaranteed to be available on the `window.onload` event. Subscribe to the `window.pywebviewready` event instead to make sure that `pywebview.api` is ready.
+### `expose`
 
-[See example](/examples/js_api.html).
+`window.expose(func)` exposes one or more functions. Unlike `js_api`, you can call it at any time, including after the window has loaded. If an exposed function and a `js_api` method have the same name, the exposed function wins.
+
+``` python
+def hello(name):
+    return f'Hello, {name}!'
+
+window.expose(hello)
+```
+
+See the [expose example](/examples/expose.html).
+
+### Calling from Javascript
+
+Every call returns a promise.
+
+``` javascript
+window.addEventListener('pywebviewready', async () => {
+  try {
+    const result = await pywebview.api.add(1, 2)
+  } catch (error) {
+    console.error(error.stack)
+  }
+})
+```
+
+- The return value is serialized with Python's `json.dumps` and parsed in the page with `JSON.parse`. _pywebview_ does not use a custom encoder, so you can return only what `json.dumps` accepts: `dict`, `list`, `tuple`, `str`, `int`, `float`, `bool` and `None`.
+  - Tuples become arrays, and dict keys become strings.
+  - Other types raise a `TypeError`, and the promise is rejected with it. Examples are `bytes`, `set`, `datetime` and your own classes. Convert them first, for example a `datetime` with `.isoformat()` and `bytes` with Base64.
+  - `NaN` and `Infinity` are not valid JSON. Do not return them.
+- If the Python function raises an exception, the promise is rejected with a Javascript `Error`. The Python stack trace is in `error.stack`.
+- Each call runs in its own thread. If your functions share data, protect it with locks.
+
+### Wait for `pywebviewready`
+
+`pywebview.api` is not guaranteed to exist when `window.onload` fires. Wait for the `pywebviewready` event.
+
+``` javascript
+window.addEventListener('pywebviewready', () => {
+  // pywebview.api is ready
+})
+```
+
+### Async functions
+
+Exposed functions can be `async`. _pywebview_ runs coroutines on an asyncio event loop.
+
+- If you pass a loop to `webview.start(event_loop=loop)`, _pywebview_ uses it. If the loop is not running, _pywebview_ runs it in a background thread.
+- Otherwise, _pywebview_ starts its own loop in a background thread when the first coroutine runs, and closes it when the GUI loop exits.
+
+Window methods such as `evaluate_js` are synchronous. If a coroutine calls one, the event loop waits until the call returns and no other coroutine can run. To avoid this, run the call in a thread:
+
+``` python
+await asyncio.to_thread(window.evaluate_js, script)
+```
+
+See the [async example](/examples/async_api.html).
+
+## Shared state
+
+`NEW 6.0` `window.state` in Python and `pywebview.state` in Javascript are kept in sync. When one side sets a property, the other side gets the new value.
+
+``` python
+window.state.hello = 'world'  # pywebview.state.hello is now 'world'
+```
+
+- Only top-level properties are synchronized. If you change a nested object, assign it again to send the change.
+- State belongs to one window and survives page reloads.
+- Binary data is not supported. Encode it as Base64.
+
+Both sides can listen for changes. The event type is `change` or `delete`. For `delete`, the value is `None`.
+
+``` python
+window.state += lambda event_type, key, value: print(event_type, key, value)
+```
+
+``` javascript
+pywebview.state.addEventListener('change', event => console.log(event))
+```
+
+See the [state example](https://github.com/r0x0r/pywebview/blob/master/examples/state.py).

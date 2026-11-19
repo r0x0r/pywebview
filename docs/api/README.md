@@ -70,7 +70,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `func` - function to invoke upon starting the GUI loop. Can be an `async` function, in which case it runs on the asyncio event loop (see `event_loop`).
 * `args` - function arguments. Can be either a single value or a tuple of values.
 * `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
-* `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
+* `gui` - force a specific GUI. Allowed values are `qt`, `gtk`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server for absolute local paths. For relative paths HTTP server is started automatically and cannot be disabled. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `http_port` - specify a port number for the HTTP server. By default port is randomized.
@@ -682,7 +682,7 @@ Expose a Python function or functions to JS API. Functions are exposed as `windo
 window.get_cookies()
 ```
 
-Return a list of all the cookies set for the current website (as [SimpleCookie](https://docs.python.org/3/library/http.cookies.html)). `get_cookies` cannot be called from Javascript, even if the window is reachable through `js_api`.
+Return a list of all the cookies set for the current website (as [SimpleCookie](https://docs.python.org/3/library/http.cookies.html)). The list includes `HttpOnly` cookies, which Javascript cannot read. `get_cookies` cannot be called from Javascript, even if the window is reachable through `js_api`.
 
 ### window.get_current_url
 

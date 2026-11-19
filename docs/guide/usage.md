@@ -31,7 +31,7 @@ second_window.events.shown += handler
 webview.start()
 ```
 
-_pywebview_ gives a choice of using several web renderers. To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `cef` or `qt`). See [Web Engine](/guide/web_engine.md) for details.
+_pywebview_ gives a choice of using several web renderers. To change a web renderer, set the `gui` parameter of the `start` function to the desired value (e.g `qt` or `winui3`). See [Web Engine](/guide/web_engine.md) for details.
 
 
 ## Backend logic
