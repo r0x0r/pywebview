@@ -276,7 +276,9 @@ class BrowserView(QMainWindow):
                 headers = {}
 
             request = Request(url, method, headers)
-            self.window.events.request_sent.set(request)
+            if self.window.events.request_sent.set(request):
+                info.block(True)
+                return
 
             if request.headers != headers:
                 for key, value in request.headers.items():

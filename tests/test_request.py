@@ -1,3 +1,4 @@
+import time
 from threading import Lock
 
 import pytest
@@ -47,6 +48,28 @@ def test_request_headers(headers_window):
     run_test(webview, headers_window, headers_test)
 
 
+def test_request_cancel():
+    app = Bottle()
+    blocked_hits = []
+
+    @app.route('/')
+    def index():
+        return 'index'
+
+    @app.route('/blocked')
+    def blocked():
+        blocked_hits.append(request.url)
+        return 'blocked'
+
+    def cancel_blocked(request):
+        if request.url.endswith('/blocked'):
+            return False
+
+    window = webview.create_window('Cancel test', app)
+    window.events.request_sent += cancel_blocked
+    run_test(webview, window, cancel_test, (blocked_hits,))
+
+
 def request_test(window, exceptions, lock):
     assert lock.acquire(timeout=10)
     if len(exceptions) > 0:
@@ -57,3 +80,11 @@ def headers_test(window):
     window.events.loaded.wait()
     headers = window.evaluate_js('document.body.innerText')
     assert 'Pywebview: test' in headers, f'Expected header not found: {headers}'
+
+
+def cancel_test(window, blocked_hits):
+    window.events.loaded.wait()
+    url = window.get_current_url()
+    window.load_url(url.rstrip('/') + '/blocked')
+    time.sleep(2)
+    assert blocked_hits == [], f'Cancelled request reached the server: {blocked_hits}'

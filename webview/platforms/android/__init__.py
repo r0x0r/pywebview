@@ -225,7 +225,9 @@ class BrowserView:
         original_headers = headers.copy()
 
         request = Request(url, method, headers)
-        self.pywebview_window.events.request_sent.set(request)
+        if self.pywebview_window.events.request_sent.set(request):
+            # Matches PyWebViewClient.CANCEL_REQUEST
+            return 'pywebview:cancel'
 
         if request.headers != original_headers:
             logger.debug(

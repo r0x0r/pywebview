@@ -400,7 +400,12 @@ class BrowserView:
 
                 def dispatch_event():
                     request_ = Request(str(url), method, original_headers)
-                    i.pywebview_window.events.request_sent.set(request_)
+                    if i.pywebview_window.events.request_sent.set(request_):
+                        AppHelper.callAfter(
+                            handler, getattr(WebKit, 'WKNavigationActionPolicyCancel', 0)
+                        )
+                        return
+
                     request_.headers['X-Handled'] = 'true'
 
                     def apply_and_continue():

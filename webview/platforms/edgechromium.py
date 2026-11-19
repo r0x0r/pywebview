@@ -7,7 +7,7 @@ from uuid import uuid1
 from webview import Window, _state
 from webview import settings as webview_settings
 from webview._pythonnet import clr
-from webview.platforms.webview2core import WebView2Core
+from webview.platforms.webview2core import CANCEL_REQUEST, WebView2Core
 from webview.util import (
     create_cookie,
     get_app_root,
@@ -347,7 +347,12 @@ class WinFormsEdgeChrome(WebView2Core):
 
             def apply_header_diff():
                 try:
-                    if diff is not None:
+                    if diff is CANCEL_REQUEST:
+                        # An empty 204 response: a cancelled navigation stays on the current page
+                        args.Response = sender.Environment.CreateWebResourceResponse(
+                            None, 204, 'No Content', ''
+                        )
+                    elif diff is not None:
                         extra, missing = diff
                         for key, value in extra.items():
                             args.Request.Headers.SetHeader(key, value)

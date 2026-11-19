@@ -983,15 +983,23 @@ The event handler can accept a single argument - a `Request` object that contain
 * `method` - HTTP method
 * `headers` - HTTP request headers as a dictionary. If you mutate headers, modified headers will be used for the request.
 
-Header modification is not applied to every request on every platform. Changes that cannot be applied are ignored without a warning.
+Return `False` from the handler to cancel the request. Header changes are ignored for a cancelled request.
 
-| Platform | Requests that use modified headers | Notes |
-| --- | --- | --- |
-| Windows | All | |
-| QT | All | Headers can be added or changed, but not removed |
-| GTK | Main document only | The page load is restarted with the modified headers |
-| macOS | Main frame navigations only | The navigation is restarted with the modified headers and an additional `X-Handled: true` header |
-| Android | `https://` and non-loopback `http://` URLs | Pages served from `localhost`, `127.0.0.1` or `::1`, including the built-in HTTP server, are not affected. Affected requests are resent without their body, so POST data is lost |
+``` python
+def on_request(request):
+    if 'ads.example.com' in request.url:
+        return False
+```
+
+Header modification and cancelling are not applied to every request on every platform. Header changes that cannot be applied are ignored without a warning.
+
+| Platform | Requests that use modified headers | Requests that can be cancelled | Notes |
+| --- | --- | --- | --- |
+| Windows | All | All | A cancelled request receives an empty `204 No Content` response, so a cancelled navigation stays on the current page |
+| QT | All | All | Headers can be added or changed, but not removed. A cancelled navigation shows an empty error page |
+| GTK | Main document only | Navigations | The page load is restarted with the modified headers, so the server receives both the original and the modified request. For navigations, the handler receives the headers before WebKit adds `Sec-Fetch-*` and `Upgrade-Insecure-Requests`. Cancelling any other request logs a warning |
+| macOS | Main frame navigations only | Main frame navigations | The navigation is restarted with the modified headers and an additional `X-Handled: true` header |
+| Android | `https://` and non-loopback `http://` URLs | All | Pages served from `localhost`, `127.0.0.1` or `::1`, including the built-in HTTP server, do not use modified headers. Affected requests are resent without their body, so POST data is lost. A cancelled request receives an empty `204 No Content` response |
 
 Not supported on CEF.
 

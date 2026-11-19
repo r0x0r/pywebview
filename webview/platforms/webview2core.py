@@ -44,6 +44,9 @@ _CloseHandle.argtypes = [wintypes.HANDLE]
 _request_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix='pywebview-request')
 atexit.register(_request_executor.shutdown, wait=False, cancel_futures=True)
 
+# Returned by _compute_request_header_diff when a request_sent handler returns False
+CANCEL_REQUEST = object()
+
 
 class WebView2Core(ABC):
     """
@@ -166,7 +169,7 @@ class WebView2Core(ABC):
     def _compute_request_header_diff(self, original: dict, uri: str, method: str):
         """
         Fire request_sent event and return (extra, missing) header diffs if changed.
-        Returns None if headers are unchanged.
+        Returns None if headers are unchanged, or CANCEL_REQUEST if a handler returned False.
 
         HTTP header names are case-insensitive, so the diff is computed on
         lowercased names: a handler that only changes a header's casing (e.g.
@@ -175,7 +178,8 @@ class WebView2Core(ABC):
         same header and a same-named remove-after-set would delete it.
         """
         request = Request(uri, method, dict(original))
-        self.pywebview_window.events.request_sent.set(request)
+        if self.pywebview_window.events.request_sent.set(request):
+            return CANCEL_REQUEST
         if request.headers == original:
             return None
 

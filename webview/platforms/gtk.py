@@ -215,6 +215,8 @@ class BrowserView:
         self.manager.connect('script-message-received', self.on_js_bridge_call)
 
         self.request_headers_mutated = False
+        # (Request, headers it was created with) of a navigation request_sent already fired for
+        self.navigation_request = None
 
         # Create WebView with the configured context
         self.webview = webkit.WebView(user_content_manager=self.manager, web_context=web_context)
@@ -438,8 +440,28 @@ class BrowserView:
         # synchronous even though it means a request_sent handler here that
         # calls a synchronous window API (e.g. evaluate_js()) can deadlock;
         # see evaluate_js()'s own main-thread guard for that case instead.
-        request_ = Request(url, method, original_headers)
-        self.pywebview_window.events.request_sent.set(request_)
+        navigation = self.navigation_request
+        self.navigation_request = None
+
+        if navigation and navigation[0].url == url:
+            # Already fired in on_navigation. WebKit has added headers since, so carry over
+            # only the handler's changes.
+            request_, navigation_headers = navigation
+            headers_ = {
+                k: v
+                for k, v in original_headers.items()
+                if k not in navigation_headers or k in request_.headers
+            }
+            headers_.update(
+                {k: v for k, v in request_.headers.items() if navigation_headers.get(k) != v}
+            )
+            request_.headers = headers_
+        else:
+            request_ = Request(url, method, original_headers)
+            if self.pywebview_window.events.request_sent.set(request_):
+                # By now WebKitGTK has sent the request, so only navigations can be cancelled
+                logger.warning(f'Request cancelling is supported only for navigations: {url}')
+                return
 
         if (
             request_.headers == original_headers
@@ -509,7 +531,8 @@ class BrowserView:
 
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) is webkit.NavigationPolicyDecision:
-            uri = decision.get_navigation_action().get_request().get_uri()
+            request = decision.get_navigation_action().get_request()
+            uri = request.get_uri()
 
             if decision.get_navigation_action().get_frame_name() == '_blank':
                 if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
@@ -517,6 +540,16 @@ class BrowserView:
                     decision.ignore()
                 else:
                     self.load_url(uri)
+            elif len(self.pywebview_window.events.request_sent) > 0:
+                # Fired here rather than in on_request, as only now can the navigation be cancelled
+                headers = self._headers_to_dict(request.get_http_headers())
+                request_ = Request(uri, request.get_http_method(), headers)
+
+                if self.pywebview_window.events.request_sent.set(request_):
+                    decision.ignore()
+                    return True
+
+                self.navigation_request = (request_, headers)
         elif type(decision) is webkit.ResponsePolicyDecision:
             if not decision.is_mime_type_supported():
                 self._download_filename = decision.get_response().get_suggested_filename()

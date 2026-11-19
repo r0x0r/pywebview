@@ -7,6 +7,10 @@ import webview
 
 def on_request(window, request):
     print('Request sent: ' + request.url)
+
+    if request.url.endswith('/favicon.ico'):
+        return False  # cancel the request
+
     request.headers['pywebview'] = 'header'
 
 
