@@ -509,6 +509,7 @@ class BrowserView:
                     # An ignored navigation sends no request for on_request to match
                     self.navigation_url = None
                     decision.ignore()
+                    self.pywebview_window._restore_cancelled_load(uri)
                     return True
 
                 # Navigations do not tell which frame they are for, so headers are modified only

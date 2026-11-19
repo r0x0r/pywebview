@@ -194,6 +194,8 @@ class Window:
         self._js_api_restricted = True
         self._js_api_document_url: str | None = None
         self._js_api_pending_html = False
+        # What load_url() changed, restored if a request_sent handler cancels the navigation
+        self._cancellable_load: tuple[str | None, set[str], bool, list[Event]] | None = None
         self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
         # Blocking events (should_lock=True) wait for their handlers and use their return value,
@@ -315,6 +317,13 @@ class Window:
             self._url_prefix = self._server.address
             self._common_path = self._server.common_path
 
+        ready = [self.events.loaded, self.events.before_load, self.events._pywebviewready]
+        self._cancellable_load = (
+            self.real_url,
+            set(self._js_api_origins),
+            self._js_api_pending_html,
+            [event for event in ready if event.is_set()],
+        )
         self.real_url = self._resolve_url(url)
         self._js_api_pending_html = False
         self._allow_js_api_on(self.real_url)
@@ -640,11 +649,28 @@ class Window:
 
     def _invalidate_js_api(self) -> None:
         """Revoke bridge access at the native backend's document transition."""
+        self._cancellable_load = None
         self._js_api_token = None
         self._js_api_restricted = True
         self._js_api_document_url = None
         if not self._js_api_pending_html:
             self._js_api_origins.discard('about:blank')
+
+    def _restore_cancelled_load(self, url: str) -> None:
+        """
+        Undo load_url() when a request_sent handler cancels its navigation before the page
+        starts loading, so that the current page stays usable. Does nothing if another load
+        started since.
+        """
+        state = self._cancellable_load
+        if state is None or url.rstrip('/') != (self.real_url or '').rstrip('/'):
+            return
+
+        self._cancellable_load = None
+        self.real_url, self._js_api_origins, self._js_api_pending_html, ready = state
+        for event in ready:
+            # Set the flag without running the handlers again, the page has not changed
+            event._event.set()
 
     def _run_js_api_js(self, script: str) -> bool:
         """

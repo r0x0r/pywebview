@@ -92,6 +92,8 @@ def cancel_test(window, hits, cancelled):
     window.load_url(url + '/blocked')
     time.sleep(2)
     assert cancelled == [url + '/blocked'], f'request_sent did not see the request: {cancelled}'
+    # The current page stays usable
+    assert window.evaluate_js('document.body.innerText') == 'index'
 
     # A request that is not cancelled reaches the server
     window.load_url(url + '/allowed')
