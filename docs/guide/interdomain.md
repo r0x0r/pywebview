@@ -103,13 +103,13 @@ Exposed functions can be `async`. _pywebview_ runs coroutines on an asyncio even
 - If you pass a loop to `webview.start(event_loop=loop)`, _pywebview_ uses it. If the loop is not running, _pywebview_ runs it in a background thread.
 - Otherwise, _pywebview_ starts its own loop in a background thread when the first coroutine runs, and closes it when the GUI loop exits.
 
-These can also be `async`: handlers of non-blocking window events, DOM events and state changes, the function passed to `webview.start`, menu actions and `evaluate_js` callbacks. Handlers of blocking window events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) must be regular functions. See [Window events](/api/#window-events) and the [async example](/examples/async_api.html).
-
 Window methods such as `evaluate_js` are synchronous. If a coroutine calls one, the event loop waits until the call returns and no other coroutine can run. To avoid this, run the call in a thread:
 
 ``` python
 await asyncio.to_thread(window.evaluate_js, script)
 ```
+
+See the [async example](/examples/async_api.html).
 
 ## Shared state
 
