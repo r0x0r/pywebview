@@ -52,7 +52,9 @@ _pywebview_ runs in private mode by default. Start it with `webview.start(privat
 
 ### How do I read cookies?
 
-Use `window.get_cookies()`. Cookie support differs between platforms. To keep cookies between runs, start with `private_mode=False`.
+Use `window.get_cookies()`. It returns the cookies of the current page from the web engine's cookie store, including `HttpOnly` cookies, which Javascript cannot read with `document.cookie`. Cookie support differs between platforms. To keep cookies between runs, start with `private_mode=False`.
+
+Because of `HttpOnly` cookies, `get_cookies()` cannot be called from Javascript, even if you expose the window through `js_api`. See [Security](/guide/security.md#protected-methods).
 
 ### How do I get the full path of dropped files?
 
