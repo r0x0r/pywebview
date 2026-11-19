@@ -10,8 +10,10 @@ from typing import Any, Literal, TypeAlias, cast, get_args
 
 from webview import WebViewException
 
-GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'edgechromium', 'android', 'cocoa', 'winui3']
+GUIType: TypeAlias = Literal['qt', 'gtk', 'edgechromium', 'android', 'cocoa', 'winui3']
 GUI_TYPES = list(get_args(GUIType))
+# Removed renderers. They are still accepted so that the fallback warning is logged.
+RETIRED_GUI_TYPES = ('mshtml', 'cef')
 
 logger = logging.getLogger('pywebview')
 guilib: ModuleType | None = None
@@ -104,12 +106,15 @@ def initialize(forced_gui: GUIType | None = None):
         forced_gui = cast(
             GUIType,
             os.environ['PYWEBVIEW_GUI'].lower()
-            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in GUI_TYPES
+            if 'PYWEBVIEW_GUI' in os.environ
+            and os.environ['PYWEBVIEW_GUI'].lower() in (*GUI_TYPES, *RETIRED_GUI_TYPES)
             else forced_gui,
         )
 
-    if forced_gui == 'mshtml':
-        logger.warning('MSHTML support has been removed. Using the default renderer instead.')
+    if forced_gui in RETIRED_GUI_TYPES:
+        logger.warning(
+            f'{forced_gui.upper()} support has been removed. Using the default renderer instead.'
+        )
         forced_gui = None
 
     forced_gui_ = forced_gui
@@ -147,8 +152,8 @@ def initialize(forced_gui: GUIType | None = None):
             # the WinUI 3 import fails, or callers asking for winui3 could
             # unknowingly get a different renderer instead.
             guis = [import_winui3]
-        elif forced_gui in ('cef', 'edgechromium'):
-            # Explicitly requested a WinForms-family renderer: don't silently
+        elif forced_gui == 'edgechromium':
+            # Explicitly requested the WinForms renderer: don't silently
             # fall back to WinUI 3 if it fails to load either, for the same
             # reason as the winui3 case above.
             guis = [import_winforms]
@@ -165,13 +170,13 @@ def initialize(forced_gui: GUIType | None = None):
                     'WebView2 Runtime and Windows App Runtime 2.x installed, in order to use '
                     'pywebview.'
                 )
-            elif forced_gui in ('cef', 'edgechromium'):
+            elif forced_gui == 'edgechromium':
                 # Only pythonnet could satisfy this branch — fallback to
                 # winui3 is intentionally disabled above, so mentioning its
                 # extra here would be equally misleading.
                 raise WebViewException(
-                    'You must have pythonnet installed, plus the Edge WebView2 Runtime for '
-                    'edgechromium, in order to use pywebview.'
+                    'You must have pythonnet and the Edge WebView2 Runtime installed in order '
+                    'to use pywebview.'
                 )
             raise WebViewException(
                 'You must have the Edge WebView2 Runtime and either pythonnet, or the '
