@@ -12,6 +12,8 @@ from webview import WebViewException
 
 GUIType: TypeAlias = Literal['qt', 'gtk', 'edgechromium', 'android', 'cocoa', 'winui3']
 GUI_TYPES = list(get_args(GUIType))
+# Removed renderers. They are still accepted so that the fallback warning is logged.
+RETIRED_GUI_TYPES = ('mshtml', 'cef')
 
 logger = logging.getLogger('pywebview')
 guilib: ModuleType | None = None
@@ -104,11 +106,12 @@ def initialize(forced_gui: GUIType | None = None):
         forced_gui = cast(
             GUIType,
             os.environ['PYWEBVIEW_GUI'].lower()
-            if 'PYWEBVIEW_GUI' in os.environ and os.environ['PYWEBVIEW_GUI'].lower() in GUI_TYPES
+            if 'PYWEBVIEW_GUI' in os.environ
+            and os.environ['PYWEBVIEW_GUI'].lower() in (*GUI_TYPES, *RETIRED_GUI_TYPES)
             else forced_gui,
         )
 
-    if forced_gui in ('mshtml', 'cef'):
+    if forced_gui in RETIRED_GUI_TYPES:
         logger.warning(
             f'{forced_gui.upper()} support has been removed. Using the default renderer instead.'
         )
