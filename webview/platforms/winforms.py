@@ -309,7 +309,11 @@ class BrowserView:
         def apply_frameless_style(self):
             # Python subclasses cannot override CreateParams, so the live handle is changed
             if not self.is_fullscreen:
-                remove_caption(self.Handle.ToInt32(), self.pywebview_window.resizable)
+                window = self.pywebview_window
+                # The resize frame of a transparent window shows as a white strip at the top,
+                # a border, rounded corners and a shadow around the transparent area
+                keep_frame = not window.transparent
+                remove_caption(self.Handle.ToInt32(), window.resizable, keep_frame)
 
         def on_system_theme_changed(self, sender, e):
             self.update_title_bar_theme()

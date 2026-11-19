@@ -598,17 +598,24 @@ def set_border_color(hwnd: int, color: int) -> int:
     return dwm_set_window_attribute(hwnd, DWMWA_BORDER_COLOR, color)
 
 
-def remove_caption(hwnd: int, resizable: bool) -> None:
+def remove_caption(hwnd: int, resizable: bool, keep_frame: bool = True) -> None:
     """
     Remove the caption from a window while keeping the native resize frame and window commands,
     so that Windows still handles resizing, snapping, maximizing and minimizing. The border is
     hidden where DWM supports it; elsewhere it stays visible.
+
+    :param keep_frame: If False, remove the resize frame too, so the window has no non-client
+        area. DWM then draws no top strip, border, rounded corners or shadow, but Windows no
+        longer resizes or snaps the window from its edges.
     """
     style = _user32.GetWindowLongW(hwnd, GWL_STYLE)
     keep = WS_SYSMENU | WS_MINIMIZEBOX
     if resizable:
-        keep |= WS_THICKFRAME | WS_MAXIMIZEBOX
-    new_style = (style & ~WS_CAPTION) | keep
+        keep |= WS_MAXIMIZEBOX
+        if keep_frame:
+            keep |= WS_THICKFRAME
+    remove = WS_CAPTION if keep_frame else WS_CAPTION | WS_THICKFRAME
+    new_style = (style & ~remove) | keep
 
     if new_style != style:
         _user32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
@@ -623,7 +630,7 @@ def remove_caption(hwnd: int, resizable: bool) -> None:
         )
 
     actual = _user32.GetWindowLongW(hwnd, GWL_STYLE)
-    if actual & WS_CAPTION or (actual & keep) != keep:
+    if actual & remove or (actual & keep) != keep:
         _log.warning(
             f'Frameless style not applied: requested 0x{new_style & 0xFFFFFFFF:08X}, '
             f'got 0x{actual & 0xFFFFFFFF:08X}'
