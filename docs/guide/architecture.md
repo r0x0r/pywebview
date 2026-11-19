@@ -54,7 +54,7 @@ window.addEventListener('pywebviewready', async () => {
 - Relative paths are resolved from the directory of your application entry point.
 - Everything in the served directory and its subdirectories is available to the page. Do not put private files there.
 - You can also expose single functions with `window.expose(func)`, at any time.
-- Use `webview.start(ssl=True)` to serve the files over HTTPS.
+- Use `webview.start(ssl=True)` to serve the files over HTTPS (requires the `cryptography` library to be installed with `pip install cryptography`)
 
 Read more in [HTTP server](/guide/usage.md#http-server). See the [todos example](https://github.com/r0x0r/pywebview/tree/master/examples/todos) for a complete application.
 

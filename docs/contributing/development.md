@@ -47,6 +47,14 @@ You need a [GitHub](https://github.com) account, [Python 3.10 or newer](https://
     pip install -e ".[dev]"
     ```
 
+    Or, if you use [uv](https://docs.astral.sh/uv/):
+
+    ``` bash
+    uv sync --extra dev
+    ```
+
+    This creates `.venv` and installs _pywebview_ in editable mode. Prefix commands with `uv run` (for example `uv run pytest tests`) or activate the environment with `source .venv/bin/activate`. For the backend extras in the next step, use `uv sync --extra dev --extra <backend>` instead of `pip install`.
+
 3. Install the dependencies of the backend you work on.
 
     | Platform | Backend | Install |
@@ -148,7 +156,6 @@ Things to know:
 - **Tests open real windows.** They are smoke tests, not unit tests. Each test checks that a scenario runs and that the window closes without errors. There is little checking of results beyond `assert_js`.
 - **You need a display.** On a headless Linux machine, use Xvfb and set `DISPLAY`. For Qt, you can also set `QT_QPA_PLATFORM=offscreen`.
 - **Each test has a 60 second limit** (`pytest-timeout`), so a hung window fails the test instead of blocking the run.
-- **Some tests fail or hang at random,** especially on Windows. The cause is not known. Run a failing test again before you decide that your change broke it. Help with fixing flaky tests is very welcome.
 
 To write a test, create a window, put the test logic in a function that runs in a thread, and pass both to `run_test` from `tests/util.py`.
 
@@ -168,6 +175,20 @@ def my_feature(window):
 ```
 
 Keep tests focused. Test the behavior that matters, not every code path. If you add several tests for one change, put them in one test file.
+
+### Smoke test app
+
+`tests/smoke_test` is an app that tests most of _pywebview_ in one run: the JS API, state, window events and functions, cookies, the DOM API, multiple windows and the built-in HTTP server. Run it to check a backend by hand, for example after a change that touches many features.
+
+``` bash
+cd tests/smoke_test
+python main.py                    # default backend
+PYWEBVIEW_GUI=qt python main.py   # one backend
+```
+
+The tests start automatically. The **Checks** card turns green if all tests pass, or red with a list of failed tests. The same summary is printed to the terminal. The **Manual checks** card has buttons for the confirmation and file dialogs, which need a person to check them. The app needs network access, because it loads Mocha and Chai from unpkg.com.
+
+The app also runs on Android. Build it with `buildozer android debug deploy run` from the same directory. pytest does not collect the smoke test app, and CI does not run it. See `tests/smoke_test/README.md` for details.
 
 ### Continuous integration
 
@@ -202,7 +223,7 @@ The person who submits the pull request is responsible for it, whoever wrote the
 
 - **Read and understand every line** before you submit. Do not submit changes that you cannot explain.
 - **Review comments are for you.** You answer them and you make the fixes, with or without the help of an agent. Check the agent's changes the same way as any other change.
-- **Check the result yourself.** An agent in a headless environment usually cannot run the tests, because there is no display and no native web engine. Run the tests on a real machine when you can. Never say that tests pass if they were not run. Say what was verified and on which platform.
+- **Check the result yourself.** An agent that runs on your machine can run the tests for the backends installed there. A cloud agent usually cannot, because it has no display and no native web engine. Either way, only some backends can be tested on one machine. Never say that tests pass if they were not run. Say what was verified and on which platform.
 - **Keep the scope narrow.** Agents tend to add extra features, abstractions, files and refactoring. Ask for the smallest change that solves the problem and remove anything that was not asked for.
 - **Do not let an agent add features or public API** without maintainer approval. This includes settings and parameters. See [Before you start](#before-you-start).
 - **Do not let an agent edit generated or bundled files,** or add dependencies.

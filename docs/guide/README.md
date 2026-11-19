@@ -19,13 +19,19 @@ See [Web engine](/guide/web_engine.md) for details.
 
 ## Features
 
-- Window management: size, position, fullscreen, frameless windows, multiple windows
-- Two-way communication between Javascript and Python
-- Shared state between Python and the page
-- Built-in HTTP server for local files
-- DOM access from Python
-- Events for windows and the DOM
-- Native menus and dialogs
+- Window management: size, position, minimize, maximize, fullscreen, always on top, hide and show
+- Multiple windows and multiple screens
+- Frameless and transparent windows, custom title bars and drag areas
+- Two-way communication between Javascript and Python: call Python functions from the page and run Javascript from Python
+- Async support: exposed functions, event handlers and callbacks can be `async` functions that run on an asyncio event loop
+- Shared state between Python and the page, synced in both directions
+- DOM access from Python: find, create, change and move elements, and handle DOM events
+- Events for the window lifecycle, such as `loaded`, `shown`, `resized` and `closing`
+- Built-in HTTP server for local files. You can also serve a WSGI app, such as Flask, directly in a window. HTTPS is optional
+- Native menus, file dialogs and confirmation dialogs
+- Drag and drop of files with full file paths
+- Cookies, private mode and persistent storage
+- Downloads, custom user agent and localization of built-in strings
 
 ## When to use _pywebview_
 
@@ -84,7 +90,7 @@ Read the [contributing guidelines](/contributing/).
 
 ## About
 
-_pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/) and is open source.
+_pywebview_ is created by [Roman Sirokov](https://github.com/r0x0r/) and is open source under the BSD license.
 
 ## Support the project
 
@@ -93,7 +99,6 @@ If you find _pywebview_ useful, please support it.
 ::: center
 [![Github Sponsor](/github_sponsor_button.png)](https://github.com/sponsors/r0x0r)
 
-[![Patreon](/patreon.png)](https://www.patreon.com/bePatron?u=13226105)
 
 [![Open Collective](/opencollective.png)](https://opencollective.com/pywebview/donate)
 :::
