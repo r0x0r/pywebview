@@ -682,7 +682,7 @@ Expose a Python function or functions to JS API. Functions are exposed as `windo
 window.get_cookies()
 ```
 
-Return a list of all the cookies set for the current website (as [SimpleCookie](https://docs.python.org/3/library/http.cookies.html)). `get_cookies` cannot be called from Javascript, even if the window is reachable through `js_api`.
+Return a list of all the cookies set for the current website (as [SimpleCookie](https://docs.python.org/3/library/http.cookies.html)). The list includes `HttpOnly` cookies, which Javascript cannot read. `get_cookies` cannot be called from Javascript, even if the window is reachable through `js_api`.
 
 ### window.get_current_url
 
