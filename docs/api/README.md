@@ -1001,8 +1001,6 @@ Header modification and cancelling are not applied to every request on every pla
 | macOS | Main frame navigations only | Main frame navigations | The navigation is restarted with the modified headers and an additional `X-Handled: true` header |
 | Android | `https://` and non-loopback `http://` URLs | All | Pages served from `localhost`, `127.0.0.1` or `::1`, including the built-in HTTP server, do not use modified headers. Affected requests are resent without their body, so POST data is lost. A cancelled request receives an empty `204 No Content` response |
 
-Not supported on CEF.
-
 [Example](/examples/headers.html)
 
 
@@ -1015,7 +1013,7 @@ The event handler can accept a single argument - a `Response` object that contai
 * `status_code` - HTTP status code
 * `headers` - HTTP response headers as a dictionary
 
-On QT, the event requires Qt 6.6 or newer, is not emitted for redirects, and its headers do not include `Set-Cookie`. On macOS, subresource responses are reported through a private WebKit API; where it is unavailable, only navigation responses are reported. Not supported on CEF.
+On QT, the event requires Qt 6.6 or newer, is not emitted for redirects, and its headers do not include `Set-Cookie`. On macOS, subresource responses are reported through a private WebKit API; where it is unavailable, only navigation responses are reported.
 
 [Example](/examples/headers.html)
 

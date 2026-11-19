@@ -531,7 +531,7 @@ class NetworkAPI:
     def support(self):
         """What the request_sent and response_received events cover on this backend."""
         renderer = webview.renderer
-        requests = renderer not in ('cef', 'qtwebkit')
+        requests = renderer != 'qtwebkit'
         responses = requests
         if renderer == 'qtwebengine':
             from qtpy import QT_VERSION

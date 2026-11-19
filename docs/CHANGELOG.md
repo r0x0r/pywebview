@@ -16,7 +16,7 @@
 - `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
 ### ⚡ Features
 
-- `All` Cancel a request by returning `False` from a `request_sent` handler. Every request can be cancelled on Windows, QT and Android, but only navigations on GTK and main frame navigations on macOS. Not supported on CEF.
+- `All` Cancel a request by returning `False` from a `request_sent` handler. Every request can be cancelled on Windows, QT and Android, but only navigations on GTK and main frame navigations on macOS.
 - `QT` Support the `response_received` event for the main document on Qt 6.6 or newer.
 
 - `WinUI3` New WinUI 3 backend hosting WebView2, for platforms where pythonnet is unavailable, such as Windows on ARM64. Install it with `pip install "pywebview[winui3]"` and select it with `gui='winui3'`; it is also used automatically when WinForms cannot be loaded. Requires the Edge WebView2 Runtime and the Windows App Runtime. [#1837](https://github.com/r0x0r/pywebview/pull/1837)
