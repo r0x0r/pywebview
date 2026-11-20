@@ -18,7 +18,7 @@ webview.create_window(title, url=None, html=None, js_api=None, width=800, height
                       easy_drag=True, shadow=True, focus=True, minimized=False, maximized=False, menu=[],
                       on_top=False, confirm_close=False, background_color='#FFFFFF',
                       transparent=False, text_select=False, zoomable=False,
-                      draggable=False, vibrancy=False, server=None, server_args={},
+                      draggable=False, vibrancy=False, server=None, http_port=None, server_args={},
                       localization=None)
 ```
 
@@ -53,6 +53,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `draggable` - Enable image and link object dragging. Default is False
 * `vibrancy` - Enable window vibrancy. Default is False. macOS only.
 * `server` - A custom WSGI server class for this window. Defaults to the `server` passed to `webview.start()`, which defaults to BottleServer.
+* `http_port` - Port number for the HTTP server of this window. By default the port is randomized.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 * `localization` - pass a localization dictionary for per window localization.
 
@@ -718,7 +719,7 @@ Hide the window.
 ### window.load_css
 
 ``` python
-window.load_css(css)
+window.load_css(stylesheet)
 ```
 
 Load CSS as a string.
@@ -729,7 +730,7 @@ Load CSS as a string.
 ### window.load_html
 
 ``` python
-window.load_html(content, base_uri=base_uri())
+window.load_html(html, base_uri=base_uri())
 ```
 
 Load HTML code. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way. `load_html` cannot be called from Javascript, even if the window is reachable through `js_api`.
@@ -890,7 +891,7 @@ Get `window.document` of the loaded page as an `Element` object
 ### window.dom.get_element
 
 ``` python
-window.get_element(selector: str)
+window.dom.get_element(selector: str)
 ```
 
 Get a first `Element` matching the selector. None if not found.
@@ -898,7 +899,7 @@ Get a first `Element` matching the selector. None if not found.
 ### window.dom.get_elements
 
 ``` python
-window.get_elements(selector: str)
+window.dom.get_elements(selector: str)
 ```
 
 Get a list of `Element` objects matching the selector.

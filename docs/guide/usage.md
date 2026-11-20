@@ -56,7 +56,7 @@ pass
 The `Window` object provides a number of functions and properties to interact with the window. Here are some of the commonly used methods.
 
 - `window.load_url(url)`: Loads a new URL in the window.
-- `window.load_html(content)`: Loads HTML content directly into the window.
+- `window.load_html(html)`: Loads HTML content directly into the window.
 - `window.evaluate_js(script)`: Executes JavaScript code in the window and returns the result.
 - `window.toggle_fullscreen()`: Toggles the window between fullscreen and windowed mode.
 - `window.resize(width, height)`: Resizes the window to the specified width and height.
