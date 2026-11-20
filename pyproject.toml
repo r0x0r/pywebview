@@ -73,6 +73,11 @@ qt5 = ["QtPy", "PyQt5", "pyqtwebengine"]
 qt6 = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 android = ["jnius"]
 ssl = ["cryptography"]
+# Keep in sync with the dev dependency group below.
+dev = ["ruff", "pre-commit", "pytest", "pytest-timeout", "build", "twine"]
+
+# Installed by `uv sync` by default. pip users install the dev extra instead.
+[dependency-groups]
 dev = ["ruff", "pre-commit", "pytest", "pytest-timeout", "build", "twine"]
 
 [project.urls]
@@ -165,12 +170,6 @@ packages = [
 
 [tool.setuptools_scm]
 write_to = "webview/_version.py"
-
-[tool.uv]
-# Prefer pre-compiled wheels for better installation experience
-resolution = "highest"
-# Use index strategy that prefers wheels over source distributions
-index-strategy = "unsafe-best-match"
 
 [tool.uv.extra-build-dependencies]
 jnius = ["Cython"]

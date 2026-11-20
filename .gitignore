@@ -34,3 +34,4 @@ gradle*
 .env
 tests/android/logcat.txt
 tests/android/summary.md
+uv.lock
