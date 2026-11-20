@@ -107,6 +107,10 @@ class BrowserView:
 
     cascade_loc = Foundation.NSMakePoint(100.0, 0.0)
     _shared_app_delegate = None
+    # Private WebKit API (macOS 10.15+) reporting every resource load, not only navigations
+    has_resource_load_delegate = WebKit.WKWebView.instancesRespondToSelector_(
+        b'_setResourceLoadDelegate:'
+    )
 
     class AppDelegate(AppKit.NSObject):
         def applicationShouldTerminate_(self, app):
@@ -145,6 +149,8 @@ class BrowserView:
             # callbacks can arrive after get_instance would return None.
             i.webview.setNavigationDelegate_(None)
             i.webview.setUIDelegate_(None)
+            if BrowserView.has_resource_load_delegate:
+                i.webview._setResourceLoadDelegate_(None)
 
             # WKUserContentController holds a strong reference to registered
             # script message handlers; remove them so the webview/window can
@@ -256,6 +262,20 @@ class BrowserView:
 
             # Balance the explicit retain() made when this delegate was assigned.
             self.release()
+
+    class ResourceLoadDelegate(AppKit.NSObject):
+        # Implements the private _WKResourceLoadDelegate protocol
+        @objc.typedSelector(b'v@:@@@')
+        def webView_resourceLoad_didReceiveResponse_(self, webview, resourceLoad, response_):
+            # file: and data: responses are plain NSURLResponses without status or headers
+            if len(webview.pywebview_window.events.response_received) == 0 or not (
+                response_ and response_.isKindOfClass_(Foundation.NSHTTPURLResponse)
+            ):
+                return
+
+            headers = dict(response_.allHeaderFields())
+            response = Response(response_.URL().absoluteString(), response_.statusCode(), headers)
+            webview.pywebview_window.events.response_received.set(response)
 
     class BrowserDelegate(AppKit.NSObject):
         # Display a JavaScript alert panel containing the specified message
@@ -377,9 +397,13 @@ class BrowserView:
 
             original_headers = dict(request.allHTTPHeaderFields())
             i = BrowserView.get_instance('webview', webview)
+            # The request is reissued with loadRequest_, which loads it in the main frame
+            target_frame = action.targetFrame()
 
             if (
                 len(i.pywebview_window.events.request_sent) > 0
+                and target_frame is not None
+                and target_frame.isMainFrame()
                 and 'X-Handled' not in original_headers
                 and str(url) != 'about:blank'
             ):
@@ -396,7 +420,13 @@ class BrowserView:
 
                 def dispatch_event():
                     request_ = Request(str(url), method, original_headers)
-                    i.pywebview_window.events.request_sent.set(request_)
+                    if i.pywebview_window.events.request_sent.set(request_):
+                        AppHelper.callAfter(
+                            handler, getattr(WebKit, 'WKNavigationActionPolicyCancel', 0)
+                        )
+                        i.pywebview_window._restore_cancelled_load(str(url))
+                        return
+
                     request_.headers['X-Handled'] = 'true'
 
                     def apply_and_continue():
@@ -434,11 +464,17 @@ class BrowserView:
         ):
             if navigationResponse.canShowMIMEType():
                 response_ = navigationResponse.response()
-                headers = dict(response_.allHeaderFields())
-                response = Response(
-                    response_.URL().absoluteString(), response_.statusCode(), headers
-                )
-                webview.pywebview_window.events.response_received.set(response)
+                # file: and data: responses are plain NSURLResponses without status or headers
+                if (
+                    not BrowserView.has_resource_load_delegate
+                    and len(webview.pywebview_window.events.response_received) > 0
+                    and response_.isKindOfClass_(Foundation.NSHTTPURLResponse)
+                ):
+                    headers = dict(response_.allHeaderFields())
+                    response = Response(
+                        response_.URL().absoluteString(), response_.statusCode(), headers
+                    )
+                    webview.pywebview_window.events.response_received.set(response)
 
                 decisionHandler(WebKit.WKNavigationResponsePolicyAllow)
             elif webview_settings['ALLOW_DOWNLOADS']:
@@ -732,6 +768,11 @@ class BrowserView:
         self.webview.setUIDelegate_(self._browserDelegate)
         self.webview.setNavigationDelegate_(self._browserDelegate)
         self.window.setDelegate_(self._windowDelegate)
+
+        if BrowserView.has_resource_load_delegate:
+            # WebKit holds the delegate weakly, so keep a reference here
+            self._resourceLoadDelegate = BrowserView.ResourceLoadDelegate.alloc().init()
+            self.webview._setResourceLoadDelegate_(self._resourceLoadDelegate)
 
         config.userContentController().addScriptMessageHandler_name_(
             self._browserDelegate, 'browserDelegate'

@@ -144,15 +144,6 @@ class BrowserView:
                 except Exception as e:
                     logger.error(f'Error parsing cookies: {e}')
 
-            elif event == 'onReceivedHttpError':
-                response_data = json.loads(data)
-                response = Response(
-                    response_data.get('url', ''),
-                    response_data.get('statusCode', 0),
-                    response_data.get('headers', {}),
-                )
-                self.pywebview_window.events.response_received.set(response)
-
         self._cookies = []
         self.webview = WebView(activity)
         webview_settings = self.webview.getSettings()
@@ -234,7 +225,9 @@ class BrowserView:
         original_headers = headers.copy()
 
         request = Request(url, method, headers)
-        self.pywebview_window.events.request_sent.set(request)
+        if self.pywebview_window.events.request_sent.set(request):
+            # Matches PyWebViewClient.CANCEL_REQUEST
+            return 'pywebview:cancel'
 
         if request.headers != original_headers:
             logger.debug(

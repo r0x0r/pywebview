@@ -9,8 +9,15 @@
 
 ### 🐞 Bug fixes
 
+- `GTK` Fix request headers modified in a `request_sent` handler sending the page twice, first with the original headers.
+- `Cocoa` Fix a `request_sent` handler loading iframe navigations in the whole window, and `response_received` failing on non-HTTP responses such as `file://` pages.
+- `Android` Fix `response_received` firing an extra time for HTTP error responses. Error responses to requests that pywebview resends itself, which are `https://` and non-loopback `http://` requests, are still reported twice.
+- `GTK` `EdgeChromium` Fix repeated headers, such as `Set-Cookie`, keeping only their last value in `response_received`. Values are now joined with a comma, as on macOS.
 - `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
 ### ⚡ Features
+
+- `All` Cancel a request by returning `False` from a `request_sent` handler. Every request can be cancelled on Windows, QT and Android, but only navigations on GTK and main frame navigations on macOS.
+- `QT` Support the `response_received` event for the main document on Qt 6.6 or newer.
 
 - `WinUI3` New WinUI 3 backend hosting WebView2, for platforms where pythonnet is unavailable, such as Windows on ARM64. Install it with `pip install "pywebview[winui3]"` and select it with `gui='winui3'`; it is also used automatically when WinForms cannot be loaded. Requires the Edge WebView2 Runtime and the Windows App Runtime. [#1837](https://github.com/r0x0r/pywebview/pull/1837)
 - `All` Support `async` JS API functions, exposed functions, event handlers, the `webview.start` function, state change handlers, menu actions and `evaluate_js` callbacks. Handlers of blocking window events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) must be regular functions; subscribing an `async` one raises `TypeError`. Coroutines run on an asyncio event loop passed via the new `event_loop` parameter of `webview.start`, or on one started automatically when the first coroutine needs to run. [#1886](https://github.com/r0x0r/pywebview/pull/1886)
@@ -31,6 +38,7 @@
 
 ### 🚀 Improvements
 
+- `Cocoa` Emit `response_received` for every HTTP response, including images, scripts, stylesheets and `fetch` requests, instead of only navigations.
 - `Winforms` Frameless windows keep the native resize frame instead of using `FormBorderStyle.None`. Only the caption is removed and, on Windows 11, the border is hidden, so Windows itself handles resizing from every edge and corner, Aero Snap, maximize, minimize and restore. On Windows 10 a thin native border remains visible. Because the native frame is kept, frameless windows have the system shadow even with `shadow=False`.
 
 ### 🐞 Bug fixes

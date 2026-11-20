@@ -982,21 +982,39 @@ The event handler can accept a single argument - a `Request` object that contain
 
 * `url` - URL of the request
 * `method` - HTTP method
-* `headers` - HTTP request headers as a dictionary. If you mutate mutate headers, modified headers will be used for the request.
+* `headers` - HTTP request headers as a dictionary. If you mutate headers, modified headers will be used for the request.
+
+Return `False` from the handler to cancel the request. Header changes are ignored for a cancelled request.
+
+``` python
+def on_request(request):
+    if 'ads.example.com' in request.url:
+        return False
+```
+
+Header modification and cancelling are not applied to every request on every platform. Header changes that cannot be applied are ignored without a warning.
+
+| Platform | Requests that use modified headers | Requests that can be cancelled | Notes |
+| --- | --- | --- | --- |
+| Windows | All | All | A cancelled request receives an empty `204 No Content` response, so a cancelled navigation stays on the current page |
+| QT | All | All | Headers can be added or changed, but not removed. A cancelled navigation shows an empty error page |
+| GTK | `GET` requests for the window URL and URLs loaded with `load_url` | Navigations | For navigations, the handler receives the headers before WebKit adds `Sec-Fetch-*` and `Upgrade-Insecure-Requests`. Cancelling any other request logs a warning |
+| macOS | Main frame navigations only | Main frame navigations | The navigation is restarted with the modified headers and an additional `X-Handled: true` header |
+| Android | `https://` and non-loopback `http://` URLs | All | Pages served from `localhost`, `127.0.0.1` or `::1`, including the built-in HTTP server, do not use modified headers. Affected requests are resent without their body, so POST data is lost. A cancelled request receives an empty `204 No Content` response |
 
 [Example](/examples/headers.html)
 
 
 ### window.events.response_received
 
-The event is fired when a HTTP response is received. The event is emitted for every HTTP response, except on macOS where it is emitted only for the main document.
+The event is fired when a HTTP response is received. The event is emitted for every HTTP response, except on QT where it is emitted only for the main document.
 The event handler can accept a single argument - a `Response` object that contains the following properties:
 
 * `url` - URL of the response
 * `status_code` - HTTP status code
 * `headers` - HTTP response headers as a dictionary
 
-Not supported on QT.
+On QT, the event requires Qt 6.6 or newer, is not emitted for redirects, and its headers do not include `Set-Cookie`. On macOS, subresource responses are reported through a private WebKit API; where it is unavailable, only navigation responses are reported.
 
 [Example](/examples/headers.html)
 

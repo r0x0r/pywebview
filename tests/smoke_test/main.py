@@ -3,8 +3,10 @@ import logging
 import random
 import threading
 import time
+from urllib.parse import urljoin, urlparse
 
 from bottle import Bottle, static_file
+from bottle import request as bottle_request
 
 import webview
 from webview.menu import Menu, MenuAction
@@ -14,14 +16,29 @@ logger = logging.getLogger('pywebview')
 
 app = Bottle()
 
+# Requests and responses of the local server seen by the window events, and the X-Smoke header
+# that the server received on each path
+network = {'requests': [], 'responses': [], 'hits': {}}
+
+
+def record_hit(path):
+    network['hits'].setdefault(path, []).append(bottle_request.headers.get('X-Smoke'))
+
 
 @app.route('/')
 def index():
+    record_hit('/')
     resp = static_file('index.html', root=get_app_root())
     # secure=True would require HTTPS, but the local server runs over plain HTTP (see
     # webview.start() call below), so the browser would silently refuse to store it.
     resp.set_cookie('serverCookie', 'test', httponly=True)
     return resp
+
+
+@app.route('/smoke/<name>')
+def smoke(name):
+    record_hit(f'/smoke/{name}')
+    return {'name': name}
 
 
 @app.route('/<filename:path>')
@@ -508,6 +525,94 @@ def exposed_function(value):
     return f'exposed {value}'
 
 
+class NetworkAPI:
+    _window = None
+
+    def support(self):
+        """What the request_sent and response_received events cover on this backend."""
+        renderer = webview.renderer
+        requests = renderer != 'qtwebkit'
+        responses = requests
+        if renderer == 'qtwebengine':
+            from qtpy import QT_VERSION
+
+            responses = tuple(int(v) for v in QT_VERSION.split('.')[:2]) >= (6, 6)
+        # Android does not report responses or use modified headers for loopback URLs, which
+        # include the built-in server
+        android = renderer == 'android-webkit'
+        every_request = renderer in ('edgechromium', 'winui3', 'qtwebengine', 'android-webkit')
+        return {
+            'request': requests,
+            'response': responses and not android,
+            'subresource_request': requests and renderer != 'wkwebview',
+            'subresource_response': responses and not android and renderer != 'qtwebengine',
+            'headers': requests and not android,
+            'subresource_headers': every_request and not android,
+            'subresource_cancel': every_request,
+            'navigation_cancel': requests and not android,
+        }
+
+    def log(self):
+        return network
+
+    def wait_for_response(self, path, timeout=5):
+        """Wait until response_received reports the local server path."""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            for response in network['responses']:
+                if urlparse(response['url']).path == path:
+                    return response
+            time.sleep(0.1)
+        return None
+
+    def cancel_navigation(self):
+        """Cancel load_url() in a second window and return how often the server saw the URL."""
+        path = '/smoke/blocked-navigation'
+        url = urljoin(self._window.real_url, path)
+        second = webview.create_window(
+            'Cancel navigation',
+            html='<html><body>cancel navigation</body></html>',
+            width=400,
+            height=300,
+        )
+
+        def on_request(request):
+            if request.url == url:
+                return False
+
+        second.events.request_sent += on_request
+        closed = threading.Event()
+        second.events.closed += closed.set
+        try:
+            if not second.events.loaded.wait(10):
+                raise TimeoutError('Second window did not load')
+            second.load_url(url)
+            time.sleep(2)
+        finally:
+            second.destroy()
+            closed.wait(5)
+
+        return len(network['hits'].get(path, []))
+
+
+def on_request(request):
+    set_event('request_sent', request.__dict__)
+    if urlparse(request.url).hostname not in ('127.0.0.1', 'localhost', '::1'):
+        return
+
+    network['requests'].append({'url': request.url, 'method': request.method})
+    if urlparse(request.url).path == '/smoke/blocked':
+        return False
+
+    request.headers['X-Smoke'] = 'smoke'
+
+
+def on_response(response):
+    set_event('response_received', response.__dict__)
+    if urlparse(response.url).hostname in ('127.0.0.1', 'localhost', '::1'):
+        network['responses'].append({'url': response.url, 'status_code': response.status_code})
+
+
 class Api:
     def eval(self, code):
         """Evaluate Python code in the context of this module. Errors propagate to JS."""
@@ -563,6 +668,7 @@ class Api:
     test2 = TestAPI()
     win = WindowAPI()
     dom = DomAPI()
+    net = NetworkAPI()
 
 
 def create_state(state):
@@ -593,15 +699,14 @@ if __name__ == '__main__':
     window.events.before_load += lambda: set_event('before_load', True)
     window.events.before_show += lambda: set_event('before_show', True)
     window.events.shown += lambda: set_event('shown', True)
-    window.events.request_sent += lambda request: set_event('request_sent', request.__dict__)
-    window.events.response_received += lambda response: set_event(
-        'response_received', response.__dict__
-    )
+    window.events.request_sent += on_request
+    window.events.response_received += on_response
 
     api._window = window
     api._dom = window.dom
     api.win._window = window
     api.dom._window = window
+    api.net._window = window
     window.expose(exposed_function)
 
     menu = [
