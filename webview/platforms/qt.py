@@ -11,6 +11,7 @@ from threading import Event, Semaphore, Thread, current_thread, main_thread
 from uuid import uuid1
 
 from qtpy import PYQT6, PYSIDE6, QtCore
+from qtpy.compat import isalive
 from qtpy.QtCore import QByteArray, QJsonValue
 from qtpy.QtGui import QColor, QIcon, QScreen
 from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
@@ -81,9 +82,10 @@ if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos'
 _app_menu = None
 _main_window_created = Event()
 _main_window_created.clear()
-# QtWebEngine requires a profile to outlive the pages that use it. Profiles are kept here until
-# their last page is destroyed, because Python would otherwise free them with their window.
-_profiles_in_use = set()
+# QtWebEngine requires a profile to outlive the pages that use it. Profiles are kept here with the
+# last page that uses them until that page is deleted, because Python would otherwise free them
+# with their window.
+_profiles_in_use = {}
 
 # suppress invalid style override error message on some Linux distros
 os.environ['QT_STYLE_OVERRIDE'] = ''
@@ -503,10 +505,10 @@ class BrowserView(QMainWindow):
             page = BrowserView.WebPage(self, profile=self.profile)
             self.webview.setPage(page)
 
-            # The navigation handler is the last page using the profile to be destroyed
-            profile = self.profile
-            _profiles_in_use.add(profile)
-            page.nav_handler.destroyed.connect(lambda: _profiles_in_use.discard(profile))
+            # The navigation handler is the last page using the profile to be deleted. A Python
+            # slot on its destroyed signal can crash PyQt5, so deleted pages are looked up instead.
+            _release_unused_profiles()
+            _profiles_in_use[self.profile] = page.nav_handler
         elif not is_webengine and not _state['private_mode']:
             logger.warning('qtwebkit does not support private_mode')
 
@@ -1055,6 +1057,12 @@ def setup_app():
     _app = QApplication.instance() or QApplication(sys.argv)
 
 
+def _release_unused_profiles():
+    for profile, page in list(_profiles_in_use.items()):
+        if not isalive(page):
+            del _profiles_in_use[profile]
+
+
 def create_window(window):
     def _create():
         browser = BrowserView(window)
@@ -1106,6 +1114,7 @@ def create_window(window):
         _app.exec_()
         # Delete pages scheduled with deleteLater() before their profiles are released
         _app.sendPostedEvents(None, QtCore.QEvent.DeferredDelete)
+        _release_unused_profiles()
     else:
         _main_window_created.wait()
         i = list(BrowserView.instances.values())[0]  # arbitrary instance
