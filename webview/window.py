@@ -4,6 +4,7 @@ import inspect
 import logging
 import os
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 from enum import Flag, auto
 from functools import wraps
 from threading import Lock
@@ -103,6 +104,25 @@ class FixPoint(Flag):
     SOUTH = auto()
 
 
+@dataclass
+class _CancellableLoad:
+    """
+    What load_url() changed, so that it can be undone if a request_sent handler cancels the
+    navigation before the page starts loading. It describes the document shown before the first
+    of possibly several pending load_url() calls.
+    """
+
+    real_url: str | None
+    pending_html: bool
+    ready: list[Event]
+    server: http.BottleServer | None
+    url_prefix: str | None
+    common_path: str | None
+    # Navigations that are not loaded or cancelled yet, and the JS API origins they allowed
+    urls: list[str] = field(default_factory=list)
+    origins: set[str] = field(default_factory=set)
+
+
 class Window:
     def __init__(
         self,
@@ -195,7 +215,7 @@ class Window:
         self._js_api_document_url: str | None = None
         self._js_api_pending_html = False
         # What load_url() changed, restored if a request_sent handler cancels the navigation
-        self._cancellable_load: tuple[str | None, set[str], bool, list[Event]] | None = None
+        self._cancellable_load: _CancellableLoad | None = None
         self._callbacks: dict[str, Callable[..., Any] | None] = {}
 
         # Blocking events (should_lock=True) wait for their handlers and use their return value,
@@ -311,22 +331,39 @@ class Window:
         if is_local_url(url) and self._serves_files() and self._outside_root(url):
             raise SecurityException(f'{url} is outside the folder served by the window')
 
+        load = self._cancellable_load
+        if load is None:
+            ready = [self.events.loaded, self.events.before_load, self.events._pywebviewready]
+            load = self._cancellable_load = _CancellableLoad(
+                self.real_url,
+                self._js_api_pending_html,
+                [event for event in ready if event.is_set()],
+                self._server,
+                self._url_prefix,
+                self._common_path,
+            )
+
         if is_app(url) or (is_local_url(url) and not self._serves_files()):
-            self._stop_server()
+            if self._server is load.server and self._http_port is None:
+                # The shown page may still use its server. Stop it when the new page starts
+                # loading, or keep it if the navigation is cancelled.
+                self._server = None
+            else:
+                # A server of a superseded load_url(), or one on a fixed port, which cannot be
+                # bound by two servers at once
+                if self._server is load.server and self._server is not http.global_server:
+                    load.server = None
+                self._release_server(self._server)
             self._server = self._create_server(url)
             self._url_prefix = self._server.address
             self._common_path = self._server.common_path
 
-        ready = [self.events.loaded, self.events.before_load, self.events._pywebviewready]
-        self._cancellable_load = (
-            self.real_url,
-            set(self._js_api_origins),
-            self._js_api_pending_html,
-            [event for event in ready if event.is_set()],
-        )
         self.real_url = self._resolve_url(url)
         self._js_api_pending_html = False
+        origins = set(self._js_api_origins)
         self._allow_js_api_on(self.real_url)
+        load.origins |= self._js_api_origins - origins
+        load.urls.append(self.real_url or '')
         self.events.loaded.clear()
         self.events.before_load.clear()
         self.events._pywebviewready.clear()
@@ -649,7 +686,9 @@ class Window:
 
     def _invalidate_js_api(self) -> None:
         """Revoke bridge access at the native backend's document transition."""
-        self._cancellable_load = None
+        load, self._cancellable_load = self._cancellable_load, None
+        if load is not None and load.server is not self._server:
+            self._release_server(load.server)
         self._js_api_token = None
         self._js_api_restricted = True
         self._js_api_document_url = None
@@ -659,16 +698,30 @@ class Window:
     def _restore_cancelled_load(self, url: str) -> None:
         """
         Undo load_url() when a request_sent handler cancels its navigation before the page
-        starts loading, so that the current page stays usable. Does nothing if another load
-        started since.
+        starts loading, so that the current page stays usable. The page state is restored once
+        every pending load_url() navigation is cancelled. Does nothing if a page started loading.
         """
-        state = self._cancellable_load
-        if state is None or url.rstrip('/') != (self.real_url or '').rstrip('/'):
+        load = self._cancellable_load
+        urls = [pending.rstrip('/') for pending in load.urls] if load else []
+        if load is None or url.rstrip('/') not in urls:
+            return
+
+        del load.urls[urls.index(url.rstrip('/'))]
+        if load.urls:
             return
 
         self._cancellable_load = None
-        self.real_url, self._js_api_origins, self._js_api_pending_html, ready = state
-        for event in ready:
+        if load.server is not None and self._server is not load.server:
+            self._release_server(self._server)
+            self._server = load.server
+            self._url_prefix = load.url_prefix
+            self._common_path = load.common_path
+
+        self.real_url = load.real_url
+        self._js_api_pending_html = load.pending_html
+        # Revoke only what the cancelled loads allowed, other changes made meanwhile stay
+        self._js_api_origins -= load.origins
+        for event in load.ready:
             # Set the flag without running the handlers again, the page has not changed
             event._event.set()
 
@@ -700,11 +753,22 @@ class Window:
 
     def _stop_server(self) -> None:
         """Stop the server dedicated to this window, if it has one."""
-        import webview
+        load = self._cancellable_load
+        if load is not None and load.server is not self._server:
+            # A server kept for the page shown before a pending load_url()
+            self._release_server(load.server)
+            load.server = None
 
         server = self._server
         if server is not None and server is not http.global_server:
             self._server = None
+            self._release_server(server)
+
+    def _release_server(self, server: http.BottleServer | None) -> None:
+        """Stop a server that was dedicated to this window."""
+        import webview
+
+        if server is not None and server is not http.global_server:
             # Revoke the JS API on the server's origin before releasing its port, which
             # another process could then bind
             origin = js_api_origin(server.address)
