@@ -424,7 +424,6 @@ class BrowserView:
                         AppHelper.callAfter(
                             handler, getattr(WebKit, 'WKNavigationActionPolicyCancel', 0)
                         )
-                        i.pywebview_window._restore_cancelled_load(str(url))
                         return
 
                     request_.headers['X-Handled'] = 'true'

@@ -3,6 +3,7 @@ from typing import Any
 
 from webview.dom import ManipulationMode
 from webview.dom.element import Element
+from webview.errors import WebViewException
 
 
 class DOM:
@@ -34,7 +35,8 @@ class DOM:
         parent: Element | str | None = None,
         mode: ManipulationMode = ManipulationMode.LastChild,
     ) -> Element:
-        self.__window.events.loaded.wait()
+        if not self.__window.events.loaded.wait(20):
+            raise WebViewException('The page has not loaded')
 
         if isinstance(parent, Element):
             parent_command = parent._query_command

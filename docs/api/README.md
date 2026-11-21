@@ -993,6 +993,8 @@ def on_request(request):
 
 Header modification and cancelling are not applied to every request on every platform. Header changes that cannot be applied are ignored without a warning.
 
+If you cancel a navigation started with `window.load_url`, the window does not load a new page. Calls that wait for a loaded page, such as `window.evaluate_js`, raise `WebViewException` after a timeout. Call `window.load_url` or `window.load_html` again to load a page.
+
 | Platform | Requests that use modified headers | Requests that can be cancelled | Notes |
 | --- | --- | --- | --- |
 | Windows | All | All | A cancelled request receives an empty `204 No Content` response, so a cancelled navigation stays on the current page |
