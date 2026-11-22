@@ -63,6 +63,8 @@ DWMWA_COLOR_DEFAULT = 0xFFFFFFFF
 DWMWA_SYSTEMBACKDROP_TYPE = 38
 DWMSBT_NONE = 1
 DWMSBT_MAINWINDOW = 2
+DWM_BB_ENABLE = 0x1
+DWM_BB_BLURREGION = 0x2
 
 
 class _MSLLHOOKSTRUCT(ctypes.Structure):
@@ -547,6 +549,40 @@ def extend_frame_into_client_area(hwnd: int) -> int:
     return dwm_extend_frame_into_client_area(hwnd, ctypes.byref(m))
 
 
+class _DWM_BLURBEHIND(ctypes.Structure):
+    _fields_ = [
+        ('dwFlags', wintypes.DWORD),
+        ('fEnable', wintypes.BOOL),
+        ('hRgnBlur', wintypes.HANDLE),
+        ('fTransitionOnMaximized', wintypes.BOOL),
+    ]
+
+
+def enable_window_transparency(hwnd: int) -> int:
+    """
+    Make DWM compose the window with per-pixel alpha, so black pixels painted by the window
+    become transparent. Blur-behind with an empty region enables the alpha channel without
+    blurring anything. Extending the frame into the client area does not work for this, as DWM
+    fills the extended area with the opaque frame color on current Windows versions.
+    """
+    dwm_set_window_attribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_NONE)
+
+    gdi32 = ctypes.windll.gdi32
+    gdi32.CreateRectRgn.restype = wintypes.HRGN
+    gdi32.DeleteObject.argtypes = [wintypes.HGDIOBJ]
+    dwm_enable_blur_behind_window = ctypes.windll.dwmapi.DwmEnableBlurBehindWindow
+    dwm_enable_blur_behind_window.argtypes = [wintypes.HWND, ctypes.c_void_p]
+
+    region = gdi32.CreateRectRgn(0, 0, -1, -1)
+    blur_behind = _DWM_BLURBEHIND(
+        dwFlags=DWM_BB_ENABLE | DWM_BB_BLURREGION, fEnable=True, hRgnBlur=region
+    )
+    try:
+        return dwm_enable_blur_behind_window(hwnd, ctypes.byref(blur_behind))
+    finally:
+        gdi32.DeleteObject(region)
+
+
 def enable_window_shadow(hwnd: int) -> None:
     """
     Restore the native drop shadow on a window whose border/title bar has been
@@ -562,17 +598,24 @@ def set_border_color(hwnd: int, color: int) -> int:
     return dwm_set_window_attribute(hwnd, DWMWA_BORDER_COLOR, color)
 
 
-def remove_caption(hwnd: int, resizable: bool) -> None:
+def remove_caption(hwnd: int, resizable: bool, keep_frame: bool = True) -> None:
     """
     Remove the caption from a window while keeping the native resize frame and window commands,
     so that Windows still handles resizing, snapping, maximizing and minimizing. The border is
     hidden where DWM supports it; elsewhere it stays visible.
+
+    :param keep_frame: If False, remove the resize frame too, so the window has no non-client
+        area. DWM then draws no top strip, border, rounded corners or shadow, but Windows no
+        longer resizes or snaps the window from its edges.
     """
     style = _user32.GetWindowLongW(hwnd, GWL_STYLE)
     keep = WS_SYSMENU | WS_MINIMIZEBOX
     if resizable:
-        keep |= WS_THICKFRAME | WS_MAXIMIZEBOX
-    new_style = (style & ~WS_CAPTION) | keep
+        keep |= WS_MAXIMIZEBOX
+        if keep_frame:
+            keep |= WS_THICKFRAME
+    remove = WS_CAPTION if keep_frame else WS_CAPTION | WS_THICKFRAME
+    new_style = (style & ~remove) | keep
 
     if new_style != style:
         _user32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
@@ -587,7 +630,7 @@ def remove_caption(hwnd: int, resizable: bool) -> None:
         )
 
     actual = _user32.GetWindowLongW(hwnd, GWL_STYLE)
-    if actual & WS_CAPTION or (actual & keep) != keep:
+    if actual & remove or (actual & keep) != keep:
         _log.warning(
             f'Frameless style not applied: requested 0x{new_style & 0xFFFFFFFF:08X}, '
             f'got 0x{actual & 0xFFFFFFFF:08X}'

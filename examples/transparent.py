@@ -59,7 +59,7 @@ html = """
                         <div class="bodypanel">
                             <b>Alert!</b><br>
                             Lorem ipsum dolor sit amet, consectetur adipiscing elit
-                            <button>Button</button>
+                            <button onclick="alert('Button clicked!')">Button</button>
                         </div>
                     </td>
                 </tr>

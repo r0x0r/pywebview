@@ -31,6 +31,7 @@ from webview.platforms.win32 import (
     WS_EX_NOACTIVATE,
     dwm_set_window_attribute,
     enable_window_shadow,
+    enable_window_transparency,
     remove_caption,
     set_border_color,
 )
@@ -259,8 +260,8 @@ class BrowserView:
             self.webview = self.browser.webview
 
             if window.transparent:
-                self.SetStyle(WinForms.ControlStyles.SupportsTransparentBackColor, True)
-                self.browser.DefaultBackgroundColor = Color.Transparent
+                # DWM shows black pixels as transparent once transparency is enabled
+                self.BackColor = Color.Black
             else:
                 self.BackColor = ColorTranslator.FromHtml(window.background_color)
 
@@ -302,11 +303,19 @@ class BrowserView:
             # A recreated handle gets its styles from CreateParams, which include the caption
             if self.pywebview_window.frameless:
                 self.apply_frameless_style()
+                # WinForms resets the styles again after this event while it recreates the handle
+                self.BeginInvoke(Func[Type](self.apply_frameless_style))
+            # DWM attributes do not carry over to a recreated handle either
+            self.update_title_bar_theme()
 
         def apply_frameless_style(self):
             # Python subclasses cannot override CreateParams, so the live handle is changed
             if not self.is_fullscreen:
-                remove_caption(self.Handle.ToInt32(), self.pywebview_window.resizable)
+                window = self.pywebview_window
+                # The resize frame of a transparent window shows as a white strip at the top,
+                # a border, rounded corners and a shadow around the transparent area
+                keep_frame = not window.transparent
+                remove_caption(self.Handle.ToInt32(), window.resizable, keep_frame)
 
         def on_system_theme_changed(self, sender, e):
             self.update_title_bar_theme()
@@ -314,16 +323,16 @@ class BrowserView:
                 set_border_color(self.Handle.ToInt32(), DWMWA_COLOR_NONE)
 
         def update_title_bar_theme(self):
-            if self.is_dark_theme():
-                dwm_set_window_attribute(self.Handle.ToInt32(), DWMWA_USE_IMMERSIVE_DARK_MODE, 1)
-                dwm_set_window_attribute(
-                    self.Handle.ToInt32(), DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_MAINWINDOW
-                )
+            hwnd = self.Handle.ToInt32()
+            is_dark = self.is_dark_theme()
+            dwm_set_window_attribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, 1 if is_dark else 0)
+
+            if self.pywebview_window.transparent:
+                # Mica would fill the transparent area, so transparency sets no backdrop
+                enable_window_transparency(hwnd)
             else:
-                dwm_set_window_attribute(self.Handle.ToInt32(), DWMWA_USE_IMMERSIVE_DARK_MODE, 0)
-                dwm_set_window_attribute(
-                    self.Handle.ToInt32(), DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_NONE
-                )
+                backdrop = DWMSBT_MAINWINDOW if is_dark else DWMSBT_NONE
+                dwm_set_window_attribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, backdrop)
 
         def is_dark_theme(self):
             try:
