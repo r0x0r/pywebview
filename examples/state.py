@@ -55,4 +55,4 @@ if __name__ == '__main__':
     window = webview.create_window('State example', html=html)
     window.state.counter = 0
     window.events.loaded += on_loaded
-    webview.start(debug=True)
+    webview.start()
