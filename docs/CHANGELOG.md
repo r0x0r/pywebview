@@ -9,6 +9,8 @@
 ### 🐞 Bug fixes
 
 - `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
+- `Cocoa` Fix the window title overlapping the traffic-light buttons, and the buttons not responding, when the Web Inspector is docked in debug mode. [#1866](https://github.com/r0x0r/pywebview/issues/1866)
+
 ### ⚡ Features
 
 - `WinUI3` New WinUI 3 backend hosting WebView2, for platforms where pythonnet is unavailable, such as Windows on ARM64. Install it with `pip install "pywebview[winui3]"` and select it with `gui='winui3'`; it is also used automatically when WinForms cannot be loaded. Requires the Edge WebView2 Runtime and the Windows App Runtime. [#1837](https://github.com/r0x0r/pywebview/pull/1837)
