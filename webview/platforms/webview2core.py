@@ -179,6 +179,7 @@ class WebView2Core(ABC):
         """
         request = Request(uri, method, dict(original))
         if self.pywebview_window.events.request_sent.set(request):
+            self.pywebview_window._cancel_load(uri)
             return CANCEL_REQUEST
         if request.headers == original:
             return None

@@ -640,12 +640,11 @@ class Window:
 
     def _cancel_load(self, url: str) -> None:
         """
-        Called by a backend when request_sent cancels a request and the current page stays. If
-        it was the request of load_url(), mark the current page as loaded again.
+        Called by a backend when request_sent cancels a request. If it was the request of
+        load_url(), show an empty page, as the current page may have lost its server.
         """
         if unquote(url).rstrip('/') == unquote(self.real_url or '').rstrip('/'):
-            for event in (self.events.loaded, self.events.before_load, self.events._pywebviewready):
-                event._event.set()  # without running the handlers, as the page has not changed
+            self.load_html('', 'about:blank')
 
     def _invalidate_js_api(self) -> None:
         """Revoke bridge access at the native backend's document transition."""
