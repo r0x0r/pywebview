@@ -226,6 +226,7 @@ class BrowserView:
 
         request = Request(url, method, headers)
         if self.pywebview_window.events.request_sent.set(request):
+            self.pywebview_window._cancel_load(url)
             # Matches PyWebViewClient.CANCEL_REQUEST
             return 'pywebview:cancel'
 
