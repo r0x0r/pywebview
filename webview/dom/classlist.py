@@ -35,8 +35,8 @@ class ClassList:
 
     def __get_classes(self) -> list[str]:
         return self.__element._window.evaluate_js(
-            f'{self.__element._query_command}; element.className'
-        ).split()
+            f'{self.__element._query_command}; Array.prototype.slice.call(element.classList)'
+        )
 
     def __getitem__(self, index: int) -> str:
         return self.__get_classes()[index]

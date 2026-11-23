@@ -68,6 +68,7 @@ def serialization(window):
 
     assert window.evaluate_js('(function () { return arguments })(1, 2)') == [1, 2]
     assert window.evaluate_js('new Uint8Array([1, 2])') == [1, 2]
+    assert window.evaluate_js('var a = [1, 2]; a.map = "metadata"; a') == [1, 2]
 
 
 def circular_reference(window):

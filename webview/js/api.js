@@ -225,7 +225,8 @@ window.pywebview = {
         }
 
         if (Array.isArray(obj)) {
-          var arr = obj.map(function (value) {
+          // The array may have an own map property
+          var arr = Array.prototype.map.call(obj, function (value) {
             return boundSerialize(value, ancestors);
           });
           return arr;

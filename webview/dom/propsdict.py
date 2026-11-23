@@ -92,6 +92,7 @@ class PropsDict:
         )
 
     def __set_attributes(self, props: dict[str, Any]) -> None:
+        # The internal ID is skipped in any case, as setAttribute lowercases names on HTML elements
         self.__element._window.evaluate_js(
             f"""
             {self.__element._query_command};
@@ -99,7 +100,7 @@ class PropsDict:
 
             for (var key in values) {{
                 var value = values[key];
-                if (key === 'data-pywebview-id') {{
+                if (key.toLowerCase() === 'data-pywebview-id') {{
                     continue;
                 }} else if (value === null || value === undefined) {{
                     element.removeAttribute(key);

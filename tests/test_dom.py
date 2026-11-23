@@ -620,11 +620,15 @@ def views_test(window):
     window.run_js("document.getElementById('child1').className = ' a  b\\tc '")
     assert len(child1.classes) == 3
     assert str(child1.classes) == repr(child1.classes) == "['a', 'b', 'c']"
+    # a non-breaking space is part of a class name, not a separator
+    window.run_js("document.getElementById('child1').className = 'a\\u00a0b c'")
+    assert list(child1.classes) == ['a\u00a0b', 'c']
 
     # pywebview identifies the element by data-pywebview-id, so it cannot be overwritten
     node_id = child1._node_id
     child1.attributes['data-pywebview-id'] = 'other'
     child1.attributes.update({'data-pywebview-id': 'other', 'data-ok': 'yes'})
+    child1.attributes['DATA-PYWEBVIEW-ID'] = 'other'
     assert window.dom.get_element('#child1')._node_id == node_id
     assert child1.text == 'DUDE'
 
