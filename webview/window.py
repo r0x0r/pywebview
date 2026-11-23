@@ -669,7 +669,7 @@ class Window:
         if not getattr(server, 'serves_files', True):
             return True
         # A server started without local files, e.g. by start(http_server=True), has no root
-        root_path = server.root_path
+        root_path = getattr(server, 'root_path', None)
         if not root_path:
             return False
         path = os.path.normcase(abspath(url.split('#')[0].split('?')[0]))

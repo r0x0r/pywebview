@@ -178,6 +178,7 @@ window.pywebview = {
 
     // Array-like host objects, such as NodeList, HTMLCollection or arguments, become arrays.
     // Plain objects stay objects even with a length property, as the window object has.
+    // The prototype check also matches Object.prototype of another realm, such as an iframe.
     function isArrayLike(a) {
       if (Array.isArray(a) || typeof a.length !== 'number') {
         return false;
@@ -185,7 +186,7 @@ window.pywebview = {
       var proto = Object.getPrototypeOf(a);
       if (
         Object.prototype.toString.call(a) === '[object Object]' &&
-        (proto === Object.prototype || proto === null)
+        (proto === null || Object.getPrototypeOf(proto) === null)
       ) {
         return false;
       }

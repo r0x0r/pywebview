@@ -69,6 +69,15 @@ def serialization(window):
     assert window.evaluate_js('(function () { return arguments })(1, 2)') == [1, 2]
     assert window.evaluate_js('new Uint8Array([1, 2])') == [1, 2]
     assert window.evaluate_js('var a = [1, 2]; a.map = "metadata"; a') == [1, 2]
+    # a plain object from another realm keeps its fields too
+    script = """(function () {
+        var frame = document.createElement('iframe');
+        document.body.appendChild(frame);
+        var value = frame.contentWindow.JSON.parse('{"length": 0, "key": "value"}');
+        frame.remove();
+        return value;
+    })()"""
+    assert window.evaluate_js(script) == {'length': 0, 'key': 'value'}
 
 
 def circular_reference(window):

@@ -952,6 +952,13 @@ class TestLoadUrlServer:
         start_server.assert_called_once()
         assert window.gui.load_url.call_args[0][0].startswith('http://127.0.0.1:2/')
 
+    def test_running_server_without_root_path_is_replaced(self, monkeypatch):
+        window, start_server = self._window(monkeypatch, running=True)
+        window.load_url('page.html')
+
+        start_server.assert_called_once()
+        assert window.gui.load_url.call_args[0][0].startswith('http://127.0.0.1:2/')
+
     def test_path_on_another_drive_is_outside_the_root(self, monkeypatch, tmp_path):
         window, start_server = self._window(
             monkeypatch, running=True, serves_files=True, root_path=str(tmp_path)
