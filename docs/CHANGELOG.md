@@ -32,6 +32,7 @@
 
 ### 🚀 Improvements
 
+- `EdgeChromium` Update WebView2 runtime to 1.0.4370.26.
 - `Winforms` Frameless windows keep the native resize frame instead of using `FormBorderStyle.None`. Only the caption is removed and, on Windows 11, the border is hidden, so Windows itself handles resizing from every edge and corner, Aero Snap, maximize, minimize and restore. On Windows 10 a thin native border remains visible. Because the native frame is kept, frameless windows have the system shadow even with `shadow=False`.
 
 ### 🐞 Bug fixes
@@ -104,7 +105,6 @@
 
 - `All` Log a warning when a remote HTTPS page gets the JS API while `IGNORE_SSL_ERRORS` is enabled. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `All` Document the JS API's exposure, `ALLOW_FILE_URLS`, external links and Content Security Policy in the security guide, explain what trusting a remote origin implies, and correct the documented default of `ALLOW_FILE_URLS`. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
-- `EdgeChromium` Update WebView2 runtime to 1.0.4314.35.
 - `Winforms` Prefer .NET 6+ with a .NET Framework fallback, preserve an application's initialized runtime, select matching WebView2 assemblies, and support CoreCLR folder dialogs on Windows ARM64. Thanks @smparkes. [#1832](https://github.com/r0x0r/pywebview/pull/1832)
 - `All` Type annotations across the codebase now use PEP 585 / PEP 604 built-in generics and union syntax.
 - `Winforms` Move keyboard focus to the menu bar when it is activated, so the menu can be navigated with the keyboard. Thanks @tdeck. [#1835](https://github.com/r0x0r/pywebview/pull/1835)
