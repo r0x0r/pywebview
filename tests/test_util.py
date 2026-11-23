@@ -941,12 +941,12 @@ class TestLoadUrlServer:
         start_server.assert_not_called()
         assert window.gui.load_url.call_args[0][0] == 'http://127.0.0.1:1/route/page.html'
 
-    def test_stopped_server_is_replaced(self, monkeypatch, tmp_path):
+    def test_stopped_server_is_replaced(self, monkeypatch):
         window, start_server = self._window(
-            monkeypatch, running=False, serves_files=True, root_path=str(tmp_path)
+            monkeypatch, running=False, serves_files=True, root_path='/app'
         )
         old_server = window._server
-        window.load_url(str(tmp_path / 'page.html'))
+        window.load_url('page.html')
 
         old_server.stop.assert_called_once()
         start_server.assert_called_once()

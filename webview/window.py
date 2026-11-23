@@ -690,7 +690,8 @@ class Window:
         if not isinstance(url, str):
             return None
         if is_local_url(url) and server and server.address and server.common_path is not None:
-            return urljoin(server.address, os.path.relpath(url, server.common_path))
+            path = os.path.relpath(url, server.common_path).replace(os.sep, '/')
+            return urljoin(server.address, path)
         return url
 
 
