@@ -970,6 +970,13 @@ def load_js_files(window: Window, platform: str, restricted: bool = False) -> tu
     js_dir = get_js_dir()
     logger.debug('Loading JS files from %s', js_dir)
     js_files = glob(os.path.join(glob_escape(js_dir), '**', '*.js'), recursive=True)
+    found = {os.path.basename(file) for file in js_files}
+    missing = [name for name in ('api.js', 'finish.js') if name not in found]
+    if missing:
+        raise WebViewException(
+            f'pywebview JavaScript files {", ".join(missing)} not found in {js_dir}. '
+            'A packaged application must include the webview/js folder.'
+        )
     ordered_js_files = sort_js_files(js_files)
     js_code = ''
     finish_script = ''

@@ -36,6 +36,7 @@ from webview.util import (
     call_maybe_async,
     is_app,
     is_local_url,
+    load_js_files,
     set_event_loop,
     set_local_tls_cert,
     stop_event_loop,
@@ -291,6 +292,14 @@ def start(
     set_event_loop(event_loop)
     guilib = initialize(gui)
     renderer = guilib.renderer
+
+    try:
+        # A missing or broken JS file breaks the JS API on every page, so report it before any
+        # window opens rather than on each page load
+        load_js_files(windows[0], renderer)
+    except Exception:
+        stop_event_loop()
+        raise
 
     if ssl:
         if not server_args or 'keyfile' not in server_args or 'certfile' not in server_args:

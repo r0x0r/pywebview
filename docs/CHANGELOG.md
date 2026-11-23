@@ -14,6 +14,7 @@
 - `All` Fix `repr()` and `str()` of `window.dom.window`, which raised `TypeError`.
 - `All` Fix `window.dom.window.node` and `evaluate_js` returning an empty list for an object with a `length` property, such as the window object. Only array-like objects other than plain objects, such as `NodeList` and `arguments`, are converted to lists.
 - `All` Fix `element.attributes` overwriting the `data-pywebview-id` attribute, which pywebview uses to find the element. Assigning it is ignored, as when an element is created with attributes.
+- `All` `webview.start()` raises `WebViewException` when pywebview's JavaScript files are missing or cannot be loaded, for example when a packaged application does not include the `webview/js` folder. Previously every window opened without `window.pywebview`, and `evaluate_js` returned `None`, with no error. [#1883](https://github.com/r0x0r/pywebview/issues/1883)
 
 
 ### ⚡ Features
