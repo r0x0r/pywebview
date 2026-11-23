@@ -316,7 +316,7 @@ def start(
     urls: list[str | Callable[..., Any]] = [
         w.original_url for w in windows if isinstance(w.original_url, str)
     ]
-    has_local_urls = not not [w.original_url for w in windows if is_local_url(w.original_url)]
+    has_local_urls = any(is_local_url(w.original_url) for w in windows)
     # start the global server if it's not running and we need it
     if (http.global_server is None) and (http_server or has_local_urls):
         if not _state['private_mode'] and not http_port:
@@ -340,8 +340,7 @@ def start(
     _state['server_args'] = server_args
 
     for window in windows:
-        should_initialize = not window._initialize(guilib)
-        if should_initialize:
+        if not window._initialize(guilib):
             stop_event_loop()
             return
 
@@ -351,17 +350,14 @@ def start(
             window.gui.add_tls_cert(certfile)
 
     if len(windows) > 1:
-        thread = threading.Thread(target=_create_children, args=(windows[1:],))
-        thread.start()
+        threading.Thread(target=_create_children, args=(windows[1:],)).start()
 
     if func:
-        if args is not None:
-            if not hasattr(args, '__iter__'):
-                args = (args,)
-            thread = threading.Thread(target=call_maybe_async, args=(func, *args))
-        else:
-            thread = threading.Thread(target=call_maybe_async, args=(func,))
-        thread.start()
+        if args is None:
+            args = ()
+        elif not hasattr(args, '__iter__'):
+            args = (args,)
+        threading.Thread(target=call_maybe_async, args=(func, *args)).start()
 
     try:
         guilib.create_window(windows[0])

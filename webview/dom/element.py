@@ -225,37 +225,27 @@ class Element:
     @_exists
     @_ignore_window_document
     def parent(self) -> Union['Element', None]:
-        node_id = self._window.evaluate_js(
-            f"""
-            {self._query_command};
-            var parent = element.parentElement;
-            parent ? pywebview._getNodeId(parent) : null
-        """
-        )
-        return Element(self._window, node_id) if node_id else None
+        return self.__related('parentElement')
 
     @property
     @_exists
     @_ignore_window_document
     def next(self) -> Union['Element', None]:
-        node_id = self._window.evaluate_js(
-            f"""
-            {self._query_command};
-            var nextSibling = element.nextElementSibling;
-            nextSibling ? pywebview._getNodeId(nextSibling) : null
-        """
-        )
-        return Element(self._window, node_id) if node_id else None
+        return self.__related('nextElementSibling')
 
     @property
     @_exists
     @_ignore_window_document
     def previous(self) -> Union['Element', None]:
+        return self.__related('previousElementSibling')
+
+    def __related(self, js_property: str) -> Union['Element', None]:
+        """Return the element that the given JS property of this element refers to, if any."""
         node_id = self._window.evaluate_js(
             f"""
             {self._query_command};
-            var previousSibling = element.previousElementSibling;
-            previousSibling ? pywebview._getNodeId(previousSibling) : null
+            var related = element.{js_property};
+            related ? pywebview._getNodeId(related) : null
         """
         )
         return Element(self._window, node_id) if node_id else None
@@ -306,11 +296,10 @@ class Element:
         if self._node_id in self._window.dom._elements:
             self._window.dom._elements.pop(self._node_id)
 
-        handler_ids = ','.join([f'"{handler_id}"' for handler_id in self._event_listeners])
+        handler_ids = json.dumps(list(self._event_listeners))
         self._window.run_js(
             f"""
-            var handlerIds = [{handler_ids}];
-            handlerIds.forEach(function(handlerId) {{
+            {handler_ids}.forEach(function(handlerId) {{
                 delete pywebview._eventHandlers[handlerId]
             }})
         """
@@ -514,12 +503,9 @@ class Element:
 
     @_exists
     def __repr__(self) -> str:
-        if self.node['nodeName'] == '#document':
-            return 'document'
-        elif self.node['nodeName'] == '#window':
-            return 'window'
-        else:
-            return self.node['outerHTML']
+        if self._node_id in ('document', 'window'):
+            return self._node_id
+        return self.node['outerHTML']
 
     @_exists
     def __eq__(self, other: object) -> bool:

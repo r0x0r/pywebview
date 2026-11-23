@@ -264,17 +264,13 @@ def select_runtime(load: Callable[[str], None] = _load) -> str:
 
 
 class ImmutableDict(UserDict):
-    """ "
+    """
     A dictionary that does not allow adding new keys or deleting existing ones.
     Only existing keys can be modified.
     """
 
     def __init__(self, initial_data: dict[Any, Any] | None = None, **kwargs: Any) -> None:
-        self.data = {}
-        if initial_data:
-            self.data.update(initial_data)
-        if kwargs:
-            self.data.update(kwargs)
+        self.data = {**(initial_data or {}), **kwargs}
 
     def __setitem__(self, key: Any, value: Any) -> None:
         if key not in self.data:
@@ -291,18 +287,12 @@ def is_app(url: str | Callable[..., Any] | None) -> TypeGuard[Callable[..., Any]
 
 
 def is_local_url(url: str | Callable[..., Any] | None) -> TypeGuard[str]:
-    if is_app(url) or not url or not isinstance(url, str):
+    if not url or not isinstance(url, str):
         return False
     return not (
-        url.startswith('http://')
-        or url.startswith('https://')
-        or url.startswith('file://')
+        url.startswith(('http://', 'https://', 'file://'))
         or urllib.parse.urldefrag(url)[0] == 'about:blank'
     )
-
-
-def needs_server(urls: list[str]) -> bool:
-    return bool([url for url in urls if (is_app(url) or is_local_url(url))])
 
 
 def get_app_root() -> str:
@@ -553,8 +543,13 @@ def js_api_guard(window: Window, document: bool = False) -> str:
     )
 
 
+def get_args(func: object) -> list[str]:
+    """Return the names of the positional parameters of a function."""
+    return list(inspect.getfullargspec(func).args)
+
+
 def inject_pywebview(platform: str, window: Window, url: str | None = None) -> None:
-    """ "
+    """
     Generates and injects a global window.pywebview object. The object contains exposed API functions
     as well as utility functions required by pywebview. The function fires before_load event before
     injecting the object and loaded event after the object is injected.
@@ -566,11 +561,7 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
         from it. None skips the origin check, but the injected script still checks the page's
         actual location before it defines the session token.
     """
-    exposed_objects = []
-
-    def get_args(func: object):
-        params = list(inspect.getfullargspec(func).args)
-        return params
+    exposed_objects: set[int] = set()
 
     def get_functions(
         obj: object, base_name: str = '', functions: dict[str, object] | None = None, depth: int = 0
@@ -589,11 +580,9 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
             )
             return functions
 
-        obj_id = id(obj)
-        if obj_id in exposed_objects:
+        if id(obj) in exposed_objects:
             return functions
-        else:
-            exposed_objects.append(obj_id)
+        exposed_objects.add(id(obj))
 
         for name in dir(obj):
             try:
@@ -637,13 +626,7 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
         functions = get_functions(window._js_api)
         # The bridge dispatches only what is advertised here, see js_bridge_call
         window._js_api_names = frozenset(functions)
-
-        if len(window._functions) > 0:
-            expose_functions = {name: get_args(f) for name, f in window._functions.items()}
-        else:
-            expose_functions = {}
-
-        functions.update(expose_functions)
+        functions.update({name: get_args(f) for name, f in window._functions.items()})
 
         return [{'func': name, 'params': params} for name, params in functions.items()]
 
@@ -856,35 +839,6 @@ def js_bridge_call(
         logger.error('Rejected JS bridge call from %s: origin is not allowed', source_url)
         return
 
-    def _call():
-        try:
-            result = func(*func_params)
-            if inspect.isawaitable(result):
-                result = run_async(result)
-            result = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
-            retval = f"{{value: '{result}'}}"
-        except Exception as e:
-            logger.error(traceback.format_exc())
-            error = {'message': str(e), 'name': type(e).__name__, 'stack': traceback.format_exc()}
-            result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
-            retval = f"{{isError: true, value: '{result}'}}"
-
-        # The page may have navigated while the function ran
-        window.run_js(
-            f'if (({js_api_guard(window, document=True)}) && window.pywebview && '
-            f'window.pywebview._bridgeToken === {json.dumps(token)}) {{ '
-            f'window.pywebview._returnValuesCallbacks'
-            f'[{json.dumps(func_name)}][{json.dumps(value_id)}]({retval}) }}'
-        )
-
-    def get_nested_attribute(obj: object, attr_str: str):
-        attributes = attr_str.split('.')
-        for attr in attributes:
-            obj = getattr(obj, attr, None)
-            if obj is None:
-                return None
-        return obj
-
     if func_name == 'pywebviewEventHandler':
         event = param['event']
         node_id = param['nodeId']
@@ -924,9 +878,7 @@ def js_bridge_call(
 
         def _call_handler(handler, event):
             try:
-                result = handler(event)
-                if inspect.isawaitable(result):
-                    run_async(result)
+                call_maybe_async(handler, event)
             except Exception:
                 logger.exception('Error in DOM event handler')
 
@@ -966,38 +918,53 @@ def js_bridge_call(
         return
 
     if func_name == 'pywebviewStateDelete':
-        special_key = '__pywebviewHaltUpdate__' + param
         try:
-            delattr(window.state, special_key)
-        except AttributeError:
-            # The key was already removed on the Python side (e.g. a race with a
-            # concurrent delete or update); nothing left to do on the JS side.
-            pass
+            # A key already removed on the Python side, e.g. by a concurrent delete, is ignored
+            window.state._delete_state_value(param, False)
         except Exception:
             logger.exception('Error occurred while deleting state key %s', param)
         return
 
     func = window._functions.get(func_name)
     if func is None and func_name in window._js_api_names:
-        func = get_nested_attribute(window._js_api, func_name)
+        func = window._js_api
+        for attr in func_name.split('.'):
+            func = getattr(func, attr, None)
+            if func is None:
+                break
 
-    if func is not None:
-        try:
-            func_params = param
-            thread = Thread(target=_call)
-            thread.start()
-        except Exception:
-            logger.exception('Error occurred while evaluating function %s', func_name)
-    else:
+    if func is None:
         logger.error('Function %s() does not exist', func_name)
+        return
+
+    def _call():
+        try:
+            retval = {'value': json.dumps(call_maybe_async(func, *param))}
+        except Exception as e:
+            stack = traceback.format_exc()
+            logger.error(stack)
+            error = {'message': str(e), 'name': type(e).__name__, 'stack': stack}
+            retval = {'isError': True, 'value': json.dumps(error)}
+
+        # The page may have navigated while the function ran
+        window.run_js(
+            f'if (({js_api_guard(window, document=True)}) && window.pywebview && '
+            f'window.pywebview._bridgeToken === {json.dumps(token)}) {{ '
+            f'window.pywebview._returnValuesCallbacks'
+            f'[{json.dumps(func_name)}][{json.dumps(value_id)}]({json.dumps(retval)}) }}'
+        )
+
+    try:
+        Thread(target=_call).start()
+    except Exception:
+        logger.exception('Error occurred while evaluating function %s', func_name)
 
 
 def load_js_files(window: Window, platform: str, restricted: bool = False) -> tuple[str, str]:
     """
-    Load JS files in the order they should be loaded.
-    The order is api, the rest and finish.js.
-    Return the concatenated JS code and the finish script, which must be loaded last and
-    separately in order to
+    Load JS files in the order they should be loaded: api, state and the rest.
+    Return the concatenated JS code and the finish script, which must be evaluated last and
+    separately.
 
     :param restricted: Load them for a page that may not use the JS API: without the session
         token and the window state.
@@ -1081,22 +1048,10 @@ def sort_js_files(js_files: list[str]) -> list[str]:
     Sorts JS files in the order they should be loaded. API first, then state, then the rest and
     finally finish.js that fires a pywebviewready event.
     """
-    LOAD_ORDER = {'api': 0, 'state': 1}
-
-    ordered_js_files = []
-    remaining_js_files = []
-
-    for file in js_files:
-        basename = os.path.splitext(os.path.basename(file))[0]
-        if basename not in LOAD_ORDER:
-            ordered_js_files.append(file)
-        else:
-            remaining_js_files.append((basename, file))
-
-    for basename, file in sorted(remaining_js_files, key=lambda x: LOAD_ORDER[x[0]]):
-        ordered_js_files.insert(LOAD_ORDER[basename], file)
-
-    return ordered_js_files
+    load_order = {'api': 0, 'state': 1}
+    return sorted(
+        js_files, key=lambda file: load_order.get(os.path.splitext(os.path.basename(file))[0], 2)
+    )
 
 
 def escape_string(string: str) -> str:
@@ -1115,25 +1070,15 @@ def inject_base_uri(content: str, base_uri: str) -> str:
     pattern = r'<%s(?:[\s]+[^>]*|)>'
     base_tag = f'<base href="{base_uri}">'
 
-    match = re.search(pattern % 'base', content)
-
-    if match:
+    if re.search(pattern % 'base', content):
         return content
 
-    match = re.search(pattern % 'head', content)
-    if match:
-        tag = match.group()
-        return content.replace(tag, tag + base_tag)
-
-    match = re.search(pattern % 'html', content)
-    if match:
-        tag = match.group()
-        return content.replace(tag, tag + base_tag)
-
-    match = re.search(pattern % 'body', content)
-    if match:
-        tag = match.group()
-        return content.replace(tag, base_tag + tag)
+    # Put the base tag inside head or html, or else before body
+    for name, before in (('head', False), ('html', False), ('body', True)):
+        match = re.search(pattern % name, content)
+        if match:
+            tag = match.group()
+            return content.replace(tag, base_tag + tag if before else tag + base_tag)
 
     return base_tag + content
 
@@ -1151,29 +1096,22 @@ def interop_dll_path(dll_name: str) -> str:
             os.path.join(base_dir, 'runtimes', dll_name, 'native'),
         ]
 
-    # Unfrozen path
-    lib_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
-    for candidate in candidate_paths(lib_dir):
-        if os.path.exists(candidate):
-            return candidate
+    base_dirs = [
+        # Unfrozen path
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'),
+        # Frozen path, dll in the same dir as the executable
+        os.path.dirname(os.path.realpath(sys.argv[0])),
+    ]
+    # Frozen path packed as onefile
+    if hasattr(sys, '_MEIPASS'):  # Pyinstaller
+        base_dirs.append(sys._MEIPASS)
+    elif getattr(sys, 'frozen', False):  # cx_freeze
+        base_dirs.append(os.path.dirname(sys.executable))
 
-    # Frozen path, dll in the same dir as the executable
-    for candidate in candidate_paths(os.path.dirname(os.path.realpath(sys.argv[0]))):
-        if os.path.exists(candidate):
-            return candidate
-
-    try:
-        # Frozen path packed as onefile
-        if hasattr(sys, '_MEIPASS'):  # Pyinstaller
-            for candidate in candidate_paths(sys._MEIPASS):
-                if os.path.exists(candidate):
-                    return candidate
-        elif getattr(sys, 'frozen', False):  # cx_freeze
-            for candidate in candidate_paths(os.path.dirname(sys.executable)):
-                if os.path.exists(candidate):
-                    return candidate
-    except Exception:
-        pass
+    for base_dir in base_dirs:
+        for candidate in candidate_paths(base_dir):
+            if os.path.exists(candidate):
+                return candidate
 
     raise FileNotFoundError(f'Cannot find {dll_name}')
 

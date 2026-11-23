@@ -176,16 +176,20 @@ window.pywebview = {
       }
     }
 
+    // Array-like host objects, such as NodeList, HTMLCollection or arguments, become arrays.
+    // Plain objects stay objects even with a length property, as the window object has.
     function isArrayLike(a) {
-      return (
-        a &&
-        typeof a.length === 'number' &&
-        typeof a !== 'string' &&
-        (Array.isArray(a) ||
-         (typeof a === 'object' &&
-          a.length >= 0 &&
-          (a.length === 0 || (a.length - 1) in a)))
-      );
+      if (Array.isArray(a) || typeof a.length !== 'number') {
+        return false;
+      }
+      var proto = Object.getPrototypeOf(a);
+      if (
+        Object.prototype.toString.call(a) === '[object Object]' &&
+        (proto === Object.prototype || proto === null)
+      ) {
+        return false;
+      }
+      return a.length >= 0 && (a.length === 0 || (a.length - 1) in a);
     }
 
     function serialize(obj, ancestors) {

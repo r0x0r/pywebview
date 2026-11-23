@@ -11,6 +11,11 @@
 
 - `Winforms` Fix transparent windows. The window now enables per-pixel transparency in DWM instead of relying on undocumented compositing behaviour, which worked on some systems only. A transparent window no longer gets the Mica backdrop in dark mode, which made it opaque after a theme change or after locking and unlocking Windows. A transparent frameless window has no native resize frame, so Windows no longer draws a white strip along its top edge, a border, rounded corners or a shadow around it. Windows cannot resize or snap such a window from its edges. [#1887](https://github.com/r0x0r/pywebview/issues/1887)
 - `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
+- `All` Fix `repr()` and `str()` of `window.dom.window`, which raised `TypeError`.
+- `All` Fix `window.dom.window.node` and `evaluate_js` returning an empty list for an object with a `length` property, such as the window object. Only array-like objects other than plain objects, such as `NodeList` and `arguments`, are converted to lists.
+- `All` Fix `element.attributes` overwriting the `data-pywebview-id` attribute, which pywebview uses to find the element. Assigning it is ignored, as when an element is created with attributes.
+
+
 ### ⚡ Features
 
 - `WinUI3` New WinUI 3 backend hosting WebView2, for platforms where pythonnet is unavailable, such as Windows on ARM64. Install it with `pip install "pywebview[winui3]"` and select it with `gui='winui3'`; it is also used automatically when WinForms cannot be loaded. Requires the Edge WebView2 Runtime and the Windows App Runtime. [#1837](https://github.com/r0x0r/pywebview/pull/1837)
