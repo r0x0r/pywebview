@@ -635,13 +635,11 @@ def inject_pywebview(platform: str, window: Window, url: str | None = None) -> N
             if window._js_api_token != bridge_token:
                 return
             window.run_js(js_code)
-            logger.debug('_pywebviewready event fired')
             with window._expose_lock:
                 if window._js_api_token != bridge_token:
                     return
                 func_list = generate_func()
                 window.run_js(finish_script % {'functions': json.dumps(func_list)})
-                window.events._pywebviewready.set()
                 window.events.loaded.set()
                 logger.debug('loaded event fired')
         except Exception as e:

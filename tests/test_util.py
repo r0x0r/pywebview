@@ -67,7 +67,6 @@ def test_injection_resource_failure_does_not_escape_native_callback(monkeypatch,
         events=SimpleNamespace(
             before_load=threading.Event(),
             loaded=threading.Event(),
-            _pywebviewready=threading.Event(),
         ),
         run_js=Mock(),
     )
@@ -79,19 +78,17 @@ def test_injection_resource_failure_does_not_escape_native_callback(monkeypatch,
 
     assert window.events.before_load.is_set()
     assert window.events.loaded.is_set()
-    assert not window.events._pywebviewready.is_set()
     window.run_js.assert_not_called()
     thread.assert_not_called()
     assert 'Failed to load pywebview JavaScript' in caplog.text
 
 
 @pytest.mark.parametrize('fail_on', [1, 2, None])
-def test_injection_failure_releases_loaded_without_claiming_bridge_ready(monkeypatch, fail_on):
+def test_injection_failure_releases_loaded(monkeypatch, fail_on):
     window = SimpleNamespace(
         events=SimpleNamespace(
             before_load=threading.Event(),
             loaded=threading.Event(),
-            _pywebviewready=threading.Event(),
         ),
         _expose_lock=threading.Lock(),
         _js_api=None,
@@ -108,7 +105,6 @@ def test_injection_failure_releases_loaded_without_claiming_bridge_ready(monkeyp
     util.inject_pywebview('cocoa', window)
 
     assert window.events.loaded.wait(2)
-    assert window.events._pywebviewready.is_set() == (fail_on is None)
     assert window.run_js.call_count == (1 if fail_on == 1 else 2)
 
 
@@ -905,7 +901,7 @@ class TestWindowApiCall:
         """
         window = webview.create_window('Evaluate')
         window.gui = Mock(renderer=renderer)
-        window.events._pywebviewready.set()
+        window.events.loaded.set()
 
         window.evaluate_js('1 + 1')
 

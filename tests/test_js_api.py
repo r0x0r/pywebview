@@ -24,7 +24,6 @@ def test_js_resource_failure(monkeypatch, tmp_path, caplog):
 
     def loaded(window):
         assert window.events.loaded.is_set()
-        assert not window.events._pywebviewready.is_set()
 
     run_test(webview, window, loaded)
     assert 'customize 2.js' in caplog.text

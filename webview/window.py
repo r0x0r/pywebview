@@ -91,7 +91,6 @@ def _protected(function: F) -> F:
 _shown_call = _api_call('shown')
 _loaded_call = _api_call('loaded')
 _before_load_call = _api_call('before_load')
-_pywebview_ready_call = _api_call('_pywebviewready', needs_page=True)
 
 
 class FixPoint(Flag):
@@ -209,8 +208,6 @@ class Window:
         self.events.request_sent = Event(self, True, 'request_sent')
         self.events.response_received = Event(self)
 
-        self.events._pywebviewready = Event(self)
-
         self._expose_lock = Lock()
         self.dom = DOM(self)
         self.gui: Any = None
@@ -307,7 +304,6 @@ class Window:
         self._allow_js_api_on(self.real_url)
         self.events.loaded.clear()
         self.events.before_load.clear()
-        self.events._pywebviewready.clear()
 
         logger.debug(f'Loading URL: {self.real_url}')
         self.gui.load_url(self.real_url, self.uid)
@@ -329,7 +325,6 @@ class Window:
         self._allow_js_api_on(base_uri)
         self.events.loaded.clear()
         self.events.before_load.clear()
-        self.events._pywebviewready.clear()
         logger.debug(f'Loading HTML: {html[:30]}')
         self.gui.load_html(html, base_uri, self.uid)
 
@@ -468,7 +463,7 @@ class Window:
         return self.gui.evaluate_js(script, self.uid, False)
 
     @_protected
-    @_pywebview_ready_call
+    @_api_call('loaded', needs_page=True)
     def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None) -> Any:
         """
         Evaluate given JavaScript code and return the result. The code is executed in eval statement
