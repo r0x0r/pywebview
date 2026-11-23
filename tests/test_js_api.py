@@ -33,6 +33,20 @@ def test_js_resource_failure(monkeypatch, tmp_path):
     assert not window.events.shown.is_set()
 
 
+def test_js_dir_missing(monkeypatch):
+    from webview import util
+
+    def get_js_dir():
+        raise FileNotFoundError('Cannot find JS directory')
+
+    monkeypatch.setattr(util, 'get_js_dir', get_js_dir)
+    webview.create_window('Missing JS directory', html='<html>Test</html>')
+
+    with pytest.raises(WebViewException, match='Cannot find JS directory') as caught:
+        webview.start()
+    assert isinstance(caught.value.__cause__, FileNotFoundError)
+
+
 def test_exception():
     api = Api()
     window = webview.create_window(

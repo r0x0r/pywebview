@@ -297,9 +297,11 @@ def start(
         # A missing or broken JS file breaks the JS API on every page, so report it before any
         # window opens rather than on each page load
         load_js_files(windows[0], renderer)
-    except Exception:
+    except Exception as e:
         stop_event_loop()
-        raise
+        if isinstance(e, WebViewException):
+            raise
+        raise WebViewException(f'Failed to load pywebview JavaScript files: {e}') from e
 
     if ssl:
         if not server_args or 'keyfile' not in server_args or 'certfile' not in server_args:
