@@ -112,7 +112,7 @@ jobs:
 
     - name: Run mypy
       run: |
-        uv run --with mypy mypy webview
+        uv run --no-dev --with mypy mypy webview
 
   tests:
     name: ${{ matrix.name }}

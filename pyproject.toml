@@ -73,12 +73,11 @@ qt5 = ["QtPy", "PyQt5", "pyqtwebengine"]
 qt6 = ["QtPy", "PyQt6", "PyQt6-WebEngine"]
 android = ["jnius"]
 ssl = ["cryptography"]
-# Keep in sync with the dev dependency group below.
 dev = ["ruff", "pre-commit", "pytest", "pytest-timeout", "build", "twine"]
 
 # Installed by `uv sync` by default. pip users install the dev extra instead.
 [dependency-groups]
-dev = ["ruff", "pre-commit", "pytest", "pytest-timeout", "build", "twine"]
+dev = ["pywebview[dev]"]
 
 [project.urls]
 Homepage = "https://pywebview.flowrl.com/"

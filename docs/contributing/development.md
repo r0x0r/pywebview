@@ -21,7 +21,7 @@ source venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-If you use [uv](https://docs.astral.sh/uv/), you can skip the virtual environment step. `uv sync` creates `.venv` and installs the development tools. Add an extra to install a backend, for example `uv sync --extra qt`. Prefix the commands in this guide with `uv run`. Do not use `--all-extras`, because the `cef` extra works only on Windows.
+If you use [uv](https://docs.astral.sh/uv/), you can skip the virtual environment step. `uv sync` creates `.venv` and installs the development tools. Add an extra to install a backend, for example `uv sync --extra qt`. Prefix the Python commands in this guide (`pre-commit`, `python`, `pytest`, `ruff`) with `uv run`. Pass the same `--extra` every time you run `uv sync`, because `uv sync` removes packages it was not asked for. Do not use `--all-extras`. Some extras work only on one platform or need system libraries.
 
 ``` bash
 uv sync
