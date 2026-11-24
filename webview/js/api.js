@@ -176,16 +176,21 @@ window.pywebview = {
       }
     }
 
+    // Array-like host objects, such as NodeList, HTMLCollection or arguments, become arrays.
+    // Plain objects stay objects even with a length property, as the window object has.
+    // The prototype check also matches Object.prototype of another realm, such as an iframe.
     function isArrayLike(a) {
-      return (
-        a &&
-        typeof a.length === 'number' &&
-        typeof a !== 'string' &&
-        (Array.isArray(a) ||
-         (typeof a === 'object' &&
-          a.length >= 0 &&
-          (a.length === 0 || (a.length - 1) in a)))
-      );
+      if (Array.isArray(a) || typeof a.length !== 'number') {
+        return false;
+      }
+      var proto = Object.getPrototypeOf(a);
+      if (
+        Object.prototype.toString.call(a) === '[object Object]' &&
+        (proto === null || Object.getPrototypeOf(proto) === null)
+      ) {
+        return false;
+      }
+      return a.length >= 0 && (a.length === 0 || (a.length - 1) in a);
     }
 
     function serialize(obj, ancestors) {
@@ -221,7 +226,8 @@ window.pywebview = {
         }
 
         if (Array.isArray(obj)) {
-          var arr = obj.map(function (value) {
+          // The array may have an own map property
+          var arr = Array.prototype.map.call(obj, function (value) {
             return boundSerialize(value, ancestors);
           });
           return arr;

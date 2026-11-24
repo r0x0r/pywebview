@@ -15,6 +15,12 @@
 - `GTK` `EdgeChromium` Fix repeated headers, such as `Set-Cookie`, keeping only their last value in `response_received`. Values are now joined with a comma, as on macOS.
 - `Winforms` Fix transparent windows. The window now enables per-pixel transparency in DWM instead of relying on undocumented compositing behaviour, which worked on some systems only. A transparent window no longer gets the Mica backdrop in dark mode, which made it opaque after a theme change or after locking and unlocking Windows. A transparent frameless window has no native resize frame, so Windows no longer draws a white strip along its top edge, a border, rounded corners or a shadow around it. Windows cannot resize or snap such a window from its edges. [#1887](https://github.com/r0x0r/pywebview/issues/1887)
 - `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
+- `All` Fix `repr()` and `str()` of `window.dom.window`, which raised `TypeError`.
+- `All` Fix `window.dom.window.node` and `evaluate_js` returning an empty list for an object with a `length` property, such as the window object. Only array-like objects other than plain objects, such as `NodeList` and `arguments`, are converted to lists.
+- `All` Fix `element.attributes` overwriting the `data-pywebview-id` attribute, which pywebview uses to find the element. Assigning it is ignored, as when an element is created with attributes.
+- `All` `webview.start()` raises `WebViewException` when pywebview's JavaScript files are missing or cannot be loaded, for example when a packaged application does not include the `webview/js` folder. Previously every window opened without `window.pywebview`, and `evaluate_js` returned `None`, with no error. [#1883](https://github.com/r0x0r/pywebview/issues/1883)
+
+
 ### ⚡ Features
 
 - `All` Cancel a request by returning `False` from a `request_sent` handler. Every request can be cancelled on Windows, QT and Android, but only navigations on GTK and main frame navigations on macOS.
@@ -40,6 +46,7 @@
 ### 🚀 Improvements
 
 - `Cocoa` Emit `response_received` for every HTTP response, including images, scripts, stylesheets and `fetch` requests, instead of only navigations.
+- `EdgeChromium` Update WebView2 runtime to 1.0.4370.26.
 - `Winforms` Frameless windows keep the native resize frame instead of using `FormBorderStyle.None`. Only the caption is removed and, on Windows 11, the border is hidden, so Windows itself handles resizing from every edge and corner, Aero Snap, maximize, minimize and restore. On Windows 10 a thin native border remains visible. Because the native frame is kept, frameless windows have the system shadow even with `shadow=False`.
 
 ### 🐞 Bug fixes
@@ -112,7 +119,6 @@
 
 - `All` Log a warning when a remote HTTPS page gets the JS API while `IGNORE_SSL_ERRORS` is enabled. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `All` Document the JS API's exposure, `ALLOW_FILE_URLS`, external links and Content Security Policy in the security guide, explain what trusting a remote origin implies, and correct the documented default of `ALLOW_FILE_URLS`. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
-- `EdgeChromium` Update WebView2 runtime to 1.0.4314.35.
 - `Winforms` Prefer .NET 6+ with a .NET Framework fallback, preserve an application's initialized runtime, select matching WebView2 assemblies, and support CoreCLR folder dialogs on Windows ARM64. Thanks @smparkes. [#1832](https://github.com/r0x0r/pywebview/pull/1832)
 - `All` Type annotations across the codebase now use PEP 585 / PEP 604 built-in generics and union syntax.
 - `Winforms` Move keyboard focus to the menu bar when it is activated, so the menu can be navigated with the keyboard. Thanks @tdeck. [#1835](https://github.com/r0x0r/pywebview/pull/1835)

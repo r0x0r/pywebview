@@ -48,7 +48,7 @@ def test_async_js_api_function():
     js_bridge_call(window, 'target', [21], 'value_id', window._js_api_token, TRUSTED_URL)
 
     assert returned.wait(2)
-    assert "{value: '42'}" in window.run_js.call_args[0][0]
+    assert '{"value": "42"}' in window.run_js.call_args[0][0]
 
 
 def test_async_handler_on_non_blocking_event():

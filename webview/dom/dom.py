@@ -19,15 +19,20 @@ class DOM:
 
     @property
     def body(self) -> Element:
-        return self._elements.get('body', Element(self.__window, 'body'))
+        return self.__element('body')
 
     @property
     def document(self) -> Element:
-        return self._elements.get('document', Element(self.__window, 'document'))
+        return self.__element('document')
 
     @property
     def window(self) -> Element:
-        return self._elements.get('window', Element(self.__window, 'window'))
+        return self.__element('window')
+
+    def __element(self, node_id: str) -> Element:
+        """Return the element registered for node_id, or a new one."""
+        element = self._elements.get(node_id)
+        return element if element is not None else Element(self.__window, node_id)
 
     def create_element(
         self,
