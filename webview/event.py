@@ -64,9 +64,10 @@ class Event:
         def execute():
             for func in self._items:
                 try:
-                    if len(inspect.signature(func).parameters.values()) == 0:
+                    parameters = inspect.signature(func).parameters
+                    if not parameters:
                         value = func()
-                    elif 'window' in inspect.signature(func).parameters:
+                    elif 'window' in parameters:
                         value = func(self._window, *args, **kwargs)
                     else:
                         value = func(*args, **kwargs)
@@ -89,7 +90,7 @@ class Event:
 
         return_values: list[Any] = []
 
-        if len(self._items):
+        if self._items:
             if self._should_lock:
                 _blocking_dispatch.depth = getattr(_blocking_dispatch, 'depth', 0) + 1
                 try:
@@ -97,13 +98,11 @@ class Event:
                 finally:
                     _blocking_dispatch.depth -= 1
             else:
-                t = threading.Thread(target=execute)
-                t.start()
+                threading.Thread(target=execute).start()
 
-        false_values = [v for v in return_values if v is False]
         self._event.set()
 
-        return len(false_values) != 0
+        return any(value is False for value in return_values)
 
     def is_set(self) -> bool:
         return self._event.is_set()
@@ -126,17 +125,8 @@ class Event:
             logger.warning(f'Event handler {item} not found')
         return self
 
-    def __iadd__(self, item: Callable[..., Any]) -> Self:
-        self._check_handler(item)
-        self._items.append(item)
-        return self
-
-    def __isub__(self, item: Callable[..., Any]) -> Self:
-        if item in self._items:
-            self._items.remove(item)
-        else:
-            logger.warning(f'Event handler {item} not found')
-        return self
+    __iadd__ = __add__
+    __isub__ = __sub__
 
     def __len__(self) -> int:
         return len(self._items)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import logging
 import os
 from collections.abc import Callable, Mapping, Sequence
@@ -8,7 +7,7 @@ from enum import Flag, auto
 from functools import wraps
 from threading import Lock
 from typing import Any, Concatenate, TypeAlias, TypeVar
-from urllib.parse import urljoin
+from urllib.parse import unquote, urljoin
 from uuid import uuid1
 
 from typing_extensions import ParamSpec
@@ -24,6 +23,7 @@ from webview.state import State
 from webview.util import (
     abspath,
     escape_string,
+    get_args,
     is_app,
     is_local_url,
     is_protected,
@@ -42,33 +42,41 @@ F = TypeVar('F', bound=Callable[..., Any])
 logger = logging.getLogger('pywebview')
 
 
-def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
+def _api_call(
+    event_type: str, needs_page: bool = False
+) -> Callable[[WindowFunc[P, T]], WindowFunc[P, T]]:
     """
-    Decorator to call a pywebview API, checking for _webview_ready and raisings
-    appropriate Exceptions on failure.
+    Return a decorator that makes a Window method wait for the given window event, raising
+    WebViewException on timeout or when the GUI is not initialized.
+    :param event_type: name of the event in Window.events to wait for
+    :param needs_page: fail at once when called from a blocking handler before the event, as
+        the method cannot work without a loaded page
     """
 
-    @wraps(function)
-    def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
-        event = getattr(self.events, event_type)
+    def decorator(function: WindowFunc[P, T]) -> WindowFunc[P, T]:
+        @wraps(function)
+        def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
+            event = getattr(self.events, event_type)
 
-        if not event.is_set() and in_blocking_handler():
-            # A blocking handler holds up the very events being waited for (before_show runs
-            # before shown, before_load before loaded), so it calls through to the backend
-            # directly. The JS bridge cannot exist yet though, so fail at once instead.
-            if event_type == '_pywebviewready':
-                raise WebViewException(
-                    f'{function.__name__}() cannot be called before the page has loaded'
-                )
-        elif not event.wait(20):
-            raise WebViewException('Main window failed to start')
+            if not event.is_set() and in_blocking_handler():
+                # A blocking handler holds up the very events being waited for (before_show
+                # runs before shown, before_load before loaded), so it calls through to the
+                # backend directly.
+                if needs_page:
+                    raise WebViewException(
+                        f'{function.__name__}() cannot be called before the page has loaded'
+                    )
+            elif not event.wait(20):
+                raise WebViewException('Main window failed to start')
 
-        if self.gui is None:
-            raise WebViewException('GUI is not initialized')
+            if self.gui is None:
+                raise WebViewException('GUI is not initialized')
 
-        return function(self, *args, **kwargs)
+            return function(self, *args, **kwargs)
 
-    return wrapper
+        return wrapper
+
+    return decorator
 
 
 def _protected(function: F) -> F:
@@ -80,20 +88,9 @@ def _protected(function: F) -> F:
     return function
 
 
-def _shown_call(function: WindowFunc[P, T]) -> WindowFunc[P, T]:
-    return _api_call(function, 'shown')
-
-
-def _loaded_call(function: WindowFunc[P, T]) -> WindowFunc[P, T]:
-    return _api_call(function, 'loaded')
-
-
-def _before_load_call(function: WindowFunc[P, T]) -> WindowFunc[P, T]:
-    return _api_call(function, 'before_load')
-
-
-def _pywebview_ready_call(function: WindowFunc[P, T]) -> WindowFunc[P, T]:
-    return _api_call(function, '_pywebviewready')
+_shown_call = _api_call('shown')
+_loaded_call = _api_call('loaded')
+_before_load_call = _api_call('before_load')
 
 
 class FixPoint(Flag):
@@ -176,9 +173,6 @@ class Window:
         self._server_class = server
         self._server_args = server_args if server_args is not None else {}
 
-        # HTTP server path magic
-        self._url_prefix: str | None = None
-        self._common_path: str | None = None
         self._server: http.BottleServer | None = None
 
         self._js_api = js_api
@@ -214,8 +208,6 @@ class Window:
         self.events.request_sent = Event(self, True, 'request_sent')
         self.events.response_received = Event(self)
 
-        self.events._pywebviewready = Event(self)
-
         self._expose_lock = Lock()
         self.dom = DOM(self)
         self.gui: Any = None
@@ -234,8 +226,6 @@ class Window:
         elif server is None:
             server = http.global_server
 
-        self._url_prefix = server.address if server is not None else None
-        self._common_path = server.common_path if server is not None else None
         self._server = server
         self.real_url = self._resolve_url(self.original_url)
         self._allow_js_api_on(self.real_url)
@@ -272,8 +262,7 @@ class Window:
     @title.setter
     @_loaded_call
     def title(self, title: str) -> None:
-        self._title = title
-        self.gui.set_title(title, self.uid)
+        self.set_title(title)
 
     @property
     @_shown_call
@@ -294,7 +283,7 @@ class Window:
     @on_top.setter
     def on_top(self, on_top: bool) -> None:
         self.__on_top = on_top
-        if hasattr(self, 'gui') and self.gui is not None:
+        if getattr(self, 'gui', None) is not None:
             self.gui.set_on_top(self.uid, on_top)
 
     @_protected
@@ -306,21 +295,15 @@ class Window:
         :param url: url to load
         :param uid: uid of the target instance
         """
-        if is_local_url(url) and self._serves_files() and self._outside_root(url):
-            raise SecurityException(f'{url} is outside the folder served by the window')
-
-        if is_app(url) or (is_local_url(url) and not self._serves_files()):
+        if is_app(url) or (is_local_url(url) and not self._can_serve(url)):
             self._stop_server()
             self._server = self._create_server(url)
-            self._url_prefix = self._server.address
-            self._common_path = self._server.common_path
 
         self.real_url = self._resolve_url(url)
         self._js_api_pending_html = False
         self._allow_js_api_on(self.real_url)
         self.events.loaded.clear()
         self.events.before_load.clear()
-        self.events._pywebviewready.clear()
 
         logger.debug(f'Loading URL: {self.real_url}')
         self.gui.load_url(self.real_url, self.uid)
@@ -342,7 +325,6 @@ class Window:
         self._allow_js_api_on(base_uri)
         self.events.loaded.clear()
         self.events.before_load.clear()
-        self.events._pywebviewready.clear()
         logger.debug(f'Loading HTML: {html[:30]}')
         self.gui.load_html(html, base_uri, self.uid)
 
@@ -371,15 +353,11 @@ class Window:
         return self.gui.clear_cookies(self.uid)
 
     @_protected
-    @_loaded_call
+    @_api_call('loaded', needs_page=True)
     def get_cookies(self):
         """
         Get cookies for the current website
         """
-        # only reachable unloaded from a blocking handler, which skips the readiness wait
-        if not self.events.loaded.is_set():
-            raise WebViewException('get_cookies() cannot be called before the page has loaded')
-
         return self.gui.get_cookies(self.uid)
 
     @_loaded_call
@@ -485,7 +463,7 @@ class Window:
         return self.gui.evaluate_js(script, self.uid, False)
 
     @_protected
-    @_pywebview_ready_call
+    @_api_call('loaded', needs_page=True)
     def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None) -> Any:
         """
         Evaluate given JavaScript code and return the result. The code is executed in eval statement
@@ -499,19 +477,13 @@ class Window:
 
         """
         unique_id = uuid1().hex
+        android = self.gui.renderer == 'android-webkit'
+        return_result = (
+            'return pywebview.stringify(value);' if android else 'pywebview.stringify(value);'
+        )
+
         if callback:
             self._callbacks[unique_id] = callback
-
-        if self.gui.renderer == 'cef':
-            return_result = (
-                f'window.external.return_result(pywebview.stringify(value), "{unique_id}");'
-            )
-        elif self.gui.renderer == 'android-webkit':
-            return_result = 'return pywebview.stringify(value);'
-        else:
-            return_result = 'pywebview.stringify(value);'
-
-        if callback:
             handle_promise = f"""
                 if (pywebview._isPromise(value)) {{
                     value.then(function evaluate_async(result) {{
@@ -541,17 +513,13 @@ class Window:
             {return_result};
         """
 
-        if self.gui.renderer == 'cef':
-            result = self.gui.evaluate_js(escaped_script, self.uid, True, unique_id)
-        elif self.gui.renderer == 'android-webkit':
+        if android:
             escaped_script = f"""
                 (function() {{
                     {escaped_script}
                 }})()
             """
-            result = self.gui.evaluate_js(escaped_script, self.uid, True)
-        else:
-            result = self.gui.evaluate_js(escaped_script, self.uid, True)
+        result = self.gui.evaluate_js(escaped_script, self.uid, True)
 
         if callback:
             if isinstance(result, dict) and result.get('pywebviewPromise420'):
@@ -565,8 +533,7 @@ class Window:
         if isinstance(result, dict) and result.get('pywebviewJavascriptError420'):
             del result['pywebviewJavascriptError420']
             raise JavascriptException(result)
-        else:
-            return result
+        return result
 
     @_shown_call
     def create_confirmation_dialog(self, title: str, message: str) -> bool:
@@ -621,10 +588,8 @@ class Window:
 
         with self._expose_lock:
             for func in functions:
-                name = func.__name__
-                self._functions[name] = func
-                params = list(inspect.getfullargspec(func).args)
-                func_list.append({'func': name, 'params': params})
+                self._functions[func.__name__] = func
+                func_list.append({'func': func.__name__, 'params': get_args(func)})
 
         if self.events.loaded.is_set() and not self._run_js_api_js(
             f'window.pywebview._createApi({func_list})'
@@ -643,6 +608,14 @@ class Window:
         self._js_api_origins.add(origin)
         if origin == 'about:blank':
             self._js_api_pending_html = True
+
+    def _cancel_load(self, url: str) -> None:
+        """
+        Called by a backend when request_sent cancels a request. If it was the request of
+        load_url(), show an empty page, as the current page may have lost its server.
+        """
+        if unquote(url).rstrip('/') == unquote(self.real_url or '').rstrip('/'):
+            self.load_html('', 'about:blank')
 
     def _invalidate_js_api(self) -> None:
         """Revoke bridge access at the native backend's document transition."""
@@ -693,34 +666,40 @@ class Window:
             if hasattr(server, 'stop'):
                 server.stop()
 
-    def _serves_files(self) -> bool:
-        """Return whether the window's server maps local paths, either to files or to app routes."""
+    def _can_serve(self, url: str) -> bool:
+        """
+        Return whether the window's running server can serve a local URL, either as a file or
+        as a route of a WSGI app. Raise SecurityException for a file outside its folder.
+        """
         server = self._server
         if server is None or not server.running:
             return False
-        # A server started without local files, e.g. by start(http_server=True), has no root
-        return not getattr(server, 'serves_files', True) or bool(getattr(server, 'root_path', None))
-
-    def _outside_root(self, url: str) -> bool:
-        """Return whether a local file URL lies outside the folder the window's server serves."""
-        server = self._server
-        if server is None or not getattr(server, 'serves_files', True) or not server.root_path:
-            return False  # no server, or a route of the WSGI app
-        path = os.path.normcase(abspath(url.split('#')[0].split('?')[0]))
-        root = os.path.normcase(server.root_path)
-        try:
-            return os.path.commonpath([path, root]) != root
-        except ValueError:  # paths on different drives
+        if not getattr(server, 'serves_files', True):
             return True
+        # A server started without local files, e.g. by start(http_server=True), has no root
+        root_path = getattr(server, 'root_path', None)
+        if not root_path:
+            return False
+        path = os.path.normcase(abspath(url.split('#')[0].split('?')[0]))
+        root = os.path.normcase(root_path)
+        try:
+            outside = os.path.commonpath([path, root]) != root
+        except ValueError:  # paths on different drives
+            outside = True
+        if outside:
+            raise SecurityException(f'{url} is outside the folder served by the window')
+        return True
 
     def _resolve_url(self, url: str | Callable[..., Any] | None) -> str | None:
+        """Map a local path or a WSGI app to its address on the window's server."""
+        server = self._server
         if is_app(url):
-            return self._url_prefix
+            return server.address if server is not None else None
         if not isinstance(url, str):
             return None
-        if is_local_url(url) and self._url_prefix and self._common_path is not None:
-            filename = os.path.relpath(url, self._common_path)
-            return urljoin(self._url_prefix, filename)
+        if is_local_url(url) and server and server.address and server.common_path is not None:
+            path = os.path.relpath(url, server.common_path).replace(os.sep, '/')
+            return urljoin(server.address, path)
         return url
 
 

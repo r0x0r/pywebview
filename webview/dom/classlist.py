@@ -20,41 +20,35 @@ class ClassList:
             )
 
     def append(self, cls: str) -> None:
-        self.__element._window.run_js(
-            f"{self.__element._query_command}; element.classList.add('{escape_string(cls)}')"
-        )
+        self.__class_list('add', cls)
 
     def remove(self, cls: str) -> None:
-        self.__element._window.run_js(
-            f"{self.__element._query_command}; element.classList.remove('{escape_string(cls)}')"
-        )
+        self.__class_list('remove', cls)
 
     def toggle(self, cls: str) -> None:
+        self.__class_list('toggle', cls)
+
+    def __class_list(self, method: str, cls: str) -> None:
         self.__element._window.run_js(
-            f"{self.__element._query_command}; element.classList.toggle('{escape_string(cls)}')"
+            f"{self.__element._query_command}; element.classList.{method}('{escape_string(cls)}')"
         )
 
     def __get_classes(self) -> list[str]:
-        classes = self.__element._window.evaluate_js(
-            f'{self.__element._query_command}; element.className'
-        ).split(' ')
-        return [c for c in classes if c != '']
+        return self.__element._window.evaluate_js(
+            f'{self.__element._query_command}; Array.prototype.slice.call(element.classList)'
+        )
 
     def __getitem__(self, index: int) -> str:
-        classes = self.__get_classes()
-        return classes[index]
+        return self.__get_classes()[index]
 
     def __len__(self) -> int:
-        classes = self.__get_classes()
-        return len(classes)
+        return len(self.__get_classes())
 
     def __str__(self) -> str:
-        classes = self.__get_classes()
-        return str(classes)
+        return str(self.__get_classes())
 
     def __repr__(self) -> str:
-        classes = self.__get_classes()
-        return repr(classes)
+        return repr(self.__get_classes())
 
     def clear(self) -> None:
         self.__element._window.run_js(f"{self.__element._query_command}; element.className = ''")

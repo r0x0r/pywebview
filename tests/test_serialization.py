@@ -12,6 +12,9 @@ test_values = [
     ('array', [1, 2, 3]),
     ('mixed', {'key1': 'value', 'key2': [1, 2, {'id': 2}], 'nullValue': None}),
     ('boolean', True),
+    # objects with a length property are not array-like
+    ('length_object', {'length': 0, 'key': 'value'}),
+    ('indexed_object', {'0': 'value', 'length': 1}),
 ]
 
 test_value_string = '\n'.join([f'var {name} = {json.dumps(value)}' for name, value in test_values])
@@ -62,6 +65,19 @@ def serialization(window):
     for name, expected_value in test_values:
         result = window.evaluate_js(name)
         assert result == expected_value
+
+    assert window.evaluate_js('(function () { return arguments })(1, 2)') == [1, 2]
+    assert window.evaluate_js('new Uint8Array([1, 2])') == [1, 2]
+    assert window.evaluate_js('var a = [1, 2]; a.map = "metadata"; a') == [1, 2]
+    # a plain object from another realm keeps its fields too
+    script = """(function () {
+        var frame = document.createElement('iframe');
+        document.body.appendChild(frame);
+        var value = frame.contentWindow.JSON.parse('{"length": 0, "key": "value"}');
+        frame.remove();
+        return value;
+    })()"""
+    assert window.evaluate_js(script) == {'length': 0, 'key': 'value'}
 
 
 def circular_reference(window):

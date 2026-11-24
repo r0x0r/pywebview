@@ -35,7 +35,6 @@ body:
         - gtkwebkit2
         - qtwebengine
         - qtwebkit
-        - cef
         - android
         - not sure
     validations:

@@ -10,6 +10,8 @@ public interface WebViewRequestInterceptor {
      * @param url The URL of the request
      * @param method The HTTP method (GET, POST, etc.)
      * @param headersJson JSON string representation of the request headers
+     * @return JSON string of the headers to send instead, null to leave them unchanged, or
+     *         PyWebViewClient.CANCEL_REQUEST to cancel the request
      */
     String onRequest(String url, String method, String headersJson);
 
