@@ -98,6 +98,10 @@ def test_removed_element(window):
     run_test(webview, window, removed_element_test)
 
 
+def test_views(window):
+    run_test(webview, window, views_test)
+
+
 def test_event_handler_options(window):
     run_test(webview, window, event_handler_options_test)
 
@@ -597,3 +601,45 @@ def event_handler_options_test(window):
     assert wait_for(lambda: calls['debounced'] >= 1)
     sleep(0.3)
     assert calls['debounced'] == 1
+
+
+def views_test(window):
+    child1 = window.dom.get_element('#child1')
+    assert repr(child1) == str(child1) == child1.node['outerHTML']
+    assert repr(window.dom.document) == 'document'
+    assert repr(window.dom.window) == 'window'
+    window_node = window.dom.window.node
+    assert window_node['_pywebviewId'] == 'window'
+    assert window_node['scrollY'] == 0
+
+    # an element with listeners is the one the DOM returns
+    document = window.dom.document
+    document.on('click', lambda e: None)
+    assert window.dom.document is document
+
+    window.run_js("document.getElementById('child1').className = ' a  b\\tc '")
+    assert len(child1.classes) == 3
+    assert str(child1.classes) == repr(child1.classes) == "['a', 'b', 'c']"
+    # a non-breaking space is part of a class name, not a separator
+    window.run_js("document.getElementById('child1').className = 'a\\u00a0b c'")
+    assert list(child1.classes) == ['a\u00a0b', 'c']
+
+    # pywebview identifies the element by data-pywebview-id, so it cannot be overwritten
+    node_id = child1._node_id
+    child1.attributes['data-pywebview-id'] = 'other'
+    child1.attributes.update({'data-pywebview-id': 'other', 'data-ok': 'yes'})
+    child1.attributes['DATA-PYWEBVIEW-ID'] = 'other'
+    assert window.dom.get_element('#child1')._node_id == node_id
+    assert child1.text == 'DUDE'
+
+    attributes = child1.attributes.copy()
+    assert attributes['data-ok'] == 'yes'
+    assert 'data-pywebview-id' not in attributes
+    assert str(child1.attributes) == repr(child1.attributes) == str(attributes)
+    assert child1.attributes.pop('data-ok') == 'yes'
+    assert child1.attributes.get('missing', 'default') == 'default'
+
+    child1.attributes.clear()
+    assert child1.attributes.copy() == {}
+    assert window.dom.get_element('#child1') is None  # its id was cleared too
+    assert child1.text == 'DUDE'

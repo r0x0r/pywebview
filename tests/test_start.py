@@ -1,3 +1,7 @@
+from queue import Queue
+
+import pytest
+
 import webview
 
 from .util import assert_js, run_test
@@ -28,3 +32,30 @@ def assert_func(window):
     assert js_result == 80085
 
     assert_js(window, 'test', 'JS Api is working too')
+
+
+@pytest.mark.parametrize('args, expected', [(None, ()), (5, (5,))])
+def test_start_func_args(args, expected):
+    received: Queue = Queue()
+    window = webview.create_window('Start func', html='<html><body></body></html>')
+    start_args = {'func': lambda *params: received.put(params)}
+    if args is not None:
+        start_args['args'] = args
+    run_test(webview, window, start_args=start_args)
+    assert received.get(timeout=5) == expected
+
+
+def test_start_returns_when_initialized_cancels_the_window():
+    window = webview.create_window('Cancelled', html='<html><body></body></html>')
+    renderers: Queue = Queue()
+
+    def initialized(renderer):
+        renderers.put(renderer)
+        return False
+
+    window.events.initialized += initialized
+    webview.start()
+
+    assert renderers.get(timeout=1) == webview.renderer
+    assert window.native is None
+    assert not window.events.shown.is_set()

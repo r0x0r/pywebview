@@ -76,6 +76,10 @@ The packager picks up dependencies that you do not use. For example, if `PyQt` i
 
 With PyInstaller, build with the `--noconsole` (or `--windowed`) option.
 
+### `webview.start()` raises "pywebview JavaScript files … not found"
+
+The package does not include the `webview/js` folder, which holds the scripts that create `window.pywebview`. The PyInstaller hook that ships with _pywebview_ includes it. With other packagers, add the folder to the package, for example with `--include-package-data=webview` for Nuitka. See [Freezing](/guide/freezing.md).
+
 ### Files are missing in the frozen application
 
 Add your HTML, CSS and Javascript files to the package. For PyInstaller, use `--add-data`. Load them with relative paths. See [Freezing](/guide/freezing.md).

@@ -84,8 +84,9 @@ support a feature, log a warning and return a sane default rather than raising.
 which the backend assigns after creation.
 
 **API calls are gated on lifecycle events.** `Window` methods are decorated with `@_shown_call`,
-`@_loaded_call`, `@_before_load_call` or `@_pywebview_ready_call` (see `window.py`). These block
-until the corresponding `Event` fires and raise `WebViewException` on timeout. Use the existing
+`@_loaded_call` or `@_before_load_call`, or with `@_api_call(event, needs_page=True)` for
+methods that need the page (see `window.py`). These block until the corresponding `Event` fires
+and raise `WebViewException` on timeout. Use the existing
 decorators instead of writing ad-hoc readiness checks, and pick the earliest event that is
 actually required.
 
