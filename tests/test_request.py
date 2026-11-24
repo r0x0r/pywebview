@@ -1,3 +1,4 @@
+import time
 from threading import Lock
 
 import pytest
@@ -47,6 +48,32 @@ def test_request_headers(headers_window):
     run_test(webview, headers_window, headers_test)
 
 
+def test_request_cancel():
+    app = Bottle()
+    hits = []
+    cancelled = []
+
+    @app.route('/')
+    def index():
+        return 'index'
+
+    @app.route('/blocked')
+    @app.route('/allowed')
+    def page():
+        name = request.path.strip('/')
+        hits.append(name)
+        return name
+
+    def cancel_blocked(request):
+        if request.url.endswith('/blocked'):
+            cancelled.append(request.url)
+            return False
+
+    window = webview.create_window('Cancel test', app)
+    window.events.request_sent += cancel_blocked
+    run_test(webview, window, cancel_test, (hits, cancelled))
+
+
 def request_test(window, exceptions, lock):
     assert lock.acquire(timeout=10)
     if len(exceptions) > 0:
@@ -57,3 +84,19 @@ def headers_test(window):
     window.events.loaded.wait()
     headers = window.evaluate_js('document.body.innerText')
     assert 'Pywebview: test' in headers, f'Expected header not found: {headers}'
+
+
+def cancel_test(window, hits, cancelled):
+    window.events.loaded.wait()
+    url = window.get_current_url().rstrip('/')
+    window.load_url(url + '/blocked')
+    time.sleep(2)
+    assert cancelled == [url + '/blocked'], f'request_sent did not see the request: {cancelled}'
+    # The window shows an empty page, on Qt an empty error page
+    if webview.renderer != 'qtwebengine':
+        assert window.evaluate_js('document.body.innerText') == ''
+
+    # A request that is not cancelled reaches the server
+    window.load_url(url + '/allowed')
+    assert window.events.loaded.wait(10), 'Allowed page did not load'
+    assert hits == ['allowed'], f'Unexpected server hits: {hits}'

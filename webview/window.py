@@ -7,7 +7,7 @@ from enum import Flag, auto
 from functools import wraps
 from threading import Lock
 from typing import Any, Concatenate, TypeAlias, TypeVar
-from urllib.parse import urljoin
+from urllib.parse import unquote, urljoin
 from uuid import uuid1
 
 from typing_extensions import ParamSpec
@@ -608,6 +608,14 @@ class Window:
         self._js_api_origins.add(origin)
         if origin == 'about:blank':
             self._js_api_pending_html = True
+
+    def _cancel_load(self, url: str) -> None:
+        """
+        Called by a backend when request_sent cancels a request. If it was the request of
+        load_url(), show an empty page, as the current page may have lost its server.
+        """
+        if unquote(url).rstrip('/') == unquote(self.real_url or '').rstrip('/'):
+            self.load_html('', 'about:blank')
 
     def _invalidate_js_api(self) -> None:
         """Revoke bridge access at the native backend's document transition."""

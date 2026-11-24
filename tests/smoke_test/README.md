@@ -25,6 +25,9 @@ What is covered:
   `response_received`, `resized`, `moved`, `minimized`, `maximized`, `restored`, `closed`
 - Window functions: title, resize, move, minimize, maximize, restore, fullscreen, on top,
   hide/show, current URL, screens, token
+- Network events: requests and responses of the main document and a `fetch` call, headers added
+  in `request_sent`, and cancelling a `fetch` call and a navigation. Checks that a backend
+  cannot support are skipped.
 - Cookies: `get_cookies` and `clear_cookies`
 - DOM API: creating, querying, traversing and manipulating elements, DOM events
 - Multiple windows: create, evaluate, `load_html`, `destroy`
