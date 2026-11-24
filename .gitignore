@@ -23,6 +23,7 @@ __pycache__
 .ruff-cache
 .mypy_cache
 .venv*
+uv.lock
 _version.py
 docs/examples
 /main.py

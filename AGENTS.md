@@ -17,7 +17,6 @@ Supported platforms and their renderers:
 | --- | --- | --- |
 | Windows | `webview/platforms/winforms.py` | WinForms host for `edgechromium.py` (WebView2) |
 | Windows | `webview/platforms/winui3.py` | WinUI 3 host for WebView2 |
-| Windows | `webview/platforms/cef.py` | CEF (opt-in, `cefpython3`) |
 | macOS | `webview/platforms/cocoa.py` | Cocoa + WKWebView via PyObjC |
 | Linux/BSD | `webview/platforms/gtk.py` | GTK 3 + WebKit2 via PyGObject |
 | Linux/BSD/any | `webview/platforms/qt.py` | Qt5/Qt6 + QtWebEngine via QtPy |
@@ -50,7 +49,7 @@ docs/                 VuePress site (guide, api, contributing, CHANGELOG)
 _pywebview_ requires Python 3.10 or newer. Install it according to the target platform:
 
 - **Windows:** `pip install pywebview` installs the WinForms dependencies. WebView2 requires the
-  Microsoft WebView2 Runtime; use `pip install "pywebview[cef]"` for the optional CEF backend.
+  Microsoft WebView2 Runtime.
   The released WinUI 3 backend can be installed with `pip install "pywebview[winui3]"` and
   requires Python 3.11 or newer and the Windows App Runtime.
 - **macOS:** `pip install pywebview` installs the PyObjC dependencies for Cocoa. The optional Qt
@@ -77,7 +76,7 @@ set of module-level functions in `webview/platforms/cocoa.py`: `setup_app`, `cre
 `maximize`, `minimize`, `restore`, `move`, `get_current_url`, `clear_cookies`, `get_cookies`,
 `evaluate_js`, `get_position`, `get_size`, `get_screens`, `add_tls_cert`, plus a module-level
 `renderer` string. **Adding a method to `Window` means adding it to every backend** — including
-`cef.py` and `android/`, which are easy to forget. If a backend genuinely cannot
+`winui3.py` and `android/`, which are easy to forget. If a backend genuinely cannot
 support a feature, log a warning and return a sane default rather than raising.
 
 **Windows are addressed by `uid`.** Backends keep their own registry of native windows keyed by
@@ -85,8 +84,9 @@ support a feature, log a warning and return a sane default rather than raising.
 which the backend assigns after creation.
 
 **API calls are gated on lifecycle events.** `Window` methods are decorated with `@_shown_call`,
-`@_loaded_call`, `@_before_load_call` or `@_pywebview_ready_call` (see `window.py`). These block
-until the corresponding `Event` fires and raise `WebViewException` on timeout. Use the existing
+`@_loaded_call` or `@_before_load_call`, or with `@_api_call(event, needs_page=True)` for
+methods that need the page (see `window.py`). These block until the corresponding `Event` fires
+and raise `WebViewException` on timeout. Use the existing
 decorators instead of writing ad-hoc readiness checks, and pick the earliest event that is
 actually required.
 
@@ -209,14 +209,19 @@ release by `.github/workflows/docs.yaml`).
   heading (create it if the top of the file is a released version),
   in the established format: `` - `Backend` Description. Thanks @user. [#1234](link) `` grouped
   under **⚡ Features**, **🚀 Improvements** or **🐞 Bug fixes**. `Backend` is `All`, `Cocoa`,
-  `GTK`, `QT`, `Winforms`, `EdgeChromium`, `CEF` or `Android`.
+  `GTK`, `QT`, `Winforms`, `EdgeChromium` or `Android`.
 - User-facing strings must go through `webview/localization.py`, not be hardcoded in a backend.
+- **Write in simple technical English.** Use short sentences, plain words and the active voice.
+  Prefer "use" over "utilize" and "start" over "initiate". Say what the code does, without
+  marketing language or filler ("simply", "just", "easily"). Use the same term for the same
+  concept throughout, and define a term the first time it appears. Keep examples minimal and
+  runnable.
 
 ## Commits and pull requests
 
 - Commit subject format used in this repo: `[Scope] Imperative description`, where scope is the
   backend or area — `[Core]`, `[Cocoa]`, `[GTK]`, `[Qt]`, `[Winforms]`, `[EdgeChromium]`,
-  `[CEF]`, `[Android]`, `[Docs]`. Multiple scopes are slash-separated:
+  `[Android]`, `[Docs]`. Multiple scopes are slash-separated:
   `[Winforms/EdgeChromium] Fix ...`.
 - One logical change per commit. Do not mix a fix with reformatting.
 - Branch off `master` and open the PR against `master`.

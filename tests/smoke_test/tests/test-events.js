@@ -1,4 +1,12 @@
 describe('Window events tests', function() {
+    // QtWebEngine has no API for response headers, so Qt never fires response_received.
+    let responseEvent = true;
+
+    before(async function() {
+        const renderer = await window.pywebview.api.eval('webview.renderer');
+        responseEvent = renderer !== 'qtwebengine';
+    });
+
     describe('Event registration tests', function() {
         it('should have all events registered and set to true', async function() {
             await testUtils.wait(1000);
@@ -13,8 +21,8 @@ describe('Window events tests', function() {
                 'before_show',
                 'shown',
                 'request_sent',
-                'response_received'
             ];
+            if (responseEvent) expectedEvents.push('response_received');
 
             // Check that all expected events are present and set to true
             expectedEvents.forEach(eventName => {
@@ -32,6 +40,7 @@ describe('Window events tests', function() {
         });
 
         it('should handle response_received event with data', async function() {
+            if (!responseEvent) this.skip();
             // Check if response_received event contains response data
             const responseReceivedValue = await window.pywebview.api.eval('events.get("response_received")');
             expect(responseReceivedValue).to.not.be.null;

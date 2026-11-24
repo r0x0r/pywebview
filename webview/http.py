@@ -89,22 +89,19 @@ class BottleServer:
     ) -> tuple[str, str | None, BottleServer]:
         from webview import _state
 
-        apps = [u for u in urls if is_app(u)]
+        app = next((u for u in urls if is_app(u)), None)
         server = cls()
         common_path: str | None
 
-        if len(apps) > 0:
-            app = apps[0]
+        if app is not None:
             common_path = '.'
             server.serves_files = False
         else:
             local_urls = [u.split('#')[0] for u in urls if is_local_url(u)]
-            common_path = os.path.commonpath(local_urls) if len(local_urls) > 0 else None
+            common_path = os.path.commonpath(local_urls) if local_urls else None
             if common_path is not None and not os.path.isdir(abspath(common_path)):
                 common_path = os.path.dirname(common_path)
             logger.debug(f'Common path for local URLs: {common_path}')
-            server.root_path = abspath(common_path) if common_path is not None else None
-            logger.debug(f'HTTP server root path: {server.root_path}')
             app = bottle.Bottle()
 
             @app.route('/')

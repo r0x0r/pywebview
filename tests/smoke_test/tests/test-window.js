@@ -152,21 +152,23 @@ describe('Window tests', function() {
     })
     describe('Cookie tests', function() {
 
+      // The cookie store is persistent (private_mode=False) and cookies ignore the port, so other
+      // apps on 127.0.0.1 can add cookies. Check only the cookies this app sets.
+      const appCookies = ['testCookie1', 'testCookie2', 'testJson', 'serverCookie'];
+      const cookieNames = cookies => cookies.map(c => {
+        // Extract cookie name from Set-Cookie header
+        const match = c.match(/^Set-Cookie: ([^=]+)=/);
+        return match ? match[1] : null;
+      }).filter(name => appCookies.includes(name));
+
       it('get_cookies returns cookies', async function() {
         const cookies = await window.pywebview.api.get_cookies();
-        expect(cookies).to.be.an('array').that.has.lengthOf(4);
-        const cookieNames = cookies.map(c => {
-          // Extract cookie name from Set-Cookie header
-          const match = c.match(/^Set-Cookie: ([^=]+)=/);
-          return match ? match[1] : null;
-        }).filter(Boolean);
-
-        expect(cookieNames).to.include.members(['testCookie1', 'testCookie2', 'testJson', 'serverCookie']);
+        expect(cookieNames(cookies)).to.have.members(appCookies);
       });
 
       it('clear_cookies clears all cookies', async function() {
         const cookies = await window.pywebview.api.get_cookies();
-        expect(cookies).to.be.an('array').that.has.lengthOf(4);
+        expect(cookieNames(cookies)).to.have.members(appCookies);
         await window.pywebview.api.clear_cookies();
         const clearedCookies = await window.pywebview.api.get_cookies();
         expect(clearedCookies).to.be.an('array').that.is.empty;
