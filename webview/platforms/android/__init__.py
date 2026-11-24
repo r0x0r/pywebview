@@ -1,10 +1,14 @@
 import json
 import logging
+import os
+import shutil
+import tempfile
 from http.cookies import SimpleCookie
 from threading import Lock, Semaphore, Thread
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from android.activity import _activity as activity  # noqa
+from android.activity import bind as bind_activity  # noqa
 from jnius import autoclass, cast
 
 import webview
@@ -480,14 +484,91 @@ def create_confirmation_dialog(title, message, _):
     return False
 
 
+_ACTION_VIEW = 'android.intent.action.VIEW'
+_DISPLAY_NAME = '_display_name'  # OpenableColumns.DISPLAY_NAME
+_intent_lock = Lock()
+_new_intent_bound = False
+_launch_intent_handled = False
+
+
+def _copy_content_uri(uri):
+    """Copy a content:// document into the cache directory and return its path."""
+    resolver = activity.getContentResolver()
+    name = None
+    cursor = resolver.query(uri, None, None, None, None)
+
+    if cursor is not None:
+        try:
+            index = cursor.getColumnIndex(_DISPLAY_NAME)
+            if index >= 0 and cursor.moveToFirst():
+                name = cursor.getString(index)
+        finally:
+            cursor.close()
+
+    name = os.path.basename(name or uri.getLastPathSegment() or '') or 'document'
+
+    with os.fdopen(resolver.openFileDescriptor(uri, 'r').detachFd(), 'rb') as source:
+        # A directory per document, so that documents with the same name do not overwrite each other
+        directory = tempfile.mkdtemp(dir=activity.getCacheDir().getAbsolutePath())
+        path = os.path.join(directory, name)
+
+        with open(path, 'wb') as target:
+            shutil.copyfileobj(source, target)
+
+    return path
+
+
+def _open_intent(intent, window):
+    """Fire file_opened with the document an ACTION_VIEW intent opens."""
+    if intent is None or intent.getAction() != _ACTION_VIEW or not intent.getDataString():
+        return
+
+    url = intent.getDataString()
+    scheme = urlparse(url).scheme
+
+    try:
+        with _intent_lock:
+            if scheme == 'file':
+                path = unquote(urlparse(url).path)
+            elif scheme == 'content':
+                path = _copy_content_uri(intent.getData())
+            else:
+                return
+    except Exception:
+        logger.exception(f'Failed to open {url}')
+        return
+
+    window.events.file_opened.set([path])
+
+
+def _on_new_intent(intent):
+    if app:
+        Thread(target=_open_intent, args=(intent, app.window), daemon=True).start()
+
+
+def _open_launch_intent(intent, window):
+    window.events.shown.wait()
+    _open_intent(intent, window)
+
+
 def create_window(window):
-    global app
+    global app, _new_intent_bound, _launch_intent_handled
 
     if app:
         logger.error('Multiple windows are not supported on Android')
         return
 
     app = AndroidApp(window)
+
+    # Documents opened from other apps arrive as ACTION_VIEW intents: the launch intent at
+    # startup, and onNewIntent while the app is running (singleTask launch mode).
+    if not _new_intent_bound:
+        _new_intent_bound = True
+        bind_activity(on_new_intent=_on_new_intent)
+
+    if not _launch_intent_handled:
+        _launch_intent_handled = True
+        Thread(target=_open_launch_intent, args=(activity.getIntent(), window), daemon=True).start()
 
     try:
         app.run()

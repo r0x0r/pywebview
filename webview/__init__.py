@@ -16,6 +16,7 @@ import enum
 import logging
 import os
 import re
+import sys
 import tempfile
 import threading
 from collections.abc import Callable, Iterable, Mapping
@@ -173,6 +174,7 @@ def __dir__() -> list[str]:
 
 
 guilib = None
+_argv_files_opened = False
 
 # Served by __getattr__
 screens: list[Screen]
@@ -230,7 +232,7 @@ def start(
         calls start(). If None, a loop is started automatically when the first coroutine needs
         to run and closed when the GUI loop exits.
     """
-    global guilib, renderer
+    global guilib, renderer, _argv_files_opened
 
     if event_loop is not None and event_loop.is_running():
         try:
@@ -354,6 +356,13 @@ def start(
         thread = threading.Thread(target=_create_children, args=(windows[1:],))
         thread.start()
 
+    if not _argv_files_opened:
+        _argv_files_opened = True
+        paths = [os.path.abspath(arg) for arg in sys.argv[1:] if os.path.isfile(arg)]
+        if paths:
+            for window in windows:
+                threading.Thread(target=_open_argv_files, args=(window, paths), daemon=True).start()
+
     if func:
         if args is not None:
             if not hasattr(args, '__iter__'):
@@ -372,6 +381,12 @@ def start(
             for path in (keyfile, certfile):
                 if path and os.path.exists(path):
                     os.unlink(path)
+
+
+def _open_argv_files(window: Window, paths: list[str]) -> None:
+    """Fire file_opened for files passed on the command line, as the OS does on Windows/Linux."""
+    window.events.shown.wait()
+    window.events.file_opened.set(paths)
 
 
 def create_window(

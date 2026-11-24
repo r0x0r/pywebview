@@ -79,6 +79,7 @@ if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos'
     logger.debug('Enable --no-sandbox flag for arch/manjaro/nixos')
 
 _app_menu = None
+_file_open_filter = None
 _main_window_created = Event()
 _main_window_created.clear()
 
@@ -105,6 +106,18 @@ def _sigint_handler(signum, frame):
     global _app
     if _app:
         _app.quit()
+
+
+class FileOpenFilter(QtCore.QObject):
+    """Forward files opened through the OS (macOS Apple Events) to window.events.file_opened."""
+
+    def eventFilter(self, object, event):
+        if event.type() == QtCore.QEvent.FileOpen and event.file():
+            for instance in list(BrowserView.instances.values()):
+                instance.pywebview_window.events.file_opened.set([event.file()])
+            return True
+
+        return super().eventFilter(object, event)
 
 
 class BrowserView(QMainWindow):
@@ -1043,7 +1056,7 @@ def create_window(window):
             browser.pywebview_window.events.shown.set()
 
     if window.uid == 'master':
-        global _app, _app_menu
+        global _app, _app_menu, _file_open_filter
         if _state['menu']:
             _app_menu = QMenuBar()
             _app_menu.setNativeMenuBar(False)
@@ -1052,6 +1065,8 @@ def create_window(window):
             _app_menu = None
 
         _app = QApplication.instance() or QApplication(sys.argv)
+        _file_open_filter = FileOpenFilter()
+        _app.installEventFilter(_file_open_filter)
 
         signal.signal(signal.SIGINT, _sigint_handler)
 

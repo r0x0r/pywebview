@@ -118,6 +118,13 @@ class BrowserView:
         def applicationSupportsSecureRestorableState_(self, app):
             return Foundation.YES
 
+        def application_openURLs_(self, app, urls):
+            # Files opened from Finder or with `open` arrive here as an Apple Event, not argv
+            paths = [str(url.path()) for url in urls if url.isFileURL()]
+            if paths:
+                for instance in list(BrowserView.instances.values()):
+                    instance.pywebview_window.events.file_opened.set(paths)
+
     class WindowHost(AppKit.NSWindow):
         def canBecomeKeyWindow(self):
             return self.focus

@@ -946,6 +946,16 @@ The event is fired when _pywebview_ window is about to be closed. If confirm_clo
 
 [Example](/examples/events.html)
 
+### window.events.file_opened
+
+The event is fired when the operating system asks the application to open files, e.g. when a document associated with the application is double-clicked in a file manager. The handler receives a list of file paths. The event is fired on every open window. Subscribe to the event before calling `webview.start()`, so that files opened at launch are not missed. The application must register the file types it opens, see [Opening files](/guide/freezing.html#opening-files).
+
+* On macOS, the event is fired at launch and when files are opened while the application is running.
+* On Windows and Linux, the operating system passes the files on the command line. The event is fired once on each window created before `webview.start()`, when the window is shown, with the command line arguments that are existing files. Opening a file while the application is running starts a new instance of the application.
+* On Android, the event is fired for documents opened with a `VIEW` intent, at launch and while the application is running. The documents are copied to the cache directory of the application, and the handler receives the paths of the copies.
+
+[Example](/examples/open_file.html)
+
 ### window.events.initialized
 
 The event is fired right after GUI is chosen and HTTP server is started (if applicable). The first parameter `renderer` has a value of the chosen GUI library / web renderer. If event handler returns False, the window creation will be cancelled and GUI loop will not be started (for windows created before the GUI loop is started). This event is blocking. Handlers must be regular functions.
