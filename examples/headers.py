@@ -47,4 +47,4 @@ if __name__ == '__main__':
     window.events.request_sent += on_request
     window.events.response_received += on_response
 
-    webview.start(debug=True)
+    webview.start()

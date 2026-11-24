@@ -524,12 +524,20 @@ class BrowserView:
                 i.pywebview_window._invalidate_js_api()
 
         def webView_didFinishNavigation_(self, webview, nav):
-            # Add the webview to the window if it's not yet the contentView
+            # Add the webview to the window if it's not added yet
             i = BrowserView.get_instance('webview', webview)
 
             if i:
                 if not webview.window():
-                    i.window.setContentView_(webview)
+                    # Host the webview inside the content view rather than replacing it, so that
+                    # an attached Web Inspector is inserted next to the webview and not into
+                    # the window frame view, which breaks the titlebar
+                    content_view = i.window.contentView()
+                    webview.setFrame_(content_view.bounds())
+                    webview.setAutoresizingMask_(
+                        AppKit.NSViewWidthSizable | AppKit.NSViewHeightSizable
+                    )
+                    content_view.addSubview_(webview)
                     i.window.makeFirstResponder_(webview)
 
                 url = webview.URL()
