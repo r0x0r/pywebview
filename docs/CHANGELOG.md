@@ -121,6 +121,7 @@
 
 ### 🚀 Improvements
 
+- `All` Add a [guide](/guide/migration.md) for migrating from 6.x to 7.0.
 - `All` Log a warning when a remote HTTPS page gets the JS API while `IGNORE_SSL_ERRORS` is enabled. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `All` Document the JS API's exposure, `ALLOW_FILE_URLS`, external links and Content Security Policy in the security guide, explain what trusting a remote origin implies, and correct the documented default of `ALLOW_FILE_URLS`. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `Winforms` Prefer .NET 6+ with a .NET Framework fallback, preserve an application's initialized runtime, select matching WebView2 assemblies, and support CoreCLR folder dialogs on Windows ARM64. Thanks @smparkes. [#1832](https://github.com/r0x0r/pywebview/pull/1832)
