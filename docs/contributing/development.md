@@ -50,10 +50,10 @@ You need a [GitHub](https://github.com) account, [Python 3.10 or newer](https://
     Or, if you use [uv](https://docs.astral.sh/uv/):
 
     ``` bash
-    uv sync --extra dev
+    uv sync
     ```
 
-    This creates `.venv` and installs _pywebview_ in editable mode. Prefix commands with `uv run` (for example `uv run pytest tests`) or activate the environment with `source .venv/bin/activate`. For the backend extras in the next step, use `uv sync --extra dev --extra <backend>` instead of `pip install`.
+    This creates `.venv` and installs _pywebview_ in editable mode with the development tools. Prefix commands with `uv run` (for example `uv run pytest tests`) or activate the environment with `source .venv/bin/activate`. For the backend extras in the next step, use `uv sync --extra <backend>` instead of `pip install`. Pass the same `--extra` every time you run `uv sync`, because `uv sync` removes packages it was not asked for. Do not use `--all-extras`. Some extras work only on one platform or need system libraries.
 
 3. Install the dependencies of the backend you work on.
 

@@ -30,6 +30,10 @@
 - `All` Support `async` JS API functions, exposed functions, event handlers, the `webview.start` function, state change handlers, menu actions and `evaluate_js` callbacks. Handlers of blocking window events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) must be regular functions; subscribing an `async` one raises `TypeError`. Coroutines run on an asyncio event loop passed via the new `event_loop` parameter of `webview.start`, or on one started automatically when the first coroutine needs to run. [#1886](https://github.com/r0x0r/pywebview/pull/1886)
 - `All` Include aligned logging levels in console log messages and allow customizing their format through `webview.settings['LOG_FORMAT']`. [#1889](https://github.com/r0x0r/pywebview/pull/1889)
 
+### 🚀 Improvements
+
+- `All` Improve [uv](https://docs.astral.sh/uv/) support. `uv sync` installs the development tools through a `dev` dependency group, and the development guide describes the uv workflow. The Code Quality and Type Check CI jobs use uv. [#1907](https://github.com/r0x0r/pywebview/pull/1907)
+
 ### 💔 BREAKING CHANGES
 
 - `All` Require Python 3.10 or newer. [#1840](https://github.com/r0x0r/pywebview/pull/1840)
