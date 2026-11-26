@@ -169,7 +169,9 @@ def _open_second_launch(argv: list[str], cwd: str) -> None:
     if webview.windows:
         try:
             window = webview.active_window() or webview.windows[0]
-            window.restore()
+            # restore() also returns a maximized window to its normal size
+            if window._minimized:
+                window.restore()
             window.show()
         except Exception:
             # The command line is delivered even if no window can be shown

@@ -216,6 +216,13 @@ class Window:
 
         self.events._pywebviewready = Event(self)
 
+        # Whether the window is minimized, so that a later launch in single instance mode can
+        # restore a minimized window without returning a maximized one to its normal size
+        self._minimized = minimized
+        self.events.minimized += lambda: setattr(self, '_minimized', True)
+        self.events.maximized += lambda: setattr(self, '_minimized', False)
+        self.events.restored += lambda: setattr(self, '_minimized', False)
+
         self._expose_lock = Lock()
         self.dom = DOM(self)
         self.gui: Any = None
