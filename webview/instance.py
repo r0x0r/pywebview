@@ -312,8 +312,9 @@ def release() -> None:
             finally:
                 if fd is not None and key is not None:
                     # Every process opens the lock file with the directory lock held, so no
-                    # other process has it open now
-                    fd, locked = None, fd
+                    # other process has it open now. _unlock() closes the file.
+                    locked = fd
+                    fd = None
                     _unlock(locked, key)
     except OSError:
         logger.exception('Failed to stop being the running instance of the application')
@@ -328,93 +329,99 @@ class _OtherUserError(Exception):
     """The pipe of the running instance is owned by a process of another user."""
 
 
-def _process_user(pid: int) -> str:
-    """Return the SID of the user that runs a process, as a string."""
-    import ctypes
-    from ctypes import wintypes
+if sys.platform == 'win32':
 
-    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-    advapi32 = ctypes.WinDLL('advapi32', use_last_error=True)
+    def _process_user(pid: int) -> str:
+        """Return the SID of the user that runs a process, as a string."""
+        import ctypes
+        from ctypes import wintypes
 
-    kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
-    kernel32.OpenProcess.restype = wintypes.HANDLE
-    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
-    kernel32.LocalFree.argtypes = (ctypes.c_void_p,)
-    advapi32.OpenProcessToken.argtypes = (
-        wintypes.HANDLE,
-        wintypes.DWORD,
-        ctypes.POINTER(wintypes.HANDLE),
-    )
-    advapi32.GetTokenInformation.argtypes = (
-        wintypes.HANDLE,
-        ctypes.c_int,
-        ctypes.c_void_p,
-        wintypes.DWORD,
-        ctypes.POINTER(wintypes.DWORD),
-    )
-    advapi32.ConvertSidToStringSidW.argtypes = (ctypes.c_void_p, ctypes.POINTER(wintypes.LPWSTR))
+        kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+        advapi32 = ctypes.WinDLL('advapi32', use_last_error=True)
 
-    PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-    TOKEN_QUERY = 0x0008
-    TOKEN_USER = 1
+        kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel32.LocalFree.argtypes = (ctypes.c_void_p,)
+        advapi32.OpenProcessToken.argtypes = (
+            wintypes.HANDLE,
+            wintypes.DWORD,
+            ctypes.POINTER(wintypes.HANDLE),
+        )
+        advapi32.GetTokenInformation.argtypes = (
+            wintypes.HANDLE,
+            ctypes.c_int,
+            ctypes.c_void_p,
+            wintypes.DWORD,
+            ctypes.POINTER(wintypes.DWORD),
+        )
+        advapi32.ConvertSidToStringSidW.argtypes = (
+            ctypes.c_void_p,
+            ctypes.POINTER(wintypes.LPWSTR),
+        )
 
-    process = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
-    if not process:
-        raise ctypes.WinError(ctypes.get_last_error())
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        TOKEN_QUERY = 0x0008
+        TOKEN_USER = 1
 
-    try:
-        token = wintypes.HANDLE()
-        if not advapi32.OpenProcessToken(process, TOKEN_QUERY, ctypes.byref(token)):
+        process = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if not process:
             raise ctypes.WinError(ctypes.get_last_error())
 
         try:
-            size = wintypes.DWORD()
-            advapi32.GetTokenInformation(token, TOKEN_USER, None, 0, ctypes.byref(size))
-            buffer = ctypes.create_string_buffer(size.value)
-            if not advapi32.GetTokenInformation(
-                token, TOKEN_USER, buffer, size, ctypes.byref(size)
-            ):
-                raise ctypes.WinError(ctypes.get_last_error())
-
-            # TOKEN_USER starts with a pointer to the SID of the user
-            sid = ctypes.c_void_p.from_buffer(buffer).value
-            string = wintypes.LPWSTR()
-            if not advapi32.ConvertSidToStringSidW(sid, ctypes.byref(string)):
+            token = wintypes.HANDLE()
+            if not advapi32.OpenProcessToken(process, TOKEN_QUERY, ctypes.byref(token)):
                 raise ctypes.WinError(ctypes.get_last_error())
 
             try:
-                return string.value
+                size = wintypes.DWORD()
+                advapi32.GetTokenInformation(token, TOKEN_USER, None, 0, ctypes.byref(size))
+                buffer = ctypes.create_string_buffer(size.value)
+                if not advapi32.GetTokenInformation(
+                    token, TOKEN_USER, buffer, size, ctypes.byref(size)
+                ):
+                    raise ctypes.WinError(ctypes.get_last_error())
+
+                # TOKEN_USER starts with a pointer to the SID of the user
+                sid = ctypes.c_void_p.from_buffer(buffer).value
+                string = wintypes.LPWSTR()
+                if not advapi32.ConvertSidToStringSidW(sid, ctypes.byref(string)):
+                    raise ctypes.WinError(ctypes.get_last_error())
+
+                try:
+                    if not string.value:
+                        raise OSError(f'Failed to read the user of process {pid}')
+                    return string.value
+                finally:
+                    kernel32.LocalFree(ctypes.cast(string, ctypes.c_void_p))
             finally:
-                kernel32.LocalFree(ctypes.cast(string, ctypes.c_void_p))
+                kernel32.CloseHandle(token)
         finally:
-            kernel32.CloseHandle(token)
-    finally:
-        kernel32.CloseHandle(process)
+            kernel32.CloseHandle(process)
 
+    def _pipe_server_pid(connection: Connection) -> int:
+        """
+        Return the pid of the process that created the pipe, after checking that it runs as the
+        current user. Pipe names are visible to all users, so a process of another user could create
+        the pipe first and receive the command lines of this user's launches.
+        """
+        import ctypes
+        from ctypes import wintypes
 
-def _pipe_server_pid(connection: Connection) -> int:
-    """
-    Return the pid of the process that created the pipe, after checking that it runs as the
-    current user. Pipe names are visible to all users, so a process of another user could create
-    the pipe first and receive the command lines of this user's launches.
-    """
-    import ctypes
-    from ctypes import wintypes
+        kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+        kernel32.GetNamedPipeServerProcessId.argtypes = (
+            wintypes.HANDLE,
+            ctypes.POINTER(wintypes.ULONG),
+        )
 
-    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-    kernel32.GetNamedPipeServerProcessId.argtypes = (
-        wintypes.HANDLE,
-        ctypes.POINTER(wintypes.ULONG),
-    )
+        pid = wintypes.ULONG()
+        if not kernel32.GetNamedPipeServerProcessId(connection.fileno(), ctypes.byref(pid)):
+            raise ctypes.WinError(ctypes.get_last_error())
 
-    pid = wintypes.ULONG()
-    if not kernel32.GetNamedPipeServerProcessId(connection.fileno(), ctypes.byref(pid)):
-        raise ctypes.WinError(ctypes.get_last_error())
+        if _process_user(pid.value) != _process_user(os.getpid()):
+            raise _OtherUserError(f'The single instance pipe is owned by process {pid.value}')
 
-    if _process_user(pid.value) != _process_user(os.getpid()):
-        raise _OtherUserError(f'The single instance pipe is owned by process {pid.value}')
-
-    return pid.value
+        return pid.value
 
 
 def _hand_over(connection: Connection) -> bool:
@@ -424,7 +431,9 @@ def _hand_over(connection: Connection) -> bool:
     try:
         with connection:
             # Checked before anything is received from or sent to the pipe
-            pid = _pipe_server_pid(connection) if sys.platform == 'win32' else None
+            pid = None
+            if sys.platform == 'win32':
+                pid = _pipe_server_pid(connection)
 
             # A running instance that does not answer is treated as one that cannot be reached
             if not connection.poll(_HAND_OVER_TIMEOUT):
@@ -432,7 +441,7 @@ def _hand_over(connection: Connection) -> bool:
 
             connection.recv_bytes(64)
 
-            if pid is not None:
+            if sys.platform == 'win32' and pid is not None:
                 import ctypes
 
                 # Only the foreground process can let another process take the foreground.
