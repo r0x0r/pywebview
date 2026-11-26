@@ -10,9 +10,11 @@ instance and exits, instead of opening windows of its own.
 
 The running instance listens on a named pipe (Windows) or a Unix socket (macOS, Linux), whose
 address is derived from the instance id and the user name, so that instances of different users
-do not see each other. On macOS and Linux, the running instance also holds a lock on a file next
-to the socket for its lifetime. The operating system releases the lock when a process exits, so a
-socket whose lock is free was left behind by an instance that crashed and is replaced. Messages
+do not see each other. On Windows, pipe names are visible to all users, so a launch hands over
+only to a pipe created by a process of the same user. On macOS and Linux, the running instance
+also holds a lock on a file next to the socket for its lifetime, and removes the file when it
+quits. The operating system releases the lock when a process exits, so a socket whose lock is
+free was left behind by an instance that crashed and is replaced. Messages
 are JSON, never pickles, so a connecting process cannot run code in the running instance.
 
 webview.events is reached through the webview module at call time, as this module is imported by
@@ -63,9 +65,9 @@ _open_lock = threading.Lock()
 # The running instance's listener is process-wide
 _listener: Listener | None = None
 _lock_fd: int | None = None
+_lock_file: str | None = None
 _launch_lock = threading.Lock()
 
-_lock_file: str | None = None
 
 def fire_started(window: Window) -> None:
     """Fire webview.events.started in the background, once the first window is shown."""
@@ -247,8 +249,6 @@ def _try_lock(key: str) -> int | None:
         return None
 
 
-def _listen_or_connect(key: str) -> Listener | Connection | None:
-    """
 def _unlock(fd: int, key: str) -> None:
     """Remove the lock file and close it. Called with the directory lock held."""
     try:
@@ -257,6 +257,8 @@ def _unlock(fd: int, key: str) -> None:
         os.close(fd)
 
 
+def _listen_or_connect(key: str) -> Listener | Connection | None:
+    """
     Become the running instance and return its listener, or return a connection to the running
     instance. Return None if the running instance cannot be reached.
     """
@@ -326,9 +328,9 @@ def release() -> None:
         return
 
     fd, _lock_fd = _lock_fd, None
+    key, _lock_file = _lock_file, None
 
     # Called while quitting, also from a finally block, so it must not raise
-    key, _lock_file = _lock_file, None
     try:
         # Closing the listener closes the socket and then removes the file. Without the lock, an
         # instance starting in between could replace the socket, and this would remove its socket.
@@ -350,19 +352,115 @@ def release() -> None:
             os.close(fd)
 
 
+class _OtherUserError(Exception):
+    """The pipe of the running instance is owned by a process of another user."""
+
+
+def _process_user(pid: int) -> str:
+    """Return the SID of the user that runs a process, as a string."""
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    advapi32 = ctypes.WinDLL('advapi32', use_last_error=True)
+
+    kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.LocalFree.argtypes = (ctypes.c_void_p,)
+    advapi32.OpenProcessToken.argtypes = (
+        wintypes.HANDLE,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.HANDLE),
+    )
+    advapi32.GetTokenInformation.argtypes = (
+        wintypes.HANDLE,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD),
+    )
+    advapi32.ConvertSidToStringSidW.argtypes = (ctypes.c_void_p, ctypes.POINTER(wintypes.LPWSTR))
+
+    PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+    TOKEN_QUERY = 0x0008
+    TOKEN_USER = 1
+
+    process = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+    if not process:
+        raise ctypes.WinError(ctypes.get_last_error())
+
+    try:
+        token = wintypes.HANDLE()
+        if not advapi32.OpenProcessToken(process, TOKEN_QUERY, ctypes.byref(token)):
+            raise ctypes.WinError(ctypes.get_last_error())
+
+        try:
+            size = wintypes.DWORD()
+            advapi32.GetTokenInformation(token, TOKEN_USER, None, 0, ctypes.byref(size))
+            buffer = ctypes.create_string_buffer(size.value)
+            if not advapi32.GetTokenInformation(
+                token, TOKEN_USER, buffer, size, ctypes.byref(size)
+            ):
+                raise ctypes.WinError(ctypes.get_last_error())
+
+            # TOKEN_USER starts with a pointer to the SID of the user
+            sid = ctypes.c_void_p.from_buffer(buffer).value
+            string = wintypes.LPWSTR()
+            if not advapi32.ConvertSidToStringSidW(sid, ctypes.byref(string)):
+                raise ctypes.WinError(ctypes.get_last_error())
+
+            try:
+                return string.value
+            finally:
+                kernel32.LocalFree(ctypes.cast(string, ctypes.c_void_p))
+        finally:
+            kernel32.CloseHandle(token)
+    finally:
+        kernel32.CloseHandle(process)
+
+
+def _pipe_server_pid(connection: Connection) -> int:
+    """
+    Return the pid of the process that created the pipe, after checking that it runs as the
+    current user. Pipe names are visible to all users, so a process of another user could create
+    the pipe first and receive the command lines of this user's launches.
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel32.GetNamedPipeServerProcessId.argtypes = (
+        wintypes.HANDLE,
+        ctypes.POINTER(wintypes.ULONG),
+    )
+
+    pid = wintypes.ULONG()
+    if not kernel32.GetNamedPipeServerProcessId(connection.fileno(), ctypes.byref(pid)):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+    if _process_user(pid.value) != _process_user(os.getpid()):
+        raise _OtherUserError(f'The single instance pipe is owned by process {pid.value}')
+
+    return pid.value
+
+
 def _hand_over(connection: Connection) -> bool:
     """Hand the command line to the running instance."""
     message = json.dumps({'argv': sys.argv[1:], 'cwd': os.getcwd()}).encode()
 
     try:
         with connection:
+            # Checked before anything is received from or sent to the pipe
+            pid = _pipe_server_pid(connection) if sys.platform == 'win32' else None
+
             # A running instance that does not answer is treated as one that cannot be reached
             if not connection.poll(_HAND_OVER_TIMEOUT):
                 return False
 
-            pid = int(connection.recv_bytes(64))
+            connection.recv_bytes(64)
 
-            if sys.platform == 'win32':
+            if pid is not None:
                 import ctypes
 
                 # Only the foreground process can let another process take the foreground.
@@ -455,6 +553,9 @@ def claim(instance_id: str | bool) -> bool:
                 return False
     except OSError:
         logger.exception('Single instance mode is not available, starting a new instance')
+        return True
+    except _OtherUserError as e:
+        logger.warning(f'{e}, which runs as another user. Starting a new instance.')
         return True
 
     logger.warning('Another instance of the application seems to be running, but cannot be reached')
