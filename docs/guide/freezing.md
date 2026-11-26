@@ -88,7 +88,7 @@ URL schemes are declared in `CFBundleURLTypes`, e.g. `{'CFBundleURLName': 'com.e
 
 ### Windows and Linux
 
-The operating system starts the application with the file paths or URLs as command line arguments. The event is fired once at startup with the arguments that are existing files or URLs. Opening another file while the application is running starts a second instance of the application. To open it in the running instance instead, pass `single_instance=True` to `webview.start()`. The second instance then hands its command line to the running instance and exits.
+The operating system starts the application with the file paths or URLs as command line arguments. The event is fired once at startup with the command line arguments in `argv`. Your application decides which arguments name files or URLs, as _pywebview_ cannot tell them apart from your own options. Opening another file while the application is running starts a second instance of the application. To open it in the running instance instead, pass `single_instance=True` to `webview.start()`. The second instance then hands its command line to the running instance and exits.
 
 On Windows, file types are registered in the registry, usually by the installer of your application:
 
@@ -107,7 +107,7 @@ HKEY_CURRENT_USER\Software\Classes\myapp\shell\open\command
                                                      (Default) = "C:\Path\To\MyApp.exe" "%1"
 ```
 
-On Linux, list the MIME types in the `.desktop` file of your application and pass the files with `%F`. A URL scheme is listed as `x-scheme-handler/myapp`. To receive both files and URLs, pass them with `%U` instead; files then arrive as `file://` URLs, which are delivered as paths. A new file type also needs a [shared MIME info](https://specifications.freedesktop.org/shared-mime-info-spec/latest/) definition.
+On Linux, list the MIME types in the `.desktop` file of your application and pass the files with `%F`. A URL scheme is listed as `x-scheme-handler/myapp`. To receive both files and URLs, pass them with `%U` instead; files then arrive as `file://` URLs, which your application converts to paths, e.g. with `urllib.request.url2pathname`. A new file type also needs a [shared MIME info](https://specifications.freedesktop.org/shared-mime-info-spec/latest/) definition.
 
 ``` ini
 [Desktop Entry]

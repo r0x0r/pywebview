@@ -57,14 +57,13 @@ def test_stale_socket(tmp_path):
 def test_second_launch(monkeypatch, tmp_path):
     # The running instance's own command line opens nothing
     monkeypatch.setattr('sys.argv', ['app'])
-    (tmp_path / 'document.txt').write_text('test')
     instance_id = 'pywebview-test'
 
     assert not webview.is_instance_running(instance_id)
 
     window = webview.create_window('Single instance test', html='<html><body>TEST</body></html>')
     received = []
-    webview.events.opened += lambda request: received.append(request['files'])
+    webview.events.opened += lambda request: received.append((request['argv'], request['cwd']))
 
     run_test(
         webview,
@@ -80,9 +79,9 @@ def second_launch(window, instance_id, cwd, received):
     assert not webview.is_instance_running(instance_id)
     assert run(instance_id, cwd, CHECK).stdout.strip() == 'True'
 
-    # Every launch fires opened, with the arguments that are existing files
+    # Every launch fires opened with its command line
     launch(instance_id, cwd)
-    launch(instance_id, cwd, 'document.txt', 'missing.txt')
+    launch(instance_id, cwd, 'document.txt', '--option')
 
     for _ in range(50):
         if len(received) == 2:
@@ -90,7 +89,8 @@ def second_launch(window, instance_id, cwd, received):
         time.sleep(0.1)
 
     # Launches are handled in the order they arrive
-    assert received == [[], [os.path.realpath(cwd / 'document.txt')]], received
+    cwd = os.path.realpath(cwd)
+    assert received == [([], cwd), (['document.txt', '--option'], cwd)], received
 
 
 def launch(instance_id, cwd, *args):

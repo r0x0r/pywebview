@@ -1,9 +1,10 @@
 """
 Launches of the application: the files and URLs a launch asks to open, and single instance mode.
 
-Files and URLs are delivered with webview.events.opened, after webview.events.started. They come
-from the command line, from the backends (macOS Apple Events, Android intents), and in single
-instance mode from later launches.
+Launches are delivered with webview.events.opened, after webview.events.started. The backends
+deliver the files and URLs the operating system asks to open (macOS Apple Events, Android
+intents). Command lines, at startup and in single instance mode from later launches, are delivered
+as they are, because only the application knows which of its arguments name files to open.
 
 In single instance mode, a second launch of the application hands its command line to the running
 instance and exits, instead of opening windows of its own.
@@ -31,7 +32,6 @@ import json
 import logging
 import os
 import queue
-import re
 import sys
 import tempfile
 import threading
@@ -39,8 +39,6 @@ import time
 from collections.abc import Iterator
 from multiprocessing.connection import Client, Connection, Listener
 from typing import TYPE_CHECKING
-from urllib.parse import urlparse
-from urllib.request import url2pathname
 
 if TYPE_CHECKING:
     from webview.window import Window
@@ -52,10 +50,6 @@ _CONNECT_ATTEMPTS = 10
 _HAND_OVER_TIMEOUT = 10
 # sun_path holds 104 bytes on macOS and 108 on Linux, including the terminating null
 _MAX_SOCKET_PATH = 103
-
-# Only URLs with an authority, e.g. myapp://item/1, so that arguments such as key:value are not
-# mistaken for URLs. Schemes need two characters, as single letters are Windows drive letters.
-_URL = re.compile(r'[A-Za-z][A-Za-z0-9+.-]+://\S')
 
 _argv_opened = False
 _open_requests: queue.SimpleQueue = queue.SimpleQueue()
@@ -86,48 +80,15 @@ def _fire_started(window: Window) -> None:
 
 
 def open_argv() -> None:
-    """Fire webview.events.opened for the files and URLs on the command line, once per process."""
+    """Fire webview.events.opened for the command line, once per process, if it has arguments."""
     global _argv_opened
 
     if _argv_opened:
         return
 
     _argv_opened = True
-    files, urls = _parse_argv(sys.argv[1:], os.getcwd())
-    if files or urls:
-        fire_opened(files, urls, sys.argv[1:])
-
-
-def _parse_argv(argv: list[str], cwd: str) -> tuple[list[str], list[str]]:
-    """Split command line arguments into existing files and URLs, ignoring everything else."""
-    files, urls = [], []
-
-    for arg in argv:
-        # Desktop entries pass files as file:// URLs with the %U field code
-        if arg.startswith('file://'):
-            try:
-                url = urlparse(arg)
-            except ValueError:
-                continue
-
-            # A host names a network share on Windows, e.g. file://server/share/document.txt
-            host = '' if url.netloc in ('', 'localhost') else url.netloc
-            if host and sys.platform != 'win32':
-                continue
-
-            path = url2pathname(f'//{host}{url.path}' if host else url.path)
-            if os.path.isfile(path):
-                files.append(os.path.abspath(path))
-            continue
-
-        path = os.path.join(cwd, arg)
-
-        if os.path.isfile(path):
-            files.append(os.path.abspath(path))
-        elif _URL.match(arg):
-            urls.append(arg)
-
-    return files, urls
+    if sys.argv[1:]:
+        fire_opened([], [], sys.argv[1:])
 
 
 def fire_opened(
@@ -180,8 +141,7 @@ def _open_second_launch(argv: list[str], cwd: str) -> None:
             # The command line is delivered even if no window can be shown
             logger.exception('Cannot show the window for a second launch of the application')
 
-    files, urls = _parse_argv(argv, cwd)
-    fire_opened(files, urls, argv, cwd)
+    fire_opened([], [], argv, cwd)
 
 
 def _key(instance_id: str | bool) -> str:

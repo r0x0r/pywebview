@@ -115,14 +115,14 @@ The event is fired once the GUI loop is running and the first window is shown, o
 
 The event is fired when the application is asked to open files or URLs. It is always fired after `started`. The handler receives a dictionary:
 
-* `files` - absolute paths of the files to open
-* `urls` - URLs to open, e.g. `myapp://item/1` for a custom URL scheme registered by the application
+* `files` - absolute paths of the files the operating system asks to open. Empty for a command line.
+* `urls` - URLs the operating system asks to open, e.g. `myapp://item/1` for a custom URL scheme registered by the application. Empty for a command line.
 * `argv` - command line arguments of the launch, or an empty list when the operating system delivers files or URLs without a command line
 * `cwd` - working directory of the launch
 
 When the event is fired depends on the platform:
 
-* On Windows and Linux, the operating system passes files and URLs on the command line, and there is no other channel to deliver them. The event is fired once at startup if the command line arguments contain existing files or URLs. Only URLs with `://` and a scheme of at least two characters, e.g. `myapp://item/1`, are recognized, so that Windows drive letters are not mistaken for schemes. `file://` URLs of files that do not exist are ignored. Opening a file while the application is running starts a new instance of the application, unless `webview.start(single_instance=True)` is used. Then the later launch hands over to the running instance, which fires the event for every launch, also one without files or URLs.
+* On Windows and Linux, the operating system passes files and URLs on the command line, and there is no other channel to deliver them. The event is fired once at startup if the command line has arguments. _pywebview_ does not guess which arguments name files, as only the application knows its own options, so `files` and `urls` are empty and the arguments are in `argv`. Resolve relative paths against `cwd`. Opening a file while the application is running starts a new instance of the application, unless `webview.start(single_instance=True)` is used. Then the later launch hands over to the running instance, which fires the event with the command line of every launch, also one without arguments.
 * On macOS, the event is fired for files and URLs opened through Finder or the `open` command, at launch and while the application is running.
 * On Android, the event is fired for `VIEW` intents, at launch and while the application is running. Documents are copied to the cache directory of the application, and `files` contains the paths of the copies.
 
@@ -130,7 +130,11 @@ The application must register the file types and URL schemes it opens, see [Open
 
 ``` python
 def on_opened(request):
-    for path in request['files']:
+    # On Windows and Linux, files arrive as command line arguments
+    paths = [os.path.join(request['cwd'], arg) for arg in request['argv']]
+    files = request['files'] + [path for path in paths if os.path.isfile(path)]
+
+    for path in files:
         webview.windows[0].evaluate_js(f'openDocument({json.dumps(path)})')
 
 webview.events.opened += on_opened

@@ -35,10 +35,8 @@ def lifecycle_test(window, fired):
     assert fired.index('before_show') < fired.index('shown'), fired
 
 
-def test_app_events(monkeypatch, tmp_path):
-    opened = tmp_path / 'document.txt'
-    opened.write_text('test')
-    argv = [str(opened), 'myapp://open?id=1', '--not-a-file', 'key:value']
+def test_app_events(monkeypatch):
+    argv = ['document.txt', 'myapp://open?id=1', '--option']
     monkeypatch.setattr('sys.argv', ['app', *argv])
 
     window = webview.create_window('App events test', html='<html><body>TEST</body></html>')
@@ -46,10 +44,10 @@ def test_app_events(monkeypatch, tmp_path):
     webview.events.started += lambda: fired.append('started')
     webview.events.opened += lambda request: fired.append(request)
 
-    run_test(webview, window, app_events, (fired, argv, str(opened)))
+    run_test(webview, window, app_events, (fired, argv))
 
 
-def app_events(window, fired, argv, path):
+def app_events(window, fired, argv):
     for _ in range(50):
         if len(fired) == 2:
             break
@@ -57,9 +55,8 @@ def app_events(window, fired, argv, path):
 
     # Handlers run in their own threads, so only the firing order is guaranteed, not this one
     assert 'started' in fired, fired
-    assert {'files': [path], 'urls': ['myapp://open?id=1'], 'argv': argv, 'cwd': os.getcwd()} in (
-        fired
-    ), fired
+    # The command line is delivered as it is, without guessing which arguments are files
+    assert {'files': [], 'urls': [], 'argv': argv, 'cwd': os.getcwd()} in fired, fired
 
 
 def test_quitting():
