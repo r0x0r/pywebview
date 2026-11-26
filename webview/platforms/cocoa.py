@@ -97,6 +97,15 @@ def _primary_screen_height():
     return screens[0].frame().size.height if screens else 0
 
 
+def _remove_file(path):
+    """Remove the file at path if it exists, logging a failure."""
+    file_manager = Foundation.NSFileManager.defaultManager()
+    if file_manager.fileExistsAtPath_(path):
+        ok, error = file_manager.removeItemAtPath_error_(path, None)
+        if not ok:
+            logger.error('Cannot replace %s: %s', path, error.localizedDescription())
+
+
 class BrowserView:
     instances = {}
     app = AppKit.NSApplication.sharedApplication()
@@ -255,12 +264,21 @@ class BrowserView:
             save_dlg.setNameFieldStringValue_(suggestedFilename)
             if save_dlg.runModal() == AppKit.NSFileHandlingPanelOKButton:
                 filename = save_dlg.filename()
-                url = Foundation.NSURL.fileURLWithPath_(filename)
-                completionHandler(url)
+                # WKDownload does not write over an existing file. The user has already
+                # confirmed the replacement in the save panel, so remove the old file.
+                _remove_file(filename)
+                completionHandler(Foundation.NSURL.fileURLWithPath_(filename))
             else:
                 completionHandler(None)
+                # Balance the explicit retain() made when this delegate was assigned.
+                # The delegate is weak in WKDownload, so a later callback is not delivered.
+                self.release()
 
-            # Balance the explicit retain() made when this delegate was assigned.
+        def downloadDidFinish_(self, download):
+            self.release()
+
+        def download_didFailWithError_resumeData_(self, download, error, resumeData):
+            logger.error('Download failed: %s', error.localizedDescription())
             self.release()
 
     class ResourceLoadDelegate(AppKit.NSObject):
@@ -505,17 +523,18 @@ class BrowserView:
 
         def download_completionHandler_error_(self, temporaryLocation, response, error):
             if error is not None:
-                logger.error('Download error:', error)
-            else:
-                if temporaryLocation is not None:
-                    destinationURL = Foundation.NSURL.fileURLWithPath_(self._file_name)
-                    fileManager = Foundation.NSFileManager.defaultManager()
-                    try:
-                        fileManager.moveItemAtURL_toURL_error_(
-                            temporaryLocation, destinationURL, None
-                        )
-                    except Foundation.NSError as moveError:
-                        logger.exception(moveError)
+                logger.error('Download failed: %s', error.localizedDescription())
+            elif temporaryLocation is not None:
+                # moveItemAtURL fails if the destination exists. The user has already
+                # confirmed the replacement in the save panel, so remove the old file.
+                _remove_file(self._file_name)
+                destinationURL = Foundation.NSURL.fileURLWithPath_(self._file_name)
+                fileManager = Foundation.NSFileManager.defaultManager()
+                ok, move_error = fileManager.moveItemAtURL_toURL_error_(
+                    temporaryLocation, destinationURL, None
+                )
+                if not ok:
+                    logger.error('Download failed: %s', move_error.localizedDescription())
 
         # Show the webview when it finishes loading
         def webView_didCommitNavigation_(self, webview, nav):

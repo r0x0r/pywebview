@@ -9,6 +9,7 @@
 
 ### 🐞 Bug fixes
 
+- `Cocoa` Fix a download not replacing an existing file after the user confirms Replace in the save dialog. Download failures are now logged. [#1909](https://github.com/r0x0r/pywebview/issues/1909)
 - `GTK` Fix request headers modified in a `request_sent` handler sending the page twice, first with the original headers.
 - `Cocoa` Fix a `request_sent` handler loading iframe navigations in the whole window, and `response_received` failing on non-HTTP responses such as `file://` pages.
 - `Android` Fix `response_received` firing an extra time for HTTP error responses. Error responses to requests that pywebview resends itself, which are `https://` and non-loopback `http://` requests, are still reported twice.
