@@ -64,7 +64,7 @@ pyinstaller main.py --add-data output:. --onefile
 
 ## Opening files
 
-To let users open documents with your application, e.g. by double-clicking a file in a file manager, register the file types with the operating system. The opened files are delivered with [window.events.file_opened](/api/#window-events-file-opened) as a list of paths. Subscribe to the event before calling `webview.start()`, so that files opened at launch are not missed.
+To let users open documents with your application, e.g. by double-clicking a file in a file manager, register the file types with the operating system. The opened files are delivered with [webview.events.opened](/api/#webview-events-opened), which also delivers URLs of custom URL schemes registered by the application, e.g. `myapp://item/1`. Subscribe to the event before calling `webview.start()`, so that files opened at launch are not missed.
 
 ### macOS
 
@@ -84,11 +84,11 @@ OPTIONS = {
 }
 ```
 
-macOS sends opened files to the running application, so the event is fired both at launch and while the application is running. `argv_emulation` is not needed. The file types are registered when the application is first launched or copied to a folder such as `/Applications`. Applications in temporary folders are not registered.
+URL schemes are declared in `CFBundleURLTypes`, e.g. `{'CFBundleURLName': 'com.example.myapp', 'CFBundleURLSchemes': ['myapp']}`. macOS sends opened files and URLs to the running application, so the event is fired both at launch and while the application is running. `argv_emulation` is not needed. The file types are registered when the application is first launched or copied to a folder such as `/Applications`. Applications in temporary folders are not registered.
 
 ### Windows and Linux
 
-The operating system starts the application with the file paths as command line arguments. `webview.start()` fires the event once on each window created before `webview.start()`, when the window is shown, with the arguments that are existing files. Opening another file while the application is running starts a second instance of the application.
+The operating system starts the application with the file paths or URLs as command line arguments. The event is fired once at startup with the arguments that are existing files or URLs. Opening another file while the application is running starts a second instance of the application. To open it in the running instance instead, pass `single_instance=True` to `webview.start()`. The second instance then hands its command line to the running instance and exits.
 
 On Windows, file types are registered in the registry, usually by the installer of your application:
 
@@ -98,7 +98,16 @@ HKEY_CURRENT_USER\Software\Classes\MyApp.Document\shell\open\command
                                                      (Default) = "C:\Path\To\MyApp.exe" "%1"
 ```
 
-On Linux, list the MIME types in the `.desktop` file of your application and pass the files with `%F`. A new file type also needs a [shared MIME info](https://specifications.freedesktop.org/shared-mime-info-spec/latest/) definition.
+A URL scheme is registered the same way, under a key named after the scheme:
+
+```
+HKEY_CURRENT_USER\Software\Classes\myapp             (Default) = URL:MyApp
+                                                     URL Protocol = ""
+HKEY_CURRENT_USER\Software\Classes\myapp\shell\open\command
+                                                     (Default) = "C:\Path\To\MyApp.exe" "%1"
+```
+
+On Linux, list the MIME types in the `.desktop` file of your application and pass the files with `%F`. A URL scheme is listed as `x-scheme-handler/myapp`. To receive both files and URLs, pass them with `%U` instead; files then arrive as `file://` URLs, which are delivered as paths. A new file type also needs a [shared MIME info](https://specifications.freedesktop.org/shared-mime-info-spec/latest/) definition.
 
 ``` ini
 [Desktop Entry]

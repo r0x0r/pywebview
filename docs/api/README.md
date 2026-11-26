@@ -9,6 +9,19 @@ webview.active_window()
 
 Get an instance of the currently active window
 
+## webview.is_instance_running
+
+``` python
+webview.is_instance_running(instance_id=True)
+```
+
+Return `True` if another instance of the application is running in [single instance mode](#webview-start), and `False` otherwise, including when called in the running instance itself. `instance_id` is the same value as passed to `webview.start(single_instance=...)`. Use it to run code that a launch handing over to the running instance does not need. The result is advisory, as an instance may start or exit right after the check, so `webview.start(single_instance=...)` remains the authoritative check.
+
+``` python
+if not webview.is_instance_running():
+    load_expensive_resources()
+```
+
 ## webview.create_window
 
 ``` python
@@ -62,7 +75,7 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 webview.start(func=None, args=None, localization={}, gui=None, debug=False,
               http_server=False, http_port=None, user_agent=None, private_mode=True,
               storage_path=None, menu=[], server=http.BottleServer, ssl=False,
-              server_args={}, icon=None, event_loop=None):
+              server_args={}, icon=None, event_loop=None, single_instance=False):
 ```
 
 Start a GUI loop and display previously created windows. This function must be called from a main thread.
@@ -83,11 +96,51 @@ Start a GUI loop and display previously created windows. This function must be c
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 * `icon` - path to application icon. Generally icon should be specified during bundling, but if you need to set it manually, you can use this parameter. Supported formats are `.ico` on Windows and `.icns` on macOS. On Linux support depends on the desktop environment, but generally `.png` icons are supported.
 * `event_loop` - an asyncio event loop for `async` JS API functions and event handlers. If the loop is not running, _pywebview_ runs it in a background thread. Do not pass the loop that calls `webview.start`: `start` blocks that loop, so a `WebViewException` is raised. If `event_loop` is not set, _pywebview_ starts a loop when the first coroutine runs and closes it when the GUI loop exits. Pending pywebview callback submissions are cancelled on exit, including when a loop is supplied. A supplied loop and its unrelated tasks are left running; stopping and closing that loop is the caller's responsibility.
+* `single_instance` - allow only one running instance of the application. A later launch hands its command line to the running instance, and `webview.start` returns in the later process without starting the GUI. The running instance restores its window, which also returns a maximized window to its normal size, shows and focuses it, and fires [webview.events.opened](#webview-events-opened) with the command line of the later launch. `True` identifies the application by the path of its executable or main script, so copies of the application in different folders run separately. Pass a string, e.g. `'com.example.myapp'`, to use your own identifier. Instances of different users do not see each other. Code that runs before `webview.start` runs in every launch, including in launches that hand over to the running instance. Use [webview.is_instance_running](#webview-is-instance-running) to skip it.
 
 #### Examples
 
 * [Simple window](/examples/simple_browser.html)
 * [Multi-window](/examples/multiple_windows.html)
+
+## webview.events
+
+Application events, which are not bound to a window. Subscribe to them before calling `webview.start()`, using the same `+=` and `-=` syntax as [window events](#window-events). Handlers do not receive a window. Use [webview.active_window](#webview-active-window) or `webview.windows` to reach one.
+
+### webview.events.started
+
+The event is fired once the GUI loop is running and the first window is shown, or closed before it was shown, on every call of `webview.start()`. This event is non-blocking.
+
+### webview.events.opened
+
+The event is fired when the application is asked to open files or URLs. It is always fired after `started`. The handler receives a dictionary:
+
+* `files` - absolute paths of the files to open
+* `urls` - URLs to open, e.g. `myapp://item/1` for a custom URL scheme registered by the application
+* `argv` - command line arguments of the launch, or an empty list when the operating system delivers files or URLs without a command line
+* `cwd` - working directory of the launch
+
+When the event is fired depends on the platform:
+
+* On Windows and Linux, the operating system passes files and URLs on the command line, and there is no other channel to deliver them. The event is fired once at startup if the command line arguments contain existing files or URLs. Only URLs with `://` and a scheme of at least two characters, e.g. `myapp://item/1`, are recognized, so that Windows drive letters are not mistaken for schemes. `file://` URLs of files that do not exist are ignored. Opening a file while the application is running starts a new instance of the application, unless `webview.start(single_instance=True)` is used. Then the later launch hands over to the running instance, which fires the event for every launch, also one without files or URLs.
+* On macOS, the event is fired for files and URLs opened through Finder or the `open` command, at launch and while the application is running.
+* On Android, the event is fired for `VIEW` intents, at launch and while the application is running. Documents are copied to the cache directory of the application, and `files` contains the paths of the copies.
+
+The application must register the file types and URL schemes it opens, see [Opening files](/guide/freezing.html#opening-files). This event is non-blocking.
+
+``` python
+def on_opened(request):
+    for path in request['files']:
+        webview.windows[0].evaluate_js(f'openDocument({json.dumps(path)})')
+
+webview.events.opened += on_opened
+```
+
+[Example](/examples/open_file.html)
+
+### webview.events.quitting
+
+The event is fired when the application is about to quit: when the last window passes its [closing](#window-events-closing) event and its close confirmation, when the last window is closed with [window.destroy()](#window-destroy), or when the application is quit on macOS, e.g. with Cmd+Q. If the event handler returns `False`, quitting is cancelled and the windows stay open. It is not fired if closing is cancelled, also not by the user in the close confirmation. Use it to ask whether to save changes once for the whole application. This event is blocking. Handlers must be regular functions.
 
 ## webview.screens
 
@@ -945,16 +998,6 @@ The event is fired just before _pywebview_ window is closed.
 The event is fired when _pywebview_ window is about to be closed. If confirm_close is set, then this event is fired before the close confirmation is displayed. If event handler returns False, the close operation will be cancelled. This event is blocking. Handlers must be regular functions. To run async code before the window closes, see [this example](/examples/async_api.html).
 
 [Example](/examples/events.html)
-
-### window.events.file_opened
-
-The event is fired when the operating system asks the application to open files, e.g. when a document associated with the application is double-clicked in a file manager. The handler receives a list of file paths. The event is fired on every open window. Subscribe to the event before calling `webview.start()`, so that files opened at launch are not missed. The application must register the file types it opens, see [Opening files](/guide/freezing.html#opening-files).
-
-* On macOS, the event is fired at launch and when files are opened while the application is running.
-* On Windows and Linux, the operating system passes the files on the command line. The event is fired once on each window created before `webview.start()`, when the window is shown, with the command line arguments that are existing files. Opening a file while the application is running starts a new instance of the application.
-* On Android, the event is fired for documents opened with a `VIEW` intent, at launch and while the application is running. The documents are copied to the cache directory of the application, and the handler receives the paths of the copies.
-
-[Example](/examples/open_file.html)
 
 ### window.events.initialized
 

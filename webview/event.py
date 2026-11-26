@@ -46,8 +46,9 @@ class Event:
         self._window = window
 
     def _async_error(self) -> str:
+        container = 'window.events' if self._window is not None else 'webview.events'
         return (
-            f'window.events.{self._name} is a blocking event and cannot have async handlers. '
+            f'{container}.{self._name} is a blocking event and cannot have async handlers. '
             'Use a regular function. To run async code before the window closes, cancel closing '
             'and call window.destroy() when done. '
             'See https://pywebview.flowrl.com/api/#window-events'
@@ -60,44 +61,57 @@ class Event:
         ):
             raise TypeError(self._async_error())
 
+    def _execute(self, args: tuple[Any, ...], kwargs: dict[str, Any]) -> list[Any]:
+        """Run the handlers in the calling thread and return their return values."""
+        return_values: list[Any] = []
+
+        for func in self._items:
+            try:
+                if len(inspect.signature(func).parameters.values()) == 0:
+                    value = func()
+                elif self._window is not None and 'window' in inspect.signature(func).parameters:
+                    value = func(self._window, *args, **kwargs)
+                else:
+                    value = func(*args, **kwargs)
+
+                if inspect.isawaitable(value):
+                    if self._should_lock:
+                        # A regular function returned a coroutine (e.g. a lambda wrapping
+                        # one). Blocking events cannot wait for it, so discard it.
+                        if inspect.iscoroutine(value):
+                            value.close()
+                        logger.error(self._async_error())
+                        continue
+
+                    value = run_async(value)
+
+                return_values.append(value)
+
+            except Exception as e:
+                logger.exception(e)
+
+        return return_values
+
+    def _set_in_thread(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Fire a non-blocking event with its handlers run in the calling thread, so that a caller
+        that fires it repeatedly from one thread runs the handlers in firing order.
+        """
+        self._execute(args, kwargs)
+        self._event.set()
+
     def set(self, *args: Any, **kwargs: Any) -> bool:
-        def execute():
-            for func in self._items:
-                try:
-                    if len(inspect.signature(func).parameters.values()) == 0:
-                        value = func()
-                    elif 'window' in inspect.signature(func).parameters:
-                        value = func(self._window, *args, **kwargs)
-                    else:
-                        value = func(*args, **kwargs)
-
-                    if inspect.isawaitable(value):
-                        if self._should_lock:
-                            # A regular function returned a coroutine (e.g. a lambda wrapping
-                            # one). Blocking events cannot wait for it, so discard it.
-                            if inspect.iscoroutine(value):
-                                value.close()
-                            logger.error(self._async_error())
-                            continue
-
-                        value = run_async(value)
-
-                    return_values.append(value)
-
-                except Exception as e:
-                    logger.exception(e)
-
         return_values: list[Any] = []
 
         if len(self._items):
             if self._should_lock:
                 _blocking_dispatch.depth = getattr(_blocking_dispatch, 'depth', 0) + 1
                 try:
-                    execute()
+                    return_values = self._execute(args, kwargs)
                 finally:
                     _blocking_dispatch.depth -= 1
             else:
-                t = threading.Thread(target=execute)
+                t = threading.Thread(target=self._execute, args=(args, kwargs))
                 t.start()
 
         false_values = [v for v in return_values if v is False]

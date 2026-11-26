@@ -213,7 +213,6 @@ class Window:
         self.events.moved = Event(self)
         self.events.request_sent = Event(self, True, 'request_sent')
         self.events.response_received = Event(self)
-        self.events.file_opened = Event(self)
 
         self.events._pywebviewready = Event(self)
 
@@ -222,6 +221,18 @@ class Window:
         self.gui: Any = None
         self.native: Any = None  # set in the gui after window creation
         self._state = State(self)
+
+    def _fire_quitting(self) -> bool:
+        """
+        Fire webview.events.quitting if this is the last window. Backends call it once the window
+        passed its closing event and close confirmation. Return True if a handler cancelled quitting.
+        """
+        import webview
+
+        if any(window is not self for window in webview.windows):
+            return False
+
+        return webview.events.quitting.set()
 
     def _initialize(self, gui: Any, server: http.BottleServer | None = None):
         self.gui = gui

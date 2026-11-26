@@ -53,6 +53,16 @@ def on_moved(x, y):
     print(f'pywebview window is moved. new coordinates are x: {x}, y: {y}')
 
 
+# Application events are not bound to a window and receive no window argument
+def on_started():
+    print('application has started')
+
+
+def on_quitting():
+    # return False to keep the application running
+    print('application is quitting')
+
+
 if __name__ == '__main__':
     window = webview.create_window(
         'Simple browser', 'https://pywebview.flowrl.com/', confirm_close=True
@@ -69,5 +79,8 @@ if __name__ == '__main__':
     window.events.restored += on_restored
     window.events.resized += on_resized
     window.events.moved += on_moved
+
+    webview.events.started += on_started
+    webview.events.quitting += on_quitting
 
     webview.start()

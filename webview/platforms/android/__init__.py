@@ -344,8 +344,10 @@ class BrowserView:
             self.dialog = None
 
         def on_quit(dialog, which):
-            self.pywebview_window.events.closed.set()
             self.dialog = None
+            if self.pywebview_window._fire_quitting():
+                return
+            self.pywebview_window.events.closed.set()
             app.stop()
 
         if self.dialog:
@@ -374,7 +376,7 @@ class BrowserView:
             pass
         elif self.pywebview_window.confirm_close:
             self._quit_confirmation()
-        else:
+        elif not self.pywebview_window._fire_quitting():
             app.pause()
             self.pywebview_window.events.closed.set()
         return True
@@ -518,8 +520,8 @@ def _copy_content_uri(uri):
     return path
 
 
-def _open_intent(intent, window):
-    """Fire file_opened with the document an ACTION_VIEW intent opens."""
+def _open_intent(intent):
+    """Fire events.opened with the document or URL an ACTION_VIEW intent opens."""
     if intent is None or intent.getAction() != _ACTION_VIEW or not intent.getDataString():
         return
 
@@ -533,22 +535,18 @@ def _open_intent(intent, window):
             elif scheme == 'content':
                 path = _copy_content_uri(intent.getData())
             else:
+                webview.instance.fire_opened([], [url])
                 return
     except Exception:
         logger.exception(f'Failed to open {url}')
         return
 
-    window.events.file_opened.set([path])
+    webview.instance.fire_opened([path], [])
 
 
 def _on_new_intent(intent):
     if app:
-        Thread(target=_open_intent, args=(intent, app.window), daemon=True).start()
-
-
-def _open_launch_intent(intent, window):
-    window.events.shown.wait()
-    _open_intent(intent, window)
+        Thread(target=_open_intent, args=(intent,), daemon=True).start()
 
 
 def create_window(window):
@@ -568,7 +566,7 @@ def create_window(window):
 
     if not _launch_intent_handled:
         _launch_intent_handled = True
-        Thread(target=_open_launch_intent, args=(activity.getIntent(), window), daemon=True).start()
+        Thread(target=_open_intent, args=(activity.getIntent(),), daemon=True).start()
 
     try:
         app.run()
@@ -809,6 +807,9 @@ def destroy_window(uid):
     # on a stale window would stop whichever app is current, and destroy() after
     # the last one closed would raise on None.
     if app is None or app.window.uid != uid:
+        return
+
+    if app.window._fire_quitting():
         return
 
     app.stop()

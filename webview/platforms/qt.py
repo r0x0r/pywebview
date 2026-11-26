@@ -15,6 +15,7 @@ from qtpy.QtCore import QByteArray, QJsonValue
 from qtpy.QtGui import QColor, QIcon, QScreen
 from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
 
+import webview
 from webview import FileDialog, _state, settings, windows
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
@@ -109,12 +110,15 @@ def _sigint_handler(signum, frame):
 
 
 class FileOpenFilter(QtCore.QObject):
-    """Forward files opened through the OS (macOS Apple Events) to window.events.file_opened."""
+    """Forward files and URLs opened through the OS (macOS Apple Events) to events.opened."""
 
     def eventFilter(self, object, event):
-        if event.type() == QtCore.QEvent.FileOpen and event.file():
-            for instance in list(BrowserView.instances.values()):
-                instance.pywebview_window.events.file_opened.set([event.file()])
+        if event.type() == QtCore.QEvent.FileOpen:
+            url = event.url()
+            if url.isLocalFile():
+                webview.instance.fire_opened([url.toLocalFile()], [])
+            else:
+                webview.instance.fire_opened([], [url.toString()])
             return True
 
         return super().eventFilter(object, event)
@@ -682,6 +686,10 @@ class BrowserView(QMainWindow):
                 event.ignore()
                 return
 
+        if self.pywebview_window._fire_quitting():
+            event.ignore()
+            return
+
         event.accept()
 
         # stop waiting for any pending JS results
@@ -734,6 +742,8 @@ class BrowserView(QMainWindow):
 
     def on_show_window(self):
         self.show()
+        self.raise_()
+        self.activateWindow()
 
     def on_hide_window(self):
         self.hide()

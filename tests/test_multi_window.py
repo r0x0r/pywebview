@@ -1,5 +1,3 @@
-import time
-
 import pytest
 
 import webview
@@ -118,27 +116,3 @@ def load_url(window):
     child_window.load_url('https://pywebview.flowrl.com')
     child_window.events.loaded.wait()
     child_window.destroy()
-
-
-def test_file_opened_from_argv(monkeypatch, tmp_path):
-    opened = tmp_path / 'document.txt'
-    opened.write_text('test')
-    monkeypatch.setattr('sys.argv', ['app', str(opened), '--not-a-file'])
-
-    window = webview.create_window('Main window', html='<html><body>Main</body></html>')
-    child = webview.create_window('Child window', html='<html><body>Child</body></html>')
-    received = {window.uid: [], child.uid: []}
-    window.events.file_opened += lambda paths: received[window.uid].append(paths)
-    child.events.file_opened += lambda paths: received[child.uid].append(paths)
-
-    run_test(webview, window, file_opened, (child, received, str(opened)))
-
-
-def file_opened(window, child, received, path):
-    for _ in range(50):
-        if all(received.values()):
-            break
-        time.sleep(0.1)
-
-    child.destroy()
-    assert received == {window.uid: [[path]], child.uid: [[path]]}, received

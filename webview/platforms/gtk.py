@@ -315,6 +315,9 @@ class BrowserView:
             if result == gtk.ResponseType.CANCEL:
                 return True
 
+        if self.pywebview_window._fire_quitting():
+            return True
+
         self._is_closed = True
         for res in list(self.js_results.values()):
             res['semaphore'].release()
@@ -546,6 +549,8 @@ class BrowserView:
                 self.window.hide()
         else:
             glib.idle_add(self.window.show_all)
+            # Raise and focus, as show() does on other platforms
+            glib.idle_add(self.window.present)
 
     def hide(self):
         glib.idle_add(self.window.hide)
@@ -1065,6 +1070,10 @@ def get_active_window():
     try:
         active_window = _app.get_active_window()
     except Exception:
+        return None
+
+    # None while no window of the application has focus
+    if active_window is None:
         return None
 
     active_window_number = active_window.get_id()
