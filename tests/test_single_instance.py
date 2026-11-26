@@ -48,7 +48,10 @@ def test_stale_socket(tmp_path):
     stale.close()
 
     run(instance_id, tmp_path, CLAIM)
+
+    # The instance removes its socket and lock file when it quits
     assert not os.path.exists(address)
+    assert not os.path.exists(instance._lock_path(instance._key(instance_id)))
 
 
 def test_second_launch(monkeypatch, tmp_path):

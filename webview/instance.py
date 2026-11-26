@@ -65,6 +65,7 @@ _listener: Listener | None = None
 _lock_fd: int | None = None
 _launch_lock = threading.Lock()
 
+_lock_file: str | None = None
 
 def fire_started(window: Window) -> None:
     """Fire webview.events.started in the background, once the first window is shown."""
@@ -248,10 +249,18 @@ def _try_lock(key: str) -> int | None:
 
 def _listen_or_connect(key: str) -> Listener | Connection | None:
     """
+def _unlock(fd: int, key: str) -> None:
+    """Remove the lock file and close it. Called with the directory lock held."""
+    try:
+        os.unlink(_lock_path(key))
+    finally:
+        os.close(fd)
+
+
     Become the running instance and return its listener, or return a connection to the running
     instance. Return None if the running instance cannot be reached.
     """
-    global _lock_fd
+    global _lock_fd, _lock_file
 
     if sys.platform == 'win32':
         address = rf'\\.\pipe\pywebview-{key}'
@@ -285,10 +294,10 @@ def _listen_or_connect(key: str) -> Listener | Connection | None:
                     os.unlink(address)
                 listener = Listener(address, family='AF_UNIX', backlog=64)
             except BaseException:
-                os.close(fd)
+                _unlock(fd, key)
                 raise
 
-            _lock_fd = fd
+            _lock_fd, _lock_file = fd, key
             return listener
 
     # Another instance is running. Its socket refuses connections while its backlog is full.
@@ -306,7 +315,7 @@ def _listen_or_connect(key: str) -> Listener | Connection | None:
 
 def release() -> None:
     """Stop being the running instance, so that later launches start their own instance."""
-    global _listener, _lock_fd
+    global _listener, _lock_fd, _lock_file
 
     listener, _listener = _listener, None
     if listener is None:
@@ -319,6 +328,7 @@ def release() -> None:
     fd, _lock_fd = _lock_fd, None
 
     # Called while quitting, also from a finally block, so it must not raise
+    key, _lock_file = _lock_file, None
     try:
         # Closing the listener closes the socket and then removes the file. Without the lock, an
         # instance starting in between could replace the socket, and this would remove its socket.
@@ -326,9 +336,11 @@ def release() -> None:
             try:
                 listener.close()
             finally:
-                if fd is not None:
-                    os.close(fd)
-                    fd = None
+                if fd is not None and key is not None:
+                    # Every process opens the lock file with the directory lock held, so no
+                    # other process has it open now
+                    fd, locked = None, fd
+                    _unlock(locked, key)
     except OSError:
         logger.exception('Failed to stop being the running instance of the application')
         with contextlib.suppress(OSError):
@@ -477,7 +489,7 @@ def is_running(instance_id: str | bool) -> bool:
             fd = _try_lock(key)
             if fd is None:
                 return True
-            os.close(fd)
+            _unlock(fd, key)
             return False
     except OSError:
         logger.exception('Cannot check for a running instance of the application')
