@@ -50,6 +50,8 @@ _CONNECT_ATTEMPTS = 10
 _HAND_OVER_TIMEOUT = 10
 # sun_path holds 104 bytes on macOS and 108 on Linux, including the terminating null
 _MAX_SOCKET_PATH = 103
+# opened handlers that run longer than this hold up later launches noticeably
+_SLOW_HANDLER_TIME = 5
 
 _argv_opened = False
 _open_requests: queue.SimpleQueue = queue.SimpleQueue()
@@ -60,7 +62,6 @@ _open_lock = threading.Lock()
 _listener: Listener | None = None
 _lock_fd: int | None = None
 _lock_file: str | None = None
-_launch_lock = threading.Lock()
 
 
 def fire_started(window: Window) -> None:
@@ -120,12 +121,25 @@ def _fire_opened(requests: queue.SimpleQueue) -> None:
     while True:
         request = requests.get()
         webview.events.started.wait()
+
+        start = time.monotonic()
         webview.events.opened._set_in_thread(request)
+        elapsed = time.monotonic() - start
+
+        if elapsed > _SLOW_HANDLER_TIME:
+            logger.warning(
+                f'webview.events.opened handlers took {elapsed:.1f} seconds. Later files and URLs '
+                'wait for them, so handlers should return quickly and run long tasks in a thread.'
+            )
 
 
 def _open_second_launch(argv: list[str], cwd: str) -> None:
-    """Show the application and fire webview.events.opened for a later launch."""
+    """Fire webview.events.opened for a later launch and show the application."""
     import webview
+
+    # Queued at once, so that launches are delivered in the order their command lines arrive,
+    # however long showing the window takes
+    fire_opened([], [], argv, cwd)
 
     # A launch may arrive while the first window is still starting, before a window can be active
     webview.events.started.wait()
@@ -140,8 +154,6 @@ def _open_second_launch(argv: list[str], cwd: str) -> None:
         except Exception:
             # The command line is delivered even if no window can be shown
             logger.exception('Cannot show the window for a second launch of the application')
-
-    fire_opened([], [], argv, cwd)
 
 
 def _key(instance_id: str | bool) -> str:
@@ -452,9 +464,7 @@ def _receive(connection: Connection) -> None:
     ):
         raise ValueError('Malformed message')
 
-    # Launches are handled in the order their command lines arrive
-    with _launch_lock:
-        _open_second_launch(argv, cwd)
+    _open_second_launch(argv, cwd)
 
 
 def _handle(connection: Connection) -> None:

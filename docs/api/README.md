@@ -126,7 +126,7 @@ When the event is fired depends on the platform:
 * On macOS, the event is fired for files and URLs opened through Finder or the `open` command, at launch and while the application is running.
 * On Android, the event is fired for `VIEW` intents, at launch and while the application is running. Documents are copied to the cache directory of the application, and `files` contains the paths of the copies.
 
-The application must register the file types and URL schemes it opens, see [Opening files](/guide/freezing.html#opening-files). This event is non-blocking.
+The application must register the file types and URL schemes it opens, see [Opening files](/guide/freezing.html#opening-files). This event is non-blocking, but its handlers run one launch after another, so that launches are delivered in order. A handler that takes long holds up later launches, and a warning is logged when handlers take more than 5 seconds. Return quickly and run long tasks in a thread.
 
 ``` python
 def on_opened(request):
