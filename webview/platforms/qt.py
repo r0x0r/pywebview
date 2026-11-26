@@ -81,6 +81,8 @@ if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos'
 
 _app_menu = None
 _file_open_filter = None
+# Set while the windows close for a quit that has already fired closing, confirmation and quitting
+_quit_confirmed = False
 _main_window_created = Event()
 _main_window_created.clear()
 
@@ -110,9 +112,20 @@ def _sigint_handler(signum, frame):
 
 
 class FileOpenFilter(QtCore.QObject):
-    """Forward files and URLs opened through the OS (macOS Apple Events) to events.opened."""
+    """
+    Forward files and URLs opened through the OS (macOS Apple Events) to events.opened, and handle
+    quitting the application (Cmd+Q on macOS).
+    """
 
     def eventFilter(self, object, event):
+        if (
+            event.type() == QtCore.QEvent.Quit
+            and event.spontaneous()
+            and isinstance(object, QApplication)
+            and len(BrowserView.instances) > 1
+        ):
+            return self._quit(event)
+
         if event.type() == QtCore.QEvent.FileOpen:
             url = event.url()
             if url.isLocalFile():
@@ -122,6 +135,26 @@ class FileOpenFilter(QtCore.QObject):
             return True
 
         return super().eventFilter(object, event)
+
+    def _quit(self, event):
+        """
+        Qt closes the windows one after another and fires quitting only for the last one, after
+        the others have closed. Check all windows first and fire quitting once, as on Cocoa.
+        """
+        global _quit_confirmed
+
+        views = list(BrowserView.instances.values())
+        if not all(view._should_close() for view in views) or webview.events.quitting.set():
+            event.ignore()
+            return True
+
+        _quit_confirmed = True
+        try:
+            _app.event(event)
+        finally:
+            _quit_confirmed = False
+
+        return True
 
 
 class BrowserView(QMainWindow):
@@ -666,12 +699,10 @@ class BrowserView(QMainWindow):
     def showEvent(self, event):
         self.pywebview_window.events.shown.set()
 
-    def closeEvent(self, event):
-        should_cancel = self.pywebview_window.events.closing.set()
-
-        if should_cancel:
-            event.ignore()
-            return
+    def _should_close(self):
+        """Fire closing and ask for confirmation. Return False if closing is cancelled."""
+        if self.pywebview_window.events.closing.set():
+            return False
 
         if self.pywebview_window.confirm_close:
             reply = QMessageBox.question(
@@ -683,10 +714,14 @@ class BrowserView(QMainWindow):
             )
 
             if reply == QMessageBox.No:
-                event.ignore()
-                return
+                return False
 
-        if self.pywebview_window._fire_quitting():
+        return True
+
+    def closeEvent(self, event):
+        if not _quit_confirmed and (
+            not self._should_close() or self.pywebview_window._fire_quitting()
+        ):
             event.ignore()
             return
 
