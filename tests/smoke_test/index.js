@@ -38,6 +38,8 @@ window.testUtils = {
       document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=${path}`;
     },
 
+    isAndroid: (info) => info.renderer === 'android-webkit',
+
     wait: (ms) => {
         return new Promise(resolve => setTimeout(resolve, ms));
     }

@@ -21,9 +21,19 @@ def window():
     return window
 
 
+def _qt_without_response_event():
+    # QT emits response_received from QWebEngineLoadingInfo.responseHeaders(), added in Qt 6.6
+    if os.environ.get('PYWEBVIEW_GUI') != 'qt':
+        return False
+
+    from qtpy import QT_VERSION
+
+    return tuple(int(part) for part in QT_VERSION.split('.')[:2]) < (6, 6)
+
+
 @pytest.mark.skipif(
-    os.environ.get('PYWEBVIEW_GUI') == 'qt',
-    reason='response_received is not supported on QT',
+    _qt_without_response_event(),
+    reason='response_received requires Qt 6.6 or newer',
 )
 def test_response_event(window):
     def on_response(response):

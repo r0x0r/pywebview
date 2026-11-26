@@ -16,89 +16,38 @@ class PropsDict:
     def __init__(self, element, type: DOMPropType, props: dict[str, Any] | None = None):
         self.__element = element
         self.__type = type
+        # Value that removes a property
+        self.__empty = '' if type == DOMPropType.Style else None
 
-        if not props:
-            return
-
-        if type == DOMPropType.Style:
-            converted_style = json.dumps({css_to_camel(key): value for key, value in props.items()})
-            self.__element._window.evaluate_js(
-                f"""
-                {self.__element._query_command};
-                var styles = JSON.parse('{escape_string(converted_style)}');
-
-                for (var key in styles) {{
-                    element.style[key] = styles[key];
-                }}
-            """
-            )
-
-        elif type == DOMPropType.Attribute:
-            converted_attributes = escape_string(json.dumps(props))
-
-            self.__element._window.evaluate_js(
-                f"""
-                {self.__element._query_command};
-                var attributes = JSON.parse('{converted_attributes}');
-
-                for (var key in attributes) {{
-                    if (key === 'data-pywebview-id') {{
-                        continue;
-                    }} else if (attributes[key] === null || attributes[key] === undefined) {{
-                        element.removeAttribute(key);
-                    }} else {{
-                        element.setAttribute(key, attributes[key]);
-                    }}
-                }};
-            """
-            )
+        if props:
+            self.update(props)
 
     def __getitem__(self, key: str) -> Any:
-        data = self.__get_data()
-        return data.get(key)
+        return self.__get_data().get(key)
 
     def __setitem__(self, key: str, value: Any) -> None:
-        if self.__type == DOMPropType.Style:
-            self.__set_style({key: value})
-        elif self.__type == DOMPropType.Attribute:
-            self.__set_attribute({key: value})
+        self.update({key: value})
 
     def __delitem__(self, key: str) -> None:
-        if self.__type == DOMPropType.Style:
-            self.__set_style({key: ''})
-        elif self.__type == DOMPropType.Attribute:
-            self.__set_attribute({key: None})
+        self.update({key: self.__empty})
 
     def __contains__(self, key: str) -> bool:
-        data = self.__get_data()
-        return key in data
+        return key in self.__get_data()
 
     def keys(self) -> Any:
-        data = self.__get_data()
-        return data.keys()
+        return self.__get_data().keys()
 
     def values(self) -> Any:
-        data = self.__get_data()
-        return data.values()
+        return self.__get_data().values()
 
     def items(self) -> Any:
-        data = self.__get_data()
-        return data.items()
+        return self.__get_data().items()
 
     def get(self, key: str, default: Any = None) -> Any:
-        data = self.__get_data()
-        return data.get(key, default)
+        return self.__get_data().get(key, default)
 
     def clear(self) -> None:
-        data = self.__get_data()
-
-        for key in data.keys():
-            data[key] = '' if self.__type == DOMPropType.Style else None
-
-        if self.__type == DOMPropType.Style:
-            self.__set_style(data)
-        elif self.__type == DOMPropType.Attribute:
-            self.__set_attribute(data)
+        self.update(dict.fromkeys(self.__get_data(), self.__empty))
 
     def copy(self) -> dict[str, Any]:
         return self.__get_data()
@@ -106,30 +55,25 @@ class PropsDict:
     def update(self, other_dict: dict[str, str | int | float | None]) -> None:
         if self.__type == DOMPropType.Style:
             self.__set_style(other_dict)
-        elif self.__type == DOMPropType.Attribute:
-            self.__set_attribute(other_dict)
+        else:
+            self.__set_attributes(other_dict)
 
     def pop(self, key: str, default: Any = None) -> Any:
-        data = self.__get_data()
-        return data.pop(key, default)
+        return self.__get_data().pop(key, default)
 
     def popitem(self) -> tuple[str, Any]:
-        data = self.__get_data()
-        return data.popitem()
+        return self.__get_data().popitem()
 
     def __str__(self) -> str:
-        data = self.__get_data()
-        return str(data)
+        return str(self.__get_data())
 
     def __repr__(self) -> str:
-        data = self.__get_data()
-        return repr(data)
+        return repr(self.__get_data())
 
     def __get_data(self) -> dict[str, Any]:
         if self.__type == DOMPropType.Style:
             return self.__get_style()
-        elif self.__type == DOMPropType.Attribute:
-            return self.__get_attributes()
+        return self.__get_attributes()
 
     def __get_attributes(self) -> dict[str, Any]:
         return self.__element._window.evaluate_js(
@@ -147,7 +91,8 @@ class PropsDict:
         """
         )
 
-    def __set_attribute(self, props: dict[str, Any]) -> None:
+    def __set_attributes(self, props: dict[str, Any]) -> None:
+        # The internal ID is skipped in any case, as setAttribute lowercases names on HTML elements
         self.__element._window.evaluate_js(
             f"""
             {self.__element._query_command};
@@ -155,7 +100,9 @@ class PropsDict:
 
             for (var key in values) {{
                 var value = values[key];
-                if (value === null || value === undefined) {{
+                if (key.toLowerCase() === 'data-pywebview-id') {{
+                    continue;
+                }} else if (value === null || value === undefined) {{
                     element.removeAttribute(key);
                 }} else {{
                     element.setAttribute(key, value);
@@ -192,8 +139,7 @@ class PropsDict:
             var styles = JSON.parse('{escape_string(converted_style)}');
 
             for (var key in styles) {{
-                var value = styles[key];
-                element.style[key] = value;
+                element.style[key] = styles[key];
             }}
         """
         )

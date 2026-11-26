@@ -4,20 +4,37 @@
 
 ### 💔 BREAKING CHANGES
 
+- `Winforms` Remove the CEF renderer. `cefpython3` was last released in 2021 (Chromium 66) and ships binaries only up to Python 3.9, so it could not be loaded on any Python version pywebview supports. The `cef` extra is gone, and `gui='cef'` logs a warning and uses the default renderer.
 - `WinUI3` Move to PyWinRT 4 and the Windows App SDK 2.x. The `winui3` extra now needs Python 3.11 or newer and the Windows App Runtime 2.x, at least the release that the installed `winrt-Microsoft.WindowsAppRuntime.Bootstrap` names (2.6.4 for its version 4!2.6.4). A 1.x runtime no longer works. CI reads that release from the bootstrap rather than pinning one.
 
 ### 🐞 Bug fixes
 
+- `GTK` Fix request headers modified in a `request_sent` handler sending the page twice, first with the original headers.
+- `Cocoa` Fix a `request_sent` handler loading iframe navigations in the whole window, and `response_received` failing on non-HTTP responses such as `file://` pages.
+- `Android` Fix `response_received` firing an extra time for HTTP error responses. Error responses to requests that pywebview resends itself, which are `https://` and non-loopback `http://` requests, are still reported twice.
+- `GTK` `EdgeChromium` Fix repeated headers, such as `Set-Cookie`, keeping only their last value in `response_received`. Values are now joined with a comma, as on macOS.
+- `Winforms` Fix transparent windows. The window now enables per-pixel transparency in DWM instead of relying on undocumented compositing behaviour, which worked on some systems only. A transparent window no longer gets the Mica backdrop in dark mode, which made it opaque after a theme change or after locking and unlocking Windows. A transparent frameless window has no native resize frame, so Windows no longer draws a white strip along its top edge, a border, rounded corners or a shadow around it. Windows cannot resize or snap such a window from its edges. [#1887](https://github.com/r0x0r/pywebview/issues/1887)
 - `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
+- `Cocoa` Fix the window title overlapping the traffic-light buttons, and the buttons not responding, when the Web Inspector is docked in debug mode. [#1866](https://github.com/r0x0r/pywebview/issues/1866)
+- `All` Fix `repr()` and `str()` of `window.dom.window`, which raised `TypeError`.
+- `All` Fix `window.dom.window.node` and `evaluate_js` returning an empty list for an object with a `length` property, such as the window object. Only array-like objects other than plain objects, such as `NodeList` and `arguments`, are converted to lists.
+- `All` Fix `element.attributes` overwriting the `data-pywebview-id` attribute, which pywebview uses to find the element. Assigning it is ignored, as when an element is created with attributes.
+- `All` `webview.start()` raises `WebViewException` when pywebview's JavaScript files are missing or cannot be loaded, for example when a packaged application does not include the `webview/js` folder. Previously every window opened without `window.pywebview`, and `evaluate_js` returned `None`, with no error. [#1883](https://github.com/r0x0r/pywebview/issues/1883)
 - `Cocoa` `window.destroy()` fires the `closing` event and shows the close confirmation on the main thread, as on other platforms and as when the user closes the window.
 
 ### ⚡ Features
 
+- `All` Cancel a request by returning `False` from a `request_sent` handler. Every request can be cancelled on Windows, QT and Android, but only navigations on GTK and main frame navigations on macOS.
+- `QT` Support the `response_received` event for the main document on Qt 6.6 or newer.
 - `All` New application events in `webview.events`, which are not bound to a window. `started` is fired once the GUI loop is running and the first window is shown. `opened` is fired with the files and URLs the application is asked to open, e.g. a document double-clicked in a file manager or a link of a custom URL scheme. On macOS it is fired at launch and while the application is running, where opened files were previously rejected. On Windows and Linux it is fired at startup with the command line arguments, which the application interprets. On Android it is fired for `VIEW` intents, with documents copied to the cache directory. `quitting` is fired when the application is about to quit, after the last window passes its `closing` event and close confirmation or on Cmd+Q on macOS, and can cancel quitting. [#569](https://github.com/r0x0r/pywebview/issues/569)
 - `All` New `single_instance` parameter of `webview.start` that allows only one running instance of the application. A later launch hands its command line to the running instance, which shows its window and fires `webview.events.opened` with the command line, and then exits. `webview.is_instance_running()` reports whether another instance is running.
 - `WinUI3` New WinUI 3 backend hosting WebView2, for platforms where pythonnet is unavailable, such as Windows on ARM64. Install it with `pip install "pywebview[winui3]"` and select it with `gui='winui3'`; it is also used automatically when WinForms cannot be loaded. Requires the Edge WebView2 Runtime and the Windows App Runtime. [#1837](https://github.com/r0x0r/pywebview/pull/1837)
 - `All` Support `async` JS API functions, exposed functions, event handlers, the `webview.start` function, state change handlers, menu actions and `evaluate_js` callbacks. Handlers of blocking window events (`before_show`, `before_load`, `closing`, `initialized` and `request_sent`) must be regular functions; subscribing an `async` one raises `TypeError`. Coroutines run on an asyncio event loop passed via the new `event_loop` parameter of `webview.start`, or on one started automatically when the first coroutine needs to run. [#1886](https://github.com/r0x0r/pywebview/pull/1886)
 - `All` Include aligned logging levels in console log messages and allow customizing their format through `webview.settings['LOG_FORMAT']`. [#1889](https://github.com/r0x0r/pywebview/pull/1889)
+
+### 🚀 Improvements
+
+- `All` Improve [uv](https://docs.astral.sh/uv/) support. `uv sync` installs the development tools through a `dev` dependency group, and the development guide describes the uv workflow. The Code Quality and Type Check CI jobs use uv. [#1907](https://github.com/r0x0r/pywebview/pull/1907)
 
 ### 💔 BREAKING CHANGES
 
@@ -34,6 +51,8 @@
 
 ### 🚀 Improvements
 
+- `Cocoa` Emit `response_received` for every HTTP response, including images, scripts, stylesheets and `fetch` requests, instead of only navigations.
+- `EdgeChromium` Update WebView2 runtime to 1.0.4370.26.
 - `Winforms` Frameless windows keep the native resize frame instead of using `FormBorderStyle.None`. Only the caption is removed and, on Windows 11, the border is hidden, so Windows itself handles resizing from every edge and corner, Aero Snap, maximize, minimize and restore. On Windows 10 a thin native border remains visible. Because the native frame is kept, frameless windows have the system shadow even with `shadow=False`.
 
 ### 🐞 Bug fixes
@@ -43,6 +62,14 @@
 - `All` Page alerts are shown one at a time, after the bridge message has been handled, and further alerts are dropped while one is open. A page could previously stack hundreds of nested modal dialogs. On Qt, alerts are shown as plain text, so a page can no longer render clickable links in them. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `QT` Fix `webview.start(ssl=True)` on QtWebEngine, which showed a certificate error instead of the page because QtWebEngine does not use the certificate added to `QSslConfiguration`. Only the local HTTP server's own certificate is accepted; when Qt cannot read certificates, as with Qt 5 built against OpenSSL 1.1 on a system with OpenSSL 3, only the local server's own address is. `start(ssl=True)` also no longer fails on such a Qt 5 with an `IndexError`. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `EdgeChromium` `Cocoa` `webview.start(ssl=True)` no longer disables certificate checks for every site. Only the local HTTP server's own certificate is accepted; other sites are validated as usual. `IGNORE_SSL_ERRORS` still accepts any certificate. On Cocoa, authentication challenges other than certificate checks, such as HTTP authentication, now get the system's default handling instead of a certificate credential. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
+- `QT` Register the JS bridge with `QWebChannel` once per window instead of on every page load, which printed "Registered new object after initialization, existing clients won't be notified!" after a reload or navigation.
+- `QT` Keep a window's web profile until its pages are deleted. Closing a window or the app could free the profile first, which printed "Release of profile requested but WebEnginePage still not deleted. Expect troubles !" and could crash on exit.
+- `QT` The `resized` event fires when a window is resized back to the size it was created with.
+- `QT` A window created with `fullscreen=True` opens fullscreen. It was opened at its normal size, because positioning and showing the window undid fullscreen.
+- `QT` Fix a crash in `window.clear_cookies()`, which used the cookie store from a background thread.
+- `QT` `Request.method` in the `request_sent` event is a string instead of a `QByteArray`, so the request can be serialized to JSON.
+- `GTK` `QT` `window.get_cookies()` no longer returns an empty cookie for a cookie whose value contains quotes or commas, such as a JSON value.
+- `Android` `window.get_cookies()` returns HttpOnly cookies set by the built-in HTTP server. It read cookies from `document.cookie`, which does not include HttpOnly cookies.
 - `Cocoa` `window.clear_cookies()` waits until the cookies are removed, so a `get_cookies()` call right after it no longer returns the cleared cookies.
 - `Cocoa` `window.maximize()` zooms the window to the visible area of its screen and fires `events.maximized`, and `window.restore()` restores a maximized window and fires `events.restored`. Previously maximizing only resized the window to the screen size without firing an event, and restoring had no effect on a maximized window.
 - `Android` `window.maximize()` logs a warning that maximizing is not supported instead of raising `AttributeError`.
@@ -96,9 +123,9 @@
 
 ### 🚀 Improvements
 
+- `All` Add a [guide](/guide/migration.md) for migrating from 6.x to 7.0.
 - `All` Log a warning when a remote HTTPS page gets the JS API while `IGNORE_SSL_ERRORS` is enabled. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
 - `All` Document the JS API's exposure, `ALLOW_FILE_URLS`, external links and Content Security Policy in the security guide, explain what trusting a remote origin implies, and correct the documented default of `ALLOW_FILE_URLS`. [#1878](https://github.com/r0x0r/pywebview/issues/1878)
-- `EdgeChromium` Update WebView2 runtime to 1.0.4314.35.
 - `Winforms` Prefer .NET 6+ with a .NET Framework fallback, preserve an application's initialized runtime, select matching WebView2 assemblies, and support CoreCLR folder dialogs on Windows ARM64. Thanks @smparkes. [#1832](https://github.com/r0x0r/pywebview/pull/1832)
 - `All` Type annotations across the codebase now use PEP 585 / PEP 604 built-in generics and union syntax.
 - `Winforms` Move keyboard focus to the menu bar when it is activated, so the menu can be navigated with the keyboard. Thanks @tdeck. [#1835](https://github.com/r0x0r/pywebview/pull/1835)

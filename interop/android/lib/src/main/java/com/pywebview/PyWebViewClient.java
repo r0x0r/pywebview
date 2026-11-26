@@ -37,6 +37,9 @@ public class PyWebViewClient extends WebViewClient {
         this.ignoreSslErrors = ignoreSslErrors;
     }
 
+    // Returned by WebViewRequestInterceptor.onRequest to cancel the request
+    static final String CANCEL_REQUEST = "pywebview:cancel";
+
     public void setRequestInterceptor(WebViewRequestInterceptor interceptor) {
         this.requestInterceptor = interceptor;
     }
@@ -293,6 +296,12 @@ public class PyWebViewClient extends WebViewClient {
             // If we have an interceptor, let it modify the headers
             if (requestInterceptor != null) {
                 String newHeaders = safeOnRequest(url, method, headersJson);
+                if (CANCEL_REQUEST.equals(newHeaders)) {
+                    // An empty 204 response: a cancelled navigation stays on the current page
+                    return new WebResourceResponse(
+                        "text/plain", "utf-8", 204, "No Content", new HashMap<>(),
+                        new java.io.ByteArrayInputStream(new byte[0]));
+                }
                 if (newHeaders != null) {
                     finalHeaders = newHeaders;
                 }

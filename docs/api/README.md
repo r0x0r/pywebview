@@ -31,7 +31,7 @@ webview.create_window(title, url=None, html=None, js_api=None, width=800, height
                       easy_drag=True, shadow=True, focus=True, minimized=False, maximized=False, menu=[],
                       on_top=False, confirm_close=False, background_color='#FFFFFF',
                       transparent=False, text_select=False, zoomable=False,
-                      draggable=False, vibrancy=False, server=None, server_args={},
+                      draggable=False, vibrancy=False, server=None, http_port=None, server_args={},
                       localization=None)
 ```
 
@@ -60,12 +60,13 @@ Create a new _pywebview_ window and returns its instance. Can be used to create 
 * `on_top` - Set window to be always on top of other windows. Default is False.
 * `confirm_close` - Whether to display a window close confirmation dialog. Default is False
 * `background_color` - Background color of the window displayed before WebView is loaded. Specified as a hex color. Default is white.
-* `transparent` - Create a transparent window. Not supported on Windows. Default is False. Note that this setting does not hide or make window chrome transparent. To hide window chrome set `frameless` to True.
+* `transparent` - Create a transparent window. On Windows, supported only by the WinForms backend with EdgeChromium. Default is False. Note that this setting does not hide or make window chrome transparent. To hide window chrome set `frameless` to True. On Windows, a transparent frameless window has no native resize frame, so it cannot be resized or snapped from its edges.
 * `text_select` - Enables document text selection. Default is False. To control text selection on per element basis, use [user-select](https://developer.mozilla.org/en-US/docs/Web/CSS/user-select) CSS property.
 * `zoomable` - Enable document zooming. Default is False
 * `draggable` - Enable image and link object dragging. Default is False
 * `vibrancy` - Enable window vibrancy. Default is False. macOS only.
 * `server` - A custom WSGI server class for this window. Defaults to the `server` passed to `webview.start()`, which defaults to BottleServer.
+* `http_port` - Port number for the HTTP server of this window. By default the port is randomized.
 * `server_args` - Dictionary of arguments to pass through to the server instantiation
 * `localization` - pass a localization dictionary for per window localization.
 
@@ -83,7 +84,7 @@ Start a GUI loop and display previously created windows. This function must be c
 * `func` - function to invoke upon starting the GUI loop. Can be an `async` function, in which case it runs on the asyncio event loop (see `event_loop`).
 * `args` - function arguments. Can be either a single value or a tuple of values.
 * `localization` - a dictionary with localized strings. Default strings and their keys are defined in localization.py
-* `gui` - force a specific GUI. Allowed values are `cef`, `qt`, `gtk`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
+* `gui` - force a specific GUI. Allowed values are `qt`, `gtk`, `edgechromium` or `winui3` depending on a platform. See [Web Engine](/guide/web_engine.md) for details.
 * `debug` - enable debug mode. See [Debugging](/guide/debugging.md) for details.
 * `http_server` - enable built-in HTTP server for absolute local paths. For relative paths HTTP server is started automatically and cannot be disabled. For each window, a separate HTTP server is spawned. This option is ignored for non-local URLs.
 * `http_port` - specify a port number for the HTTP server. By default port is randomized.
@@ -739,7 +740,7 @@ Expose a Python function or functions to JS API. Functions are exposed as `windo
 window.get_cookies()
 ```
 
-Return a list of all the cookies set for the current website (as [SimpleCookie](https://docs.python.org/3/library/http.cookies.html)). `get_cookies` cannot be called from Javascript, even if the window is reachable through `js_api`.
+Return a list of all the cookies set for the current website (as [SimpleCookie](https://docs.python.org/3/library/http.cookies.html)). The list includes `HttpOnly` cookies, which Javascript cannot read. `get_cookies` cannot be called from Javascript, even if the window is reachable through `js_api`.
 
 ### window.get_current_url
 
@@ -775,7 +776,7 @@ Hide the window.
 ### window.load_css
 
 ``` python
-window.load_css(css)
+window.load_css(stylesheet)
 ```
 
 Load CSS as a string.
@@ -786,7 +787,7 @@ Load CSS as a string.
 ### window.load_html
 
 ``` python
-window.load_html(content, base_uri=base_uri())
+window.load_html(html, base_uri=base_uri())
 ```
 
 Load HTML code. Base URL for resolving relative URLs is set to the directory the program is launched from. Note that you cannot use hashbang anchors when HTML is loaded this way. `load_html` cannot be called from Javascript, even if the window is reachable through `js_api`.
@@ -947,7 +948,7 @@ Get `window.document` of the loaded page as an `Element` object
 ### window.dom.get_element
 
 ``` python
-window.get_element(selector: str)
+window.dom.get_element(selector: str)
 ```
 
 Get a first `Element` matching the selector. None if not found.
@@ -955,7 +956,7 @@ Get a first `Element` matching the selector. None if not found.
 ### window.dom.get_elements
 
 ``` python
-window.get_elements(selector: str)
+window.dom.get_elements(selector: str)
 ```
 
 Get a list of `Element` objects matching the selector.
@@ -1038,21 +1039,41 @@ The event handler can accept a single argument - a `Request` object that contain
 
 * `url` - URL of the request
 * `method` - HTTP method
-* `headers` - HTTP request headers as a dictionary. If you mutate mutate headers, modified headers will be used for the request.
+* `headers` - HTTP request headers as a dictionary. If you mutate headers, modified headers will be used for the request.
+
+Return `False` from the handler to cancel the request. Header changes are ignored for a cancelled request.
+
+``` python
+def on_request(request):
+    if 'ads.example.com' in request.url:
+        return False
+```
+
+Header modification and cancelling are not applied to every request on every platform. Header changes that cannot be applied are ignored without a warning.
+
+If you cancel a navigation started with `window.load_url`, the window shows an empty page.
+
+| Platform | Requests that use modified headers | Requests that can be cancelled | Notes |
+| --- | --- | --- | --- |
+| Windows | All | All | A cancelled request receives an empty `204 No Content` response, so a cancelled navigation stays on the current page |
+| QT | All | All | Headers can be added or changed, but not removed. A cancelled navigation shows an empty error page |
+| GTK | `GET` requests for the window URL and URLs loaded with `load_url` | Navigations | For navigations, the handler receives the headers before WebKit adds `Sec-Fetch-*` and `Upgrade-Insecure-Requests`. Cancelling any other request logs a warning |
+| macOS | Main frame navigations only | Main frame navigations | The navigation is restarted with the modified headers and an additional `X-Handled: true` header |
+| Android | `https://` and non-loopback `http://` URLs | All | Pages served from `localhost`, `127.0.0.1` or `::1`, including the built-in HTTP server, do not use modified headers. Affected requests are resent without their body, so POST data is lost. A cancelled request receives an empty `204 No Content` response |
 
 [Example](/examples/headers.html)
 
 
 ### window.events.response_received
 
-The event is fired when a HTTP response is received. The event is emitted for every HTTP response, except on macOS where it is emitted only for the main document.
+The event is fired when a HTTP response is received. The event is emitted for every HTTP response, except on QT where it is emitted only for the main document.
 The event handler can accept a single argument - a `Response` object that contains the following properties:
 
 * `url` - URL of the response
 * `status_code` - HTTP status code
 * `headers` - HTTP response headers as a dictionary
 
-Not supported on QT.
+On QT, the event requires Qt 6.6 or newer, is not emitted for redirects, and its headers do not include `Set-Cookie`. On macOS, subresource responses are reported through a private WebKit API; where it is unavailable, only navigation responses are reported.
 
 [Example](/examples/headers.html)
 

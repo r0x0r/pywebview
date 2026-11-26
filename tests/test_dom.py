@@ -78,6 +78,43 @@ def test_special_char_attributes(window):
     run_test(webview, window, special_char_attributes_test)
 
 
+def test_query(window):
+    run_test(webview, window, query_test)
+
+
+def test_special_char_properties(window):
+    run_test(webview, window, special_char_properties_test)
+
+
+def test_create_element(window):
+    run_test(webview, window, create_element_test)
+
+
+def test_copy_with_events(window):
+    run_test(webview, window, copy_with_events_test)
+
+
+def test_removed_element(window):
+    run_test(webview, window, removed_element_test)
+
+
+def test_views(window):
+    run_test(webview, window, views_test)
+
+
+def test_event_handler_options(window):
+    run_test(webview, window, event_handler_options_test)
+
+
+def wait_for(condition, timeout=2):
+    # DOM event handlers fire asynchronously over the JS bridge
+    for _ in range(int(timeout / 0.1)):
+        if condition():
+            return True
+        sleep(0.1)
+    return condition()
+
+
 def element_test(window):
     child1 = window.dom.get_element('#child1')
 
@@ -110,6 +147,9 @@ def classes_test(window):
 
     child1.classes.toggle('test')
     assert list(child1.classes) == ['test2', 'test']
+
+    child1.classes.remove('test2')
+    assert list(child1.classes) == ['test']
 
     child1.classes = ['woah']
     assert list(child1.classes) == ['woah']
@@ -152,6 +192,11 @@ def attributes_test(window):
         'data-test': 'test2',
     }
 
+    assert 'data-test' in child1.attributes
+    child1.attributes.update({'data-test': None, 'data-new': 'new'})
+    assert 'data-test' not in child1.attributes
+    assert child1.attributes['data-new'] == 'new'
+
     child1.attributes = {'data-test': 'test3'}
     assert child1.attributes['data-test'] == 'test3'
 
@@ -168,6 +213,13 @@ def style_test(window):
     child3.style['background-color'] = 'rgb(0, 0, 255)'
     assert child3.style['display'] == 'flex'
     assert child3.style['background-color'] == 'rgb(0, 0, 255)'
+
+    del child3.style['display']
+    assert child3.style['display'] == 'block'
+
+    child3.style = {'display': 'none', 'margin-top': '5px'}
+    assert child3.style['display'] == 'none'
+    assert child3.style['margin-top'] == '5px'
 
     child3.style.clear()
     assert child3.style['display'] == 'block'
@@ -301,8 +353,7 @@ def manipulation_error_test(window):
 def events_test(window):
     def click_handler(event):
         nonlocal button_value
-        assert event['target']['id'] == 'button'
-        button_value = True
+        button_value = event['target']['id']
 
     def child_click_handler(event):
         nonlocal child_value
@@ -318,14 +369,8 @@ def events_test(window):
 
     window.evaluate_js('document.getElementById("button").click()')
 
-    # The click handler fires asynchronously over the JS bridge; poll briefly
-    # instead of asserting immediately, which is prone to flaking under load.
-    for _ in range(20):
-        if button_value:
-            break
-        sleep(0.1)
-    assert button_value
-    assert not child_value
+    assert wait_for(lambda: button_value)
+    assert button_value == 'button'
 
     child1.events.click -= child_click_handler
     button.events.click -= click_handler
@@ -425,3 +470,176 @@ def special_char_attributes_test(window):
     ]:
         del child1.attributes[key]
         assert child1.attributes[key] is None
+
+
+def query_test(window):
+    children = window.dom.get_elements('#container .test')
+    assert [c.id for c in children] == ['child1', 'child2', 'child3']
+    assert window.dom.get_elements('.does-not-exist') == []
+    assert window.dom.get_element('#does-not-exist') is None
+
+    # repeated lookups resolve to the same node
+    assert window.dom.get_element('#child1') == children[0]
+    assert window.dom.get_element('#child1') != children[1]
+
+    assert window.dom.body.tag == 'body'
+    assert window.dom.body.children[0].id == 'container'
+
+
+def special_char_properties_test(window):
+    value = 'it\'s "quoted" \\ back\nslash'
+    child1 = window.dom.get_element('#child1')
+
+    child1.text = value
+    assert child1.text == value
+
+    child1.id = 'id\'with"quotes'
+    assert child1.id == 'id\'with"quotes'
+
+    input = window.dom.get_element('#input')
+    input.value = value.replace('\n', ' ')  # text inputs strip newlines
+    assert input.value == value.replace('\n', ' ')
+
+    child2 = window.dom.get_element('#child2')
+    child2.classes.append("it's")
+    assert "it's" in list(child2.classes)
+
+    element = window.dom.create_element(f'<p>{value}</p>')
+    assert element.text == value
+
+
+def create_element_test(window):
+    # default target is the last child of body
+    element = window.dom.create_element('<p id="last">last</p>')
+    assert window.dom.body.children[-1] == element
+
+    element = window.dom.create_element(
+        '<p id="first">first</p>', '#container', webview.dom.ManipulationMode.FirstChild
+    )
+    assert element.parent.id == 'container'
+    assert window.dom.get_element('#container').children[0].id == 'first'
+
+    element = window.dom.get_element('#container2').append(
+        '<span>before</span>', webview.dom.ManipulationMode.Before
+    )
+    assert element.next.id == 'container2'
+
+
+def copy_with_events_test(window):
+    clicked = []
+
+    def click_handler(event):
+        clicked.append(event['target']['id'])
+
+    button = window.dom.get_element('#button')
+    button.events.click += click_handler
+
+    copy = button.copy(id='button-copy')
+    assert copy.id == 'button-copy'
+    assert button.id == 'button'
+    assert copy.parent.id == 'container2'
+
+    window.evaluate_js('document.getElementById("button-copy").click()')
+    assert wait_for(lambda: clicked)
+    assert clicked == ['button-copy']
+
+
+def removed_element_test(window):
+    button = window.dom.get_element('#button')
+    button.events.click += lambda e: None
+    assert window.evaluate_js('Object.keys(pywebview._eventHandlers).length') == 1
+
+    button.remove()
+    assert window.dom.get_element('#button') is None
+    assert window.evaluate_js('Object.keys(pywebview._eventHandlers).length') == 0
+
+    # accessing a removed element warns and returns None instead of raising
+    assert button.text is None
+    assert button.parent is None
+
+    # same for an element removed outside of the Python API
+    child1 = window.dom.get_element('#child1')
+    window.evaluate_js('document.getElementById("child1").remove()')
+    assert child1.text is None
+
+
+def event_handler_options_test(window):
+    from webview.dom import DOMEventHandler
+
+    window.dom.get_element('#container2').append('<input type="checkbox" id="checkbox"/>')
+    calls = {'checkbox': 0, 'button': 0, 'container': 0, 'debounced': 0}
+
+    def counter(key):
+        def handler(event):
+            calls[key] += 1
+
+        return handler
+
+    # prevent_default keeps the checkbox unchecked
+    checkbox = window.dom.get_element('#checkbox')
+    checkbox.events.click += DOMEventHandler(counter('checkbox'), prevent_default=True)
+    window.evaluate_js('document.getElementById("checkbox").click()')
+    assert wait_for(lambda: calls['checkbox'] == 1)
+    assert not window.evaluate_js('document.getElementById("checkbox").checked')
+
+    # stop_propagation keeps the event from bubbling to the parent
+    container2 = window.dom.get_element('#container2')
+    container2.events.click += counter('container')
+    button = window.dom.get_element('#button')
+    button.events.click += DOMEventHandler(counter('button'), stop_propagation=True)
+    window.evaluate_js('document.getElementById("button").click()')
+    assert wait_for(lambda: calls['button'] == 1)
+    sleep(0.3)
+    assert calls['container'] == 0
+
+    # debounce collapses a burst of events into a single call
+    child1 = window.dom.get_element('#child1')
+    child1.events.click += DOMEventHandler(counter('debounced'), debounce=100)
+    window.evaluate_js(
+        'var el = document.getElementById("child1"); el.click(); el.click(); el.click()'
+    )
+    assert wait_for(lambda: calls['debounced'] >= 1)
+    sleep(0.3)
+    assert calls['debounced'] == 1
+
+
+def views_test(window):
+    child1 = window.dom.get_element('#child1')
+    assert repr(child1) == str(child1) == child1.node['outerHTML']
+    assert repr(window.dom.document) == 'document'
+    assert repr(window.dom.window) == 'window'
+    window_node = window.dom.window.node
+    assert window_node['_pywebviewId'] == 'window'
+    assert window_node['scrollY'] == 0
+
+    # an element with listeners is the one the DOM returns
+    document = window.dom.document
+    document.on('click', lambda e: None)
+    assert window.dom.document is document
+
+    window.run_js("document.getElementById('child1').className = ' a  b\\tc '")
+    assert len(child1.classes) == 3
+    assert str(child1.classes) == repr(child1.classes) == "['a', 'b', 'c']"
+    # a non-breaking space is part of a class name, not a separator
+    window.run_js("document.getElementById('child1').className = 'a\\u00a0b c'")
+    assert list(child1.classes) == ['a\u00a0b', 'c']
+
+    # pywebview identifies the element by data-pywebview-id, so it cannot be overwritten
+    node_id = child1._node_id
+    child1.attributes['data-pywebview-id'] = 'other'
+    child1.attributes.update({'data-pywebview-id': 'other', 'data-ok': 'yes'})
+    child1.attributes['DATA-PYWEBVIEW-ID'] = 'other'
+    assert window.dom.get_element('#child1')._node_id == node_id
+    assert child1.text == 'DUDE'
+
+    attributes = child1.attributes.copy()
+    assert attributes['data-ok'] == 'yes'
+    assert 'data-pywebview-id' not in attributes
+    assert str(child1.attributes) == repr(child1.attributes) == str(attributes)
+    assert child1.attributes.pop('data-ok') == 'yes'
+    assert child1.attributes.get('missing', 'default') == 'default'
+
+    child1.attributes.clear()
+    assert child1.attributes.copy() == {}
+    assert window.dom.get_element('#child1') is None  # its id was cleared too
+    assert child1.text == 'DUDE'

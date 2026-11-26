@@ -64,7 +64,6 @@ winui3 = [
     "winrt-Microsoft.UI.Interop>=4!2.5.1;sys_platform=='win32' and python_version>='3.11'",
     "winrt-Microsoft.WindowsAppRuntime.Bootstrap>=4!2.5.1;sys_platform=='win32' and python_version>='3.11'",
 ]
-cef = ["cefpython3"]
 gtk = ["PyGObject==3.50.0", "PyGObject-stubs"]
 pyside2 = ["QtPy", "PySide2"]
 pyside6 = ["QtPy", "PySide6"]
@@ -75,6 +74,10 @@ android = ["jnius"]
 ssl = ["cryptography"]
 dev = ["ruff", "pre-commit", "pytest", "pytest-timeout", "build", "twine"]
 
+# Installed by `uv sync` by default. pip users install the dev extra instead.
+[dependency-groups]
+dev = ["pywebview[dev]"]
+
 [project.urls]
 Homepage = "https://pywebview.flowrl.com/"
 Repository = "https://github.com/r0x0r/pywebview"
@@ -82,7 +85,7 @@ Repository = "https://github.com/r0x0r/pywebview"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 timeout = 60
-# The Android test apps are built and run on a device by buildozer. Descending
+# The Android and smoke test apps are run by hand or on a device by buildozer. Descending
 # into them collects the symlinked test modules a second time, and puts the app
 # directory on sys.path, where its `webview` symlink shadows the real package.
 # The rest of the list is pytest's own default, which assigning here replaces.
@@ -97,6 +100,7 @@ norecursedirs = [
     "venv",
     "{arch}",
     "android",
+    "smoke_test",
 ]
 
 [tool.mypy]
@@ -165,12 +169,6 @@ packages = [
 
 [tool.setuptools_scm]
 write_to = "webview/_version.py"
-
-[tool.uv]
-# Prefer pre-compiled wheels for better installation experience
-resolution = "highest"
-# Use index strategy that prefers wheels over source distributions
-index-strategy = "unsafe-best-match"
 
 [tool.uv.extra-build-dependencies]
 jnius = ["Cython"]

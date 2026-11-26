@@ -54,6 +54,4 @@ Become a financial contributor and help us sustain our community. More donation 
 
 [![Github Sponsor](https://raw.githubusercontent.com/r0x0r/pywebview/master/docs/.vuepress/public/github_sponsor_button.png)](https://github.com/sponsors/r0x0r)
 
-[![Patreon](https://raw.githubusercontent.com/r0x0r/pywebview/master/docs/.vuepress/public/patreon.png)](https://www.patreon.com/bePatron?u=13226105)
-
 [![Open Collective](https://raw.githubusercontent.com/r0x0r/pywebview/master/docs/.vuepress/public/opencollective.png)](https://opencollective.com/pywebview/donate)

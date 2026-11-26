@@ -148,15 +148,6 @@ class BrowserView:
                 except Exception as e:
                     logger.error(f'Error parsing cookies: {e}')
 
-            elif event == 'onReceivedHttpError':
-                response_data = json.loads(data)
-                response = Response(
-                    response_data.get('url', ''),
-                    response_data.get('statusCode', 0),
-                    response_data.get('headers', {}),
-                )
-                self.pywebview_window.events.response_received.set(response)
-
         self._cookies = []
         self.webview = WebView(activity)
         webview_settings = self.webview.getSettings()
@@ -238,7 +229,10 @@ class BrowserView:
         original_headers = headers.copy()
 
         request = Request(url, method, headers)
-        self.pywebview_window.events.request_sent.set(request)
+        if self.pywebview_window.events.request_sent.set(request):
+            self.pywebview_window._cancel_load(url)
+            # Matches PyWebViewClient.CANCEL_REQUEST
+            return 'pywebview:cancel'
 
         if request.headers != original_headers:
             logger.debug(
@@ -693,6 +687,26 @@ def clear_cookies(_):
         logger.error('Timed out waiting for cookies to be cleared')
 
 
+def _get_cookie_string(url):
+    lock = Semaphore(0)
+    cookie_string = ''
+
+    # CookieManager is used from the UI thread only, as in the rest of this module
+    @run_on_ui_thread
+    def _get_cookie():
+        nonlocal cookie_string
+        try:
+            cookie_string = CookieManager.getInstance().getCookie(url) or ''
+        except Exception as e:
+            logger.error(f'Error getting cookies: {e}')
+        finally:
+            lock.release()
+
+    _get_cookie()
+    lock.acquire()
+    return cookie_string
+
+
 def get_cookies(_):
     if _is_ui_thread():
         raise RuntimeError(
@@ -701,10 +715,11 @@ def get_cookies(_):
         )
 
     cookies = app.view._cookies
-    cookie_string = evaluate_js('document.cookie', None, False)
 
     try:
         current_url = app.view.get_url()
+        # Unlike document.cookie, CookieManager also returns HttpOnly cookies.
+        cookie_string = _get_cookie_string(current_url)
 
         # Parse URL once outside the loop to avoid repeated parsing
         parsed_url = urlparse(current_url)

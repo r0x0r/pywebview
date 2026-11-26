@@ -1,6 +1,10 @@
+import shutil
 from concurrent.futures.thread import ThreadPoolExecutor
 
+import pytest
+
 import webview
+from webview.errors import WebViewException
 
 from .util import assert_js, run_test
 
@@ -13,21 +17,34 @@ def test_js_bridge():
     run_test(webview, window, js_bridge)
 
 
-def test_js_resource_failure(monkeypatch, tmp_path, caplog):
+def test_js_resource_failure(monkeypatch, tmp_path):
     from webview import util
 
-    # A stray resource with an unresolved placeholder used to raise out of the
-    # native navigation callback, aborting Cocoa before the window could close.
-    (tmp_path / 'customize 2.js').write_text('var selectText = %(text_select)s;')
-    monkeypatch.setattr(util, 'get_js_dir', lambda: str(tmp_path))
+    # A stray resource with an unresolved placeholder breaks the JS API on every page, so
+    # start() reports it before any window opens.
+    js_dir = tmp_path / 'js'
+    shutil.copytree(util.get_js_dir(), js_dir)
+    (js_dir / 'customize 2.js').write_text('var selectText = %(text_select)s;')
+    monkeypatch.setattr(util, 'get_js_dir', lambda: str(js_dir))
     window = webview.create_window('Failed JS injection', html='<html>Test</html>')
 
-    def loaded(window):
-        assert window.events.loaded.is_set()
-        assert not window.events._pywebviewready.is_set()
+    with pytest.raises(WebViewException, match='customize 2.js'):
+        webview.start()
+    assert not window.events.shown.is_set()
 
-    run_test(webview, window, loaded)
-    assert 'customize 2.js' in caplog.text
+
+def test_js_dir_missing(monkeypatch):
+    from webview import util
+
+    def get_js_dir():
+        raise FileNotFoundError('Cannot find JS directory')
+
+    monkeypatch.setattr(util, 'get_js_dir', get_js_dir)
+    webview.create_window('Missing JS directory', html='<html>Test</html>')
+
+    with pytest.raises(WebViewException, match='Cannot find JS directory') as caught:
+        webview.start()
+    assert isinstance(caught.value.__cause__, FileNotFoundError)
 
 
 def test_exception():

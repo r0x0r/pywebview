@@ -59,6 +59,13 @@ from gi.repository import WebKit2 as webkit  # noqa: E402
 
 renderer = 'gtkwebkit2'
 webkit_ver = webkit.get_major_version(), webkit.get_minor_version(), webkit.get_micro_version()
+gtk_ver = gtk.get_major_version(), gtk.get_minor_version(), gtk.get_micro_version()
+logger.debug(
+    'GTK %d.%d.%d (Gdk %s), WebKit2 %d.%d.%d',
+    *gtk_ver,
+    Gdk._version,
+    *webkit_ver,
+)
 
 _app = None
 _app_actions = {}  # action_label: function
@@ -214,7 +221,10 @@ class BrowserView:
         self.manager.register_script_message_handler('jsBridge')
         self.manager.connect('script-message-received', self.on_js_bridge_call)
 
-        self.request_headers_mutated = False
+        # URL of the navigation request_sent was last fired for in on_navigation
+        self.navigation_url = None
+        # URL of the navigation reloaded with headers modified in a request_sent handler
+        self.modified_navigation_url = None
 
         # Create WebView with the configured context
         self.webview = webkit.WebView(user_content_manager=self.manager, web_context=web_context)
@@ -425,58 +435,23 @@ class BrowserView:
         if len(self.pywebview_window.events.request_sent) == 0:
             return
 
-        headers = request.get_http_headers()
-        original_headers = self._headers_to_dict(headers)
         url = request.get_uri()
-        method = request.get_http_method()
 
-        # Fired and applied synchronously and inline, unlike the WebView2
-        # backends: WebKitGTK's resource-load-started has no deferral
-        # mechanism (unlike WebView2's GetDeferral() or WKNavigationDelegate's
-        # asynchronously-invokable decisionHandler), so the original request
-        # is free to reach the network as soon as this signal handler
-        # returns. Dispatching request_sent off-thread here would let that
-        # happen before stop_loading()/load_request() below can replace it,
-        # replaying non-idempotent requests (e.g. POST) — this must stay
-        # synchronous even though it means a request_sent handler here that
-        # calls a synchronous window API (e.g. evaluate_js()) can deadlock;
-        # see evaluate_js()'s own main-thread guard for that case instead.
-        request_ = Request(url, method, original_headers)
-        self.pywebview_window.events.request_sent.set(request_)
-
-        if (
-            request_.headers == original_headers
-            or not headers
-            or self.request_headers_mutated
-            or url != self.pywebview_window.real_url
-        ):
+        if url == self.navigation_url:
+            # A navigation, already handled in on_navigation
+            self.navigation_url = None
             return
 
-        missing_headers = {
-            k: v
-            for k, v in request_.headers.items()
-            if k not in original_headers or original_headers[k] != v
-        }
-        extra_headers = {
-            k: str(v) for k, v in original_headers.items() if k not in request_.headers
-        }
+        # Fired synchronously and inline, unlike the WebView2 backends, so the handler has
+        # returned before WebKitGTK continues. A request_sent handler here that calls a
+        # synchronous window API (e.g. evaluate_js()) can deadlock; see evaluate_js()'s own
+        # main-thread guard for that case.
+        original_headers = self._headers_to_dict(request.get_http_headers())
+        request_ = Request(url, request.get_http_method(), original_headers)
 
-        for k, v in missing_headers.items():
-            # replace(), not append(): missing_headers includes headers that
-            # already exist with a different value, not just genuinely new
-            # ones. append() would add a second value alongside the
-            # original instead of overriding it (e.g. two User-Agent
-            # headers), so handlers couldn't reliably change a header's
-            # value. replace() adds the header if absent and overwrites it
-            # if present, matching request_.headers' one-value-per-key model.
-            headers.replace(k, v)
-
-        for k in extra_headers:
-            headers.remove(k)
-
-        webview.stop_loading()
-        self.request_headers_mutated = True
-        webview.load_request(request)
+        if self.pywebview_window.events.request_sent.set(request_):
+            # By now WebKitGTK has sent the request, so only navigations can be cancelled
+            logger.warning(f'Request cancelling is supported only for navigations: {url}')
 
     def on_load_finish(self, webview, status):
         if status == webkit.LoadEvent.STARTED:
@@ -486,11 +461,8 @@ class BrowserView:
         if not webview.props.opacity:
             glib.idle_add(webview.set_opacity, 1.0)
 
-        if status == webkit.LoadEvent.FINISHED and not self.request_headers_mutated:
+        if status == webkit.LoadEvent.FINISHED:
             inject_pywebview(renderer, self.js_bridge.window, webview.get_uri())
-
-        if self.request_headers_mutated:
-            self.request_headers_mutated = False
 
     def on_download_started(self, session, download):
         download.connect('decide-destination', self.on_download_decide_destination)
@@ -512,7 +484,8 @@ class BrowserView:
 
     def on_navigation(self, webview, decision, decision_type):
         if type(decision) is webkit.NavigationPolicyDecision:
-            uri = decision.get_navigation_action().get_request().get_uri()
+            request = decision.get_navigation_action().get_request()
+            uri = request.get_uri()
 
             if decision.get_navigation_action().get_frame_name() == '_blank':
                 if settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']:
@@ -520,6 +493,52 @@ class BrowserView:
                     decision.ignore()
                 else:
                     self.load_url(uri)
+            elif len(self.pywebview_window.events.request_sent) > 0:
+                self.navigation_url = uri
+
+                if uri == self.modified_navigation_url:
+                    # The reload below, already handled
+                    self.modified_navigation_url = None
+                    return False
+
+                # Fired here rather than in on_request, as WebKitGTK has not sent the request
+                # yet, so it can still be cancelled or reloaded with modified headers
+                headers = request.get_http_headers()
+                original_headers = self._headers_to_dict(headers)
+                method = request.get_http_method()
+                request_ = Request(uri, method, original_headers)
+
+                if self.pywebview_window.events.request_sent.set(request_):
+                    # An ignored navigation sends no request for on_request to match
+                    self.navigation_url = None
+                    decision.ignore()
+                    self.pywebview_window._cancel_load(uri)
+                    return True
+
+                # Navigations do not tell which frame they are for, so headers are modified only
+                # for pages pywebview loads itself. load_request() would load an iframe's page
+                # in the whole window, and drop a POST body.
+                if (
+                    request_.headers == original_headers
+                    or not headers
+                    or method != 'GET'
+                    or uri != self.pywebview_window.real_url
+                ):
+                    return False
+
+                for k, v in request_.headers.items():
+                    if original_headers.get(k) != v:
+                        # replace(), not append(), so that a changed header is not sent twice
+                        headers.replace(k, str(v))
+
+                for k in original_headers:
+                    if k not in request_.headers:
+                        headers.remove(k)
+
+                decision.ignore()
+                self.modified_navigation_url = uri
+                webview.load_request(request)
+                return True
         elif type(decision) is webkit.ResponsePolicyDecision:
             if not decision.is_mime_type_supported():
                 self._download_filename = decision.get_response().get_suggested_filename()
@@ -803,7 +822,8 @@ class BrowserView:
 
     def _headers_to_dict(self, headers):
         def _assign(k, v):
-            headers_dict[k] = v
+            # join repeated headers, e.g. Set-Cookie, instead of keeping only the last one
+            headers_dict[k] = f'{headers_dict[k]}, {v}' if k in headers_dict else v
 
         headers_dict = {}
 
