@@ -463,6 +463,11 @@ class BrowserView:
 
     def on_download_started(self, session, download):
         download.connect('decide-destination', self.on_download_decide_destination)
+        download.connect('failed', self.on_download_failed)
+
+    def on_download_failed(self, download, error):
+        if not error.matches(webkit.download_error_quark(), webkit.DownloadError.CANCELLED_BY_USER):
+            logger.error('Download failed: %s', error.message)
 
     def on_download_decide_destination(self, download, suggested_filename):
         destination = self.create_file_dialog(
@@ -475,6 +480,8 @@ class BrowserView:
 
         if destination:
             destination_uri = glib.filename_to_uri(destination[0])
+            # The save dialog has already asked the user to confirm the replacement.
+            download.set_allow_overwrite(True)
             download.set_destination(destination_uri)
         else:
             download.cancel()
@@ -673,6 +680,7 @@ class BrowserView:
 
         if dialog_type == FileDialog.SAVE:
             dialog.set_current_name(save_filename)
+            dialog.set_do_overwrite_confirmation(True)
 
         response = dialog.run()
 
