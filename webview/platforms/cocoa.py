@@ -890,11 +890,14 @@ class BrowserView:
         AppHelper.callAfter(self.window.orderOut_, self.window)
 
     def destroy(self):
-        # NSWindow.close() bypasses windowShouldClose_, which fires quitting for the user's close
-        if self.pywebview_window._fire_quitting():
-            return
+        # NSWindow.close() bypasses windowShouldClose_, so closing, the close confirmation and
+        # quitting are run here, on the main thread, as for a close by the user and on other
+        # platforms
+        def _close():
+            if BrowserView.should_close(self.pywebview_window):
+                self.window.close()
 
-        AppHelper.callAfter(self.window.close)
+        AppHelper.callAfter(_close)
 
     def _wait(self, semaphore):
         """Wait for a result from the main thread, giving up once the window is closed."""

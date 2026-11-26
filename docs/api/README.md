@@ -710,7 +710,7 @@ If the argument is not specified, then the `"All files (*.*)"` mask is used by d
 window.destroy()
 ```
 
-Destroy the window.
+Destroy the window. The window fires its [closing](#window-events-closing) event and shows the close confirmation first, and its closing can be cancelled, as when the user closes it.
 
 [Example](/examples/destroy_window.html)
 

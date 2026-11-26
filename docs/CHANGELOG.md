@@ -9,6 +9,8 @@
 ### 🐞 Bug fixes
 
 - `WinUI3` Fix a top-level menu holding an item of no known type, which showed the entry before it a second time, or failed when it came first. Such an item is skipped, as in submenus and the WinForms backend.
+- `Cocoa` `window.destroy()` fires the `closing` event and shows the close confirmation on the main thread, as on other platforms and as when the user closes the window.
+
 ### ⚡ Features
 
 - `All` New application events in `webview.events`, which are not bound to a window. `started` is fired once the GUI loop is running and the first window is shown. `opened` is fired with the files and URLs the application is asked to open, e.g. a document double-clicked in a file manager or a link of a custom URL scheme. On macOS it is fired at launch and while the application is running, where opened files were previously rejected. On Windows and Linux it is fired at startup for the command line arguments that are existing files or URLs. On Android it is fired for `VIEW` intents, with documents copied to the cache directory. `quitting` is fired when the application is about to quit, after the last window passes its `closing` event and close confirmation or on Cmd+Q on macOS, and can cancel quitting. [#569](https://github.com/r0x0r/pywebview/issues/569)
