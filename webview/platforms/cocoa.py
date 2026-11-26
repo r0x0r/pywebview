@@ -17,6 +17,7 @@ import WebKit
 from objc import nil, super
 from PyObjCTools import AppHelper
 
+import webview
 from webview import FileDialog, _state, windows
 from webview import settings as webview_settings
 from webview.dom import _dnd_state
@@ -117,10 +118,23 @@ class BrowserView:
             should_close = True
             for i in BrowserView.instances.values():
                 should_close = should_close and BrowserView.should_close(i.pywebview_window)
+
+            # should_close() fires quitting only for the last window, so with several windows
+            # it is fired here, once
+            if should_close and len(BrowserView.instances) > 1:
+                should_close = not webview.events.quitting.set()
+
             return Foundation.YES if should_close else Foundation.NO
 
         def applicationSupportsSecureRestorableState_(self, app):
             return Foundation.YES
+
+        def application_openURLs_(self, app, opened):
+            # Files opened from Finder or with `open`, and URLs of the application's URL schemes,
+            # arrive here as an Apple Event, not argv
+            files = [str(url.path()) for url in opened if url.isFileURL()]
+            urls = [str(url.absoluteString()) for url in opened if not url.isFileURL()]
+            webview.instance.fire_opened(files, urls)
 
     class WindowHost(AppKit.NSWindow):
         def canBecomeKeyWindow(self):
@@ -925,7 +939,14 @@ class BrowserView:
         AppHelper.callAfter(self.window.orderOut_, self.window)
 
     def destroy(self):
-        AppHelper.callAfter(self.window.close)
+        # NSWindow.close() bypasses windowShouldClose_, so closing, the close confirmation and
+        # quitting are run here, on the main thread, as for a close by the user and on other
+        # platforms
+        def _close():
+            if BrowserView.should_close(self.pywebview_window):
+                self.window.close()
+
+        AppHelper.callAfter(_close)
 
     def _wait(self, semaphore):
         """Wait for a result from the main thread, giving up once the window is closed."""
@@ -1543,9 +1564,9 @@ class BrowserView:
         should_cancel = window.events.closing.set()
         if should_cancel:
             return Foundation.NO
-        if not window.confirm_close or BrowserView.display_confirmation_dialog(quit, cancel, msg):
-            return Foundation.YES
-        return Foundation.NO
+        if window.confirm_close and not BrowserView.display_confirmation_dialog(quit, cancel, msg):
+            return Foundation.NO
+        return Foundation.NO if window._fire_quitting() else Foundation.YES
 
     @staticmethod
     def print_webview(webview):

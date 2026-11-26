@@ -208,11 +208,30 @@ class Window:
         self.events.request_sent = Event(self, True, 'request_sent')
         self.events.response_received = Event(self)
 
+        # Whether the window is minimized, so that a later launch in single instance mode can
+        # restore a minimized window without returning a maximized one to its normal size
+        self._minimized = minimized
+        self.events.minimized += lambda: setattr(self, '_minimized', True)
+        self.events.maximized += lambda: setattr(self, '_minimized', False)
+        self.events.restored += lambda: setattr(self, '_minimized', False)
+
         self._expose_lock = Lock()
         self.dom = DOM(self)
         self.gui: Any = None
         self.native: Any = None  # set in the gui after window creation
         self._state = State(self)
+
+    def _fire_quitting(self) -> bool:
+        """
+        Fire webview.events.quitting if this is the last window. Backends call it once the window
+        passed its closing event and close confirmation. Return True if a handler cancelled quitting.
+        """
+        import webview
+
+        if any(window is not self for window in webview.windows):
+            return False
+
+        return webview.events.quitting.set()
 
     def _initialize(self, gui: Any, server: http.BottleServer | None = None):
         self.gui = gui

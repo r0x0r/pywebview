@@ -1181,6 +1181,8 @@ class BrowserView:
             Returns False if the close should not proceed yet. Shared by
             `on_closing` and `close` so both fire the same events.
             """
+            # Set by a confirmed close, which has fired quitting, and by teardown of a window
+            # that failed to initialize, which must not be cancelled
             if self._closing_confirmed:
                 self._closing_confirmed = False
                 return True
@@ -1213,7 +1215,11 @@ class BrowserView:
                     if status == AsyncStatus.COMPLETED:
                         result = op.get_results()
 
-                        if result == ContentDialogResult.PRIMARY:
+                        # Window.close() bypasses on_closing, so quitting is fired here
+                        if (
+                            result == ContentDialogResult.PRIMARY
+                            and not self.pywebview_window._fire_quitting()
+                        ):
                             self._closing_confirmed = True
                             self.window.close()
 
@@ -1222,7 +1228,7 @@ class BrowserView:
                 # have to stop this close so the dialog can be shown
                 return False
 
-            return True
+            return not self.pywebview_window._fire_quitting()
 
         def on_resize(self, sender: Object, args: WindowSizeChangedEventArgs):
             # args.size is the XAML content area's size, not the outer

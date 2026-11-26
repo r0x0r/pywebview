@@ -1,3 +1,4 @@
+import os
 import time
 
 import webview
@@ -32,3 +33,59 @@ def lifecycle_test(window, fired):
     assert not missing, f'events did not fire: {missing} (fired: {fired})'
     assert fired.index('before_load') < fired.index('loaded'), fired
     assert fired.index('before_show') < fired.index('shown'), fired
+
+
+def test_app_events(monkeypatch):
+    argv = ['document.txt', 'myapp://open?id=1', '--option']
+    monkeypatch.setattr('sys.argv', ['app', *argv])
+
+    window = webview.create_window('App events test', html='<html><body>TEST</body></html>')
+    fired = []
+    webview.events.started += lambda: fired.append('started')
+    webview.events.opened += lambda request: fired.append(request)
+
+    run_test(webview, window, app_events, (fired, argv))
+
+
+def app_events(window, fired, argv):
+    for _ in range(50):
+        if len(fired) == 2:
+            break
+        time.sleep(0.1)
+
+    # Handlers run in their own threads, so only the firing order is guaranteed, not this one
+    assert 'started' in fired, fired
+    # The command line is delivered as it is, without guessing which arguments are files
+    assert {'files': [], 'urls': [], 'argv': argv, 'cwd': os.getcwd()} in fired, fired
+
+
+def test_quitting():
+    window = webview.create_window('Quitting test')
+    quitting = []
+
+    def on_quitting():
+        quitting.append(True)
+        return len(quitting) > 1
+
+    webview.events.quitting += on_quitting
+
+    # Closing the last window fires quitting, which can cancel it
+    assert window._fire_quitting()
+    assert not window._fire_quitting()
+
+    # Closing a window while another one is open does not quit
+    webview.create_window('Second window')
+    assert not window._fire_quitting()
+    assert len(quitting) == 2
+
+
+def test_quitting_on_destroy():
+    window = webview.create_window(
+        'Quitting on destroy test', html='<html><body>TEST</body></html>'
+    )
+    quitting = []
+    webview.events.quitting += lambda: quitting.append(True)
+
+    # run_test closes the last window with window.destroy()
+    run_test(webview, window)
+    assert quitting == [True], quitting

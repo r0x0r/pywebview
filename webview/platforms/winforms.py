@@ -234,7 +234,6 @@ class BrowserView:
                     windll.user32.DestroyIcon(icon_handle)
 
             self.closed = window.events.closed
-            self.closing = window.events.closing
             self.shown = window.events.shown
             self.loaded = window.events.loaded
             self.url = window.real_url
@@ -391,7 +390,7 @@ class BrowserView:
                 self.Invoke(Func[Type](_shutdown))
 
         def on_closing(self, sender, args):
-            should_cancel = self.closing.set()
+            should_cancel = self.pywebview_window.events.closing.set()
             if should_cancel:
                 args.Cancel = True
 
@@ -406,6 +405,9 @@ class BrowserView:
 
                     if result == WinForms.DialogResult.Cancel:
                         args.Cancel = True
+
+            if not args.Cancel and self.pywebview_window._fire_quitting():
+                args.Cancel = True
 
         def on_resize(self, sender, args):
             if self.WindowState == WinForms.FormWindowState.Maximized:

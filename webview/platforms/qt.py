@@ -16,6 +16,7 @@ from qtpy.QtCore import QByteArray, QJsonValue
 from qtpy.QtGui import QColor, QIcon, QScreen
 from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
 
+import webview
 from webview import FileDialog, _state, settings, windows
 from webview.dom import _dnd_state
 from webview.menu import Menu, MenuAction, MenuSeparator
@@ -80,6 +81,9 @@ if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos'
     logger.debug('Enable --no-sandbox flag for arch/manjaro/nixos')
 
 _app_menu = None
+_file_open_filter = None
+# Set while the windows close for a quit that has already fired closing, confirmation and quitting
+_quit_confirmed = False
 _main_window_created = Event()
 _main_window_created.clear()
 # QtWebEngine requires a profile to outlive the pages that use it. Profiles are kept here with the
@@ -110,6 +114,52 @@ def _sigint_handler(signum, frame):
     global _app
     if _app:
         _app.quit()
+
+
+class FileOpenFilter(QtCore.QObject):
+    """
+    Forward files and URLs opened through the OS (macOS Apple Events) to events.opened, and handle
+    quitting the application (Cmd+Q on macOS).
+    """
+
+    def eventFilter(self, object, event):
+        if (
+            event.type() == QtCore.QEvent.Quit
+            and event.spontaneous()
+            and isinstance(object, QApplication)
+            and len(BrowserView.instances) > 1
+        ):
+            return self._quit(event)
+
+        if event.type() == QtCore.QEvent.FileOpen:
+            url = event.url()
+            if url.isLocalFile():
+                webview.instance.fire_opened([url.toLocalFile()], [])
+            else:
+                webview.instance.fire_opened([], [url.toString()])
+            return True
+
+        return super().eventFilter(object, event)
+
+    def _quit(self, event):
+        """
+        Qt closes the windows one after another and fires quitting only for the last one, after
+        the others have closed. Check all windows first and fire quitting once, as on Cocoa.
+        """
+        global _quit_confirmed
+
+        views = list(BrowserView.instances.values())
+        if not all(view._should_close() for view in views) or webview.events.quitting.set():
+            event.ignore()
+            return True
+
+        _quit_confirmed = True
+        try:
+            _app.event(event)
+        finally:
+            _quit_confirmed = False
+
+        return True
 
 
 class BrowserView(QMainWindow):
@@ -667,12 +717,10 @@ class BrowserView(QMainWindow):
     def showEvent(self, event):
         self.pywebview_window.events.shown.set()
 
-    def closeEvent(self, event):
-        should_cancel = self.pywebview_window.events.closing.set()
-
-        if should_cancel:
-            event.ignore()
-            return
+    def _should_close(self):
+        """Fire closing and ask for confirmation. Return False if closing is cancelled."""
+        if self.pywebview_window.events.closing.set():
+            return False
 
         if self.pywebview_window.confirm_close:
             reply = QMessageBox.question(
@@ -684,8 +732,16 @@ class BrowserView(QMainWindow):
             )
 
             if reply == QMessageBox.No:
-                event.ignore()
-                return
+                return False
+
+        return True
+
+    def closeEvent(self, event):
+        if not _quit_confirmed and (
+            not self._should_close() or self.pywebview_window._fire_quitting()
+        ):
+            event.ignore()
+            return
 
         event.accept()
 
@@ -737,6 +793,8 @@ class BrowserView(QMainWindow):
 
     def on_show_window(self):
         self.show()
+        self.raise_()
+        self.activateWindow()
 
     def on_hide_window(self):
         self.hide()
@@ -1091,7 +1149,7 @@ def create_window(window):
             browser.pywebview_window.events.shown.set()
 
     if window.uid == 'master':
-        global _app, _app_menu
+        global _app, _app_menu, _file_open_filter
         if _state['menu']:
             _app_menu = QMenuBar()
             _app_menu.setNativeMenuBar(False)
@@ -1100,6 +1158,8 @@ def create_window(window):
             _app_menu = None
 
         _app = QApplication.instance() or QApplication(sys.argv)
+        _file_open_filter = FileOpenFilter()
+        _app.installEventFilter(_file_open_filter)
 
         signal.signal(signal.SIGINT, _sigint_handler)
 

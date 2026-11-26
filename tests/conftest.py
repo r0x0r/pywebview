@@ -7,10 +7,11 @@ import pytest
 @pytest.fixture(autouse=True)
 def reload_webview():
     import webview
-    from webview import http
+    from webview import http, instance
 
     reload(webview)
     reload(http)
+    reload(instance)
 
 
 @pytest.fixture(autouse=True)

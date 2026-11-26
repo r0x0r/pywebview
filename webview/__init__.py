@@ -23,8 +23,9 @@ from typing import Any
 from uuid import uuid4
 
 import webview.http as http
+import webview.instance as instance
 from webview.errors import JavascriptException, SecurityException, WebViewException
-from webview.event import Event
+from webview.event import Event, EventContainer
 from webview.guilib import GUIType, initialize
 from webview.localization import original_localization
 from webview.menu import Menu
@@ -46,11 +47,13 @@ from webview.window import Window
 __all__ = (
     # Stuff that's here
     'active_window',
+    'is_instance_running',
     'start',
     'create_window',
     'token',
     'renderer',
     'settings',
+    'events',
     # From event
     'Event',
     # from util    '
@@ -175,6 +178,12 @@ def __dir__() -> list[str]:
 
 guilib = None
 
+# Application events, which are not bound to a window. Handlers receive no window argument.
+events = EventContainer()
+events.started = Event(None)
+events.opened = Event(None)
+events.quitting = Event(None, True, 'quitting')
+
 # Served by __getattr__
 screens: list[Screen]
 
@@ -200,6 +209,7 @@ def start(
     ssl: bool = False,
     icon: str | None = None,
     event_loop: asyncio.AbstractEventLoop | None = None,
+    single_instance: bool | str = False,
 ):
     """
     Start a GUI loop and display previously created windows. This function must
@@ -230,6 +240,11 @@ def start(
         A loop that is not running is run in a background thread. It must not be the loop that
         calls start(). If None, a loop is started automatically when the first coroutine needs
         to run and closed when the GUI loop exits.
+    :param single_instance: Allow only one running instance of the application. A later launch
+        hands its command line to the running instance and start() returns without starting the
+        GUI. The running instance restores and shows its window and fires webview.events.opened
+        with the command line. True identifies the application by its path; a string
+        is used as the identifier instead. Default is False.
     """
     global guilib, renderer
 
@@ -286,94 +301,108 @@ def start(
     if len(windows) == 0:
         raise WebViewException('You must create a window first before calling this function.')
 
-    if menu:
-        _state['menu'] = menu
+    # Opened files and URLs wait for started, which is fired again by each start(). Cleared
+    # before claiming, so that a launch handed over by now waits for this start().
+    events.started.clear()
 
-    set_event_loop(event_loop)
-    guilib = initialize(gui)
-    renderer = guilib.renderer
-
-    try:
-        # A missing or broken JS file breaks the JS API on every page, so report it before any
-        # window opens rather than on each page load
-        load_js_files(windows[0], renderer)
-    except Exception as e:
-        stop_event_loop()
-        if isinstance(e, WebViewException):
-            raise
-        raise WebViewException(f'Failed to load pywebview JavaScript files: {e}') from e
-
-    if ssl:
-        if not server_args or 'keyfile' not in server_args or 'certfile' not in server_args:
-            # generate SSL certs and tell the windows to use them
-            keyfile, certfile = __generate_ssl_cert()
-            generated_ssl_cert = True
-            server_args['keyfile'] = keyfile
-            server_args['certfile'] = certfile
-        else:
-            keyfile = server_args['keyfile']
-            certfile = server_args['certfile']
-            if not os.path.exists(keyfile):
-                raise WebViewException(f'The {keyfile} does not exist.')
-            if not os.path.exists(certfile):
-                raise WebViewException(f'The {certfile} does not exist.')
-
-        _state['ssl'] = True
-    else:
-        keyfile, certfile = None, None
-        server_args.pop('keyfile', None)
-        server_args.pop('certfile', None)
-
-    urls: list[str | Callable[..., Any]] = [
-        w.original_url for w in windows if isinstance(w.original_url, str)
-    ]
-    has_local_urls = any(is_local_url(w.original_url) for w in windows)
-    # start the global server if it's not running and we need it
-    if (http.global_server is None) and (http_server or has_local_urls):
-        if not _state['private_mode'] and not http_port:
-            try:
-                http.start_global_server(
-                    http_port=settings['DEFAULT_HTTP_PORT'],
-                    urls=urls,
-                    server=server,
-                    **server_args,
-                )
-            except OSError:
-                logger.warning(
-                    f'Port {settings["DEFAULT_HTTP_PORT"]} is in use, using a random port. '
-                    'Web storage will not persist between sessions.'
-                )
-
-        if http.global_server is None:
-            http.start_global_server(http_port=http_port, urls=urls, server=server, **server_args)
-
-    _state['server'] = server
-    _state['server_args'] = server_args
-
-    for window in windows:
-        if not window._initialize(guilib):
-            stop_event_loop()
+    if single_instance:
+        if not instance.claim(single_instance):
+            logger.info('Another instance of the application is running, handing over to it')
             return
 
-    set_local_tls_cert(None)
-    if ssl:
-        for window in windows:
-            window.gui.add_tls_cert(certfile)
-
-    if len(windows) > 1:
-        threading.Thread(target=_create_children, args=(windows[1:],)).start()
-
-    if func:
-        if args is None:
-            args = ()
-        elif not hasattr(args, '__iter__'):
-            args = (args,)
-        threading.Thread(target=call_maybe_async, args=(func, *args)).start()
-
     try:
+        if menu:
+            _state['menu'] = menu
+
+        set_event_loop(event_loop)
+        guilib = initialize(gui)
+        renderer = guilib.renderer
+
+        try:
+            # A missing or broken JS file breaks the JS API on every page, so report it before
+            # any window opens rather than on each page load
+            load_js_files(windows[0], renderer)
+        except WebViewException:
+            raise
+        except Exception as e:
+            raise WebViewException(f'Failed to load pywebview JavaScript files: {e}') from e
+
+        if ssl:
+            if not server_args or 'keyfile' not in server_args or 'certfile' not in server_args:
+                # generate SSL certs and tell the windows to use them
+                keyfile, certfile = __generate_ssl_cert()
+                generated_ssl_cert = True
+                server_args['keyfile'] = keyfile
+                server_args['certfile'] = certfile
+            else:
+                keyfile = server_args['keyfile']
+                certfile = server_args['certfile']
+                if not os.path.exists(keyfile):
+                    raise WebViewException(f'The {keyfile} does not exist.')
+                if not os.path.exists(certfile):
+                    raise WebViewException(f'The {certfile} does not exist.')
+
+            _state['ssl'] = True
+        else:
+            keyfile, certfile = None, None
+            server_args.pop('keyfile', None)
+            server_args.pop('certfile', None)
+
+        urls: list[str | Callable[..., Any]] = [
+            w.original_url for w in windows if isinstance(w.original_url, str)
+        ]
+        has_local_urls = any(is_local_url(w.original_url) for w in windows)
+        # start the global server if it's not running and we need it
+        if (http.global_server is None) and (http_server or has_local_urls):
+            if not _state['private_mode'] and not http_port:
+                try:
+                    http.start_global_server(
+                        http_port=settings['DEFAULT_HTTP_PORT'],
+                        urls=urls,
+                        server=server,
+                        **server_args,
+                    )
+                except OSError:
+                    logger.warning(
+                        f'Port {settings["DEFAULT_HTTP_PORT"]} is in use, using a random port. '
+                        'Web storage will not persist between sessions.'
+                    )
+
+            if http.global_server is None:
+                http.start_global_server(
+                    http_port=http_port, urls=urls, server=server, **server_args
+                )
+
+        _state['server'] = server
+        _state['server_args'] = server_args
+
+        for window in windows:
+            if not window._initialize(guilib):
+                return
+
+        set_local_tls_cert(None)
+        if ssl:
+            for window in windows:
+                window.gui.add_tls_cert(certfile)
+
+        if len(windows) > 1:
+            threading.Thread(target=_create_children, args=(windows[1:],)).start()
+
+        instance.fire_started(windows[0])
+        instance.open_argv()
+
+        if func:
+            if args is None:
+                args = ()
+            elif not hasattr(args, '__iter__'):
+                args = (args,)
+            threading.Thread(target=call_maybe_async, args=(func, *args)).start()
+
         guilib.create_window(windows[0])
     finally:
         stop_event_loop()
+        # Later launches start their own instance, rather than handing over to one without windows
+        instance.release()
 
         if generated_ssl_cert:
             for path in (keyfile, certfile):
@@ -593,6 +622,19 @@ def active_window() -> Window | None:
     if guilib:
         return guilib.get_active_window()
     return None
+
+
+def is_instance_running(instance_id: bool | str = True) -> bool:
+    """
+    Check whether another instance of the application is running in single instance mode. The
+    result is advisory, as an instance may start or exit right after the check.
+
+    :param instance_id: Identifier of the application, the same value as passed to
+        webview.start(single_instance=...). True identifies the application by its path.
+    :return: True if another process is the running instance, otherwise False, including in the
+        running instance itself.
+    """
+    return instance.is_running(instance_id)
 
 
 def _get_screens() -> list[Screen]:
